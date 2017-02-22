@@ -31,8 +31,6 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
 
 class TestDataFrameToCSV(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_to_csv_from_csv1(self):
 
         with ensure_clean('__tmp_to_csv_from_csv1__') as path:
@@ -646,10 +644,10 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                           index=df_float.index, columns=create_cols('date'))
 
         # add in some nans
-        df_float.ix[30:50, 1:3] = np.nan
+        df_float.loc[30:50, 1:3] = np.nan
 
         # ## this is a bug in read_csv right now ####
-        # df_dt.ix[30:50,1:3] = np.nan
+        # df_dt.loc[30:50,1:3] = np.nan
 
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
@@ -1145,9 +1143,3 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         df = df.set_index(['a', 'b'])
         expected = '"a","b","c"\n"1","3","5"\n"2","4","6"\n'
         self.assertEqual(df.to_csv(quoting=csv.QUOTE_ALL), expected)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

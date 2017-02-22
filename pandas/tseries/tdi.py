@@ -14,7 +14,7 @@ from pandas.types.common import (_TD_DTYPE,
                                  _ensure_int64)
 from pandas.types.missing import isnull
 from pandas.types.generic import ABCSeries
-from pandas.core.common import _maybe_box, _values_from_object
+from pandas.core.common import _maybe_box, _values_from_object, is_bool_indexer
 
 from pandas.core.index import Index, Int64Index
 import pandas.compat as compat
@@ -272,8 +272,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        if not getattr(values, 'dtype', None):
-            values = np.array(values, copy=False)
+        values = np.array(values, copy=False)
         if values.dtype == np.object_:
             values = tslib.array_to_timedelta64(values)
         if values.dtype != _TD_DTYPE:
@@ -673,6 +672,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         loc : int
         """
+
+        if is_bool_indexer(key):
+            raise TypeError
 
         if isnull(key):
             key = tslib.NaT

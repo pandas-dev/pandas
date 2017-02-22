@@ -832,6 +832,7 @@ class SparseSeries(Series):
         """
         return _coo_to_sparse_series(A, dense_index=dense_index)
 
+
 # overwrite series methods with unaccelerated versions
 ops.add_special_arithmetic_methods(SparseSeries, use_numexpr=False,
                                    **ops.series_special_funcs)
@@ -847,6 +848,7 @@ ops.add_special_arithmetic_methods(SparseSeries, _arith_method,
 
 # backwards compatiblity
 class SparseTimeSeries(SparseSeries):
+
     def __init__(self, *args, **kwargs):
         # deprecation TimeSeries, #10890
         warnings.warn("SparseTimeSeries is deprecated. Please use "

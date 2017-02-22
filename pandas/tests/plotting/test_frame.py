@@ -1,7 +1,8 @@
-#!/usr/bin/env python
 # coding: utf-8
 
-import nose
+""" Test cases for DataFrame.plot """
+
+import pytest
 import string
 import warnings
 
@@ -25,9 +26,6 @@ import pandas.tools.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
-
-
-""" Test cases for DataFrame.plot """
 
 
 @tm.mplskip
@@ -700,7 +698,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.patches[::5], facecolors=rgba_colors)
         tm.close()
 
-        ax = df.ix[:, [0]].plot.bar(color='DodgerBlue')
+        ax = df.loc[:, [0]].plot.bar(color='DodgerBlue')
         self._check_colors([ax.patches[0]], facecolors=['DodgerBlue'])
         tm.close()
 
@@ -1277,7 +1275,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_hist_df(self):
         from matplotlib.patches import Rectangle
         if self.mpl_le_1_2_1:
-            raise nose.SkipTest("not supported in matplotlib <= 1.2.x")
+            pytest.skip("not supported in matplotlib <= 1.2.x")
 
         df = DataFrame(randn(100, 4))
         series = df[0]
@@ -1595,7 +1593,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
-        ax = df.ix[:, [0]].plot(color='DodgerBlue')
+        ax = df.loc[:, [0]].plot(color='DodgerBlue')
         self._check_colors(ax.lines, linecolors=['DodgerBlue'])
 
         ax = df.plot(color='red')
@@ -1682,7 +1680,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
-        axes = df.ix[:, [0]].plot(color='DodgerBlue', subplots=True)
+        axes = df.loc[:, [0]].plot(color='DodgerBlue', subplots=True)
         self._check_colors(axes[0].lines, linecolors=['DodgerBlue'])
 
         # single character style
@@ -1785,7 +1783,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.patches[::10], facecolors=rgba_colors)
         tm.close()
 
-        ax = df.ix[:, [0]].plot.hist(color='DodgerBlue')
+        ax = df.loc[:, [0]].plot.hist(color='DodgerBlue')
         self._check_colors([ax.patches[0]], facecolors=['DodgerBlue'])
 
         ax = df.plot(kind='hist', color='green')
@@ -1857,8 +1855,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
-        axes = df.ix[:, [0]].plot(kind='kde', color='DodgerBlue',
-                                  subplots=True)
+        axes = df.loc[:, [0]].plot(kind='kde', color='DodgerBlue',
+                                   subplots=True)
         self._check_colors(axes[0].lines, linecolors=['DodgerBlue'])
 
         # single character style
@@ -2727,8 +2725,3 @@ def _generate_4_axes_via_gridspec():
     ax_lr = plt.subplot(gs[1, 1])
 
     return gs, [ax_tl, ax_ll, ax_tr, ax_lr]
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

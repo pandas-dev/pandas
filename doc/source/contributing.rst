@@ -552,8 +552,8 @@ use cases and writing corresponding tests.
 Adding tests is one of the most common requests after code is pushed to *pandas*.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
-Like many packages, *pandas* uses the `Nose testing system
-<https://nose.readthedocs.io/en/latest/index.html>`_ and the convenient
+Like many packages, *pandas* uses `pytest
+<http://doc.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
@@ -595,17 +595,25 @@ Running the test suite
 The tests can then be run directly inside your Git clone (without having to
 install *pandas*) by typing::
 
-    nosetests pandas
+    pytest pandas
 
 The tests suite is exhaustive and takes around 20 minutes to run.  Often it is
 worth running only a subset of tests first around your changes before running the
-entire suite.  This is done using one of the following constructs::
+entire suite.
 
-    nosetests pandas/tests/[test-module].py
-    nosetests pandas/tests/[test-module].py:[TestClass]
-    nosetests pandas/tests/[test-module].py:[TestClass].[test_method]
+The easiest way to do this is with::
 
-  .. versionadded:: 0.18.0
+    pytest pandas/path/to/test.py -k regex_matching_test_name
+
+Or with one of the following constructs::
+
+    pytest pandas/tests/[test-module].py
+    pytest pandas/tests/[test-module].py::[TestClass]
+    pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
+
+For more, see the `pytest<http://doc.pytest.org/en/latest/>`_ documentation.
+
+    .. versionadded:: 0.20.0
 
 Furthermore one can run
 
@@ -726,7 +734,7 @@ gbq integration tests on a forked repository:
    the status by visiting your Travis branches page which exists at the
    following location: https://travis-ci.org/your-user-name/pandas/branches .
    Click on a build job for your branch. Expand the following line in the
-   build log: ``ci/print_skipped.py /tmp/nosetests.xml`` . Search for the
+   build log: ``ci/print_skipped.py /tmp/pytest.xml`` . Search for the
    term ``test_gbq`` and confirm that gbq integration tests are not skipped.
 
 Running the vbench performance test suite (phasing out)

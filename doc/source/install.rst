@@ -188,8 +188,8 @@ Running the test suite
 pandas is equipped with an exhaustive set of unit tests covering about 97% of
 the codebase as of this writing. To run it on your machine to verify that
 everything is working (and you have all of the dependencies, soft and hard,
-installed), make sure you have `nose
-<https://nose.readthedocs.io/en/latest/>`__ and run:
+installed), make sure you have `pytest
+<http://doc.pytest.org/en/latest/>`__ and run:
 
 ::
 
@@ -226,7 +226,7 @@ Recommended Dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.1 or higher (excluding a buggy 2.4.4). Version 2.4.6 or higher is highly recommended.
+  If installed, must be Version 2.4.6 or higher.
 
 * `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups.
@@ -250,9 +250,9 @@ Optional Dependencies
 * `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
-    - `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
-    - `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
-    - `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
+  * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
+  * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
+  * `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
 * `matplotlib <http://matplotlib.org/>`__: for plotting
 * For Excel I/O:
@@ -272,11 +272,8 @@ Optional Dependencies
   <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
   <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* Google's `python-gflags <<https://github.com/google/python-gflags/>`__ ,
-  `oauth2client <https://github.com/google/oauth2client>`__ ,
-  `httplib2 <http://pypi.python.org/pypi/httplib2>`__
-  and `google-api-python-client <http://github.com/google/google-api-python-client>`__
-  : Needed for :mod:`~pandas.io.gbq`
+* For Google BigQuery I/O - see :ref:`here <io.bigquery_deps>`.
+
 * `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.read_html` function:
@@ -285,7 +282,7 @@ Optional Dependencies
     okay.)
   * `BeautifulSoup4`_ and `lxml`_
   * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
-  * Only `lxml`_, although see :ref:`HTML reading gotchas <html-gotchas>`
+  * Only `lxml`_, although see :ref:`HTML Table Parsing <gotchas.html>`
     for reasons as to why you should probably **not** take this approach.
 
   .. warning::
@@ -294,14 +291,12 @@ Optional Dependencies
        `lxml`_ or `html5lib`_ or both.
        :func:`~pandas.read_html` will **not** work with *only*
        `BeautifulSoup4`_ installed.
-     * You are highly encouraged to read :ref:`HTML reading gotchas
-       <html-gotchas>`. It explains issues surrounding the installation and
-       usage of the above three libraries
+     * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`.
+       It explains issues surrounding the installation and
+       usage of the above three libraries.
      * You may need to install an older version of `BeautifulSoup4`_:
        Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and 32-bit
        Ubuntu/Debian
-     * Additionally, if you're using `Anaconda`_ you should definitely
-       read :ref:`the gotchas about HTML parsing libraries <html-gotchas>`
 
   .. note::
 
@@ -318,7 +313,6 @@ Optional Dependencies
 .. _html5lib: https://github.com/html5lib/html5lib-python
 .. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
 .. _lxml: http://lxml.de
-.. _Anaconda: https://store.continuum.io/cshop/anaconda
 
 .. note::
 

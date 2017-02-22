@@ -5,8 +5,6 @@ These test the private routines in types/cast.py
 
 """
 
-
-import nose
 from datetime import datetime
 import numpy as np
 
@@ -20,8 +18,6 @@ from pandas.types.cast import (_possibly_downcast_to_dtype,
 from pandas.types.dtypes import (CategoricalDtype,
                                  DatetimeTZDtype, PeriodDtype)
 from pandas.util import testing as tm
-
-_multiprocess_can_split_ = True
 
 
 class TestPossiblyDowncast(tm.TestCase):
@@ -278,8 +274,3 @@ class TestCommonTypes(tm.TestCase):
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
             self.assertEqual(_find_common_type([dtype, dtype2]), np.object)
             self.assertEqual(_find_common_type([dtype2, dtype]), np.object)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

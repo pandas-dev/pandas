@@ -10,6 +10,7 @@ from __future__ import division
 import warnings
 import numpy as np
 from collections import defaultdict
+from datetime import timedelta
 
 from pandas.types.generic import (ABCSeries,
                                   ABCDataFrame,
@@ -659,6 +660,7 @@ class _GroupByMixin(GroupByMixin):
 
 
 class _Rolling(_Window):
+
     @property
     def _constructor(self):
         return Rolling
@@ -762,17 +764,7 @@ class _Rolling_and_Expanding(_Rolling):
 
         results = []
         for b in blocks:
-
-            if needs_i8_conversion(b.values):
-                result = b.notnull().astype(int)
-            else:
-                try:
-                    result = np.isfinite(b).astype(float)
-                except TypeError:
-                    result = np.isfinite(b.astype(float)).astype(float)
-
-                result[pd.isnull(result)] = 0
-
+            result = b.notnull().astype(int)
             result = self._constructor(result, window=window, min_periods=0,
                                        center=self.center).sum()
             results.append(result)
@@ -1023,21 +1015,11 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if (self.is_datetimelike and
-                isinstance(self.window, (compat.string_types, DateOffset))):
+                isinstance(self.window, (compat.string_types, DateOffset,
+                                         timedelta))):
 
-            # must be monotonic for on
-            if not self._on.is_monotonic:
-                formatted = self.on or 'index'
-                raise ValueError("{0} must be "
-                                 "monotonic".format(formatted))
-
-            from pandas.tseries.frequencies import to_offset
-            try:
-                freq = to_offset(self.window)
-            except (TypeError, ValueError):
-                raise ValueError("passed window {0} in not "
-                                 "compat with a datetimelike "
-                                 "index".format(self.window))
+            self._validate_monotonic()
+            freq = self._validate_freq()
 
             # we don't allow center
             if self.center:
@@ -1057,6 +1039,23 @@ class Rolling(_Rolling_and_Expanding):
             raise ValueError("window must be an integer")
         elif self.window < 0:
             raise ValueError("window must be non-negative")
+
+    def _validate_monotonic(self):
+        """ validate on is monotonic """
+        if not self._on.is_monotonic:
+            formatted = self.on or 'index'
+            raise ValueError("{0} must be "
+                             "monotonic".format(formatted))
+
+    def _validate_freq(self):
+        """ validate & return our freq """
+        from pandas.tseries.frequencies import to_offset
+        try:
+            return to_offset(self.window)
+        except (TypeError, ValueError):
+            raise ValueError("passed window {0} in not "
+                             "compat with a datetimelike "
+                             "index".format(self.window))
 
     @Substitution(name='rolling')
     @Appender(SelectionMixin._see_also_template)
@@ -1174,6 +1173,25 @@ class RollingGroupby(_GroupByMixin, Rolling):
     @property
     def _constructor(self):
         return Rolling
+
+    def _gotitem(self, key, ndim, subset=None):
+
+        # we are setting the index on the actual object
+        # here so our index is carried thru to the selected obj
+        # when we do the splitting for the groupby
+        if self.on is not None:
+            self._groupby.obj = self._groupby.obj.set_index(self._on)
+            self.on = None
+        return super(RollingGroupby, self)._gotitem(key, ndim, subset=subset)
+
+    def _validate_monotonic(self):
+        """
+        validate that on is monotonic;
+        we don't care for groupby.rolling
+        because we have already validated at a higher
+        level
+        """
+        pass
 
 
 class Expanding(_Rolling_and_Expanding):
@@ -1703,7 +1721,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
 def _get_center_of_mass(com, span, halflife, alpha):
     valid_count = len([x for x in [com, span, halflife, alpha]
-                      if x is not None])
+                       if x is not None])
     if valid_count > 1:
         raise ValueError("com, span, halflife, and alpha "
                          "are mutually exclusive")

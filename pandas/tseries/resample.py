@@ -353,7 +353,7 @@ class Resampler(_GroupBy):
     def _downsample(self, f):
         raise AbstractMethodError(self)
 
-    def _upsample(self, f, limit=None):
+    def _upsample(self, f, limit=None, fill_value=None):
         raise AbstractMethodError(self)
 
     def _gotitem(self, key, ndim, subset=None):
@@ -509,12 +509,25 @@ class Resampler(_GroupBy):
                                   limit_direction=limit_direction,
                                   downcast=downcast, **kwargs)
 
-    def asfreq(self):
+    def asfreq(self, fill_value=None):
         """
         return the values at the new freq,
-        essentially a reindex with (no filling)
+        essentially a reindex
+
+        Parameters
+        ----------
+        fill_value: scalar, optional
+            Value to use for missing values, applied during upsampling (note
+            this does not fill NaNs that already were present).
+
+            .. versionadded:: 0.20.0
+
+        See Also
+        --------
+        Series.asfreq
+        DataFrame.asfreq
         """
-        return self._upsample('asfreq')
+        return self._upsample('asfreq', fill_value=fill_value)
 
     def std(self, ddof=1, *args, **kwargs):
         """
@@ -539,6 +552,8 @@ class Resampler(_GroupBy):
         """
         nv.validate_resampler_func('var', args, kwargs)
         return self._downsample('var', ddof=ddof)
+
+
 Resampler._deprecated_valids += dir(Resampler)
 
 # downsample methods
@@ -713,12 +728,14 @@ class DatetimeIndexResampler(Resampler):
             binner = binner[:-1]
         return binner
 
-    def _upsample(self, method, limit=None):
+    def _upsample(self, method, limit=None, fill_value=None):
         """
         method : string {'backfill', 'bfill', 'pad',
             'ffill', 'asfreq'} method for upsampling
         limit : int, default None
             Maximum size gap to fill when reindexing
+        fill_value : scalar, default None
+            Value to use for missing values
 
         See also
         --------
@@ -745,7 +762,7 @@ class DatetimeIndexResampler(Resampler):
             result.index = res_index
         else:
             result = obj.reindex(res_index, method=method,
-                                 limit=limit)
+                                 limit=limit, fill_value=fill_value)
 
         return self._wrap_result(result)
 
@@ -865,12 +882,14 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             'Frequency {} cannot be resampled to {}, as they are not '
             'sub or super periods'.format(ax.freq, self.freq))
 
-    def _upsample(self, method, limit=None):
+    def _upsample(self, method, limit=None, fill_value=None):
         """
         method : string {'backfill', 'bfill', 'pad', 'ffill'}
             method for upsampling
         limit : int, default None
             Maximum size gap to fill when reindexing
+        fill_value : scalar, default None
+            Value to use for missing values
 
         See also
         --------
@@ -884,8 +903,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                              " datetime-like")
         # we may need to actually resample as if we are timestamps
         if self.kind == 'timestamp':
-            return super(PeriodIndexResampler, self)._upsample(method,
-                                                               limit=limit)
+            return super(PeriodIndexResampler, self)._upsample(
+                method, limit=limit, fill_value=fill_value)
 
         ax = self.ax
         obj = self.obj
@@ -952,12 +971,18 @@ def resample(obj, kind=None, **kwds):
     """ create a TimeGrouper and return our resampler """
     tg = TimeGrouper(**kwds)
     return tg._get_resampler(obj, kind=kind)
+
+
 resample.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(groupby, rule, how=None, fill_method=None,
                                limit=None, kind=None, **kwargs):
     """ return our appropriate resampler when grouping as well """
+
+    # .resample uses 'on' similar to how .groupby uses 'key'
+    kwargs['key'] = kwargs.pop('on', None)
+
     tg = TimeGrouper(freq=rule, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
     r = resampler._get_resampler_for_grouping(groupby=groupby)
@@ -1346,7 +1371,7 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
             Timestamp(lresult).tz_localize(last_tzinfo, ambiguous=last_dst))
 
 
-def asfreq(obj, freq, method=None, how=None, normalize=False):
+def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
     """
     Utility frequency conversion method for Series/DataFrame
     """
@@ -1366,7 +1391,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False):
             return obj.copy()
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
         dti.name = obj.index.name
-        rs = obj.reindex(dti, method=method)
+        rs = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:
             rs.index = rs.index.normalize()
         return rs

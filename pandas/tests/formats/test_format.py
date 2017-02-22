@@ -44,7 +44,7 @@ from pandas.core.config import (set_option, get_option, option_context,
                                 reset_option)
 from datetime import datetime
 
-import nose
+import pytest
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -113,7 +113,6 @@ def has_expanded_repr(df):
 
 
 class TestDataFrameFormatting(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.warn_filters = warnings.filters
@@ -136,7 +135,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df.to_string()
 
     def test_eng_float_formatter(self):
-        self.frame.ix[5] = 0
+        self.frame.loc[5] = 0
 
         fmt.set_eng_float_format()
         repr(self.frame)
@@ -288,7 +287,7 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:
-            raise nose.SkipTest("terminal size too small, "
+            pytest.skip("terminal size too small, "
                                 "{0} x {1}".format(term_width, term_height))
 
         def mkframe(n):
@@ -762,14 +761,15 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # 11594
         import datetime
-        s = Series([datetime.datetime(2012, 1, 1)]*10 + [datetime.datetime(1012,1,2)] + [datetime.datetime(2012, 1, 3)]*10)
+        s = Series([datetime.datetime(2012, 1, 1)] * 10 +
+                   [datetime.datetime(1012, 1, 2)] + [datetime.datetime(2012, 1, 3)] * 10)
 
         with pd.option_context('display.max_rows', 8):
             result = str(s)
             self.assertTrue('object' in result)
 
         # 12045
-        df = DataFrame({'text': ['some words'] + [None]*9})
+        df = DataFrame({'text': ['some words'] + [None] * 9})
 
         with pd.option_context('display.max_rows', 8, 'display.max_columns', 3):
             result = str(df)
@@ -779,7 +779,8 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_datetimelike_frame(self):
 
         # GH 12211
-        df = DataFrame({'date' : [pd.Timestamp('20130101').tz_localize('UTC')] + [pd.NaT]*5})
+        df = DataFrame(
+            {'date': [pd.Timestamp('20130101').tz_localize('UTC')] + [pd.NaT] * 5})
 
         with option_context("display.max_rows", 5):
             result = str(df)
@@ -1214,6 +1215,554 @@ class TestDataFrameFormatting(tm.TestCase):
 
         self.assertEqual(result, expected)
 
+    def test_to_html_multiindex_odd_even_truncate(self):
+        # GH 14882 - Issue on truncation with odd length DataFrame
+        mi = MultiIndex.from_product([[100, 200, 300],
+                                      [10, 20, 30],
+                                      [1, 2, 3, 4, 5, 6, 7]],
+                                     names=['a', 'b', 'c'])
+        df = DataFrame({'n': range(len(mi))}, index=mi)
+        result = df.to_html(max_rows=60)
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th></th>
+      <th>n</th>
+    </tr>
+    <tr>
+      <th>a</th>
+      <th>b</th>
+      <th>c</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="21" valign="top">100</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">20</th>
+      <th>1</th>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>11</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>12</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>13</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>14</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>16</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>18</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>19</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>20</td>
+    </tr>
+    <tr>
+      <th rowspan="19" valign="top">200</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>21</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>22</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>23</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>25</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>26</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>27</td>
+    </tr>
+    <tr>
+      <th rowspan="5" valign="top">20</th>
+      <th>1</th>
+      <td>28</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>29</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>33</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>34</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>35</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>36</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>37</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>38</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>39</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>40</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>41</td>
+    </tr>
+    <tr>
+      <th rowspan="21" valign="top">300</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>42</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>43</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>44</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>45</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>46</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>47</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>48</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">20</th>
+      <th>1</th>
+      <td>49</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>50</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>51</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>52</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>53</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>54</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>55</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>56</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>57</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>58</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>59</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>60</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>61</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>62</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result, expected)
+
+        # Test that ... appears in a middle level
+        result = df.to_html(max_rows=56)
+        expected = """\
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th></th>
+      <th>n</th>
+    </tr>
+    <tr>
+      <th>a</th>
+      <th>b</th>
+      <th>c</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="21" valign="top">100</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">20</th>
+      <th>1</th>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>11</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>12</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>13</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>14</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>16</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>18</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>19</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>20</td>
+    </tr>
+    <tr>
+      <th rowspan="15" valign="top">200</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>21</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>22</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>23</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>24</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>25</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>26</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>27</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <th>...</th>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>35</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>36</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>37</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>38</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>39</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>40</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>41</td>
+    </tr>
+    <tr>
+      <th rowspan="21" valign="top">300</th>
+      <th rowspan="7" valign="top">10</th>
+      <th>1</th>
+      <td>42</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>43</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>44</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>45</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>46</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>47</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>48</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">20</th>
+      <th>1</th>
+      <td>49</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>50</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>51</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>52</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>53</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>54</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>55</td>
+    </tr>
+    <tr>
+      <th rowspan="7" valign="top">30</th>
+      <th>1</th>
+      <td>56</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>57</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>58</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>59</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>60</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>61</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>62</td>
+    </tr>
+  </tbody>
+</table>"""
+        self.assertEqual(result, expected)
+
     def test_to_html_index_formatter(self):
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], columns=['foo', None],
                        index=lrange(4))
@@ -1322,7 +1871,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
 
     def test_to_html_truncate(self):
-        raise nose.SkipTest("unreliable on travis")
+        pytest.skip("unreliable on travis")
         index = pd.DatetimeIndex(start='20010101', freq='D', periods=20)
         df = DataFrame(index=index, columns=range(20))
         fmt.set_option('display.max_rows', 8)
@@ -1423,7 +1972,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertEqual(result, expected)
 
     def test_to_html_truncate_multi_index(self):
-        raise nose.SkipTest("unreliable on travis")
+        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
@@ -1540,7 +2089,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertEqual(result, expected)
 
     def test_to_html_truncate_multi_index_sparse_off(self):
-        raise nose.SkipTest("unreliable on travis")
+        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
@@ -1701,7 +2250,7 @@ class TestDataFrameFormatting(tm.TestCase):
         from pandas.formats.printing import pprint_thing as pp_t
 
         if PY3:
-            raise nose.SkipTest("doesn't work on Python 3")
+            pytest.skip("doesn't work on Python 3")
 
         self.assertEqual(pp_t('a'), u('a'))
         self.assertEqual(pp_t(u('a')), u('a'))
@@ -1884,7 +2433,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # all-nan in mi
         df2 = df.copy()
-        df2.ix[:, 'id2'] = np.nan
+        df2.loc[:, 'id2'] = np.nan
         y = df2.set_index('id2')
         result = y.to_string()
         expected = u(
@@ -1893,7 +2442,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # partial nan in mi
         df2 = df.copy()
-        df2.ix[:, 'id2'] = np.nan
+        df2.loc[:, 'id2'] = np.nan
         y = df2.set_index(['id2', 'id3'])
         result = y.to_string()
         expected = u(
@@ -2903,8 +3452,8 @@ c  10  11  12  13  14\
                         'float': [1.0, 2.0, 3.0],
                         'object': [(1, 2), True, False],
                         'datetime64': [datetime(2016, 1, 1),
-                                   datetime(2016, 2, 5),
-                                   datetime(2016, 3, 3)]})
+                                       datetime(2016, 2, 5),
+                                       datetime(2016, 3, 3)]})
 
         formatters = {'int': lambda x: '0x%x' % x,
                       'float': lambda x: '[% 4.1f]' % x,
@@ -2996,30 +3545,15 @@ a & b &    \\
         self.assertEqual(result, expected)
 
         result = df.groupby('a').describe().to_latex()
-        expected = r"""\begin{tabular}{llr}
-\toprule
-  &       &         c \\
-a & {} &           \\
-\midrule
-0 & count &  2.000000 \\
-  & mean &  1.500000 \\
-  & std &  0.707107 \\
-  & min &  1.000000 \\
-  & 25\% &  1.250000 \\
-  & 50\% &  1.500000 \\
-  & 75\% &  1.750000 \\
-  & max &  2.000000 \\
-1 & count &  2.000000 \\
-  & mean &  3.500000 \\
-  & std &  0.707107 \\
-  & min &  3.000000 \\
-  & 25\% &  3.250000 \\
-  & 50\% &  3.500000 \\
-  & 75\% &  3.750000 \\
-  & max &  4.000000 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = ('\\begin{tabular}{lrrrrrrrr}\n\\toprule\n{} &     c &     '
+                    ' &           &      &       &      &       &      '
+                    '\\\\\n{} & count & mean &       std &  min &   25\\% &  '
+                    '50\\% &   75\\% &  max \\\\\na &       &      &          '
+                    ' &      &       &      &       &      \\\\\n\\midrule\n0 '
+                    '&   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 '
+                    '&  2.0 \\\\\n1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 '
+                    '&  3.5 &  3.75 &  4.0 '
+                    '\\\\\n\\bottomrule\n\\end{tabular}\n')
 
         self.assertEqual(result, expected)
 
@@ -3348,7 +3882,7 @@ $1$,$2$
 
     def test_to_csv_multi_index(self):
         # see gh-6618
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1],[2]]))
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
 
         exp = ",1\n,2\n0,1\n"
         self.assertEqual(df.to_csv(), exp)
@@ -3356,8 +3890,8 @@ $1$,$2$
         exp = "1\n2\n1\n"
         self.assertEqual(df.to_csv(index=False), exp)
 
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1],[2]]),
-                       index=pd.MultiIndex.from_arrays([[1],[2]]))
+        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]),
+                       index=pd.MultiIndex.from_arrays([[1], [2]]))
 
         exp = ",,1\n,,2\n1,2,1\n"
         self.assertEqual(df.to_csv(), exp)
@@ -3365,7 +3899,8 @@ $1$,$2$
         exp = "1\n2\n1\n"
         self.assertEqual(df.to_csv(index=False), exp)
 
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([['foo'],['bar']]))
+        df = DataFrame(
+            [1], columns=pd.MultiIndex.from_arrays([['foo'], ['bar']]))
 
         exp = ",foo\n,bar\n0,1\n"
         self.assertEqual(df.to_csv(), exp)
@@ -3388,9 +3923,16 @@ $1$,$2$
         self.assertEqual(str(df), exp)
 
 
-class TestSeriesFormatting(tm.TestCase):
+def gen_series_formatting():
+    s1 = pd.Series(['a'] * 100)
+    s2 = pd.Series(['ab'] * 100)
+    s3 = pd.Series(['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'])
+    s4 = s3[::-1]
+    test_sers = {'onel': s1, 'twol': s2, 'asc': s3, 'desc': s4}
+    return test_sers
 
-    _multiprocess_can_split_ = True
+
+class TestSeriesFormatting(tm.TestCase):
 
     def setUp(self):
         self.ts = tm.makeTimeSeries()
@@ -3715,7 +4257,7 @@ class TestSeriesFormatting(tm.TestCase):
         df = DataFrame({'A': [1, 2], 'B': ['2012-01-01', '2012-01-02']})
         df['B'] = pd.to_datetime(df.B)
 
-        result = repr(df.ix[0])
+        result = repr(df.loc[0])
         self.assertTrue('2012-01-01' in result)
 
     def test_period(self):
@@ -3787,15 +4329,6 @@ class TestSeriesFormatting(tm.TestCase):
                '1.0000\n129    1.0000\ndtype: float64')
         self.assertEqual(res, exp)
 
-    @staticmethod
-    def gen_test_series():
-        s1 = pd.Series(['a'] * 100)
-        s2 = pd.Series(['ab'] * 100)
-        s3 = pd.Series(['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'])
-        s4 = s3[::-1]
-        test_sers = {'onel': s1, 'twol': s2, 'asc': s3, 'desc': s4}
-        return test_sers
-
     def chck_ncols(self, s):
         with option_context("display.max_rows", 10):
             res = repr(s)
@@ -3806,7 +4339,7 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(ncolsizes, 1)
 
     def test_format_explicit(self):
-        test_sers = self.gen_test_series()
+        test_sers = gen_series_formatting()
         with option_context("display.max_rows", 4):
             res = repr(test_sers['onel'])
             exp = '0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object'
@@ -3825,7 +4358,7 @@ class TestSeriesFormatting(tm.TestCase):
             self.assertEqual(exp, res)
 
     def test_ncols(self):
-        test_sers = self.gen_test_series()
+        test_sers = gen_series_formatting()
         for s in test_sers.values():
             self.chck_ncols(s)
 
@@ -3904,7 +4437,6 @@ class TestSeriesFormatting(tm.TestCase):
 
 
 class TestEngFormatter(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_eng_float_formatter(self):
         df = DataFrame({'A': [1.41, 141., 14100, 1410000.]})
@@ -4057,9 +4589,9 @@ class TestEngFormatter(tm.TestCase):
         result = formatter(np.nan)
         self.assertEqual(result, u('NaN'))
 
-        df = pd.DataFrame({'a':[1.5, 10.3, 20.5],
-                           'b':[50.3, 60.67, 70.12],
-                           'c':[100.2, 101.33, 120.33]})
+        df = pd.DataFrame({'a': [1.5, 10.3, 20.5],
+                           'b': [50.3, 60.67, 70.12],
+                           'c': [100.2, 101.33, 120.33]})
         pt = df.pivot_table(values='a', index='b', columns='c')
         fmt.set_eng_float_format(accuracy=1)
         result = pt.to_string()
@@ -4451,8 +4983,3 @@ def test_format_percentiles():
     tm.assertRaises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
     tm.assertRaises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
     tm.assertRaises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

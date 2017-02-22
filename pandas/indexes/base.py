@@ -27,6 +27,8 @@ from pandas.types.common import (_ensure_int64,
                                  is_object_dtype,
                                  is_categorical_dtype,
                                  is_bool_dtype,
+                                 is_signed_integer_dtype,
+                                 is_unsigned_integer_dtype,
                                  is_integer_dtype, is_float_dtype,
                                  is_datetime64_any_dtype,
                                  is_timedelta64_dtype,
@@ -63,6 +65,7 @@ __all__ = ['Index']
 _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
+                         target_klass='Index',
                          unique='Index', duplicated='np.ndarray')
 _index_shared_docs = dict()
 
@@ -166,8 +169,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if (is_datetime64_any_dtype(data) or
-               (dtype is not None and is_datetime64_any_dtype(dtype)) or
-               'tz' in kwargs):
+                (dtype is not None and is_datetime64_any_dtype(dtype)) or
+                    'tz' in kwargs):
                 from pandas.tseries.index import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name,
                                        dtype=dtype, **kwargs)
@@ -199,18 +202,16 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                             data = np.array(data, copy=copy, dtype=dtype)
                         elif inferred in ['floating', 'mixed-integer-float']:
 
-                            # if we are actually all equal to integers
-                            # then coerce to integer
-                            from .numeric import Int64Index, Float64Index
+                            # If we are actually all equal to integers,
+                            # then coerce to integer.
                             try:
-                                res = data.astype('i8')
-                                if (res == data).all():
-                                    return Int64Index(res, copy=copy,
-                                                      name=name)
-                            except (TypeError, ValueError):
+                                return cls._try_convert_to_int_index(
+                                    data, copy, name)
+                            except ValueError:
                                 pass
 
-                            # return an actual float index
+                            # Return an actual float index.
+                            from .numeric import Float64Index
                             return Float64Index(data, copy=copy, dtype=dtype,
                                                 name=name)
 
@@ -235,10 +236,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                                IncompatibleFrequency)
             if isinstance(data, PeriodIndex):
                 return PeriodIndex(data, copy=copy, name=name, **kwargs)
-            if issubclass(data.dtype.type, np.integer):
+            if is_signed_integer_dtype(data.dtype):
                 from .numeric import Int64Index
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
-            elif issubclass(data.dtype.type, np.floating):
+            elif is_unsigned_integer_dtype(data.dtype):
+                from .numeric import UInt64Index
+                return UInt64Index(data, copy=copy, dtype=dtype, name=name)
+            elif is_float_dtype(data.dtype):
                 from .numeric import Float64Index
                 return Float64Index(data, copy=copy, dtype=dtype, name=name)
             elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
@@ -254,9 +258,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if dtype is None:
                 inferred = lib.infer_dtype(subarr)
                 if inferred == 'integer':
-                    from .numeric import Int64Index
-                    return Int64Index(subarr.astype('i8'), copy=copy,
-                                      name=name)
+                    try:
+                        return cls._try_convert_to_int_index(
+                            subarr, copy, name)
+                    except ValueError:
+                        pass
+
+                    return Index(subarr, copy=copy,
+                                 dtype=object, name=name)
                 elif inferred in ['floating', 'mixed-integer-float']:
                     from .numeric import Float64Index
                     return Float64Index(subarr, copy=copy, name=name)
@@ -528,6 +537,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """ return the underlying data as an ndarray """
         return self.values
 
+    @Appender(IndexOpsMixin.memory_usage.__doc__)
+    def memory_usage(self, deep=False):
+        result = super(Index, self).memory_usage(deep=deep)
+
+        # include our engine hashtable
+        result += self._engine.sizeof(deep=deep)
+        return result
+
     # ops compat
     def tolist(self):
         """
@@ -548,8 +565,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
 
-    def where(self, cond, other=None):
-        """
+    _index_shared_docs['where'] = """
         .. versionadded:: 0.19.0
 
         Return an Index of same shape as self and whose corresponding
@@ -561,6 +577,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         cond : boolean same length as self
         other : scalar, or array-like
         """
+
+    @Appender(_index_shared_docs['where'])
+    def where(self, cond, other=None):
         if other is None:
             other = self._na_value
         values = np.where(cond, self.values, other)
@@ -577,6 +596,46 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return self._values.ravel(order=order)
 
     # construction helpers
+    @classmethod
+    def _try_convert_to_int_index(cls, data, copy, name):
+        """
+        Attempt to convert an array of data into an integer index.
+
+        Parameters
+        ----------
+        data : The data to convert.
+        copy : Whether to copy the data or not.
+        name : The name of the index returned.
+
+        Returns
+        -------
+        int_index : data converted to either an Int64Index or a
+                    UInt64Index
+
+        Raises
+        ------
+        ValueError if the conversion was not successful.
+        """
+
+        from .numeric import Int64Index, UInt64Index
+        try:
+            res = data.astype('i8', copy=False)
+            if (res == data).all():
+                return Int64Index(res, copy=copy, name=name)
+        except (OverflowError, TypeError, ValueError):
+            pass
+
+        # Conversion to int64 failed (possibly due to
+        # overflow), so let's try now with uint64.
+        try:
+            res = data.astype('u8', copy=False)
+            if (res == data).all():
+                return UInt64Index(res, copy=copy, name=name)
+        except (TypeError, ValueError):
+            pass
+
+        raise ValueError
+
     @classmethod
     def _scalar_data_error(cls, data):
         raise TypeError('{0}(...) must be called with a collection of some '
@@ -665,7 +724,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             new_index = new_index.astype(dtype)
         return new_index
 
-    __copy__ = copy
+    def __copy__(self, **kwargs):
+        return self.copy(**kwargs)
+
+    def __deepcopy__(self, memo=None):
+        if memo is None:
+            memo = {}
+        return self.copy(deep=True)
 
     def _validate_names(self, name=None, names=None, deep=False):
         """
@@ -1253,6 +1318,40 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         return indexer
 
+    _index_shared_docs['_convert_arr_indexer'] = """
+        Convert an array-like indexer to the appropriate dtype.
+
+        Parameters
+        ----------
+        keyarr : array-like
+            Indexer to convert.
+
+        Returns
+        -------
+        converted_keyarr : array-like
+    """
+
+    @Appender(_index_shared_docs['_convert_arr_indexer'])
+    def _convert_arr_indexer(self, keyarr):
+        return keyarr
+
+    _index_shared_docs['_convert_index_indexer'] = """
+        Convert an Index indexer to the appropriate dtype.
+
+        Parameters
+        ----------
+        keyarr : Index (or sub-class)
+            Indexer to convert.
+
+        Returns
+        -------
+        converted_keyarr : Index (or sub-class)
+    """
+
+    @Appender(_index_shared_docs['_convert_index_indexer'])
+    def _convert_index_indexer(self, keyarr):
+        return keyarr
+
     def _convert_list_indexer(self, keyarr, kind=None):
         """
         passed a key that is tuplesafe that is integer based
@@ -1339,6 +1438,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """ return a string of the type inferred from the values """
         return lib.infer_dtype(self)
 
+    def _is_memory_usage_qualified(self):
+        """ return a boolean if we need a qualified .info display """
+        return self.is_object()
+
     def is_type_compatible(self, kind):
         return kind == self.inferred_type
 
@@ -1382,11 +1485,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
-
-    def __deepcopy__(self, memo=None):
-        if memo is None:
-            memo = {}
-        return self.copy(deep=True)
 
     def __nonzero__(self):
         raise ValueError("The truth value of a {0} is ambiguous. "
@@ -1509,7 +1607,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         numpy.ndarray.take
         """
 
-    @Appender(_index_shared_docs['take'])
+    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
@@ -1571,6 +1669,38 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             return self._isnan.any()
         else:
             return False
+
+    def isnull(self):
+        """
+        Detect missing values
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        a boolean array of whether my values are null
+
+        See also
+        --------
+        pandas.isnull : pandas version
+        """
+        return self._isnan
+
+    def notnull(self):
+        """
+        Reverse of isnull
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        a boolean array of whether my values are not null
+
+        See also
+        --------
+        pandas.notnull : pandas version
+        """
+        return ~self.isnull()
 
     def putmask(self, mask, value):
         """
@@ -2222,15 +2352,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         self._validate_index_level(level)
         return self
 
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        """
+    _index_shared_docs['get_indexer'] = """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
 
         Parameters
         ----------
-        target : Index
+        target : %(target_klass)s
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -2259,6 +2388,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         """
+
+    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
+    def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
         target = _ensure_index(target)
         if tolerance is not None:
@@ -2322,7 +2454,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                              'if index and target are monotonic' % method)
 
         side = 'left' if method == 'pad' else 'right'
-        target = np.asarray(target)
 
         # find exact matches first (this simplifies the algorithm)
         indexer = self.get_indexer(target)
@@ -2369,11 +2500,28 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
+    _index_shared_docs['get_indexer_non_unique'] = """
+        Compute indexer and mask for new index given the current index. The
+        indexer should be then used as an input to ndarray.take to align the
+        current data to the new index.
+
+        Parameters
+        ----------
+        target : %(target_klass)s
+
+        Returns
+        -------
+        indexer : ndarray of int
+            Integers from 0 to n - 1 indicating that the index at these
+            positions matches the corresponding target values. Missing values
+            in the target are marked by -1.
+        missing : ndarray of int
+            An indexer into the target of the values not found.
+            These correspond to the -1 in the indexer array
+        """
+
+    @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        """ return an indexer suitable for taking from a non unique index
-            return the labels in the same order as the target, and
-            return a missing indexer into the target (missing are marked as -1
-            in the indexer); target must be an iterable """
         target = _ensure_index(target)
         pself, ptarget = self._possibly_promote(target)
         if pself is not self or ptarget is not target:
@@ -2389,7 +2537,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return Index(indexer), missing
 
     def get_indexer_for(self, target, **kwargs):
-        """ guaranteed return of an indexer even when non-unique """
+        """
+        guaranteed return of an indexer even when non-unique
+        This dispatches to get_indexer or get_indexer_nonunique as appropriate
+        """
         if self.is_unique:
             return self.get_indexer(target, **kwargs)
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
@@ -3482,14 +3633,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                     typ=type(other))
                                 )
         elif isinstance(other, np.ndarray) and not other.ndim:
-                    other = other.item()
+            other = other.item()
 
         if isinstance(other, (Index, ABCSeries, np.ndarray)):
             if len(self) != len(other):
                 raise ValueError("cannot evaluate a numeric op with "
                                  "unequal lengths")
             other = _values_from_object(other)
-            if other.dtype.kind not in ['f', 'i']:
+            if other.dtype.kind not in ['f', 'i', 'u']:
                 raise TypeError("cannot evaluate a numeric op "
                                 "with a non-numeric dtype")
         elif isinstance(other, (DateOffset, np.timedelta64,

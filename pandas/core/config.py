@@ -215,6 +215,7 @@ class DictWrapper(object):
 
 
 class CallableDynamicDoc(object):
+
     def __init__(self, func, doc_tmpl):
         self.__doc_tmpl__ = doc_tmpl
         self.__func__ = func
@@ -802,6 +803,7 @@ def is_one_of_factory(legal_values):
                 raise ValueError(msg)
 
     return inner
+
 
 # common type validators, for convenience
 # usage: register_option(... , validator = is_int)

@@ -1,7 +1,7 @@
-#!/usr/bin/env python
 # coding: utf-8
 
-import nose
+""" Test cases for GroupBy.plot """
+
 
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
@@ -9,9 +9,6 @@ import pandas.util.testing as tm
 import numpy as np
 
 from pandas.tests.plotting.common import TestPlotBase
-
-
-""" Test cases for GroupBy.plot """
 
 
 @tm.mplskip
@@ -75,8 +72,3 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         res = df.groupby('z').plot.scatter(x='x', y='y')
         self.assertEqual(len(res['a'].collections), 1)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

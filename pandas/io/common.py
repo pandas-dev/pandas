@@ -75,6 +75,7 @@ class ParserError(ValueError):
     """
     pass
 
+
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
 
@@ -109,11 +110,13 @@ class BaseIterator(object):
     """Subclass this and provide a "__next__()" method to obtain an iterator.
     Useful only when the object being iterated is non-reusable (e.g. OK for a
     parser, not for an in-memory table, yes for its iterator)."""
+
     def __iter__(self):
         return self
 
     def __next__(self):
         raise AbstractMethodError(self)
+
 
 if not compat.PY3:
     BaseIterator.next = lambda self: self.__next__()

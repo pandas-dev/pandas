@@ -167,7 +167,17 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
         try:
             convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
-        except (TypeError, AttributeError):
+        except (TypeError, AttributeError) as e:
+            # Reraise the exception if callable `f` got wrong number of args.
+            # The user may want to be warned by this, instead of getting NaN
+            if compat.PY2:
+                p_err = r'takes (no|(exactly|at (least|most)) ?\d+) arguments?'
+            else:
+                p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
+                         r'(?(3)required )positional arguments?')
+
+            if len(e.args) >= 1 and re.search(p_err, e.args[0]):
+                raise e
 
             def g(x):
                 try:
@@ -303,8 +313,14 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     ----------
     pat : string
         Character sequence or regular expression
-    repl : string
-        Replacement sequence
+    repl : string or callable
+        Replacement string or a callable. The callable is passed the regex
+        match object and must return a replacement string to be used.
+        See :func:`re.sub`.
+
+        .. versionadded:: 0.20.0
+            `repl` also accepts a callable.
+
     n : int, default -1 (all)
         Number of replacements to make from start
     case : boolean, default True
@@ -315,12 +331,53 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     Returns
     -------
     replaced : Series/Index of objects
+
+    Examples
+    --------
+    When `repl` is a string, every `pat` is replaced as with
+    :meth:`str.replace`. NaN value(s) in the Series are left as is.
+
+    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', 'b')
+    0    boo
+    1    buz
+    2    NaN
+    dtype: object
+
+    When `repl` is a callable, it is called on every `pat` using
+    :func:`re.sub`. The callable should expect one positional argument
+    (a regex object) and return a string.
+
+    To get the idea:
+
+    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr)
+    0    <_sre.SRE_Match object; span=(0, 1), match='f'>oo
+    1    <_sre.SRE_Match object; span=(0, 1), match='f'>uz
+    2                                                  NaN
+    dtype: object
+
+    Reverse every lowercase alphabetic word:
+
+    >>> repl = lambda m: m.group(0)[::-1]
+    >>> pd.Series(['foo 123', 'bar baz', np.nan]).str.replace(r'[a-z]+', repl)
+    0    oof 123
+    1    rab zab
+    2        NaN
+    dtype: object
+
+    Using regex groups (extract second group and swap case):
+
+    >>> pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
+    >>> repl = lambda m: m.group('two').swapcase()
+    >>> pd.Series(['One Two Three', 'Foo Bar Baz']).str.replace(pat, repl)
+    0    tWO
+    1    bAR
+    dtype: object
     """
 
-    # Check whether repl is valid (GH 13438)
-    if not is_string_like(repl):
-        raise TypeError("repl must be a string")
-    use_re = not case or len(pat) > 1 or flags
+    # Check whether repl is valid (GH 13438, GH 15055)
+    if not (is_string_like(repl) or callable(repl)):
+        raise TypeError("repl must be a string or callable")
+    use_re = not case or len(pat) > 1 or flags or callable(repl)
 
     if use_re:
         if not case:

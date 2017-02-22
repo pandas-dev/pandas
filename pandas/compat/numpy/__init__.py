@@ -14,6 +14,7 @@ _np_version_under1p9 = _nlv < '1.9'
 _np_version_under1p10 = _nlv < '1.10'
 _np_version_under1p11 = _nlv < '1.11'
 _np_version_under1p12 = _nlv < '1.12'
+_np_version_under1p13 = _nlv < '1.13'
 
 if _nlv < '1.7.0':
     raise ImportError('this version of pandas is incompatible with '
@@ -65,6 +66,7 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
             arr = tz_replacer(arr)
 
     return np.array(arr, *args, **kwargs)
+
 
 __all__ = ['np',
            '_np_version_under1p8',

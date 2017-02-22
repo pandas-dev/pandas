@@ -14,22 +14,23 @@ environment:
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\run_with_env.cmd"
+    clone_folder: C:\projects\pandas
 
   matrix:
 
-    - CONDA_ROOT: "C:\\Miniconda3.5_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       CONDA_PY: "36"
-      CONDA_NPY: "111"
+      CONDA_NPY: "112"
 
-    - CONDA_ROOT: "C:\\Miniconda3.5_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "27"
       CONDA_NPY: "110"
 
-    - CONDA_ROOT: "C:\\Miniconda3.5_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       CONDA_PY: "35"
@@ -65,8 +66,7 @@ install:
 
   # install our build environment
   - cmd: conda config --set show_channel_urls true --set always_yes true --set changeps1 false
-  #- cmd: conda update -q conda
-  - cmd: conda install conda=4.2.15
+  - cmd: conda update -q conda
   - cmd: conda config --set ssl_verify false
 
   # add the pandas channel *before* defaults to have defaults take priority
@@ -78,22 +78,19 @@ install:
   # this is now the downloaded conda...
   - cmd: conda info -a
 
-  # build em using the local source checkout in the correct windows env
-  - cmd: '%CMD_IN_ENV% conda build ci\appveyor.recipe -q'
-
   # create our env
-  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose
+  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% cython pytest
   - cmd: activate pandas
   - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
   - cmd: echo "installing requirements from %REQ%"
   - cmd: conda install -n pandas -q --file=%REQ%
   - cmd: conda list -n pandas
   - cmd: echo "installing requirements from %REQ% - done"
-  - ps: conda install -n pandas (conda build ci\appveyor.recipe -q --output)
+
+  # build em using the local source checkout in the correct windows env
+  - cmd: '%CMD_IN_ENV% python setup.py build_ext --inplace'
 
 test_script:
   # tests
-  - cd \
   - cmd: activate pandas
-  - cmd: conda list
-  - cmd: nosetests --exe -A "not slow and not network and not disabled" pandas
+  - cmd: test.bat

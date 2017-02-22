@@ -10,9 +10,7 @@ import sys
 import numpy as np
 
 from distutils.version import StrictVersion
-from pandas import compat
-from pandas.core.api import DataFrame
-from pandas.tools.merge import concat
+from pandas import compat, DataFrame, concat
 from pandas.core.common import PandasError
 from pandas.compat import lzip, bytes_to_str
 
@@ -59,6 +57,7 @@ def _test_google_api_imports():
     except ImportError as e:
         raise ImportError("Missing module required for Google BigQuery "
                           "support: {0}".format(str(e)))
+
 
 logger = logging.getLogger('pandas.io.gbq')
 logger.setLevel(logging.ERROR)
@@ -603,18 +602,14 @@ def _parse_data(schema, rows):
     # see:
     # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     # #missing-data-casting-rules-and-indexing
-    dtype_map = {'INTEGER': np.dtype(float),
-                 'FLOAT': np.dtype(float),
-                 # This seems to be buggy without nanosecond indicator
+    dtype_map = {'FLOAT': np.dtype(float),
                  'TIMESTAMP': 'M8[ns]'}
 
     fields = schema['fields']
     col_types = [field['type'] for field in fields]
     col_names = [str(field['name']) for field in fields]
     col_dtypes = [dtype_map.get(field['type'], object) for field in fields]
-    page_array = np.zeros((len(rows),),
-                          dtype=lzip(col_names, col_dtypes))
-
+    page_array = np.zeros((len(rows),), dtype=lzip(col_names, col_dtypes))
     for row_num, raw_row in enumerate(rows):
         entries = raw_row.get('f', [])
         for col_num, field_type in enumerate(col_types):
@@ -628,7 +623,9 @@ def _parse_data(schema, rows):
 def _parse_entry(field_value, field_type):
     if field_value is None or field_value == 'null':
         return None
-    if field_type == 'INTEGER' or field_type == 'FLOAT':
+    if field_type == 'INTEGER':
+        return int(field_value)
+    elif field_type == 'FLOAT':
         return float(field_value)
     elif field_type == 'TIMESTAMP':
         timestamp = datetime.utcfromtimestamp(float(field_value))
@@ -757,10 +754,14 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                 'Column order does not match this DataFrame.'
             )
 
-    # Downcast floats to integers and objects to booleans
-    # if there are no NaN's. This is presently due to a
-    # limitation of numpy in handling missing data.
-    final_df._data = final_df._data.downcast(dtypes='infer')
+    # cast BOOLEAN and INTEGER columns from object to bool/int
+    # if they dont have any nulls
+    type_map = {'BOOLEAN': bool, 'INTEGER': int}
+    for field in schema['fields']:
+        if field['type'] in type_map and \
+                final_df[field['name']].notnull().all():
+            final_df[field['name']] = \
+                final_df[field['name']].astype(type_map[field['type']])
 
     connector.print_elapsed_seconds(
         'Total time taken',
@@ -1056,21 +1057,32 @@ class _Dataset(GbqConnector):
             List of datasets under the specific project
         """
 
-        try:
-            list_dataset_response = self.service.datasets().list(
-                projectId=self.project_id).execute().get('datasets', None)
+        dataset_list = []
+        next_page_token = None
+        first_query = True
 
-            if not list_dataset_response:
-                return []
+        while first_query or next_page_token:
+            first_query = False
 
-            dataset_list = list()
+            try:
+                list_dataset_response = self.service.datasets().list(
+                    projectId=self.project_id,
+                    pageToken=next_page_token).execute()
 
-            for row_num, raw_row in enumerate(list_dataset_response):
-                dataset_list.append(raw_row['datasetReference']['datasetId'])
+                dataset_response = list_dataset_response.get('datasets')
+                next_page_token = list_dataset_response.get('nextPageToken')
 
-            return dataset_list
-        except self.http_error as ex:
-            self.process_http_error(ex)
+                if not dataset_response:
+                    return dataset_list
+
+                for row_num, raw_row in enumerate(dataset_response):
+                    dataset_list.append(
+                        raw_row['datasetReference']['datasetId'])
+
+            except self.http_error as ex:
+                self.process_http_error(ex)
+
+        return dataset_list
 
     def create(self, dataset_id):
         """ Create a dataset in Google BigQuery
@@ -1140,19 +1152,29 @@ class _Dataset(GbqConnector):
             List of tables under the specific dataset
         """
 
-        try:
-            list_table_response = self.service.tables().list(
-                projectId=self.project_id,
-                datasetId=dataset_id).execute().get('tables', None)
+        table_list = []
+        next_page_token = None
+        first_query = True
 
-            if not list_table_response:
-                return []
+        while first_query or next_page_token:
+            first_query = False
 
-            table_list = list()
+            try:
+                list_table_response = self.service.tables().list(
+                    projectId=self.project_id,
+                    datasetId=dataset_id,
+                    pageToken=next_page_token).execute()
 
-            for row_num, raw_row in enumerate(list_table_response):
-                table_list.append(raw_row['tableReference']['tableId'])
+                table_response = list_table_response.get('tables')
+                next_page_token = list_table_response.get('nextPageToken')
 
-            return table_list
-        except self.http_error as ex:
-            self.process_http_error(ex)
+                if not table_response:
+                    return table_list
+
+                for row_num, raw_row in enumerate(table_response):
+                    table_list.append(raw_row['tableReference']['tableId'])
+
+            except self.http_error as ex:
+                self.process_http_error(ex)
+
+        return table_list

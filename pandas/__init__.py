@@ -15,7 +15,8 @@ for dependency in hard_dependencies:
         missing_dependencies.append(dependency)
 
 if missing_dependencies:
-    raise ImportError("Missing required dependencies {0}".format(missing_dependencies))
+    raise ImportError(
+        "Missing required dependencies {0}".format(missing_dependencies))
 del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
@@ -24,7 +25,8 @@ from pandas.compat.numpy import *
 try:
     from pandas import hashtable, tslib, lib
 except ImportError as e:  # pragma: no cover
-    module = str(e).lstrip('cannot import name ')  # hack but overkill to use re
+    # hack but overkill to use re
+    module = str(e).lstrip('cannot import name ')
     raise ImportError("C extension: {0} not built. If you want to import "
                       "pandas from the source directory, you may need to run "
                       "'python setup.py build_ext --inplace --force' to build "
@@ -40,10 +42,10 @@ from pandas.core.api import *
 from pandas.sparse.api import *
 from pandas.stats.api import *
 from pandas.tseries.api import *
-from pandas.io.api import *
 from pandas.computation.api import *
 
-from pandas.tools.merge import (merge, concat, ordered_merge,
+from pandas.tools.concat import concat
+from pandas.tools.merge import (merge, ordered_merge,
                                 merge_ordered, merge_asof)
 from pandas.tools.pivot import pivot_table, crosstab
 from pandas.tools.plotting import scatter_matrix, plot_params
@@ -52,14 +54,12 @@ from pandas.tools.util import to_numeric
 from pandas.core.reshape import melt
 from pandas.util.print_versions import show_versions
 
-# define the testing framework
-import pandas.util.testing
-from pandas.util.nosetester import NoseTester
-test = NoseTester().test
-del NoseTester
+from pandas.io.api import *
+
+from pandas.util._tester import test
 
 # use the closest tagged version if possible
 from ._version import get_versions
 v = get_versions()
-__version__ = v.get('closest-tag',v['version'])
+__version__ = v.get('closest-tag', v['version'])
 del get_versions, v

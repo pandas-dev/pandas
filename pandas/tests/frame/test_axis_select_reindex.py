@@ -26,8 +26,6 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
-    _multiprocess_can_split_ = True
-
     def test_drop_names(self):
         df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
                        index=['a', 'b', 'c'],
@@ -80,9 +78,9 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         assert_frame_equal(simple.drop("A", axis=1), simple[['B']])
         assert_frame_equal(simple.drop(["A", "B"], axis='columns'),
                            simple[[]])
-        assert_frame_equal(simple.drop([0, 1, 3], axis=0), simple.ix[[2], :])
+        assert_frame_equal(simple.drop([0, 1, 3], axis=0), simple.loc[[2], :])
         assert_frame_equal(simple.drop(
-            [0, 3], axis='index'), simple.ix[[1, 2], :])
+            [0, 3], axis='index'), simple.loc[[1, 2], :])
 
         self.assertRaises(ValueError, simple.drop, 5)
         self.assertRaises(ValueError, simple.drop, 'C', 1)
@@ -92,7 +90,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         # errors = 'ignore'
         assert_frame_equal(simple.drop(5, errors='ignore'), simple)
         assert_frame_equal(simple.drop([0, 5], errors='ignore'),
-                           simple.ix[[1, 2, 3], :])
+                           simple.loc[[1, 2, 3], :])
         assert_frame_equal(simple.drop('C', axis=1, errors='ignore'), simple)
         assert_frame_equal(simple.drop(['A', 'C'], axis=1, errors='ignore'),
                            simple[['B']])
@@ -105,8 +103,8 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         nu_df = nu_df.set_index(pd.Index(['X', 'Y', 'X']))
         nu_df.columns = list('abc')
-        assert_frame_equal(nu_df.drop('X', axis='rows'), nu_df.ix[["Y"], :])
-        assert_frame_equal(nu_df.drop(['X', 'Y'], axis=0), nu_df.ix[[], :])
+        assert_frame_equal(nu_df.drop('X', axis='rows'), nu_df.loc[["Y"], :])
+        assert_frame_equal(nu_df.drop(['X', 'Y'], axis=0), nu_df.loc[[], :])
 
         # inplace cache issue
         # GH 5628
@@ -417,7 +415,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         self.assertIs(af._data, self.frame._data)
 
         # axis = 0
-        other = self.frame.ix[:-5, :3]
+        other = self.frame.iloc[:-5, :3]
         af, bf = self.frame.align(other, axis=0, fill_value=-1)
         self.assert_index_equal(bf.columns, other.columns)
         # test fill value
@@ -434,7 +432,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         self.assert_index_equal(af.index, other.index)
 
         # axis = 1
-        other = self.frame.ix[:-5, :3].copy()
+        other = self.frame.iloc[:-5, :3].copy()
         af, bf = self.frame.align(other, axis=1)
         self.assert_index_equal(bf.columns, self.frame.columns)
         self.assert_index_equal(bf.index, other.index)
@@ -464,25 +462,25 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
                                         join='inner', axis=1, method='pad')
         self.assert_index_equal(bf.columns, self.mixed_frame.columns)
 
-        af, bf = self.frame.align(other.ix[:, 0], join='inner', axis=1,
+        af, bf = self.frame.align(other.iloc[:, 0], join='inner', axis=1,
                                   method=None, fill_value=None)
         self.assert_index_equal(bf.index, Index([]))
 
-        af, bf = self.frame.align(other.ix[:, 0], join='inner', axis=1,
+        af, bf = self.frame.align(other.iloc[:, 0], join='inner', axis=1,
                                   method=None, fill_value=0)
         self.assert_index_equal(bf.index, Index([]))
 
         # mixed floats/ints
-        af, bf = self.mixed_float.align(other.ix[:, 0], join='inner', axis=1,
+        af, bf = self.mixed_float.align(other.iloc[:, 0], join='inner', axis=1,
                                         method=None, fill_value=0)
         self.assert_index_equal(bf.index, Index([]))
 
-        af, bf = self.mixed_int.align(other.ix[:, 0], join='inner', axis=1,
+        af, bf = self.mixed_int.align(other.iloc[:, 0], join='inner', axis=1,
                                       method=None, fill_value=0)
         self.assert_index_equal(bf.index, Index([]))
 
         # try to align dataframe to series along bad axis
-        self.assertRaises(ValueError, self.frame.align, af.ix[0, :3],
+        self.assertRaises(ValueError, self.frame.align, af.iloc[0, :3],
                           join='inner', axis=2)
 
         # align dataframe to series with broadcast or not
@@ -561,9 +559,9 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
                     self._check_align_fill('right', meth, ax, fax)
 
     def _check_align_fill(self, kind, meth, ax, fax):
-        left = self.frame.ix[0:4, :10]
-        right = self.frame.ix[2:, 6:]
-        empty = self.frame.ix[:0, :0]
+        left = self.frame.iloc[0:4, :10]
+        right = self.frame.iloc[2:, 6:]
+        empty = self.frame.iloc[:0, :0]
 
         self._check_align(left, right, axis=ax, fill_axis=fax,
                           how=kind, method=meth)
@@ -779,7 +777,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
             # axis = 1
             result = df.take(order, axis=1)
-            expected = df.ix[:, ['D', 'B', 'C', 'A']]
+            expected = df.loc[:, ['D', 'B', 'C', 'A']]
             assert_frame_equal(result, expected, check_names=False)
 
         # neg indicies
@@ -792,7 +790,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
             # axis = 1
             result = df.take(order, axis=1)
-            expected = df.ix[:, ['C', 'B', 'D']]
+            expected = df.loc[:, ['C', 'B', 'D']]
             assert_frame_equal(result, expected, check_names=False)
 
         # illegal indices
@@ -811,7 +809,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
             # axis = 1
             result = df.take(order, axis=1)
-            expected = df.ix[:, ['foo', 'B', 'C', 'A', 'D']]
+            expected = df.loc[:, ['foo', 'B', 'C', 'A', 'D']]
             assert_frame_equal(result, expected)
 
         # neg indicies
@@ -824,7 +822,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
             # axis = 1
             result = df.take(order, axis=1)
-            expected = df.ix[:, ['foo', 'B', 'D']]
+            expected = df.loc[:, ['foo', 'B', 'D']]
             assert_frame_equal(result, expected)
 
         # by dtype
@@ -837,7 +835,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
             # axis = 1
             result = df.take(order, axis=1)
-            expected = df.ix[:, ['B', 'C', 'A', 'D']]
+            expected = df.loc[:, ['B', 'C', 'A', 'D']]
             assert_frame_equal(result, expected)
 
     def test_reindex_boolean(self):

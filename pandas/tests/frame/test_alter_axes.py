@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas.compat import lrange
 from pandas import (DataFrame, Series, Index, MultiIndex,
-                    RangeIndex)
+                    RangeIndex, date_range)
 import pandas as pd
 
 from pandas.util.testing import (assert_series_equal,
@@ -21,8 +21,6 @@ from pandas.tests.frame.common import TestData
 
 
 class TestDataFrameAlterAxes(tm.TestCase, TestData):
-
-    _multiprocess_can_split_ = True
 
     def test_set_index(self):
         idx = Index(np.arange(len(self.mixed_frame)))
@@ -39,10 +37,10 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         # issue casting an index then set_index
         df = DataFrame({'A': [1.1, 2.2, 3.3], 'B': [5.0, 6.1, 7.2]},
                        index=[2010, 2011, 2012])
-        expected = df.ix[2010]
+        expected = df.loc[2010]
         new_index = df.index.astype(np.int32)
         df.index = new_index
-        result = df.ix[2010]
+        result = df.loc[2010]
         assert_series_equal(result, expected)
 
     def test_set_index2(self):
@@ -58,7 +56,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
         index = Index(df['C'], name='C')
 
-        expected = df.ix[:, ['A', 'B', 'D', 'E']]
+        expected = df.loc[:, ['A', 'B', 'D', 'E']]
         expected.index = index
 
         expected_nodrop = df.copy()
@@ -86,7 +84,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
         index = MultiIndex.from_arrays([df['A'], df['B']], names=['A', 'B'])
 
-        expected = df.ix[:, ['C', 'D', 'E']]
+        expected = df.loc[:, ['C', 'D', 'E']]
         expected.index = index
 
         expected_nodrop = df.copy()
@@ -301,8 +299,8 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
         df = DataFrame(np.random.randn(3, 3), columns=columns)
         rs = df.set_index(df.columns[0])
-        xp = df.ix[:, 1:]
-        xp.index = df.ix[:, 0].values
+        xp = df.iloc[:, 1:]
+        xp.index = df.iloc[:, 0].values
         xp.index.names = [df.columns[0]]
         assert_frame_equal(rs, xp)
 
@@ -324,6 +322,32 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         self.mixed_frame.columns = cols
         with assertRaisesRegexp(ValueError, 'Length mismatch'):
             self.mixed_frame.columns = cols[::2]
+
+    def test_dti_set_index_reindex(self):
+        # GH 6631
+        df = DataFrame(np.random.random(6))
+        idx1 = date_range('2011/01/01', periods=6, freq='M', tz='US/Eastern')
+        idx2 = date_range('2013', periods=6, freq='A', tz='Asia/Tokyo')
+
+        df = df.set_index(idx1)
+        tm.assert_index_equal(df.index, idx1)
+        df = df.reindex(idx2)
+        tm.assert_index_equal(df.index, idx2)
+
+        # 11314
+        # with tz
+        index = date_range(datetime(2015, 10, 1),
+                           datetime(2015, 10, 1, 23),
+                           freq='H', tz='US/Eastern')
+        df = DataFrame(np.random.randn(24, 1), columns=['a'], index=index)
+        new_index = date_range(datetime(2015, 10, 2),
+                               datetime(2015, 10, 2, 23),
+                               freq='H', tz='US/Eastern')
+
+        # TODO: unused?
+        result = df.set_index(new_index)  # noqa
+
+        self.assertEqual(new_index.freq, index.freq)
 
     # Renaming
 
@@ -599,6 +623,33 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                        columns=[['blah', 'b', 'b', 'c'],
                                 ['a', 'mean', 'median', 'mean']])
         assert_frame_equal(rs, xp)
+
+    def test_reset_index_multiindex_nan(self):
+        # GH6322, testing reset_index on MultiIndexes
+        # when we have a nan or all nan
+        df = pd.DataFrame({'A': ['a', 'b', 'c'],
+                           'B': [0, 1, np.nan],
+                           'C': np.random.rand(3)})
+        rs = df.set_index(['A', 'B']).reset_index()
+        assert_frame_equal(rs, df)
+
+        df = pd.DataFrame({'A': [np.nan, 'b', 'c'],
+                           'B': [0, 1, 2],
+                           'C': np.random.rand(3)})
+        rs = df.set_index(['A', 'B']).reset_index()
+        assert_frame_equal(rs, df)
+
+        df = pd.DataFrame({'A': ['a', 'b', 'c'],
+                           'B': [0, 1, 2],
+                           'C': [np.nan, 1.1, 2.2]})
+        rs = df.set_index(['A', 'B']).reset_index()
+        assert_frame_equal(rs, df)
+
+        df = pd.DataFrame({'A': ['a', 'b', 'c'],
+                           'B': [np.nan, np.nan, np.nan],
+                           'C': np.random.rand(3)})
+        rs = df.set_index(['A', 'B']).reset_index()
+        assert_frame_equal(rs, df)
 
     def test_reset_index_with_datetimeindex_cols(self):
         # GH5818

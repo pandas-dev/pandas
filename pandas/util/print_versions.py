@@ -63,13 +63,12 @@ def show_versions(as_json=False):
     deps = [
         # (MODULE_NAME, f(mod) -> mod version)
         ("pandas", lambda mod: mod.__version__),
-        ("nose", lambda mod: mod.__version__),
+        ("pytest", lambda mod: mod.__version__),
         ("pip", lambda mod: mod.__version__),
         ("setuptools", lambda mod: mod.__version__),
         ("Cython", lambda mod: mod.__version__),
         ("numpy", lambda mod: mod.version.version),
         ("scipy", lambda mod: mod.version.version),
-        ("statsmodels", lambda mod: mod.__version__),
         ("xarray", lambda mod: mod.__version__),
         ("IPython", lambda mod: mod.__version__),
         ("sphinx", lambda mod: mod.__version__),
@@ -153,6 +152,7 @@ def main():
     show_versions(as_json=options.json)
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

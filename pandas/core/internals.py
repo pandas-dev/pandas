@@ -372,6 +372,10 @@ class Block(PandasObject):
         original_value = value
         mask = isnull(self.values)
         if limit is not None:
+            if not is_integer(limit):
+                raise ValueError('Limit must be an integer')
+            if limit < 1:
+                raise ValueError('Limit must be greater than 0')
             if self.ndim > 2:
                 raise NotImplementedError("number of dimensions for 'fillna' "
                                           "is currently limited to 2")
@@ -5122,6 +5126,7 @@ def trim_join_unit(join_unit, length):
 
 
 class JoinUnit(object):
+
     def __init__(self, block, shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.
         if indexers is None:

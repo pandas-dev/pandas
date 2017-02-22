@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
+from warnings import catch_warnings
 import datetime
 import itertools
-import nose
+import pytest
 
 from numpy.random import randn
 import numpy as np
@@ -23,8 +24,6 @@ import pandas.index as _index
 
 
 class TestMultiLevel(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def setUp(self):
 
@@ -188,8 +187,12 @@ class TestMultiLevel(tm.TestCase):
         _test_roundtrip(self.ymd.T)
 
     def test_reindex(self):
-        reindexed = self.frame.ix[[('foo', 'one'), ('bar', 'one')]]
-        expected = self.frame.ix[[0, 3]]
+        expected = self.frame.iloc[[0, 3]]
+        reindexed = self.frame.loc[[('foo', 'one'), ('bar', 'one')]]
+        assert_frame_equal(reindexed, expected)
+
+        with catch_warnings(record=True):
+            reindexed = self.frame.ix[[('foo', 'one'), ('bar', 'one')]]
         assert_frame_equal(reindexed, expected)
 
     def test_reindex_preserve_levels(self):
@@ -197,14 +200,18 @@ class TestMultiLevel(tm.TestCase):
         chunk = self.ymd.reindex(new_index)
         self.assertIs(chunk.index, new_index)
 
-        chunk = self.ymd.ix[new_index]
+        chunk = self.ymd.loc[new_index]
+        self.assertIs(chunk.index, new_index)
+
+        with catch_warnings(record=True):
+            chunk = self.ymd.ix[new_index]
         self.assertIs(chunk.index, new_index)
 
         ymdT = self.ymd.T
         chunk = ymdT.reindex(columns=new_index)
         self.assertIs(chunk.columns, new_index)
 
-        chunk = ymdT.ix[:, new_index]
+        chunk = ymdT.loc[:, new_index]
         self.assertIs(chunk.columns, new_index)
 
     def test_sort_index_preserve_levels(self):
@@ -286,7 +293,7 @@ class TestMultiLevel(tm.TestCase):
         result = s[2000, 3]
 
         # TODO(wesm): unused?
-        # result2 = s.ix[2000, 3]
+        # result2 = s.loc[2000, 3]
 
         expected = s.reindex(s.index[42:65])
         expected.index = expected.index.droplevel(0).droplevel(0)
@@ -297,8 +304,12 @@ class TestMultiLevel(tm.TestCase):
         self.assertEqual(result, expected)
 
         # fancy
-        result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
         expected = s.reindex(s.index[49:51])
+        result = s.loc[[(2000, 3, 10), (2000, 3, 13)]]
+        assert_series_equal(result, expected)
+
+        with catch_warnings(record=True):
+            result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
         assert_series_equal(result, expected)
 
         # key error
@@ -356,13 +367,13 @@ class TestMultiLevel(tm.TestCase):
 
     def test_frame_getitem_setitem_slice(self):
         # getitem
-        result = self.frame.ix[:4]
+        result = self.frame.iloc[:4]
         expected = self.frame[:4]
         assert_frame_equal(result, expected)
 
         # setitem
         cp = self.frame.copy()
-        cp.ix[:4] = 0
+        cp.iloc[:4] = 0
 
         self.assertTrue((cp.values[:4] == 0).all())
         self.assertTrue((cp.values[4:] != 0).all())
@@ -373,21 +384,25 @@ class TestMultiLevel(tm.TestCase):
         midx = MultiIndex(labels=labels, levels=levels, names=[None, 'id'])
         df = DataFrame({'value': [1, 2, 3, 7, 8]}, index=midx)
 
-        result = df.ix[:, 'value']
+        result = df.loc[:, 'value']
         assert_series_equal(df['value'], result)
 
-        result = df.ix[1:3, 'value']
+        with catch_warnings(record=True):
+            result = df.ix[:, 'value']
+        assert_series_equal(df['value'], result)
+
+        result = df.loc[df.index[1:3], 'value']
         assert_series_equal(df['value'][1:3], result)
 
-        result = df.ix[:, :]
+        result = df.loc[:, :]
         assert_frame_equal(df, result)
 
         result = df
-        df.ix[:, 'value'] = 10
+        df.loc[:, 'value'] = 10
         result['value'] = 10
         assert_frame_equal(df, result)
 
-        df.ix[:, :] = 10
+        df.loc[:, :] = 10
         assert_frame_equal(df, result)
 
     def test_frame_getitem_multicolumn_empty_level(self):
@@ -444,20 +459,23 @@ class TestMultiLevel(tm.TestCase):
 
         idf = df.set_index(['a', 'b'])
 
-        result = idf.ix[(0, 0), :]
-        expected = idf.ix[0, 0]
+        result = idf.loc[(0, 0), :]
+        expected = idf.loc[0, 0]
         expected2 = idf.xs((0, 0))
+        with catch_warnings(record=True):
+            expected3 = idf.ix[0, 0]
 
         assert_series_equal(result, expected)
         assert_series_equal(result, expected2)
+        assert_series_equal(result, expected3)
 
     def test_getitem_setitem_tuple_plus_columns(self):
         # GH #1013
 
         df = self.ymd[:5]
 
-        result = df.ix[(2000, 1, 6), ['A', 'B', 'C']]
-        expected = df.ix[2000, 1, 6][['A', 'B', 'C']]
+        result = df.loc[(2000, 1, 6), ['A', 'B', 'C']]
+        expected = df.loc[2000, 1, 6][['A', 'B', 'C']]
         assert_series_equal(result, expected)
 
     def test_getitem_multilevel_index_tuple_unsorted(self):
@@ -466,7 +484,7 @@ class TestMultiLevel(tm.TestCase):
                        columns=index_columns + ["data"])
         df = df.set_index(index_columns)
         query_index = df.index[:1]
-        rs = df.ix[query_index, "data"]
+        rs = df.loc[query_index, "data"]
 
         xp_idx = MultiIndex.from_tuples([(0, 1, 0)], names=['a', 'b', 'c'])
         xp = Series(['x'], index=xp_idx, name='data')
@@ -474,7 +492,7 @@ class TestMultiLevel(tm.TestCase):
 
     def test_xs(self):
         xs = self.frame.xs(('bar', 'two'))
-        xs2 = self.frame.ix[('bar', 'two')]
+        xs2 = self.frame.loc[('bar', 'two')]
 
         assert_series_equal(xs, xs2)
         assert_almost_equal(xs.values, self.frame.values[4])
@@ -500,13 +518,13 @@ class TestMultiLevel(tm.TestCase):
 
     def test_xs_partial(self):
         result = self.frame.xs('foo')
-        result2 = self.frame.ix['foo']
+        result2 = self.frame.loc['foo']
         expected = self.frame.T['foo'].T
         assert_frame_equal(result, expected)
         assert_frame_equal(result, result2)
 
         result = self.ymd.xs((2000, 4))
-        expected = self.ymd.ix[2000, 4]
+        expected = self.ymd.loc[2000, 4]
         assert_frame_equal(result, expected)
 
         # ex from #1796
@@ -518,7 +536,7 @@ class TestMultiLevel(tm.TestCase):
                        columns=list('abcd'))
 
         result = df.xs(['foo', 'one'])
-        expected = df.ix['foo', 'one']
+        expected = df.loc['foo', 'one']
         assert_frame_equal(result, expected)
 
     def test_xs_level(self):
@@ -576,8 +594,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
         idx.names = ['date', 'secid']
         df = DataFrame(np.random.randn(len(idx), 3), idx, ['X', 'Y', 'Z'])
+
         rs = df.xs(20111201, level='date')
-        xp = df.ix[20111201, :]
+        xp = df.loc[20111201, :]
         assert_frame_equal(rs, xp)
 
     def test_xs_level0(self):
@@ -603,7 +622,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         s = self.ymd['A']
         result = s[2000, 5]
-        expected = self.ymd.ix[2000, 5]['A']
+        expected = self.ymd.loc[2000, 5]['A']
         assert_series_equal(result, expected)
 
         # not implementing this for now
@@ -633,7 +652,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(result, expected)
 
         result = df['bar']
-        result2 = df.ix[:, 'bar']
+        result2 = df.loc[:, 'bar']
 
         expected = df.reindex(columns=df.columns[3:5])
         expected.columns = expected.columns.droplevel(0)
@@ -646,21 +665,21 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         frame = DataFrame(np.random.randn(len(index), 4), index=index,
                           columns=['a', 'b', 'c', 'd'])
-        res = frame.ix[1:2]
+        res = frame.loc[1:2]
         exp = frame.reindex(frame.index[2:])
         assert_frame_equal(res, exp)
 
-        frame.ix[1:2] = 7
-        self.assertTrue((frame.ix[1:2] == 7).values.all())
+        frame.loc[1:2] = 7
+        self.assertTrue((frame.loc[1:2] == 7).values.all())
 
         series = Series(np.random.randn(len(index)), index=index)
 
-        res = series.ix[1:2]
+        res = series.loc[1:2]
         exp = series.reindex(series.index[2:])
         assert_series_equal(res, exp)
 
-        series.ix[1:2] = 7
-        self.assertTrue((series.ix[1:2] == 7).values.all())
+        series.loc[1:2] = 7
+        self.assertTrue((series.loc[1:2] == 7).values.all())
 
     def test_getitem_int(self):
         levels = [[0, 1], [0, 1, 2]]
@@ -669,16 +688,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         frame = DataFrame(np.random.randn(6, 2), index=index)
 
-        result = frame.ix[1]
+        result = frame.loc[1]
         expected = frame[-3:]
         expected.index = expected.index.droplevel(0)
         assert_frame_equal(result, expected)
 
         # raises exception
-        self.assertRaises(KeyError, frame.ix.__getitem__, 3)
+        self.assertRaises(KeyError, frame.loc.__getitem__, 3)
 
         # however this will work
-        result = self.frame.ix[2]
+        result = self.frame.iloc[2]
         expected = self.frame.xs(self.frame.index[2])
         assert_series_equal(result, expected)
 
@@ -694,7 +713,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df = self.frame.sort_index(level=1).T
 
         # buglet with int typechecking
-        result = df.ix[:, :np.int32(3)]
+        result = df.iloc[:, :np.int32(3)]
         expected = df.reindex(columns=df.columns[:3])
         assert_frame_equal(result, expected)
 
@@ -709,21 +728,27 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_series_equal(reindexed['foo', 'two'], s > s.median())
 
     def test_frame_setitem_ix(self):
-        self.frame.ix[('bar', 'two'), 'B'] = 5
-        self.assertEqual(self.frame.ix[('bar', 'two'), 'B'], 5)
+        self.frame.loc[('bar', 'two'), 'B'] = 5
+        self.assertEqual(self.frame.loc[('bar', 'two'), 'B'], 5)
 
         # with integer labels
         df = self.frame.copy()
         df.columns = lrange(3)
-        df.ix[('bar', 'two'), 1] = 7
-        self.assertEqual(df.ix[('bar', 'two'), 1], 7)
+        df.loc[('bar', 'two'), 1] = 7
+        self.assertEqual(df.loc[('bar', 'two'), 1], 7)
+
+        with catch_warnings(record=True):
+            df = self.frame.copy()
+            df.columns = lrange(3)
+            df.ix[('bar', 'two'), 1] = 7
+        self.assertEqual(df.loc[('bar', 'two'), 1], 7)
 
     def test_fancy_slice_partial(self):
-        result = self.frame.ix['bar':'baz']
+        result = self.frame.loc['bar':'baz']
         expected = self.frame[3:7]
         assert_frame_equal(result, expected)
 
-        result = self.ymd.ix[(2000, 2):(2000, 4)]
+        result = self.ymd.loc[(2000, 2):(2000, 4)]
         lev = self.ymd.index.labels[1]
         expected = self.ymd[(lev >= 1) & (lev <= 3)]
         assert_frame_equal(result, expected)
@@ -733,15 +758,19 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                          levels=[['a', 'b'], ['x', 'y'], ['p', 'q']])
         df = DataFrame(np.random.rand(3, 2), index=idx)
 
-        result = df.ix[('a', 'y'), :]
-        expected = df.ix[('a', 'y')]
+        result = df.loc[('a', 'y'), :]
+        expected = df.loc[('a', 'y')]
         assert_frame_equal(result, expected)
 
-        result = df.ix[('a', 'y'), [1, 0]]
-        expected = df.ix[('a', 'y')][[1, 0]]
+        result = df.loc[('a', 'y'), [1, 0]]
+        expected = df.loc[('a', 'y')][[1, 0]]
         assert_frame_equal(result, expected)
 
-        self.assertRaises(KeyError, df.ix.__getitem__,
+        with catch_warnings(record=True):
+            result = df.ix[('a', 'y'), [1, 0]]
+        assert_frame_equal(result, expected)
+
+        self.assertRaises(KeyError, df.loc.__getitem__,
                           (('a', 'foo'), slice(None, None)))
 
     def test_sort_index_level(self):
@@ -834,10 +863,10 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 expected = expected.reindex_like(result).astype('i8')
                 assert_frame_equal(result, expected)
 
-        self.frame.ix[1, [1, 2]] = np.nan
-        self.frame.ix[7, [0, 1]] = np.nan
-        self.ymd.ix[1, [1, 2]] = np.nan
-        self.ymd.ix[7, [0, 1]] = np.nan
+        self.frame.iloc[1, [1, 2]] = np.nan
+        self.frame.iloc[7, [0, 1]] = np.nan
+        self.ymd.iloc[1, [1, 2]] = np.nan
+        self.ymd.iloc[7, [0, 1]] = np.nan
 
         _check_counts(self.frame)
         _check_counts(self.ymd)
@@ -953,7 +982,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert_frame_equal(result, expected)
 
         # not all levels present in each echelon
-        unstacked = self.ymd.unstack(2).ix[:, ::3]
+        unstacked = self.ymd.unstack(2).loc[:, ::3]
         stacked = unstacked.stack().stack()
         ymd_stacked = self.ymd.stack()
         assert_series_equal(stacked, ymd_stacked.reindex(stacked.index))
@@ -1096,7 +1125,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         unstacked = self.ymd.unstack([2, 1])
         expected = self.ymd.unstack(2).unstack(1).dropna(axis=1, how='all')
-        assert_frame_equal(unstacked, expected.ix[:, unstacked.columns])
+        assert_frame_equal(unstacked, expected.loc[:, unstacked.columns])
 
     def test_stack_names_and_numbers(self):
         unstacked = self.ymd.unstack(['year', 'month'])
@@ -1214,7 +1243,7 @@ Thur,Lunch,Yes,51.51,17"""
         down = unst.resample('W-THU').mean()
 
         rs = down.stack('ID')
-        xp = unst.ix[:, ['VAR1']].resample('W-THU').mean().stack('ID')
+        xp = unst.loc[:, ['VAR1']].resample('W-THU').mean().stack('ID')
         xp.columns.name = 'Params'
         assert_frame_equal(rs, xp)
 
@@ -1306,8 +1335,8 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertTrue((result.columns == ['f2', 'f3']).all())
 
     def test_join(self):
-        a = self.frame.ix[:5, ['A']]
-        b = self.frame.ix[2:, ['B', 'C']]
+        a = self.frame.loc[self.frame.index[:5], ['A']]
+        b = self.frame.loc[self.frame.index[2:], ['B', 'C']]
 
         joined = a.join(b, how='outer').reindex(self.frame.index)
         expected = self.frame.copy()
@@ -1440,10 +1469,10 @@ Thur,Lunch,Yes,51.51,17"""
         df = self.frame.T
         df['foo', 'four'] = 'foo'
 
-        arrays = [np.array(x) for x in zip(*df.columns._tuple_index)]
+        arrays = [np.array(x) for x in zip(*df.columns.values)]
 
         result = df['foo']
-        result2 = df.ix[:, 'foo']
+        result2 = df.loc[:, 'foo']
         expected = df.reindex(columns=df.columns[arrays[0] == 'foo'])
         expected.columns = expected.columns.droplevel(0)
         assert_frame_equal(result, expected)
@@ -1451,7 +1480,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         df = df.T
         result = df.xs('foo')
-        result2 = df.ix['foo']
+        result2 = df.loc['foo']
         expected = df.reindex(df.index[arrays[0] == 'foo'])
         expected.index = expected.index.droplevel(0)
         assert_frame_equal(result, expected)
@@ -1464,10 +1493,10 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex.from_tuples(tuples)
         s = Series(randn(8), index=index)
 
-        arrays = [np.array(x) for x in zip(*index._tuple_index)]
+        arrays = [np.array(x) for x in zip(*index.values)]
 
         result = s['qux']
-        result2 = s.ix['qux']
+        result2 = s.loc['qux']
         expected = s[arrays[0] == 'qux']
         expected.index = expected.index.droplevel(0)
         assert_series_equal(result, expected)
@@ -1515,8 +1544,8 @@ Thur,Lunch,Yes,51.51,17"""
             assert_series_equal(leftside, rightside)
 
     def test_frame_group_ops(self):
-        self.frame.ix[1, [1, 2]] = np.nan
-        self.frame.ix[7, [0, 1]] = np.nan
+        self.frame.iloc[1, [1, 2]] = np.nan
+        self.frame.iloc[7, [0, 1]] = np.nan
 
         for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
                                                     lrange(2), lrange(2),
@@ -1620,13 +1649,13 @@ Thur,Lunch,Yes,51.51,17"""
         df = df.consolidate()
 
     def test_ix_preserve_names(self):
-        result = self.ymd.ix[2000]
-        result2 = self.ymd['A'].ix[2000]
+        result = self.ymd.loc[2000]
+        result2 = self.ymd['A'].loc[2000]
         self.assertEqual(result.index.names, self.ymd.index.names[1:])
         self.assertEqual(result2.index.names, self.ymd.index.names[1:])
 
-        result = self.ymd.ix[2000, 2]
-        result2 = self.ymd['A'].ix[2000, 2]
+        result = self.ymd.loc[2000, 2]
+        result2 = self.ymd['A'].loc[2000, 2]
         self.assertEqual(result.index.name, self.ymd.index.names[2])
         self.assertEqual(result2.index.name, self.ymd.index.names[2])
 
@@ -1634,20 +1663,20 @@ Thur,Lunch,Yes,51.51,17"""
         # GH #397
         df = self.ymd.copy()
         exp = self.ymd.copy()
-        df.ix[2000, 4] = 0
-        exp.ix[2000, 4].values[:] = 0
+        df.loc[2000, 4] = 0
+        exp.loc[2000, 4].values[:] = 0
         assert_frame_equal(df, exp)
 
-        df['A'].ix[2000, 4] = 1
-        exp['A'].ix[2000, 4].values[:] = 1
+        df['A'].loc[2000, 4] = 1
+        exp['A'].loc[2000, 4].values[:] = 1
         assert_frame_equal(df, exp)
 
-        df.ix[2000] = 5
-        exp.ix[2000].values[:] = 5
+        df.loc[2000] = 5
+        exp.loc[2000].values[:] = 5
         assert_frame_equal(df, exp)
 
         # this works...for now
-        df['A'].ix[14] = 5
+        df['A'].iloc[14] = 5
         self.assertEqual(df['A'][14], 5)
 
     def test_unstack_preserve_types(self):
@@ -1693,31 +1722,31 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertEqual(result.shape, (500, 2))
 
     def test_getitem_lowerdim_corner(self):
-        self.assertRaises(KeyError, self.frame.ix.__getitem__,
+        self.assertRaises(KeyError, self.frame.loc.__getitem__,
                           (('bar', 'three'), 'B'))
 
         # in theory should be inserting in a sorted space????
-        self.frame.ix[('bar', 'three'), 'B'] = 0
-        self.assertEqual(self.frame.sort_index().ix[('bar', 'three'), 'B'], 0)
+        self.frame.loc[('bar', 'three'), 'B'] = 0
+        self.assertEqual(self.frame.sort_index().loc[('bar', 'three'), 'B'], 0)
 
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!
 
     def test_partial_ix_missing(self):
-        raise nose.SkipTest("skipping for now")
+        pytest.skip("skipping for now")
 
-        result = self.ymd.ix[2000, 0]
-        expected = self.ymd.ix[2000]['A']
+        result = self.ymd.loc[2000, 0]
+        expected = self.ymd.loc[2000]['A']
         assert_series_equal(result, expected)
 
         # need to put in some work here
 
-        # self.ymd.ix[2000, 0] = 0
-        # self.assertTrue((self.ymd.ix[2000]['A'] == 0).all())
+        # self.ymd.loc[2000, 0] = 0
+        # self.assertTrue((self.ymd.loc[2000]['A'] == 0).all())
 
         # Pretty sure the second (and maybe even the first) is already wrong.
-        self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6))
-        self.assertRaises(Exception, self.ymd.ix.__getitem__, (2000, 6), 0)
+        self.assertRaises(Exception, self.ymd.loc.__getitem__, (2000, 6))
+        self.assertRaises(Exception, self.ymd.loc.__getitem__, (2000, 6), 0)
 
     # ---------------------------------------------------------------------
 
@@ -1735,7 +1764,7 @@ Thur,Lunch,Yes,51.51,17"""
         frame = DataFrame(np.random.randn(6, 4), index=index)
 
         result = series[('foo', 'bar', 0)]
-        result2 = series.ix[('foo', 'bar', 0)]
+        result2 = series.loc[('foo', 'bar', 0)]
         expected = series[:2]
         expected.index = expected.index.droplevel(0)
         assert_series_equal(result, expected)
@@ -1743,7 +1772,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         self.assertRaises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
 
-        result = frame.ix[('foo', 'bar', 0)]
+        result = frame.loc[('foo', 'bar', 0)]
         result2 = frame.xs(('foo', 'bar', 0))
         expected = frame[:2]
         expected.index = expected.index.droplevel(0)
@@ -1758,13 +1787,13 @@ Thur,Lunch,Yes,51.51,17"""
         frame = DataFrame(np.random.randn(6, 4), index=index)
 
         result = series[('foo', 'bar')]
-        result2 = series.ix[('foo', 'bar')]
+        result2 = series.loc[('foo', 'bar')]
         expected = series[:2]
         expected.index = expected.index.droplevel(0)
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
-        result = frame.ix[('foo', 'bar')]
+        result = frame.loc[('foo', 'bar')]
         result2 = frame.xs(('foo', 'bar'))
         expected = frame[:2]
         expected.index = expected.index.droplevel(0)
@@ -1859,7 +1888,7 @@ Thur,Lunch,Yes,51.51,17"""
                        columns=["var1", "var2", "var3", "var4"])
 
         grp_size = df.groupby("var1").size()
-        drop_idx = grp_size.ix[grp_size == 1]
+        drop_idx = grp_size.loc[grp_size == 1]
 
         idf = df.set_index(["var1", "var2", "var3"])
 
@@ -1896,65 +1925,65 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_reindex_level_partial_selection(self):
         result = self.frame.reindex(['foo', 'qux'], level=0)
-        expected = self.frame.ix[[0, 1, 2, 7, 8, 9]]
+        expected = self.frame.iloc[[0, 1, 2, 7, 8, 9]]
         assert_frame_equal(result, expected)
 
         result = self.frame.T.reindex_axis(['foo', 'qux'], axis=1, level=0)
         assert_frame_equal(result, expected.T)
 
-        result = self.frame.ix[['foo', 'qux']]
+        result = self.frame.loc[['foo', 'qux']]
         assert_frame_equal(result, expected)
 
-        result = self.frame['A'].ix[['foo', 'qux']]
+        result = self.frame['A'].loc[['foo', 'qux']]
         assert_series_equal(result, expected['A'])
 
-        result = self.frame.T.ix[:, ['foo', 'qux']]
+        result = self.frame.T.loc[:, ['foo', 'qux']]
         assert_frame_equal(result, expected.T)
 
     def test_setitem_multiple_partial(self):
         expected = self.frame.copy()
         result = self.frame.copy()
-        result.ix[['foo', 'bar']] = 0
-        expected.ix['foo'] = 0
-        expected.ix['bar'] = 0
+        result.loc[['foo', 'bar']] = 0
+        expected.loc['foo'] = 0
+        expected.loc['bar'] = 0
         assert_frame_equal(result, expected)
 
         expected = self.frame.copy()
         result = self.frame.copy()
-        result.ix['foo':'bar'] = 0
-        expected.ix['foo'] = 0
-        expected.ix['bar'] = 0
+        result.loc['foo':'bar'] = 0
+        expected.loc['foo'] = 0
+        expected.loc['bar'] = 0
         assert_frame_equal(result, expected)
 
         expected = self.frame['A'].copy()
         result = self.frame['A'].copy()
-        result.ix[['foo', 'bar']] = 0
-        expected.ix['foo'] = 0
-        expected.ix['bar'] = 0
+        result.loc[['foo', 'bar']] = 0
+        expected.loc['foo'] = 0
+        expected.loc['bar'] = 0
         assert_series_equal(result, expected)
 
         expected = self.frame['A'].copy()
         result = self.frame['A'].copy()
-        result.ix['foo':'bar'] = 0
-        expected.ix['foo'] = 0
-        expected.ix['bar'] = 0
+        result.loc['foo':'bar'] = 0
+        expected.loc['foo'] = 0
+        expected.loc['bar'] = 0
         assert_series_equal(result, expected)
 
     def test_drop_level(self):
         result = self.frame.drop(['bar', 'qux'], level='first')
-        expected = self.frame.ix[[0, 1, 2, 5, 6]]
+        expected = self.frame.iloc[[0, 1, 2, 5, 6]]
         assert_frame_equal(result, expected)
 
         result = self.frame.drop(['two'], level='second')
-        expected = self.frame.ix[[0, 2, 3, 6, 7, 9]]
+        expected = self.frame.iloc[[0, 2, 3, 6, 7, 9]]
         assert_frame_equal(result, expected)
 
         result = self.frame.T.drop(['bar', 'qux'], axis=1, level='first')
-        expected = self.frame.ix[[0, 1, 2, 5, 6]].T
+        expected = self.frame.iloc[[0, 1, 2, 5, 6]].T
         assert_frame_equal(result, expected)
 
         result = self.frame.T.drop(['two'], axis=1, level='second')
-        expected = self.frame.ix[[0, 2, 3, 6, 7, 9]].T
+        expected = self.frame.iloc[[0, 2, 3, 6, 7, 9]].T
         assert_frame_equal(result, expected)
 
     def test_drop_level_nonunique_datetime(self):
@@ -2028,12 +2057,12 @@ Thur,Lunch,Yes,51.51,17"""
     def test_set_column_scalar_with_ix(self):
         subset = self.frame.index[[1, 4, 5]]
 
-        self.frame.ix[subset] = 99
-        self.assertTrue((self.frame.ix[subset].values == 99).all())
+        self.frame.loc[subset] = 99
+        self.assertTrue((self.frame.loc[subset].values == 99).all())
 
         col = self.frame['B']
         col[subset] = 97
-        self.assertTrue((self.frame.ix[subset, 'B'] == 97).all())
+        self.assertTrue((self.frame.loc[subset, 'B'] == 97).all())
 
     def test_frame_dict_constructor_empty_series(self):
         s1 = Series([
@@ -2057,7 +2086,7 @@ Thur,Lunch,Yes,51.51,17"""
         frame = DataFrame(np.arange(12).reshape((4, 3)), index=index,
                           columns=columns)
 
-        result = frame.ix[:, 1]
+        result = frame.iloc[:, 1]
         exp = frame.loc[:, ('Ohio', 'Red')]
         tm.assertIsInstance(result, Series)
         assert_series_equal(result, exp)
@@ -2069,7 +2098,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = df.set_index(['A', 'B'])
         ix = MultiIndex.from_tuples([(1, 1)])
 
-        df.ix[ix, "C"] = '_'
+        df.loc[ix, "C"] = '_'
 
         self.assertTrue((df.xs((1, 1))['C'] == '_').all())
 
@@ -2447,8 +2476,3 @@ Thur,Lunch,Yes,51.51,17"""
                                for r in range(5)])
 
         assert_frame_equal(result, expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

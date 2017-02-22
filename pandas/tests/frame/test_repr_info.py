@@ -25,8 +25,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_repr_empty(self):
         # empty
         foo = repr(self.empty)  # noqa
@@ -303,10 +301,12 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
             data[i] = np.random.randint(2, size=n).astype(dtype)
         df = DataFrame(data)
         buf = StringIO()
+
         # display memory usage case
         df.info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
         self.assertTrue("memory usage: " in res[-1])
+
         # do not display memory usage cas
         df.info(buf=buf, memory_usage=False)
         res = buf.getvalue().splitlines()
@@ -314,11 +314,13 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
         df.info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
+
         # memory usage is a lower bound, so print it as XYZ+ MB
         self.assertTrue(re.match(r"memory usage: [^+]+\+", res[-1]))
 
         df.iloc[:, :5].info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
+
         # excluded column with object dtype, so estimate is accurate
         self.assertFalse(re.match(r"memory usage: [^+]+\+", res[-1]))
 
@@ -381,6 +383,34 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         # deep=True, and add on some GC overhead
         diff = df.memory_usage(deep=True).sum() - sys.getsizeof(df)
         self.assertTrue(abs(diff) < 100)
+
+    def test_info_memory_usage_qualified(self):
+
+        buf = StringIO()
+        df = DataFrame(1, columns=list('ab'),
+                       index=[1, 2, 3])
+        df.info(buf=buf)
+        self.assertFalse('+' in buf.getvalue())
+
+        buf = StringIO()
+        df = DataFrame(1, columns=list('ab'),
+                       index=list('ABC'))
+        df.info(buf=buf)
+        self.assertTrue('+' in buf.getvalue())
+
+        buf = StringIO()
+        df = DataFrame(1, columns=list('ab'),
+                       index=pd.MultiIndex.from_product(
+                           [range(3), range(3)]))
+        df.info(buf=buf)
+        self.assertFalse('+' in buf.getvalue())
+
+        buf = StringIO()
+        df = DataFrame(1, columns=list('ab'),
+                       index=pd.MultiIndex.from_product(
+                           [range(3), ['foo', 'bar']]))
+        df.info(buf=buf)
+        self.assertTrue('+' in buf.getvalue())
 
     def test_info_memory_usage_bug_on_multiindex(self):
         # GH 14308

@@ -4,7 +4,7 @@
 from itertools import product
 from distutils.version import LooseVersion
 
-import nose
+import pytest
 
 from numpy import nan
 import numpy as np
@@ -29,8 +29,6 @@ from .common import TestData
 
 
 class TestSeriesAnalytics(TestData, tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_sum_zero(self):
         arr = np.array([])
@@ -478,8 +476,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assert_series_equal(expected, result)
 
     def test_npdiff(self):
-        raise nose.SkipTest("skipping due to Series no longer being an "
-                            "ndarray")
+        pytest.skip("skipping due to Series no longer being an "
+                    "ndarray")
 
         # no longer works as the return type of np.diff is now nd.array
         s = Series(np.arange(5))
@@ -624,7 +622,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
     def test_built_in_round(self):
         if not compat.PY3:
-            raise nose.SkipTest(
+            pytest.skip(
                 'build in round cannot be overriden prior to Python 3')
 
         s = Series([1.123, 2.123, 3.123], index=lrange(3))
@@ -787,8 +785,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         # these methods got rewritten in 0.8
         if scipy.__version__ < LooseVersion('0.9'):
-            raise nose.SkipTest("skipping corr rank because of scipy version "
-                                "{0}".format(scipy.__version__))
+            pytest.skip("skipping corr rank because of scipy version "
+                        "{0}".format(scipy.__version__))
 
         # results from R
         A = Series(
@@ -1033,7 +1031,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         rng = date_range('1/1/1990', periods=5)
         iseries = Series(np.arange(5), rng) + 1
-        iseries.ix[4] = np.nan
+        iseries.iloc[4] = np.nan
         exp = iseries / 4.0
         iranks = iseries.rank(pct=True)
         assert_series_equal(iranks, exp)
@@ -1065,8 +1063,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertRaises(ValueError, s.rank, 'average')
 
     def test_rank_inf(self):
-        raise nose.SkipTest('DataFrame.rank does not currently rank '
-                            'np.inf and -np.inf properly')
+        pytest.skip('DataFrame.rank does not currently rank '
+                    'np.inf and -np.inf properly')
 
         values = np.array(
             [-np.inf, -50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10,

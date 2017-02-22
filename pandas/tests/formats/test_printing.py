@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-import nose
 from pandas import compat
 import pandas.formats.printing as printing
 import pandas.formats.format as fmt
 import pandas.util.testing as tm
 import pandas.core.config as cf
-
-_multiprocess_can_split_ = True
 
 
 def test_adjoin():
@@ -129,14 +126,9 @@ c        ff         いいい"""
 #     common.console_encode should encode things as utf-8.
 #     """
 #     if compat.PY3:
-#         raise nose.SkipTest
+#         pytest.skip
 
 #     with tm.stdin_encoding(encoding=None):
 #         result = printing.console_encode(u"\u05d0")
 #         expected = u"\u05d0".encode('utf-8')
 #         assert (result == expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

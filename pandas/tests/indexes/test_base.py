@@ -4,17 +4,17 @@ from datetime import datetime, timedelta
 
 import pandas.util.testing as tm
 from pandas.indexes.api import Index, MultiIndex
-from .common import Base
+from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
-                           zip, PY3, PY36)
+                           text_type, zip, PY3, PY36)
 import operator
 import os
 
 import numpy as np
 
 from pandas import (period_range, date_range, Series,
-                    Float64Index, Int64Index,
+                    DataFrame, Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex)
 from pandas.core.index import _get_combined_index
@@ -31,7 +31,6 @@ from pandas.lib import Timestamp
 
 class TestIndex(Base, tm.TestCase):
     _holder = Index
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(unicodeIndex=tm.makeUnicodeIndex(100),
@@ -40,6 +39,7 @@ class TestIndex(Base, tm.TestCase):
                             periodIndex=tm.makePeriodIndex(100),
                             tdIndex=tm.makeTimedeltaIndex(100),
                             intIndex=tm.makeIntIndex(100),
+                            uintIndex=tm.makeUIntIndex(100),
                             rangeIndex=tm.makeIntIndex(100),
                             floatIndex=tm.makeFloatIndex(100),
                             boolIndex=Index([True, False]),
@@ -449,7 +449,7 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(result.name, expected.name)
 
         with tm.assertRaises((IndexError, ValueError)):
-            # either depeidnig on numpy version
+            # either depending on numpy version
             result = idx.delete(5)
 
     def test_identical(self):
@@ -1794,7 +1794,6 @@ class TestMixedIntIndex(Base, tm.TestCase):
     # (GH 13514)
 
     _holder = Index
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.indices = dict(mixedIndex=Index([0, 'a', 1, 'b', 2, 'c']))
@@ -1992,7 +1991,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
         idx = pd.TimedeltaIndex(['1 days', '2 days', '3 days'])
         tm.assert_index_equal(idx.dropna(), idx)
         nanidx = pd.TimedeltaIndex([pd.NaT, '1 days', '2 days',
-                                   '3 days', pd.NaT])
+                                    '3 days', pd.NaT])
         tm.assert_index_equal(nanidx.dropna(), idx)
 
         idx = pd.PeriodIndex(['2012-02', '2012-04', '2012-05'], freq='M')
@@ -2020,3 +2019,59 @@ class TestMixedIntIndex(Base, tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             result = idx.repeat(n=repeats)
             tm.assert_index_equal(result, expected)
+
+    def test_is_monotonic_na(self):
+        examples = [pd.Index([np.nan]),
+                    pd.Index([np.nan, 1]),
+                    pd.Index([1, 2, np.nan]),
+                    pd.Index(['a', 'b', np.nan]),
+                    pd.to_datetime(['NaT']),
+                    pd.to_datetime(['NaT', '2000-01-01']),
+                    pd.to_datetime(['2000-01-01', 'NaT', '2000-01-02']),
+                    pd.to_timedelta(['1 day', 'NaT']), ]
+        for index in examples:
+            self.assertFalse(index.is_monotonic_increasing)
+            self.assertFalse(index.is_monotonic_decreasing)
+
+    def test_repr_summary(self):
+        with cf.option_context('display.max_seq_items', 10):
+            r = repr(pd.Index(np.arange(1000)))
+            self.assertTrue(len(r) < 200)
+            self.assertTrue("..." in r)
+
+    def test_int_name_format(self):
+        index = Index(['a', 'b', 'c'], name=0)
+        s = Series(lrange(3), index)
+        df = DataFrame(lrange(3), index=index)
+        repr(s)
+        repr(df)
+
+    def test_print_unicode_columns(self):
+        df = pd.DataFrame({u("\u05d0"): [1, 2, 3],
+                           "\u05d1": [4, 5, 6],
+                           "c": [7, 8, 9]})
+        repr(df.columns)  # should not raise UnicodeDecodeError
+
+    def test_unicode_string_with_unicode(self):
+        idx = Index(lrange(1000))
+
+        if PY3:
+            str(idx)
+        else:
+            text_type(idx)
+
+    def test_bytestring_with_unicode(self):
+        idx = Index(lrange(1000))
+        if PY3:
+            bytes(idx)
+        else:
+            str(idx)
+
+    def test_intersect_str_dates(self):
+        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
+
+        i1 = Index(dt_dates, dtype=object)
+        i2 = Index(['aa'], dtype=object)
+        res = i2.intersection(i1)
+
+        self.assertEqual(len(res), 0)

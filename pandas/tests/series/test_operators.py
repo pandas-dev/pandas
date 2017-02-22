@@ -28,7 +28,18 @@ from .common import TestData
 
 class TestSeriesOperators(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
+    def test_series_comparison_scalars(self):
+        series = Series(date_range('1/1/2000', periods=10))
+
+        val = datetime(2000, 1, 4)
+        result = series > val
+        expected = Series([x > val for x in series])
+        self.assert_series_equal(result, expected)
+
+        val = series[5]
+        result = series > val
+        expected = Series([x > val for x in series])
+        self.assert_series_equal(result, expected)
 
     def test_comparisons(self):
         left = np.random.randn(10)
@@ -1293,6 +1304,20 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         exp = pd.Series([True, True, False, False], index=list('abcd'))
         assert_series_equal(left.gt(right, fill_value=0), exp)
+
+    def test_return_dtypes_bool_op_costant(self):
+        # gh15115
+        s = pd.Series([1, 3, 2], index=range(3))
+        const = 2
+        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
+            result = getattr(s, op)(const).get_dtype_counts()
+            self.assert_series_equal(result, Series([1], ['bool']))
+
+        # empty Series
+        empty = s.iloc[:0]
+        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
+            result = getattr(empty, op)(const).get_dtype_counts()
+            self.assert_series_equal(result, Series([1], ['bool']))
 
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types

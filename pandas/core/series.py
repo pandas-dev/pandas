@@ -237,7 +237,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
                 if dtype is not None:
-                    data = data.astype(dtype=dtype, raise_on_error=False)
+                    data = data.astype(dtype=dtype, raise_on_error=False,
+                                       copy=copy)
                 elif copy:
                     data = data.copy()
             else:
@@ -684,7 +685,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 try:
                     # handle the dup indexing case (GH 4246)
                     if isinstance(key, (list, tuple)):
-                        return self.ix[key]
+                        return self.loc[key]
 
                     return self.reindex(key)
                 except Exception:
@@ -1587,7 +1588,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
 
         """
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         if isinstance(to_append, (list, tuple)):
             to_concat = [self] + to_append
@@ -1785,12 +1786,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             new_index, indexer = index.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
         elif isinstance(index, MultiIndex):
-            from pandas.core.groupby import _lexsort_indexer
-            indexer = _lexsort_indexer(index.labels, orders=ascending)
+            from pandas.core.sorting import lexsort_indexer
+            indexer = lexsort_indexer(index.labels, orders=ascending)
         else:
-            from pandas.core.groupby import _nargsort
-            indexer = _nargsort(index, kind=kind, ascending=ascending,
-                                na_position=na_position)
+            from pandas.core.sorting import nargsort
+            indexer = nargsort(index, kind=kind, ascending=ascending,
+                               na_position=na_position)
 
         indexer = _ensure_platform_int(indexer)
         new_index = index.take(indexer)
@@ -2986,6 +2987,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
 # backwards compatiblity
 class TimeSeries(Series):
+
     def __init__(self, *args, **kwargs):
         # deprecation TimeSeries, #10890
         warnings.warn("TimeSeries is deprecated. Please use Series",

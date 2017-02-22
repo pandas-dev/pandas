@@ -19,8 +19,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameApply(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_apply(self):
         with np.errstate(all='ignore'):
             # ufunc
@@ -70,7 +68,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         expected = Series(np.nan, index=self.frame.columns)
         assert_series_equal(result, expected)
 
-        no_cols = self.frame.ix[:, []]
+        no_cols = self.frame.loc[:, []]
         result = no_cols.apply(lambda x: x.mean(), axis=1)
         expected = Series(np.nan, index=self.frame.index)
         assert_series_equal(result, expected)
@@ -224,7 +222,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         assert_frame_equal(result, self.frame)
 
     def test_apply_reduce_Series(self):
-        self.frame.ix[::2, 'A'] = np.nan
+        self.frame.loc[::2, 'A'] = np.nan
         expected = self.frame.mean(1)
         result = self.frame.apply(np.mean, axis=1)
         assert_series_equal(result, expected)
@@ -432,6 +430,15 @@ class TestDataFrameApply(tm.TestCase, TestData):
                             'c': ['Timedelta', 'Timedelta'],
                             'd': ['Period', 'Period']})
         tm.assert_frame_equal(res, exp)
+
+    def test_frame_apply_dont_convert_datetime64(self):
+        from pandas.tseries.offsets import BDay
+        df = DataFrame({'x1': [datetime(1996, 1, 1)]})
+
+        df = df.applymap(lambda x: x + BDay())
+        df = df.applymap(lambda x: x + BDay())
+
+        self.assertTrue(df.x1.dtype == 'M8[ns]')
 
     # See gh-12244
     def test_apply_non_numpy_dtype(self):

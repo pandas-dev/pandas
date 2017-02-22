@@ -252,6 +252,22 @@ class groupby_int_count(object):
 
 
 #----------------------------------------------------------------------
+# nunique() speed
+
+class groupby_nunique(object):
+
+    def setup(self):
+        self.n = 10000
+        self.df = DataFrame({'key1': randint(0, 500, size=self.n),
+                             'key2': randint(0, 100, size=self.n),
+                             'ints': randint(0, 1000, size=self.n),
+                             'ints2': randint(0, 1000, size=self.n), })
+
+    def time_groupby_nunique(self):
+        self.df.groupby(['key1', 'key2']).nunique()
+
+
+#----------------------------------------------------------------------
 # group with different functions per column
 
 class groupby_agg_multi(object):

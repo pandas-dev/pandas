@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import nose
 import numpy as np
 
 from pandas import Series, Timestamp
 from pandas.compat import range, lmap
 import pandas.core.common as com
 import pandas.util.testing as tm
-
-_multiprocess_can_split_ = True
 
 
 def test_mut_exclusive():
@@ -196,8 +193,3 @@ def test_dict_compat():
     assert (com._dict_compat(data_datetime64) == expected)
     assert (com._dict_compat(expected) == expected)
     assert (com._dict_compat(data_unchanged) == data_unchanged)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

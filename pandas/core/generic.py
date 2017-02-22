@@ -48,7 +48,7 @@ from pandas.formats.format import format_percentiles
 from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.compat import (map, zip, lrange, string_types,
+from pandas.compat import (map, zip, lzip, lrange, string_types,
                            isidentifier, set_function_name)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
@@ -532,13 +532,27 @@ class NDFrame(PandasObject):
 
         return result
 
-    def squeeze(self, **kwargs):
-        """Squeeze length 1 dimensions."""
-        nv.validate_squeeze(tuple(), kwargs)
+    def squeeze(self, axis=None):
+        """
+        Squeeze length 1 dimensions.
 
+        Parameters
+        ----------
+        axis : None, integer or string axis name, optional
+            The axis to squeeze if 1-sized.
+
+            .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        scalar if 1-sized, else original object
+        """
+        axis = (self._AXIS_NAMES if axis is None else
+                (self._get_axis_number(axis),))
         try:
-            return self.iloc[tuple([0 if len(a) == 1 else slice(None)
-                                    for a in self.axes])]
+            return self.iloc[
+                tuple([0 if i in axis and len(a) == 1 else slice(None)
+                       for i, a in enumerate(self.axes)])]
         except:
             return self
 
@@ -1019,7 +1033,7 @@ class NDFrame(PandasObject):
     # I/O Methods
 
     _shared_docs['to_excel'] = """
-    Write %(klass)s to a excel sheet
+    Write %(klass)s to an excel sheet
     %(versionadded_to_excel)s
     Parameters
     ----------
@@ -1058,6 +1072,11 @@ class NDFrame(PandasObject):
     inf_rep : string, default 'inf'
         Representation for infinity (there is no native representation for
         infinity in Excel)
+    freeze_panes : tuple of integer (length 2), default None
+        Specifies the one-based bottommost row and rightmost column that
+        is to be frozen
+
+        .. versionadded:: 0.20.0
 
     Notes
     -----
@@ -1809,18 +1828,12 @@ class NDFrame(PandasObject):
             loc, new_ax = labels.get_loc_level(key, level=level,
                                                drop_level=drop_level)
 
-            # convert to a label indexer if needed
-            if isinstance(loc, slice):
-                lev_num = labels._get_level_number(level)
-                if labels.levels[lev_num].inferred_type == 'integer':
-                    loc = labels[loc]
-
             # create the tuple of the indexer
             indexer = [slice(None)] * self.ndim
             indexer[axis] = loc
             indexer = tuple(indexer)
 
-            result = self.ix[indexer]
+            result = self.iloc[indexer]
             setattr(result, result._get_axis_name(axis), new_ax)
             return result
 
@@ -1983,7 +1996,7 @@ class NDFrame(PandasObject):
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
 
-            result = self.ix[tuple(slicer)]
+            result = self.loc[tuple(slicer)]
 
         if inplace:
             self._update_inplace(result)
@@ -3148,6 +3161,14 @@ class NDFrame(PandasObject):
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
 
+    def __copy__(self, deep=True):
+        return self.copy(deep=deep)
+
+    def __deepcopy__(self, memo=None):
+        if memo is None:
+            memo = {}
+        return self.copy(deep=True)
+
     def _convert(self, datetime=False, numeric=False, timedelta=False,
                  coerce=False, copy=True):
         """
@@ -3254,7 +3275,7 @@ class NDFrame(PandasObject):
             a gap with more than this number of consecutive NaNs, it will only
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
-            filled.
+            filled. Must be greater than 0 if not None.
         downcast : dict, default is None
             a dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -3273,6 +3294,7 @@ class NDFrame(PandasObject):
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None):
         inplace = validate_bool_kwarg(inplace, 'inplace')
+
         if isinstance(value, (list, tuple)):
             raise TypeError('"value" parameter must be a scalar or dict, but '
                             'you passed a "{0}"'.format(type(value).__name__))
@@ -3284,7 +3306,6 @@ class NDFrame(PandasObject):
             axis = 0
         axis = self._get_axis_number(axis)
         method = missing.clean_fill_method(method)
-
         from pandas import DataFrame
         if value is None:
             if method is None:
@@ -3353,7 +3374,7 @@ class NDFrame(PandasObject):
                     if k not in result:
                         continue
                     obj = result[k]
-                    obj.fillna(v, limit=limit, inplace=True)
+                    obj.fillna(v, limit=limit, inplace=True, downcast=downcast)
                 return result
             elif not is_list_like(value):
                 new_data = self._data.fillna(value=value, limit=limit,
@@ -3515,7 +3536,7 @@ class NDFrame(PandasObject):
                 regex = True
 
             items = list(compat.iteritems(to_replace))
-            keys, values = zip(*items)
+            keys, values = lzip(*items) or ([], [])
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -3529,7 +3550,7 @@ class NDFrame(PandasObject):
                 value_dict = {}
 
                 for k, v in items:
-                    keys, values = zip(*v.items())
+                    keys, values = lzip(*v.items()) or ([], [])
                     if set(keys) & set(values):
                         raise ValueError("Replacement not allowed with "
                                          "overlapping keys and values")
@@ -3679,7 +3700,7 @@ class NDFrame(PandasObject):
             * 0: fill column-by-column
             * 1: fill row-by-row
         limit : int, default None.
-            Maximum number of consecutive NaNs to fill.
+            Maximum number of consecutive NaNs to fill. Must be greater than 0.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
             If limit is specified, consecutive NaNs will be filled in this
             direction.
@@ -3789,7 +3810,8 @@ class NDFrame(PandasObject):
 
         .. versionadded:: 0.19.0 For DataFrame
 
-        If there is no good value, NaN is returned.
+        If there is no good value, NaN is returned for a Series
+        a Series of NaN values for a DataFrame
 
         Parameters
         ----------
@@ -3845,6 +3867,9 @@ class NDFrame(PandasObject):
                 start = start.ordinal
 
             if where < start:
+                if not is_series:
+                    from pandas import Series
+                    return Series(index=self.columns, name=where)
                 return np.nan
 
             # It's always much faster to use a *while* loop here for
@@ -4072,11 +4097,16 @@ class NDFrame(PandasObject):
                        sort=sort, group_keys=group_keys, squeeze=squeeze,
                        **kwargs)
 
-    def asfreq(self, freq, method=None, how=None, normalize=False):
+    def asfreq(self, freq, method=None, how=None, normalize=False,
+               fill_value=None):
         """
         Convert TimeSeries to specified frequency.
 
         Optionally provide filling method to pad/backfill missing values.
+
+        Returns the original data conformed to a new index with the specified
+        frequency. ``resample`` is more appropriate if an operation, such as
+        summarization, is necessary to represent the data at the new frequency.
 
         Parameters
         ----------
@@ -4092,10 +4122,70 @@ class NDFrame(PandasObject):
             For PeriodIndex only, see PeriodIndex.asfreq
         normalize : bool, default False
             Whether to reset output index to midnight
+        fill_value: scalar, optional
+            Value to use for missing values, applied during upsampling (note
+            this does not fill NaNs that already were present).
+
+            .. versionadded:: 0.20.0
 
         Returns
         -------
         converted : type of caller
+
+        Examples
+        --------
+
+        Start by creating a series with 4 one minute timestamps.
+
+        >>> index = pd.date_range('1/1/2000', periods=4, freq='T')
+        >>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
+        >>> df = pd.DataFrame({'s':series})
+        >>> df
+                               s
+        2000-01-01 00:00:00    0.0
+        2000-01-01 00:01:00    NaN
+        2000-01-01 00:02:00    2.0
+        2000-01-01 00:03:00    3.0
+
+        Upsample the series into 30 second bins.
+
+        >>> df.asfreq(freq='30S')
+                               s
+        2000-01-01 00:00:00    0.0
+        2000-01-01 00:00:30    NaN
+        2000-01-01 00:01:00    NaN
+        2000-01-01 00:01:30    NaN
+        2000-01-01 00:02:00    2.0
+        2000-01-01 00:02:30    NaN
+        2000-01-01 00:03:00    3.0
+
+        Upsample again, providing a ``fill value``.
+
+        >>> df.asfreq(freq='30S', fill_value=9.0)
+                               s
+        2000-01-01 00:00:00    0.0
+        2000-01-01 00:00:30    9.0
+        2000-01-01 00:01:00    NaN
+        2000-01-01 00:01:30    9.0
+        2000-01-01 00:02:00    2.0
+        2000-01-01 00:02:30    9.0
+        2000-01-01 00:03:00    3.0
+
+        Upsample again, providing a ``method``.
+
+        >>> df.asfreq(freq='30S', method='bfill')
+                               s
+        2000-01-01 00:00:00    0.0
+        2000-01-01 00:00:30    NaN
+        2000-01-01 00:01:00    NaN
+        2000-01-01 00:01:30    2.0
+        2000-01-01 00:02:00    2.0
+        2000-01-01 00:02:30    3.0
+        2000-01-01 00:03:00    3.0
+
+        See Also
+        --------
+        reindex
 
         Notes
         -----
@@ -4103,7 +4193,8 @@ class NDFrame(PandasObject):
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """
         from pandas.tseries.resample import asfreq
-        return asfreq(self, freq, method=method, how=how, normalize=normalize)
+        return asfreq(self, freq, method=method, how=how, normalize=normalize,
+                      fill_value=fill_value)
 
     def at_time(self, time, asof=False):
         """
@@ -4183,9 +4274,6 @@ class NDFrame(PandasObject):
             resampling.  Level must be datetime-like.
 
             .. versionadded:: 0.19.0
-
-        Notes
-        -----
 
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -4332,8 +4420,9 @@ class NDFrame(PandasObject):
         if not offset.isAnchored() and hasattr(offset, '_inc'):
             if end_date in self.index:
                 end = self.index.searchsorted(end_date, side='left')
+                return self.iloc[:end]
 
-        return self.ix[:end]
+        return self.loc[:end]
 
     def last(self, offset):
         """
@@ -4364,7 +4453,7 @@ class NDFrame(PandasObject):
 
         start_date = start = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side='right')
-        return self.ix[start:]
+        return self.iloc[start:]
 
     def rank(self, axis=0, method='average', numeric_only=None,
              na_option='keep', ascending=True, pct=False):
@@ -5078,7 +5167,7 @@ class NDFrame(PandasObject):
 
         slicer = [slice(None, None)] * self._AXIS_LEN
         slicer[axis] = slice(before, after)
-        result = self.ix[tuple(slicer)]
+        result = self.loc[tuple(slicer)]
 
         if isinstance(ax, MultiIndex):
             setattr(result, self._get_axis_name(axis),

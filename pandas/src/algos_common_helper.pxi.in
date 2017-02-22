@@ -27,6 +27,7 @@ dtypes = [('float64', 'float64_t', 'np.float64', True, True),
           ('object', 'object', 'object', True, False),
           ('int32', 'int32_t', 'np.int32', False, True),
           ('int64', 'int64_t', 'np.int64', False, True),
+          ('uint64', 'uint64_t', 'np.uint64', False, True),
           ('bool', 'uint8_t', 'np.bool', False, True)]
 
 def get_dispatch(dtypes):
@@ -82,8 +83,10 @@ def pad_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
     if limit is None:
         lim = nright
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
@@ -145,8 +148,10 @@ def pad_inplace_{{name}}(ndarray[{{c_type}}] values,
     if limit is None:
         lim = N
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     val = values[0]
@@ -179,8 +184,10 @@ def pad_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
     if limit is None:
         lim = N
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     for j in range(K):
@@ -239,8 +246,10 @@ def backfill_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
     if limit is None:
         lim = nright
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
@@ -303,8 +312,10 @@ def backfill_inplace_{{name}}(ndarray[{{c_type}}] values,
     if limit is None:
         lim = N
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     val = values[N - 1]
@@ -337,8 +348,10 @@ def backfill_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
     if limit is None:
         lim = N
     else:
-        if limit < 0:
-            raise ValueError('Limit must be non-negative')
+        if not util.is_integer_object(limit):
+            raise ValueError('Limit must be an integer')
+        if limit < 1:
+            raise ValueError('Limit must be greater than 0')
         lim = limit
 
     for j in range(K):
@@ -373,7 +386,7 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     n = len(arr)
 
     if n == 1:
-        if arr[0] != arr[0] or (timelike and arr[0] == iNaT):
+        if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == iNaT):
             # single value is NaN
             return False, False, True
         else:
@@ -381,14 +394,14 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     elif n < 2:
         return True, True, True
 
-    if timelike and arr[0] == iNaT:
+    if timelike and <int64_t>arr[0] == iNaT:
         return False, False, True
 
     {{nogil_str}}
     {{tab}}prev = arr[0]
     {{tab}}for i in range(1, n):
     {{tab}}    cur = arr[i]
-    {{tab}}    if timelike and cur == iNaT:
+    {{tab}}    if timelike and <int64_t>cur == iNaT:
     {{tab}}        is_monotonic_inc = 0
     {{tab}}        is_monotonic_dec = 0
     {{tab}}        break
@@ -566,12 +579,12 @@ def get_dispatch(dtypes):
 
 {{for name, c_type, dtype in get_dispatch(dtypes)}}
 
-cpdef ensure_{{name}}(object arr):
+cpdef ensure_{{name}}(object arr, copy=True):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_{{c_type}}:
             return arr
         else:
-            return arr.astype(np.{{dtype}})
+            return arr.astype(np.{{dtype}}, copy=copy)
     else:
         return np.array(arr, dtype=np.{{dtype}})
 

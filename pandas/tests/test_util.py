@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import nose
-
 from collections import OrderedDict
 import sys
 import unittest
@@ -316,6 +314,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
 
 
 class TestMove(tm.TestCase):
+
     def test_cannot_create_instance_of_stolenbuffer(self):
         """Stolen buffers need to be created through the smart constructor
         ``move_into_mutable_buffer`` which has a bunch of checks in it.
@@ -402,8 +401,3 @@ def test_numpy_errstate_is_default():
     from pandas.compat import numpy  # noqa
     # The errstate should be unchanged after that import.
     tm.assert_equal(np.geterr(), expected)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -1,6 +1,8 @@
+""" Test cases for time series specific (freq conversion, etc) """
+
 from datetime import datetime, timedelta, date, time
 
-import nose
+import pytest
 from pandas.compat import lrange, zip
 
 import numpy as np
@@ -17,9 +19,6 @@ import pandas.util.testing as tm
 
 from pandas.tests.plotting.common import (TestPlotBase,
                                           _skip_if_no_scipy_gaussian_kde)
-
-
-""" Test cases for time series specific (freq conversion, etc) """
 
 
 @tm.mplskip
@@ -163,8 +162,8 @@ class TestTSPlot(TestPlotBase):
                 self.assertEqual(expected_string,
                                  ax.format_coord(first_x, first_y))
             except (ValueError):
-                raise nose.SkipTest("skipping test because issue forming "
-                                    "test comparison GH7664")
+                pytest.skip("skipping test because issue forming "
+                            "test comparison GH7664")
 
         annual = Series(1, index=date_range('2014-01-01', periods=3,
                                             freq='A-DEC'))
@@ -274,7 +273,7 @@ class TestTSPlot(TestPlotBase):
         idx = date_range('2012-6-22 21:59:51', freq='S', periods=100)
         df = DataFrame(np.random.randn(len(idx), 2), idx)
 
-        irreg = df.ix[[0, 1, 3, 4]]
+        irreg = df.iloc[[0, 1, 3, 4]]
         ax = irreg.plot()
         diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
 
@@ -1367,8 +1366,3 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
             plt.savefig(path)
     finally:
         plt.close(fig)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

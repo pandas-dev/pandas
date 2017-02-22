@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import nose
 import numpy as np
 
 from pandas.types.dtypes import DatetimeTZDtype, PeriodDtype, CategoricalDtype
 from pandas.types.common import pandas_dtype, is_dtype_equal
 
 import pandas.util.testing as tm
-
-_multiprocess_can_split_ = True
 
 
 class TestPandasDtype(tm.TestCase):
@@ -55,8 +52,3 @@ def test_dtype_equal():
 
     assert not DatetimeTZDtype.is_dtype(np.int64)
     assert not PeriodDtype.is_dtype(np.int64)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

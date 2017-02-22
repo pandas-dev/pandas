@@ -268,13 +268,12 @@ Indexing, iteration
    Series.get
    Series.at
    Series.iat
-   Series.ix
    Series.loc
    Series.iloc
    Series.__iter__
    Series.iteritems
 
-For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
+For more information on ``.at``, ``.iat``, ``.loc``, and
 ``.iloc``,  see the :ref:`indexing documentation <indexing>`.
 
 Binary operator functions
@@ -774,7 +773,6 @@ Indexing, iteration
    DataFrame.head
    DataFrame.at
    DataFrame.iat
-   DataFrame.ix
    DataFrame.loc
    DataFrame.iloc
    DataFrame.insert
@@ -791,7 +789,7 @@ Indexing, iteration
    DataFrame.mask
    DataFrame.query
 
-For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
+For more information on ``.at``, ``.iat``, ``.loc``, and
 ``.iloc``,  see the :ref:`indexing documentation <indexing>`.
 
 
@@ -1090,7 +1088,6 @@ Indexing, iteration, slicing
 
    Panel.at
    Panel.iat
-   Panel.ix
    Panel.loc
    Panel.iloc
    Panel.__iter__
@@ -1100,7 +1097,7 @@ Indexing, iteration, slicing
    Panel.major_xs
    Panel.minor_xs
 
-For more information on ``.at``, ``.iat``, ``.ix``, ``.loc``, and
+For more information on ``.at``, ``.iat``, ``.loc``, and
 ``.iloc``,  see the :ref:`indexing documentation <indexing>`.
 
 Binary operator functions
@@ -1359,8 +1356,16 @@ Modifying and Computations
    Index.unique
    Index.nunique
    Index.value_counts
+
+Missing Values
+~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
    Index.fillna
    Index.dropna
+   Index.isnull
+   Index.notnull
 
 Conversion
 ~~~~~~~~~~
@@ -1463,6 +1468,7 @@ MultiIndex Components
    MultiIndex.set_levels
    MultiIndex.set_labels
    MultiIndex.to_hierarchical
+   MultiIndex.to_frame
    MultiIndex.is_lexsorted
    MultiIndex.droplevel
    MultiIndex.swaplevel

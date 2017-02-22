@@ -16,8 +16,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameConvertTo(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_to_dict(self):
         test_data = {
             'A': {'1': 1, '2': 2},

@@ -592,9 +592,9 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     TRACE(                                                                    \
         ("PUSH_CHAR: Pushing %c, slen= %d, stream_cap=%zu, stream_len=%zu\n", \
          c, slen, self->stream_cap, self->stream_len))                        \
-    if (slen >= maxstreamsize) {                                              \
-        TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= maxstreamsize(%d)\n", slen,   \
-               maxstreamsize))                                                \
+    if (slen >= self->stream_cap) {                                           \
+        TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= stream_cap(%d)\n", slen,      \
+               self->stream_cap))                                             \
         int bufsize = 100;                                                    \
         self->error_msg = (char *)malloc(bufsize);                            \
         snprintf(self->error_msg, bufsize,                                    \
@@ -622,7 +622,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (int)line_limit) {  \
         goto linelimit;                                              \
     }
 
@@ -637,7 +637,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (int)line_limit) { \
         goto linelimit;                                              \
     }
 
@@ -711,7 +711,6 @@ int skip_this_line(parser_t *self, int64_t rownum) {
 int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
     int i, slen;
     int should_skip;
-    long maxstreamsize;
     char c;
     char *stream;
     char *buf = self->data + self->datapos;
@@ -723,7 +722,6 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
 
     stream = self->stream + self->stream_len;
     slen = self->stream_len;
-    maxstreamsize = self->stream_cap;
 
     TRACE(("%s\n", buf));
 
@@ -1074,7 +1072,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
                         --i;
                         buf--;  // let's try this character again (HACK!)
                         if (line_limit > 0 &&
-                            self->lines == start_lines + line_limit) {
+                            self->lines == start_lines + (int)line_limit) {
                             goto linelimit;
                         }
                     }
@@ -1162,7 +1160,7 @@ static int parser_handle_eof(parser_t *self) {
 int parser_consume_rows(parser_t *self, size_t nrows) {
     int i, offset, word_deletions, char_count;
 
-    if (nrows > self->lines) {
+    if ((int)nrows > self->lines) {
         nrows = self->lines;
     }
 
@@ -1199,7 +1197,7 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->word_start -= char_count;
 
     /* move line metadata */
-    for (i = 0; i < self->lines - nrows + 1; ++i) {
+    for (i = 0; i < self->lines - (int)nrows + 1; ++i) {
         offset = i + nrows;
         self->line_start[i] = self->line_start[offset] - word_deletions;
         self->line_fields[i] = self->line_fields[offset];
@@ -1226,7 +1224,7 @@ int parser_trim_buffers(parser_t *self) {
 
     /* trim words, word_starts */
     new_cap = _next_pow2(self->words_len) + 1;
-    if (new_cap < self->words_cap) {
+    if ((int)new_cap < self->words_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->words_cap\n"));
         newptr = safe_realloc((void *)self->words, new_cap * sizeof(char *));
         if (newptr == NULL) {
@@ -1249,7 +1247,7 @@ int parser_trim_buffers(parser_t *self) {
         ("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = "
          "%zu\n",
          new_cap, self->stream_cap, self->lines_cap));
-    if (new_cap < self->stream_cap) {
+    if ((int)new_cap < self->stream_cap) {
         TRACE(
             ("parser_trim_buffers: new_cap < self->stream_cap, calling "
              "safe_realloc\n"));
@@ -1277,7 +1275,7 @@ int parser_trim_buffers(parser_t *self) {
 
     /* trim line_start, line_fields */
     new_cap = _next_pow2(self->lines) + 1;
-    if (new_cap < self->lines_cap) {
+    if ((int)new_cap < self->lines_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->lines_cap\n"));
         newptr = safe_realloc((void *)self->line_start, new_cap * sizeof(int));
         if (newptr == NULL) {
@@ -1330,7 +1328,7 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         (int)nrows, self->datapos, self->datalen));
 
     while (1) {
-        if (!all && self->lines - start_lines >= nrows) break;
+        if (!all && self->lines - start_lines >= (int)nrows) break;
 
         if (self->datapos == self->datalen) {
             status = parser_buffer_bytes(self, self->chunksize);
@@ -1773,11 +1771,9 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing) {
-#if PY_VERSION_HEX >= 0x02070000
-    return PyOS_string_to_double(p, q, 0);
-#else
-    return strtod(p, q);
-#endif
+    double r = PyOS_string_to_double(p, q, 0);
+    PyErr_Clear();
+    return r;
 }
 
 // End of xstrtod code
@@ -1990,7 +1986,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
         return 0;
     }
 
-    if (number > int_max) {
+    if (number > (uint64_t)int_max) {
         state->seen_uint = 1;
     }
 

@@ -107,10 +107,3 @@ class TestParseSQL(tm.TestCase):
         expected = np.array([int8_na, 2, 3, 10, 15], dtype=np.int8)
         result = lib.downcast_int64(arr, na_values)
         self.assert_numpy_array_equal(result, expected)
-
-
-if __name__ == '__main__':
-    import nose
-
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

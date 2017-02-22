@@ -1,5 +1,6 @@
 # pylint: disable=W0223
 
+import warnings
 import numpy as np
 from pandas.compat import range, zip
 import pandas.compat as compat
@@ -35,12 +36,14 @@ def get_indexers_list():
         ('iat', _iAtIndexer),
     ]
 
+
 # "null slice"
 _NS = slice(None, None)
 
 
 # the public IndexSlicerMaker
 class _IndexSlice(object):
+
     def __getitem__(self, arg):
         return arg
 
@@ -119,8 +122,12 @@ class _NDFrameIndexer(object):
             except Exception:
                 pass
 
-        if isinstance(key, tuple) and not self.ndim < len(key):
-            return self._convert_tuple(key, is_setter=True)
+        if isinstance(key, tuple):
+            try:
+                return self._convert_tuple(key, is_setter=True)
+            except IndexingError:
+                pass
+
         if isinstance(key, range):
             return self._convert_range(key, is_setter=True)
 
@@ -182,6 +189,8 @@ class _NDFrameIndexer(object):
                     keyidx.append(slice(None))
         else:
             for i, k in enumerate(key):
+                if i >= self.obj.ndim:
+                    raise IndexingError('Too many indexers')
                 idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
         return tuple(keyidx)
@@ -860,15 +869,20 @@ class _NDFrameIndexer(object):
             return labels[key]
         else:
             if isinstance(key, Index):
-                # want Index objects to pass through untouched
-                keyarr = key
+                keyarr = labels._convert_index_indexer(key)
             else:
                 # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
 
-            if is_integer_dtype(keyarr) and not labels.is_integer():
-                keyarr = _ensure_platform_int(keyarr)
-                return labels.take(keyarr)
+            if is_integer_dtype(keyarr):
+                # Cast the indexer to uint64 if possible so
+                # that the values returned from indexing are
+                # also uint64.
+                keyarr = labels._convert_arr_indexer(keyarr)
+
+                if not labels.is_integer():
+                    keyarr = _ensure_platform_int(keyarr)
+                    return labels.take(keyarr)
 
             return keyarr
 
@@ -1044,11 +1058,10 @@ class _NDFrameIndexer(object):
             return self.obj.take(inds, axis=axis, convert=False)
         else:
             if isinstance(key, Index):
-                # want Index objects to pass through untouched
-                keyarr = key
+                keyarr = labels._convert_index_indexer(key)
             else:
-                # asarray can be unsafe, NumPy strings are weird
                 keyarr = _asarray_tuplesafe(key)
+                keyarr = labels._convert_arr_indexer(keyarr)
 
             if is_categorical_dtype(labels):
                 keyarr = labels._shallow_copy(keyarr)
@@ -1280,6 +1293,20 @@ class _IXIndexer(_NDFrameIndexer):
 
     """
 
+    def __init__(self, obj, name):
+
+        _ix_deprecation_warning = """
+.ix is deprecated. Please use
+.loc for label based indexing or
+.iloc for positional indexing
+
+See the documentation here:
+http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate_ix"""
+
+        warnings.warn(_ix_deprecation_warning,
+                      DeprecationWarning, stacklevel=3)
+        super(_IXIndexer, self).__init__(obj, name)
+
     def _has_valid_type(self, key, axis):
         if isinstance(key, slice):
             return True
@@ -1494,15 +1521,28 @@ class _LocIndexer(_LocationIndexer):
             return self._getbool_axis(key, axis=axis)
         elif is_list_like_indexer(key):
 
-            # GH 7349
-            # possibly convert a list-like into a nested tuple
-            # but don't convert a list-like of tuples
+            # convert various list-like indexers
+            # to a list of keys
+            # we will use the *values* of the object
+            # and NOT the index if its a PandasObject
             if isinstance(labels, MultiIndex):
+
+                if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:
+                    # Series, or 0,1 ndim ndarray
+                    # GH 14730
+                    key = list(key)
+                elif isinstance(key, ABCDataFrame):
+                    # GH 15438
+                    raise NotImplementedError("Indexing a MultiIndex with a "
+                                              "DataFrame key is not "
+                                              "implemented")
+                elif hasattr(key, 'ndim') and key.ndim > 1:
+                    raise NotImplementedError("Indexing a MultiIndex with a "
+                                              "multidimensional key is not "
+                                              "implemented")
+
                 if (not isinstance(key, tuple) and len(key) > 1 and
                         not isinstance(key[0], tuple)):
-                    if isinstance(key, ABCSeries):
-                        # GH 14730
-                        key = list(key)
                     key = tuple([key])
 
             # an iterable multi-selection
@@ -1615,11 +1655,17 @@ class _iLocIndexer(_LocationIndexer):
         # return a boolean if we are a valid list-like (e.g. that we don't
         # have out-of-bounds values)
 
+        # a tuple should already have been caught by this point
+        # so don't treat a tuple as a valid indexer
+        if isinstance(key, tuple):
+            raise IndexingError('Too many indexers')
+
         # coerce the key to not exceed the maximum size of the index
         arr = np.array(key)
         ax = self.obj._get_axis(axis)
         l = len(ax)
-        if len(arr) and (arr.max() >= l or arr.min() < -l):
+        if (hasattr(arr, '__len__') and len(arr) and
+                (arr.max() >= l or arr.min() < -l)):
             raise IndexError("positional indexers are out-of-bounds")
 
         return True
@@ -1817,6 +1863,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
                 raise ValueError("iAt based indexing can only have integer "
                                  "indexers")
         return key
+
 
 # 32-bit floating point machine epsilon
 _eps = np.finfo('f4').eps

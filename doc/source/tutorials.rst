@@ -57,7 +57,7 @@ See `How to use this cookbook <https://github.com/jvns/pandas-cookbook#how-to-us
 Lessons for New pandas Users
 ----------------------------
 
-For more resources, please visit the main `repository <https://bitbucket.org/hrojas/learn-pandas>`_.
+For more resources, please visit the main `repository <https://bitbucket.org/hrojas/learn-pandas>`__.
 
 - `01 - Lesson: <http://nbviewer.ipython.org/urls/bitbucket.org/hrojas/learn-pandas/raw/master/lessons/01%20-%20Lesson.ipynb>`_
   - Importing libraries
@@ -128,7 +128,7 @@ There are four sections covering selected topics as follows:
 Exercises for New Users
 -----------------------
 Practice your skills with real data sets and exercises.
-For more resources, please visit the main `repository <https://github.com/guipsamora/pandas_exercises>`_.
+For more resources, please visit the main `repository <https://github.com/guipsamora/pandas_exercises>`__.
 
 - `01 - Getting & Knowing Your Data <https://github.com/guipsamora/pandas_exercises/tree/master/01_Getting_%26_Knowing_Your_Data>`_
 
@@ -177,3 +177,4 @@ Various Tutorials
 - `Intro to pandas data structures, by Greg Reda <http://www.gregreda.com/2013/10/26/intro-to-pandas-data-structures/>`_
 - `Pandas and Python: Top 10, by Manish Amde <http://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
 - `Pandas Tutorial, by Mikhail Semeniuk <http://www.bearrelroll.com/2013/05/python-pandas-tutorial>`_
+- `Pandas DataFrames Tutorial, by Karlijn Willems <http://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_

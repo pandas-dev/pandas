@@ -18,8 +18,6 @@ from .common import TestData
 
 class TestSeriesRepr(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_multilevel_name_print(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                                   'three']],
@@ -178,5 +176,5 @@ class TestSeriesRepr(TestData, tm.TestCase):
         ts = tm.makeTimeSeries(1000)
         self.assertTrue(repr(ts).splitlines()[-1].startswith('Freq:'))
 
-        ts2 = ts.ix[np.random.randint(0, len(ts) - 1, 400)]
+        ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]

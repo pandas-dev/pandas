@@ -18,8 +18,6 @@ from .common import TestData
 
 class TestSeriesAlterAxes(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_setindex(self):
         # wrong type
         series = self.series.copy()

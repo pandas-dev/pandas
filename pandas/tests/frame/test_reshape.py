@@ -25,8 +25,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameReshape(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_pivot(self):
         data = {
             'index': ['A', 'B', 'C', 'C', 'B', 'A'],
@@ -659,7 +657,7 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         right = DataFrame(vals, columns=cols, index=idx)
         assert_frame_equal(left, right)
 
-        left = df.ix[17264:].copy().set_index(['s_id', 'dosage', 'agent'])
+        left = df.loc[17264:].copy().set_index(['s_id', 'dosage', 'agent'])
         assert_frame_equal(left.unstack(), right)
 
         # GH9497 - multiple unstack with nulls

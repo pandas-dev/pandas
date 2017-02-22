@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import nose
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -14,8 +14,6 @@ import pandas.compat as compat
 
 
 class CoercionBase(object):
-
-    _multiprocess_can_split_ = True
 
     klasses = ['index', 'series']
     dtypes = ['object', 'int64', 'float64', 'complex128', 'bool',
@@ -1174,8 +1172,8 @@ class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
         if (from_key == 'bool' and
                 to_key == 'int64' and
                 tm.is_platform_windows()):
-            raise nose.SkipTest("windows platform buggy: {0} -> {1}".format
-                                (from_key, to_key))
+            pytest.skip("windows platform buggy: {0} -> {1}".format
+                        (from_key, to_key))
 
         if ((from_key == 'float64' and
              to_key in ('bool', 'int64')) or
@@ -1187,12 +1185,12 @@ class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
              to_key in ('bool')) or
 
             # TODO_GH12747 The result must be int?
-           (from_key == 'bool' and to_key == 'int64')):
+                (from_key == 'bool' and to_key == 'int64')):
 
             # buggy on 32-bit
             if tm.is_platform_32bit():
-                raise nose.SkipTest("32-bit platform buggy: {0} -> {1}".format
-                                    (from_key, to_key))
+                pytest.skip("32-bit platform buggy: {0} -> {1}".format
+                            (from_key, to_key))
 
             # Expected: do not downcast by replacement
             exp = pd.Series(self.rep[to_key], index=index,
@@ -1245,7 +1243,7 @@ class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
 
             if compat.PY3:
                 # doesn't work in PY3, though ...dict_from_bool works fine
-                raise nose.SkipTest("doesn't work as in PY3")
+                pytest.skip("doesn't work as in PY3")
 
             self._assert_replace_conversion(from_key, to_key, how='series')
 

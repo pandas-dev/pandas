@@ -44,6 +44,10 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
 from pandas.lib import infer_dtype
 import pandas.tslib as tslib
 from pandas.compat import zip, u
+import pandas.indexes.base as ibase
+_index_doc_kwargs = dict(ibase._index_doc_kwargs)
+_index_doc_kwargs.update(
+    dict(target_klass='PeriodIndex or list of Periods'))
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -393,7 +397,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 left = context[1][0]
                 right = context[1][1]
                 if (isinstance(left, PeriodIndex) and
-                   isinstance(right, PeriodIndex)):
+                        isinstance(right, PeriodIndex)):
                     name = left.name if left.name == right.name else None
                     return Index(result, name=name)
                 elif isinstance(left, Period) or isinstance(right, Period):
@@ -759,6 +763,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return com._maybe_box(self, self._engine.get_value(s, key),
                                   series, key)
 
+    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = _ensure_index(target)
 

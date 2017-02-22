@@ -230,6 +230,7 @@ class PandasDelegate(PandasObject):
 class AccessorProperty(object):
     """Descriptor for implementing accessor properties like Series.str
     """
+
     def __init__(self, accessor_cls, construct_accessor):
         self.accessor_cls = accessor_cls
         self.construct_accessor = construct_accessor
@@ -471,7 +472,7 @@ pandas.DataFrame.%(name)s
 
                 arg = new_arg
 
-            from pandas.tools.merge import concat
+            from pandas.tools.concat import concat
 
             def _agg_1dim(name, how, subset=None):
                 """
@@ -578,7 +579,7 @@ pandas.DataFrame.%(name)s
         return result, True
 
     def _aggregate_multiple_funcs(self, arg, _level):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         if self.axis != 0:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -651,6 +652,7 @@ class GroupByMixin(object):
     @staticmethod
     def _dispatch(name, *args, **kwargs):
         """ dispatch to apply """
+
         def outer(self, *args, **kwargs):
             def f(x):
                 x = self._shallow_copy(x, groupby=self._groupby)
@@ -1067,6 +1069,7 @@ class IndexOpsMixin(object):
         v = self.values.nbytes
         if deep and is_object_dtype(self):
             v += lib.memory_usage_of_objects(self.values)
+
         return v
 
     def factorize(self, sort=False, na_sentinel=-1):
