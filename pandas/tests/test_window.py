@@ -1090,6 +1090,9 @@ class TestMoments(Base):
             self.assertRaises(ValueError, mom.rolling_quantile,
                               np.array([1, 2, 3]), window=3, quantile=10)
 
+            self.assertRaises(TypeError, mom.rolling_quantile,
+                              np.array([1, 2, 3]), window=3, quantile='foo')
+
     def test_rolling_apply(self):
         # suppress warnings about empty slices, as we are deliberately testing
         # with a 0-length Series
