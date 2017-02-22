@@ -2352,6 +2352,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         self._validate_index_level(level)
         return self
 
+    def _get_level_values(self, num):
+        # Used to mirror implementation for MultiIndex
+        # GH #10461
+        return self.get_level_values(num)
+
     _index_shared_docs['get_indexer'] = """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the

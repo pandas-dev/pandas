@@ -966,7 +966,8 @@ class MultiIndex(Index):
         """
 
         from pandas import DataFrame
-        result = DataFrame({(name or level): self.get_level_values(level)
+        result = DataFrame({(name or level):
+                            self._get_level_values(level)
                             for name, level in
                             zip(self.names, range(len(self.levels)))},
                            copy=False)
@@ -1301,8 +1302,8 @@ class MultiIndex(Index):
                for o in other):
             arrays = []
             for i in range(self.nlevels):
-                label = self.get_level_values(i)
-                appended = [o.get_level_values(i) for o in other]
+                label = self._get_level_values(i)
+                appended = [o._get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
             return MultiIndex.from_arrays(arrays, names=self.names)
 
