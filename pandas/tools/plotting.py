@@ -1781,7 +1781,7 @@ class LinePlot(MPLPlot):
 
         lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
         # set date formatter, locators and rescale limits
-        format_dateaxis(ax, ax.freq)
+        format_dateaxis(ax, ax.freq, data.index)
         return lines
 
     def _get_stacking_id(self):
