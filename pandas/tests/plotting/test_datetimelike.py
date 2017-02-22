@@ -7,7 +7,7 @@ from pandas.compat import lrange, zip
 
 import numpy as np
 from pandas import Index, Series, DataFrame
-
+from pandas.compat import is_platform_mac
 from pandas.tseries.index import date_range, bdate_range
 from pandas.tseries.tdi import timedelta_range
 from pandas.tseries.offsets import DateOffset
@@ -1272,6 +1272,8 @@ class TestTSPlot(TestPlotBase):
         self.plt.plot(values)
 
     def test_format_timedelta_ticks_narrow(self):
+        if is_platform_mac():
+            pytest.skip("skip on mac for precision display issue on older mpl")
 
         expected_labels = [
             '00:00:00.00000000{:d}'.format(i)
@@ -1288,6 +1290,8 @@ class TestTSPlot(TestPlotBase):
             self.assertEqual(l.get_text(), l_expected)
 
     def test_format_timedelta_ticks_wide(self):
+        if is_platform_mac():
+            pytest.skip("skip on mac for precision display issue on older mpl")
 
         expected_labels = [
             '00:00:00',
