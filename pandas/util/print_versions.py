@@ -88,13 +88,12 @@ def show_versions(as_json=False):
         ("lxml", lambda mod: mod.etree.__version__),
         ("bs4", lambda mod: mod.__version__),
         ("html5lib", lambda mod: mod.__version__),
-        ("httplib2", lambda mod: mod.__version__),
-        ("apiclient", lambda mod: mod.__version__),
         ("sqlalchemy", lambda mod: mod.__version__),
         ("pymysql", lambda mod: mod.__version__),
         ("psycopg2", lambda mod: mod.__version__),
         ("jinja2", lambda mod: mod.__version__),
         ("s3fs", lambda mod: mod.__version__),
+        ("pandas_gbq", lambda mod: mod.__version__),
         ("pandas_datareader", lambda mod: mod.__version__)
     ]
 
