@@ -7,7 +7,7 @@ import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isnull, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
-                    DatetimeIndex, Categorical, CategoricalIndex)
+                    DatetimeIndex)
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
                                  makeCustomDataframe as mkdf,
