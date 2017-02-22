@@ -95,21 +95,6 @@ matrix:
     - python: 2.7
       env:
         - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_nslow_nnet_COMPAT"
-        - TEST_ARGS="--skip-slow --skip-network"
-        - LOCALE_OVERRIDE="it_IT.UTF-8"
-        - INSTALL_TEST=true
-        - JOB_TAG=_COMPAT
-        - CACHE_NAME="27_nslow_nnet_COMPAT"
-        - USE_CACHE=true
-      addons:
-        apt:
-          packages:
-          - language-pack-it
-#    In allow_failures
-    - python: 2.7
-      env:
-        - PYTHON_VERSION=2.7
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
         - TEST_ARGS="--only-slow --skip-network"
@@ -128,37 +113,6 @@ matrix:
         - CACHE_NAME="27_build_test_conda"
         - USE_CACHE=true
 #    In allow_failures
-    - python: 3.4
-      env:
-        - PYTHON_VERSION=3.4
-        - JOB_NAME: "34_nslow"
-        - LOCALE_OVERRIDE="zh_CN.UTF-8"
-        - TEST_ARGS="--skip-slow"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
-        - CACHE_NAME="34_nslow"
-        - USE_CACHE=true
-      addons:
-        apt:
-          packages:
-          - xsel
-          - language-pack-zh-hans
-#    In allow_failures
-    - python: 3.4
-      env:
-        - PYTHON_VERSION=3.4
-        - JOB_NAME: "34_slow"
-        - JOB_TAG=_SLOW
-        - TEST_ARGS="--only-slow --skip-network"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
-        - CACHE_NAME="34_slow"
-        - USE_CACHE=true
-      addons:
-        apt:
-          packages:
-          - xsel
-#    In allow_failures
     - python: 3.5
       env:
         - PYTHON_VERSION=3.5
@@ -173,16 +127,6 @@ matrix:
           packages:
           - libatlas-base-dev
           - gfortran
-#    In allow_failures
-    - python: 3.5
-      env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_ascii"
-        - JOB_TAG=_ASCII
-        - TEST_ARGS="--skip-slow --skip-network"
-        - LOCALE_OVERRIDE="C"
-        - CACHE_NAME="35_ascii"
-        - USE_CACHE=true
 #    In allow_failures
     - python: 3.5
       env:
@@ -203,20 +147,6 @@ matrix:
         - FULL_DEPS=true
         - CACHE_NAME="27_slow"
         - USE_CACHE=true
-      - python: 3.4
-        env:
-        - PYTHON_VERSION=3.4
-        - JOB_NAME: "34_slow"
-        - JOB_TAG=_SLOW
-        - TEST_ARGS="--only-slow --skip-network"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
-        - CACHE_NAME="34_slow"
-        - USE_CACHE=true
-        addons:
-          apt:
-            packages:
-            - xsel
       - python: 2.7
         env:
         - PYTHON_VERSION=2.7
@@ -227,21 +157,6 @@ matrix:
         - BUILD_TEST=true
         - CACHE_NAME="27_build_test_conda"
         - USE_CACHE=true
-      - python: 3.4
-        env:
-          - PYTHON_VERSION=3.4
-          - JOB_NAME: "34_nslow"
-          - LOCALE_OVERRIDE="zh_CN.UTF-8"
-          - TEST_ARGS="--skip-slow"
-          - FULL_DEPS=true
-          - CLIPBOARD=xsel
-          - CACHE_NAME="34_nslow"
-          - USE_CACHE=true
-        addons:
-          apt:
-            packages:
-            - xsel
-            - language-pack-zh-hans
       - python: 3.5
         env:
           - PYTHON_VERSION=3.5
@@ -256,29 +171,6 @@ matrix:
             packages:
             - libatlas-base-dev
             - gfortran
-      - python: 2.7
-        env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_nslow_nnet_COMPAT"
-        - TEST_ARGS="--skip-slow --skip-network"
-        - LOCALE_OVERRIDE="it_IT.UTF-8"
-        - INSTALL_TEST=true
-        - JOB_TAG=_COMPAT
-        - CACHE_NAME="27_nslow_nnet_COMPAT"
-        - USE_CACHE=true
-        addons:
-          apt:
-            packages:
-            - language-pack-it
-      - python: 3.5
-        env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_ascii"
-        - JOB_TAG=_ASCII
-        - TEST_ARGS="--skip-slow --skip-network"
-        - LOCALE_OVERRIDE="C"
-        - CACHE_NAME="35_ascii"
-        - USE_CACHE=true
       - python: 3.5
         env:
         - PYTHON_VERSION=3.5
@@ -299,7 +191,6 @@ before_install:
   - pwd
   - uname -a
   - python -V
-# git info & get tags
   - git --version
   - git tag
   - ci/before_install_travis.sh

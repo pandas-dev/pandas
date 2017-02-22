@@ -3,16 +3,18 @@ machine:
     # these are globally set
     MINICONDA_DIR: /home/ubuntu/miniconda3
 
+
 database:
   override:
     - ./ci/install_db_circle.sh
+
 
 checkout:
   post:
     # since circleci does a shallow fetch
     # we need to populate our tags
     - git fetch --depth=1000
-    - git fetch --tags
+
 
 dependencies:
   override:
@@ -28,6 +30,7 @@ dependencies:
          ./ci/install_circle.sh PYTHON_VERSION=3.5 JOB_TAG="_ASCII" LOCALE_OVERRIDE="C" ;;
       esac
     - ./ci/show_circle.sh
+
 
 test:
   override:
