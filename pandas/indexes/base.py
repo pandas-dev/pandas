@@ -2535,34 +2535,17 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             tgt_values = target._values
             src_values = self._values
 
-        try:
-            src_values[0] < tgt_values[0]
-            src_values[0] > tgt_values[0]
-        except (TypeError, IndexError):
-            orderable = False
-        else:
-            try:
-                if self.is_monotonic_increasing:
-                    idx0 = np.arange(len(src_values), dtype=np.int64)
-                else:
-                    idx0 = np.argsort(src_values, kind='mergesort')
-                    idx0 = np.asarray(idx0, dtype=np.int64)
+        is_mono0 = self.is_monotonic_increasing
+        is_mono1 = target.is_monotonic_increasing
+        (orderable, idx0, idx1) = _order_them(is_mono0, src_values, is_mono1,
+                                              tgt_values)
 
-                if target.is_monotonic_increasing:
-                    idx1 = np.arange(len(tgt_values), dtype=np.int64)
-                else:
-                    idx1 = np.argsort(tgt_values, kind='mergesort')
-                    idx1 = np.asarray(idx1, dtype=np.int64)
-
-            except TypeError:
-                orderable = False
-            else:
-                orderable = True
-
+        e = self._engine
         if orderable:
-            indexer, missing = self._engine.get_indexer_non_unique_orderable(tgt_values, idx0, idx1)
+            indexer, missing = e.get_indexer_non_unique_orderable(tgt_values,
+                                                                  idx0, idx1)
         else:
-            indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
+            indexer, missing = e.get_indexer_non_unique(tgt_values)
 
         return Index(indexer), missing
 
@@ -3905,3 +3888,43 @@ def _trim_front(strings):
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise ValueError('do not recognize join method %s' % method)
+
+
+def _order_it(is_mono, x):
+    """Tries to sort a sequence."""
+    if is_mono:
+        return (True, np.arange(len(x), dtype=np.int64))
+    try:
+        indices = np.argsort(x, kind='mergesort')
+    except TypeError:
+        return (False, None)
+    return (True, indices)
+
+
+def _order_them(x_is_mono, x, y_is_mono, y):
+    """
+    Tries to sort `x` and `y`, checking whether they are jointly orderable.
+    """
+    (xorderable, xindices) = _order_it(x_is_mono, x)
+    (yorderable, yindices) = _order_it(y_is_mono, y)
+    ok = xorderable and yorderable and _are_orderable(x, y)
+    if ok:
+        xindices = np.asarray(xindices, dtype=np.int64)
+        yindices = np.asarray(yindices, dtype=np.int64)
+    return (ok, xindices, yindices)
+
+
+def _are_orderable(x, y):
+    """Are `x` and `y` jointly orderable?
+
+    We assume that `x` and `y` are indeed independently orderable. In this
+    case, they are also jointly orderable if their first elements are
+    orderable.
+    """
+    if len(x) > 0 and len(y) > 0:
+        try:
+            x[0] < y[0]
+            x[0] > y[0]
+        except TypeError:
+            return False
+    return True
