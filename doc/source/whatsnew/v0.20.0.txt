@@ -158,6 +158,7 @@ Other enhancements
 - ``pd.TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
+- ``ignore_ordered`` argument added to ``pd.types.concat.union_categoricals``; setting the argument to true will ignore the ordered attribute of unioned categoricals (:issue:`13410`) .  See the :ref:`categorical union docs <categorical.union>` for more information.
 
 .. _whatsnew_0200.api_breaking:
 
