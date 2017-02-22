@@ -693,6 +693,17 @@ The below raises ``TypeError`` because the categories are ordered and not identi
    Out[3]:
    TypeError: to union ordered Categoricals, all categories must be the same
 
+.. versionadded:: 0.20.0
+
+Ordered categoricals with different categories or orderings can be combined by
+using the ``ignore_ordered=True`` argument.
+
+.. ipython:: python
+
+    a = pd.Categorical(["a", "b", "c"], ordered=True)
+    b = pd.Categorical(["c", "b", "a"], ordered=True)
+    union_categoricals([a, b], ignore_order=True)
+
 ``union_categoricals`` also works with a ``CategoricalIndex``, or ``Series`` containing
 categorical data, but note that the resulting array will always be a plain ``Categorical``
 
