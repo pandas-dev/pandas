@@ -157,7 +157,7 @@ Other enhancements
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
-- ``ignore_ordered`` argument added to ``pd.types.concat.union_categoricals``; setting the argument to true will ignore the ordered attribute of unioned categoricals (:issue:`13410`)
+- ``ignore_ordered`` argument added to ``pd.types.concat.union_categoricals``; setting the argument to true will ignore the ordered attribute of unioned categoricals (:issue:`13410`) .  See the :ref:`categorical union docs <categorical.union>` for more information.
 
 .. _whatsnew_0200.api_breaking:
 
