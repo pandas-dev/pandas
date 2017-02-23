@@ -3,7 +3,7 @@ import sys
 from pandas.msgpack import Unpacker, packb, OutOfData, ExtType
 import pandas.util.testing as tm
 import pytest
-
+from pandas import DataFrame
 
 class TestUnpack(tm.TestCase):
 
@@ -62,3 +62,14 @@ class TestUnpack(tm.TestCase):
         assert unpacker.unpack() == {'a': 123}
         unpacker.feed(packb({'a': ExtType(2, b'321')}, encoding='utf-8'))
         assert unpacker.unpack() == {'a': ExtType(2, b'321')}
+        
+    def test_unpack_categorical_index(self):
+        '''dataframe with CategoricalIndex can be read and written'''
+        pdf = pd.DataFrame(dict(A=[1,1,1,2,2,2], B = [1,2,3,4,5,6]))
+        pdf['A'] = pdf['A'].astype('category')
+        pdf.set_index('A', inplace = True)
+        f = BytesIO()
+        pdf.to_msgpack(f)
+        f.seek(0)
+        pdf2 = pd.read_msgpack(f)
+        tm.assert_frame_equal(pdf, pdf2)
