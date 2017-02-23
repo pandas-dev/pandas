@@ -656,7 +656,7 @@ class DataFrameFormatter(TableFormatter):
         """
 
         latex_renderer = LatexFormatter(self, column_format=column_format,
-                                        longtable=longtable)
+                                        longtable=longtable, sparsify=self.sparsify)
 
         if encoding is None:
             encoding = 'ascii' if compat.PY2 else 'utf-8'
@@ -824,11 +824,12 @@ class LatexFormatter(TableFormatter):
     HTMLFormatter
     """
 
-    def __init__(self, formatter, column_format=None, longtable=False):
+    def __init__(self, formatter, column_format=None, longtable=False, sparsify=True):
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.column_format = column_format
         self.longtable = longtable
+        self.sparsify = sparsify
 
     def write_result(self, buf):
         """
@@ -851,6 +852,7 @@ class LatexFormatter(TableFormatter):
                 return 'l'
 
         if self.fmt.index and isinstance(self.frame.index, MultiIndex):
+            fmt_lev3 = tmp.index.format(sparsify=self.sparsify, adjoin=False)
             clevels = self.frame.columns.nlevels
             strcols.pop(0)
             name = any(self.frame.index.names)
@@ -860,10 +862,7 @@ class LatexFormatter(TableFormatter):
                 lev3 = [blank] * clevels
                 if name:
                     lev3.append(lev.name)
-                for level_idx, group in itertools.groupby(
-                        self.frame.index.labels[i]):
-                    count = len(list(group))
-                    lev3.extend([lev2[level_idx]] + [blank] * (count - 1))
+                lev3.append(fmt_lev3[i])
                 strcols.insert(i, lev3)
 
         column_format = self.column_format
