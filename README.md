@@ -34,7 +34,7 @@
   <td></td>
   <td>
     <a href="https://circleci.com/gh/pandas-dev/pandas">
-    <img src="https://img.shields.io/circleci/project/github/pandas-dev/pandas.svg" alt="circleci build status" />
+    <img src="https://circleci.com/gh/circleci/mongofinil/tree/master.svg?style=shield&circle-token=223d8cafa7b02902c3e150242520af8944e34671" alt="circleci build status" />
     </a>
   </td>
 </tr>
