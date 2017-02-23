@@ -123,6 +123,11 @@ class TestAPI(TestPackers):
         result = read_msgpack(s)
         tm.assert_frame_equal(result, df)
 
+        df2 = df.astype({0:'category'}).set_index(0)
+        s = to_msgpack(None, df)
+        result = read_msgpack(s)
+        tm.assert_frame_equal(result, df)
+
         with ensure_clean(self.path) as p:
 
             s = df.to_msgpack()
