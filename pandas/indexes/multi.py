@@ -684,7 +684,7 @@ class MultiIndex(Index):
         """
 
         # reversed() because lexsort() wants the most significant key last.
-        values = [self._get_level_values(i)
+        values = [self._get_level_values(i).values
                   for i in reversed(range(len(self.levels)))]
         try:
             sort_order = np.lexsort(values)
@@ -846,7 +846,7 @@ class MultiIndex(Index):
 
             raise InvalidIndexError(key)
 
-    def _get_level_values(self, level, copy=True):
+    def _get_level_values(self, level):
         """
         Return vector of label values for requested level,
         equal to the length of the index
@@ -856,7 +856,6 @@ class MultiIndex(Index):
         Parameters
         ----------
         level : int level
-        copy  : bool whether copy of results should be done
 
         Returns
         -------
@@ -867,10 +866,7 @@ class MultiIndex(Index):
         labels = self.labels[level]
         filled = algos.take_1d(unique._values, labels,
                                fill_value=unique._na_value)
-        if copy:
-            values = unique._shallow_copy(filled)
-        else:
-            values = filled
+        values = unique._shallow_copy(filled)
         return values
 
     def get_level_values(self, level):
@@ -887,8 +883,8 @@ class MultiIndex(Index):
         values : Index
         """
         level = self._get_level_number(level)
-        values = self._get_level_values(level, copy=False)
-        return self.levels[level]._shallow_copy(values)
+        values = self._get_level_values(level)
+        return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
                na_rep=None, formatter=None):

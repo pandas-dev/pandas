@@ -2353,8 +2353,21 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return self
 
     def _get_level_values(self, num):
-        # Used to mirror implementation for MultiIndex
-        # GH #10461
+        """
+        Return vector of label values for requested level, equal to the length
+        of the index
+
+        **this is an internal method**
+
+        Parameters
+        ----------
+        level : int
+
+        Returns
+        -------
+        values : ndarray
+        """
+        # Needed to address discussion in GH #10461
         return self.get_level_values(num)
 
     _index_shared_docs['get_indexer'] = """
