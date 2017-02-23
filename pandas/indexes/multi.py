@@ -846,7 +846,7 @@ class MultiIndex(Index):
 
             raise InvalidIndexError(key)
 
-    def _get_level_values(self, level):
+    def _get_level_values(self, level, copy=True):
         """
         Return vector of label values for requested level,
         equal to the length of the index
@@ -856,6 +856,7 @@ class MultiIndex(Index):
         Parameters
         ----------
         level : int level
+        copy  : bool whether copy of results should be done
 
         Returns
         -------
@@ -866,7 +867,11 @@ class MultiIndex(Index):
         labels = self.labels[level]
         filled = algos.take_1d(unique._values, labels,
                                fill_value=unique._na_value)
-        return filled
+        if copy:
+            values = unique._shallow_copy(filled)
+        else:
+            values = filled
+        return values
 
     def get_level_values(self, level):
         """
@@ -882,7 +887,7 @@ class MultiIndex(Index):
         values : Index
         """
         level = self._get_level_number(level)
-        values = self._get_level_values(level)
+        values = self._get_level_values(level, copy=False)
         return self.levels[level]._shallow_copy(values)
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
