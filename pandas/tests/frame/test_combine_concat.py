@@ -425,6 +425,7 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
     def test_concat_numerical_names(self):
         # #15262  # #12223
         df = pd.DataFrame({'col': range(9)},
+                          dtype='int32',
                           index=(pd.MultiIndex
                                  .from_product([['A0', 'A1', 'A2'],
                                                 ['B0', 'B1', 'B2']],
