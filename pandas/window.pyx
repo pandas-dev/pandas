@@ -134,8 +134,8 @@ cdef class WindowIndexer:
         bint is_variable
 
     def get_data(self):
-        return (self.start, self.end, <int64_t>self.N, 
-                <int64_t>self.win, <int64_t>self.minp, 
+        return (self.start, self.end, <int64_t>self.N,
+                <int64_t>self.win, <int64_t>self.minp,
                 self.is_variable)
 
 
@@ -1284,6 +1284,9 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
         bint is_variable
         ndarray[int64_t] start, end
         ndarray[double_t] output
+
+    if quantile < 0.0 or quantile > 1.0:
+        raise ValueError("quantile value {0} not in [0, 1]".format(quantile))
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
