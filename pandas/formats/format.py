@@ -852,7 +852,7 @@ class LatexFormatter(TableFormatter):
                 return 'l'
 
         if self.fmt.index and isinstance(self.frame.index, MultiIndex):
-            fmt_lev3 = tmp.index.format(sparsify=self.sparsify, adjoin=False)
+            fmt_lev3 = self.frame.index.format(sparsify=self.sparsify, adjoin=False)
             clevels = self.frame.columns.nlevels
             strcols.pop(0)
             name = any(self.frame.index.names)
