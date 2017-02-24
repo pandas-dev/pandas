@@ -573,7 +573,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Parameters
         ----------
-        cond : boolean same length as self
+        cond : boolean array-like with the same length as self
         other : scalar, or array-like
         """
 
