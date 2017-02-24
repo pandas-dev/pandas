@@ -136,8 +136,13 @@ cdef _map(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
         j += 1
 
 def _map_targets_to_values(values, targets, idx0, idx1):
-    mapping_count = np.zeros(len(targets), np.int64)
-    missing_count = np.zeros(len(targets), np.int64)
+    n_t = len(targets)
+
+    mapping_count = np.zeros(n_t, np.int64)
+    missing_count = np.zeros(n_t, np.int64)
+
+    if n_t == 0:
+        return np.empty(0, np.int64), np.empty(0, np.int64)
 
     _count(values, targets, idx0, idx1, mapping_count, missing_count)
 
