@@ -50,7 +50,8 @@
         "openpyxl": [],
         "xlsxwriter": [],
         "xlrd": [],
-        "xlwt": []
+        "xlwt": [],
+        "pytest": [],
     },
 
     // Combinations of libraries/python versions can be excluded/included
