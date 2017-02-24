@@ -311,6 +311,7 @@ class TestIndex(TestPackers):
             'period': Index(period_range('2012-1-1', freq='M', periods=3)),
             'date2': Index(date_range('2013-01-1', periods=10)),
             'bdate': Index(bdate_range('2013-01-02', periods=10)),
+            'cat': tm.makeCategoricalIndex(100)
         }
 
         self.mi = {
@@ -348,6 +349,13 @@ class TestIndex(TestPackers):
 
         i_rec = self.encode_decode(i)
         self.assert_index_equal(i, i_rec)
+
+    def categorical_index(self):
+        # GH15487
+        df = DataFrame(np.random.randn(10, 2))
+        df = df.astype({0: 'category'}).set_index(0)
+        result = self.encode_decode(df)
+        tm.assert_frame_equal(result, df)
 
 
 class TestSeries(TestPackers):
