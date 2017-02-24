@@ -30,10 +30,13 @@ from pandas.types.common import (is_timedelta64_dtype,
                                  is_float,
                                  is_bool,
                                  is_scalar,
+                                 is_scipy_sparse,
                                  _ensure_int32,
                                  _ensure_categorical)
 from pandas.types.missing import isnull
 from pandas.util import testing as tm
+
+from pandas.tests.sparse.test_frame import spmatrix  # noqa: F401
 
 
 def test_is_sequence():
@@ -944,6 +947,12 @@ def test_nan_to_nat_conversions():
     from distutils.version import LooseVersion
     if LooseVersion(np.__version__) >= '1.7.0':
         assert (s[8].value == np.datetime64('NaT').astype(np.int64))
+
+
+def test_is_scipy_sparse(spmatrix):  # noqa: F811
+    tm._skip_if_no_scipy()
+    assert is_scipy_sparse(spmatrix([[0, 1]]))
+    assert not is_scipy_sparse(np.array([1]))
 
 
 def test_ensure_int32():

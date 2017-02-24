@@ -1031,6 +1031,13 @@ Serialization / IO / Conversion
    DataFrame.to_string
    DataFrame.to_clipboard
 
+Sparse methods
+~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   SparseDataFrame.to_coo
+
 .. _api.panel:
 
 Panel
