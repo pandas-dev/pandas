@@ -2351,6 +2351,24 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         self._validate_index_level(level)
         return self
 
+    def _get_level_values(self, num):
+        """
+        Return vector of label values for requested level, equal to the length
+        of the index
+
+        **this is an internal method**
+
+        Parameters
+        ----------
+        level : int
+
+        Returns
+        -------
+        values : ndarray
+        """
+        # Needed to address discussion in GH #10461
+        return self.get_level_values(num)
+
     _index_shared_docs['get_indexer'] = """
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the

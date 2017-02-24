@@ -684,7 +684,7 @@ class MultiIndex(Index):
         """
 
         # reversed() because lexsort() wants the most significant key last.
-        values = [self._get_level_values(i)
+        values = [self._get_level_values(i).values
                   for i in reversed(range(len(self.levels)))]
         try:
             sort_order = np.lexsort(values)
@@ -866,7 +866,8 @@ class MultiIndex(Index):
         labels = self.labels[level]
         filled = algos.take_1d(unique._values, labels,
                                fill_value=unique._na_value)
-        return filled
+        values = unique._shallow_copy(filled)
+        return values
 
     def get_level_values(self, level):
         """
@@ -883,7 +884,7 @@ class MultiIndex(Index):
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
-        return self.levels[level]._shallow_copy(values)
+        return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
                na_rep=None, formatter=None):
@@ -966,7 +967,8 @@ class MultiIndex(Index):
         """
 
         from pandas import DataFrame
-        result = DataFrame({(name or level): self.get_level_values(level)
+        result = DataFrame({(name or level):
+                            self._get_level_values(level)
                             for name, level in
                             zip(self.names, range(len(self.levels)))},
                            copy=False)
@@ -1301,8 +1303,8 @@ class MultiIndex(Index):
                for o in other):
             arrays = []
             for i in range(self.nlevels):
-                label = self.get_level_values(i)
-                appended = [o.get_level_values(i) for o in other]
+                label = self._get_level_values(i)
+                appended = [o._get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
             return MultiIndex.from_arrays(arrays, names=self.names)
 
