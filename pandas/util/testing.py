@@ -1254,7 +1254,7 @@ def assert_frame_equal(left, right, check_dtype=True,
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_like : bool, default False
-        If true, then reindex_like operands
+        If true, ignore the order of rows & columns
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message
