@@ -1404,6 +1404,28 @@ class Categorical(PandasObject):
             return self._constructor(values=codes, categories=self.categories,
                                      ordered=self.ordered, fastpath=True)
 
+    def _values_for_rank(self):
+        """
+        For correctly ranking ordered categorical data. See GH#15420
+
+        Ordered categorical data should be ranked on the basis of
+        codes with -1 translated to NaN.
+
+        Returns
+        -------
+        numpy array
+
+        """
+        if self.ordered:
+            values = self.codes
+            mask = values == -1
+            if mask.any():
+                values = values.astype('float64')
+                values[mask] = np.nan
+        else:
+            values = np.array(self)
+        return values
+
     def order(self, inplace=False, ascending=True, na_position='last'):
         """
         DEPRECATED: use :meth:`Categorical.sort_values`. That function
