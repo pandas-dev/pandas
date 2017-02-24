@@ -747,8 +747,8 @@ def is_type_factory(_type):
 
     Returns
     -------
-    validator - a function of a single argument x , which returns the
-                True if type(x) is equal to `_type`
+    validator - a function of a single argument x , which raises
+                ValueError if type(x) is not equal to `_type`
 
     """
 
@@ -768,8 +768,8 @@ def is_instance_factory(_type):
 
     Returns
     -------
-    validator - a function of a single argument x , which returns the
-                True if x is an instance of `_type`
+    validator - a function of a single argument x , which raises
+                ValueError if x is not an instance of `_type`
 
     """
     if isinstance(_type, (tuple, list)):
