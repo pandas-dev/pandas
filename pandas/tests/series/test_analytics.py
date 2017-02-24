@@ -1063,10 +1063,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         # Test ascending/descending ranking for ordered categoricals
         exp = pd.Series([1., 2., 3., 4., 5., 6.])
         exp_desc = pd.Series([6., 5., 4., 3., 2., 1.])
-        ser = pd.Series(
+        ordered = pd.Series(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
-        )
-        ordered = ser.astype('category', ).cat.set_categories(
+        ).astype('category', ).cat.set_categories(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
             ordered=True
         )
@@ -1083,12 +1082,6 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         exp_unordered = pd.Series([2., 4., 6., 3., 1., 5.])
         res = unordered.rank()
         assert_series_equal(res, exp_unordered)
-
-        # Test na_option for rank data
-        na_ser = pd.Series(
-            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN],
-        ).astype('category').cat.set_categories(
-            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
 
         # Test na_option for rank data
         na_ser = pd.Series(
