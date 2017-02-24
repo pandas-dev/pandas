@@ -2334,9 +2334,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         self._engine.set_value(_values_from_object(arr),
                                _values_from_object(key), value)
 
-    def get_level_values(self, level):
+    def _get_level_values(self, level):
         """
-        Return vector of label values for requested level, equal to the length
+        Return an Index of values for requested level, equal to the length
         of the index
 
         Parameters
@@ -2345,11 +2345,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         Returns
         -------
-        values : ndarray
+        values : Index
         """
-        # checks that level number is actually just 1
+
         self._validate_index_level(level)
         return self
+
+    get_level_values = _get_level_values
 
     _index_shared_docs['get_indexer'] = """
         Compute indexer and mask for new index given the current index. The

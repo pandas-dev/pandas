@@ -550,6 +550,7 @@ Bug Fixes
 
 - Bug in ``Series.where()`` and ``DataFrame.where()`` where array-like conditionals were being rejected (:issue:`15414`)
 - Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
+- Bug in output formatting of a ``MultiIndex`` when names are integers (:issue:`12223`, :issue:`15262`)
 
 - Bug in compat for passing long integers to ``Timestamp.replace`` (:issue:`15030`)
 - Bug in ``.loc`` that would not return the correct dtype for scalar access for a DataFrame (:issue:`11617`)

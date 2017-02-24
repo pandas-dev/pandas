@@ -1566,7 +1566,7 @@ class CSVFormatter(object):
                     if isinstance(index_label, list) and len(index_label) > 1:
                         col_line.extend([''] * (len(index_label) - 1))
 
-                col_line.extend(columns.get_level_values(i))
+                col_line.extend(columns._get_level_values(i))
 
                 writer.writerow(col_line)
 
