@@ -497,6 +497,18 @@ class Base(object):
         result = i.where(cond)
         tm.assert_index_equal(result, expected)
 
+    def test_where_array_like(self):
+        i = self.create_index()
+
+        _nan = i._na_value
+        cond = [False] + [True] * (len(i) - 1)
+        klasses = [list, tuple, np.array, pd.Series]
+        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
+
+        for klass in klasses:
+            result = i.where(klass(cond))
+            tm.assert_index_equal(result, expected)
+
     def test_setops_errorcases(self):
         for name, idx in compat.iteritems(self.indices):
             # # non-iterable input

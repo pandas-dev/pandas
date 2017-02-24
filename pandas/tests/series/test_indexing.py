@@ -1193,6 +1193,60 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         expected = Series(np.nan, index=[9])
         assert_series_equal(result, expected)
 
+    def test_where_array_like(self):
+        # see gh-15414
+        s = Series([1, 2, 3])
+        cond = [False, True, True]
+        expected = Series([np.nan, 2, 3])
+        klasses = [list, tuple, np.array, Series]
+
+        for klass in klasses:
+            result = s.where(klass(cond))
+            assert_series_equal(result, expected)
+
+    def test_where_invalid_input(self):
+        # see gh-15414: only boolean arrays accepted
+        s = Series([1, 2, 3])
+        msg = "Boolean array expected for the condition"
+
+        conds = [
+            [1, 0, 1],
+            Series([2, 5, 7]),
+            ["True", "False", "True"],
+            [Timestamp("2017-01-01"),
+             pd.NaT, Timestamp("2017-01-02")]
+        ]
+
+        for cond in conds:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                s.where(cond)
+
+        msg = "Array conditional must be same shape as self"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.where([True])
+
+    def test_where_ndframe_align(self):
+        msg = "Array conditional must be same shape as self"
+        s = Series([1, 2, 3])
+
+        cond = [True]
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.where(cond)
+
+        expected = Series([1, np.nan, np.nan])
+
+        out = s.where(Series(cond))
+        tm.assert_series_equal(out, expected)
+
+        cond = np.array([False, True, False, True])
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.where(cond)
+
+        expected = Series([np.nan, 2, np.nan])
+
+        out = s.where(Series(cond))
+        tm.assert_series_equal(out, expected)
+
     def test_where_setitem_invalid(self):
 
         # GH 2702

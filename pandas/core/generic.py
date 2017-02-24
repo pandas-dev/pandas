@@ -4726,25 +4726,37 @@ class NDFrame(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
+        # align the cond to same shape as myself
         cond = com._apply_if_callable(cond, self)
-
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join='right', broadcast_axis=1)
         else:
             if not hasattr(cond, 'shape'):
-                raise ValueError('where requires an ndarray like object for '
-                                 'its condition')
+                cond = np.asanyarray(cond)
             if cond.shape != self.shape:
                 raise ValueError('Array conditional must be same shape as '
                                  'self')
             cond = self._constructor(cond, **self._construct_axes_dict())
 
-        if inplace:
-            cond = -(cond.fillna(True).astype(bool))
-        else:
-            cond = cond.fillna(False).astype(bool)
+        # make sure we are boolean
+        fill_value = True if inplace else False
+        cond = cond.fillna(fill_value)
 
-        # try to align
+        msg = "Boolean array expected for the condition, not {dtype}"
+
+        if not isinstance(cond, pd.DataFrame):
+            # This is a single-dimensional object.
+            if not is_bool_dtype(cond):
+                raise ValueError(msg.format(dtype=cond.dtype))
+        else:
+            for dt in cond.dtypes:
+                if not is_bool_dtype(dt):
+                    raise ValueError(msg.format(dtype=dt))
+
+        cond = cond.astype(bool, copy=False)
+        cond = -cond if inplace else cond
+
+        # try to align with other
         try_quick = True
         if hasattr(other, 'align'):
 
@@ -4891,25 +4903,19 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        cond : boolean %(klass)s, array or callable
+        cond : boolean %(klass)s, array-like, or callable
             If cond is callable, it is computed on the %(klass)s and
-            should return boolean %(klass)s or array.
-            The callable must not change input %(klass)s
-            (though pandas doesn't check it).
+            should return boolean %(klass)s or array. The callable must
+            not change input %(klass)s (though pandas doesn't check it).
 
             .. versionadded:: 0.18.1
-
-            A callable can be used as cond.
 
         other : scalar, %(klass)s, or callable
             If other is callable, it is computed on the %(klass)s and
-            should return scalar or %(klass)s.
-            The callable must not change input %(klass)s
-            (though pandas doesn't check it).
+            should return scalar or %(klass)s. The callable must not
+            change input %(klass)s (though pandas doesn't check it).
 
             .. versionadded:: 0.18.1
-
-            A callable can be used as other.
 
         inplace : boolean, default False
             Whether to perform the operation in place on the data

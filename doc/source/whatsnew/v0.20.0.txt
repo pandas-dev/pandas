@@ -548,6 +548,7 @@ Bug Fixes
 
 
 
+- Bug in ``Series.where()`` and ``DataFrame.where()`` where array-like conditionals were being rejected (:issue:`15414`)
 - Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
 
 - Bug in compat for passing long integers to ``Timestamp.replace`` (:issue:`15030`)

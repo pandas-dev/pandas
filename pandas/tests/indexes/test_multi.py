@@ -88,6 +88,15 @@ class TestMultiIndex(Base, tm.TestCase):
 
         self.assertRaises(NotImplementedError, f)
 
+    def test_where_array_like(self):
+        i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
+        klasses = [list, tuple, np.array, pd.Series]
+        cond = [False, True]
+
+        for klass in klasses:
+            f = lambda: i.where(klass(cond))
+            self.assertRaises(NotImplementedError, f)
+
     def test_repeat(self):
         reps = 2
         numbers = [1, 2, 3]

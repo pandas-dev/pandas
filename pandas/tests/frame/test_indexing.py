@@ -2479,6 +2479,95 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         expected = df[df['a'] == 1].reindex(df.index)
         assert_frame_equal(result, expected)
 
+    def test_where_array_like(self):
+        # see gh-15414
+        klasses = [list, tuple, np.array]
+
+        df = DataFrame({'a': [1, 2, 3]})
+        cond = [[False], [True], [True]]
+        expected = DataFrame({'a': [np.nan, 2, 3]})
+
+        for klass in klasses:
+            result = df.where(klass(cond))
+            assert_frame_equal(result, expected)
+
+        df['b'] = 2
+        expected['b'] = [2, np.nan, 2]
+        cond = [[False, True], [True, False], [True, True]]
+
+        for klass in klasses:
+            result = df.where(klass(cond))
+            assert_frame_equal(result, expected)
+
+    def test_where_invalid_input(self):
+        # see gh-15414: only boolean arrays accepted
+        df = DataFrame({'a': [1, 2, 3]})
+        msg = "Boolean array expected for the condition"
+
+        conds = [
+            [[1], [0], [1]],
+            Series([[2], [5], [7]]),
+            DataFrame({'a': [2, 5, 7]}),
+            [["True"], ["False"], ["True"]],
+            [[Timestamp("2017-01-01")],
+             [pd.NaT], [Timestamp("2017-01-02")]]
+        ]
+
+        for cond in conds:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                df.where(cond)
+
+        df['b'] = 2
+        conds = [
+            [[0, 1], [1, 0], [1, 1]],
+            Series([[0, 2], [5, 0], [4, 7]]),
+            [["False", "True"], ["True", "False"],
+             ["True", "True"]],
+            DataFrame({'a': [2, 5, 7], 'b': [4, 8, 9]}),
+            [[pd.NaT, Timestamp("2017-01-01")],
+             [Timestamp("2017-01-02"), pd.NaT],
+             [Timestamp("2017-01-03"), Timestamp("2017-01-03")]]
+        ]
+
+        for cond in conds:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                df.where(cond)
+
+    def test_where_dataframe_col_match(self):
+        df = DataFrame([[1, 2, 3], [4, 5, 6]])
+        cond = DataFrame([[True, False, True], [False, False, True]])
+
+        out = df.where(cond)
+        expected = DataFrame([[1.0, np.nan, 3], [np.nan, np.nan, 6]])
+        tm.assert_frame_equal(out, expected)
+
+        cond.columns = ["a", "b", "c"]  # Columns no longer match.
+        msg = "Boolean array expected for the condition"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df.where(cond)
+
+    def test_where_ndframe_align(self):
+        msg = "Array conditional must be same shape as self"
+        df = DataFrame([[1, 2, 3], [4, 5, 6]])
+
+        cond = [True]
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df.where(cond)
+
+        expected = DataFrame([[1, 2, 3], [np.nan, np.nan, np.nan]])
+
+        out = df.where(Series(cond))
+        tm.assert_frame_equal(out, expected)
+
+        cond = np.array([False, True, False, True])
+        with tm.assertRaisesRegexp(ValueError, msg):
+            df.where(cond)
+
+        expected = DataFrame([[np.nan, np.nan, np.nan], [4, 5, 6]])
+
+        out = df.where(Series(cond))
+        tm.assert_frame_equal(out, expected)
+
     def test_where_bug(self):
 
         # GH 2793
