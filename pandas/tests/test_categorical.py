@@ -4549,6 +4549,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                             'h': [None] * 6 + cat_values})
         tm.assert_frame_equal(res, exp)
 
+
 class TestCategoricalSubclassing(tm.TestCase):
 
     def test_constructor(self):

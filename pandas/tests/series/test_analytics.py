@@ -1059,7 +1059,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
     def test_rank_categorical(self):
         # GH issue #15420 rank incorrectly orders ordered categories
-        
+
         # Test ascending/descending ranking for ordered categoricals
         exp = pd.Series([1., 2., 3., 4., 5., 6.])
         exp_desc = pd.Series([6., 5., 4., 3., 2., 1.])
