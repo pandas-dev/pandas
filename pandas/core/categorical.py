@@ -1416,10 +1416,14 @@ class Categorical(PandasObject):
         numpy array
 
         """
-        values = self._codes.astype('float64')
-        if self._ordered:
-            na_mask = (values == -1)
-            values[na_mask] = np.nan
+        if self.ordered:
+            values = self.codes
+            mask = values == -1
+            if mask.any():
+                values = values.astype('float64')
+                values[mask] = np.nan
+        else:
+            values = np.array(self)
         return values
 
     def order(self, inplace=False, ascending=True, na_position='last'):
