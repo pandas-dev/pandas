@@ -593,6 +593,17 @@ class TestAssertFrameEqual(tm.TestCase):
     def _assert_not_equal(self, a, b, **kwargs):
         self.assertRaises(AssertionError, assert_frame_equal, a, b, **kwargs)
         self.assertRaises(AssertionError, assert_frame_equal, b, a, **kwargs)
+    
+    def test_equal_with_different_row_order(self):
+        self._assert_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
+                                        index=['a', 'b', 'c']),
+                           pd.DataFrame({'A': [3, 2, 1], 'B': [6, 5, 4]},
+                                        index=['c', 'b', 'a']), 
+                           check_like=True)
+
+    def test_not_equal_with_different_shape(self):
+        self._assert_not_equal(pd.DataFrame({'A': [1, 2, 3]}),
+                               pd.DataFrame({'A': [1, 2, 3, 4]}))
 
     def test_index_dtype(self):
         df1 = DataFrame.from_records(
@@ -621,19 +632,9 @@ class TestAssertFrameEqual(tm.TestCase):
 
         expected = """DataFrame are different
 
-DataFrame shape \\(number of rows\\) are different
-\\[left\\]:  3, RangeIndex\\(start=0, stop=3, step=1\\)
-\\[right\\]: 4, RangeIndex\\(start=0, stop=4, step=1\\)"""
-
-        with assertRaisesRegexp(AssertionError, expected):
-            assert_frame_equal(pd.DataFrame({'A': [1, 2, 3]}),
-                               pd.DataFrame({'A': [1, 2, 3, 4]}))
-
-        expected = """DataFrame are different
-
-DataFrame shape \\(number of columns\\) are different
-\\[left\\]:  2, Index\\(\\[u?'A', u?'B'\\], dtype='object'\\)
-\\[right\\]: 1, Index\\(\\[u?'A'\\], dtype='object'\\)"""
+DataFrame shape mismatch
+\\[left\\]:  \\(3, 2\\)
+\\[right\\]: \\(4, 1\\)"""
 
         with assertRaisesRegexp(AssertionError, expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
