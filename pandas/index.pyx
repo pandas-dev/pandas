@@ -49,6 +49,36 @@ cdef extern from "Python.h":
 @cython.initializedcheck(False)
 cdef _count(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
             int64_t[:] mapping_count, int64_t[:] missing_count):
+    """
+    Compute the number of times a `targets` value is in `values`.
+
+    We also want an indication for the case in which a `targets` value is not
+    found in `values`.
+
+    Parameters
+    ----------
+    values : Sequence of comparable values.
+    targets : Sequence of comparable values.
+    idx0 : np.argsort on `values`.
+    idx1 : np.argsort on `targets`.
+    mapping_count : Number of `targets` elements found in `values`.
+    missing_count : Number of `targets` elements not found in `values`.
+
+    Examples
+    --------
+    Let
+
+    .. code-block:: python
+
+        >>> values = np.array([5, 4, 5, 3, 3, 5, 1])
+        >>> targets = np.array([3, 5, 1, 2, 1])
+
+    be two integer arrays. The first element of `targets` is in `values` in
+    two positions. The second one is in `values` in three positions.
+    On the other hand, the fourth one is not found in `values`. The resulting
+    map will be `mapping_count = np.array([2, 3, 1, -1, 1])`. Moreover, the
+    resulting `missing_count` will be `np.array([0, 0, 0, 1, 0])`
+    """
 
     cdef:
         int64_t n_v = values.shape[0]
@@ -92,6 +122,39 @@ cdef _count(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
 cdef _map(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
             int64_t[:] start_mapping, int64_t[:] start_missing,
             int64_t[:] mapping, int64_t[:] missing):
+    """
+    Map `targets` values to `values` positions.
+
+    We also want to know the indices of `targets` whose values are not found in
+    `targets`.
+
+    Parameters
+    ----------
+    values : Sequence of comparable values.
+    targets : Sequence of comparable values.
+    idx0 : np.argsort on `values`.
+    idx1 : np.argsort on `targets`.
+    start_mapping : Index of the starting block of `mapping`.
+    start_missing : Index of the starting block of `missing`.
+    mapping : `values` indices of `targets` values found in `values`.
+    missing : `targets` indices of `targets` values not found in `values`.
+
+    Examples
+    --------
+    Let
+
+    .. code-block:: python
+
+        >>> values = np.array([5, 4, 5, 3, 3, 5, 1])
+        >>> targets = np.array([3, 5, 1, 2, 1])
+
+    be two integer arrays. The first block of `mapping` corresponds to the
+    first element of `targets` and will have size `2`. The second block of
+    `mapping` corresponds to the second element of `targets` and will have size
+    `3`. The resulting map will be
+    `mapping = np.array([3, 4, 0, 2, 5, 6, -1, 6])`. Moreover, the resulting
+    `missing` will be `np.array([3])`.
+    """
 
     cdef:
         int64_t n_v = values.shape[0]
@@ -136,6 +199,11 @@ cdef _map(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
         j += 1
 
 def _map_targets_to_values(values, targets, idx0, idx1):
+    """
+    Map `targets` values to `values` positions.
+
+    Please, refer to function `_map` for a complete description.
+    """
     n_t = len(targets)
 
     mapping_count = np.zeros(n_t, np.int64)
