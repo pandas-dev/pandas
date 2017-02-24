@@ -1270,21 +1270,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         assertIsInstance(left, type(right))
         # assert_class_equal(left, right, obj=obj)
 
-    # shape comparison (row)
-    if left.shape[0] != right.shape[0]:
+    # shape comparison
+    if left.shape != right.shape:
         raise_assert_detail(obj,
-                            'DataFrame shape (number of rows) are different',
-                            '{0}, {1}'.format(left.shape[0], left.index),
-                            '{0}, {1}'.format(right.shape[0], right.index))
-    # shape comparison (columns)
-    if left.shape[1] != right.shape[1]:
-        raise_assert_detail(obj,
-                            'DataFrame shape (number of columns) '
-                            'are different',
-                            '{0}, {1}'.format(left.shape[1],
-                                              left.columns),
-                            '{0}, {1}'.format(right.shape[1],
-                                              right.columns))
+                            'DataFrame shape mismatch',
+                            '({0}, {1})'.format(*left.shape),
+                            '({0}, {1})'.format(*right.shape))
     
     if check_like:
         left, right = left.reindex_like(right), right
