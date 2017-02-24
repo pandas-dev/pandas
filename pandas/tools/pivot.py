@@ -175,6 +175,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     if len(index) == 0 and len(columns) > 0:
         table = table.T
 
+    # GH 15193
     if isinstance(table, DataFrame) and dropna:
         table = table.dropna(how='all', axis=1)
 
