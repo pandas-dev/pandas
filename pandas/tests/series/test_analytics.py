@@ -1057,6 +1057,84 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         iranks = iseries.rank()
         assert_series_equal(iranks, exp)
 
+    def test_rank_categorical(self):
+        # GH issue #15420 rank incorrectly orders ordered categories
+
+        # Test ascending/descending ranking for ordered categoricals
+        exp = pd.Series([1., 2., 3., 4., 5., 6.])
+        exp_desc = pd.Series([6., 5., 4., 3., 2., 1.])
+        ordered = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
+        ).astype('category', ).cat.set_categories(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+            ordered=True
+        )
+        assert_series_equal(ordered.rank(), exp)
+        assert_series_equal(ordered.rank(ascending=False), exp_desc)
+
+        # Unordered categoricals should be ranked as objects
+        unordered = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+        ).astype('category').cat.set_categories(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+            ordered=False
+        )
+        exp_unordered = pd.Series([2., 4., 6., 3., 1., 5.])
+        res = unordered.rank()
+        assert_series_equal(res, exp_unordered)
+
+        # Test na_option for rank data
+        na_ser = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN]
+        ).astype('category', ).cat.set_categories(
+            [
+                'first', 'second', 'third', 'fourth',
+                'fifth', 'sixth', 'seventh'
+            ],
+            ordered=True
+        )
+
+        exp_top = pd.Series([2., 3., 4., 5., 6., 7., 1.])
+        exp_bot = pd.Series([1., 2., 3., 4., 5., 6., 7.])
+        exp_keep = pd.Series([1., 2., 3., 4., 5., 6., np.NaN])
+
+        assert_series_equal(na_ser.rank(na_option='top'), exp_top)
+        assert_series_equal(na_ser.rank(na_option='bottom'), exp_bot)
+        assert_series_equal(na_ser.rank(na_option='keep'), exp_keep)
+
+        # Test na_option for rank data with ascending False
+        exp_top = pd.Series([7., 6., 5., 4., 3., 2., 1.])
+        exp_bot = pd.Series([6., 5., 4., 3., 2., 1., 7.])
+        exp_keep = pd.Series([6., 5., 4., 3., 2., 1., np.NaN])
+
+        assert_series_equal(
+            na_ser.rank(na_option='top', ascending=False),
+            exp_top
+        )
+        assert_series_equal(
+            na_ser.rank(na_option='bottom', ascending=False),
+            exp_bot
+        )
+        assert_series_equal(
+            na_ser.rank(na_option='keep', ascending=False),
+            exp_keep
+        )
+
+        # Test with pct=True
+        na_ser = pd.Series(
+            ['first', 'second', 'third', 'fourth', np.NaN],
+        ).astype('category').cat.set_categories(
+            ['first', 'second', 'third', 'fourth'],
+            ordered=True
+        )
+        exp_top = pd.Series([0.4, 0.6, 0.8, 1., 0.2])
+        exp_bot = pd.Series([0.2, 0.4, 0.6, 0.8, 1.])
+        exp_keep = pd.Series([0.25, 0.5, 0.75, 1., np.NaN])
+
+        assert_series_equal(na_ser.rank(na_option='top', pct=True), exp_top)
+        assert_series_equal(na_ser.rank(na_option='bottom', pct=True), exp_bot)
+        assert_series_equal(na_ser.rank(na_option='keep', pct=True), exp_keep)
+
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')
