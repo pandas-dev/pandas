@@ -54,7 +54,7 @@ from pandas.types.common import (is_categorical_dtype, is_object_dtype,
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
                     Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
-                    Categorical)
+                    Categorical, CategoricalIndex)
 from pandas.tslib import NaTType
 from pandas.sparse.api import SparseSeries, SparseDataFrame
 from pandas.sparse.array import BlockIndex, IntIndex
