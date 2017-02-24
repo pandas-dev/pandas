@@ -677,7 +677,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             self.panel4d['foo'] = 1.
             self.assertFalse(self.panel4d._data.is_consolidated())
 
-            panel4d = self.panel4d.consolidate()
+            panel4d = self.panel4d._consolidate()
             self.assertTrue(panel4d._data.is_consolidated())
 
     def test_ctor_dict(self):

@@ -658,7 +658,7 @@ class Generic(object):
                 super(DataFrame, df).sort_index(inplace=value)
 
             with self.assertRaises(ValueError):
-                super(DataFrame, df).consolidate(inplace=value)
+                super(DataFrame, df)._consolidate(inplace=value)
 
             with self.assertRaises(ValueError):
                 super(DataFrame, df).fillna(value=0, inplace=value)
