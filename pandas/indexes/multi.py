@@ -28,7 +28,6 @@ from pandas.core.common import (_values_from_object,
                                 UnsortedIndexError)
 
 
-from pandas.core.base import FrozenList
 import pandas.core.base as base
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate, deprecate_kwarg)
@@ -39,9 +38,10 @@ from pandas.formats.printing import pprint_thing
 
 from pandas.core.config import get_option
 
-from pandas.indexes.base import (Index, _ensure_index, _ensure_frozen,
+from pandas.indexes.base import (Index, _ensure_index,
                                  _get_na_value, InvalidIndexError,
                                  _index_shared_docs)
+from pandas.indexes.frozen import FrozenNDArray, FrozenList, _ensure_frozen
 import pandas.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -1276,7 +1276,7 @@ class MultiIndex(Index):
                 for new_label in taken:
                     label_values = new_label.values()
                     label_values[mask] = na_value
-                    masked.append(base.FrozenNDArray(label_values))
+                    masked.append(FrozenNDArray(label_values))
                 taken = masked
         else:
             taken = [lab.take(indices) for lab in self.labels]
