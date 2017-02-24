@@ -35,16 +35,15 @@ from pandas.types.common import (_ensure_int64,
                                  needs_i8_conversion,
                                  is_iterator, is_list_like,
                                  is_scalar)
-from pandas.types.cast import _coerce_indexer_dtype
 from pandas.core.common import (is_bool_indexer,
                                 _values_from_object,
                                 _asarray_tuplesafe)
 
-from pandas.core.base import (PandasObject, FrozenList, FrozenNDArray,
-                              IndexOpsMixin)
+from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.base as base
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
+from pandas.indexes.frozen import FrozenList
 import pandas.core.common as com
 import pandas.types.concat as _concat
 import pandas.core.missing as missing
@@ -3842,14 +3841,6 @@ def _ensure_index(index_like, copy=False):
 def _get_na_value(dtype):
     return {np.datetime64: tslib.NaT,
             np.timedelta64: tslib.NaT}.get(dtype, np.nan)
-
-
-def _ensure_frozen(array_like, categories, copy=False):
-    array_like = _coerce_indexer_dtype(array_like, categories)
-    array_like = array_like.view(FrozenNDArray)
-    if copy:
-        array_like = array_like.copy()
-    return array_like
 
 
 def _ensure_has_len(seq):
