@@ -1404,25 +1404,6 @@ class Categorical(PandasObject):
             return self._constructor(values=codes, categories=self.categories,
                                      ordered=self.ordered, fastpath=True)
 
-    def _funcs_for_rank(self):
-        """
-        For correctly ranking ordered categorical data. See GH#15420
-
-        Ordered categorical data should be ranked on the basis of
-        codes with -1 translated to NaN, as floats, and unordered
-        as objects
-
-        Returns
-        -------
-        numpy array
-
-        """
-        if self._ordered:
-            f = _algos.rank_1d_float64
-        else:
-            f = _algos.rank_1d_object
-        return f
-
     def _values_for_rank(self):
         """
         For correctly ranking ordered categorical data. See GH#15420
