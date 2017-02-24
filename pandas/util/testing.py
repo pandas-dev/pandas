@@ -1270,9 +1270,6 @@ def assert_frame_equal(left, right, check_dtype=True,
         assertIsInstance(left, type(right))
         # assert_class_equal(left, right, obj=obj)
 
-    if check_like:
-        left, right = left.reindex_like(right), right
-
     # shape comparison (row)
     if left.shape[0] != right.shape[0]:
         raise_assert_detail(obj,
@@ -1288,6 +1285,9 @@ def assert_frame_equal(left, right, check_dtype=True,
                                               left.columns),
                             '{0}, {1}'.format(right.shape[1],
                                               right.columns))
+    
+    if check_like:
+        left, right = left.reindex_like(right), right
 
     # index comparison
     assert_index_equal(left.index, right.index, exact=check_index_type,
