@@ -291,8 +291,8 @@ class Grouper(object):
                 # equivalent to the axis name
                 if isinstance(ax, MultiIndex):
                     level = ax._get_level_number(level)
-                    ax = Index(ax.get_level_values(
-                        level), name=ax.names[level])
+                    ax = Index(ax._get_level_values(level),
+                               name=ax.names[level])
 
                 else:
                     if level not in (0, ax.name):
@@ -761,7 +761,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         gp = self.grouper
         levels = chain((gp.levels[i][gp.labels[i][b]]
                         for i in range(len(gp.groupings))),
-                       (original.get_level_values(i)[b]
+                       (original._get_level_values(i)[b]
                         for i in range(original.nlevels)))
         new = MultiIndex.from_arrays(list(levels))
         new.names = gp.names + original.names
