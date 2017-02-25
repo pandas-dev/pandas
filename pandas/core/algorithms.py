@@ -974,9 +974,6 @@ def _get_data_algo(values, func_map):
 
     f = None
 
-    if is_categorical_dtype(values):
-        values = values._values_for_rank()
-
     if is_float_dtype(values):
         f = func_map['float64']
         values = _ensure_float64(values)
@@ -992,6 +989,11 @@ def _get_data_algo(values, func_map):
     elif is_unsigned_integer_dtype(values):
         f = func_map['uint64']
         values = _ensure_uint64(values)
+
+    elif is_categorical_dtype(values):
+        f = func_map['float64']
+        values = values._values_for_rank()
+
     else:
         values = _ensure_object(values)
 
