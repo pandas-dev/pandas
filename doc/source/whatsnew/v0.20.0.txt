@@ -625,6 +625,7 @@ Bug Fixes
 
 
 
+- Bug in ``.read_csv()`` which caused ``parse_dates={'datetime': [0, 1]}`` to fail with multiline headers (:issue:`15376`)
 
 
 - Bug in ``DataFrame.boxplot`` where ``fontsize`` was not applied to the tick labels on both axes (:issue:`15108`)
