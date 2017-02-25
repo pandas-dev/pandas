@@ -1668,7 +1668,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
-        nv.validate_take(tuple(), kwargs)
+        #nv.validate_take(tuple(), kwargs)
         indices = _ensure_platform_int(indices)
         if self._can_hold_na:
             taken = self._assert_take_fillable(self.values, indices,
