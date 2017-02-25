@@ -40,6 +40,13 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
         # other shouldn't be mutated
         self.check_result(r, self.lst)
 
+    def test_inplace_sub(self):
+        q = r = self.container
+        q -= [5]
+        self.check_result(q, self.container - [5])
+        # other shouldn't be mutated
+        self.check_result(r, self.lst)
+
 
 class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
     mutable_methods = ('put', 'itemset', 'fill')

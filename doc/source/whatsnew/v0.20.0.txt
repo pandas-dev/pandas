@@ -26,7 +26,7 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
-- Added subtraction from FrozenLists (:issue:`15475`)
+- Added difference from FrozenLists (:issue:`15475`)
 
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - ``.str.replace`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)

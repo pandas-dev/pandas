@@ -36,6 +36,8 @@ class FrozenList(PandasObject, list):
         temp = [x for x in self if x not in other]
         return self.__class__(temp)
 
+    __isub__ = __sub__
+
     # Python 2 compat
     def __getslice__(self, i, j):
         return self.__class__(super(FrozenList, self).__getslice__(i, j))
