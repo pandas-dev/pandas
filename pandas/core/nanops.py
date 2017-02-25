@@ -2,6 +2,7 @@ import itertools
 import functools
 import numpy as np
 import operator
+import os
 
 try:
     import bottleneck as bn
@@ -130,7 +131,9 @@ def _bn_ok_dtype(dt, name):
         if name == 'nansum':
             if dt.itemsize < 8:
                 return False
-
+            elif os.name == 'nt': # bottleneck has overflow issue in Windows
+                return False
+            
         return True
     return False
 
