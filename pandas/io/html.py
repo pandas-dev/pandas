@@ -853,7 +853,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     Notes
     -----
     Before using this function you should read the :ref:`gotchas about the
-    HTML parsing libraries <html-gotchas>`.
+    HTML parsing libraries <io.html.gotchas>`.
 
     Expect to do some cleanup after you call this function. For example, you
     might need to manually assign column names if the column names are
