@@ -543,6 +543,7 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         tm.assert_sp_series_equal(sparse.loc[:'B'], orig.loc[:'B'].to_sparse())
 
     def test_reindex(self):
+        # GH 15447
         orig = self.orig
         sparse = self.sparse
 
@@ -563,6 +564,12 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         with tm.assertRaises(TypeError):
             # Incomplete keys are not accepted for reindexing:
             sparse.reindex(['A', 'C'])
+
+        # "copy" argument:
+        res = sparse.reindex(sparse.index, copy=True)
+        exp = orig.reindex(orig.index, copy=True).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+        self.assertIsNot(sparse, res)
 
 
 class TestSparseDataFrameIndexing(tm.TestCase):
