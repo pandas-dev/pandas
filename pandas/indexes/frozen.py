@@ -28,9 +28,9 @@ class FrozenList(PandasObject, list):
         if isinstance(other, tuple):
             other = list(other)
         return self.__class__(super(FrozenList, self).__add__(other))
-    
+
     __iadd__ = __add__
-    
+
     def __sub__(self, other):
         other = set(other)
         temp = [x for x in self if x not in other]
