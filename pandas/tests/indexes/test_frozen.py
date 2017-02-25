@@ -22,17 +22,17 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
         result = (1, 2, 3) + self.container
         expected = FrozenList([1, 2, 3] + self.lst)
         self.check_result(result, expected)
-    
+
     def test_sub(self):
         result = self.container - [2]
         expected = FrozenList([1, 3, 4, 5])
-        self.check_result(result, expected) 
-        
+        self.check_result(result, expected)
+
     def test_sub_dupe(self):
         result = FrozenList([1, 2, 3, 2]) - [2]
         expected = FrozenList([1, 3])
-        self.check_result(result, expected) 
-        
+        self.check_result(result, expected)
+
     def test_inplace(self):
         q = r = self.container
         q += [5]
