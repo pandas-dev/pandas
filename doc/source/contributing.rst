@@ -461,7 +461,7 @@ C (cpplint)
 
 *pandas* uses the `Google <https://google.github.io/styleguide/cppguide.html>`_
 standard. Google provides an open source style checker called ``cpplint``, but we
-use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`_.
+use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`__.
 Here are *some* of the more common ``cpplint`` issues:
 
   - we restrict line-length to 80 characters to promote readability
@@ -479,7 +479,7 @@ You can also run this command on an entire directory if necessary::
 
 To make your commits compliant with this standard, you can install the
 `ClangFormat <http://clang.llvm.org/docs/ClangFormat.html>`_ tool, which can be
-downloaded `here <http://llvm.org/builds/>`_. To configure, in your home directory,
+downloaded `here <http://llvm.org/builds/>`__. To configure, in your home directory,
 run the following command::
 
     clang-format style=google -dump-config  > .clang-format
@@ -611,7 +611,7 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-For more, see the `pytest<http://doc.pytest.org/en/latest/>`_ documentation.
+For more, see the `pytest <http://doc.pytest.org/en/latest/>`_ documentation.
 
     .. versionadded:: 0.20.0
 

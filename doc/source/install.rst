@@ -282,7 +282,7 @@ Optional Dependencies
     okay.)
   * `BeautifulSoup4`_ and `lxml`_
   * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_
-  * Only `lxml`_, although see :ref:`HTML Table Parsing <gotchas.html>`
+  * Only `lxml`_, although see :ref:`HTML Table Parsing <io.html.gotchas>`
     for reasons as to why you should probably **not** take this approach.
 
   .. warning::
