@@ -567,7 +567,7 @@ Performance Improvements
 - Improved performance and reduced memory when indexing with a ``MultiIndex`` (:issue:`15245`)
 - When reading buffer object in ``read_sas()`` method without specified format, filepath string is inferred rather than buffer object. (:issue:`14947`)
 - Improved performance of `rank()` for categorical data (:issue:`15498`)
-
+- Improved performance when using ``.unstack()`` (:issue:`15503`)
 
 
 .. _whatsnew_0200.bug_fixes:
