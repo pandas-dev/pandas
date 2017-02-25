@@ -196,6 +196,95 @@ See also
 merge_ordered
 merge_asof
 
+
+pandas aligns index for setting a ``DataFrame`` from ``.loc``, ``.iloc`` and ``.ix``.
+
+Therefore, any attempt to assign copies from one Dataframe 
+to another without matching indices will result in NaN in the assigned rows.
+
+What we would like to do:
+.. code-block:: python
+
+   In [1]: a = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [6, 7, 8, 9, 10]})
+   In [2]: a.iloc[0:2,:] = a.iloc[3:5, :]
+   Out [3]: a
+
+   Expected outcome:
+
+      a   b
+   0  4   9
+   1  5  10
+   2  3   8
+   3  4   9
+   4  5  10
+
+   Actual outcome:
+
+        a     b
+   0  NaN   NaN
+   1  NaN   NaN
+   2  3.0   8.0
+   3  4.0   9.0
+   4  5.0  10.0
+
+
+Currently, the assignment operator behaves similar to below because the indices 
+do not match.
+
+.. code-block:: python
+
+   In [1]: a = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [6, 7, 8, 9, 10]})
+   In [2]: values = pd.DataFrame({'a': [4, 5], 'b': [9, 10]}, index=[3, 4])
+   In [3]: a.iloc[0:2,:]
+   Out [4]: a
+
+        a     b
+   0  NaN   NaN
+   1  NaN   NaN
+   2  3.0   8.0
+   3  4.0   9.0
+   4  5.0  10.0
+
+
+However, it will work if indices match or are omitted from rhs 
+of assignment operator.
+
+.. code-block:: python
+
+   In [1]: a = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [6, 7, 8, 9, 10]})
+   In [2]: values = pd.DataFrame({'a': [4, 5], 'b': [9, 10]}, index=[0, 1])
+   In [3]: a.iloc[0:2,:] = values
+   Out [4]: a
+
+
+      a   b
+   0  4   9
+   1  5  10
+   2  3   8
+   3  4   9
+   4  5  10
+
+
+Hence, when performing the operation, create the shape you want on the rhs 
+and convert it to a non-PANDAS DataFrame structure, such as converting 
+the values into a numpy.ndarray
+
+
+.. code-block:: python
+
+   In [1]: a = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [6, 7, 8, 9, 10]})
+   In [2]: values = pd.DataFrame({'a': [4, 5], 'b': [9, 10]}, index=[1, 2])
+   In [3]: a.iloc[0:2,:] = a.iloc[3:5, :].values
+   Out [4]: a
+
+      a   b
+   0  4   9
+   1  5  10
+   2  3   8
+   3  4   9
+   4  5  10
+
+
 """
 
 # -----------------------------------------------------------------------
