@@ -2043,7 +2043,7 @@ Reading HTML Content
 
 .. warning::
 
-   We **highly encourage** you to read the :ref:`HTML Table Parsing gotchas<io.html.gotchas>`
+   We **highly encourage** you to read the :ref:`HTML Table Parsing gotchas <io.html.gotchas>`
    below regarding the issues surrounding the BeautifulSoup4/html5lib/lxml parsers.
 
 .. versionadded:: 0.12.0
@@ -4681,7 +4681,7 @@ The key functions are:
 
 
 Supported Data Types
-++++++++++++++++++++
+''''''''''''''''''''
 
 Pandas supports all these `BigQuery data types <https://cloud.google.com/bigquery/data-types>`__:
 ``STRING``, ``INTEGER`` (64bit), ``FLOAT`` (64 bit), ``BOOLEAN`` and
@@ -4689,7 +4689,7 @@ Pandas supports all these `BigQuery data types <https://cloud.google.com/bigquer
 are not supported.
 
 Integer and boolean ``NA`` handling
-+++++++++++++++++++++++++++++++++++
+'''''''''''''''''''''''''''''''''''
 
 .. versionadded:: 0.20
 
@@ -4710,7 +4710,7 @@ and unnoticed precision lost for identifier is what we want to avoid.
 .. _io.bigquery_deps:
 
 Dependencies
-++++++++++++
+''''''''''''
 
 This module requires following additional dependencies:
 
