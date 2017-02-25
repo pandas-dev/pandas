@@ -33,7 +33,7 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
         expected = FrozenList([1, 3])
         self.check_result(result, expected)
 
-    def test_inplace(self):
+    def test_inplace_add(self):
         q = r = self.container
         q += [5]
         self.check_result(q, self.lst + [5])
