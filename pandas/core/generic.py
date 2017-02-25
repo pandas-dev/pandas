@@ -4910,6 +4910,7 @@ class NDFrame(PandasObject):
             not change input %(klass)s (though pandas doesn't check it).
 
             .. versionadded:: 0.18.1
+                A callable can be used as cond.
 
         other : scalar, %(klass)s, or callable
             If other is callable, it is computed on the %(klass)s and
@@ -4917,6 +4918,7 @@ class NDFrame(PandasObject):
             change input %(klass)s (though pandas doesn't check it).
 
             .. versionadded:: 0.18.1
+                A callable can be used as other.
 
         inplace : boolean, default False
             Whether to perform the operation in place on the data
