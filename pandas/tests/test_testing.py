@@ -634,7 +634,7 @@ class TestAssertFrameEqual(tm.TestCase):
 
 DataFrame shape mismatch
 \\[left\\]:  \\(3, 2\\)
-\\[right\\]: \\(4, 1\\)"""
+\\[right\\]: \\(3, 1\\)"""
 
         with assertRaisesRegexp(AssertionError, expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
