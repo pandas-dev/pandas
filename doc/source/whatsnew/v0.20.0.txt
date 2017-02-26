@@ -536,7 +536,7 @@ Deprecations
 - ``Series.sortlevel`` and ``DataFrame.sortlevel`` have been deprecated in favor of ``Series.sort_index`` and ``DataFrame.sort_index`` (:issue:`15099`)
 - importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
-- ``FrozenList.__add__`` has been depricated in favor of ``FrozenList.union`` (:issue: `15506`)
+- ``FrozenList.__add__`` has been depricated in favor of ``FrozenList.union`` (:issue: `15475`)
 
 .. _whatsnew_0200.prior_deprecations:
 
