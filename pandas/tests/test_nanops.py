@@ -329,10 +329,10 @@ class TestnanopsDataFrame(tm.TestCase):
 
     def test_nansum_overflow(self):
         s = Series([2**31])
-        self.assertEqual(s.sum(),2147483648)
-        s = Series([2**31-1,1])
-        self.assertEqual(s.sum(),2147483648)
-    
+        self.assertEqual(s.sum(), 2147483648)
+        s = Series([2**31 - 1, 1])
+        self.assertEqual(s.sum(), 2147483648)
+
     def test_nanmean(self):
         self.check_funs(nanops.nanmean, np.mean, allow_complex=False,
                         allow_obj=False, allow_str=False, allow_date=False,
