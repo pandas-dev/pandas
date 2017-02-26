@@ -13,6 +13,8 @@ from pandas.core.base import PandasObject
 from pandas.types.cast import _coerce_indexer_dtype
 from pandas.formats.printing import pprint_thing
 
+import warnings
+
 
 class FrozenList(PandasObject, list):
 
@@ -25,6 +27,7 @@ class FrozenList(PandasObject, list):
     #           typechecks
 
     def __add__(self, other):
+        warnings.warn("__add__ is deprecated, use union(...)", FutureWarning)
         if isinstance(other, tuple):
             other = list(other)
         return self.__class__(super(FrozenList, self).__add__(other))
@@ -79,6 +82,11 @@ class FrozenList(PandasObject, list):
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled
+
+    def union(self, other):
+        if isinstance(other, tuple):
+            other = list(other)
+        return self.__class__(super(FrozenList, self).__add__(other))
 
     def difference(self, other):
         other = set(other)
