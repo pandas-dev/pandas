@@ -23,16 +23,6 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
         expected = FrozenList([1, 2, 3] + self.lst)
         self.check_result(result, expected)
 
-    def test_sub(self):
-        result = self.container - [2]
-        expected = FrozenList([1, 3, 4, 5])
-        self.check_result(result, expected)
-
-    def test_sub_dupe(self):
-        result = FrozenList([1, 2, 3, 2]) - [2]
-        expected = FrozenList([1, 3])
-        self.check_result(result, expected)
-
     def test_inplace_add(self):
         q = r = self.container
         q += [5]
@@ -40,12 +30,15 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
         # other shouldn't be mutated
         self.check_result(r, self.lst)
 
-    def test_inplace_sub(self):
-        q = r = self.container
-        q -= [5]
-        self.check_result(q, self.container - [5])
-        # other shouldn't be mutated
-        self.check_result(r, self.lst)
+    def test_difference(self):
+        result = self.container.difference([2])
+        expected = FrozenList([1, 3, 4, 5])
+        self.check_result(result, expected)
+
+    def test_difference_dupe(self):
+        result = FrozenList([1, 2, 3, 2]).difference([2])
+        expected = FrozenList([1, 3])
+        self.check_result(result, expected)
 
 
 class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
