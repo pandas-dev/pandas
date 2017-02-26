@@ -14,21 +14,10 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
         self.container = FrozenList(self.lst)
         self.klass = FrozenList
 
-    def test_add(self):
-        result = self.container + (1, 2, 3)
+    def test_union(self):
+        result = self.container.union((1, 2, 3))
         expected = FrozenList(self.lst + [1, 2, 3])
         self.check_result(result, expected)
-
-        result = (1, 2, 3) + self.container
-        expected = FrozenList([1, 2, 3] + self.lst)
-        self.check_result(result, expected)
-
-    def test_inplace_add(self):
-        q = r = self.container
-        q += [5]
-        self.check_result(q, self.lst + [5])
-        # other shouldn't be mutated
-        self.check_result(r, self.lst)
 
     def test_difference(self):
         result = self.container.difference([2])
