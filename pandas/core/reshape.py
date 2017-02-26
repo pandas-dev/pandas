@@ -30,6 +30,8 @@ from pandas._libs import algos as _algos, reshape as _reshape
 
 from pandas.core.frame import _shared_docs
 from pandas.util.decorators import Appender
+_shared_docs_kwargs = dict(
+    versionadded_melt="", other_melt='DataFrame.melt')
 
 from pandas.core.index import MultiIndex, _get_na_value
 
@@ -704,7 +706,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     return result
 
 
-@Appender(_shared_docs['melt'], indents=2)
+@Appender(_shared_docs['melt'] % _shared_docs_kwargs)
 def melt(frame, id_vars=None, value_vars=None, var_name=None,
          value_name='value', col_level=None):
     # TODO: what about the existing index?

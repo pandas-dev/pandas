@@ -105,7 +105,11 @@ _shared_doc_kwargs = dict(
     optional_by="""
         by : str or list of str
             Name or list of names which refer to the axis items.""",
-    versionadded_to_excel='')
+    versionadded_to_excel='',
+    versionadded_melt='\n.. versionadded:: 0.20.0\n',
+    other_melt='melt')
+
+import pdb; pdb.set_trace()
 
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
@@ -4061,6 +4065,8 @@ it is assumed to be aliases for the column names.')
     the row axis, leaving just two non-identifier columns, 'variable' and
     'value'.
 
+    %(versionadded_melt)s
+
     Parameters
     ----------
     frame : DataFrame
@@ -4079,6 +4085,7 @@ it is assumed to be aliases for the column names.')
 
     See also
     --------
+    %(other_melt)s
     pivot_table
     DataFrame.pivot
 
@@ -4142,7 +4149,7 @@ it is assumed to be aliases for the column names.')
 
     """
 
-    @Appender(_shared_docs['melt'], indents=2)
+    @Appender(_shared_docs['melt'] % _shared_doc_kwargs)
     def melt(self, id_vars=None, value_vars=None, var_name=None,
               value_name='value', col_level=None):
         from pandas.core.reshape import melt
