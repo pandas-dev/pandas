@@ -134,7 +134,7 @@ but the specified columns
 .. ipython:: python
 
    df.set_index(['A', 'B'])
-   grouped = df.groupby(level=df.index.names - ['B'])
+   grouped = df.groupby(level=df.index.names.difference(['B'])
 
 These will split the DataFrame on its index (rows). We could also split by the
 columns:

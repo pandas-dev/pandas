@@ -31,13 +31,6 @@ class FrozenList(PandasObject, list):
 
     __iadd__ = __add__
 
-    def __sub__(self, other):
-        other = set(other)
-        temp = [x for x in self if x not in other]
-        return self.__class__(temp)
-
-    __isub__ = __sub__
-
     # Python 2 compat
     def __getslice__(self, i, j):
         return self.__class__(super(FrozenList, self).__getslice__(i, j))
@@ -86,6 +79,11 @@ class FrozenList(PandasObject, list):
 
     __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
     pop = append = extend = remove = sort = insert = _disabled
+
+    def difference(self, other):
+        other = set(other)
+        temp = [x for x in self if x not in other]
+        return self.__class__(temp)
 
 
 class FrozenNDArray(PandasObject, np.ndarray):
