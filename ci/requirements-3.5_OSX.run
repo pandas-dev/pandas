@@ -10,7 +10,7 @@ html5lib
 lxml
 matplotlib
 jinja2
-bottleneck
+bottleneck==1.2.0
 xarray
 s3fs
 beautifulsoup4

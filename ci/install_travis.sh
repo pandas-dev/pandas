@@ -76,6 +76,7 @@ else
     # to add extra packages
     echo "[add channels]"
     conda config --add channels pandas || exit 1
+    conda config --add channels conda-forge || exit 1
     conda config --remove channels defaults || exit 1
     conda config --add channels defaults || exit 1
 
