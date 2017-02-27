@@ -3,7 +3,7 @@ from pandas.lib import cache_readonly  # noqa
 import sys
 import warnings
 from textwrap import dedent
-from functools import wraps
+from functools import wraps, update_wrapper
 
 
 def deprecate(name, alternative, alt_name=None):
@@ -233,3 +233,39 @@ def make_signature(func):
     if spec.keywords:
         args.append('**' + spec.keywords)
     return args, spec.args
+
+
+class docstring_wrapper(object):
+    """
+    decorator to wrap a function,
+    provide a dynamically evaluated doc-string
+
+    Parameters
+    ----------
+    func : callable
+    creator : callable
+        return the doc-string
+    default : str, optional
+        return this doc-string on error
+    """
+    _attrs = ['__module__', '__name__',
+              '__qualname__', '__annotations__']
+
+    def __init__(self, func, creator, default=None):
+        self.func = func
+        self.creator = creator
+        self.default = default
+        update_wrapper(
+            self, func, [attr for attr in self._attrs
+                         if hasattr(func, attr)])
+
+    def __call__(self, func, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    @property
+    def __doc__(self):
+        try:
+            return self.creator()
+        except Exception as exc:
+            msg = self.default or str(exc)
+            return msg

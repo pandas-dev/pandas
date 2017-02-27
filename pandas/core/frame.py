@@ -77,7 +77,8 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import deprecate_kwarg, Appender, Substitution
+from pandas.util.decorators import (deprecate_kwarg, Appender,
+                                    Substitution, docstring_wrapper)
 from pandas.util.validators import validate_bool_kwarg
 
 from pandas.tseries.period import PeriodIndex
@@ -940,6 +941,11 @@ class DataFrame(NDFrame):
         return gbq.to_gbq(self, destination_table, project_id=project_id,
                           chunksize=chunksize, verbose=verbose, reauth=reauth,
                           if_exists=if_exists, private_key=private_key)
+
+    def _f():
+        from pandas.io.gbq import _try_import
+        return _try_import().to_gbq.__doc__
+    to_gbq = docstring_wrapper(to_gbq, _f)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
