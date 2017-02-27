@@ -109,8 +109,6 @@ _shared_doc_kwargs = dict(
     versionadded_melt='\n.. versionadded:: 0.20.0\n',
     other_melt='melt')
 
-import pdb; pdb.set_trace()
-
 _numeric_only_doc = """numeric_only : boolean, default None
     Include only float, int, boolean data. If None, will attempt to use
     everything, then use only numeric data
@@ -4151,7 +4149,7 @@ it is assumed to be aliases for the column names.')
 
     @Appender(_shared_docs['melt'] % _shared_doc_kwargs)
     def melt(self, id_vars=None, value_vars=None, var_name=None,
-              value_name='value', col_level=None):
+             value_name='value', col_level=None):
         from pandas.core.reshape import melt
         return melt(self, id_vars=id_vars, value_vars=value_vars,
                     var_name=var_name, value_name=value_name,
