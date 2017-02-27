@@ -603,8 +603,13 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
 Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can 
-speed up local testing on multicore machines. Two scripts are provided to
-assist with this.  These scripts distribute testing across 4 threads.
+speed up local testing on multicore machines. To use this feature, you will
+need to install `pytest-xdist` via::
+
+    pip install pytest-xdist
+    
+Two scripts are provided to assist with this.  These scripts distribute 
+testing across 4 threads.
 
 On Unix variants, one can type::
 
