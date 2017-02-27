@@ -266,5 +266,6 @@ class docstring_wrapper(object):
     def __doc__(self):
         try:
             return self.creator()
-        except ImportError:
-            return self.default
+        except Exception as exc:
+            msg = self.default or str(exc)
+            return msg

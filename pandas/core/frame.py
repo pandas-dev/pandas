@@ -945,8 +945,7 @@ class DataFrame(NDFrame):
     def _f():
         from pandas.io.gbq import _try_import
         return _try_import().to_gbq.__doc__
-    to_gbq = docstring_wrapper(
-        to_gbq, _f, default='the pandas_gbq package is not installed')
+    to_gbq = docstring_wrapper(to_gbq, _f)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,

@@ -4657,7 +4657,13 @@ Google BigQuery
    Starting in 0.20.0, pandas has split off Google BigQuery support into the
    separate package ``pandas-gbq``. You can ``pip install pandas-gbq`` to get it.
 
-   Documentation is now hosted `here <https://pandas-gbq.readthedocs.io/>`__
+The ``pandas-gbq`` package provides functionality to read/write from Google BigQuery.
+
+pandas integrates with this external package. if ``pandas-gbq`` is installed, you can
+use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
+respective functions from ``pandas-gbq``.
+
+Full cocumentation can be found `here <https://pandas-gbq.readthedocs.io/>`__
 
 .. _io.stata:
 

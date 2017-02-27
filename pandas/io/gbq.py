@@ -11,8 +11,12 @@ def _try_import():
     except ImportError:
 
         # give a nice error message
-        raise ImportError("the pandas-gbq library is not installed\n"
-                          "you can install\n"
+        raise ImportError("Load data from Google BigQuery\n"
+                          "\n"
+                          "the pandas-gbq package is not installed\n"
+                          "see the docs: https://pandas-gbq.readthedocs.io\n"
+                          "\n"
+                          "you can install via:\n"
                           "pip install pandas-gbq\n")
 
     return pandas_gbq
@@ -32,8 +36,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 
 read_gbq = docstring_wrapper(read_gbq,
-                             lambda: _try_import().read_gbq.__doc__,
-                             default='the pandas_gbq package is not installed')
+                             lambda: _try_import().read_gbq.__doc__)
 
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
@@ -46,5 +49,4 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
 
 
 to_gbq = docstring_wrapper(to_gbq,
-                           lambda: _try_import().to_gbq.__doc__,
-                           default='the pandas_gbq package is not installed')
+                           lambda: _try_import().to_gbq.__doc__)
