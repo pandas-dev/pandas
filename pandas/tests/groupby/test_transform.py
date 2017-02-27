@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
-from pandas import Series, DataFrame, Timestamp, MultiIndex, concat
+from pandas import Series, DataFrame, Timestamp, MultiIndex, concat, date_range
 from pandas.types.common import _ensure_platform_int
 from .common import MixIn, assert_fp_equal
 
@@ -188,6 +188,43 @@ class TestGroupBy(MixIn, tm.TestCase):
         result = df.groupby('A')['B'].transform(
             lambda x: x.rank(ascending=False))
         expected = Series(np.arange(5, 0, step=-1), name='B')
+        assert_series_equal(result, expected)
+
+    def test_transform_datetime_to_timedelta(self):
+        # GH 15429
+        # transforming a datetime to timedelta
+        df = DataFrame(dict(A=Timestamp('20130101'), B=np.arange(5)))
+        expected = pd.Series([
+            Timestamp('20130101') - Timestamp('20130101')] * 5, name='A')
+
+        # this does date math without changing result type in transform
+        base_time = df['A'][0]
+        result = df.groupby('A')['A'].transform(
+            lambda x: x.max() - x.min() + base_time) - base_time
+        assert_series_equal(result, expected)
+
+        # this does date math and causes the transform to return timedelta
+        result = df.groupby('A')['A'].transform(lambda x: x.max() - x.min())
+        assert_series_equal(result, expected)
+
+    def test_transform_datetime_to_numeric(self):
+        # GH 10972
+        # convert dt to float
+        df = DataFrame({
+            'a': 1, 'b': date_range('2015-01-01', periods=2, freq='D')})
+        result = df.groupby('a').b.transform(
+            lambda x: x.dt.dayofweek - x.dt.dayofweek.mean())
+
+        expected = Series([-0.5, 0.5], name='b')
+        assert_series_equal(result, expected)
+
+        # convert dt to int
+        df = DataFrame({
+            'a': 1, 'b': date_range('2015-01-01', periods=2, freq='D')})
+        result = df.groupby('a').b.transform(
+            lambda x: x.dt.dayofweek - x.dt.dayofweek.min())
+
+        expected = Series([0, 1], name='b')
         assert_series_equal(result, expected)
 
     def test_transform_multiple(self):

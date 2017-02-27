@@ -637,6 +637,7 @@ Bug Fixes
 
 
 - Bug in ``.read_csv()`` with ``parse_dates`` when multiline headers are specified (:issue:`15376`)
+- Bug in ``groupby.transform()`` that would coerce the resultant dtypes back to the original (:issue:`10972`)
 
 - Bug in ``DataFrame.hist`` where ``plt.tight_layout`` caused an ``AttributeError``  (use ``matplotlib >= 0.2.0``) (:issue:`9351`)
 - Bug in ``DataFrame.boxplot`` where ``fontsize`` was not applied to the tick labels on both axes (:issue:`15108`)
