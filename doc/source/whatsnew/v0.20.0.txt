@@ -248,15 +248,15 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 
 .. _whatsnew.api_breaking.io_compat
 
-Possible incompat for pickle and HDF5 formats for pandas < 0.13.0
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Possible incompat for HDF5 formats for pandas < 0.13.0
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``pd.TimeSeries`` was deprecated officially in 0.17.0, though has only been an alias since 0.13.0. It has
 been dropped in favor of ``pd.Series``. (:issue:``15098).
 
-This *may* cause pickles / HDF5 files that were created in prior versions to become unreadable if ``pd.TimeSeries``
+This *may* cause HDF5 files that were created in prior versions to become unreadable if ``pd.TimeSeries``
 was used. This is most likely to be for pandas < 0.13.0. If you find yourself in this situation.
-You can use a recent prior version of pandas to read in your pickle / HDF5 files,
+You can use a recent prior version of pandas to read in your HDF5 files,
 then write them out again after applying the procedure below.
 
 .. code-block:: ipython
