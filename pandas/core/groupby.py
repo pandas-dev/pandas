@@ -31,7 +31,7 @@ from pandas.types.common import (is_numeric_dtype,
                                  _ensure_object,
                                  _ensure_categorical,
                                  _ensure_float)
-from pandas.types.cast import _possibly_downcast_to_dtype, _find_common_type
+from pandas.types.cast import _possibly_downcast_to_dtype
 from pandas.types.missing import isnull, notnull, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
