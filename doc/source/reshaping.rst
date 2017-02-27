@@ -265,7 +265,7 @@ the right thing:
 Reshaping by Melt
 -----------------
 
-The :func:`~pandas.melt` function is useful to massage a
+The :func:`~DataFrame.melt` function is useful to massage a
 DataFrame into a format where one or more columns are identifier variables,
 while all other columns, considered measured variables, are "unpivoted" to the
 row axis, leaving just two non-identifier columns, "variable" and "value". The
@@ -281,10 +281,11 @@ For instance,
                           'height' : [5.5, 6.0],
                           'weight' : [130, 150]})
    cheese
-   pd.melt(cheese, id_vars=['first', 'last'])
-   pd.melt(cheese, id_vars=['first', 'last'], var_name='quantity')
+   cheese.melt(id_vars=['first', 'last'])
+   cheese.melt(id_vars=['first', 'last'], var_name='quantity')
 
-Another way to transform is to use the ``wide_to_long`` panel data convenience function.
+Another way to transform is to use the ``wide_to_long`` panel data convenience
+function.
 
 .. ipython:: python
 
