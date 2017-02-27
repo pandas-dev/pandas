@@ -1083,6 +1083,16 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         res = unordered.rank()
         assert_series_equal(res, exp_unordered)
 
+        unordered1 = pd.Series(
+            [1, 2, 3, 4, 5, 6],
+        ).astype('category').cat.set_categories(
+            [1, 2, 3, 4, 5, 6],
+            ordered=False
+        )
+        exp_unordered1 = pd.Series([1., 2., 3., 4., 5., 6.])
+        res1 = unordered1.rank()
+        assert_series_equal(res1, exp_unordered1)
+
         # Test na_option for rank data
         na_ser = pd.Series(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN]

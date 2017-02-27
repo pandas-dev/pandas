@@ -1420,9 +1420,11 @@ class Categorical(PandasObject):
         if self.ordered:
             values = self.codes
             mask = values == -1
-            values = values.astype('float64')
             if mask.any():
+                values = values.astype('float64')
                 values[mask] = np.nan
+        elif self.categories.is_monotonic:
+            values = np.array(self)
         else:
             values = np.array(
                 self.rename_categories(Series(self.categories).rank())
