@@ -360,6 +360,15 @@ New Behavior:
   In [5]: df['a']['2011-12-31 23:59:59']
   Out[5]: 1
 
+.. _whatsnew_0200.api_breaking.gbq:
+
+Pandas Google BigQuery support has moved
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pandas has split off Google BigQuery support into a separate package ``pandas-gbq``. You can ``pip install pandas-gbq`` to get it.
+The functionality of ``pd.read_gbq()`` and ``.to_gbq()`` remains the same with the currently released version of ``pandas-gbq=0.1.2``. (:issue:`15347`)
+Documentation is now hosted `here <https://pandas-gbq.readthedocs.io/>`__
+
 .. _whatsnew_0200.api_breaking.memory_usage:
 
 Memory Usage for Index is more Accurate
