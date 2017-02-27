@@ -286,14 +286,6 @@ def _skip_if_mpl_1_5():
         pytest.skip("matplotlib 1.5")
 
 
-def _skip_if_mpl_1():
-    import matplotlib
-    v = matplotlib.__version__
-    if v < LooseVersion('2.0.0') or v[0] == '0' or v[0] == '1':
-        import pytest
-        pytest.skip("matplotlib 1.5")
-
-
 def _skip_if_no_scipy():
     try:
         import scipy.stats  # noqa
