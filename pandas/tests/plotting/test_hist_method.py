@@ -239,18 +239,14 @@ class TestDataFramePlots(TestPlotBase):
             df.hist(layout=(-1, -1))
 
     @slow
+    # GH 9351
     def test_tight_layout(self):
-        tm._skip_if_mpl_1()
-
-        df = DataFrame(randn(100, 2))
-        df.plot.hist()
-
-        try:
+        if self.mpl_ge_2_0_0:
+            df = DataFrame(randn(100, 2))
+            df.plot.hist()
             self.plt.tight_layout()
-        except AttributeError:
-            raise
 
-        tm.close()
+            tm.close()
 
 
 @tm.mplskip
