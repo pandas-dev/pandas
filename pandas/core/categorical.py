@@ -1423,7 +1423,7 @@ class Categorical(PandasObject):
             if mask.any():
                 values = values.astype('float64')
                 values[mask] = np.nan
-        elif self.categories.is_monotonic:
+        elif self.categories.is_numeric():
             values = np.array(self)
         else:
             values = np.array(
