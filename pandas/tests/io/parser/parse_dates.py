@@ -18,6 +18,7 @@ import pandas.io.parsers as parsers
 import pandas.tseries.tools as tools
 import pandas.util.testing as tm
 
+import pandas.io.date_converters as conv
 from pandas import DataFrame, Series, Index, DatetimeIndex
 from pandas import compat
 from pandas.compat import parse_date, StringIO, lrange
@@ -490,4 +491,22 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         expected = expected.set_index(['a', 'b'])
         result = self.read_csv(StringIO(data), index_col=[0, 1],
                                parse_dates=True, thousands='.')
+        tm.assert_frame_equal(result, expected)
+
+    def test_parse_date_time_multi_level_column_name(self):
+        data = """\
+D,T,A,B
+date, time,a,b
+2001-01-05, 09:00:00, 0.0, 10.
+2001-01-06, 00:00:00, 1.0, 11.
+"""
+        datecols = {'date_time': [0, 1]}
+        result = self.read_csv(StringIO(data), sep=',', header=[0, 1],
+                               parse_dates=datecols,
+                               date_parser=conv.parse_date_time)
+
+        expected_data = [[datetime(2001, 1, 5, 9, 0, 0), 0., 10.],
+                         [datetime(2001, 1, 6, 0, 0, 0), 1., 11.]]
+        expected = DataFrame(expected_data,
+                             columns=['date_time', ('A', 'a'), ('B', 'b')])
         tm.assert_frame_equal(result, expected)
