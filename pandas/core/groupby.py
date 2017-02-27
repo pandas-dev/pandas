@@ -767,10 +767,13 @@ class _GroupBy(PandasObject, SelectionMixin):
         new.names = gp.names + original.names
         return new
 
-    def _try_cast(self, result, obj):
+    def _try_cast(self, result, obj, numeric_only=False):
         """
         try to cast the result to our obj original type,
         we may have roundtripped thru object in the mean-time
+
+        if numeric_only is True, then only try to cast numerics
+        and not datetimelikes
 
         """
         if obj.ndim > 1:
@@ -779,7 +782,8 @@ class _GroupBy(PandasObject, SelectionMixin):
             dtype = obj.dtype
 
         if not is_scalar(result):
-            result = _possibly_downcast_to_dtype(result, dtype)
+            if numeric_only and is_numeric_dtype(dtype) or not numeric_only:
+                result = _possibly_downcast_to_dtype(result, dtype)
 
         return result
 
@@ -830,7 +834,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         for name, obj in self._iterate_slices():
             try:
                 result, counts = self.grouper.agg_series(obj, f)
-                output[name] = self._try_cast(result, obj)
+                output[name] = self._try_cast(result, obj, numeric_only=True)
             except TypeError:
                 continue
 
@@ -1117,7 +1121,11 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def size(self):
         """Compute group sizes"""
-        return self.grouper.size()
+        result = self.grouper.size()
+
+        if isinstance(self.obj, Series):
+            result.name = getattr(self, 'name', None)
+        return result
 
     sum = _groupby_function('sum', 'add', np.sum)
     prod = _groupby_function('prod', 'prod', np.prod)
@@ -1689,7 +1697,9 @@ class BaseGrouper(object):
         ids, _, ngroup = self.group_info
         ids = _ensure_platform_int(ids)
         out = np.bincount(ids[ids != -1], minlength=ngroup or None)
-        return Series(out, index=self.result_index, dtype='int64')
+        return Series(out,
+                      index=self.result_index,
+                      dtype='int64')
 
     @cache_readonly
     def _max_groupsize(self):
@@ -2908,7 +2918,8 @@ class SeriesGroupBy(GroupBy):
         result = concat(results).sort_index()
 
         # we will only try to coerce the result type if
-        # we have a numeric dtype
+        # we have a numeric dtype, as these are *always* udfs
+        # the cython take a different path (and casting)
         dtype = self._selected_obj.dtype
         if is_numeric_dtype(dtype):
             result = _possibly_downcast_to_dtype(result, dtype)

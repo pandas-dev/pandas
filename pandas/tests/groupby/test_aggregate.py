@@ -154,6 +154,29 @@ class TestGroupByAggregate(tm.TestCase):
         assert_series_equal(grouped.time.last(), exp['time'])
         assert_series_equal(grouped.time.agg('last'), exp['time'])
 
+        # count
+        exp = pd.Series([2, 2, 2, 2],
+                        index=Index(list('ABCD'), name='class'),
+                        name='time')
+        assert_series_equal(grouped.time.agg(len), exp)
+        assert_series_equal(grouped.time.size(), exp)
+
+        exp = pd.Series([0, 1, 1, 2],
+                        index=Index(list('ABCD'), name='class'),
+                        name='time')
+        assert_series_equal(grouped.time.count(), exp)
+
+    def test_agg_cast_results_dtypes(self):
+        # similar to GH12821
+        # xref #11444
+        u = [datetime(2015, x + 1, 1) for x in range(12)]
+        v = list('aaabbbbbbccd')
+        df = pd.DataFrame({'X': v, 'Y': u})
+
+        result = df.groupby('X')['Y'].agg(len)
+        expected = df.groupby('X')['Y'].count()
+        assert_series_equal(result, expected)
+
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
         self.assertRaises(Exception, grouped.agg, lambda x: x.describe())

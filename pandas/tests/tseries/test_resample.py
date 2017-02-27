@@ -757,10 +757,8 @@ class Base(object):
                         freq in ['M', 'D']):
                     # GH12871 - TODO: name should propagate, but currently
                     # doesn't on lower / same frequency with PeriodIndex
-                    assert_series_equal(result, expected, check_dtype=False,
-                                        check_names=False)
-                    # this assert will break when fixed
-                    self.assertTrue(result.name is None)
+                    assert_series_equal(result, expected, check_dtype=False)
+
                 else:
                     assert_series_equal(result, expected, check_dtype=False)
 
