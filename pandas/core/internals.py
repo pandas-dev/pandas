@@ -1065,7 +1065,8 @@ class Block(PandasObject):
 
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        new_values, fill_value = _maybe_upcast(self.values, fill_value=fill_value)
+        new_values, fill_value = _maybe_upcast(self.values,
+                                               fill_value=fill_value)
 
         # make sure array sent to np.roll is c_contiguous
         f_ordered = new_values.flags.f_contiguous
