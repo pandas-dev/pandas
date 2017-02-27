@@ -2382,8 +2382,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                           **kwargs)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
-        return super(Series, self).shift(periods=periods, freq=freq, axis=axis)
+    def shift(self, periods=1, freq=None, axis=0, fill_value=np.nan):
+        import pdb; pdb.set_trace()
+        return super(Series, self).shift(periods=periods, freq=freq, axis=axis, fill_value=fill_value)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
         """ for compatibility with higher dims """
