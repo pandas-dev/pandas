@@ -1,5 +1,6 @@
 from pandas.compat import StringIO, callable, signature
 from pandas.lib import cache_readonly  # noqa
+import types
 import sys
 import warnings
 from textwrap import dedent
@@ -258,6 +259,10 @@ class docstring_wrapper(object):
         update_wrapper(
             self, func, [attr for attr in self._attrs
                          if hasattr(func, attr)])
+
+    def __get__(self, instance, cls=None):
+        # we want to return the actual passed instance
+        return types.MethodType(self, instance)
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
