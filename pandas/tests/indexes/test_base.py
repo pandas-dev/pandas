@@ -9,8 +9,6 @@ from pandas.tests.indexes.common import Base
 from pandas.compat import (range, lrange, lzip, u,
                            text_type, zip, PY3, PY36)
 import operator
-import os
-
 import numpy as np
 
 from pandas import (period_range, date_range, Series,
@@ -380,15 +378,6 @@ class TestIndex(Base, tm.TestCase):
 
             # with arguments
             ind.view('i8')
-
-    def test_legacy_pickle_identity(self):
-
-        # GH 8431
-        pth = tm.get_data_path()
-        s1 = pd.read_pickle(os.path.join(pth, 's1-0.12.0.pickle'))
-        s2 = pd.read_pickle(os.path.join(pth, 's2-0.12.0.pickle'))
-        self.assertFalse(s1.index.identical(s2.index))
-        self.assertFalse(s1.index.equals(s2.index))
 
     def test_astype(self):
         casted = self.intIndex.astype('i8')

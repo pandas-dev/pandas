@@ -4454,15 +4454,6 @@ class TestHDFStore(Base, tm.TestCase):
             d1 = store['detector']
             self.assertIsInstance(d1, DataFrame)
 
-    def test_legacy_read(self):
-        with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/legacy.h5'),
-                mode='r') as store:
-            store['a']
-            store['b']
-            store['c']
-            store['d']
-
     def test_legacy_table_read(self):
         # legacy table types
         with ensure_clean_store(

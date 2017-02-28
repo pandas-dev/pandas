@@ -23,8 +23,6 @@ from pandas.types.common import (is_list_like,
 from pandas.types.missing import array_equivalent
 
 import numpy as np
-
-import pandas as pd
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
                     MultiIndex, Int64Index, isnull, concat,
                     SparseSeries, SparseDataFrame, PeriodIndex,
@@ -166,7 +164,6 @@ _TYPE_MAP = {
 
     Series: u('series'),
     SparseSeries: u('sparse_series'),
-    pd.TimeSeries: u('series'),
     DataFrame: u('frame'),
     SparseDataFrame: u('sparse_frame'),
     Panel: u('wide'),
@@ -175,7 +172,6 @@ _TYPE_MAP = {
 
 # storer class map
 _STORER_MAP = {
-    u('TimeSeries'): 'LegacySeriesFixed',
     u('Series'): 'LegacySeriesFixed',
     u('DataFrame'): 'LegacyFrameFixed',
     u('DataMatrix'): 'LegacyFrameFixed',
