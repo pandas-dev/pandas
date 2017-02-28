@@ -62,7 +62,13 @@ _class_locations_map = {
 
     # 10890
     ('pandas.core.series', 'TimeSeries'): ('pandas.core.series', 'Series'),
-    ('pandas.sparse.series', 'SparseTimeSeries'): ('pandas.sparse.series', 'SparseSeries')
+    ('pandas.sparse.series', 'SparseTimeSeries'): ('pandas.sparse.series', 'SparseSeries'),
+
+    # 12588, extensions moving
+    ('pandas._sparse', 'BlockIndex'): ('pandas.sparse.libsparse', 'BlockIndex'),
+    ('pandas.tslib', 'Timestamp'): ('pandas._libs.tslib', 'Timestamp'),
+    ('pandas.tslib', '__nat_unpickle'): ('pandas._libs.tslib', '__nat_unpickle'),
+    ('pandas._period', 'Period'): ('pandas._libs.period', 'Period')
     }
 
 

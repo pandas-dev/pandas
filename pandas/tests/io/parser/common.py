@@ -11,7 +11,7 @@ from datetime import datetime
 
 import pytest
 import numpy as np
-from pandas.lib import Timestamp
+from pandas._libs.lib import Timestamp
 
 import pandas as pd
 import pandas.util.testing as tm

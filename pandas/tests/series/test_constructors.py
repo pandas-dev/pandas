@@ -14,7 +14,8 @@ from pandas import (Index, Series, isnull, date_range,
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
 
-from pandas import lib, tslib
+from pandas._libs import lib
+from pandas._libs.tslib import iNaT
 
 from pandas.compat import lrange, range, zip, OrderedDict, long
 from pandas import compat
@@ -200,14 +201,14 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         data = ma.masked_all((3, ), dtype='M8[ns]')
         result = Series(data)
-        expected = Series([tslib.iNaT, tslib.iNaT, tslib.iNaT], dtype='M8[ns]')
+        expected = Series([iNaT, iNaT, iNaT], dtype='M8[ns]')
         assert_series_equal(result, expected)
 
         data[0] = datetime(2001, 1, 1)
         data[2] = datetime(2001, 1, 3)
         index = ['a', 'b', 'c']
         result = Series(data, index=index)
-        expected = Series([datetime(2001, 1, 1), tslib.iNaT,
+        expected = Series([datetime(2001, 1, 1), iNaT,
                            datetime(2001, 1, 3)], index=index, dtype='M8[ns]')
         assert_series_equal(result, expected)
 
@@ -327,20 +328,19 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertTrue(result.dtype == object)
 
     def test_constructor_dtype_datetime64(self):
-        import pandas.tslib as tslib
 
-        s = Series(tslib.iNaT, dtype='M8[ns]', index=lrange(5))
+        s = Series(iNaT, dtype='M8[ns]', index=lrange(5))
         self.assertTrue(isnull(s).all())
 
         # in theory this should be all nulls, but since
         # we are not specifying a dtype is ambiguous
-        s = Series(tslib.iNaT, index=lrange(5))
+        s = Series(iNaT, index=lrange(5))
         self.assertFalse(isnull(s).all())
 
         s = Series(nan, dtype='M8[ns]', index=lrange(5))
         self.assertTrue(isnull(s).all())
 
-        s = Series([datetime(2001, 1, 2, 0, 0), tslib.iNaT], dtype='M8[ns]')
+        s = Series([datetime(2001, 1, 2, 0, 0), iNaT], dtype='M8[ns]')
         self.assertTrue(isnull(s[1]))
         self.assertEqual(s.dtype, 'M8[ns]')
 
@@ -732,8 +732,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(td.dtype, 'timedelta64[ns]')
 
         # mixed with NaT
-        from pandas import tslib
-        td = Series([timedelta(days=1), tslib.NaT], dtype='m8[ns]')
+        td = Series([timedelta(days=1), NaT], dtype='m8[ns]')
         self.assertEqual(td.dtype, 'timedelta64[ns]')
 
         td = Series([timedelta(days=1), np.nan], dtype='m8[ns]')
@@ -744,11 +743,11 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         # improved inference
         # GH5689
-        td = Series([np.timedelta64(300000000), pd.NaT])
+        td = Series([np.timedelta64(300000000), NaT])
         self.assertEqual(td.dtype, 'timedelta64[ns]')
 
         # because iNaT is int, not coerced to timedelta
-        td = Series([np.timedelta64(300000000), tslib.iNaT])
+        td = Series([np.timedelta64(300000000), iNaT])
         self.assertEqual(td.dtype, 'object')
 
         td = Series([np.timedelta64(300000000), np.nan])
@@ -791,7 +790,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(s.dtype, 'timedelta64[ns]')
 
     def test_NaT_scalar(self):
-        series = Series([0, 1000, 2000, tslib.iNaT], dtype='M8[ns]')
+        series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
 
         val = series[3]
         self.assertTrue(isnull(val))

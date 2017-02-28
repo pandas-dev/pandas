@@ -1,4 +1,5 @@
-"""Module for scope operations
+"""
+Module for scope operations
 """
 
 import sys
@@ -10,7 +11,8 @@ import pprint
 
 import numpy as np
 
-import pandas as pd
+import pandas
+import pandas as pd  # noqa
 from pandas.compat import DeepChainMap, map, StringIO
 from pandas.core.base import StringMixin
 import pandas.computation as compu
@@ -46,7 +48,7 @@ def _raw_hex_id(obj):
 
 
 _DEFAULT_GLOBALS = {
-    'Timestamp': pd.lib.Timestamp,
+    'Timestamp': pandas._libs.lib.Timestamp,
     'datetime': datetime.datetime,
     'True': True,
     'False': False,

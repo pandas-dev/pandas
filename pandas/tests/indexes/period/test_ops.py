@@ -2,7 +2,7 @@ import numpy as np
 from datetime import timedelta
 
 import pandas as pd
-import pandas.tslib as tslib
+import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 import pandas.tseries.period as period
 from pandas import (DatetimeIndex, PeriodIndex, period_range, Series, Period,

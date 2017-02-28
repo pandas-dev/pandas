@@ -23,7 +23,9 @@ del hard_dependencies, dependency, missing_dependencies
 from pandas.compat.numpy import *
 
 try:
-    from pandas import hashtable, tslib, lib
+    from pandas._libs import (hashtable as _hashtable,
+                             lib as _lib,
+                             tslib as _tslib)
 except ImportError as e:  # pragma: no cover
     # hack but overkill to use re
     module = str(e).lstrip('cannot import name ')
@@ -52,10 +54,16 @@ from pandas.tools.tile import cut, qcut
 from pandas.tools.util import to_numeric
 from pandas.core.reshape import melt
 from pandas.util.print_versions import show_versions
-
 from pandas.io.api import *
-
 from pandas.util._tester import test
+
+# extension module deprecations
+from pandas.util.depr_module import _DeprecatedModule
+
+json = _DeprecatedModule(deprmod='pandas.json', deprmodto='pandas.io.json.libjson')
+parser = _DeprecatedModule(deprmod='pandas.parser', deprmodto='pandas.io.libparsers')
+lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto='pandas._libs.lib')
+tslib = _DeprecatedModule(deprmod='pandas.tslib', deprmodto='pandas._libs.tslib')
 
 # use the closest tagged version if possible
 from ._version import get_versions

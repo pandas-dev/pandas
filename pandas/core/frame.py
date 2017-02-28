@@ -71,7 +71,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
 import pandas.computation.expressions as expressions
-import pandas.core.algorithms as algos
+import pandas.core.algorithms as algorithms
 from pandas.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
@@ -93,8 +93,7 @@ import pandas.formats.format as fmt
 from pandas.formats.printing import pprint_thing
 import pandas.tools.plotting as gfx
 
-import pandas.lib as lib
-import pandas.algos as _algos
+from pandas._libs import lib, algos as libalgos
 
 from pandas.core.config import get_option
 
@@ -2794,8 +2793,8 @@ class DataFrame(NDFrame):
 
         if row_indexer is not None and col_indexer is not None:
             indexer = row_indexer, col_indexer
-            new_values = algos.take_2d_multi(self.values, indexer,
-                                             fill_value=fill_value)
+            new_values = algorithms.take_2d_multi(self.values, indexer,
+                                                  fill_value=fill_value)
             return self._constructor(new_values, index=new_index,
                                      columns=new_columns)
         else:
@@ -3180,12 +3179,11 @@ class DataFrame(NDFrame):
         duplicated : Series
         """
         from pandas.core.sorting import get_group_index
-        from pandas.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
+        from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         def f(vals):
-            labels, shape = algos.factorize(vals,
-                                            size_hint=min(len(self),
-                                                          _SIZE_HINT_LIMIT))
+            labels, shape = algorithms.factorize(
+                vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
             return labels.astype('i8', copy=False), len(shape)
 
         if subset is None:
@@ -3437,7 +3435,7 @@ class DataFrame(NDFrame):
         1  10  b   2
         2   8  d NaN
         """
-        return algos.select_n_frame(self, columns, n, 'nlargest', keep)
+        return algorithms.select_n_frame(self, columns, n, 'nlargest', keep)
 
     def nsmallest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` smallest
@@ -3471,7 +3469,7 @@ class DataFrame(NDFrame):
         0  1  a   1
         2  8  d NaN
         """
-        return algos.select_n_frame(self, columns, n, 'nsmallest', keep)
+        return algorithms.select_n_frame(self, columns, n, 'nsmallest', keep)
 
     def swaplevel(self, i=-2, j=-1, axis=0):
         """
@@ -4739,10 +4737,10 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = _algos.nancorr(_ensure_float64(mat), minp=min_periods)
+            correl = libalgos.nancorr(_ensure_float64(mat), minp=min_periods)
         elif method == 'spearman':
-            correl = _algos.nancorr_spearman(_ensure_float64(mat),
-                                             minp=min_periods)
+            correl = libalgos.nancorr_spearman(_ensure_float64(mat),
+                                               minp=min_periods)
         else:
             if min_periods is None:
                 min_periods = 1
@@ -4802,8 +4800,8 @@ class DataFrame(NDFrame):
                 baseCov = np.cov(mat.T)
             baseCov = baseCov.reshape((len(cols), len(cols)))
         else:
-            baseCov = _algos.nancorr(_ensure_float64(mat), cov=True,
-                                     minp=min_periods)
+            baseCov = libalgos.nancorr(_ensure_float64(mat), cov=True,
+                                       minp=min_periods)
 
         return self._constructor(baseCov, index=idx, columns=cols)
 
@@ -5669,7 +5667,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
         values = _values_from_object(s)
-        aligned_values.append(algos.take_1d(values, indexer))
+        aligned_values.append(algorithms.take_1d(values, indexer))
 
     values = np.vstack(aligned_values)
 
