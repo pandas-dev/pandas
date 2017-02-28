@@ -246,6 +246,46 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
 
+.. _whatsnew.api_breaking.io_compat
+
+Possible incompat for HDF5 formats for pandas < 0.13.0
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``pd.TimeSeries`` was deprecated officially in 0.17.0, though has only been an alias since 0.13.0. It has
+been dropped in favor of ``pd.Series``. (:issue:``15098).
+
+This *may* cause HDF5 files that were created in prior versions to become unreadable if ``pd.TimeSeries``
+was used. This is most likely to be for pandas < 0.13.0. If you find yourself in this situation.
+You can use a recent prior version of pandas to read in your HDF5 files,
+then write them out again after applying the procedure below.
+
+.. code-block:: ipython
+
+   In [2]: s = pd.TimeSeries([1,2,3], index=pd.date_range('20130101', periods=3))
+
+   In [3]: s
+   Out[3]:
+   2013-01-01    1
+   2013-01-02    2
+   2013-01-03    3
+   Freq: D, dtype: int64
+
+   In [4]: type(s)
+   Out[4]: pandas.core.series.TimeSeries
+
+   In [5]: s = pd.Series(s)
+
+   In [6]: s
+   Out[6]:
+   2013-01-01    1
+   2013-01-02    2
+   2013-01-03    3
+   Freq: D, dtype: int64
+
+   In [7]: type(s)
+   Out[7]: pandas.core.series.Series
+
+
 .. _whatsnew_0200.api_breaking.index_map:
 
 Map on Index types now return other Index types
@@ -507,7 +547,7 @@ Removal of prior version deprecations/changes
   Similar functionality can be found in the `Google2Pandas <https://github.com/panalysis/Google2Pandas>`__ package.
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
 - ``pandas.stats.fama_macbeth``, ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var``, as well as the top-level ``pandas.fama_macbeth`` and ``pandas.ols`` routines are removed. Similar functionaility can be found in the `statsmodels <shttp://www.statsmodels.org/dev/>`__ package. (:issue:`11898`)
-
+- ``Series.is_time_series`` is dropped in favor of ``Series.index.is_all_dates`` (:issue:``)
 
 
 .. _whatsnew_0200.performance:

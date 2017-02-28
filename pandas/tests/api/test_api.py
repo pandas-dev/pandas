@@ -57,7 +57,7 @@ class TestPDApi(Base, tm.TestCase):
                'TimedeltaIndex', 'Timestamp']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['TimeSeries', 'WidePanel',
+    deprecated_classes = ['WidePanel',
                           'SparseTimeSeries', 'Panel4D',
                           'SparseList']
 
