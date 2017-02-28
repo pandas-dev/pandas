@@ -221,7 +221,7 @@ class Resampler(_GroupBy):
         -------
         obj : converted object
         """
-        obj = obj.consolidate()
+        obj = obj._consolidate()
         return obj
 
     def _get_binner_for_time(self):

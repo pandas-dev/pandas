@@ -263,7 +263,7 @@ class _Concatenator(object):
                 raise TypeError("cannot concatenate a non-NDFrame object")
 
             # consolidate
-            obj.consolidate(inplace=True)
+            obj._consolidate(inplace=True)
             ndims.add(obj.ndim)
 
         # get the sample

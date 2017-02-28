@@ -3904,7 +3904,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if not self.as_index:
             result = DataFrame(output, columns=output_keys)
             self._insert_inaxis_grouper_inplace(result)
-            result = result.consolidate()
+            result = result._consolidate()
         else:
             index = self.grouper.result_index
             result = DataFrame(output, index=index, columns=output_keys)
@@ -3924,7 +3924,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             result = DataFrame(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
-            result = result.consolidate()
+            result = result._consolidate()
         else:
             index = self.grouper.result_index
             mgr = BlockManager(blocks, [items, index])
