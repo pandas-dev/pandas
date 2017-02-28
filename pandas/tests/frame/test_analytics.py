@@ -118,6 +118,15 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         for meth in ['pearson', 'kendall', 'spearman']:
             tm.assert_frame_equal(df.corr(meth), expected)
 
+    def test_corr_cov_independent_index_column(self):
+        # GH 14617
+        df = pd.DataFrame(np.random.randn(4 * 10).reshape(10, 4),
+                          columns=list("abcd"))
+        for method in ['cov', 'corr']:
+            result = getattr(df, method)()
+            assert result.index is not result.columns
+            assert result.index.equals(result.columns)
+
     def test_cov(self):
         # min_periods no NAs (corner case)
         expected = self.frame.cov()
