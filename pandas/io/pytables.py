@@ -838,7 +838,7 @@ class HDFStore(StringMixin):
 
             # concat and return
             return concat(objs, axis=axis,
-                          verify_integrity=False).consolidate()
+                          verify_integrity=False)._consolidate()
 
         # create the iterator
         it = TableIterator(self, s, func, where=where, nrows=nrows,
@@ -3445,7 +3445,7 @@ class Table(Fixed):
             return [mgr.items.take(blk.mgr_locs) for blk in blocks]
 
         # figure out data_columns and get out blocks
-        block_obj = self.get_object(obj).consolidate()
+        block_obj = self.get_object(obj)._consolidate()
         blocks = block_obj._data.blocks
         blk_items = get_blk_items(block_obj._data, blocks)
         if len(self.non_index_axes):
@@ -3812,7 +3812,7 @@ class LegacyTable(Table):
         if len(objs) == 1:
             wp = objs[0]
         else:
-            wp = concat(objs, axis=0, verify_integrity=False).consolidate()
+            wp = concat(objs, axis=0, verify_integrity=False)._consolidate()
 
         # apply the selection filters & axis orderings
         wp = self.process_axes(wp, columns=columns)

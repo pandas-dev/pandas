@@ -2875,11 +2875,10 @@ class NDFrame(PandasObject):
 
         self._protect_consolidate(f)
 
-    def consolidate(self, inplace=False):
+    def _consolidate(self, inplace=False):
         """
         Compute NDFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray). Mainly an internal API function,
-        but available here to the savvy user
+        grouped together in a single ndarray).
 
         Parameters
         ----------
@@ -2897,6 +2896,15 @@ class NDFrame(PandasObject):
             f = lambda: self._data.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
+
+    def consolidate(self, inplace=False):
+        """
+        DEPRECATED: consolidate will be an internal implementation only.
+        """
+        # 15483
+        warnings.warn("consolidate is deprecated and will be removed in a "
+                      "future release.", FutureWarning, stacklevel=2)
+        return self._consolidate(inplace)
 
     @property
     def _is_mixed_type(self):
