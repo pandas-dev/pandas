@@ -1841,7 +1841,11 @@ class ExcelFormatter(object):
             for idx, idxval in enumerate(index_values):
                 yield ExcelCell(self.rowcounter + idx, 0, idxval, header_style)
 
-        for cell in self._generate_body(coloffset=1):
+            coloffset = 1
+        else:
+            coloffset = 0
+
+        for cell in self._generate_body(coloffset):
             yield cell
 
     def _format_hierarchical_rows(self):
@@ -1907,7 +1911,7 @@ class ExcelFormatter(object):
                                         indexcolval, header_style)
                     gcolidx += 1
 
-        for cell in self._generate_body(coloffset=gcolidx):
+        for cell in self._generate_body(gcolidx):
             yield cell
 
     def _generate_body(self, coloffset):
