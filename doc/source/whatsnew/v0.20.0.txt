@@ -631,7 +631,7 @@ Bug Fixes
 
 
 - Bug in ``.rank()`` which incorrectly ranks ordered categories (:issue:`15420`)
-
+- Bug in ``.corr()`` and ``.cov()`` where the column and index were the same object (:issue:`14617`)
 
 
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)

@@ -4725,6 +4725,7 @@ class DataFrame(NDFrame):
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
+        idx = cols.copy()
         mat = numeric_df.values
 
         if method == 'pearson':
@@ -4757,7 +4758,7 @@ class DataFrame(NDFrame):
                     correl[i, j] = c
                     correl[j, i] = c
 
-        return self._constructor(correl, index=cols, columns=cols)
+        return self._constructor(correl, index=idx, columns=cols)
 
     def cov(self, min_periods=None):
         """
@@ -4780,6 +4781,7 @@ class DataFrame(NDFrame):
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
+        idx = cols.copy()
         mat = numeric_df.values
 
         if notnull(mat).all():
@@ -4793,7 +4795,7 @@ class DataFrame(NDFrame):
             baseCov = _algos.nancorr(_ensure_float64(mat), cov=True,
                                      minp=min_periods)
 
-        return self._constructor(baseCov, index=cols, columns=cols)
+        return self._constructor(baseCov, index=idx, columns=cols)
 
     def corrwith(self, other, axis=0, drop=False):
         """
