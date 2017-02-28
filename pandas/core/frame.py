@@ -942,11 +942,6 @@ class DataFrame(NDFrame):
                           chunksize=chunksize, verbose=verbose, reauth=reauth,
                           if_exists=if_exists, private_key=private_key)
 
-    def _f():
-        from pandas.io.gbq import _try_import
-        return _try_import().to_gbq.__doc__
-    to_gbq = docstring_wrapper(to_gbq, _f)
-
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
                      coerce_float=False, nrows=None):
@@ -5428,6 +5423,17 @@ DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 
 _EMPTY_SERIES = Series([])
+
+
+# patch in the doc-string for to_gbq
+# and bind this method
+def _f():
+    from pandas.io.gbq import _try_import
+    return _try_import().to_gbq.__doc__
+
+
+DataFrame.to_gbq = types.MethodType(docstring_wrapper(DataFrame.to_gbq, _f),
+                                    DataFrame)
 
 
 def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
