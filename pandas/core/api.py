@@ -13,7 +13,7 @@ from pandas.core.index import (Index, CategoricalIndex, Int64Index,
                                UInt64Index, RangeIndex, Float64Index,
                                MultiIndex)
 
-from pandas.core.series import Series, TimeSeries
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel, WidePanel
 from pandas.core.panel4d import Panel4D
