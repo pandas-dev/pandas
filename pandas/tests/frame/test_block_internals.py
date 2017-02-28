@@ -40,18 +40,23 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
 
     def test_consolidate(self):
         self.frame['E'] = 7.
-        consolidated = self.frame.consolidate()
+        consolidated = self.frame._consolidate()
         self.assertEqual(len(consolidated._data.blocks), 1)
 
         # Ensure copy, do I want this?
-        recons = consolidated.consolidate()
+        recons = consolidated._consolidate()
         self.assertIsNot(recons, consolidated)
         assert_frame_equal(recons, consolidated)
 
         self.frame['F'] = 8.
         self.assertEqual(len(self.frame._data.blocks), 3)
-        self.frame.consolidate(inplace=True)
+        self.frame._consolidate(inplace=True)
         self.assertEqual(len(self.frame._data.blocks), 1)
+
+    def test_consolidate_deprecation(self):
+        self.frame['E'] = 7
+        with tm.assert_produces_warning(FutureWarning):
+            self.frame.consolidate()
 
     def test_consolidate_inplace(self):
         frame = self.frame.copy()  # noqa
