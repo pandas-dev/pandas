@@ -1655,7 +1655,7 @@ class ExcelFormatter(object):
 
     Parameters
     ----------
-    df : dataframe
+    df : dataframe or Styler
     na_rep: na representation
     float_format : string, default None
             Format string for floating point numbers
@@ -1675,13 +1675,22 @@ class ExcelFormatter(object):
     inf_rep : string, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
         A `'-'` sign will be added in front of -inf.
+    style_converter : callable, optional
+        This translates Styler styles (CSS) into ExcelWriter styles.
+        It should have signature css_list -> dict or None.
+        This is only called for body cells.
     """
 
     def __init__(self, df, na_rep='', float_format=None, cols=None,
                  header=True, index=True, index_label=None, merge_cells=False,
-                 inf_rep='inf'):
+                 inf_rep='inf', style_converter=None):
         self.rowcounter = 0
         self.na_rep = na_rep
+        if hasattr(df, 'render'):
+            self.styler = df
+            df = df.data
+        else:
+            self.styler = None
         self.df = df
         if cols is not None:
             self.df = df.loc[:, cols]
@@ -1692,6 +1701,7 @@ class ExcelFormatter(object):
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
+        self.style_converter = style_converter
 
     def _format_value(self, val):
         if lib.checknull(val):
@@ -1802,7 +1812,6 @@ class ExcelFormatter(object):
         if has_aliases or self.header:
             self.rowcounter += 1
 
-        coloffset = 0
         # output index and index_label?
         if self.index:
             # chek aliases
@@ -1829,15 +1838,11 @@ class ExcelFormatter(object):
             if isinstance(self.df.index, PeriodIndex):
                 index_values = self.df.index.to_timestamp()
 
-            coloffset = 1
             for idx, idxval in enumerate(index_values):
                 yield ExcelCell(self.rowcounter + idx, 0, idxval, header_style)
 
-        # Write the body of the frame data series by series.
-        for colidx in range(len(self.columns)):
-            series = self.df.iloc[:, colidx]
-            for i, val in enumerate(series):
-                yield ExcelCell(self.rowcounter + i, colidx + coloffset, val)
+        for cell in self._generate_body(coloffset=1):
+            yield cell
 
     def _format_hierarchical_rows(self):
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
@@ -1902,11 +1907,26 @@ class ExcelFormatter(object):
                                         indexcolval, header_style)
                     gcolidx += 1
 
+        for cell in self._generate_body(coloffset=gcolidx):
+            yield cell
+
+    def _generate_body(self, coloffset):
+        if self.style_converter is None or self.styler is None:
+            styles = None
+        else:
+            styles = self.styler._compute().ctx
+            if not styles:
+                styles = None
+        xlstyle = None
+
         # Write the body of the frame data series by series.
         for colidx in range(len(self.columns)):
             series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
-                yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
+                if styles is not None:
+                    xlstyle = self.style_converter(styles[i, colidx])
+                yield ExcelCell(self.rowcounter + i, colidx + coloffset, val,
+                                xlstyle)
 
     def get_formatted_cells(self):
         for cell in itertools.chain(self._format_header(),
