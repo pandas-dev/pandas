@@ -5432,8 +5432,7 @@ def _f():
     return _try_import().to_gbq.__doc__
 
 
-DataFrame.to_gbq = types.MethodType(docstring_wrapper(DataFrame.to_gbq, _f),
-                                    DataFrame)
+DataFrame.to_gbq = docstring_wrapper(DataFrame.to_gbq, _f)
 
 
 def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
