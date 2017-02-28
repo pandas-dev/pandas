@@ -259,7 +259,7 @@ class docstring_wrapper(object):
             self, func, [attr for attr in self._attrs
                          if hasattr(func, attr)])
 
-    def __call__(self, func, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
     @property
