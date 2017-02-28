@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from pandas.msgpack import packb, unpackb
+from pandas.io.msgpack import packb, unpackb
 
 
 def test_unpack_buffer():

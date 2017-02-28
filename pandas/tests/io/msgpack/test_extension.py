@@ -1,7 +1,7 @@
 from __future__ import print_function
 import array
-import pandas.msgpack as msgpack
-from pandas.msgpack import ExtType
+import pandas.io.msgpack as msgpack
+from pandas.io.msgpack import ExtType
 
 
 def test_pack_ext_type():

@@ -1,7 +1,7 @@
 """Tests for cases where the user seeks to obtain packed msgpack objects"""
 
 import io
-from pandas.msgpack import Unpacker, packb
+from pandas.io.msgpack import Unpacker, packb
 
 
 def test_write_bytes():

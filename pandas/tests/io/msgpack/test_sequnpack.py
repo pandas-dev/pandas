@@ -3,8 +3,8 @@
 import unittest
 
 from pandas import compat
-from pandas.msgpack import Unpacker, BufferFull
-from pandas.msgpack import OutOfData
+from pandas.io.msgpack import Unpacker, BufferFull
+from pandas.io.msgpack import OutOfData
 
 
 class TestPack(unittest.TestCase):

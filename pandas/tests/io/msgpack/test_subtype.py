@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from pandas.msgpack import packb
+from pandas.io.msgpack import packb
 from collections import namedtuple
 
 

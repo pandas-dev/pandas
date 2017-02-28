@@ -1,6 +1,6 @@
 from io import BytesIO
 import sys
-from pandas.msgpack import Unpacker, packb, OutOfData, ExtType
+from pandas.io.msgpack import Unpacker, packb, OutOfData, ExtType
 import pandas.util.testing as tm
 import pytest
 

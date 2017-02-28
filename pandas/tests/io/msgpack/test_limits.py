@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import pandas.util.testing as tm
 
-from pandas.msgpack import packb, unpackb, Packer, Unpacker, ExtType
+from pandas.io.msgpack import packb, unpackb, Packer, Unpacker, ExtType
 
 
 class TestLimits(tm.TestCase):

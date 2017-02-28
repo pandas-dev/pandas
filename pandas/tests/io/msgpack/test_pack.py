@@ -5,7 +5,7 @@ import unittest
 import struct
 from pandas import compat
 from pandas.compat import u, OrderedDict
-from pandas.msgpack import packb, unpackb, Unpacker, Packer
+from pandas.io.msgpack import packb, unpackb, Unpacker, Packer
 
 
 class TestPack(unittest.TestCase):

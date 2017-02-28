@@ -11,12 +11,12 @@ from libc.stdlib cimport *
 from libc.string cimport *
 from libc.limits cimport *
 
-from pandas.msgpack.exceptions import (BufferFull, OutOfData,
-                                       UnpackValueError, ExtraData)
-from pandas.msgpack import ExtType
+from pandas.io.msgpack.exceptions import (BufferFull, OutOfData,
+                                          UnpackValueError, ExtraData)
+from pandas.io.msgpack import ExtType
 
 
-cdef extern from "../src/msgpack/unpack.h":
+cdef extern from "../../src/msgpack/unpack.h":
     ctypedef struct msgpack_user:
         bint use_list
         PyObject* object_hook

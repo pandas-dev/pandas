@@ -13,11 +13,12 @@ from cpython cimport (PyObject, PyBytes_FromString,
                       PyUnicode_Check, PyUnicode_AsUTF8String,
                       PyErr_Occurred, PyErr_Fetch)
 from cpython.ref cimport PyObject, Py_XDECREF
-from io.common import ParserError, DtypeWarning, EmptyDataError, ParserWarning
+from pandas.io.common import (ParserError, DtypeWarning,
+                              EmptyDataError, ParserWarning)
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
-from io.common import CParserError
+from pandas.io.common import CParserError
 
 cdef extern from "Python.h":
     object PyUnicode_FromString(char *v)
