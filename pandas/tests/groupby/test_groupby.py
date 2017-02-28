@@ -2291,6 +2291,17 @@ class TestGroupBy(MixIn, tm.TestCase):
         exp = s1.groupby(s2.reindex(s1.index).get).mean()
         assert_series_equal(agged, exp)
 
+    def test_groupby_series_values(self):
+        # GH-15338
+        s = pd.Series([1, 2, 3], index=range(3))
+        df = pd.DataFrame(np.arange(6).reshape(3, 2), index=range(3))
+        key = pd.Series([0, 0, 1], index=range(3, 6))  # Disjunct index
+
+        assert_series_equal(s.groupby(key).sum(),
+                            s.groupby(key.values).sum())
+        assert_frame_equal(df.groupby(key).sum(),
+                           df.groupby(key.values).sum())
+
     def test_groupby_with_hier_columns(self):
         tuples = list(zip(*[['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux',
                              'qux'], ['one', 'two', 'one', 'two', 'one', 'two',
