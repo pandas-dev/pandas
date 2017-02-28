@@ -1426,6 +1426,8 @@ class Categorical(PandasObject):
         elif self.categories.is_numeric():
             values = np.array(self)
         else:
+            #  reorder the categories (so rank can use the float codes)
+            #  instead of passing an object array to rank
             values = np.array(
                 self.rename_categories(Series(self.categories).rank())
             )
