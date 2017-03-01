@@ -63,3 +63,49 @@ class Categoricals2(object):
 
     def time_rendering(self):
         str(self.sel)
+
+
+class Categoricals3(object):
+    goal_time = 0.2
+
+    def setup(self):
+        n = 100
+
+        strng = pd.util.testing.makeCategoricalIndex(n)
+        self.s1 = pd.Series(strng)
+
+        dt = pd.util.testing.makeDateIndex(n)
+        self.s2 = pd.Series(dt).astype('category', categories=dt)
+        self.s2o = pd.Series(dt).astype('category', categories=dt,
+                                        ordered=True)
+
+        fl = pd.util.testing.makeFloatIndex(n)
+        self.s3 = pd.Series(fl).astype('category', categories=fl)
+        self.s3o = pd.Series(fl).astype('category', categories=fl,
+                                        ordered=True)
+
+        intg = pd.util.testing.makeIntIndex(n)
+        self.s4 = pd.Series(intg).astype('category', categories=intg)
+        self.s4o = pd.Series(intg).astype('category', categories=intg,
+                                          ordered=True)
+
+    def time_rank_string_unordered(self):
+        self.s1.rank()
+
+    def time_rank_dt_unordered(self):
+        self.s2.rank()
+
+    def time_rank_dt_ordered(self):
+        self.s2o.rank()
+
+    def time_rank_float_unordered(self):
+        self.s3.rank()
+
+    def time_rank_float_ordered(self):
+        self.s3o.rank()
+
+    def time_rank_int_unordered(self):
+        self.s4.rank()
+
+    def time_rank_int_ordered(self):
+        self.s4o.rank()
