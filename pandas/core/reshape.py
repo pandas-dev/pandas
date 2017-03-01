@@ -17,7 +17,7 @@ from pandas.core.frame import DataFrame
 
 from pandas.core.sparse import SparseDataFrame, SparseSeries
 from pandas.sparse.array import SparseArray
-from pandas._sparse import IntIndex
+from pandas.sparse.libsparse import IntIndex
 
 from pandas.core.categorical import Categorical, _factorize_from_iterable
 from pandas.core.sorting import (get_group_index, compress_group_index,

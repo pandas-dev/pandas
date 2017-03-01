@@ -109,20 +109,20 @@ if cython:
 from os.path import join as pjoin
 
 
-_pxipath = pjoin('pandas', 'src')
 _pxi_dep_template = {
-    'algos': ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
-              'algos_take_helper.pxi.in', 'algos_rank_helper.pxi.in'],
-    '_join': ['join_helper.pxi.in', 'joins_func_helper.pxi.in'],
-    'hashtable': ['hashtable_class_helper.pxi.in',
-                  'hashtable_func_helper.pxi.in'],
-    'index': ['index_class_helper.pxi.in'],
-    '_sparse': ['sparse_op_helper.pxi.in']
+    'algos': ['src/algos_common_helper.pxi.in', 'src/algos_groupby_helper.pxi.in',
+               'src/algos_take_helper.pxi.in', 'src/algos_rank_helper.pxi.in'],
+    'join': ['src/join_helper.pxi.in', 'src/joins_func_helper.pxi.in'],
+    'hashtable': ['src/hashtable_class_helper.pxi.in',
+                   'src/hashtable_func_helper.pxi.in'],
+    'index': ['src/index_class_helper.pxi.in'],
+    'sparse': ['sparse/sparse_op_helper.pxi.in'],
 }
+
 _pxifiles = []
 _pxi_dep = {}
 for module, files in _pxi_dep_template.items():
-    pxi_files = [pjoin(_pxipath, x) for x in files]
+    pxi_files = [pjoin('pandas', x) for x in files]
     _pxifiles.extend(pxi_files)
     _pxi_dep[module] = pxi_files
 
@@ -335,7 +335,7 @@ class CheckSDist(sdist_class):
                  'pandas/window.pyx',
                  'pandas/io/parsers.pyx',
                  'pandas/src/period.pyx',
-                 'pandas/src/sparse.pyx',
+                 'pandas/sparse/sparse.pyx',
                  'pandas/util/testing.pyx',
                  'pandas/src/hash.pyx',
                  'pandas/io/sas/sas.pyx']
@@ -498,7 +498,7 @@ ext_data = {
               'depends': _pxi_dep['algos']},
     '_join': {'pyxfile': 'src/join',
               'pxdfiles': ['src/util', 'hashtable'],
-              'depends': _pxi_dep['_join']},
+              'depends': _pxi_dep['join']},
     '_window': {'pyxfile': 'window',
                 'pxdfiles': ['src/skiplist', 'src/util'],
                 'depends': ['pandas/src/skiplist.pyx',
@@ -509,9 +509,9 @@ ext_data = {
                                  'pandas/src/numpy_helper.h'],
                      'sources': ['pandas/src/parser/tokenizer.c',
                                  'pandas/src/parser/io.c']},
-    '_sparse': {'pyxfile': 'src/sparse',
-                'depends': ([srcpath('sparse', suffix='.pyx')] +
-                            _pxi_dep['sparse'])},
+    'sparse.libsparse': {'pyxfile': 'sparse/sparse',
+                         'depends': (['pandas/sparse/sparse.pyx'] +
+                                     _pxi_dep['sparse'])},
     'util.libtesting': {'pyxfile': 'util/testing',
                         'depends': ['pandas/util/testing.pyx']},
     '_hash': {'pyxfile': 'src/hash',

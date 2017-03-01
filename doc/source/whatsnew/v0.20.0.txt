@@ -463,6 +463,7 @@ If indicated, a deprecation warning will be issued if you reference that module.
     "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
     "pandas.msgpack", "pandas.io.msgpack", ""
     "pandas._testing", "pandas.util.libtesting", ""
+    "pandas._sparse", "pandas.sparse.libsparse", ""
 
 
 .. _whatsnew_0200.api_breaking.groupby_describe:
