@@ -32,7 +32,9 @@ class FrozenList(PandasObject, list):
 
     def __iadd__(self, other):
         warnings.warn("__iadd__ is deprecated, use union(...)", FutureWarning)
-        return self.union(other)
+        if isinstance(other, tuple):
+            other = list(other)
+        return super(FrozenList, self).__iadd__(other)
 
     # Python 2 compat
     def __getslice__(self, i, j):
