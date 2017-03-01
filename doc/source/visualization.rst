@@ -134,7 +134,7 @@ For example, a bar plot can be created the following way:
    plt.figure();
 
    @savefig bar_plot_ex.png
-   df.ix[5].plot(kind='bar'); plt.axhline(0, color='k')
+   df.iloc[5].plot(kind='bar'); plt.axhline(0, color='k')
 
 .. versionadded:: 0.17.0
 
@@ -179,7 +179,7 @@ For labeled, non-time series data, you may wish to produce a bar plot:
    plt.figure();
 
    @savefig bar_plot_ex.png
-   df.ix[5].plot.bar(); plt.axhline(0, color='k')
+   df.iloc[5].plot.bar(); plt.axhline(0, color='k')
 
 Calling a DataFrame's :meth:`plot.bar() <DataFrame.plot.bar>` method produces a multiple
 bar plot:
@@ -1244,6 +1244,18 @@ in ``pandas.plot_params`` can be used in a `with statement`:
    :suppress:
 
    plt.close('all')
+
+Automatic Date Tick Adjustment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+``TimedeltaIndex`` now uses the native matplotlib
+tick locator methods, it is useful to call the automatic
+date tick adjustment from matplotlib for figures whose ticklabels overlap.
+
+See the :meth:`autofmt_xdate <matplotlib.figure.autofmt_xdate>` method and the
+`matplotlib documentation <http://matplotlib.org/users/recipes.html#fixing-common-date-annoyances>`__ for more.
 
 Subplots
 ~~~~~~~~

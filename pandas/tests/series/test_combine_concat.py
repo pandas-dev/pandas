@@ -7,7 +7,7 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import Series, DataFrame
+from pandas import Series, DataFrame, date_range, DatetimeIndex
 
 from pandas import compat
 from pandas.util.testing import assert_series_equal
@@ -17,8 +17,6 @@ from .common import TestData
 
 
 class TestSeriesCombine(TestData, tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
@@ -218,3 +216,101 @@ class TestSeriesCombine(TestData, tm.TestCase):
         rs = s0.combine_first(s1)
         xp = Series([datetime(2010, 1, 1), '2011'])
         assert_series_equal(rs, xp)
+
+
+class TestTimeseries(tm.TestCase):
+
+    def test_append_concat(self):
+        rng = date_range('5/8/2012 1:45', periods=10, freq='5T')
+        ts = Series(np.random.randn(len(rng)), rng)
+        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+
+        result = ts.append(ts)
+        result_df = df.append(df)
+        ex_index = DatetimeIndex(np.tile(rng.values, 2))
+        tm.assert_index_equal(result.index, ex_index)
+        tm.assert_index_equal(result_df.index, ex_index)
+
+        appended = rng.append(rng)
+        tm.assert_index_equal(appended, ex_index)
+
+        appended = rng.append([rng, rng])
+        ex_index = DatetimeIndex(np.tile(rng.values, 3))
+        tm.assert_index_equal(appended, ex_index)
+
+        # different index names
+        rng1 = rng.copy()
+        rng2 = rng.copy()
+        rng1.name = 'foo'
+        rng2.name = 'bar'
+        self.assertEqual(rng1.append(rng1).name, 'foo')
+        self.assertIsNone(rng1.append(rng2).name)
+
+    def test_append_concat_tz(self):
+        # GH 2938
+        tm._skip_if_no_pytz()
+
+        rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
+                         tz='US/Eastern')
+        rng2 = date_range('5/8/2012 2:35', periods=10, freq='5T',
+                          tz='US/Eastern')
+        rng3 = date_range('5/8/2012 1:45', periods=20, freq='5T',
+                          tz='US/Eastern')
+        ts = Series(np.random.randn(len(rng)), rng)
+        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        ts2 = Series(np.random.randn(len(rng2)), rng2)
+        df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
+
+        result = ts.append(ts2)
+        result_df = df.append(df2)
+        tm.assert_index_equal(result.index, rng3)
+        tm.assert_index_equal(result_df.index, rng3)
+
+        appended = rng.append(rng2)
+        tm.assert_index_equal(appended, rng3)
+
+    def test_append_concat_tz_explicit_pytz(self):
+        # GH 2938
+        tm._skip_if_no_pytz()
+        from pytz import timezone as timezone
+
+        rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
+                         tz=timezone('US/Eastern'))
+        rng2 = date_range('5/8/2012 2:35', periods=10, freq='5T',
+                          tz=timezone('US/Eastern'))
+        rng3 = date_range('5/8/2012 1:45', periods=20, freq='5T',
+                          tz=timezone('US/Eastern'))
+        ts = Series(np.random.randn(len(rng)), rng)
+        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        ts2 = Series(np.random.randn(len(rng2)), rng2)
+        df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
+
+        result = ts.append(ts2)
+        result_df = df.append(df2)
+        tm.assert_index_equal(result.index, rng3)
+        tm.assert_index_equal(result_df.index, rng3)
+
+        appended = rng.append(rng2)
+        tm.assert_index_equal(appended, rng3)
+
+    def test_append_concat_tz_dateutil(self):
+        # GH 2938
+        tm._skip_if_no_dateutil()
+        rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
+                         tz='dateutil/US/Eastern')
+        rng2 = date_range('5/8/2012 2:35', periods=10, freq='5T',
+                          tz='dateutil/US/Eastern')
+        rng3 = date_range('5/8/2012 1:45', periods=20, freq='5T',
+                          tz='dateutil/US/Eastern')
+        ts = Series(np.random.randn(len(rng)), rng)
+        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        ts2 = Series(np.random.randn(len(rng2)), rng2)
+        df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
+
+        result = ts.append(ts2)
+        result_df = df.append(df2)
+        tm.assert_index_equal(result.index, rng3)
+        tm.assert_index_equal(result_df.index, rng3)
+
+        appended = rng.append(rng2)
+        tm.assert_index_equal(appended, rng3)

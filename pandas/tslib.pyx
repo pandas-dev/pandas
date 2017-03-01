@@ -8,10 +8,8 @@ from numpy cimport (int8_t, int32_t, int64_t, import_array, ndarray,
 from datetime cimport get_datetime64_value, get_timedelta64_value
 import numpy as np
 
-# GH3363
-from sys import version_info
-cdef bint PY2 = version_info[0] == 2
-cdef bint PY3 = not PY2
+import sys
+cdef bint PY3 = (sys.version_info[0] >= 3)
 
 from cpython cimport (
     PyTypeObject,
@@ -24,11 +22,8 @@ from cpython cimport (
     PyUnicode_AsUTF8String,
 )
 
-
-# Cython < 0.17 doesn't have this in cpython
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
-    int PySlice_Check(object)
 
 cdef extern from "datetime_helper.h":
     double total_seconds(object)
@@ -650,18 +645,25 @@ class Timestamp(_Timestamp):
 
     astimezone = tz_convert
 
-    def replace(self, **kwds):
+    def replace(self, year=None, month=None, day=None,
+                hour=None, minute=None, second=None, microsecond=None,
+                nanosecond=None, tzinfo=object, fold=0):
         """
         implements datetime.replace, handles nanoseconds
 
         Parameters
         ----------
-        kwargs: key-value dict
-
-        accepted keywords are:
-        year, month, day, hour, minute, second, microsecond, nanosecond, tzinfo
-
-        values must be integer, or for tzinfo, a tz-convertible
+        year : int, optional
+        month : int, optional
+        day : int, optional
+        hour : int, optional
+        minute : int, optional
+        second : int, optional
+        microsecond : int, optional
+        nanosecond: int, optional
+        tzinfo : tz-convertible, optional
+        fold : int, optional, default is 0
+            added in 3.6, NotImplemented
 
         Returns
         -------
@@ -671,14 +673,14 @@ class Timestamp(_Timestamp):
         cdef:
             pandas_datetimestruct dts
             int64_t value
-            object tzinfo, result, k, v
+            object _tzinfo, result, k, v
             _TSObject ts
 
         # set to naive if needed
-        tzinfo = self.tzinfo
+        _tzinfo = self.tzinfo
         value = self.value
-        if tzinfo is not None:
-            value = tz_convert_single(value, 'UTC', tzinfo)
+        if _tzinfo is not None:
+            value = tz_convert_single(value, 'UTC', _tzinfo)
 
         # setup components
         pandas_datetime_to_datetimestruct(value, PANDAS_FR_ns, &dts)
@@ -687,32 +689,29 @@ class Timestamp(_Timestamp):
         # replace
         def validate(k, v):
             """ validate integers """
-            if not isinstance(v, int):
+            if not is_integer_object(v):
                 raise ValueError("value must be an integer, received "
                                  "{v} for {k}".format(v=type(v), k=k))
             return v
 
-        for k, v in kwds.items():
-            if k == 'year':
-                dts.year = validate(k, v)
-            elif k == 'month':
-                dts.month = validate(k, v)
-            elif k == 'day':
-                dts.day = validate(k, v)
-            elif k == 'hour':
-                dts.hour = validate(k, v)
-            elif k == 'minute':
-                dts.min = validate(k, v)
-            elif k == 'second':
-                dts.sec = validate(k, v)
-            elif k == 'microsecond':
-                dts.us = validate(k, v)
-            elif k == 'nanosecond':
-                dts.ps = validate(k, v) * 1000
-            elif k == 'tzinfo':
-                tzinfo = v
-            else:
-                raise ValueError("invalid name {} passed".format(k))
+        if year is not None:
+            dts.year = validate('year', year)
+        if month is not None:
+            dts.month = validate('month', month)
+        if day is not None:
+            dts.day = validate('day', day)
+        if hour is not None:
+            dts.hour = validate('hour', hour)
+        if minute is not None:
+            dts.min = validate('minute', minute)
+        if second is not None:
+            dts.sec = validate('second', second)
+        if microsecond is not None:
+            dts.us = validate('microsecond', microsecond)
+        if nanosecond is not None:
+            dts.ps = validate('nanosecond', nanosecond) * 1000
+        if tzinfo is not object:
+            _tzinfo = tzinfo
 
         # reconstruct & check bounds
         value = pandas_datetimestruct_to_datetime(PANDAS_FR_ns, &dts)
@@ -720,11 +719,10 @@ class Timestamp(_Timestamp):
             _check_dts_bounds(&dts)
 
         # set tz if needed
-        if tzinfo is not None:
-            value = tz_convert_single(value, tzinfo, 'UTC')
+        if _tzinfo is not None:
+            value = tz_convert_single(value, _tzinfo, 'UTC')
 
-        result = create_timestamp_from_ts(value, dts, tzinfo, self.freq)
-
+        result = create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
         return result
 
     def isoformat(self, sep='T'):
@@ -852,63 +850,6 @@ class NaTType(_NaT):
         if is_integer_object(other) or is_float_object(other):
             return NaT
         return NotImplemented
-
-
-fields = ['year', 'quarter', 'month', 'day', 'hour',
-          'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek',
-          'weekday_name']
-for field in fields:
-    prop = property(fget=lambda self: np.nan)
-    setattr(NaTType, field, prop)
-
-
-# GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
-# return NaT create functions that raise, for binding to NaTType
-def _make_error_func(func_name):
-    def f(*args, **kwargs):
-        raise ValueError("NaTType does not support " + func_name)
-    f.__name__ = func_name
-    return f
-
-
-def _make_nat_func(func_name):
-    def f(*args, **kwargs):
-        return NaT
-    f.__name__ = func_name
-    return f
-
-
-def _make_nan_func(func_name):
-    def f(*args, **kwargs):
-        return np.nan
-    f.__name__ = func_name
-    return f
-
-_nat_methods = ['date', 'now', 'replace', 'to_pydatetime', 'today']
-
-_nan_methods = ['weekday', 'isoweekday', 'total_seconds']
-
-_implemented_methods = ['to_datetime', 'to_datetime64', 'isoformat']
-_implemented_methods.extend(_nat_methods)
-_implemented_methods.extend(_nan_methods)
-
-for _method_name in _nat_methods:
-    # not all methods exist in all versions of Python
-    if hasattr(NaTType, _method_name):
-        setattr(NaTType, _method_name, _make_nat_func(_method_name))
-
-for _method_name in _nan_methods:
-    if hasattr(NaTType, _method_name):
-        setattr(NaTType, _method_name, _make_nan_func(_method_name))
-
-for _maybe_method_name in dir(NaTType):
-    _maybe_method = getattr(NaTType, _maybe_method_name)
-    if (callable(_maybe_method)
-        and not _maybe_method_name.startswith("_")
-        and _maybe_method_name not in _implemented_methods):
-        setattr(NaTType, _maybe_method_name,
-                _make_error_func(_maybe_method_name))
 
 
 def __nat_unpickle(*args):
@@ -1410,22 +1351,6 @@ cdef class _NaT(_Timestamp):
         if is_integer_object(other) or is_float_object(other):
             return NaT
         return NotImplemented
-
-
-def _delta_to_nanoseconds(delta):
-    if isinstance(delta, np.ndarray):
-        return delta.astype('m8[ns]').astype('int64')
-    if hasattr(delta, 'nanos'):
-        return delta.nanos
-    if hasattr(delta, 'delta'):
-        delta = delta.delta
-    if is_timedelta64_object(delta):
-        return delta.astype("timedelta64[ns]").item()
-    if is_integer_object(delta):
-        return delta
-    return (delta.days * 24 * 60 * 60 * 1000000
-            + delta.seconds * 1000000
-            + delta.microseconds) * 1000
 
 
 # lightweight C object to hold datetime & int64 pair
@@ -2018,7 +1943,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
                                           object freq):
     cdef:
         object ret
-        int year, quarter, month, mnum, date_len
+        int year, quarter = -1, month, mnum, date_len
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     assert util.is_string_object(date_string)
@@ -2191,8 +2116,8 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(
     hour=0, minute=0, second=0, microsecond=0)
 _MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
            'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_NUMBERS = dict((k, i) for i, k in enumerate(_MONTHS))
-_MONTH_ALIASES = dict((k + 1, v) for k, v in enumerate(_MONTHS))
+_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
+_MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
 
 
 cpdef object _get_rule_month(object source, object default='DEC'):
@@ -3039,6 +2964,56 @@ class Timedelta(_Timedelta):
         """
         return 1e-9 *self.value
 
+    def isoformat(self):
+        """
+        Format Timedelta as ISO 8601 Duration like
+        `P[n]Y[n]M[n]DT[n]H[n]M[n]S`, where the `[n]`s are replaced by the
+        values. See https://en.wikipedia.org/wiki/ISO_8601#Durations
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        formatted : str
+
+        Notes
+        -----
+        The longest component is days, whose value may be larger than
+        365.
+        Every component is always included, even if its value is 0.
+        Pandas uses nanosecond precision, so up to 9 decimal places may
+        be included in the seconds component.
+        Trailing 0's are removed from the seconds component after the decimal.
+        We do not 0 pad components, so it's `...T5H...`, not `...T05H...`
+
+        Examples
+        --------
+        >>> td = pd.Timedelta(days=6, minutes=50, seconds=3,
+        ...                   milliseconds=10, microseconds=10, nanoseconds=12)
+        >>> td.isoformat()
+        'P6DT0H50M3.010010012S'
+        >>> pd.Timedelta(hours=1, seconds=10).isoformat()
+        'P0DT0H0M10S'
+        >>> pd.Timedelta(hours=1, seconds=10).isoformat()
+        'P0DT0H0M10S'
+        >>> pd.Timedelta(days=500.5).isoformat()
+        'P500DT12H0MS'
+
+        See Also
+        --------
+        Timestamp.isoformat
+        """
+        components = self.components
+        seconds = '{}.{:0>3}{:0>3}{:0>3}'.format(components.seconds,
+                                                 components.milliseconds,
+                                                 components.microseconds,
+                                                 components.nanoseconds)
+        # Trim unnecessary 0s, 1.000000000 -> 1
+        seconds = seconds.rstrip('0').rstrip('.')
+        tpl = 'P{td.days}DT{td.hours}H{td.minutes}M{seconds}S'.format(
+            td=components, seconds=seconds)
+        return tpl
+
     def __setstate__(self, state):
         (value) = state
         self.value = value
@@ -3125,7 +3100,7 @@ class Timedelta(_Timedelta):
         if not (is_integer_object(other) or is_float_object(other)):
             return NotImplemented
 
-        return Timedelta(other *self.value, unit='ns')
+        return Timedelta(other * self.value, unit='ns')
 
     __rmul__ = __mul__
 
@@ -3798,6 +3773,112 @@ def array_strptime(ndarray[object] values, object fmt,
     return result
 
 
+#----------------------------------------------------------------------
+# NaT methods/property setups
+
+
+# inject the Timestamp field properties
+# these by definition return np.nan
+fields = ['year', 'quarter', 'month', 'day', 'hour',
+          'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
+          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek',
+          'weekday_name']
+for field in fields:
+    prop = property(fget=lambda self: np.nan)
+    setattr(NaTType, field, prop)
+
+
+# define how we are handling NaT methods & inject
+# to the NaTType class; these can return NaT, np.nan
+# or raise respectively
+_nat_methods = ['date', 'now', 'replace', 'to_pydatetime',
+                'today', 'round', 'floor', 'ceil']
+_nan_methods = ['weekday', 'isoweekday', 'total_seconds']
+_implemented_methods = ['to_datetime', 'to_datetime64', 'isoformat']
+_implemented_methods.extend(_nat_methods)
+_implemented_methods.extend(_nan_methods)
+
+
+def _get_docstring(_method_name):
+    # NaT serves double duty as Timestamp & Timedelta
+    # missing value, so need to acquire doc-strings for both
+
+    try:
+        return getattr(Timestamp, _method_name).__doc__
+    except AttributeError:
+        pass
+
+    try:
+        return getattr(Timedelta, _method_name).__doc__
+    except AttributeError:
+        pass
+
+    return None
+
+
+for _method_name in _nat_methods:
+
+    def _make_nat_func(func_name):
+        def f(*args, **kwargs):
+            return NaT
+        f.__name__ = func_name
+        f.__doc__ = _get_docstring(_method_name)
+        return f
+
+    setattr(NaTType, _method_name, _make_nat_func(_method_name))
+
+
+for _method_name in _nan_methods:
+
+    def _make_nan_func(func_name):
+        def f(*args, **kwargs):
+            return np.nan
+        f.__name__ = func_name
+        f.__doc__ = _get_docstring(_method_name)
+        return f
+
+    setattr(NaTType, _method_name, _make_nan_func(_method_name))
+
+
+# GH9513 NaT methods (except to_datetime64) to raise, return np.nan, or
+# return NaT create functions that raise, for binding to NaTType
+for _maybe_method_name in dir(NaTType):
+    _maybe_method = getattr(NaTType, _maybe_method_name)
+    if (callable(_maybe_method)
+        and not _maybe_method_name.startswith("_")
+        and _maybe_method_name not in _implemented_methods):
+
+        def _make_error_func(func_name):
+            def f(*args, **kwargs):
+                raise ValueError("NaTType does not support " + func_name)
+            f.__name__ = func_name
+            f.__doc__ = _get_docstring(_method_name)
+            return f
+
+        setattr(NaTType, _maybe_method_name,
+                _make_error_func(_maybe_method_name))
+
+
+#----------------------------------------------------------------------
+# Conversion routines
+
+
+def _delta_to_nanoseconds(delta):
+    if isinstance(delta, np.ndarray):
+        return delta.astype('m8[ns]').astype('int64')
+    if hasattr(delta, 'nanos'):
+        return delta.nanos
+    if hasattr(delta, 'delta'):
+        delta = delta.delta
+    if is_timedelta64_object(delta):
+        return delta.astype("timedelta64[ns]").item()
+    if is_integer_object(delta):
+        return delta
+    return (delta.days * 24 * 60 * 60 * 1000000
+            + delta.seconds * 1000000
+            + delta.microseconds) * 1000
+
+
 cdef inline _get_datetime64_nanos(object val):
     cdef:
         pandas_datetimestruct dts
@@ -3885,9 +3966,6 @@ def cast_to_nanoseconds(ndarray arr):
             iresult[i] = NPY_NAT
 
     return result
-
-#----------------------------------------------------------------------
-# Conversion routines
 
 
 def pydt_to_i8(object pydt):
@@ -5446,8 +5524,8 @@ class TimeRE(dict):
             'B': self.__seqToRE(self.locale_time.f_month[1:], 'B'),
             'b': self.__seqToRE(self.locale_time.a_month[1:], 'b'),
             'p': self.__seqToRE(self.locale_time.am_pm, 'p'),
-            'Z': self.__seqToRE((tz for tz_names in self.locale_time.timezone
-                                        for tz in tz_names),
+            'Z': self.__seqToRE([tz for tz_names in self.locale_time.timezone
+                                 for tz in tz_names],
                                 'Z'),
             '%': '%'})
         base.__setitem__('W', base.__getitem__('U').replace('U', 'W'))
@@ -5470,7 +5548,7 @@ class TimeRE(dict):
                 break
         else:
             return ''
-        regex = '|'.join(re_escape(stuff) for stuff in to_convert)
+        regex = '|'.join([re_escape(stuff) for stuff in to_convert])
         regex = '(?P<%s>%s' % (directive, regex)
         return '%s)' % regex
 

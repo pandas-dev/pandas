@@ -19,6 +19,7 @@
 .noseids
 .ipynb_checkpoints
 .tags
+.cache/
 
 # Compiled source #
 ###################
@@ -56,6 +57,8 @@ dist
 **/wheelhouse/*
 # coverage
 .coverage
+coverage.xml
+coverage_html_report
 
 # OS generated files #
 ######################

@@ -14,23 +14,23 @@ environment:
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\run_with_env.cmd"
+    clone_folder: C:\projects\pandas
 
   matrix:
 
-    # disable python 3.4 ATM
-    #- PYTHON: "C:\\Python34_64"
-    #  PYTHON_VERSION: "3.4"
-    #  PYTHON_ARCH: "64"
-    #  CONDA_PY: "34"
-    #  CONDA_NPY: "19"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
+      PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "64"
+      CONDA_PY: "36"
+      CONDA_NPY: "112"
 
-    - PYTHON: "C:\\Python27_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "27"
       CONDA_NPY: "110"
 
-    - PYTHON: "C:\\Python35_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       CONDA_PY: "35"
@@ -45,9 +45,6 @@ platform:
 # all our python builds have to happen in tests_script...
 build: false
 
-init:
-  - "ECHO %PYTHON_VERSION% %PYTHON%"
-
 install:
   # cancel older builds for the same PR
   - ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER -and $env:APPVEYOR_BUILD_NUMBER -ne ((Invoke-RestMethod `
@@ -58,7 +55,7 @@ install:
   # this installs the appropriate Miniconda (Py2/Py3, 32/64 bit)
   # updates conda & installs: conda-build jinja2 anaconda-client
   - powershell .\ci\install.ps1
-  - SET PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
+  - SET PATH=%CONDA_ROOT%;%CONDA_ROOT%\Scripts;%PATH%
   - echo "install"
   - cd
   - ls -ltr
@@ -70,13 +67,6 @@ install:
   # install our build environment
   - cmd: conda config --set show_channel_urls true --set always_yes true --set changeps1 false
   - cmd: conda update -q conda
-
-  # fix conda-build version
-  # https://github.com/conda/conda-build/issues/1001
-  # disabling 3.4 as windows complains upon compiling byte
-  # code
-
-  - cmd: conda install conda-build=1.21.7
   - cmd: conda config --set ssl_verify false
 
   # add the pandas channel *before* defaults to have defaults take priority
@@ -84,25 +74,23 @@ install:
   - cmd: conda config --add channels pandas
   - cmd: conda config --remove channels defaults
   - cmd: conda config --add channels defaults
-  - cmd: conda install anaconda-client
 
   # this is now the downloaded conda...
   - cmd: conda info -a
 
-  # build em using the local source checkout in the correct windows env
-  - cmd: '%CMD_IN_ENV% conda build ci\appveyor.recipe -q'
-
   # create our env
-  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose
+  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% cython pytest
   - cmd: activate pandas
   - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
   - cmd: echo "installing requirements from %REQ%"
   - cmd: conda install -n pandas -q --file=%REQ%
-  - ps: conda install -n pandas (conda build ci\appveyor.recipe -q --output)
+  - cmd: conda list -n pandas
+  - cmd: echo "installing requirements from %REQ% - done"
+
+  # build em using the local source checkout in the correct windows env
+  - cmd: '%CMD_IN_ENV% python setup.py build_ext --inplace'
 
 test_script:
   # tests
-  - cd \
   - cmd: activate pandas
-  - cmd: conda list
-  - cmd: nosetests --exe -A "not slow and not network and not disabled" pandas
+  - cmd: test.bat

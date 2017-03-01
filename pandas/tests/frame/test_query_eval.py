@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 import operator
-import nose
+import pytest
 from itertools import product
 
 from pandas.compat import (zip, range, lrange, StringIO)
@@ -30,14 +30,14 @@ ENGINES = 'python', 'numexpr'
 
 def skip_if_no_pandas_parser(parser):
     if parser != 'pandas':
-        raise nose.SkipTest("cannot evaluate with parser {0!r}".format(parser))
+        pytest.skip("cannot evaluate with parser {0!r}".format(parser))
 
 
 def skip_if_no_ne(engine='numexpr'):
     if engine == 'numexpr':
         if not _NUMEXPR_INSTALLED:
-            raise nose.SkipTest("cannot query engine numexpr when numexpr not "
-                                "installed")
+            pytest.skip("cannot query engine numexpr when numexpr not "
+                        "installed")
 
 
 class TestCompat(tm.TestCase):
@@ -89,8 +89,6 @@ class TestCompat(tm.TestCase):
 
 
 class TestDataFrameEval(tm.TestCase, TestData):
-
-    _multiprocess_can_split_ = True
 
     def test_ops(self):
 
@@ -167,8 +165,6 @@ class TestDataFrameEval(tm.TestCase, TestData):
 
 
 class TestDataFrameQueryWithMultiIndex(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def check_query_with_named_multiindex(self, parser, engine):
         tm.skip_if_no_ne(engine)
@@ -1155,8 +1151,3 @@ class TestDataFrameEvalPythonPython(TestDataFrameEvalNumExprPython):
     def setUpClass(cls):
         super(TestDataFrameEvalPythonPython, cls).tearDownClass()
         cls.engine = cls.parser = 'python'
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

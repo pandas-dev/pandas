@@ -252,6 +252,22 @@ class groupby_int_count(object):
 
 
 #----------------------------------------------------------------------
+# nunique() speed
+
+class groupby_nunique(object):
+
+    def setup(self):
+        self.n = 10000
+        self.df = DataFrame({'key1': randint(0, 500, size=self.n),
+                             'key2': randint(0, 100, size=self.n),
+                             'ints': randint(0, 1000, size=self.n),
+                             'ints2': randint(0, 1000, size=self.n), })
+
+    def time_groupby_nunique(self):
+        self.df.groupby(['key1', 'key2']).nunique()
+
+
+#----------------------------------------------------------------------
 # group with different functions per column
 
 class groupby_agg_multi(object):
@@ -476,6 +492,43 @@ class groupby_float32(object):
         self.df.groupby(['a'])['b'].sum()
 
 
+class groupby_categorical(object):
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        arr = np.random.random(N)
+
+        self.df = DataFrame(dict(
+            a=Categorical(np.random.randint(10000, size=N)),
+            b=arr))
+        self.df_ordered = DataFrame(dict(
+            a=Categorical(np.random.randint(10000, size=N), ordered=True),
+            b=arr))
+        self.df_extra_cat = DataFrame(dict(
+            a=Categorical(np.random.randint(100, size=N),
+                          categories=np.arange(10000)),
+            b=arr))
+
+    def time_groupby_sort(self):
+        self.df.groupby('a')['b'].count()
+
+    def time_groupby_nosort(self):
+        self.df.groupby('a', sort=False)['b'].count()
+
+    def time_groupby_ordered_sort(self):
+        self.df_ordered.groupby('a')['b'].count()
+
+    def time_groupby_ordered_nosort(self):
+        self.df_ordered.groupby('a', sort=False)['b'].count()
+
+    def time_groupby_extra_cat_sort(self):
+        self.df_extra_cat.groupby('a')['b'].count()
+
+    def time_groupby_extra_cat_nosort(self):
+        self.df_extra_cat.groupby('a', sort=False)['b'].count()
+
+
 class groupby_period(object):
     # GH 14338
     goal_time = 0.2
@@ -690,6 +743,3 @@ class groupby_transform_series2(object):
     def time_transform_dataframe(self):
         # GH 12737
         self.df_nans.groupby('key').transform('first')
-
-
-

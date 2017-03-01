@@ -4,7 +4,7 @@ from __future__ import print_function
 import re
 import sys
 from datetime import datetime, timedelta
-
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -14,10 +14,9 @@ from pandas.types.common import (is_object_dtype, is_datetimetz,
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta)
-from pandas.compat import u, StringIO
+from pandas.compat import StringIO
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.base import (FrozenList, FrozenNDArray, PandasDelegate,
-                              NoNewAttributesMixin)
+from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.tseries.base import DatetimeIndexOpsMixin
 
 
@@ -32,7 +31,7 @@ class CheckStringMixin(object):
 
     def test_tricky_container(self):
         if not hasattr(self, 'unicode_container'):
-            raise nose.SkipTest('Need unicode_container to test with this')
+            pytest.skip('Need unicode_container to test with this')
         repr(self.unicode_container)
         str(self.unicode_container)
         bytes(self.unicode_container)
@@ -81,69 +80,6 @@ class CheckImmutable(object):
         klass = klass or self.klass
         self.assertIsInstance(result, klass)
         self.assertEqual(result, expected)
-
-
-class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
-    mutable_methods = ('extend', 'pop', 'remove', 'insert')
-    unicode_container = FrozenList([u("\u05d0"), u("\u05d1"), "c"])
-
-    def setUp(self):
-        self.lst = [1, 2, 3, 4, 5]
-        self.container = FrozenList(self.lst)
-        self.klass = FrozenList
-
-    def test_add(self):
-        result = self.container + (1, 2, 3)
-        expected = FrozenList(self.lst + [1, 2, 3])
-        self.check_result(result, expected)
-
-        result = (1, 2, 3) + self.container
-        expected = FrozenList([1, 2, 3] + self.lst)
-        self.check_result(result, expected)
-
-    def test_inplace(self):
-        q = r = self.container
-        q += [5]
-        self.check_result(q, self.lst + [5])
-        # other shouldn't be mutated
-        self.check_result(r, self.lst)
-
-
-class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
-    mutable_methods = ('put', 'itemset', 'fill')
-    unicode_container = FrozenNDArray([u("\u05d0"), u("\u05d1"), "c"])
-
-    def setUp(self):
-        self.lst = [3, 5, 7, -2]
-        self.container = FrozenNDArray(self.lst)
-        self.klass = FrozenNDArray
-
-    def test_shallow_copying(self):
-        original = self.container.copy()
-        self.assertIsInstance(self.container.view(), FrozenNDArray)
-        self.assertFalse(isinstance(
-            self.container.view(np.ndarray), FrozenNDArray))
-        self.assertIsNot(self.container.view(), self.container)
-        self.assert_numpy_array_equal(self.container, original)
-        # shallow copy should be the same too
-        self.assertIsInstance(self.container._shallow_copy(), FrozenNDArray)
-
-        # setting should not be allowed
-        def testit(container):
-            container[0] = 16
-
-        self.check_mutable_error(testit, self.container)
-
-    def test_values(self):
-        original = self.container.view(np.ndarray).copy()
-        n = original[0] + 15
-        vals = self.container.values()
-        self.assert_numpy_array_equal(original, vals)
-        self.assertIsNot(original, vals)
-        vals[0] = n
-        self.assertIsInstance(self.container, pd.core.base.FrozenNDArray)
-        self.assert_numpy_array_equal(self.container.values(), original)
-        self.assertEqual(vals[0], n)
 
 
 class TestPandasDelegate(tm.TestCase):
@@ -1050,6 +986,13 @@ class TestIndexOps(Ops):
             index = np.searchsorted(o, max(o), sorter=range(len(o)))
             self.assertTrue(0 <= index <= len(o))
 
+    def test_validate_bool_args(self):
+        invalid_values = [1, "True", [1, 2, 3], 5.0]
+
+        for value in invalid_values:
+            with self.assertRaises(ValueError):
+                self.int_series.drop_duplicates(inplace=value)
+
 
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"
@@ -1098,11 +1041,3 @@ class TestNoNewAttributesMixin(tm.TestCase):
 
         self.assertRaises(AttributeError, f)
         self.assertFalse(hasattr(t, "b"))
-
-
-if __name__ == '__main__':
-    import nose
-
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core'],
-                   exit=False)

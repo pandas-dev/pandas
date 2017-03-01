@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 
-import nose
+import pytest
 import numpy as np
 
 from pandas import (DataFrame, Series, Timestamp, _np_version_under1p11)
@@ -20,8 +20,6 @@ from pandas.tests.frame.common import TestData
 
 
 class TestDataFrameQuantile(tm.TestCase, TestData):
-
-    _multiprocess_can_split_ = True
 
     def test_quantile(self):
         from numpy import percentile
@@ -108,7 +106,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
     def test_quantile_interpolation(self):
         # GH #10174
         if _np_version_under1p9:
-            raise nose.SkipTest("Numpy version under 1.9")
+            pytest.skip("Numpy version under 1.9")
 
         from numpy import percentile
 
@@ -173,7 +171,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
     def test_quantile_interpolation_np_lt_1p9(self):
         # GH #10174
         if not _np_version_under1p9:
-            raise nose.SkipTest("Numpy version is greater than 1.9")
+            pytest.skip("Numpy version is greater than 1.9")
 
         from numpy import percentile
 

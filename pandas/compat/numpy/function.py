@@ -27,6 +27,7 @@ from pandas.compat import OrderedDict
 
 
 class CompatValidator(object):
+
     def __init__(self, defaults, fname=None, method=None,
                  max_fname_arg_count=None):
         self.fname = fname
@@ -53,6 +54,7 @@ class CompatValidator(object):
         else:
             raise ValueError("invalid validation method "
                              "'{method}'".format(method=method))
+
 
 ARGMINMAX_DEFAULTS = dict(out=None)
 validate_argmin = CompatValidator(ARGMINMAX_DEFAULTS, fname='argmin',
@@ -96,6 +98,7 @@ def validate_argmax_with_skipna(skipna, args, kwargs):
     validate_argmax(args, kwargs)
     return skipna
 
+
 ARGSORT_DEFAULTS = OrderedDict()
 ARGSORT_DEFAULTS['axis'] = -1
 ARGSORT_DEFAULTS['kind'] = 'quicksort'
@@ -120,6 +123,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     validate_argsort(args, kwargs, max_fname_arg_count=1)
     return ascending
 
+
 CLIP_DEFAULTS = dict(out=None)
 validate_clip = CompatValidator(CLIP_DEFAULTS, fname='clip',
                                 method='both', max_fname_arg_count=3)
@@ -139,6 +143,7 @@ def validate_clip_with_axis(axis, args, kwargs):
 
     validate_clip(args, kwargs)
     return axis
+
 
 COMPRESS_DEFAULTS = OrderedDict()
 COMPRESS_DEFAULTS['axis'] = None
@@ -168,6 +173,7 @@ def validate_cum_func_with_skipna(skipna, args, kwargs, name):
 
     validate_cum_func(args, kwargs, fname=name)
     return skipna
+
 
 LOGICAL_FUNC_DEFAULTS = dict(out=None)
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method='kwargs')
@@ -213,13 +219,6 @@ STAT_DDOF_FUNC_DEFAULTS['out'] = None
 validate_stat_ddof_func = CompatValidator(STAT_DDOF_FUNC_DEFAULTS,
                                           method='kwargs')
 
-# Currently, numpy (v1.11) has backwards compatibility checks
-# in place so that this 'kwargs' parameter is technically
-# unnecessary, but in the long-run, this will be needed.
-SQUEEZE_DEFAULTS = dict(axis=None)
-validate_squeeze = CompatValidator(SQUEEZE_DEFAULTS, fname='squeeze',
-                                   method='kwargs')
-
 TAKE_DEFAULTS = OrderedDict()
 TAKE_DEFAULTS['out'] = None
 TAKE_DEFAULTS['mode'] = 'raise'
@@ -241,6 +240,7 @@ def validate_take_with_convert(convert, args, kwargs):
 
     validate_take(args, kwargs, max_fname_arg_count=3, method='both')
     return convert
+
 
 TRANSPOSE_DEFAULTS = dict(axes=None)
 validate_transpose = CompatValidator(TRANSPOSE_DEFAULTS, fname='transpose',
@@ -306,17 +306,24 @@ def validate_expanding_func(name, args, kwargs):
             raise UnsupportedFunctionCall(msg)
 
 
-def validate_groupby_func(name, args, kwargs):
+def validate_groupby_func(name, args, kwargs, allowed=None):
     """
-    'args' and 'kwargs' should be empty because all of
+    'args' and 'kwargs' should be empty, except for allowed
+    kwargs because all of
     their necessary parameters are explicitly listed in
     the function signature
     """
+    if allowed is None:
+        allowed = []
+
+    kwargs = set(kwargs) - set(allowed)
+
     if len(args) + len(kwargs) > 0:
         raise UnsupportedFunctionCall((
             "numpy operations are not valid "
             "with groupby. Use .groupby(...)."
             "{func}() instead".format(func=name)))
+
 
 RESAMPLER_NUMPY_OPS = ('min', 'max', 'sum', 'prod',
                        'mean', 'std', 'var')

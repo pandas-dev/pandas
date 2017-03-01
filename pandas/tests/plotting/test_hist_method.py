@@ -1,7 +1,6 @@
-#!/usr/bin/env python
 # coding: utf-8
 
-import nose
+""" Test cases for .hist method """
 
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
@@ -12,9 +11,6 @@ from numpy.random import randn
 
 import pandas.tools.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
-
-
-""" Test cases for .hist method """
 
 
 @tm.mplskip
@@ -242,6 +238,16 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assertRaises(ValueError):
             df.hist(layout=(-1, -1))
 
+    @slow
+    # GH 9351
+    def test_tight_layout(self):
+        if self.mpl_ge_2_0_0:
+            df = DataFrame(randn(100, 2))
+            _check_plot_works(df.hist)
+            self.plt.tight_layout()
+
+            tm.close()
+
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
@@ -419,8 +425,3 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         self.assertTrue(ax1._shared_y_axes.joined(ax1, ax2))
         self.assertTrue(ax2._shared_y_axes.joined(ax1, ax2))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

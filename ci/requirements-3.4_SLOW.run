@@ -1,6 +1,6 @@
 python-dateutil
 pytz
-numpy=1.9.3
+numpy=1.10*
 openpyxl
 xlsxwriter
 xlrd
@@ -9,7 +9,7 @@ html5lib
 patsy
 beautiful-soup
 scipy
-numexpr=2.4.4
+numexpr=2.4.6
 pytables
 matplotlib
 lxml
@@ -17,5 +17,4 @@ sqlalchemy
 bottleneck
 pymysql
 psycopg2
-statsmodels
 jinja2=2.8

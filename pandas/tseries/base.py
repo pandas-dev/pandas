@@ -84,6 +84,7 @@ class TimelikeOps(object):
         values = _ensure_datetimelike_to_i8(self)
 
         result = (unit * rounder(values / float(unit))).astype('i8')
+        result = self._maybe_mask_results(result, fill_value=tslib.NaT)
         attribs = self._get_attributes_dict()
         if 'freq' in attribs:
             attribs['freq'] = None
@@ -785,19 +786,8 @@ class DatetimeIndexOpsMixin(object):
         return self._shallow_copy(self.asi8.repeat(repeats),
                                   freq=freq)
 
+    @Appender(_index_shared_docs['where'])
     def where(self, cond, other=None):
-        """
-        .. versionadded:: 0.19.0
-
-        Return an Index of same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from
-        other.
-
-        Parameters
-        ----------
-        cond : boolean same length as self
-        other : scalar, or array-like
-        """
         other = _ensure_datetimelike_to_i8(other)
         values = _ensure_datetimelike_to_i8(self)
         result = np.where(cond, values, other).astype('i8')

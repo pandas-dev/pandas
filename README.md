@@ -12,7 +12,7 @@
   <td><img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" /></td>
 </tr>
   <td></td>
-  <td><img src="https://anaconda.org/pandas/pandas/badges/version.svg" alt="latest release" /></td>
+  <td><img src="https://anaconda.org/conda-forge/pandas/badges/version.svg" alt="latest release" /></td>
 </tr>
 <tr>
   <td>Package Status</td>
@@ -30,6 +30,15 @@
     </a>
   </td>
 </tr>
+<tr>
+  <td></td>
+  <td>
+    <a href="https://circleci.com/gh/pandas-dev/pandas">
+    <img src="https://circleci.com/gh/circleci/mongofinil/tree/master.svg?style=shield&circle-token=223d8cafa7b02902c3e150242520af8944e34671" alt="circleci build status" />
+    </a>
+  </td>
+</tr>
+<tr>
   <td></td>
   <td>
     <a href="https://ci.appveyor.com/project/jreback/pandas-465">

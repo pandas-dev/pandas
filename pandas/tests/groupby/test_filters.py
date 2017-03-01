@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import nose
-
 from numpy import nan
 
 
@@ -25,8 +23,6 @@ import pandas as pd
 
 
 class TestGroupByFilter(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.ts = tm.makeTimeSeries()
@@ -130,7 +126,7 @@ class TestGroupByFilter(tm.TestCase):
         grouper = df['A'].apply(lambda x: x % 2)
         grouped = df.groupby(grouper)
         assert_frame_equal(
-            grouped.filter(lambda x: x['A'].sum() > 1000), df.ix[[]])
+            grouped.filter(lambda x: x['A'].sum() > 1000), df.loc[[]])
 
     def test_filter_out_no_groups(self):
         s = pd.Series([1, 3, 20, 5, 22, 24, 7])
@@ -220,6 +216,7 @@ class TestGroupByFilter(tm.TestCase):
         grouper = s.apply(lambda x: np.round(x, -1))
         grouped = s.groupby(grouper)
         f = lambda x: x.mean() > 10
+
         old_way = s[grouped.transform(f).astype('bool')]
         new_way = grouped.filter(f)
         assert_series_equal(new_way.sort_values(), old_way.sort_values())
@@ -278,7 +275,7 @@ class TestGroupByFilter(tm.TestCase):
         assert_frame_equal(actual, expected)
 
         actual = grouped.filter(lambda x: len(x) > 4)
-        expected = df.ix[[]]
+        expected = df.loc[[]]
         assert_frame_equal(actual, expected)
 
         # Series have always worked properly, but we'll test anyway.
@@ -620,29 +617,3 @@ def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     expected = f(df.groupby(tups)[field])
     for k, v in compat.iteritems(expected):
         assert (result[k] == v)
-
-
-def test_decons():
-    from pandas.core.groupby import decons_group_index, get_group_index
-
-    def testit(label_list, shape):
-        group_index = get_group_index(label_list, shape, sort=True, xnull=True)
-        label_list2 = decons_group_index(group_index, shape)
-
-        for a, b in zip(label_list, label_list2):
-            assert (np.array_equal(a, b))
-
-    shape = (4, 5, 6)
-    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100), np.tile(
-        [0, 2, 4, 3, 0, 1, 2, 3], 100), np.tile(
-            [5, 1, 0, 2, 3, 0, 5, 4], 100)]
-    testit(label_list, shape)
-
-    shape = (10000, 10000)
-    label_list = [np.tile(np.arange(10000), 5), np.tile(np.arange(10000), 5)]
-    testit(label_list, shape)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure', '-s'
-                         ], exit=False)

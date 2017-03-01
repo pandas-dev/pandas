@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from pandas import compat
-import nose
 
 from distutils.version import LooseVersion
 from numpy import nan
@@ -14,7 +13,6 @@ import pandas.util.testing as tm
 
 
 class TestRank(tm.TestCase):
-    _multiprocess_can_split_ = True
     s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
     df = DataFrame({'A': s, 'B': s})
 
@@ -185,8 +183,3 @@ class TestRank(tm.TestCase):
         # smoke tests
         Series([np.nan] * 32).astype(object).rank(ascending=True)
         Series([np.nan] * 32).astype(object).rank(ascending=False)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -16,8 +16,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameConvertTo(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_to_dict(self):
         test_data = {
             'A': {'1': 1, '2': 2},
@@ -178,4 +176,19 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a')\
             .to_records()
         expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
+        tm.assert_almost_equal(result, expected)
+
+    def test_to_records_with_unicode_column_names(self):
+        # xref issue: https://github.com/numpy/numpy/issues/2407
+        # Issue #11879. to_records used to raise an exception when used
+        # with column names containing non ascii caracters in Python 2
+        result = DataFrame(data={u"accented_name_é": [1.0]}).to_records()
+
+        # Note that numpy allows for unicode field names but dtypes need
+        # to be specified using dictionnary intsead of list of tuples.
+        expected = np.rec.array(
+            [(0, 1.0)],
+            dtype={"names": ["index", u"accented_name_é"],
+                   "formats": ['<i8', '<f8']}
+        )
         tm.assert_almost_equal(result, expected)

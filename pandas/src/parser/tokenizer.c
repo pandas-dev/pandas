@@ -124,6 +124,7 @@ void parser_set_default_options(parser_t *self) {
     self->thousands = '\0';
 
     self->skipset = NULL;
+    self->skipfunc = NULL;
     self->skip_first_N_rows = -1;
     self->skip_footer = 0;
 }
@@ -591,9 +592,9 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     TRACE(                                                                    \
         ("PUSH_CHAR: Pushing %c, slen= %d, stream_cap=%zu, stream_len=%zu\n", \
          c, slen, self->stream_cap, self->stream_len))                        \
-    if (slen >= maxstreamsize) {                                              \
-        TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= maxstreamsize(%d)\n", slen,   \
-               maxstreamsize))                                                \
+    if (slen >= self->stream_cap) {                                           \
+        TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= stream_cap(%d)\n", slen,      \
+               self->stream_cap))                                             \
         int bufsize = 100;                                                    \
         self->error_msg = (char *)malloc(bufsize);                            \
         snprintf(self->error_msg, bufsize,                                    \
@@ -621,7 +622,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (int)line_limit) {  \
         goto linelimit;                                              \
     }
 
@@ -636,7 +637,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     stream = self->stream + self->stream_len;                        \
     slen = self->stream_len;                                         \
     self->state = STATE;                                             \
-    if (line_limit > 0 && self->lines == start_lines + line_limit) { \
+    if (line_limit > 0 && self->lines == start_lines + (int)line_limit) { \
         goto linelimit;                                              \
     }
 
@@ -679,7 +680,27 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     }
 
 int skip_this_line(parser_t *self, int64_t rownum) {
-    if (self->skipset != NULL) {
+    int should_skip;
+    PyObject *result;
+    PyGILState_STATE state;
+
+    if (self->skipfunc != NULL) {
+        state = PyGILState_Ensure();
+        result = PyObject_CallFunction(self->skipfunc, "i", rownum);
+
+        // Error occurred. It will be processed
+        // and caught at the Cython level.
+        if (result == NULL) {
+            should_skip = -1;
+        } else {
+            should_skip = PyObject_IsTrue(result);
+        }
+
+        Py_XDECREF(result);
+        PyGILState_Release(state);
+
+        return should_skip;
+    } else if (self->skipset != NULL) {
         return (kh_get_int64((kh_int64_t *)self->skipset, self->file_lines) !=
                 ((kh_int64_t *)self->skipset)->n_buckets);
     } else {
@@ -689,7 +710,7 @@ int skip_this_line(parser_t *self, int64_t rownum) {
 
 int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
     int i, slen;
-    long maxstreamsize;
+    int should_skip;
     char c;
     char *stream;
     char *buf = self->data + self->datapos;
@@ -701,7 +722,6 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
 
     stream = self->stream + self->stream_len;
     slen = self->stream_len;
-    maxstreamsize = self->stream_cap;
 
     TRACE(("%s\n", buf));
 
@@ -818,7 +838,11 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
 
             case START_RECORD:
                 // start of record
-                if (skip_this_line(self, self->file_lines)) {
+                should_skip = skip_this_line(self, self->file_lines);
+
+                if (should_skip == -1) {
+                    goto parsingerror;
+                } else if (should_skip) {
                     if (IS_QUOTE(c)) {
                         self->state = IN_QUOTED_FIELD_IN_SKIP_LINE;
                     } else {
@@ -1048,7 +1072,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int start_lines) {
                         --i;
                         buf--;  // let's try this character again (HACK!)
                         if (line_limit > 0 &&
-                            self->lines == start_lines + line_limit) {
+                            self->lines == start_lines + (int)line_limit) {
                             goto linelimit;
                         }
                     }
@@ -1136,7 +1160,7 @@ static int parser_handle_eof(parser_t *self) {
 int parser_consume_rows(parser_t *self, size_t nrows) {
     int i, offset, word_deletions, char_count;
 
-    if (nrows > self->lines) {
+    if ((int)nrows > self->lines) {
         nrows = self->lines;
     }
 
@@ -1173,7 +1197,7 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     self->word_start -= char_count;
 
     /* move line metadata */
-    for (i = 0; i < self->lines - nrows + 1; ++i) {
+    for (i = 0; i < self->lines - (int)nrows + 1; ++i) {
         offset = i + nrows;
         self->line_start[i] = self->line_start[offset] - word_deletions;
         self->line_fields[i] = self->line_fields[offset];
@@ -1200,7 +1224,7 @@ int parser_trim_buffers(parser_t *self) {
 
     /* trim words, word_starts */
     new_cap = _next_pow2(self->words_len) + 1;
-    if (new_cap < self->words_cap) {
+    if ((int)new_cap < self->words_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->words_cap\n"));
         newptr = safe_realloc((void *)self->words, new_cap * sizeof(char *));
         if (newptr == NULL) {
@@ -1223,7 +1247,7 @@ int parser_trim_buffers(parser_t *self) {
         ("parser_trim_buffers: new_cap = %zu, stream_cap = %zu, lines_cap = "
          "%zu\n",
          new_cap, self->stream_cap, self->lines_cap));
-    if (new_cap < self->stream_cap) {
+    if ((int)new_cap < self->stream_cap) {
         TRACE(
             ("parser_trim_buffers: new_cap < self->stream_cap, calling "
              "safe_realloc\n"));
@@ -1251,7 +1275,7 @@ int parser_trim_buffers(parser_t *self) {
 
     /* trim line_start, line_fields */
     new_cap = _next_pow2(self->lines) + 1;
-    if (new_cap < self->lines_cap) {
+    if ((int)new_cap < self->lines_cap) {
         TRACE(("parser_trim_buffers: new_cap < self->lines_cap\n"));
         newptr = safe_realloc((void *)self->line_start, new_cap * sizeof(int));
         if (newptr == NULL) {
@@ -1304,7 +1328,7 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         (int)nrows, self->datapos, self->datalen));
 
     while (1) {
-        if (!all && self->lines - start_lines >= nrows) break;
+        if (!all && self->lines - start_lines >= (int)nrows) break;
 
         if (self->datapos == self->datalen) {
             status = parser_buffer_bytes(self, self->chunksize);
@@ -1747,15 +1771,23 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing) {
-#if PY_VERSION_HEX >= 0x02070000
-    return PyOS_string_to_double(p, q, 0);
-#else
-    return strtod(p, q);
-#endif
+    double r = PyOS_string_to_double(p, q, 0);
+    PyErr_Clear();
+    return r;
 }
 
 // End of xstrtod code
 // ---------------------------------------------------------------------------
+
+void uint_state_init(uint_state *self) {
+    self->seen_sint = 0;
+    self->seen_uint = 0;
+    self->seen_null = 0;
+}
+
+int uint64_conflict(uint_state *self) {
+    return self->seen_uint && (self->seen_sint || self->seen_null);
+}
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep) {
@@ -1871,6 +1903,91 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     if (*p) {
         *error = ERROR_INVALID_CHARS;
         return 0;
+    }
+
+    *error = 0;
+    return number;
+}
+
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
+                       uint64_t uint_max, int *error, char tsep) {
+    const char *p = (const char *)p_item;
+    uint64_t pre_max = uint_max / 10;
+    int dig_pre_max = uint_max % 10;
+    uint64_t number = 0;
+    int d;
+
+    // Skip leading spaces.
+    while (isspace(*p)) {
+        ++p;
+    }
+
+    // Handle sign.
+    if (*p == '-') {
+        state->seen_sint = 1;
+        *error = 0;
+        return 0;
+    } else if (*p == '+') {
+        p++;
+    }
+
+    // Check that there is a first digit.
+    if (!isdigit(*p)) {
+        // Error...
+        *error = ERROR_NO_DIGITS;
+        return 0;
+    }
+
+    // If number is less than pre_max, at least one more digit
+    // can be processed without overflowing.
+    //
+    // Process the digits.
+    d = *p;
+    if (tsep != '\0') {
+        while (1) {
+            if (d == tsep) {
+                d = *++p;
+                continue;
+            } else if (!isdigit(d)) {
+                break;
+            }
+            if ((number < pre_max) ||
+                ((number == pre_max) && (d - '0' <= dig_pre_max))) {
+                number = number * 10 + (d - '0');
+                d = *++p;
+
+            } else {
+                *error = ERROR_OVERFLOW;
+                return 0;
+            }
+        }
+    } else {
+        while (isdigit(d)) {
+            if ((number < pre_max) ||
+                ((number == pre_max) && (d - '0' <= dig_pre_max))) {
+                number = number * 10 + (d - '0');
+                d = *++p;
+
+            } else {
+                *error = ERROR_OVERFLOW;
+                return 0;
+            }
+        }
+    }
+
+    // Skip trailing spaces.
+    while (isspace(*p)) {
+        ++p;
+    }
+
+    // Did we use up all the characters?
+    if (*p) {
+        *error = ERROR_INVALID_CHARS;
+        return 0;
+    }
+
+    if (number > (uint64_t)int_max) {
+        state->seen_uint = 1;
     }
 
     *error = 0;

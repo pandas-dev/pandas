@@ -272,7 +272,7 @@ class Panel(NDFrame):
             return self._getitem_multilevel(key)
         if not (is_list_like(key) or isinstance(key, slice)):
             return super(Panel, self).__getitem__(key)
-        return self.ix[key]
+        return self.loc[key]
 
     def _getitem_multilevel(self, key):
         info = self._info_axis
@@ -1282,7 +1282,7 @@ class Panel(NDFrame):
         -------
         joined : Panel
         """
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         if isinstance(other, Panel):
             join_major, join_minor = self._get_join_index(other, how)
@@ -1560,6 +1560,7 @@ Panel._add_numeric_operations()
 
 # legacy
 class WidePanel(Panel):
+
     def __init__(self, *args, **kwargs):
         # deprecation, #10892
         warnings.warn("WidePanel is deprecated. Please use Panel",
@@ -1569,6 +1570,7 @@ class WidePanel(Panel):
 
 
 class LongPanel(DataFrame):
+
     def __init__(self, *args, **kwargs):
         # deprecation, #10892
         warnings.warn("LongPanel is deprecated. Please use DataFrame",

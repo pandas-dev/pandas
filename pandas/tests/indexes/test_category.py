@@ -225,6 +225,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # change categories dtype
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('BAC'),
                                  ordered=False)
+
         def f(x):
             return {'A': 10, 'B': 20, 'C': 30}.get(x)
 
@@ -239,12 +240,22 @@ class TestCategoricalIndex(Base, tm.TestCase):
         expected = i
         tm.assert_index_equal(result, expected)
 
-        i2 = i.copy()
         i2 = pd.CategoricalIndex([np.nan, np.nan] + i[2:].tolist(),
                                  categories=i.categories)
         result = i.where(notnull(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
+
+    def test_where_array_like(self):
+        i = self.create_index()
+        cond = [False] + [True] * (len(i) - 1)
+        klasses = [list, tuple, np.array, pd.Series]
+        expected = pd.CategoricalIndex([np.nan] + i[1:].tolist(),
+                                       categories=i.categories)
+
+        for klass in klasses:
+            result = i.where(klass(cond))
+            tm.assert_index_equal(result, expected)
 
     def test_append(self):
 
@@ -360,7 +371,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
             expected = oidx.get_indexer_non_unique(finder)[0]
 
             actual = ci.get_indexer(finder)
-            tm.assert_numpy_array_equal(expected.values, actual, check_dtype=False)
+            tm.assert_numpy_array_equal(
+                expected.values, actual, check_dtype=False)
 
     def test_reindex_dtype(self):
         c = CategoricalIndex(['a', 'b', 'c', 'a'])
@@ -519,7 +531,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # GH12309
         # Must be tested separately from other indexes because
         # self.value is not an ndarray
-        _base = lambda ar : ar if ar.base is None else ar.base
+        _base = lambda ar: ar if ar.base is None else ar.base
         for index in self.indices.values():
             result = CategoricalIndex(index.values, copy=True)
             tm.assert_index_equal(index, result)

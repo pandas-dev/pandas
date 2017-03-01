@@ -7,7 +7,6 @@ include setup.py
 graft doc
 prune doc/build
 
-graft examples
 graft pandas
 
 global-exclude *.so

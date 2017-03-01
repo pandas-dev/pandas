@@ -8,12 +8,15 @@ from pandas.types.common import (is_dtype_equal, pandas_dtype,
                                  is_float_dtype, is_object_dtype,
                                  is_integer_dtype, is_scalar)
 from pandas.types.missing import isnull
-from pandas.core.common import _values_from_object
+from pandas.core.common import _asarray_tuplesafe, _values_from_object
 
 from pandas import compat
 from pandas.indexes.base import Index, InvalidIndexError, _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.indexes.base as ibase
+
+
+_num_index_shared_docs = dict()
 
 
 class NumericIndex(Index):
@@ -47,27 +50,8 @@ class NumericIndex(Index):
             name = data.name
         return cls._simple_new(subarr, name=name)
 
+    @Appender(_index_shared_docs['_maybe_cast_slice_bound'])
     def _maybe_cast_slice_bound(self, label, side, kind):
-        """
-        This function should be overloaded in subclasses that allow non-trivial
-        casting on label-slice bounds, e.g. datetime-like indices allowing
-        strings containing formatted datetimes.
-
-        Parameters
-        ----------
-        label : object
-        side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
-
-        Returns
-        -------
-        label :  object
-
-        Notes
-        -----
-        Value of `side` parameter should be validated in caller.
-
-        """
         assert kind in ['ix', 'loc', 'getitem', None]
 
         # we will try to coerce to integers
@@ -89,28 +73,45 @@ class NumericIndex(Index):
         """
         pass
 
+    @property
+    def is_all_dates(self):
+        """
+        Checks that all the labels are datetime objects
+        """
+        return False
 
-class Int64Index(NumericIndex):
-    """
+
+_num_index_shared_docs['class_descr'] = """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
-    storing axis labels for all pandas objects. Int64Index is a special case
-    of `Index` with purely integer labels. This is the default index type used
-    by the DataFrame and Series ctors when no explicit index is provided by the
-    user.
+    storing axis labels for all pandas objects. %(klass)s is a special case
+    of `Index` with purely %(ltype)s labels. %(extra)s
 
     Parameters
     ----------
     data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: int64)
+    dtype : NumPy dtype (default: %(dtype)s)
     copy : bool
         Make a copy of input ndarray
     name : object
         Name to be stored in the index
-
     Notes
     -----
-    An Index instance can **only** contain hashable objects
-    """
+    An Index instance can **only** contain hashable objects.
+"""
+
+_int64_descr_args = dict(
+    klass='Int64Index',
+    ltype='integer',
+    dtype='int64',
+    extra="""This is the default index type used
+    by the DataFrame and Series ctors when no explicit
+    index is provided by the user.
+"""
+)
+
+
+class Int64Index(NumericIndex):
+    __doc__ = _num_index_shared_docs['class_descr'] % _int64_descr_args
 
     _typ = 'int64index'
     _arrmap = _algos.arrmap_int64
@@ -134,23 +135,8 @@ class Int64Index(NumericIndex):
         # do not cache or you'll create a memory leak
         return self.values.view('i8')
 
-    @property
-    def is_all_dates(self):
-        """
-        Checks that all the labels are datetime objects
-        """
-        return False
-
+    @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
-        """
-        convert a scalar indexer
-
-        Parameters
-        ----------
-        key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem'} or None
-        """
-
         assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
 
         # don't coerce ilocs to integers
@@ -168,34 +154,105 @@ class Int64Index(NumericIndex):
         """
         Ensure incoming data can be represented as ints.
         """
-        if not issubclass(data.dtype.type, np.integer):
+        if not issubclass(data.dtype.type, np.signedinteger):
             if not np.array_equal(data, subarr):
                 raise TypeError('Unsafe NumPy casting, you must '
                                 'explicitly cast')
 
+
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
 
+_uint64_descr_args = dict(
+    klass='UInt64Index',
+    ltype='unsigned integer',
+    dtype='uint64',
+    extra=''
+)
+
+
+class UInt64Index(NumericIndex):
+    __doc__ = _num_index_shared_docs['class_descr'] % _uint64_descr_args
+
+    _typ = 'uint64index'
+    _arrmap = _algos.arrmap_uint64
+    _left_indexer_unique = _join.left_join_indexer_unique_uint64
+    _left_indexer = _join.left_join_indexer_uint64
+    _inner_indexer = _join.inner_join_indexer_uint64
+    _outer_indexer = _join.outer_join_indexer_uint64
+
+    _can_hold_na = False
+    _na_value = 0
+
+    _engine_type = _index.UInt64Engine
+
+    _default_dtype = np.uint64
+
+    @property
+    def inferred_type(self):
+        return 'integer'
+
+    @property
+    def asi8(self):
+        # do not cache or you'll create a memory leak
+        return self.values.view('u8')
+
+    @Appender(_index_shared_docs['_convert_scalar_indexer'])
+    def _convert_scalar_indexer(self, key, kind=None):
+        assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
+
+        # don't coerce ilocs to integers
+        if kind != 'iloc':
+            key = self._maybe_cast_indexer(key)
+        return (super(UInt64Index, self)
+                ._convert_scalar_indexer(key, kind=kind))
+
+    @Appender(_index_shared_docs['_convert_arr_indexer'])
+    def _convert_arr_indexer(self, keyarr):
+        # Cast the indexer to uint64 if possible so
+        # that the values returned from indexing are
+        # also uint64.
+        if is_integer_dtype(keyarr):
+            return _asarray_tuplesafe(keyarr, dtype=np.uint64)
+        return keyarr
+
+    @Appender(_index_shared_docs['_convert_index_indexer'])
+    def _convert_index_indexer(self, keyarr):
+        # Cast the indexer to uint64 if possible so
+        # that the values returned from indexing are
+        # also uint64.
+        if keyarr.is_integer():
+            return keyarr.astype(np.uint64)
+        return keyarr
+
+    def _wrap_joined_index(self, joined, other):
+        name = self.name if self.name == other.name else None
+        return UInt64Index(joined, name=name)
+
+    @classmethod
+    def _assert_safe_casting(cls, data, subarr):
+        """
+        Ensure incoming data can be represented as uints.
+        """
+        if not issubclass(data.dtype.type, np.unsignedinteger):
+            if not np.array_equal(data, subarr):
+                raise TypeError('Unsafe NumPy casting, you must '
+                                'explicitly cast')
+
+
+UInt64Index._add_numeric_methods()
+UInt64Index._add_logical_methods()
+
+_float64_descr_args = dict(
+    klass='Float64Index',
+    dtype='float64',
+    ltype='float',
+    extra=''
+)
+
 
 class Float64Index(NumericIndex):
-    """
-    Immutable ndarray implementing an ordered, sliceable set. The basic object
-    storing axis labels for all pandas objects. Float64Index is a special case
-    of `Index` with purely floating point labels.
-
-    Parameters
-    ----------
-    data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: object)
-    copy : bool
-        Make a copy of input ndarray
-    name : object
-        Name to be stored in the index
-
-    Notes
-    -----
-    An Float64Index instance can **only** contain hashable objects
-    """
+    __doc__ = _num_index_shared_docs['class_descr'] % _float64_descr_args
 
     _typ = 'float64index'
     _engine_type = _index.Float64Engine
@@ -228,16 +285,8 @@ class Float64Index(NumericIndex):
                             self.__class__)
         return Index(values, name=self.name, dtype=dtype)
 
+    @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
-        """
-        convert a scalar indexer
-
-        Parameters
-        ----------
-        key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem'} or None
-        """
-
         assert kind in ['ix', 'loc', 'getitem', 'iloc', None]
 
         if kind == 'iloc':
@@ -245,17 +294,8 @@ class Float64Index(NumericIndex):
 
         return key
 
+    @Appender(_index_shared_docs['_convert_slice_indexer'])
     def _convert_slice_indexer(self, key, kind=None):
-        """
-        convert a slice indexer, by definition these are labels
-        unless we are iloc
-
-        Parameters
-        ----------
-        key : label of the slice bound
-        kind : optional, type of the indexing operation (loc/ix/iloc/None)
-        """
-
         # if we are not a slice, then we are done
         if not isinstance(key, slice):
             return key
@@ -325,6 +365,7 @@ class Float64Index(NumericIndex):
         except:
             return False
 
+    @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
         try:
             if np.all(np.isnan(key)):
@@ -340,13 +381,6 @@ class Float64Index(NumericIndex):
         return super(Float64Index, self).get_loc(key, method=method,
                                                  tolerance=tolerance)
 
-    @property
-    def is_all_dates(self):
-        """
-        Checks that all the labels are datetime objects
-        """
-        return False
-
     @cache_readonly
     def is_unique(self):
         return super(Float64Index, self).is_unique and self._nan_idxs.size < 2
@@ -358,6 +392,7 @@ class Float64Index(NumericIndex):
             self._validate_index_level(level)
         return lib.ismember_nans(np.array(self), value_set,
                                  isnull(list(value_set)).any())
+
 
 Float64Index._add_numeric_methods()
 Float64Index._add_logical_methods_disabled()

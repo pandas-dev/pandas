@@ -118,8 +118,6 @@ class SharedWithSparse(object):
 
 class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_tab_completion(self):
         # GH 9910
         s = Series(list('abcd'))
@@ -343,3 +341,10 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         s = Series(range(5))
         with self.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
             s.str.repeat(2)
+
+    def test_empty_method(self):
+        s_empty = pd.Series()
+        tm.assert_equal(s_empty.empty, True)
+
+        for full_series in [pd.Series([1]), pd.Series(index=[1])]:
+            tm.assert_equal(full_series.empty, False)

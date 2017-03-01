@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-
+import pytest
 from pandas.compat import range, lrange
 import numpy as np
 
-from pandas import DataFrame, Series, Index
+from pandas import DataFrame, Series, Index, MultiIndex
 
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
@@ -20,8 +20,6 @@ from pandas.tests.frame.common import TestData
 
 
 class TestDataFrameMutateColumns(tm.TestCase, TestData):
-
-    _multiprocess_can_split_ = True
 
     def test_assign(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
@@ -166,6 +164,31 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
     def test_delitem(self):
         del self.frame['A']
         self.assertNotIn('A', self.frame)
+
+    def test_delitem_multiindex(self):
+        midx = MultiIndex.from_product([['A', 'B'], [1, 2]])
+        df = DataFrame(np.random.randn(4, 4), columns=midx)
+        assert len(df.columns) == 4
+        assert ('A', ) in df.columns
+        assert 'A' in df.columns
+
+        result = df['A']
+        assert isinstance(result, DataFrame)
+        del df['A']
+
+        assert len(df.columns) == 2
+
+        # A still in the levels, BUT get a KeyError if trying
+        # to delete
+        assert ('A', ) not in df.columns
+        with pytest.raises(KeyError):
+            del df[('A',)]
+
+        # xref: https://github.com/pandas-dev/pandas/issues/2770
+        # the 'A' is STILL in the columns!
+        assert 'A' in df.columns
+        with pytest.raises(KeyError):
+            del df['A']
 
     def test_pop(self):
         self.frame.columns.name = 'baz'

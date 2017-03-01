@@ -461,7 +461,7 @@ C (cpplint)
 
 *pandas* uses the `Google <https://google.github.io/styleguide/cppguide.html>`_
 standard. Google provides an open source style checker called ``cpplint``, but we
-use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`_.
+use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`__.
 Here are *some* of the more common ``cpplint`` issues:
 
   - we restrict line-length to 80 characters to promote readability
@@ -479,7 +479,7 @@ You can also run this command on an entire directory if necessary::
 
 To make your commits compliant with this standard, you can install the
 `ClangFormat <http://clang.llvm.org/docs/ClangFormat.html>`_ tool, which can be
-downloaded `here <http://llvm.org/builds/>`_. To configure, in your home directory,
+downloaded `here <http://llvm.org/builds/>`__. To configure, in your home directory,
 run the following command::
 
     clang-format style=google -dump-config  > .clang-format
@@ -520,15 +520,6 @@ submitting code to run the check yourself on the diff::
 
    git diff master | flake8 --diff
 
-Furthermore, we've written a tool to check that your commits are PEP8 great, `pip install pep8radius
-<https://github.com/hayd/pep8radius>`_. Look at PEP8 fixes in your branch vs master with::
-
-    pep8radius master --diff
-
-and make these changes with::
-
-    pep8radius master --diff --in-place
-
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -552,8 +543,8 @@ use cases and writing corresponding tests.
 Adding tests is one of the most common requests after code is pushed to *pandas*.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
-Like many packages, *pandas* uses the `Nose testing system
-<https://nose.readthedocs.io/en/latest/index.html>`_ and the convenient
+Like many packages, *pandas* uses `pytest
+<http://doc.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
@@ -595,17 +586,45 @@ Running the test suite
 The tests can then be run directly inside your Git clone (without having to
 install *pandas*) by typing::
 
-    nosetests pandas
+    pytest pandas
 
 The tests suite is exhaustive and takes around 20 minutes to run.  Often it is
 worth running only a subset of tests first around your changes before running the
-entire suite.  This is done using one of the following constructs::
+entire suite.
 
-    nosetests pandas/tests/[test-module].py
-    nosetests pandas/tests/[test-module].py:[TestClass]
-    nosetests pandas/tests/[test-module].py:[TestClass].[test_method]
+The easiest way to do this is with::
 
-  .. versionadded:: 0.18.0
+    pytest pandas/path/to/test.py -k regex_matching_test_name
+
+Or with one of the following constructs::
+
+    pytest pandas/tests/[test-module].py
+    pytest pandas/tests/[test-module].py::[TestClass]
+    pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
+
+Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can 
+speed up local testing on multicore machines. To use this feature, you will
+need to install `pytest-xdist` via::
+
+    pip install pytest-xdist
+    
+Two scripts are provided to assist with this.  These scripts distribute 
+testing across 4 threads.
+
+On Unix variants, one can type::
+
+    test_fast.sh
+    
+On Windows, one can type::
+
+    test_fast.bat
+    
+This can significantly reduce the time it takes to locally run tests before
+submitting a pull request.
+
+For more, see the `pytest <http://doc.pytest.org/en/latest/>`_ documentation.
+
+    .. versionadded:: 0.20.0
 
 Furthermore one can run
 
@@ -726,7 +745,7 @@ gbq integration tests on a forked repository:
    the status by visiting your Travis branches page which exists at the
    following location: https://travis-ci.org/your-user-name/pandas/branches .
    Click on a build job for your branch. Expand the following line in the
-   build log: ``ci/print_skipped.py /tmp/nosetests.xml`` . Search for the
+   build log: ``ci/print_skipped.py /tmp/pytest.xml`` . Search for the
    term ``test_gbq`` and confirm that gbq integration tests are not skipped.
 
 Running the vbench performance test suite (phasing out)

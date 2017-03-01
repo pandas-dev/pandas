@@ -2,10 +2,8 @@
 
 
 from pandas.types.common import is_list_like, is_scalar
-from pandas import Series, DataFrame
-from pandas.core.index import MultiIndex, Index
+from pandas import Series, DataFrame, MultiIndex, Index, concat
 from pandas.core.groupby import Grouper
-from pandas.tools.merge import concat
 from pandas.tools.util import cartesian_product
 from pandas.compat import range, lrange, zip
 from pandas import compat
@@ -158,10 +156,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
             pass  # it's a single level or a series
 
     if isinstance(table, DataFrame):
-        if isinstance(table.columns, MultiIndex):
-            table = table.sortlevel(axis=1)
-        else:
-            table = table.sort_index(axis=1)
+        table = table.sort_index(axis=1)
 
     if fill_value is not None:
         table = table.fillna(value=fill_value, downcast='infer')

@@ -16,6 +16,8 @@ def create_pandas_abc_type(name, attr, comp):
 ABCIndex = create_pandas_abc_type("ABCIndex", "_typ", ("index", ))
 ABCInt64Index = create_pandas_abc_type("ABCInt64Index", "_typ",
                                        ("int64index", ))
+ABCUInt64Index = create_pandas_abc_type("ABCUInt64Index", "_typ",
+                                        ("uint64index", ))
 ABCRangeIndex = create_pandas_abc_type("ABCRangeIndex", "_typ",
                                        ("rangeindex", ))
 ABCFloat64Index = create_pandas_abc_type("ABCFloat64Index", "_typ",
@@ -32,7 +34,7 @@ ABCCategoricalIndex = create_pandas_abc_type("ABCCategoricalIndex", "_typ",
                                              ("categoricalindex", ))
 ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ",
                                        ("index", "int64index", "rangeindex",
-                                        "float64index",
+                                        "float64index", "uint64index",
                                         "multiindex", "datetimeindex",
                                         "timedeltaindex", "periodindex",
                                         "categoricalindex"))
@@ -51,7 +53,9 @@ ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period", ))
 
 
 class _ABCGeneric(type):
+
     def __instancecheck__(cls, inst):
         return hasattr(inst, "_data")
+
 
 ABCGeneric = _ABCGeneric("ABCGeneric", tuple(), {})

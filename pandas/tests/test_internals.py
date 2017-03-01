@@ -3,7 +3,7 @@
 
 from datetime import datetime, date
 
-import nose
+import pytest
 import numpy as np
 
 import re
@@ -182,8 +182,6 @@ def create_mgr(descr, item_shape=None):
 
 class TestBlock(tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def setUp(self):
         # self.fblock = get_float_ex()  # a,c,e
         # self.cblock = get_complex_ex() #
@@ -278,7 +276,7 @@ class TestBlock(tm.TestCase):
 
         # with dup column support this method was taken out
         # GH3679
-        raise nose.SkipTest("skipping for now")
+        pytest.skip("skipping for now")
 
         bs = list(self.fblock.split_block_at('a'))
         self.assertEqual(len(bs), 1)
@@ -299,7 +297,6 @@ class TestBlock(tm.TestCase):
 
 
 class TestDatetimeBlock(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_try_coerce_arg(self):
         block = create_block('datetime', [0])
@@ -318,7 +315,6 @@ class TestDatetimeBlock(tm.TestCase):
 
 
 class TestBlockManager(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def setUp(self):
         self.mgr = create_mgr(
@@ -553,7 +549,7 @@ class TestBlockManager(tm.TestCase):
                          'e: f4; f: f2; g: f8')
         for t in ['float16', 'float32', 'float64', 'int32', 'int64']:
             t = np.dtype(t)
-            tmgr = mgr.astype(t, raise_on_error=False)
+            tmgr = mgr.astype(t, errors='ignore')
             self.assertEqual(tmgr.get('c').dtype.type, t)
             self.assertEqual(tmgr.get('e').dtype.type, t)
             self.assertEqual(tmgr.get('f').dtype.type, t)
@@ -822,7 +818,7 @@ class TestBlockManager(tm.TestCase):
     def test_missing_unicode_key(self):
         df = DataFrame({"a": [1]})
         try:
-            df.ix[:, u("\u05d0")]  # should not raise UnicodeEncodeError
+            df.loc[:, u("\u05d0")]  # should not raise UnicodeEncodeError
         except KeyError:
             pass  # this is the expected exception
 
@@ -858,6 +854,14 @@ class TestBlockManager(tm.TestCase):
     def test_single_mgr_ctor(self):
         mgr = create_single_mgr('f8', num_rows=5)
         self.assertEqual(mgr.as_matrix().tolist(), [0., 1., 2., 3., 4.])
+
+    def test_validate_bool_args(self):
+        invalid_values = [1, "True", [1, 2, 3], 5.0]
+        bm1 = create_mgr('a,b,c: i8-1; d,e,f: i8-2')
+
+        for value in invalid_values:
+            with self.assertRaises(ValueError):
+                bm1.replace_list([1], [2], inplace=value)
 
 
 class TestIndexing(object):
@@ -1049,7 +1053,6 @@ class TestIndexing(object):
 
 
 class TestBlockPlacement(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_slice_len(self):
         self.assertEqual(len(BlockPlacement(slice(0, 4))), 4)
@@ -1180,8 +1183,3 @@ class TestBlockPlacement(tm.TestCase):
                           lambda: BlockPlacement([1, 2, 4]).add(-10))
         self.assertRaises(ValueError,
                           lambda: BlockPlacement(slice(2, None, -1)).add(-1))
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

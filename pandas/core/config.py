@@ -215,6 +215,7 @@ class DictWrapper(object):
 
 
 class CallableDynamicDoc(object):
+
     def __init__(self, func, doc_tmpl):
         self.__doc_tmpl__ = doc_tmpl
         self.__func__ = func
@@ -746,8 +747,8 @@ def is_type_factory(_type):
 
     Returns
     -------
-    validator - a function of a single argument x , which returns the
-                True if type(x) is equal to `_type`
+    validator - a function of a single argument x , which raises
+                ValueError if type(x) is not equal to `_type`
 
     """
 
@@ -767,8 +768,8 @@ def is_instance_factory(_type):
 
     Returns
     -------
-    validator - a function of a single argument x , which returns the
-                True if x is an instance of `_type`
+    validator - a function of a single argument x , which raises
+                ValueError if x is not an instance of `_type`
 
     """
     if isinstance(_type, (tuple, list)):
@@ -802,6 +803,7 @@ def is_one_of_factory(legal_values):
                 raise ValueError(msg)
 
     return inner
+
 
 # common type validators, for convenience
 # usage: register_option(... , validator = is_int)

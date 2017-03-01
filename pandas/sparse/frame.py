@@ -571,8 +571,8 @@ class SparseDataFrame(DataFrame):
             new_series, index=index, columns=self.columns,
             default_fill_value=self._default_fill_value).__finalize__(self)
 
-    def _reindex_columns(self, columns, copy, level, fill_value, limit=None,
-                         takeable=False):
+    def _reindex_columns(self, columns, method, copy, level, fill_value=None,
+                         limit=None, takeable=False):
         if level is not None:
             raise TypeError('Reindex by level not supported for sparse')
 
@@ -581,6 +581,9 @@ class SparseDataFrame(DataFrame):
 
         if limit:
             raise NotImplementedError("'limit' argument is not supported")
+
+        if method is not None:
+            raise NotImplementedError("'method' argument is not supported")
 
         # TODO: fill value handling
         sdict = dict((k, v) for k, v in compat.iteritems(self) if k in columns)
@@ -813,7 +816,7 @@ def stack_sparse_frame(frame):
 
     lp = DataFrame(stacked_values.reshape((nobs, 1)), index=index,
                    columns=['foo'])
-    return lp.sortlevel(level=0)
+    return lp.sort_index(level=0)
 
 
 def homogenize(series_dict):
@@ -859,6 +862,7 @@ def homogenize(series_dict):
         output = series_dict
 
     return output
+
 
 # use unaccelerated ops for sparse objects
 ops.add_flex_arithmetic_methods(SparseDataFrame, use_numexpr=False,

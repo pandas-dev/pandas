@@ -33,6 +33,3 @@ class IntervalIndex(Index):
 
     def dtype(self):
         return self.values.dtype
-
-if __name__ == '__main__':
-    pass

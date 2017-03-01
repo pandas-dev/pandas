@@ -16,6 +16,7 @@ class _DeprecatedModule(object):
     removals : objects or methods in module that will no longer be
                accessible once module is removed.
     """
+
     def __init__(self, deprmod, removals=None):
         self.deprmod = deprmod
         self.removals = removals

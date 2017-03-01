@@ -8,9 +8,7 @@ import string
 from numpy import nan
 import numpy as np
 
-from pandas import Series
-from pandas.tseries.index import Timestamp
-from pandas.tseries.tdi import Timedelta
+from pandas import Series, Timestamp, Timedelta, DataFrame, date_range
 
 from pandas.compat import lrange, range, u
 from pandas import compat
@@ -21,8 +19,6 @@ from .common import TestData
 
 
 class TestSeriesDtypes(TestData, tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_astype(self):
         s = Series(np.random.randn(5), name='foo')
@@ -168,3 +164,37 @@ class TestSeriesDtypes(TestData, tm.TestCase):
         b.real = np.arange(5) + 5
         tm.assert_numpy_array_equal(a + 5, b.real)
         tm.assert_numpy_array_equal(4 * a, b.imag)
+
+    def test_arg_for_errors_in_astype(self):
+        # issue #14878
+
+        sr = Series([1, 2, 3])
+
+        with self.assertRaises(ValueError):
+            sr.astype(np.float64, errors=False)
+
+        with tm.assert_produces_warning(FutureWarning):
+            sr.astype(np.int8, raise_on_error=True)
+
+        sr.astype(np.int8, errors='raise')
+
+    def test_intercept_astype_object(self):
+        series = Series(date_range('1/1/2000', periods=10))
+
+        # this test no longer makes sense as series is by default already
+        # M8[ns]
+        expected = series.astype('object')
+
+        df = DataFrame({'a': series,
+                        'b': np.random.randn(len(series))})
+        exp_dtypes = Series([np.dtype('datetime64[ns]'),
+                             np.dtype('float64')], index=['a', 'b'])
+        tm.assert_series_equal(df.dtypes, exp_dtypes)
+
+        result = df.values.squeeze()
+        self.assertTrue((result[:, 0] == expected.values).all())
+
+        df = DataFrame({'a': series, 'b': ['foo'] * len(series)})
+
+        result = df.values.squeeze()
+        self.assertTrue((result[:, 0] == expected.values).all())

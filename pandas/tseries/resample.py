@@ -221,7 +221,7 @@ class Resampler(_GroupBy):
         -------
         obj : converted object
         """
-        obj = obj.consolidate()
+        obj = obj._consolidate()
         return obj
 
     def _get_binner_for_time(self):
@@ -319,10 +319,11 @@ class Resampler(_GroupBy):
         self._set_binner()
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
-            return self._groupby_and_aggregate(arg,
-                                               *args,
-                                               **kwargs)
+            result = self._groupby_and_aggregate(arg,
+                                                 *args,
+                                                 **kwargs)
 
+        result = self._apply_loffset(result)
         return result
 
     agg = aggregate
@@ -352,7 +353,7 @@ class Resampler(_GroupBy):
     def _downsample(self, f):
         raise AbstractMethodError(self)
 
-    def _upsample(self, f, limit=None):
+    def _upsample(self, f, limit=None, fill_value=None):
         raise AbstractMethodError(self)
 
     def _gotitem(self, key, ndim, subset=None):
@@ -381,7 +382,7 @@ class Resampler(_GroupBy):
             return grouped
 
     def _groupby_and_aggregate(self, how, grouper=None, *args, **kwargs):
-        """ revaluate the obj with a groupby aggregation """
+        """ re-evaluate the obj with a groupby aggregation """
 
         if grouper is None:
             self._set_binner()
@@ -405,23 +406,31 @@ class Resampler(_GroupBy):
             result = grouped.apply(how, *args, **kwargs)
 
         result = self._apply_loffset(result)
-
         return self._wrap_result(result)
 
     def _apply_loffset(self, result):
-        """if loffset if set, offset the result index"""
-        loffset = self.loffset
-        if isinstance(loffset, compat.string_types):
-            loffset = to_offset(self.loffset)
+        """
+        if loffset is set, offset the result index
+
+        This is NOT an idempotent routine, it will be applied
+        exactly once to the result.
+
+        Parameters
+        ----------
+        result : Series or DataFrame
+            the result of resample
+        """
 
         needs_offset = (
-            isinstance(loffset, (DateOffset, timedelta)) and
+            isinstance(self.loffset, (DateOffset, timedelta)) and
             isinstance(result.index, DatetimeIndex) and
             len(result.index) > 0
         )
-        if needs_offset:
-            result.index = result.index + loffset
 
+        if needs_offset:
+            result.index = result.index + self.loffset
+
+        self.loffset = None
         return result
 
     def _get_resampler_for_grouping(self, groupby, **kwargs):
@@ -432,6 +441,7 @@ class Resampler(_GroupBy):
         """ potentially wrap any results """
         if isinstance(result, com.ABCSeries) and self._selection is not None:
             result.name = self._selection
+
         return result
 
     def pad(self, limit=None):
@@ -499,12 +509,25 @@ class Resampler(_GroupBy):
                                   limit_direction=limit_direction,
                                   downcast=downcast, **kwargs)
 
-    def asfreq(self):
+    def asfreq(self, fill_value=None):
         """
         return the values at the new freq,
-        essentially a reindex with (no filling)
+        essentially a reindex
+
+        Parameters
+        ----------
+        fill_value: scalar, optional
+            Value to use for missing values, applied during upsampling (note
+            this does not fill NaNs that already were present).
+
+            .. versionadded:: 0.20.0
+
+        See Also
+        --------
+        Series.asfreq
+        DataFrame.asfreq
         """
-        return self._upsample('asfreq')
+        return self._upsample('asfreq', fill_value=fill_value)
 
     def std(self, ddof=1, *args, **kwargs):
         """
@@ -529,6 +552,8 @@ class Resampler(_GroupBy):
         """
         nv.validate_resampler_func('var', args, kwargs)
         return self._downsample('var', ddof=ddof)
+
+
 Resampler._deprecated_valids += dir(Resampler)
 
 # downsample methods
@@ -693,7 +718,6 @@ class DatetimeIndexResampler(Resampler):
             self.grouper, axis=self.axis).aggregate(how, **kwargs)
 
         result = self._apply_loffset(result)
-
         return self._wrap_result(result)
 
     def _adjust_binner_for_upsample(self, binner):
@@ -704,12 +728,14 @@ class DatetimeIndexResampler(Resampler):
             binner = binner[:-1]
         return binner
 
-    def _upsample(self, method, limit=None):
+    def _upsample(self, method, limit=None, fill_value=None):
         """
         method : string {'backfill', 'bfill', 'pad',
             'ffill', 'asfreq'} method for upsampling
         limit : int, default None
             Maximum size gap to fill when reindexing
+        fill_value : scalar, default None
+            Value to use for missing values
 
         See also
         --------
@@ -736,7 +762,7 @@ class DatetimeIndexResampler(Resampler):
             result.index = res_index
         else:
             result = obj.reindex(res_index, method=method,
-                                 limit=limit)
+                                 limit=limit, fill_value=fill_value)
 
         return self._wrap_result(result)
 
@@ -797,6 +823,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if result is None:
             result = self._downsample(arg, *args, **kwargs)
 
+        result = self._apply_loffset(result)
         return result
 
     agg = aggregate
@@ -855,12 +882,14 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             'Frequency {} cannot be resampled to {}, as they are not '
             'sub or super periods'.format(ax.freq, self.freq))
 
-    def _upsample(self, method, limit=None):
+    def _upsample(self, method, limit=None, fill_value=None):
         """
         method : string {'backfill', 'bfill', 'pad', 'ffill'}
             method for upsampling
         limit : int, default None
             Maximum size gap to fill when reindexing
+        fill_value : scalar, default None
+            Value to use for missing values
 
         See also
         --------
@@ -874,8 +903,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                              " datetime-like")
         # we may need to actually resample as if we are timestamps
         if self.kind == 'timestamp':
-            return super(PeriodIndexResampler, self)._upsample(method,
-                                                               limit=limit)
+            return super(PeriodIndexResampler, self)._upsample(
+                method, limit=limit, fill_value=fill_value)
 
         ax = self.ax
         obj = self.obj
@@ -942,12 +971,18 @@ def resample(obj, kind=None, **kwds):
     """ create a TimeGrouper and return our resampler """
     tg = TimeGrouper(**kwds)
     return tg._get_resampler(obj, kind=kind)
+
+
 resample.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(groupby, rule, how=None, fill_method=None,
                                limit=None, kind=None, **kwargs):
     """ return our appropriate resampler when grouping as well """
+
+    # .resample uses 'on' similar to how .groupby uses 'key'
+    kwargs['key'] = kwargs.pop('on', None)
+
     tg = TimeGrouper(freq=rule, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
     r = resampler._get_resampler_for_grouping(groupby=groupby)
@@ -1004,7 +1039,10 @@ class TimeGrouper(Grouper):
         self.convention = convention or 'E'
         self.convention = self.convention.lower()
 
+        if isinstance(loffset, compat.string_types):
+            loffset = to_offset(loffset)
         self.loffset = loffset
+
         self.how = how
         self.fill_method = fill_method
         self.limit = limit
@@ -1333,7 +1371,7 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
             Timestamp(lresult).tz_localize(last_tzinfo, ambiguous=last_dst))
 
 
-def asfreq(obj, freq, method=None, how=None, normalize=False):
+def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
     """
     Utility frequency conversion method for Series/DataFrame
     """
@@ -1353,7 +1391,7 @@ def asfreq(obj, freq, method=None, how=None, normalize=False):
             return obj.copy()
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
         dti.name = obj.index.name
-        rs = obj.reindex(dti, method=method)
+        rs = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:
             rs.index = rs.index.normalize()
         return rs

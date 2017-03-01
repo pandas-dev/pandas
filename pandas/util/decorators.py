@@ -1,9 +1,10 @@
 from pandas.compat import StringIO, callable, signature
 from pandas.lib import cache_readonly  # noqa
+import types
 import sys
 import warnings
 from textwrap import dedent
-from functools import wraps
+from functools import wraps, update_wrapper
 
 
 def deprecate(name, alternative, alt_name=None):
@@ -125,6 +126,7 @@ class Substitution(object):
     def some_function(x):
         "%s %s wrote the Raven"
     """
+
     def __init__(self, *args, **kwargs):
         if (args and kwargs):
             raise AssertionError("Only positional or keyword args are allowed")
@@ -171,6 +173,7 @@ class Appender(object):
         "This docstring will have a copyright below"
         pass
     """
+
     def __init__(self, addendum, join='', indents=0):
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)
@@ -204,65 +207,6 @@ def suppress_stdout(f):
     return wrapped
 
 
-class KnownFailureTest(Exception):
-    """Raise this exception to mark a test as a known failing test."""
-    pass
-
-
-def knownfailureif(fail_condition, msg=None):
-    """
-    Make function raise KnownFailureTest exception if given condition is true.
-
-    If the condition is a callable, it is used at runtime to dynamically
-    make the decision. This is useful for tests that may require costly
-    imports, to delay the cost until the test suite is actually executed.
-
-    Parameters
-    ----------
-    fail_condition : bool or callable
-        Flag to determine whether to mark the decorated test as a known
-        failure (if True) or not (if False).
-    msg : str, optional
-        Message to give on raising a KnownFailureTest exception.
-        Default is None.
-
-    Returns
-    -------
-    decorator : function
-        Decorator, which, when applied to a function, causes SkipTest
-        to be raised when `skip_condition` is True, and the function
-        to be called normally otherwise.
-
-    Notes
-    -----
-    The decorator itself is decorated with the ``nose.tools.make_decorator``
-    function in order to transmit function name, and various other metadata.
-
-    """
-    if msg is None:
-        msg = 'Test skipped due to known failure'
-
-    # Allow for both boolean or callable known failure conditions.
-    if callable(fail_condition):
-        fail_val = fail_condition
-    else:
-        fail_val = lambda: fail_condition
-
-    def knownfail_decorator(f):
-        # Local import to avoid a hard nose dependency and only incur the
-        # import time overhead at actual test-time.
-        import nose
-
-        def knownfailer(*args, **kwargs):
-            if fail_val():
-                raise KnownFailureTest(msg)
-            else:
-                return f(*args, **kwargs)
-        return nose.tools.make_decorator(f)(knownfailer)
-
-    return knownfail_decorator
-
-
 def make_signature(func):
     """
     Returns a string repr of the arg list of a func call, with any defaults
@@ -290,3 +234,43 @@ def make_signature(func):
     if spec.keywords:
         args.append('**' + spec.keywords)
     return args, spec.args
+
+
+class docstring_wrapper(object):
+    """
+    decorator to wrap a function,
+    provide a dynamically evaluated doc-string
+
+    Parameters
+    ----------
+    func : callable
+    creator : callable
+        return the doc-string
+    default : str, optional
+        return this doc-string on error
+    """
+    _attrs = ['__module__', '__name__',
+              '__qualname__', '__annotations__']
+
+    def __init__(self, func, creator, default=None):
+        self.func = func
+        self.creator = creator
+        self.default = default
+        update_wrapper(
+            self, func, [attr for attr in self._attrs
+                         if hasattr(func, attr)])
+
+    def __get__(self, instance, cls=None):
+        # we want to return the actual passed instance
+        return types.MethodType(self, instance)
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    @property
+    def __doc__(self):
+        try:
+            return self.creator()
+        except Exception as exc:
+            msg = self.default or str(exc)
+            return msg

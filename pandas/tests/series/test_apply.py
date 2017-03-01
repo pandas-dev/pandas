@@ -15,8 +15,6 @@ from .common import TestData
 
 class TestSeriesApply(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_apply(self):
         with np.errstate(all='ignore'):
             assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
@@ -140,8 +138,6 @@ class TestSeriesApply(TestData, tm.TestCase):
 
 
 class TestSeriesMap(TestData, tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_map(self):
         index, data = tm.getMixedTypeDict()

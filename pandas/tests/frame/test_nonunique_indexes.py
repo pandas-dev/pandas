@@ -19,8 +19,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_column_dups_operations(self):
 
         def check(result, expected=None):
@@ -89,7 +87,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         check(df, expected)
 
         # consolidate
-        df = df.consolidate()
+        df = df._consolidate()
         expected = DataFrame([[1, 1, 'bah', 3], [1, 2, 'bah', 3],
                               [2, 3, 'bah', 3]],
                              columns=['foo', 'foo', 'string', 'foo2'])
@@ -353,13 +351,13 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
                        index=['a', 'b', 'c', 'd', 'e'],
                        columns=['A', 'B', 'C', 'D', 'E'])
         z = df[['A', 'C', 'A']].copy()
-        expected = z.ix[['a', 'c', 'a']]
+        expected = z.loc[['a', 'c', 'a']]
 
         df = DataFrame(np.arange(25.).reshape(5, 5),
                        index=['a', 'b', 'c', 'd', 'e'],
                        columns=['A', 'B', 'C', 'D', 'E'])
         z = df[['A', 'C', 'A']]
-        result = z.ix[['a', 'c', 'a']]
+        result = z.loc[['a', 'c', 'a']]
         check(result, expected)
 
     def test_column_dups_indexing2(self):

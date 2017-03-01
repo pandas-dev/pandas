@@ -11,6 +11,7 @@ from pandas.computation.expr import Expr, _parsers, tokenize_string
 from pandas.computation.scope import _ensure_scope
 from pandas.compat import string_types
 from pandas.computation.engines import _engines
+from pandas.util.validators import validate_bool_kwarg
 
 
 def _check_engine(engine):
@@ -231,10 +232,11 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
     pandas.DataFrame.query
     pandas.DataFrame.eval
     """
+    inplace = validate_bool_kwarg(inplace, 'inplace')
     first_expr = True
     if isinstance(expr, string_types):
         _check_expression(expr)
-        exprs = [e for e in expr.splitlines() if e != '']
+        exprs = [e.strip() for e in expr.splitlines() if e.strip() != '']
     else:
         exprs = [expr]
     multi_line = len(exprs) > 1
@@ -252,8 +254,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
         _check_for_locals(expr, level, parser)
 
         # get our (possibly passed-in) scope
-        level += 1
-        env = _ensure_scope(level, global_dict=global_dict,
+        env = _ensure_scope(level + 1, global_dict=global_dict,
                             local_dict=local_dict, resolvers=resolvers,
                             target=target)
 

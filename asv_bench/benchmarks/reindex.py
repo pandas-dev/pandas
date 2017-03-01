@@ -16,8 +16,8 @@ class Reindexing(object):
                              data=np.random.rand(10000, 30), columns=range(30))
 
         # multi-index
-        N = 1000
-        K = 20
+        N = 5000
+        K = 200
         level1 = tm.makeStringIndex(N).values.repeat(K)
         level2 = np.tile(tm.makeStringIndex(K).values, N)
         index = MultiIndex.from_arrays([level1, level2])

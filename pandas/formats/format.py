@@ -89,6 +89,7 @@ docstring_to_string = common_docstring + justify_docstring + return_docstring
 
 
 class CategoricalFormatter(object):
+
     def __init__(self, categorical, buf=None, length=True, na_rep='NaN',
                  footer=True):
         self.categorical = categorical
@@ -142,6 +143,7 @@ class CategoricalFormatter(object):
 
 
 class SeriesFormatter(object):
+
     def __init__(self, series, buf=None, length=True, header=True, index=True,
                  na_rep='NaN', name=False, float_format=None, dtype=True,
                  max_rows=None):
@@ -163,7 +165,7 @@ class SeriesFormatter(object):
         self._chk_truncate()
 
     def _chk_truncate(self):
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
         max_rows = self.max_rows
         truncate_v = max_rows and (len(self.series) > max_rows)
         series = self.series
@@ -272,6 +274,7 @@ class SeriesFormatter(object):
 
 
 class TextAdjustment(object):
+
     def __init__(self):
         self.encoding = get_option("display.encoding")
 
@@ -287,6 +290,7 @@ class TextAdjustment(object):
 
 
 class EastAsianTextAdjustment(TextAdjustment):
+
     def __init__(self):
         super(EastAsianTextAdjustment, self).__init__()
         if get_option("display.unicode.ambiguous_as_wide"):
@@ -402,7 +406,7 @@ class DataFrameFormatter(TableFormatter):
         Checks whether the frame should be truncated. If so, slices
         the frame up.
         """
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
 
         # Column of which first element is used to determine width of a dot col
         self.tr_size_col = -1
@@ -1182,7 +1186,7 @@ class HTMLFormatter(TableFormatter):
             else:
                 self._write_regular_rows(fmt_values, indent)
         else:
-            for i in range(len(self.frame)):
+            for i in range(min(len(self.frame), self.max_rows)):
                 row = [fmt_values[j][i] for j in range(len(self.columns))]
                 self.write_tr(row, indent, self.indent_delta, tags=None)
 
@@ -1248,6 +1252,7 @@ class HTMLFormatter(TableFormatter):
                 # Insert ... row and adjust idx_values and
                 # level_lengths to take this into account.
                 ins_row = self.fmt.tr_row_num
+                inserted = False
                 for lnum, records in enumerate(level_lengths):
                     rec_new = {}
                     for tag, span in list(records.items()):
@@ -1255,9 +1260,17 @@ class HTMLFormatter(TableFormatter):
                             rec_new[tag + 1] = span
                         elif tag + span > ins_row:
                             rec_new[tag] = span + 1
-                            dot_row = list(idx_values[ins_row - 1])
-                            dot_row[-1] = u('...')
-                            idx_values.insert(ins_row, tuple(dot_row))
+
+                            # GH 14882 - Make sure insertion done once
+                            if not inserted:
+                                dot_row = list(idx_values[ins_row - 1])
+                                dot_row[-1] = u('...')
+                                idx_values.insert(ins_row, tuple(dot_row))
+                                inserted = True
+                            else:
+                                dot_row = list(idx_values[ins_row])
+                                dot_row[inner_lvl - lnum] = u('...')
+                                idx_values[ins_row] = tuple(dot_row)
                         else:
                             rec_new[tag] = span
                         # If ins_row lies between tags, all cols idx cols
@@ -1267,6 +1280,12 @@ class HTMLFormatter(TableFormatter):
                             if lnum == 0:
                                 idx_values.insert(ins_row, tuple(
                                     [u('...')] * len(level_lengths)))
+
+                            # GH 14882 - Place ... in correct level
+                            elif inserted:
+                                dot_row = list(idx_values[ins_row])
+                                dot_row[inner_lvl - lnum] = u('...')
+                                idx_values[ins_row] = tuple(dot_row)
                     level_lengths[lnum] = rec_new
 
                 level_lengths[inner_lvl][ins_row] = 1
@@ -1351,6 +1370,7 @@ def _get_level_lengths(levels, sentinel=''):
 
 
 class CSVFormatter(object):
+
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, mode='w', nanRep=None, encoding=None,
@@ -1546,7 +1566,7 @@ class CSVFormatter(object):
                     if isinstance(index_label, list) and len(index_label) > 1:
                         col_line.extend([''] * (len(index_label) - 1))
 
-                col_line.extend(columns.get_level_values(i))
+                col_line.extend(columns._get_level_values(i))
 
                 writer.writerow(col_line)
 
@@ -1935,6 +1955,7 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
 
 
 class GenericArrayFormatter(object):
+
     def __init__(self, values, digits=7, formatter=None, na_rep='NaN',
                  space=12, float_format=None, justify='right', decimal='.',
                  quoting=None, fixed_width=True):
@@ -2136,6 +2157,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 
 class IntArrayFormatter(GenericArrayFormatter):
+
     def _format_strings(self):
         formatter = self.formatter or (lambda x: '% d' % x)
         fmt_values = [formatter(x) for x in self.values]
@@ -2143,6 +2165,7 @@ class IntArrayFormatter(GenericArrayFormatter):
 
 
 class Datetime64Formatter(GenericArrayFormatter):
+
     def __init__(self, values, nat_rep='NaT', date_format=None, **kwargs):
         super(Datetime64Formatter, self).__init__(values, **kwargs)
         self.nat_rep = nat_rep
@@ -2168,6 +2191,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 
 
 class PeriodArrayFormatter(IntArrayFormatter):
+
     def _format_strings(self):
         from pandas.tseries.period import IncompatibleFrequency
         try:
@@ -2182,6 +2206,7 @@ class PeriodArrayFormatter(IntArrayFormatter):
 
 
 class CategoricalArrayFormatter(GenericArrayFormatter):
+
     def __init__(self, values, *args, **kwargs):
         GenericArrayFormatter.__init__(self, values, *args, **kwargs)
 
@@ -2313,6 +2338,7 @@ def _get_format_datetime64_from_values(values, date_format):
 
 
 class Datetime64TZFormatter(Datetime64Formatter):
+
     def _format_strings(self):
         """ we by definition have a TZ """
 
@@ -2327,6 +2353,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
 
 
 class Timedelta64Formatter(GenericArrayFormatter):
+
     def __init__(self, values, nat_rep='NaT', box=False, **kwargs):
         super(Timedelta64Formatter, self).__init__(values, **kwargs)
         self.nat_rep = nat_rep
@@ -2452,9 +2479,9 @@ def _has_names(index):
     else:
         return index.name is not None
 
+
 # -----------------------------------------------------------------------------
 # Global formatting options
-
 _initial_defencoding = None
 
 
@@ -2664,17 +2691,3 @@ def _binify(cols, line_width):
 
     bins.append(len(cols))
     return bins
-
-
-if __name__ == '__main__':
-    arr = np.array([746.03, 0.00, 5620.00, 1592.36])
-    # arr = np.array([11111111.1, 1.55])
-    # arr = [314200.0034, 1.4125678]
-    arr = np.array(
-        [327763.3119, 345040.9076, 364460.9915, 398226.8688, 383800.5172,
-         433442.9262, 539415.0568, 568590.4108, 599502.4276, 620921.8593,
-         620898.5294, 552427.1093, 555221.2193, 519639.7059, 388175.7,
-         379199.5854, 614898.25, 504833.3333, 560600., 941214.2857, 1134250.,
-         1219550., 855736.85, 1042615.4286, 722621.3043, 698167.1818, 803750.])
-    fmt = FloatArrayFormatter(arr, digits=7)
-    print(fmt.get_result())

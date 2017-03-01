@@ -693,7 +693,8 @@ class ExcelWriter(object):
         pass
 
     @abc.abstractmethod
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         """
         Write given formated cells into Excel an excel sheet
 
@@ -705,6 +706,8 @@ class ExcelWriter(object):
             Name of Excel sheet, if None, then use self.cur_sheet
         startrow: upper left cell row to dump data frame
         startcol: upper left cell column to dump data frame
+        freeze_panes: integer tuple of length 2
+            contains the bottom-most row and right-most column to freeze
         """
         pass
 
@@ -788,9 +791,15 @@ class _Openpyxl1Writer(ExcelWriter):
 
         # Create workbook object with default optimized_write=True.
         self.book = Workbook()
+
         # Openpyxl 1.6.1 adds a dummy sheet. We remove it.
         if self.book.worksheets:
-            self.book.remove_sheet(self.book.worksheets[0])
+            try:
+                self.book.remove(self.book.worksheets[0])
+            except AttributeError:
+
+                # compat
+                self.book.remove_sheet(self.book.worksheets[0])
 
     def save(self):
         """
@@ -798,7 +807,8 @@ class _Openpyxl1Writer(ExcelWriter):
         """
         return self.book.save(self.path)
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using openpyxl.
         from openpyxl.cell import get_column_letter
 
@@ -880,11 +890,13 @@ class _Openpyxl1Writer(ExcelWriter):
 
         return xls_style
 
+
 register_writer(_Openpyxl1Writer)
 
 
 class _OpenpyxlWriter(_Openpyxl1Writer):
     engine = 'openpyxl'
+
 
 register_writer(_OpenpyxlWriter)
 
@@ -896,7 +908,8 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
     engine = 'openpyxl20'
     openpyxl_majorver = 2
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using openpyxl.
         from openpyxl.cell import get_column_letter
 
@@ -911,7 +924,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
 
         for cell in cells:
             colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
+            xcell = wks["%s%s" % (colletter, startrow + cell.row + 1)]
             xcell.value = _conv_value(cell.val)
             style_kwargs = {}
 
@@ -952,7 +965,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
                                 # Ignore first cell. It is already handled.
                                 continue
                             colletter = get_column_letter(col)
-                            xcell = wks.cell("%s%s" % (colletter, row))
+                            xcell = wks["%s%s" % (colletter, row)]
                             xcell.style = xcell.style.copy(**style_kwargs)
 
     @classmethod
@@ -1303,7 +1316,8 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
     engine = 'openpyxl22'
     openpyxl_majorver = 2
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
 
@@ -1315,6 +1329,10 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             wks = self.book.create_sheet()
             wks.title = sheet_name
             self.sheets[sheet_name] = wks
+
+        if freeze_panes is not None:
+            wks.freeze_panes = wks.cell(row=freeze_panes[0] + 1,
+                                        column=freeze_panes[1] + 1)
 
         for cell in cells:
             xcell = wks.cell(
@@ -1362,6 +1380,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
 
+
 register_writer(_Openpyxl22Writer)
 
 
@@ -1387,7 +1406,8 @@ class _XlwtWriter(ExcelWriter):
         """
         return self.book.save(self.path)
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using xlwt.
 
         sheet_name = self._get_sheet_name(sheet_name)
@@ -1397,6 +1417,11 @@ class _XlwtWriter(ExcelWriter):
         else:
             wks = self.book.add_sheet(sheet_name)
             self.sheets[sheet_name] = wks
+
+        if freeze_panes is not None:
+            wks.set_panes_frozen(True)
+            wks.set_horz_split_pos(freeze_panes[0])
+            wks.set_vert_split_pos(freeze_panes[1])
 
         style_dict = {}
 
@@ -1485,6 +1510,7 @@ class _XlwtWriter(ExcelWriter):
 
         return style
 
+
 register_writer(_XlwtWriter)
 
 
@@ -1508,11 +1534,12 @@ class _XlsxWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
+
         return self.book.close()
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0):
+    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
+                    freeze_panes=None):
         # Write the frame cells using xlsxwriter.
-
         sheet_name = self._get_sheet_name(sheet_name)
 
         if sheet_name in self.sheets:
@@ -1522,6 +1549,9 @@ class _XlsxWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         style_dict = {}
+
+        if freeze_panes is not None:
+            wks.freeze_panes(*(freeze_panes))
 
         for cell in cells:
             val = _conv_value(cell.val)
@@ -1596,5 +1626,6 @@ class _XlsxWriter(ExcelWriter):
             xl_format.set_border()
 
         return xl_format
+
 
 register_writer(_XlsxWriter)

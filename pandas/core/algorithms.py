@@ -366,9 +366,6 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     if isinstance(values, Index):
         uniques = values._shallow_copy(uniques, name=None)
     elif isinstance(values, Series):
-        # TODO: This constructor is bugged for uint's, especially
-        # np.uint64 due to overflow. Test this for uint behavior
-        # once constructor has been fixed.
         uniques = Index(uniques)
     return labels, uniques
 
@@ -477,9 +474,12 @@ def _value_counts_arraylike(values, dropna=True):
         if is_period_type:
             keys = PeriodIndex._simple_new(keys, freq=freq)
 
-    elif is_integer_dtype(dtype):
+    elif is_signed_integer_dtype(dtype):
         values = _ensure_int64(values)
         keys, counts = htable.value_count_int64(values, dropna)
+    elif is_unsigned_integer_dtype(dtype):
+        values = _ensure_uint64(values)
+        keys, counts = htable.value_count_uint64(values, dropna)
     elif is_float_dtype(dtype):
         values = _ensure_float64(values)
         keys, counts = htable.value_count_float64(values, dropna)
@@ -926,6 +926,7 @@ def _finalize_nsmallest(arr, kth_val, n, keep, narr):
     else:
         return inds
 
+
 _dtype_map = {'datetime64[ns]': 'int64', 'timedelta64[ns]': 'int64'}
 
 
@@ -959,6 +960,7 @@ def _hashtable_algo(f, values, return_dtype=None):
     # use Object
     return f(htable.PyObjectHashTable, _ensure_object)
 
+
 _hashtables = {
     'float64': (htable.Float64HashTable, htable.Float64Vector),
     'uint64': (htable.UInt64HashTable, htable.UInt64Vector),
@@ -971,6 +973,10 @@ _hashtables = {
 def _get_data_algo(values, func_map):
 
     f = None
+
+    if is_categorical_dtype(values):
+        values = values._values_for_rank()
+
     if is_float_dtype(values):
         f = func_map['float64']
         values = _ensure_float64(values)
@@ -986,7 +992,6 @@ def _get_data_algo(values, func_map):
     elif is_unsigned_integer_dtype(values):
         f = func_map['uint64']
         values = _ensure_uint64(values)
-
     else:
         values = _ensure_object(values)
 
@@ -1250,7 +1255,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = _ensure_int64(indexer)
+        indexer = _ensure_int64(indexer, copy=False)
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()
             mask_info = None, False
@@ -1303,7 +1308,6 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     func = _get_take_nd_function(arr.ndim, arr.dtype, out.dtype, axis=axis,
                                  mask_info=mask_info)
-    indexer = _ensure_int64(indexer)
     func(arr, indexer, out, fill_value)
 
     if flip_order:

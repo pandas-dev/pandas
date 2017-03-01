@@ -149,6 +149,7 @@ def _mpl_ge_2_0_0():
     except ImportError:
         return False
 
+
 if _mpl_ge_1_5_0():
     # Compat with mp 1.5, which uses cycler.
     import cycler
@@ -1780,7 +1781,7 @@ class LinePlot(MPLPlot):
 
         lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
         # set date formatter, locators and rescale limits
-        format_dateaxis(ax, ax.freq)
+        format_dateaxis(ax, ax.freq, data.index)
         return lines
 
     def _get_stacking_id(self):
@@ -2768,10 +2769,12 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
         keys = [pprint_thing(x) for x in keys]
         values = [remove_na(v) for v in values]
         bp = ax.boxplot(values, **kwds)
+        if fontsize is not None:
+            ax.tick_params(axis='both', labelsize=fontsize)
         if kwds.get('vert', 1):
-            ax.set_xticklabels(keys, rotation=rot, fontsize=fontsize)
+            ax.set_xticklabels(keys, rotation=rot)
         else:
-            ax.set_yticklabels(keys, rotation=rot, fontsize=fontsize)
+            ax.set_yticklabels(keys, rotation=rot)
         maybe_color_bp(bp)
 
         # Return axes in multiplot case, maybe revisit later # 985
@@ -3133,7 +3136,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1,
                             right=0.9, wspace=0.2)
     else:
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
         keys, frames = zip(*grouped)
         if grouped.axis == 0:
             df = concat(frames, keys=keys, axis=1)
@@ -4001,28 +4004,3 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
-
-
-if __name__ == '__main__':
-    # import pandas.rpy.common as com
-    # sales = com.load_data('sanfrancisco.home.sales', package='nutshell')
-    # top10 = sales['zip'].value_counts()[:10].index
-    # sales2 = sales[sales.zip.isin(top10)]
-    # _ = scatter_plot(sales2, 'squarefeet', 'price', by='zip')
-
-    # plt.show()
-
-    import matplotlib.pyplot as plt
-
-    import pandas.tools.plotting as plots
-    import pandas.core.frame as fr
-    reload(plots)  # noqa
-    reload(fr)  # noqa
-    from pandas.core.frame import DataFrame
-
-    data = DataFrame([[3, 6, -5], [4, 8, 2], [4, 9, -6],
-                      [4, 9, -3], [2, 5, -1]],
-                     columns=['A', 'B', 'C'])
-    data.plot(kind='barh', stacked=True)
-
-    plt.show()

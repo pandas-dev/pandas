@@ -4,7 +4,7 @@
 from itertools import product
 from distutils.version import LooseVersion
 
-import nose
+import pytest
 
 from numpy import nan
 import numpy as np
@@ -29,8 +29,6 @@ from .common import TestData
 
 
 class TestSeriesAnalytics(TestData, tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_sum_zero(self):
         arr = np.array([])
@@ -478,8 +476,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assert_series_equal(expected, result)
 
     def test_npdiff(self):
-        raise nose.SkipTest("skipping due to Series no longer being an "
-                            "ndarray")
+        pytest.skip("skipping due to Series no longer being an "
+                    "ndarray")
 
         # no longer works as the return type of np.diff is now nd.array
         s = Series(np.arange(5))
@@ -624,7 +622,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
     def test_built_in_round(self):
         if not compat.PY3:
-            raise nose.SkipTest(
+            pytest.skip(
                 'build in round cannot be overriden prior to Python 3')
 
         s = Series([1.123, 2.123, 3.123], index=lrange(3))
@@ -787,8 +785,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         # these methods got rewritten in 0.8
         if scipy.__version__ < LooseVersion('0.9'):
-            raise nose.SkipTest("skipping corr rank because of scipy version "
-                                "{0}".format(scipy.__version__))
+            pytest.skip("skipping corr rank because of scipy version "
+                        "{0}".format(scipy.__version__))
 
         # results from R
         A = Series(
@@ -1033,7 +1031,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         rng = date_range('1/1/1990', periods=5)
         iseries = Series(np.arange(5), rng) + 1
-        iseries.ix[4] = np.nan
+        iseries.iloc[4] = np.nan
         exp = iseries / 4.0
         iranks = iseries.rank(pct=True)
         assert_series_equal(iranks, exp)
@@ -1059,14 +1057,92 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         iranks = iseries.rank()
         assert_series_equal(iranks, exp)
 
+    def test_rank_categorical(self):
+        # GH issue #15420 rank incorrectly orders ordered categories
+
+        # Test ascending/descending ranking for ordered categoricals
+        exp = pd.Series([1., 2., 3., 4., 5., 6.])
+        exp_desc = pd.Series([6., 5., 4., 3., 2., 1.])
+        ordered = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
+        ).astype('category', ).cat.set_categories(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+            ordered=True
+        )
+        assert_series_equal(ordered.rank(), exp)
+        assert_series_equal(ordered.rank(ascending=False), exp_desc)
+
+        # Unordered categoricals should be ranked as objects
+        unordered = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+        ).astype('category').cat.set_categories(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+            ordered=False
+        )
+        exp_unordered = pd.Series([2., 4., 6., 3., 1., 5.])
+        res = unordered.rank()
+        assert_series_equal(res, exp_unordered)
+
+        # Test na_option for rank data
+        na_ser = pd.Series(
+            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN]
+        ).astype('category', ).cat.set_categories(
+            [
+                'first', 'second', 'third', 'fourth',
+                'fifth', 'sixth', 'seventh'
+            ],
+            ordered=True
+        )
+
+        exp_top = pd.Series([2., 3., 4., 5., 6., 7., 1.])
+        exp_bot = pd.Series([1., 2., 3., 4., 5., 6., 7.])
+        exp_keep = pd.Series([1., 2., 3., 4., 5., 6., np.NaN])
+
+        assert_series_equal(na_ser.rank(na_option='top'), exp_top)
+        assert_series_equal(na_ser.rank(na_option='bottom'), exp_bot)
+        assert_series_equal(na_ser.rank(na_option='keep'), exp_keep)
+
+        # Test na_option for rank data with ascending False
+        exp_top = pd.Series([7., 6., 5., 4., 3., 2., 1.])
+        exp_bot = pd.Series([6., 5., 4., 3., 2., 1., 7.])
+        exp_keep = pd.Series([6., 5., 4., 3., 2., 1., np.NaN])
+
+        assert_series_equal(
+            na_ser.rank(na_option='top', ascending=False),
+            exp_top
+        )
+        assert_series_equal(
+            na_ser.rank(na_option='bottom', ascending=False),
+            exp_bot
+        )
+        assert_series_equal(
+            na_ser.rank(na_option='keep', ascending=False),
+            exp_keep
+        )
+
+        # Test with pct=True
+        na_ser = pd.Series(
+            ['first', 'second', 'third', 'fourth', np.NaN],
+        ).astype('category').cat.set_categories(
+            ['first', 'second', 'third', 'fourth'],
+            ordered=True
+        )
+        exp_top = pd.Series([0.4, 0.6, 0.8, 1., 0.2])
+        exp_bot = pd.Series([0.2, 0.4, 0.6, 0.8, 1.])
+        exp_keep = pd.Series([0.25, 0.5, 0.75, 1., np.NaN])
+
+        assert_series_equal(na_ser.rank(na_option='top', pct=True), exp_top)
+        assert_series_equal(na_ser.rank(na_option='bottom', pct=True), exp_bot)
+        assert_series_equal(na_ser.rank(na_option='keep', pct=True), exp_keep)
+
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')
         self.assertRaises(ValueError, s.rank, 'average')
 
     def test_rank_inf(self):
-        raise nose.SkipTest('DataFrame.rank does not currently rank '
-                            'np.inf and -np.inf properly')
+        pytest.skip('DataFrame.rank does not currently rank '
+                    'np.inf and -np.inf properly')
 
         values = np.array(
             [-np.inf, -50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10,
@@ -1595,21 +1671,21 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = s.sort_values().head(3)
         assert_series_equal(result, expected)
 
-    def test_sortlevel(self):
+    def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         s = Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
 
-        res = s.sortlevel('A')
+        res = s.sort_index(level='A')
         assert_series_equal(backwards, res)
 
-        res = s.sortlevel(['A', 'B'])
+        res = s.sort_index(level=['A', 'B'])
         assert_series_equal(backwards, res)
 
-        res = s.sortlevel('A', sort_remaining=False)
+        res = s.sort_index(level='A', sort_remaining=False)
         assert_series_equal(s, res)
 
-        res = s.sortlevel(['A', 'B'], sort_remaining=False)
+        res = s.sort_index(level=['A', 'B'], sort_remaining=False)
         assert_series_equal(s, res)
 
     def test_apply_categorical(self):
@@ -1738,7 +1814,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series(np.random.randn(6), index=index)
         exp_index = MultiIndex(levels=[['one', 'two', 'three'], [0, 1]],
                                labels=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]])
-        expected = DataFrame({'bar': s.values}, index=exp_index).sortlevel(0)
+        expected = DataFrame({'bar': s.values},
+                             index=exp_index).sort_index(level=0)
         unstacked = s.unstack(0)
         assert_frame_equal(unstacked, expected)
 

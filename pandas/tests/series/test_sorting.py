@@ -13,8 +13,6 @@ from .common import TestData
 
 class TestSeriesSorting(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_sort(self):
 
         ts = self.ts.copy()
@@ -23,6 +21,8 @@ class TestSeriesSorting(TestData, tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             ts.sort()  # sorts inplace
         self.assert_series_equal(ts, self.ts.sort_values())
+        with tm.assert_produces_warning(FutureWarning):
+            ts.sortlevel()
 
     def test_order(self):
 

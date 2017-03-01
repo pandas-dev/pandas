@@ -58,7 +58,7 @@ def cartesian_product(X):
     if len(X) == 0:
         return []
 
-    lenX = np.fromiter((len(x) for x in X), dtype=int)
+    lenX = np.fromiter((len(x) for x in X), dtype=np.intp)
     cumprodX = np.cumproduct(lenX)
 
     a = np.roll(cumprodX, 1)
@@ -225,7 +225,7 @@ def to_numeric(arg, errors='raise', downcast=None):
         if typecodes is not None:
             # from smallest to largest
             for dtype in typecodes:
-                if np.dtype(dtype).itemsize < values.dtype.itemsize:
+                if np.dtype(dtype).itemsize <= values.dtype.itemsize:
                     values = _possibly_downcast_to_dtype(
                         values, dtype)
 

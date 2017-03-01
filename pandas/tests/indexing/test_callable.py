@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
-import nose
 
 import numpy as np
 import pandas as pd
@@ -8,8 +7,6 @@ import pandas.util.testing as tm
 
 
 class TestIndexingCallable(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_frame_loc_ix_callable(self):
         # GH 11485
@@ -21,51 +18,51 @@ class TestIndexingCallable(tm.TestCase):
         res = df.loc[lambda x: x.A > 2]
         tm.assert_frame_equal(res, df.loc[df.A > 2])
 
-        res = df.ix[lambda x: x.A > 2]
-        tm.assert_frame_equal(res, df.ix[df.A > 2])
+        res = df.loc[lambda x: x.A > 2]
+        tm.assert_frame_equal(res, df.loc[df.A > 2])
 
         res = df.loc[lambda x: x.A > 2, ]
         tm.assert_frame_equal(res, df.loc[df.A > 2, ])
 
-        res = df.ix[lambda x: x.A > 2, ]
-        tm.assert_frame_equal(res, df.ix[df.A > 2, ])
+        res = df.loc[lambda x: x.A > 2, ]
+        tm.assert_frame_equal(res, df.loc[df.A > 2, ])
 
         res = df.loc[lambda x: x.B == 'b', :]
         tm.assert_frame_equal(res, df.loc[df.B == 'b', :])
 
-        res = df.ix[lambda x: x.B == 'b', :]
-        tm.assert_frame_equal(res, df.ix[df.B == 'b', :])
+        res = df.loc[lambda x: x.B == 'b', :]
+        tm.assert_frame_equal(res, df.loc[df.B == 'b', :])
 
         res = df.loc[lambda x: x.A > 2, lambda x: x.columns == 'B']
         tm.assert_frame_equal(res, df.loc[df.A > 2, [False, True, False]])
 
-        res = df.ix[lambda x: x.A > 2, lambda x: x.columns == 'B']
-        tm.assert_frame_equal(res, df.ix[df.A > 2, [False, True, False]])
+        res = df.loc[lambda x: x.A > 2, lambda x: x.columns == 'B']
+        tm.assert_frame_equal(res, df.loc[df.A > 2, [False, True, False]])
 
         res = df.loc[lambda x: x.A > 2, lambda x: 'B']
         tm.assert_series_equal(res, df.loc[df.A > 2, 'B'])
 
-        res = df.ix[lambda x: x.A > 2, lambda x: 'B']
-        tm.assert_series_equal(res, df.ix[df.A > 2, 'B'])
+        res = df.loc[lambda x: x.A > 2, lambda x: 'B']
+        tm.assert_series_equal(res, df.loc[df.A > 2, 'B'])
 
         res = df.loc[lambda x: x.A > 2, lambda x: ['A', 'B']]
         tm.assert_frame_equal(res, df.loc[df.A > 2, ['A', 'B']])
 
-        res = df.ix[lambda x: x.A > 2, lambda x: ['A', 'B']]
-        tm.assert_frame_equal(res, df.ix[df.A > 2, ['A', 'B']])
+        res = df.loc[lambda x: x.A > 2, lambda x: ['A', 'B']]
+        tm.assert_frame_equal(res, df.loc[df.A > 2, ['A', 'B']])
 
         res = df.loc[lambda x: x.A == 2, lambda x: ['A', 'B']]
         tm.assert_frame_equal(res, df.loc[df.A == 2, ['A', 'B']])
 
-        res = df.ix[lambda x: x.A == 2, lambda x: ['A', 'B']]
-        tm.assert_frame_equal(res, df.ix[df.A == 2, ['A', 'B']])
+        res = df.loc[lambda x: x.A == 2, lambda x: ['A', 'B']]
+        tm.assert_frame_equal(res, df.loc[df.A == 2, ['A', 'B']])
 
         # scalar
         res = df.loc[lambda x: 1, lambda x: 'A']
         self.assertEqual(res, df.loc[1, 'A'])
 
-        res = df.ix[lambda x: 1, lambda x: 'A']
-        self.assertEqual(res, df.ix[1, 'A'])
+        res = df.loc[lambda x: 1, lambda x: 'A']
+        self.assertEqual(res, df.loc[1, 'A'])
 
     def test_frame_loc_ix_callable_mixture(self):
         # GH 11485
@@ -75,20 +72,20 @@ class TestIndexingCallable(tm.TestCase):
         res = df.loc[lambda x: x.A > 2, ['A', 'B']]
         tm.assert_frame_equal(res, df.loc[df.A > 2, ['A', 'B']])
 
-        res = df.ix[lambda x: x.A > 2, ['A', 'B']]
-        tm.assert_frame_equal(res, df.ix[df.A > 2, ['A', 'B']])
+        res = df.loc[lambda x: x.A > 2, ['A', 'B']]
+        tm.assert_frame_equal(res, df.loc[df.A > 2, ['A', 'B']])
 
         res = df.loc[[2, 3], lambda x: ['A', 'B']]
         tm.assert_frame_equal(res, df.loc[[2, 3], ['A', 'B']])
 
-        res = df.ix[[2, 3], lambda x: ['A', 'B']]
-        tm.assert_frame_equal(res, df.ix[[2, 3], ['A', 'B']])
+        res = df.loc[[2, 3], lambda x: ['A', 'B']]
+        tm.assert_frame_equal(res, df.loc[[2, 3], ['A', 'B']])
 
         res = df.loc[3, lambda x: ['A', 'B']]
         tm.assert_series_equal(res, df.loc[3, ['A', 'B']])
 
-        res = df.ix[3, lambda x: ['A', 'B']]
-        tm.assert_series_equal(res, df.ix[3, ['A', 'B']])
+        res = df.loc[3, lambda x: ['A', 'B']]
+        tm.assert_series_equal(res, df.loc[3, ['A', 'B']])
 
     def test_frame_loc_callable(self):
         # GH 11485
@@ -268,8 +265,3 @@ class TestIndexingCallable(tm.TestCase):
         exp = df.copy()
         exp.iloc[[1, 3], [0]] = [-5, -5]
         tm.assert_frame_equal(res, exp)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

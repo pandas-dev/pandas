@@ -1652,6 +1652,7 @@ class WeekDay(object):
     SAT = 5
     SUN = 6
 
+
 _int_to_weekday = {
     WeekDay.MON: 'MON',
     WeekDay.TUE: 'TUE',
@@ -1923,6 +1924,7 @@ class BQuarterEnd(QuarterOffset):
             return False
         modMonth = (dt.month - self.startingMonth) % 3
         return BMonthEnd().onOffset(dt) and modMonth == 0
+
 
 _int_to_month = tslib._MONTH_ALIASES
 _month_to_int = dict((v, k) for k, v in _int_to_month.items())
@@ -2710,6 +2712,9 @@ class Tick(SingleConstructorOffset):
             return self.apply(other)
         except ApplyTypeError:
             return NotImplemented
+        except OverflowError:
+            raise OverflowError("the add operation between {} and {} "
+                                "will overflow".format(self, other))
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
@@ -2748,14 +2753,26 @@ class Tick(SingleConstructorOffset):
 
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
-        if isinstance(other, (datetime, np.datetime64, date)):
+        if isinstance(other, Timestamp):
+
+            # GH 15126
+            # in order to avoid a recursive
+            # call of __add__ and __radd__ if there is
+            # an exception, when we call using the + operator,
+            # we directly call the known method
+            result = other.__add__(self)
+            if result == NotImplemented:
+                raise OverflowError
+            return result
+        elif isinstance(other, (datetime, np.datetime64, date)):
             return as_timestamp(other) + self
+
         if isinstance(other, timedelta):
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
-        else:
-            raise ApplyTypeError('Unhandled type: %s' % type(other).__name__)
+
+        raise ApplyTypeError('Unhandled type: %s' % type(other).__name__)
 
     _prefix = 'undefined'
 
@@ -2783,6 +2800,7 @@ def _delta_to_tick(delta):
             return Micro(nanos // 1000)
         else:  # pragma: no cover
             return Nano(nanos)
+
 
 _delta_to_nanoseconds = tslib._delta_to_nanoseconds
 
@@ -2915,6 +2933,7 @@ def generate_range(start=None, end=None, periods=None,
             if next_date >= cur:
                 raise ValueError('Offset %s did not decrement date' % offset)
             cur = next_date
+
 
 prefix_mapping = dict((offset._prefix, offset) for offset in [
     YearBegin,                 # 'AS'

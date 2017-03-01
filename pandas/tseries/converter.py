@@ -212,7 +212,7 @@ class DatetimeConverter(dates.DateConverter):
             try:
                 values = tools.to_datetime(values)
                 if isinstance(values, Index):
-                    values = values.map(_dt_to_float_ordinal)
+                    values = _dt_to_float_ordinal(values)
                 else:
                     values = [_dt_to_float_ordinal(x) for x in values]
             except Exception:
@@ -1000,3 +1000,33 @@ class TimeSeries_DateFormatter(Formatter):
         else:
             fmt = self.formatdict.pop(x, '')
             return Period(ordinal=int(x), freq=self.freq).strftime(fmt)
+
+
+class TimeSeries_TimedeltaFormatter(Formatter):
+    """
+    Formats the ticks along an axis controlled by a :class:`TimedeltaIndex`.
+    """
+
+    @staticmethod
+    def format_timedelta_ticks(x, pos, n_decimals):
+        """
+        Convert seconds to 'D days HH:MM:SS.F'
+        """
+        s, ns = divmod(x, 1e9)
+        m, s = divmod(s, 60)
+        h, m = divmod(m, 60)
+        d, h = divmod(h, 24)
+        decimals = int(ns * 10**(n_decimals - 9))
+        s = r'{:02d}:{:02d}:{:02d}'.format(int(h), int(m), int(s))
+        if n_decimals > 0:
+            s += '.{{:0{:0d}d}}'.format(n_decimals).format(decimals)
+        if d != 0:
+            s = '{:d} days '.format(int(d)) + s
+        return s
+
+    def __call__(self, x, pos=0):
+        (vmin, vmax) = tuple(self.axis.get_view_interval())
+        n_decimals = int(np.ceil(np.log10(100 * 1e9 / (vmax - vmin))))
+        if n_decimals > 9:
+            n_decimals = 9
+        return self.format_timedelta_ticks(x, pos, n_decimals)

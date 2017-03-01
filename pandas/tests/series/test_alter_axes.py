@@ -18,8 +18,6 @@ from .common import TestData
 
 class TestSeriesAlterAxes(TestData, tm.TestCase):
 
-    _multiprocess_can_split_ = True
-
     def test_setindex(self):
         # wrong type
         series = self.series.copy()
@@ -109,9 +107,6 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
 
         s = Series(lrange(10))
         s.index = idx
-
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertTrue(s.is_time_series)
         self.assertTrue(s.index.is_all_dates)
 
     def test_reset_index(self):

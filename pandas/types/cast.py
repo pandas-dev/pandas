@@ -12,7 +12,8 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_timedelta64_dtype, is_dtype_equal,
                      is_float_dtype, is_complex_dtype,
-                     is_integer_dtype, is_datetime_or_timedelta_dtype,
+                     is_integer_dtype,
+                     is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
                      _string_dtypes,
                      _coerce_to_dtype,
@@ -101,8 +102,8 @@ def _possibly_downcast_to_dtype(result, dtype):
             arr = np.array([r[0]])
 
             # if we have any nulls, then we are done
-            if isnull(arr).any() or not np.allclose(arr,
-                                                    trans(arr).astype(dtype)):
+            if (isnull(arr).any() or
+                    not np.allclose(arr, trans(arr).astype(dtype), rtol=0)):
                 return result
 
             # a comparable, e.g. a Decimal may slip in here
@@ -114,7 +115,7 @@ def _possibly_downcast_to_dtype(result, dtype):
                     notnull(result).all()):
                 new_result = trans(result).astype(dtype)
                 try:
-                    if np.allclose(new_result, result):
+                    if np.allclose(new_result, result, rtol=0):
                         return new_result
                 except:
 
@@ -132,7 +133,8 @@ def _possibly_downcast_to_dtype(result, dtype):
                 if dtype.tz:
                     # convert to datetime and change timezone
                     from pandas import to_datetime
-                    result = to_datetime(result).tz_localize(dtype.tz)
+                    result = to_datetime(result).tz_localize('utc')
+                    result = result.tz_convert(dtype.tz)
 
     except:
         pass

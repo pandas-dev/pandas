@@ -5,9 +5,9 @@ from pandas.compat import PY3
 
 import numpy as np
 
-from pandas import (Series, Index, Float64Index, Int64Index, RangeIndex,
-                    MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, notnull)
+from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
+                    RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
+                    TimedeltaIndex, PeriodIndex, notnull, isnull)
 from pandas.types.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
 
@@ -366,6 +366,26 @@ class Base(object):
         for ind in self.indices.values():
             self.assertEqual(ind.tolist(), list(ind))
 
+    def test_memory_usage(self):
+        for name, index in compat.iteritems(self.indices):
+            result = index.memory_usage()
+            if len(index):
+                index.get_loc(index[0])
+                result2 = index.memory_usage()
+                result3 = index.memory_usage(deep=True)
+
+                # RangeIndex doesn't use a hashtable engine
+                if not isinstance(index, RangeIndex):
+                    self.assertTrue(result2 > result)
+
+                if index.inferred_type == 'object':
+                    self.assertTrue(result3 > result2)
+
+            else:
+
+                # we report 0 for no-length
+                self.assertEqual(result, 0)
+
     def test_argsort(self):
         for k, ind in self.indices.items():
 
@@ -470,11 +490,24 @@ class Base(object):
         expected = i
         tm.assert_index_equal(result, expected)
 
-        i2 = i.copy()
-        i2 = pd.Index([np.nan, np.nan] + i[2:].tolist())
-        result = i.where(notnull(i2))
-        expected = i2
+        _nan = i._na_value
+        cond = [False] + [True] * len(i[1:])
+        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
+
+        result = i.where(cond)
         tm.assert_index_equal(result, expected)
+
+    def test_where_array_like(self):
+        i = self.create_index()
+
+        _nan = i._na_value
+        cond = [False] + [True] * (len(i) - 1)
+        klasses = [list, tuple, np.array, pd.Series]
+        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
+
+        for klass in klasses:
+            result = i.where(klass(cond))
+            tm.assert_index_equal(result, expected)
 
     def test_setops_errorcases(self):
         for name, idx in compat.iteritems(self.indices):
@@ -660,6 +693,12 @@ class Base(object):
             self.assertFalse(idx.equals(list(idx)))
             self.assertFalse(idx.equals(np.array(idx)))
 
+            # Cannot pass in non-int64 dtype to RangeIndex
+            if not isinstance(idx, RangeIndex):
+                same_values = Index(idx, dtype=object)
+                self.assertTrue(idx.equals(same_values))
+                self.assertTrue(same_values.equals(idx))
+
             if idx.nlevels == 1:
                 # do not test MultiIndex
                 self.assertFalse(idx.equals(pd.Series(idx)))
@@ -744,7 +783,7 @@ class Base(object):
                     with tm.assertRaises(Exception):
                         with np.errstate(all='ignore'):
                             func(idx)
-                elif isinstance(idx, (Float64Index, Int64Index)):
+                elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
                     # coerces to float (e.g. np.sin)
                     with np.errstate(all='ignore'):
                         result = func(idx)
@@ -765,7 +804,7 @@ class Base(object):
                     # raise TypeError or ValueError (PeriodIndex)
                     with tm.assertRaises(Exception):
                         func(idx)
-                elif isinstance(idx, (Float64Index, Int64Index)):
+                elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
                     # results in bool array
                     result = func(idx)
                     exp = func(idx.values)
@@ -798,7 +837,7 @@ class Base(object):
                     continue
                 elif isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
                     values[1] = pd.tslib.iNaT
-                elif isinstance(index, Int64Index):
+                elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
                 else:
                     values[1] = np.nan
@@ -838,7 +877,7 @@ class Base(object):
 
                 if isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
                     values[1] = pd.tslib.iNaT
-                elif isinstance(index, Int64Index):
+                elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
                 else:
                     values[1] = np.nan
@@ -852,3 +891,28 @@ class Base(object):
                 expected[1] = True
                 self.assert_numpy_array_equal(idx._isnan, expected)
                 self.assertTrue(idx.hasnans)
+
+    def test_nulls(self):
+        # this is really a smoke test for the methods
+        # as these are adequantely tested for function elsewhere
+
+        for name, index in self.indices.items():
+            if len(index) == 0:
+                self.assert_numpy_array_equal(
+                    index.isnull(), np.array([], dtype=bool))
+            elif isinstance(index, MultiIndex):
+                idx = index.copy()
+                msg = "isnull is not defined for MultiIndex"
+                with self.assertRaisesRegexp(NotImplementedError, msg):
+                    idx.isnull()
+            else:
+
+                if not index.hasnans:
+                    self.assert_numpy_array_equal(
+                        index.isnull(), np.zeros(len(index), dtype=bool))
+                    self.assert_numpy_array_equal(
+                        index.notnull(), np.ones(len(index), dtype=bool))
+                else:
+                    result = isnull(index)
+                    self.assert_numpy_array_equal(index.isnull(), result)
+                    self.assert_numpy_array_equal(index.notnull(), ~result)

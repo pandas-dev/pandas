@@ -1,8 +1,7 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 import pandas as pd
 import unittest
-import nose
+import pytest
 import numpy as np
 import sys
 from pandas import Series, DataFrame
@@ -11,15 +10,11 @@ from pandas.util.testing import (assert_almost_equal, assertRaisesRegexp,
                                  raise_with_traceback, assert_index_equal,
                                  assert_series_equal, assert_frame_equal,
                                  assert_numpy_array_equal,
-                                 RNGContext, assertRaises,
-                                 skip_if_no_package_deco)
+                                 RNGContext)
 from pandas.compat import is_platform_windows
-
-# let's get meta.
 
 
 class TestAssertAlmostEqual(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def _assert_almost_equal_both(self, a, b, **kwargs):
         assert_almost_equal(a, b, **kwargs)
@@ -147,7 +142,6 @@ class TestAssertAlmostEqual(tm.TestCase):
 
 
 class TestUtilTesting(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_raise_with_traceback(self):
         with assertRaisesRegexp(LookupError, "error_text"):
@@ -170,8 +164,8 @@ class TestAssertNumpyArrayEqual(tm.TestCase):
     def test_numpy_array_equal_message(self):
 
         if is_platform_windows():
-            raise nose.SkipTest("windows has incomparable line-endings "
-                                "and uses L on the shape")
+            pytest.skip("windows has incomparable line-endings "
+                        "and uses L on the shape")
 
         expected = """numpy array are different
 
@@ -298,8 +292,8 @@ Index shapes are different
     def test_numpy_array_equal_object_message(self):
 
         if is_platform_windows():
-            raise nose.SkipTest("windows has incomparable line-endings "
-                                "and uses L on the shape")
+            pytest.skip("windows has incomparable line-endings "
+                        "and uses L on the shape")
 
         a = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')])
         b = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')])
@@ -348,7 +342,6 @@ Iterable values are different \\(50\\.0 %\\)
 
 
 class TestAssertIndexEqual(unittest.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_index_equal_message(self):
 
@@ -496,7 +489,6 @@ Attribute "names" are different
 
 
 class TestAssertSeriesEqual(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def _assert_equal(self, x, y, **kwargs):
         assert_series_equal(x, y, **kwargs)
@@ -591,7 +583,6 @@ Series values are different \\(33\\.33333 %\\)
 
 
 class TestAssertFrameEqual(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def _assert_equal(self, x, y, **kwargs):
         assert_frame_equal(x, y, **kwargs)
@@ -600,6 +591,20 @@ class TestAssertFrameEqual(tm.TestCase):
     def _assert_not_equal(self, a, b, **kwargs):
         self.assertRaises(AssertionError, assert_frame_equal, a, b, **kwargs)
         self.assertRaises(AssertionError, assert_frame_equal, b, a, **kwargs)
+
+    def test_equal_with_different_row_order(self):
+        # check_like=True ignores row-column orderings
+        df1 = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
+                           index=['a', 'b', 'c'])
+        df2 = pd.DataFrame({'A': [3, 2, 1], 'B': [6, 5, 4]},
+                           index=['c', 'b', 'a'])
+
+        self._assert_equal(df1, df2, check_like=True)
+        self._assert_not_equal(df1, df2)
+
+    def test_not_equal_with_different_shape(self):
+        self._assert_not_equal(pd.DataFrame({'A': [1, 2, 3]}),
+                               pd.DataFrame({'A': [1, 2, 3, 4]}))
 
     def test_index_dtype(self):
         df1 = DataFrame.from_records(
@@ -628,19 +633,9 @@ class TestAssertFrameEqual(tm.TestCase):
 
         expected = """DataFrame are different
 
-DataFrame shape \\(number of rows\\) are different
-\\[left\\]:  3, RangeIndex\\(start=0, stop=3, step=1\\)
-\\[right\\]: 4, RangeIndex\\(start=0, stop=4, step=1\\)"""
-
-        with assertRaisesRegexp(AssertionError, expected):
-            assert_frame_equal(pd.DataFrame({'A': [1, 2, 3]}),
-                               pd.DataFrame({'A': [1, 2, 3, 4]}))
-
-        expected = """DataFrame are different
-
-DataFrame shape \\(number of columns\\) are different
-\\[left\\]:  2, Index\\(\\[u?'A', u?'B'\\], dtype='object'\\)
-\\[right\\]: 1, Index\\(\\[u?'A'\\], dtype='object'\\)"""
+DataFrame shape mismatch
+\\[left\\]:  \\(3, 2\\)
+\\[right\\]: \\(3, 1\\)"""
 
         with assertRaisesRegexp(AssertionError, expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
@@ -702,7 +697,6 @@ class TestIsInstance(tm.TestCase):
 
 
 class TestAssertCategoricalEqual(unittest.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_categorical_equal_message(self):
 
@@ -779,32 +773,9 @@ class TestLocale(tm.TestCase):
 
     def test_locale(self):
         if sys.platform == 'win32':
-            raise nose.SkipTest(
+            pytest.skip(
                 "skipping on win platforms as locale not available")
 
         # GH9744
         locales = tm.get_locales()
         self.assertTrue(len(locales) >= 1)
-
-
-def test_skiptest_deco():
-    from nose import SkipTest
-
-    @skip_if_no_package_deco("fakepackagename")
-    def f():
-        pass
-    with assertRaises(SkipTest):
-        f()
-
-    @skip_if_no_package_deco("numpy")
-    def f():
-        pass
-    # hack to ensure that SkipTest is *not* raised
-    with assertRaises(ValueError):
-        f()
-        raise ValueError
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

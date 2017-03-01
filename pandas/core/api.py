@@ -10,9 +10,10 @@ from pandas.core.categorical import Categorical
 from pandas.core.groupby import Grouper
 from pandas.formats.format import set_eng_float_format
 from pandas.core.index import (Index, CategoricalIndex, Int64Index,
-                               RangeIndex, Float64Index, MultiIndex)
+                               UInt64Index, RangeIndex, Float64Index,
+                               MultiIndex)
 
-from pandas.core.series import Series, TimeSeries
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel, WidePanel
 from pandas.core.panel4d import Panel4D

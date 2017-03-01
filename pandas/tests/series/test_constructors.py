@@ -9,11 +9,12 @@ import numpy.ma as ma
 import pandas as pd
 
 from pandas.types.common import is_categorical_dtype, is_datetime64tz_dtype
-from pandas import Index, Series, isnull, date_range, period_range
+from pandas import (Index, Series, isnull, date_range,
+                    period_range, NaT)
 from pandas.core.index import MultiIndex
 from pandas.tseries.index import Timestamp, DatetimeIndex
 
-import pandas.lib as lib
+from pandas import lib, tslib
 
 from pandas.compat import lrange, range, zip, OrderedDict, long
 from pandas import compat
@@ -24,8 +25,6 @@ from .common import TestData
 
 
 class TestSeriesConstructors(TestData, tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_scalar_conversion(self):
 
@@ -38,22 +37,11 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(int(Series([1.])), 1)
         self.assertEqual(long(Series([1.])), 1)
 
-    def test_TimeSeries_deprecation(self):
-
-        # deprecation TimeSeries, #10890
-        with tm.assert_produces_warning(FutureWarning):
-            pd.TimeSeries(1, index=date_range('20130101', periods=3))
-
     def test_constructor(self):
-        # Recognize TimeSeries
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertTrue(self.ts.is_time_series)
         self.assertTrue(self.ts.index.is_all_dates)
 
         # Pass in Series
         derived = Series(self.ts)
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertTrue(derived.is_time_series)
         self.assertTrue(derived.index.is_all_dates)
 
         self.assertTrue(tm.equalContents(derived.index, self.ts.index))
@@ -65,11 +53,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(mixed.dtype, np.object_)
         self.assertIs(mixed[1], np.NaN)
 
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertFalse(self.empty.is_time_series)
         self.assertFalse(self.empty.index.is_all_dates)
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertFalse(Series({}).is_time_series)
         self.assertFalse(Series({}).index.is_all_dates)
         self.assertRaises(Exception, Series, np.random.randn(3, 3),
                           index=np.arange(3))
@@ -214,7 +198,6 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         expected = Series([True, True, False], index=index, dtype=bool)
         assert_series_equal(result, expected)
 
-        from pandas import tslib
         data = ma.masked_all((3, ), dtype='M8[ns]')
         result = Series(data)
         expected = Series([tslib.iNaT, tslib.iNaT, tslib.iNaT], dtype='M8[ns]')
@@ -234,6 +217,13 @@ class TestSeriesConstructors(TestData, tm.TestCase):
                            datetime(2001, 1, 3)], index=index, dtype='M8[ns]')
         assert_series_equal(result, expected)
 
+    def test_series_ctor_plus_datetimeindex(self):
+        rng = date_range('20090415', '20090519', freq='B')
+        data = dict((k, 1) for k in rng)
+
+        result = Series(data, index=rng)
+        self.assertIs(result.index, rng)
+
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
         tm.assert_index_equal(s.index, pd.Index(np.arange(3)))
@@ -250,6 +240,22 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         s = Series(np.array([1., 1., np.nan]), copy=True, dtype='i8')
         self.assertEqual(s.dtype, np.dtype('f8'))
+
+    def test_constructor_copy(self):
+        # GH15125
+        # test dtype parameter has no side effects on copy=True
+        for data in [[1.], np.array([1.])]:
+            x = Series(data)
+            y = pd.Series(x, copy=True, dtype=float)
+
+            # copy=True maintains original data in Series
+            tm.assert_series_equal(x, y)
+
+            # changes to origin of copy does not affect the copy
+            x[0] = 2.
+            self.assertFalse(x.equals(y))
+            self.assertEqual(x[0], 2.)
+            self.assertEqual(y[0], 1.)
 
     def test_constructor_pass_none(self):
         s = Series(None, index=lrange(5))
@@ -352,7 +358,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         s = Series(dates)
         self.assertEqual(s.dtype, 'M8[ns]')
 
-        s.ix[0] = np.nan
+        s.iloc[0] = np.nan
         self.assertEqual(s.dtype, 'M8[ns]')
 
         # invalid astypes
@@ -565,8 +571,8 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         d = {pidx[0]: 0, pidx[1]: 1}
         result = Series(d, index=pidx)
         expected = Series(np.nan, pidx)
-        expected.ix[0] = 0
-        expected.ix[1] = 1
+        expected.iloc[0] = 0
+        expected.iloc[1] = 1
         assert_series_equal(result, expected)
 
     def test_constructor_dict_multiindex(self):
@@ -784,6 +790,21 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         s = Series([pd.NaT, np.nan, '1 Day'])
         self.assertEqual(s.dtype, 'timedelta64[ns]')
 
+    def test_NaT_scalar(self):
+        series = Series([0, 1000, 2000, tslib.iNaT], dtype='M8[ns]')
+
+        val = series[3]
+        self.assertTrue(isnull(val))
+
+        series[2] = val
+        self.assertTrue(isnull(series[2]))
+
+    def test_NaT_cast(self):
+        # GH10747
+        result = Series([np.nan]).astype('M8[ns]')
+        expected = Series([NaT])
+        assert_series_equal(result, expected)
+
     def test_constructor_name_hashable(self):
         for n in [777, 777., 'name', datetime(2001, 11, 11), (1, ), u"\u05D0"]:
             for data in [[1, 2, 3], np.ones(3), {'a': 0, 'b': 1}]:
@@ -794,3 +815,20 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         for n in [['name_list'], np.ones(2), {1: 2}]:
             for data in [['name_list'], np.ones(2), {1: 2}]:
                 self.assertRaises(TypeError, Series, data, name=n)
+
+    def test_auto_conversion(self):
+        series = Series(list(date_range('1/1/2000', periods=10)))
+        self.assertEqual(series.dtype, 'M8[ns]')
+
+    def test_constructor_cant_cast_datetime64(self):
+        msg = "Cannot cast datetime64 to "
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Series(date_range('1/1/2000', periods=10), dtype=float)
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Series(date_range('1/1/2000', periods=10), dtype=int)
+
+    def test_constructor_cast_object(self):
+        s = Series(date_range('1/1/2000', periods=10), dtype=object)
+        exp = Series(date_range('1/1/2000', periods=10))
+        tm.assert_series_equal(s, exp)

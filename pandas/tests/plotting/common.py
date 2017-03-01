@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import nose
+import pytest
 import os
 import warnings
 
@@ -28,7 +28,7 @@ def _skip_if_no_scipy_gaussian_kde():
     try:
         from scipy.stats import gaussian_kde  # noqa
     except ImportError:
-        raise nose.SkipTest("scipy version doesn't support gaussian_kde")
+        pytest.skip("scipy version doesn't support gaussian_kde")
 
 
 def _ok_for_gaussian_kde(kind):

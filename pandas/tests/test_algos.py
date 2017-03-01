@@ -20,7 +20,6 @@ from pandas.util.testing import assert_almost_equal
 
 
 class TestMatch(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_ints(self):
         values = np.array([0, 2, 1])
@@ -57,7 +56,6 @@ class TestMatch(tm.TestCase):
 
 
 class TestSafeSort(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_basic_sort(self):
         values = [3, 1, 2, 0, 4]
@@ -144,7 +142,6 @@ class TestSafeSort(tm.TestCase):
 
 
 class TestFactorize(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_basic(self):
 
@@ -287,9 +284,25 @@ class TestFactorize(tm.TestCase):
 
         self.assertRaises(TypeError, algos.factorize, x17[::-1], sort=True)
 
+    def test_uint64_factorize(self):
+        data = np.array([2**63, 1, 2**63], dtype=np.uint64)
+        exp_labels = np.array([0, 1, 0], dtype=np.intp)
+        exp_uniques = np.array([2**63, 1], dtype=np.uint64)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
+        data = np.array([2**63, -1, 2**63], dtype=object)
+        exp_labels = np.array([0, 1, 0], dtype=np.intp)
+        exp_uniques = np.array([2**63, -1], dtype=object)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
 
 class TestUnique(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_ints(self):
         arr = np.random.randint(0, 100, size=50)
@@ -372,7 +385,6 @@ class TestUnique(tm.TestCase):
 
 
 class TestIsin(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_invalid(self):
 
@@ -455,7 +467,6 @@ class TestIsin(tm.TestCase):
 
 
 class TestValueCounts(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_value_counts(self):
         np.random.seed(1234)
@@ -626,10 +637,21 @@ class TestValueCounts(tm.TestCase):
                               index=Series([2.0, 1.0], dtype=t))
             tm.assert_series_equal(result, expected)
 
+    def test_value_counts_uint64(self):
+        arr = np.array([2**63], dtype=np.uint64)
+        expected = Series([1], index=[2**63])
+        result = algos.value_counts(arr)
+
+        tm.assert_series_equal(result, expected)
+
+        arr = np.array([-1, 2**63], dtype=object)
+        expected = Series([1, 1], index=[-1, 2**63])
+        result = algos.value_counts(arr)
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestDuplicated(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     def test_duplicated_with_nas(self):
         keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
@@ -866,7 +888,6 @@ class GroupVarTestMixin(object):
 
 class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
     __test__ = True
-    _multiprocess_can_split_ = True
 
     algo = algos.algos.group_var_float64
     dtype = np.float64
@@ -890,7 +911,6 @@ class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
 
 class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
     __test__ = True
-    _multiprocess_can_split_ = True
 
     algo = algos.algos.group_var_float32
     dtype = np.float32
@@ -1038,7 +1058,6 @@ def test_arrmap():
 
 
 class TestTseriesUtil(tm.TestCase):
-    _multiprocess_can_split_ = True
 
     def test_combineFunc(self):
         pass
@@ -1342,9 +1361,3 @@ class TestMode(tm.TestCase):
         idx = Index(['1 day', '1 day', '-1 day', '-1 day 2 min',
                      '2 min', '2 min'], dtype='timedelta64[ns]')
         tm.assert_series_equal(algos.mode(idx), exp)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -4,7 +4,6 @@ from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 import sys
-import nose
 from distutils.version import LooseVersion
 
 from pandas.compat import range, lrange
@@ -28,8 +27,6 @@ from pandas.tests.frame.common import TestData
 
 class SharedWithSparse(object):
 
-    _multiprocess_can_split_ = True
-
     def test_copy_index_name_checking(self):
         # don't want to be able to modify the index stored elsewhere after
         # making a copy
@@ -47,10 +44,10 @@ class SharedWithSparse(object):
         s = self.frame.pop('A')
         self.assertEqual(s.name, 'A')
 
-        s = self.frame.ix[:, 'B']
+        s = self.frame.loc[:, 'B']
         self.assertEqual(s.name, 'B')
 
-        s2 = s.ix[:]
+        s2 = s.loc[:]
         self.assertEqual(s2.name, 'B')
 
     def test_get_value(self):
@@ -105,8 +102,8 @@ class SharedWithSparse(object):
                 self.frame.join(self.frame, how=how)
 
     def test_join_index_more(self):
-        af = self.frame.ix[:, ['A', 'B']]
-        bf = self.frame.ix[::2, ['C', 'D']]
+        af = self.frame.loc[:, ['A', 'B']]
+        bf = self.frame.loc[::2, ['C', 'D']]
 
         expected = af.copy()
         expected['C'] = self.frame['C'][::2]
@@ -119,7 +116,7 @@ class SharedWithSparse(object):
         assert_frame_equal(result, expected[::2])
 
         result = bf.join(af, how='right')
-        assert_frame_equal(result, expected.ix[:, result.columns])
+        assert_frame_equal(result, expected.loc[:, result.columns])
 
     def test_join_index_series(self):
         df = self.frame.copy()
@@ -133,18 +130,18 @@ class SharedWithSparse(object):
         assertRaisesRegexp(ValueError, 'must have a name', df.join, s)
 
     def test_join_overlap(self):
-        df1 = self.frame.ix[:, ['A', 'B', 'C']]
-        df2 = self.frame.ix[:, ['B', 'C', 'D']]
+        df1 = self.frame.loc[:, ['A', 'B', 'C']]
+        df2 = self.frame.loc[:, ['B', 'C', 'D']]
 
         joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
-        df1_suf = df1.ix[:, ['B', 'C']].add_suffix('_df1')
-        df2_suf = df2.ix[:, ['B', 'C']].add_suffix('_df2')
+        df1_suf = df1.loc[:, ['B', 'C']].add_suffix('_df1')
+        df2_suf = df2.loc[:, ['B', 'C']].add_suffix('_df2')
 
-        no_overlap = self.frame.ix[:, ['A', 'D']]
+        no_overlap = self.frame.loc[:, ['A', 'D']]
         expected = df1_suf.join(df2_suf).join(no_overlap)
 
         # column order not necessarily sorted
-        assert_frame_equal(joined, expected.ix[:, joined.columns])
+        assert_frame_equal(joined, expected.loc[:, joined.columns])
 
     def test_add_prefix_suffix(self):
         with_prefix = self.frame.add_prefix('foo#')
@@ -159,8 +156,6 @@ class SharedWithSparse(object):
 class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     klass = DataFrame
-
-    _multiprocess_can_split_ = True
 
     def test_get_axis(self):
         f = self.frame
@@ -258,7 +253,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         for i, tup in enumerate(self.frame.itertuples()):
             s = Series(tup[1:])
             s.name = tup[0]
-            expected = self.frame.ix[i, :].reset_index(drop=True)
+            expected = self.frame.iloc[i, :].reset_index(drop=True)
             assert_series_equal(s, expected)
 
         df = DataFrame({'floats': np.random.randn(5),
@@ -410,9 +405,18 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
     def test_empty_nonzero(self):
         df = DataFrame([1, 2, 3])
         self.assertFalse(df.empty)
+        df = pd.DataFrame(index=[1], columns=[1])
+        self.assertFalse(df.empty)
         df = DataFrame(index=['a', 'b'], columns=['c', 'd']).dropna()
         self.assertTrue(df.empty)
         self.assertTrue(df.T.empty)
+        empty_frames = [pd.DataFrame(),
+                        pd.DataFrame(index=[1]),
+                        pd.DataFrame(columns=[1]),
+                        pd.DataFrame({1: []})]
+        for df in empty_frames:
+            self.assertTrue(df.empty)
+            self.assertTrue(df.T.empty)
 
     def test_inplace_return_self(self):
         # re #1893
@@ -447,10 +451,6 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         f = lambda x: x.sort_index(inplace=True)
         _check_f(data.copy(), f)
 
-        # sortlevel
-        f = lambda x: x.sortlevel(0, inplace=True)
-        _check_f(data.set_index(['a', 'b']), f)
-
         # fillna
         f = lambda x: x.fillna(0, inplace=True)
         _check_f(data.copy(), f)
@@ -481,8 +481,3 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         # rename
         f = lambda x: x.rename({1: 'foo'}, inplace=True)
         _check_f(d.copy(), f)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

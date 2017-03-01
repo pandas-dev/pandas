@@ -1,12 +1,15 @@
+""" Test cases for time series specific (freq conversion, etc) """
+
 from datetime import datetime, timedelta, date, time
 
-import nose
+import pytest
 from pandas.compat import lrange, zip
 
 import numpy as np
 from pandas import Index, Series, DataFrame
-
+from pandas.compat import is_platform_mac
 from pandas.tseries.index import date_range, bdate_range
+from pandas.tseries.tdi import timedelta_range
 from pandas.tseries.offsets import DateOffset
 from pandas.tseries.period import period_range, Period, PeriodIndex
 from pandas.tseries.resample import DatetimeIndex
@@ -16,9 +19,6 @@ import pandas.util.testing as tm
 
 from pandas.tests.plotting.common import (TestPlotBase,
                                           _skip_if_no_scipy_gaussian_kde)
-
-
-""" Test cases for time series specific (freq conversion, etc) """
 
 
 @tm.mplskip
@@ -162,8 +162,8 @@ class TestTSPlot(TestPlotBase):
                 self.assertEqual(expected_string,
                                  ax.format_coord(first_x, first_y))
             except (ValueError):
-                raise nose.SkipTest("skipping test because issue forming "
-                                    "test comparison GH7664")
+                pytest.skip("skipping test because issue forming "
+                            "test comparison GH7664")
 
         annual = Series(1, index=date_range('2014-01-01', periods=3,
                                             freq='A-DEC'))
@@ -273,7 +273,7 @@ class TestTSPlot(TestPlotBase):
         idx = date_range('2012-6-22 21:59:51', freq='S', periods=100)
         df = DataFrame(np.random.randn(len(idx), 2), idx)
 
-        irreg = df.ix[[0, 1, 3, 4]]
+        irreg = df.iloc[[0, 1, 3, 4]]
         ax = irreg.plot()
         diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
 
@@ -1271,6 +1271,67 @@ class TestTSPlot(TestPlotBase):
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         self.plt.plot(values)
 
+    def test_format_timedelta_ticks_narrow(self):
+        if is_platform_mac():
+            pytest.skip("skip on mac for precision display issue on older mpl")
+
+        expected_labels = [
+            '00:00:00.00000000{:d}'.format(i)
+            for i in range(10)]
+
+        rng = timedelta_range('0', periods=10, freq='ns')
+        df = DataFrame(np.random.randn(len(rng), 3), rng)
+        ax = df.plot(fontsize=2)
+        fig = ax.get_figure()
+        fig.canvas.draw()
+        labels = ax.get_xticklabels()
+        self.assertEqual(len(labels), len(expected_labels))
+        for l, l_expected in zip(labels, expected_labels):
+            self.assertEqual(l.get_text(), l_expected)
+
+    def test_format_timedelta_ticks_wide(self):
+        if is_platform_mac():
+            pytest.skip("skip on mac for precision display issue on older mpl")
+
+        expected_labels = [
+            '00:00:00',
+            '1 days 03:46:40',
+            '2 days 07:33:20',
+            '3 days 11:20:00',
+            '4 days 15:06:40',
+            '5 days 18:53:20',
+            '6 days 22:40:00',
+            '8 days 02:26:40',
+            ''
+        ]
+
+        rng = timedelta_range('0', periods=10, freq='1 d')
+        df = DataFrame(np.random.randn(len(rng), 3), rng)
+        ax = df.plot(fontsize=2)
+        fig = ax.get_figure()
+        fig.canvas.draw()
+        labels = ax.get_xticklabels()
+        self.assertEqual(len(labels), len(expected_labels))
+        for l, l_expected in zip(labels, expected_labels):
+            self.assertEqual(l.get_text(), l_expected)
+
+    def test_timedelta_plot(self):
+        # test issue #8711
+        s = Series(range(5), timedelta_range('1day', periods=5))
+        _check_plot_works(s.plot)
+
+        # test long period
+        index = timedelta_range('1 day 2 hr 30 min 10 s',
+                                periods=10, freq='1 d')
+        s = Series(np.random.randn(len(index)), index)
+        _check_plot_works(s.plot)
+
+        # test short period
+        index = timedelta_range('1 day 2 hr 30 min 10 s',
+                                periods=10, freq='1 ns')
+        s = Series(np.random.randn(len(index)), index)
+        _check_plot_works(s.plot)
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
@@ -1309,8 +1370,3 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
             plt.savefig(path)
     finally:
         plt.close(fig)
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

@@ -24,9 +24,13 @@ dtypes = [('Float64', 'float64', 'float64_t'),
 {{for name, dtype, arg in dtypes}}
 
 
+{{if dtype != 'int64'}}
+
 ctypedef struct {{name}}VectorData:
     {{arg}} *data
     size_t n, m
+
+{{endif}}
 
 
 @cython.wraparound(False)
@@ -65,9 +69,11 @@ dtypes = [('Float64', 'float64', 'float64_t', 'np.float64'),
 
 cdef class {{name}}Vector:
 
+    {{if dtype != 'int64'}}
     cdef:
         {{name}}VectorData *data
         ndarray ao
+    {{endif}}
 
     def __cinit__(self):
         self.data = <{{name}}VectorData *>PyMem_Malloc(
@@ -85,12 +91,14 @@ cdef class {{name}}Vector:
         self.data.data = <{{arg}}*> self.ao.data
 
     def __dealloc__(self):
-        PyMem_Free(self.data)
+        if self.data is not NULL:
+            PyMem_Free(self.data)
+            self.data = NULL
 
     def __len__(self):
         return self.data.n
 
-    def to_array(self):
+    cpdef to_array(self):
         self.ao.resize(self.data.n)
         self.data.m = self.data.n
         return self.ao
@@ -101,6 +109,10 @@ cdef class {{name}}Vector:
             self.resize()
 
         append_data_{{dtype}}(self.data, x)
+
+    cdef extend(self, {{arg}}[:] x):
+        for i in range(len(x)):
+            self.append(x[i])
 
 {{endfor}}
 
@@ -133,8 +145,11 @@ cdef class StringVector:
             self.data.data[i] = orig_data[i]
 
     def __dealloc__(self):
-        free(self.data.data)
-        PyMem_Free(self.data)
+        if self.data is not NULL:
+            if self.data.data is not NULL:
+                free(self.data.data)
+            PyMem_Free(self.data)
+            self.data = NULL
 
     def __len__(self):
         return self.data.n
@@ -198,6 +213,7 @@ cdef class ObjectVector:
 
 
 cdef class HashTable:
+
     pass
 
 {{py:
@@ -223,12 +239,20 @@ cdef class {{name}}HashTable(HashTable):
         return self.table.size
 
     def __dealloc__(self):
-        kh_destroy_{{dtype}}(self.table)
+        if self.table is not NULL:
+            kh_destroy_{{dtype}}(self.table)
+            self.table = NULL
 
     def __contains__(self, object key):
         cdef khiter_t k
         k = kh_get_{{dtype}}(self.table, key)
         return k != self.table.n_buckets
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
 
     cpdef get_item(self, {{dtype}}_t val):
         cdef khiter_t k
@@ -237,13 +261,6 @@ cdef class {{name}}HashTable(HashTable):
             return self.table.vals[k]
         else:
             raise KeyError(val)
-
-    def get_iter_test(self, {{dtype}}_t key, Py_ssize_t iterations):
-        cdef Py_ssize_t i, val=0
-        for i in range(iterations):
-            k = kh_get_{{dtype}}(self.table, val)
-            if k != self.table.n_buckets:
-                val = self.table.vals[k]
 
     cpdef set_item(self, {{dtype}}_t key, Py_ssize_t val):
         cdef:
@@ -372,9 +389,11 @@ cdef class {{name}}HashTable(HashTable):
                 val = values[i]
 
                 # specific for groupby
+                {{if dtype != 'uint64'}}
                 if val < 0:
                     labels[i] = -1
                     continue
+                {{endif}}
 
                 k = kh_get_{{dtype}}(self.table, val)
                 if k != self.table.n_buckets:
@@ -453,7 +472,15 @@ cdef class StringHashTable(HashTable):
             kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
-        kh_destroy_str(self.table)
+        if self.table is not NULL:
+            kh_destroy_str(self.table)
+            self.table = NULL
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof(char *) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):
         cdef:
@@ -466,18 +493,6 @@ cdef class StringHashTable(HashTable):
             return self.table.vals[k]
         else:
             raise KeyError(val)
-
-    def get_iter_test(self, object key, Py_ssize_t iterations):
-        cdef:
-            Py_ssize_t i, val
-            char *v
-
-        v = util.get_c_string(key)
-
-        for i in range(iterations):
-            k = kh_get_str(self.table, v)
-            if k != self.table.n_buckets:
-                val = self.table.vals[k]
 
     cpdef set_item(self, object key, Py_ssize_t val):
         cdef:
@@ -691,7 +706,8 @@ cdef class PyObjectHashTable(HashTable):
 
     def __dealloc__(self):
         if self.table is not NULL:
-            self.destroy()
+            kh_destroy_pymap(self.table)
+            self.table = NULL
 
     def __len__(self):
         return self.table.size
@@ -704,9 +720,11 @@ cdef class PyObjectHashTable(HashTable):
         k = kh_get_pymap(self.table, <PyObject*>key)
         return k != self.table.n_buckets
 
-    def destroy(self):
-        kh_destroy_pymap(self.table)
-        self.table = NULL
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof(PyObject *) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):
         cdef khiter_t k
@@ -717,15 +735,6 @@ cdef class PyObjectHashTable(HashTable):
             return self.table.vals[k]
         else:
             raise KeyError(val)
-
-    def get_iter_test(self, object key, Py_ssize_t iterations):
-        cdef Py_ssize_t i, val
-        if key != key or key is None:
-            key = na_sentinel
-        for i in range(iterations):
-            k = kh_get_pymap(self.table, <PyObject*>key)
-            if k != self.table.n_buckets:
-                val = self.table.vals[k]
 
     cpdef set_item(self, object key, Py_ssize_t val):
         cdef:
@@ -837,3 +846,127 @@ cdef class PyObjectHashTable(HashTable):
                 count += 1
 
         return np.asarray(labels)
+
+
+cdef class MultiIndexHashTable(HashTable):
+
+    def __init__(self, size_hint=1):
+        self.table = kh_init_uint64()
+        self.mi = None
+        kh_resize_uint64(self.table, size_hint)
+
+    def __dealloc__(self):
+        if self.table is not NULL:
+            kh_destroy_uint64(self.table)
+            self.table = NULL
+
+    def __len__(self):
+        return self.table.size
+
+    def sizeof(self, deep=False):
+        """ return the size of my table in bytes """
+        return self.table.n_buckets * (sizeof(uint64_t) + # keys
+                                       sizeof(size_t) + # vals
+                                       sizeof(uint32_t)) # flags
+
+    def _check_for_collisions(self, int64_t[:] locs, object mi):
+        # validate that the locs map to the actual values
+        # provided in the mi
+        # we can only check if we *don't* have any missing values
+        # :<
+        cdef:
+            ndarray[int64_t] alocs
+
+        alocs = np.asarray(locs)
+        if (alocs != -1).all():
+
+            result = self.mi.take(locs)
+            if isinstance(mi, tuple):
+                from pandas import Index
+                mi = Index([mi])
+            if not result.equals(mi):
+                raise AssertionError(
+                    "hash collision\nlocs:\n{}\n"
+                    "result:\n{}\nmi:\n{}".format(alocs, result, mi))
+
+    def __contains__(self, object key):
+        try:
+            self.get_item(key)
+            return True
+        except (KeyError, ValueError, TypeError):
+            return False
+
+    cpdef get_item(self, object key):
+        cdef:
+            khiter_t k
+            uint64_t value
+            int64_t[:] locs
+            Py_ssize_t loc
+
+        value = self.mi._hashed_indexing_key(key)
+        k = kh_get_uint64(self.table, value)
+        if k != self.table.n_buckets:
+            loc = self.table.vals[k]
+            locs = np.array([loc], dtype=np.int64)
+            self._check_for_collisions(locs, key)
+            return loc
+        else:
+            raise KeyError(key)
+
+    cpdef set_item(self, object key, Py_ssize_t val):
+        raise NotImplementedError
+
+    @cython.boundscheck(False)
+    def map_locations(self, object mi):
+        cdef:
+            Py_ssize_t i, n
+            ndarray[uint64_t] values
+            uint64_t val
+            int ret = 0
+            khiter_t k
+
+        self.mi = mi
+        n = len(mi)
+        values = mi._hashed_values
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_put_uint64(self.table, val, &ret)
+                self.table.vals[k] = i
+
+    @cython.boundscheck(False)
+    def lookup(self, object mi):
+        # look up with a target mi
+        cdef:
+            Py_ssize_t i, n
+            ndarray[uint64_t] values
+            int ret = 0
+            uint64_t val
+            khiter_t k
+            int64_t[:] locs
+
+        n = len(mi)
+        values = mi._hashed_values
+
+        locs = np.empty(n, dtype=np.int64)
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_get_uint64(self.table, val)
+                if k != self.table.n_buckets:
+                    locs[i] = self.table.vals[k]
+                else:
+                    locs[i] = -1
+
+        self._check_for_collisions(locs, mi)
+        return np.asarray(locs)
+
+    def unique(self, object mi):
+        raise NotImplementedError
+
+    def get_labels(self, object mi, ObjectVector uniques,
+                   Py_ssize_t count_prior, int64_t na_sentinel,
+                   bint check_null=True):
+        raise NotImplementedError

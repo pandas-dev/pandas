@@ -300,9 +300,14 @@ The behavior of a small sub-set of edge cases for using ``.loc`` have changed (:
 
   New Behavior
 
-  .. ipython:: python
+  .. code-block:: python
 
-     s.ix[-1.0:2]
+     In [2]: s.ix[-1.0:2]
+     Out[2]:
+     -1    1
+      1    2
+      2    3
+     dtype: int64
 
 - Provide a useful exception for indexing with an invalid type for that index when using ``.loc``. For example trying to use ``.loc`` on an index of type ``DatetimeIndex`` or ``PeriodIndex`` or ``TimedeltaIndex``, with an integer (or a float).
 

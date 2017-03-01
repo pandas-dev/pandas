@@ -23,16 +23,13 @@ from pandas.types.common import (is_list_like,
 from pandas.types.missing import array_equivalent
 
 import numpy as np
-
-import pandas as pd
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, isnull)
+                    MultiIndex, Int64Index, isnull, concat,
+                    SparseSeries, SparseDataFrame, PeriodIndex,
+                    DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
 from pandas.io.common import _stringify_path
-from pandas.sparse.api import SparseSeries, SparseDataFrame
 from pandas.sparse.array import BlockIndex, IntIndex
-from pandas.tseries.api import PeriodIndex, DatetimeIndex
-from pandas.tseries.tdi import TimedeltaIndex
 from pandas.core.base import StringMixin
 from pandas.formats.printing import adjoin, pprint_thing
 from pandas.core.common import _asarray_tuplesafe, PerformanceWarning
@@ -42,7 +39,6 @@ from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
 from pandas.core.index import _ensure_index
-from pandas.tools.merge import concat
 from pandas import compat
 from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option
@@ -75,6 +71,7 @@ def _ensure_encoding(encoding):
         if PY3:
             encoding = _default_encoding
     return encoding
+
 
 Term = Expr
 
@@ -114,6 +111,7 @@ class ClosedFileError(Exception):
 class IncompatibilityWarning(Warning):
     pass
 
+
 incompatibility_doc = """
 where criteria is being ignored as this version [%s] is too old (or
 not-defined), read the file in and write it out to a new file to upgrade (with
@@ -124,6 +122,7 @@ the copy_to method)
 class AttributeConflictWarning(Warning):
     pass
 
+
 attribute_conflict_doc = """
 the [%s] attribute of the existing index is [%s] which conflicts with the new
 [%s], resetting the attribute to None
@@ -132,6 +131,7 @@ the [%s] attribute of the existing index is [%s] which conflicts with the new
 
 class DuplicateWarning(Warning):
     pass
+
 
 duplicate_doc = """
 duplicate entries in table, taking most recently appended
@@ -164,7 +164,6 @@ _TYPE_MAP = {
 
     Series: u('series'),
     SparseSeries: u('sparse_series'),
-    pd.TimeSeries: u('series'),
     DataFrame: u('frame'),
     SparseDataFrame: u('sparse_frame'),
     Panel: u('wide'),
@@ -173,7 +172,6 @@ _TYPE_MAP = {
 
 # storer class map
 _STORER_MAP = {
-    u('TimeSeries'): 'LegacySeriesFixed',
     u('Series'): 'LegacySeriesFixed',
     u('DataFrame'): 'LegacyFrameFixed',
     u('DataMatrix'): 'LegacyFrameFixed',
@@ -833,7 +831,7 @@ class HDFStore(StringMixin):
 
             # concat and return
             return concat(objs, axis=axis,
-                          verify_integrity=False).consolidate()
+                          verify_integrity=False)._consolidate()
 
         # create the iterator
         it = TableIterator(self, s, func, where=where, nrows=nrows,
@@ -1040,7 +1038,7 @@ class HDFStore(StringMixin):
             valid_index = next(idxs)
             for index in idxs:
                 valid_index = valid_index.intersection(index)
-            value = value.ix[valid_index]
+            value = value.loc[valid_index]
 
         # append
         for k, v in d.items():
@@ -3440,7 +3438,7 @@ class Table(Fixed):
             return [mgr.items.take(blk.mgr_locs) for blk in blocks]
 
         # figure out data_columns and get out blocks
-        block_obj = self.get_object(obj).consolidate()
+        block_obj = self.get_object(obj)._consolidate()
         blocks = block_obj._data.blocks
         blk_items = get_blk_items(block_obj._data, blocks)
         if len(self.non_index_axes):
@@ -3576,8 +3574,8 @@ class Table(Fixed):
                                 filt = filt.union(Index(self.levels))
 
                             takers = op(axis_values, filt)
-                            return obj.ix._getitem_axis(takers,
-                                                        axis=axis_number)
+                            return obj.loc._getitem_axis(takers,
+                                                         axis=axis_number)
 
                         # this might be the name of a file IN an axis
                         elif field in axis_values:
@@ -3590,8 +3588,8 @@ class Table(Fixed):
                             if isinstance(obj, DataFrame):
                                 axis_number = 1 - axis_number
                             takers = op(values, filt)
-                            return obj.ix._getitem_axis(takers,
-                                                        axis=axis_number)
+                            return obj.loc._getitem_axis(takers,
+                                                         axis=axis_number)
 
                     raise ValueError(
                         "cannot find the field [%s] for filtering!" % field)
@@ -3789,9 +3787,9 @@ class LegacyTable(Table):
                 lp = DataFrame(c.data, index=long_index, columns=c.values)
 
                 # need a better algorithm
-                tuple_index = long_index._tuple_index
+                tuple_index = long_index.values
 
-                unique_tuples = lib.fast_unique(tuple_index.values)
+                unique_tuples = lib.fast_unique(tuple_index)
                 unique_tuples = _asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
@@ -3807,7 +3805,7 @@ class LegacyTable(Table):
         if len(objs) == 1:
             wp = objs[0]
         else:
-            wp = concat(objs, axis=0, verify_integrity=False).consolidate()
+            wp = concat(objs, axis=0, verify_integrity=False)._consolidate()
 
         # apply the selection filters & axis orderings
         wp = self.process_axes(wp, columns=columns)

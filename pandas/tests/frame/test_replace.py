@@ -23,8 +23,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameReplace(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_replace_inplace(self):
         self.tsframe['A'][:5] = nan
         self.tsframe['A'][-5:] = nan
@@ -37,8 +35,9 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         self.assertRaises(TypeError, self.tsframe.replace, nan)
 
         # mixed type
-        self.mixed_frame.ix[5:20, 'foo'] = nan
-        self.mixed_frame.ix[-10:, 'A'] = nan
+        mf = self.mixed_frame
+        mf.iloc[5:20, mf.columns.get_loc('foo')] = nan
+        mf.iloc[-10:, mf.columns.get_loc('A')] = nan
 
         result = self.mixed_frame.replace(np.nan, 0)
         expected = self.mixed_frame.fillna(value=0)
@@ -639,8 +638,9 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         assert_series_equal(expec, res)
 
     def test_replace_mixed(self):
-        self.mixed_frame.ix[5:20, 'foo'] = nan
-        self.mixed_frame.ix[-10:, 'A'] = nan
+        mf = self.mixed_frame
+        mf.iloc[5:20, mf.columns.get_loc('foo')] = nan
+        mf.iloc[-10:, mf.columns.get_loc('A')] = nan
 
         result = self.mixed_frame.replace(np.nan, -18)
         expected = self.mixed_frame.fillna(value=-18)
@@ -1053,3 +1053,13 @@ class TestDataFrameReplace(tm.TestCase, TestData):
                                     Timestamp('20130103', tz='US/Eastern')],
                               'B': [0, np.nan, 2]})
         assert_frame_equal(result, expected)
+
+    def test_replace_with_empty_dictlike(self):
+        # GH 15289
+        mix = {'a': lrange(4), 'b': list('ab..'), 'c': ['a', 'b', nan, 'd']}
+        df = DataFrame(mix)
+        assert_frame_equal(df, df.replace({}))
+        assert_frame_equal(df, df.replace(Series([])))
+
+        assert_frame_equal(df, df.replace({'b': {}}))
+        assert_frame_equal(df, df.replace(Series({'b': {}})))

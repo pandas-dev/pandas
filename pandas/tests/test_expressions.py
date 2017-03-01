@@ -2,32 +2,23 @@
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 
-import nose
 import re
+import operator
+import pytest
 
 from numpy.random import randn
 
-import operator
 import numpy as np
 
 from pandas.core.api import DataFrame, Panel
 from pandas.computation import expressions as expr
-from pandas import compat
+from pandas import compat, _np_version_under1p11
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_panel4d_equal, slow)
 from pandas.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
-
-if not expr._USE_NUMEXPR:
-    try:
-        import numexpr  # noqa
-    except ImportError:
-        msg = "don't have"
-    else:
-        msg = "not using"
-    raise nose.SkipTest("{0} numexpr".format(msg))
 
 _frame = DataFrame(randn(10000, 4), columns=list('ABCD'), dtype='float64')
 _frame2 = DataFrame(randn(100, 4), columns=list('ABCD'), dtype='float64')
@@ -56,9 +47,8 @@ _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
 _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
 
 
+@pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
 class TestExpressions(tm.TestCase):
-
-    _multiprocess_can_split_ = False
 
     def setUp(self):
 
@@ -72,14 +62,20 @@ class TestExpressions(tm.TestCase):
     def tearDown(self):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
-    @nose.tools.nottest
-    def run_arithmetic_test(self, df, other, assert_func, check_dtype=False,
-                            test_flex=True):
+    def run_arithmetic(self, df, other, assert_func, check_dtype=False,
+                       test_flex=True):
         expr._MIN_ELEMENTS = 0
         operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv', 'pow']
         if not compat.PY3:
             operations.append('div')
         for arith in operations:
+
+            # numpy >= 1.11 doesn't handle integers
+            # raised to integer powers
+            # https://github.com/pandas-dev/pandas/issues/15363
+            if arith == 'pow' and not _np_version_under1p11:
+                continue
+
             operator_name = arith
             if arith == 'div':
                 operator_name = 'truediv'
@@ -92,6 +88,7 @@ class TestExpressions(tm.TestCase):
             expr.set_use_numexpr(False)
             expected = op(df, other)
             expr.set_use_numexpr(True)
+
             result = op(df, other)
             try:
                 if check_dtype:
@@ -103,15 +100,14 @@ class TestExpressions(tm.TestCase):
                 raise
 
     def test_integer_arithmetic(self):
-        self.run_arithmetic_test(self.integer, self.integer,
-                                 assert_frame_equal)
-        self.run_arithmetic_test(self.integer.iloc[:, 0],
-                                 self.integer.iloc[:, 0], assert_series_equal,
-                                 check_dtype=True)
+        self.run_arithmetic(self.integer, self.integer,
+                            assert_frame_equal)
+        self.run_arithmetic(self.integer.iloc[:, 0],
+                            self.integer.iloc[:, 0], assert_series_equal,
+                            check_dtype=True)
 
-    @nose.tools.nottest
-    def run_binary_test(self, df, other, assert_func, test_flex=False,
-                        numexpr_ops=set(['gt', 'lt', 'ge', 'le', 'eq', 'ne'])):
+    def run_binary(self, df, other, assert_func, test_flex=False,
+                   numexpr_ops=set(['gt', 'lt', 'ge', 'le', 'eq', 'ne'])):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
@@ -145,46 +141,46 @@ class TestExpressions(tm.TestCase):
 
     def run_frame(self, df, other, binary_comp=None, run_binary=True,
                   **kwargs):
-        self.run_arithmetic_test(df, other, assert_frame_equal,
-                                 test_flex=False, **kwargs)
-        self.run_arithmetic_test(df, other, assert_frame_equal, test_flex=True,
-                                 **kwargs)
+        self.run_arithmetic(df, other, assert_frame_equal,
+                            test_flex=False, **kwargs)
+        self.run_arithmetic(df, other, assert_frame_equal, test_flex=True,
+                            **kwargs)
         if run_binary:
             if binary_comp is None:
                 expr.set_use_numexpr(False)
                 binary_comp = other + 1
                 expr.set_use_numexpr(True)
-            self.run_binary_test(df, binary_comp, assert_frame_equal,
-                                 test_flex=False, **kwargs)
-            self.run_binary_test(df, binary_comp, assert_frame_equal,
-                                 test_flex=True, **kwargs)
+            self.run_binary(df, binary_comp, assert_frame_equal,
+                            test_flex=False, **kwargs)
+            self.run_binary(df, binary_comp, assert_frame_equal,
+                            test_flex=True, **kwargs)
 
     def run_series(self, ser, other, binary_comp=None, **kwargs):
-        self.run_arithmetic_test(ser, other, assert_series_equal,
-                                 test_flex=False, **kwargs)
-        self.run_arithmetic_test(ser, other, assert_almost_equal,
-                                 test_flex=True, **kwargs)
+        self.run_arithmetic(ser, other, assert_series_equal,
+                            test_flex=False, **kwargs)
+        self.run_arithmetic(ser, other, assert_almost_equal,
+                            test_flex=True, **kwargs)
         # series doesn't uses vec_compare instead of numexpr...
         # if binary_comp is None:
         #     binary_comp = other + 1
-        # self.run_binary_test(ser, binary_comp, assert_frame_equal,
+        # self.run_binary(ser, binary_comp, assert_frame_equal,
         # test_flex=False, **kwargs)
-        # self.run_binary_test(ser, binary_comp, assert_frame_equal,
+        # self.run_binary(ser, binary_comp, assert_frame_equal,
         # test_flex=True, **kwargs)
 
     def run_panel(self, panel, other, binary_comp=None, run_binary=True,
                   assert_func=assert_panel_equal, **kwargs):
-        self.run_arithmetic_test(panel, other, assert_func, test_flex=False,
-                                 **kwargs)
-        self.run_arithmetic_test(panel, other, assert_func, test_flex=True,
-                                 **kwargs)
+        self.run_arithmetic(panel, other, assert_func, test_flex=False,
+                            **kwargs)
+        self.run_arithmetic(panel, other, assert_func, test_flex=True,
+                            **kwargs)
         if run_binary:
             if binary_comp is None:
                 binary_comp = other + 1
-            self.run_binary_test(panel, binary_comp, assert_func,
-                                 test_flex=False, **kwargs)
-            self.run_binary_test(panel, binary_comp, assert_func,
-                                 test_flex=True, **kwargs)
+            self.run_binary(panel, binary_comp, assert_func,
+                            test_flex=False, **kwargs)
+            self.run_binary(panel, binary_comp, assert_func,
+                            test_flex=True, **kwargs)
 
     def test_integer_arithmetic_frame(self):
         self.run_frame(self.integer, self.integer)
@@ -228,22 +224,22 @@ class TestExpressions(tm.TestCase):
                        binary_comp=-2)
 
     def test_float_arithemtic(self):
-        self.run_arithmetic_test(self.frame, self.frame, assert_frame_equal)
-        self.run_arithmetic_test(self.frame.iloc[:, 0], self.frame.iloc[:, 0],
-                                 assert_series_equal, check_dtype=True)
+        self.run_arithmetic(self.frame, self.frame, assert_frame_equal)
+        self.run_arithmetic(self.frame.iloc[:, 0], self.frame.iloc[:, 0],
+                            assert_series_equal, check_dtype=True)
 
     def test_mixed_arithmetic(self):
-        self.run_arithmetic_test(self.mixed, self.mixed, assert_frame_equal)
+        self.run_arithmetic(self.mixed, self.mixed, assert_frame_equal)
         for col in self.mixed.columns:
-            self.run_arithmetic_test(self.mixed[col], self.mixed[col],
-                                     assert_series_equal)
+            self.run_arithmetic(self.mixed[col], self.mixed[col],
+                                assert_series_equal)
 
     def test_integer_with_zeros(self):
         self.integer *= np.random.randint(0, 2, size=np.shape(self.integer))
-        self.run_arithmetic_test(self.integer, self.integer,
-                                 assert_frame_equal)
-        self.run_arithmetic_test(self.integer.iloc[:, 0],
-                                 self.integer.iloc[:, 0], assert_series_equal)
+        self.run_arithmetic(self.integer, self.integer,
+                            assert_frame_equal)
+        self.run_arithmetic(self.integer.iloc[:, 0],
+                            self.integer.iloc[:, 0], assert_series_equal)
 
     def test_invalid(self):
 
@@ -275,6 +271,13 @@ class TestExpressions(tm.TestCase):
 
                 for op, op_str in [('add', '+'), ('sub', '-'), ('mul', '*'),
                                    ('div', '/'), ('pow', '**')]:
+
+                    # numpy >= 1.11 doesn't handle integers
+                    # raised to integer powers
+                    # https://github.com/pandas-dev/pandas/issues/15363
+                    if op == 'pow' and not _np_version_under1p11:
+                        continue
+
                     if op == 'div':
                         op = getattr(operator, 'truediv', None)
                     else:
@@ -439,9 +442,3 @@ class TestExpressions(tm.TestCase):
                     r = f(df, True)
                     e = fe(df, True)
                     tm.assert_frame_equal(r, e)
-
-
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

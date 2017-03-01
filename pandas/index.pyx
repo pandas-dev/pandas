@@ -182,7 +182,7 @@ cdef class IndexEngine:
             Py_ssize_t i, n
             int last_true
 
-        values = self._get_index_values()
+        values = np.array(self._get_index_values(), copy=False)
         n = len(values)
 
         result = np.empty(n, dtype=bool)
@@ -202,6 +202,15 @@ cdef class IndexEngine:
             return last_true
 
         return result
+
+    def sizeof(self, deep=False):
+        """ return the sizeof our mapping """
+        if not self.is_mapping_populated:
+            return 0
+        return self.mapping.sizeof(deep=deep)
+
+    def __sizeof__(self):
+        return self.sizeof()
 
     property is_unique:
 
@@ -275,7 +284,6 @@ cdef class IndexEngine:
         if not self.is_mapping_populated:
 
             values = self._get_index_values()
-
             self.mapping = self._make_hash_table(len(values))
             self.mapping.map_locations(values)
 
@@ -313,7 +321,7 @@ cdef class IndexEngine:
             Py_ssize_t i, j, n, n_t, n_alloc
 
         self._ensure_mapping_populated()
-        values = self._get_index_values()
+        values = np.array(self._get_index_values(), copy=False)
         stargets = set(targets)
         n = len(values)
         n_t = len(targets)
@@ -544,6 +552,40 @@ cdef inline _to_i8(object val):
 cdef inline bint _is_utc(object tz):
     return tz is UTC or isinstance(tz, _du_utc)
 
+
+cdef class MultiIndexEngine(IndexEngine):
+
+    def _call_monotonic(self, object mi):
+        # defer these back to the mi iteself
+        return (mi.is_monotonic_increasing,
+                mi.is_monotonic_decreasing,
+                mi.is_unique)
+
+    def get_backfill_indexer(self, other, limit=None):
+        # we coerce to ndarray-of-tuples
+        values = np.array(self._get_index_values())
+        return algos.backfill_object(values, other, limit=limit)
+
+    def get_pad_indexer(self, other, limit=None):
+        # we coerce to ndarray-of-tuples
+        values = np.array(self._get_index_values())
+        return algos.pad_object(values, other, limit=limit)
+
+    cpdef get_loc(self, object val):
+        if is_definitely_invalid_key(val):
+            raise TypeError("'{val}' is an invalid key".format(val=val))
+
+        self._ensure_mapping_populated()
+        if not self.unique:
+            return self._get_loc_duplicates(val)
+
+        try:
+            return self.mapping.get_item(val)
+        except TypeError:
+            raise KeyError(val)
+
+    cdef _make_hash_table(self, n):
+        return _hash.MultiIndexHashTable(n)
 
 # Generated from template.
 include "index_class_helper.pxi"

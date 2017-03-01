@@ -1,4 +1,6 @@
-nose
+pytest
+pytest-cov
+pytest-xdist
 flake8
 sphinx
 ipython

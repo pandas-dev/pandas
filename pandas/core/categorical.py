@@ -35,6 +35,7 @@ from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 
 from pandas.util.terminal import get_terminal_size
+from pandas.util.validators import validate_bool_kwarg
 from pandas.core.config import get_option
 
 
@@ -601,6 +602,46 @@ class Categorical(PandasObject):
     categories = property(fget=_get_categories, fset=_set_categories,
                           doc=_categories_doc)
 
+    def _codes_for_groupby(self, sort):
+        """
+        If sort=False, return a copy of self, coded with categories as
+        returned by .unique(), followed by any categories not appearing in
+        the data. If sort=True, return self.
+
+        This method is needed solely to ensure the categorical index of the
+        GroupBy result has categories in the order of appearance in the data
+        (GH-8868).
+
+        Parameters
+        ----------
+        sort : boolean
+            The value of the sort paramter groupby was called with.
+
+        Returns
+        -------
+        Categorical
+            If sort=False, the new categories are set to the order of
+            appearance in codes (unless ordered=True, in which case the
+            original order is preserved), followed by any unrepresented
+            categories in the original order.
+        """
+
+        # Already sorted according to self.categories; all is fine
+        if sort:
+            return self
+
+        # sort=False should order groups in as-encountered order (GH-8868)
+        cat = self.unique()
+
+        # But for groupby to work, all categories should be present,
+        # including those missing from the data (GH-13179), which .unique()
+        # above dropped
+        cat.add_categories(
+            self.categories[~self.categories.isin(cat.categories)],
+            inplace=True)
+
+        return self.reorder_categories(cat.categories)
+
     _ordered = None
 
     def set_ordered(self, value, inplace=False):
@@ -615,6 +656,7 @@ class Categorical(PandasObject):
            Whether or not to set the ordered attribute inplace or return a copy
            of this categorical with ordered set to the value
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         self._validate_ordered(value)
         cat = self if inplace else self.copy()
         cat._ordered = value
@@ -631,6 +673,7 @@ class Categorical(PandasObject):
            Whether or not to set the ordered attribute inplace or return a copy
            of this categorical with ordered set to True
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(True, inplace=inplace)
 
     def as_unordered(self, inplace=False):
@@ -643,6 +686,7 @@ class Categorical(PandasObject):
            Whether or not to set the ordered attribute inplace or return a copy
            of this categorical with ordered set to False
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         return self.set_ordered(False, inplace=inplace)
 
     def _get_ordered(self):
@@ -702,6 +746,7 @@ class Categorical(PandasObject):
         remove_categories
         remove_unused_categories
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         new_categories = self._validate_categories(new_categories)
         cat = self if inplace else self.copy()
         if rename:
@@ -754,6 +799,7 @@ class Categorical(PandasObject):
         remove_unused_categories
         set_categories
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
         cat.categories = new_categories
         if not inplace:
@@ -794,6 +840,7 @@ class Categorical(PandasObject):
         remove_unused_categories
         set_categories
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if set(self._categories) != set(new_categories):
             raise ValueError("items in new_categories are not the same as in "
                              "old categories")
@@ -832,6 +879,7 @@ class Categorical(PandasObject):
         remove_unused_categories
         set_categories
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_list_like(new_categories):
             new_categories = [new_categories]
         already_included = set(new_categories) & set(self._categories)
@@ -877,6 +925,7 @@ class Categorical(PandasObject):
         remove_unused_categories
         set_categories
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_list_like(removals):
             removals = [removals]
 
@@ -917,6 +966,7 @@ class Categorical(PandasObject):
         remove_categories
         set_categories
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
         idx, inv = np.unique(cat._codes, return_inverse=True)
 
@@ -1086,10 +1136,15 @@ class Categorical(PandasObject):
                              "ordered one")
 
         from pandas.core.series import Series
-        values_as_codes = self.categories.values.searchsorted(
-            Series(value).values, side=side)
 
-        return self.codes.searchsorted(values_as_codes, sorter=sorter)
+        values_as_codes = _get_codes_for_values(Series(value).values,
+                                                self.categories)
+
+        if -1 in values_as_codes:
+            raise ValueError("Value(s) to be inserted must be in categories.")
+
+        return self.codes.searchsorted(values_as_codes, side=side,
+                                       sorter=sorter)
 
     def isnull(self):
         """
@@ -1317,6 +1372,7 @@ class Categorical(PandasObject):
         [NaN, NaN, 5.0, 2.0, 2.0]
         Categories (2, int64): [2, 5]
         """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if na_position not in ['last', 'first']:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 
@@ -1347,6 +1403,28 @@ class Categorical(PandasObject):
         else:
             return self._constructor(values=codes, categories=self.categories,
                                      ordered=self.ordered, fastpath=True)
+
+    def _values_for_rank(self):
+        """
+        For correctly ranking ordered categorical data. See GH#15420
+
+        Ordered categorical data should be ranked on the basis of
+        codes with -1 translated to NaN.
+
+        Returns
+        -------
+        numpy array
+
+        """
+        if self.ordered:
+            values = self.codes
+            mask = values == -1
+            if mask.any():
+                values = values.astype('float64')
+                values[mask] = np.nan
+        else:
+            values = np.array(self)
+        return values
 
     def order(self, inplace=False, ascending=True, na_position='last'):
         """
@@ -1837,8 +1915,10 @@ class Categorical(PandasObject):
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
         cat = self.copy()
+
         # keep nan in codes
         cat._codes = unique_codes
+
         # exclude nan from indexer for categories
         take_codes = unique_codes[unique_codes != -1]
         if self.ordered:
@@ -1891,7 +1971,7 @@ class Categorical(PandasObject):
         counts = self.value_counts(dropna=False)
         freqs = counts / float(counts.sum())
 
-        from pandas.tools.merge import concat
+        from pandas.tools.concat import concat
         result = concat([counts, freqs], axis=1)
         result.columns = ['counts', 'freqs']
         result.index.name = 'categories'

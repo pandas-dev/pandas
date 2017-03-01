@@ -29,8 +29,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameBlockInternals(tm.TestCase, TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)
         expected = DataFrame(self.frame._series, dtype=int)
@@ -42,18 +40,23 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
 
     def test_consolidate(self):
         self.frame['E'] = 7.
-        consolidated = self.frame.consolidate()
+        consolidated = self.frame._consolidate()
         self.assertEqual(len(consolidated._data.blocks), 1)
 
         # Ensure copy, do I want this?
-        recons = consolidated.consolidate()
+        recons = consolidated._consolidate()
         self.assertIsNot(recons, consolidated)
         assert_frame_equal(recons, consolidated)
 
         self.frame['F'] = 8.
         self.assertEqual(len(self.frame._data.blocks), 3)
-        self.frame.consolidate(inplace=True)
+        self.frame._consolidate(inplace=True)
         self.assertEqual(len(self.frame._data.blocks), 1)
+
+    def test_consolidate_deprecation(self):
+        self.frame['E'] = 7
+        with tm.assert_produces_warning(FutureWarning):
+            self.frame.consolidate()
 
     def test_consolidate_inplace(self):
         frame = self.frame.copy()  # noqa
@@ -318,7 +321,7 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         blocks = df.as_blocks()
         for dtype, _df in blocks.items():
             if column in _df:
-                _df.ix[:, column] = _df[column] + 1
+                _df.loc[:, column] = _df[column] + 1
 
         # make sure we did not change the original DataFrame
         self.assertFalse(_df[column].equals(df[column]))
@@ -332,7 +335,7 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         blocks = df.as_blocks(copy=False)
         for dtype, _df in blocks.items():
             if column in _df:
-                _df.ix[:, column] = _df[column] + 1
+                _df.loc[:, column] = _df[column] + 1
 
         # make sure we did change the original DataFrame
         self.assertTrue(_df[column].equals(df[column]))
@@ -423,12 +426,12 @@ starting,ending,measure
                        index=np.arange(10))
 
         result = df._get_numeric_data()
-        expected = df.ix[:, ['a', 'b', 'd', 'e', 'f']]
+        expected = df.loc[:, ['a', 'b', 'd', 'e', 'f']]
         assert_frame_equal(result, expected)
 
-        only_obj = df.ix[:, ['c', 'g']]
+        only_obj = df.loc[:, ['c', 'g']]
         result = only_obj._get_numeric_data()
-        expected = df.ix[:, []]
+        expected = df.loc[:, []]
         assert_frame_equal(result, expected)
 
         df = DataFrame.from_dict(
@@ -457,7 +460,7 @@ starting,ending,measure
         l = len(self.mixed_frame)
         self.mixed_frame['J'] = '1.'
         self.mixed_frame['K'] = '1'
-        self.mixed_frame.ix[0:5, ['J', 'K']] = 'garbled'
+        self.mixed_frame.loc[0:5, ['J', 'K']] = 'garbled'
         converted = self.mixed_frame._convert(datetime=True, numeric=True)
         self.assertEqual(converted['H'].dtype, 'float64')
         self.assertEqual(converted['I'].dtype, 'int64')
@@ -535,6 +538,6 @@ starting,ending,measure
 
         myid = 100
 
-        first = len(df.ix[pd.isnull(df[myid]), [myid]])
-        second = len(df.ix[pd.isnull(df[myid]), [myid]])
+        first = len(df.loc[pd.isnull(df[myid]), [myid]])
+        second = len(df.loc[pd.isnull(df[myid]), [myid]])
         self.assertTrue(first == second == 0)

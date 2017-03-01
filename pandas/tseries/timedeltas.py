@@ -87,6 +87,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     return _coerce_scalar_to_timedelta_type(arg, unit=unit,
                                             box=box, errors=errors)
 
+
 _unit_map = {
     'Y': 'Y',
     'y': 'Y',

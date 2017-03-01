@@ -310,6 +310,21 @@ similarly to the ``Series``. These are the *displayed* values of the ``Timedelta
    td.dt.components
    td.dt.components.seconds
 
+.. _timedeltas.isoformat:
+
+You can convert a ``Timedelta`` to an `ISO 8601 Duration`_ string with the
+``.isoformat`` method
+
+.. versionadded:: 0.20.0
+
+.. ipython:: python
+
+    pd.Timedelta(days=6, minutes=50, seconds=3,
+                 milliseconds=10, microseconds=10,
+                 nanoseconds=12).isoformat()
+
+.. _ISO 8601 Duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
+
 .. _timedeltas.index:
 
 TimedeltaIndex

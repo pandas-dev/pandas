@@ -16,28 +16,29 @@
 function edit_init()
 {
     if [ -n "$LOCALE_OVERRIDE" ]; then
-        echo "Adding locale to the first line of pandas/__init__.py"
+        echo "[Adding locale to the first line of pandas/__init__.py]"
         rm -f pandas/__init__.pyc
         sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')\n"
         sed -i "$sedc" pandas/__init__.py
-        echo "head -4 pandas/__init__.py"
+        echo "[head -4 pandas/__init__.py]"
         head -4 pandas/__init__.py
         echo
     fi
 }
 
+echo "[install_travis]"
 edit_init
 
 home_dir=$(pwd)
-echo "home_dir: [$home_dir]"
+echo "[home_dir: $home_dir]"
 
 MINICONDA_DIR="$HOME/miniconda3"
 
 if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ] && [ "$USE_CACHE" ]; then
-    echo "Miniconda install already present from cache: $MINICONDA_DIR"
+    echo "[Miniconda install already present from cache: $MINICONDA_DIR]"
 
     conda config --set always_yes yes --set changeps1 no || exit 1
-    echo "update conda"
+    echo "[update conda]"
     conda update -q conda || exit 1
 
     # Useful for debugging any issues with conda
@@ -45,18 +46,18 @@ if [ -d "$MINICONDA_DIR" ] && [ -e "$MINICONDA_DIR/bin/conda" ] && [ "$USE_CACHE
 
     # set the compiler cache to work
     if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        echo "Using ccache"
+        echo "[Using ccache]"
         export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
         gcc=$(which gcc)
-        echo "gcc: $gcc"
+        echo "[gcc: $gcc]"
         ccache=$(which ccache)
-        echo "ccache: $ccache"
+        echo "[ccache: $ccache]"
         export CC='ccache gcc'
     fi
 
 else
-    echo "Using clean Miniconda install"
-    echo "Not using ccache"
+    echo "[Using clean Miniconda install]"
+    echo "[Not using ccache]"
     rm -rf "$MINICONDA_DIR"
     # install miniconda
     if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
@@ -66,14 +67,14 @@ else
     fi
     bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
-    echo "update conda"
+    echo "[update conda]"
     conda config --set ssl_verify false || exit 1
     conda config --set always_yes true --set changeps1 false || exit 1
     conda update -q conda
 
     # add the pandas channel to take priority
     # to add extra packages
-    echo "add channels"
+    echo "[add channels]"
     conda config --add channels pandas || exit 1
     conda config --remove channels defaults || exit 1
     conda config --add channels defaults || exit 1
@@ -82,6 +83,7 @@ else
 
     # Useful for debugging any issues with conda
     conda info -a || exit 1
+
 fi
 
 # may have installation instructions for this build
@@ -89,28 +91,36 @@ INSTALL="ci/install-${PYTHON_VERSION}${JOB_TAG}.sh"
 if [ -e ${INSTALL} ]; then
     time bash $INSTALL || exit 1
 else
-
     # create new env
-    time conda create -n pandas python=$PYTHON_VERSION nose || exit 1
-
-    if [ "$COVERAGE" ]; then
-        pip install coverage
-    fi
-    if [ "$LINT" ]; then
-        conda install flake8
-        pip install cpplint
-    fi
+    time conda create -n pandas python=$PYTHON_VERSION pytest || exit 1
 fi
 
 # build deps
+echo "[build installs]"
 REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.build"
-
-# install deps
 if [ -e ${REQ} ]; then
     time conda install -n pandas --file=${REQ} || exit 1
 fi
 
+# may have addtl installation instructions for this build
+echo "[build addtl installs]"
+REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.build.sh"
+if [ -e ${REQ} ]; then
+    time bash $REQ || exit 1
+fi
+
 source activate pandas
+
+pip install pytest-xdist
+
+if [ "$LINT" ]; then
+   conda install flake8
+   pip install cpplint
+fi
+
+if [ "$COVERAGE" ]; then
+    pip install coverage pytest-cov
+fi
 
 if [ "$BUILD_TEST" ]; then
 
@@ -122,24 +132,25 @@ if [ "$BUILD_TEST" ]; then
 else
 
     # build but don't install
-    echo "build em"
+    echo "[build em]"
     time python setup.py build_ext --inplace || exit 1
 
     # we may have run installations
-    echo "conda installs"
+    echo "[conda installs]"
     REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.run"
     if [ -e ${REQ} ]; then
         time conda install -n pandas --file=${REQ} || exit 1
     fi
 
     # we may have additional pip installs
-    echo "pip installs"
+    echo "[pip installs]"
     REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.pip"
     if [ -e ${REQ} ]; then
-       pip install --upgrade -r $REQ
+       pip install -r $REQ
     fi
 
     # may have addtl installation instructions for this build
+    echo "[addtl installs]"
     REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.sh"
     if [ -e ${REQ} ]; then
         time bash $REQ || exit 1
@@ -147,14 +158,14 @@ else
 
     # remove any installed pandas package
     # w/o removing anything else
-    echo "removing installed pandas"
+    echo "[removing installed pandas]"
     conda remove pandas --force
 
     # install our pandas
-    echo "running setup.py develop"
+    echo "[running setup.py develop]"
     python setup.py develop  || exit 1
 
 fi
 
-echo "done"
+echo "[done]"
 exit 0

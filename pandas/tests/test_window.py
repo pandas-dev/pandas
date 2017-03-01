@@ -1,10 +1,10 @@
 from itertools import product
-import nose
+import pytest
 import sys
 import warnings
+from warnings import catch_warnings
 
-from nose.tools import assert_raises
-from datetime import datetime
+from datetime import datetime, timedelta
 from numpy.random import randn
 import numpy as np
 from distutils.version import LooseVersion
@@ -31,8 +31,6 @@ def assert_equal(left, right):
 
 
 class Base(tm.TestCase):
-
-    _multiprocess_can_split_ = True
 
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
@@ -207,6 +205,49 @@ class TestApi(Base):
             'A', 'ra', 'std'), ('B', 'rb', 'mean'), ('B', 'rb', 'std')])
         tm.assert_frame_equal(result, expected, check_like=True)
 
+    def test_count_nonnumeric_types(self):
+        # GH12541
+        cols = ['int', 'float', 'string', 'datetime', 'timedelta', 'periods',
+                'fl_inf', 'fl_nan', 'str_nan', 'dt_nat', 'periods_nat']
+
+        df = DataFrame(
+            {'int': [1, 2, 3],
+             'float': [4., 5., 6.],
+             'string': list('abc'),
+             'datetime': pd.date_range('20170101', periods=3),
+             'timedelta': pd.timedelta_range('1 s', periods=3, freq='s'),
+             'periods': [pd.Period('2012-01'), pd.Period('2012-02'),
+                         pd.Period('2012-03')],
+             'fl_inf': [1., 2., np.Inf],
+             'fl_nan': [1., 2., np.NaN],
+             'str_nan': ['aa', 'bb', np.NaN],
+             'dt_nat': [pd.Timestamp('20170101'), pd.Timestamp('20170203'),
+                        pd.Timestamp(None)],
+             'periods_nat': [pd.Period('2012-01'), pd.Period('2012-02'),
+                             pd.Period(None)]},
+            columns=cols)
+
+        expected = DataFrame(
+            {'int': [1., 2., 2.],
+             'float': [1., 2., 2.],
+             'string': [1., 2., 2.],
+             'datetime': [1., 2., 2.],
+             'timedelta': [1., 2., 2.],
+             'periods': [1., 2., 2.],
+             'fl_inf': [1., 2., 2.],
+             'fl_nan': [1., 2., 1.],
+             'str_nan': [1., 2., 1.],
+             'dt_nat': [1., 2., 1.],
+             'periods_nat': [1., 2., 1.]},
+            columns=cols)
+
+        result = df.rolling(window=2).count()
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(1).count()
+        expected = df.notnull().astype(float)
+        tm.assert_frame_equal(result, expected)
+
     def test_window_with_args(self):
         tm._skip_if_no_scipy()
 
@@ -251,8 +292,7 @@ class TestApi(Base):
             for op in ['mean', 'sum', 'std', 'var', 'kurt', 'skew']:
                 for t in ['rolling', 'expanding']:
 
-                    with tm.assert_produces_warning(FutureWarning,
-                                                    check_stacklevel=False):
+                    with catch_warnings(record=True):
 
                         dfunc = getattr(pd, "{0}_{1}".format(t, op))
                         if dfunc is None:
@@ -360,6 +400,24 @@ class TestRolling(Base):
             c(0, win_type='boxcar')
             with self.assertRaises(ValueError):
                 c(-1, win_type='boxcar')
+
+    def test_constructor_with_timedelta_window(self):
+        # GH 15440
+        n = 10
+        df = pd.DataFrame({'value': np.arange(n)},
+                          index=pd.date_range('2015-12-24',
+                                              periods=n,
+                                              freq="D"))
+        expected_data = np.append([0., 1.], np.arange(3., 27., 3))
+        for window in [timedelta(days=3), pd.Timedelta(days=3)]:
+            result = df.rolling(window=window).sum()
+            expected = pd.DataFrame({'value': expected_data},
+                                    index=pd.date_range('2015-12-24',
+                                                        periods=n,
+                                                        freq="D"))
+            tm.assert_frame_equal(result, expected)
+            expected = df.rolling('3D').sum()
+            tm.assert_frame_equal(result, expected)
 
     def test_numpy_compat(self):
         # see gh-12811
@@ -486,7 +544,7 @@ class TestDeprecations(Base):
 
     def test_deprecations(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             mom.rolling_mean(np.ones(10), 3, center=True, axis=0)
             mom.rolling_mean(Series(np.ones(10)), 3, center=True, axis=0)
 
@@ -685,7 +743,8 @@ class DatetimeLike(Dtype):
         else:
 
             # other methods not Implemented ATM
-            assert_raises(NotImplementedError, f, roll)
+            with pytest.raises(NotImplementedError):
+                f(roll)
 
 
 class TestDtype_timedelta(DatetimeLike):
@@ -700,8 +759,8 @@ class TestDtype_datetime64UTC(DatetimeLike):
     dtype = 'datetime64[ns, UTC]'
 
     def _create_data(self):
-        raise nose.SkipTest("direct creation of extension dtype "
-                            "datetime64[ns, UTC] is not supported ATM")
+        pytest.skip("direct creation of extension dtype "
+                    "datetime64[ns, UTC] is not supported ATM")
 
 
 class TestMoments(Base):
@@ -750,7 +809,7 @@ class TestMoments(Base):
         xp = np.array([np.nan, np.nan, 9.962, 11.27, 11.564, 12.516, 12.818,
                        12.952, np.nan, np.nan])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_mean(vals, 5, center=True)
             tm.assert_almost_equal(xp, rs)
 
@@ -767,7 +826,7 @@ class TestMoments(Base):
         xp = np.array([np.nan, np.nan, 9.962, 11.27, 11.564, 12.516, 12.818,
                        12.952, np.nan, np.nan])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
             tm.assert_almost_equal(xp, rs)
 
@@ -782,19 +841,19 @@ class TestMoments(Base):
         # all nan
         vals = np.empty(10, dtype=float)
         vals.fill(np.nan)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
             self.assertTrue(np.isnan(rs).all())
 
         # empty
         vals = np.array([])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
             self.assertEqual(len(rs), 0)
 
         # shorter than window
         vals = np.random.randn(5)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 10, 'boxcar')
             self.assertTrue(np.isnan(rs).all())
             self.assertEqual(len(rs), 5)
@@ -973,16 +1032,16 @@ class TestMoments(Base):
             tm.assert_series_equal(xp, rs)
 
     def test_rolling_median(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self._check_moment_func(mom.rolling_median, np.median,
                                     name='median')
 
     def test_rolling_min(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self._check_moment_func(mom.rolling_min, np.min, name='min')
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             a = np.array([1, 2, 3, 4, 5])
             b = mom.rolling_min(a, window=100, min_periods=1)
             tm.assert_almost_equal(b, np.ones(len(a)))
@@ -992,10 +1051,10 @@ class TestMoments(Base):
 
     def test_rolling_max(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self._check_moment_func(mom.rolling_max, np.max, name='max')
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             a = np.array([1, 2, 3, 4, 5], dtype=np.float64)
             b = mom.rolling_max(a, window=100, min_periods=1)
             tm.assert_almost_equal(a, b)
@@ -1004,7 +1063,7 @@ class TestMoments(Base):
                               window=3, min_periods=5)
 
     def test_rolling_quantile(self):
-        qs = [.1, .5, .9]
+        qs = [0.0, .1, .5, .9, 1.0]
 
         def scoreatpercentile(a, per):
             values = np.sort(a, axis=0)
@@ -1024,6 +1083,18 @@ class TestMoments(Base):
                 return scoreatpercentile(x, q)
 
             self._check_moment_func(f, alt, name='quantile', quantile=q)
+
+    def test_rolling_quantile_param(self):
+        ser = Series([0.0, .1, .5, .9, 1.0])
+
+        with self.assertRaises(ValueError):
+            ser.rolling(3).quantile(-0.1)
+
+        with self.assertRaises(ValueError):
+            ser.rolling(3).quantile(10.0)
+
+        with self.assertRaises(TypeError):
+            ser.rolling(3).quantile('foo')
 
     def test_rolling_apply(self):
         # suppress warnings about empty slices, as we are deliberately testing
@@ -1061,11 +1132,11 @@ class TestMoments(Base):
         arr = np.arange(4)
 
         # it works!
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum)
         self.assertTrue(isnull(result).all())
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum, min_periods=1)
         tm.assert_almost_equal(result, result)
 
@@ -1076,19 +1147,19 @@ class TestMoments(Base):
                                 name='std', ddof=0)
 
     def test_rolling_std_1obs(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_std(np.array([1., 2., 3., 4., 5.]),
                                      1, min_periods=1)
         expected = np.array([np.nan] * 5)
         tm.assert_almost_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_std(np.array([1., 2., 3., 4., 5.]),
                                      1, min_periods=1, ddof=0)
         expected = np.zeros(5)
         tm.assert_almost_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_std(np.array([np.nan, np.nan, 3., 4., 5.]),
                                      3, min_periods=2)
         self.assertTrue(np.isnan(result[2]))
@@ -1101,11 +1172,11 @@ class TestMoments(Base):
         a = np.array([0.0011448196318903589, 0.00028718669878572767,
                       0.00028718669878572767, 0.00028718669878572767,
                       0.00028718669878572767])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             b = mom.rolling_std(a, window=3)
         self.assertTrue(np.isfinite(b[2:]).all())
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             b = mom.ewmstd(a, span=3)
         self.assertTrue(np.isfinite(b[2:]).all())
 
@@ -1119,7 +1190,7 @@ class TestMoments(Base):
         try:
             from scipy.stats import skew
         except ImportError:
-            raise nose.SkipTest('no scipy')
+            pytest.skip('no scipy')
         self._check_moment_func(mom.rolling_skew,
                                 lambda x: skew(x, bias=False), name='skew')
 
@@ -1127,14 +1198,14 @@ class TestMoments(Base):
         try:
             from scipy.stats import kurtosis
         except ImportError:
-            raise nose.SkipTest('no scipy')
+            pytest.skip('no scipy')
         self._check_moment_func(mom.rolling_kurt,
                                 lambda x: kurtosis(x, bias=False), name='kurt')
 
     def test_fperr_robustness(self):
         # TODO: remove this once python 2.5 out of picture
         if PY3:
-            raise nose.SkipTest("doesn't work on python 3")
+            pytest.skip("doesn't work on python 3")
 
         # #2114
         data = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x1a@\xaa\xaa\xaa\xaa\xaa\xaa\x02@8\x8e\xe38\x8e\xe3\xe8?z\t\xed%\xb4\x97\xd0?\xa2\x0c<\xdd\x9a\x1f\xb6?\x82\xbb\xfa&y\x7f\x9d?\xac\'\xa7\xc4P\xaa\x83?\x90\xdf\xde\xb0k8j?`\xea\xe9u\xf2zQ?*\xe37\x9d\x98N7?\xe2.\xf5&v\x13\x1f?\xec\xc9\xf8\x19\xa4\xb7\x04?\x90b\xf6w\x85\x9f\xeb>\xb5A\xa4\xfaXj\xd2>F\x02\xdb\xf8\xcb\x8d\xb8>.\xac<\xfb\x87^\xa0>\xe8:\xa6\xf9_\xd3\x85>\xfb?\xe2cUU\xfd?\xfc\x7fA\xed8\x8e\xe3?\xa5\xaa\xac\x91\xf6\x12\xca?n\x1cs\xb6\xf9a\xb1?\xe8%D\xf3L-\x97?5\xddZD\x11\xe7~?#>\xe7\x82\x0b\x9ad?\xd9R4Y\x0fxK?;7x;\nP2?N\xf4JO\xb8j\x18?4\xf81\x8a%G\x00?\x9a\xf5\x97\r2\xb4\xe5>\xcd\x9c\xca\xbcB\xf0\xcc>3\x13\x87(\xd7J\xb3>\x99\x19\xb4\xe0\x1e\xb9\x99>ff\xcd\x95\x14&\x81>\x88\x88\xbc\xc7p\xddf>`\x0b\xa6_\x96|N>@\xb2n\xea\x0eS4>U\x98\x938i\x19\x1b>\x8eeb\xd0\xf0\x10\x02>\xbd\xdc-k\x96\x16\xe8=(\x93\x1e\xf2\x0e\x0f\xd0=\xe0n\xd3Bii\xb5=*\xe9\x19Y\x8c\x8c\x9c=\xc6\xf0\xbb\x90]\x08\x83=]\x96\xfa\xc0|`i=>d\xfc\xd5\xfd\xeaP=R0\xfb\xc7\xa7\x8e6=\xc2\x95\xf9_\x8a\x13\x1e=\xd6c\xa6\xea\x06\r\x04=r\xda\xdd8\t\xbc\xea<\xf6\xe6\x93\xd0\xb0\xd2\xd1<\x9d\xdeok\x96\xc3\xb7<&~\xea9s\xaf\x9f<UUUUUU\x13@q\x1c\xc7q\x1c\xc7\xf9?\xf6\x12\xdaKh/\xe1?\xf2\xc3"e\xe0\xe9\xc6?\xed\xaf\x831+\x8d\xae?\xf3\x1f\xad\xcb\x1c^\x94?\x15\x1e\xdd\xbd>\xb8\x02@\xc6\xd2&\xfd\xa8\xf5\xe8?\xd9\xe1\x19\xfe\xc5\xa3\xd0?v\x82"\xa8\xb2/\xb6?\x9dX\x835\xee\x94\x9d?h\x90W\xce\x9e\xb8\x83?\x8a\xc0th~Kj?\\\x80\xf8\x9a\xa9\x87Q?%\xab\xa0\xce\x8c_7?1\xe4\x80\x13\x11*\x1f? \x98\x00\r\xb6\xc6\x04?\x80u\xabf\x9d\xb3\xeb>UNrD\xbew\xd2>\x1c\x13C[\xa8\x9f\xb8>\x12b\xd7<pj\xa0>m-\x1fQ@\xe3\x85>\xe6\x91)l\x00/m>Da\xc6\xf2\xaatS>\x05\xd7]\xee\xe3\xf09>'  # noqa
@@ -1143,25 +1214,25 @@ class TestMoments(Base):
         if sys.byteorder != "little":
             arr = arr.byteswap().newbyteorder()
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_sum(arr, 2)
         self.assertTrue((result[1:] >= 0).all())
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_mean(arr, 2)
         self.assertTrue((result[1:] >= 0).all())
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_var(arr, 2)
         self.assertTrue((result[1:] >= 0).all())
 
         # #2527, ugh
         arr = np.array([0.00012456, 0.0003, 0])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_mean(arr, 1)
         self.assertTrue(result[-1] >= 0)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.rolling_mean(-arr, 1)
         self.assertTrue(result[-1] <= 0)
 
@@ -1286,15 +1357,13 @@ class TestMoments(Base):
 
                 # catch a freq deprecation warning if freq is provided and not
                 # None
-                w = FutureWarning if freq is not None else None
-                with tm.assert_produces_warning(w, check_stacklevel=False):
+                with catch_warnings(record=True):
                     r = obj.rolling(window=window, min_periods=min_periods,
                                     freq=freq, center=center)
                 return getattr(r, name)(**kwargs)
 
             # check via the moments API
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+            with catch_warnings(record=True):
                 return f(obj, window=window, min_periods=min_periods,
                          freq=freq, center=center, **kwargs)
 
@@ -1378,7 +1447,7 @@ class TestMoments(Base):
 
         arr = np.zeros(1000)
         arr[5] = 1
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             result = mom.ewma(arr, span=100, adjust=False).sum()
         self.assertTrue(np.abs(result - 1) < 1e-2)
 
@@ -1465,7 +1534,7 @@ class TestMoments(Base):
         self._check_ew(mom.ewmvol, name='vol')
 
     def test_ewma_span_com_args(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             A = mom.ewma(self.arr, com=9.5)
             B = mom.ewma(self.arr, span=20)
             tm.assert_almost_equal(A, B)
@@ -1474,7 +1543,7 @@ class TestMoments(Base):
             self.assertRaises(ValueError, mom.ewma, self.arr)
 
     def test_ewma_halflife_arg(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             A = mom.ewma(self.arr, com=13.932726172912965)
             B = mom.ewma(self.arr, halflife=10.0)
             tm.assert_almost_equal(A, B)
@@ -1489,7 +1558,7 @@ class TestMoments(Base):
 
     def test_ewma_alpha_old_api(self):
         # GH 10789
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             a = mom.ewma(self.arr, alpha=0.61722699889169674)
             b = mom.ewma(self.arr, com=0.62014947789973052)
             c = mom.ewma(self.arr, span=2.240298955799461)
@@ -1500,7 +1569,7 @@ class TestMoments(Base):
 
     def test_ewma_alpha_arg_old_api(self):
         # GH 10789
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self.assertRaises(ValueError, mom.ewma, self.arr)
             self.assertRaises(ValueError, mom.ewma, self.arr,
                               com=10.0, alpha=0.5)
@@ -1557,13 +1626,12 @@ class TestMoments(Base):
 
         funcs = [mom.ewma, mom.ewmvol, mom.ewmvar]
         for f in funcs:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+            with catch_warnings(record=True):
                 result = f(arr, 3)
             tm.assert_almost_equal(result, arr)
 
     def _check_ew(self, func, name=None):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self._check_ew_ndarray(func, name=name)
         self._check_ew_structures(func, name=name)
 
@@ -2190,7 +2258,7 @@ class TestMomentsConsistency(Base):
             return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
 
         panel = get_result(self.frame)
-        actual = panel.ix[:, 1, 5]
+        actual = panel.loc[:, 1, 5]
         expected = get_result(self.frame[1], self.frame[5])
         tm.assert_series_equal(actual, expected, check_names=False)
         self.assertEqual(actual.name, 5)
@@ -2829,7 +2897,7 @@ class TestMomentsConsistency(Base):
 
         expected = Series([1.0, 2.0, 6.0, 4.0, 5.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').max()
         tm.assert_series_equal(expected, x)
 
@@ -2848,14 +2916,14 @@ class TestMomentsConsistency(Base):
         # Default how should be max
         expected = Series([0.0, 1.0, 2.0, 3.0, 20.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').max()
         tm.assert_series_equal(expected, x)
 
         # Now specify median (10.0)
         expected = Series([0.0, 1.0, 2.0, 3.0, 10.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').max(how='median')
         tm.assert_series_equal(expected, x)
 
@@ -2863,7 +2931,7 @@ class TestMomentsConsistency(Base):
         v = (4.0 + 10.0 + 20.0) / 3.0
         expected = Series([0.0, 1.0, 2.0, 3.0, v],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').max(how='mean')
             tm.assert_series_equal(expected, x)
 
@@ -2882,7 +2950,7 @@ class TestMomentsConsistency(Base):
         # Default how should be min
         expected = Series([0.0, 1.0, 2.0, 3.0, 4.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             r = series.rolling(window=1, freq='D')
             tm.assert_series_equal(expected, r.min())
 
@@ -2901,7 +2969,7 @@ class TestMomentsConsistency(Base):
         # Default how should be median
         expected = Series([0.0, 1.0, 2.0, 3.0, 10],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             x = series.rolling(window=1, freq='D').median()
             tm.assert_series_equal(expected, x)
 
@@ -3616,3 +3684,23 @@ class TestRollingTS(tm.TestCase):
                 agg_by_day).reset_index(level=0, drop=True)
 
             tm.assert_frame_equal(result, expected)
+
+    def test_groupby_monotonic(self):
+
+        # GH 15130
+        # we don't need to validate monotonicity when grouping
+
+        data = [
+            ['David', '1/1/2015', 100], ['David', '1/5/2015', 500],
+            ['David', '5/30/2015', 50], ['David', '7/25/2015', 50],
+            ['Ryan', '1/4/2014', 100], ['Ryan', '1/19/2015', 500],
+            ['Ryan', '3/31/2016', 50], ['Joe', '7/1/2015', 100],
+            ['Joe', '9/9/2015', 500], ['Joe', '10/15/2015', 50]]
+
+        df = pd.DataFrame(data=data, columns=['name', 'date', 'amount'])
+        df['date'] = pd.to_datetime(df['date'])
+
+        expected = df.set_index('date').groupby('name').apply(
+            lambda x: x.rolling('180D')['amount'].sum())
+        result = df.groupby('name').rolling('180D', on='date')['amount'].sum()
+        tm.assert_series_equal(result, expected)
