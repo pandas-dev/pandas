@@ -1065,8 +1065,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         exp_desc = pd.Series([6., 5., 4., 3., 2., 1.])
         ordered = pd.Series(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
-        ).astype('category', ).cat.set_categories(
-            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+        ).astype(
+            'category',
+            categories=['first', 'second', 'third',
+                        'fourth', 'fifth', 'sixth'],
             ordered=True
         )
         assert_series_equal(ordered.rank(), exp)
@@ -1075,19 +1077,33 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         # Unordered categoricals should be ranked as objects
         unordered = pd.Series(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
-        ).astype('category').cat.set_categories(
-            ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+        ).astype(
+            'category',
+            categories=['first', 'second', 'third',
+                        'fourth', 'fifth', 'sixth'],
             ordered=False
         )
         exp_unordered = pd.Series([2., 4., 6., 3., 1., 5.])
         res = unordered.rank()
         assert_series_equal(res, exp_unordered)
 
+        unordered1 = pd.Series(
+            [1, 2, 3, 4, 5, 6],
+        ).astype(
+            'category',
+            categories=[1, 2, 3, 4, 5, 6],
+            ordered=False
+        )
+        exp_unordered1 = pd.Series([1., 2., 3., 4., 5., 6.])
+        res1 = unordered1.rank()
+        assert_series_equal(res1, exp_unordered1)
+
         # Test na_option for rank data
         na_ser = pd.Series(
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', np.NaN]
-        ).astype('category', ).cat.set_categories(
-            [
+        ).astype(
+            'category',
+            categories=[
                 'first', 'second', 'third', 'fourth',
                 'fifth', 'sixth', 'seventh'
             ],
@@ -1123,8 +1139,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         # Test with pct=True
         na_ser = pd.Series(
             ['first', 'second', 'third', 'fourth', np.NaN],
-        ).astype('category').cat.set_categories(
-            ['first', 'second', 'third', 'fourth'],
+        ).astype(
+            'category',
+            categories=['first', 'second', 'third', 'fourth'],
             ordered=True
         )
         exp_top = pd.Series([0.4, 0.6, 0.8, 1., 0.2])

@@ -992,6 +992,7 @@ def _get_data_algo(values, func_map):
     elif is_unsigned_integer_dtype(values):
         f = func_map['uint64']
         values = _ensure_uint64(values)
+
     else:
         values = _ensure_object(values)
 
