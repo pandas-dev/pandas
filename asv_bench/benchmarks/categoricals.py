@@ -63,3 +63,37 @@ class Categoricals2(object):
 
     def time_rendering(self):
         str(self.sel)
+
+
+class Categoricals3(object):
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        ncats = 100
+
+        self.s1 = Series(np.array(tm.makeCategoricalIndex(N, ncats)))
+        self.s1_cat = self.s1.astype('category')
+        self.s1_cat_ordered = self.s1.astype('category', ordered=True)
+
+        self.s2 = Series(np.random.randint(0, ncats, size=N))
+        self.s2_cat = self.s2.astype('category')
+        self.s2_cat_ordered = self.s2.astype('category', ordered=True)
+
+    def time_rank_string(self):
+        self.s1.rank()
+
+    def time_rank_string_cat(self):
+        self.s1_cat.rank()
+
+    def time_rank_string_cat_ordered(self):
+        self.s1_cat_ordered.rank()
+
+    def time_rank_int(self):
+        self.s2.rank()
+
+    def time_rank_int_cat(self):
+        self.s2_cat.rank()
+
+    def time_rank_int_cat_ordered(self):
+        self.s2_cat_ordered.rank()

@@ -1416,14 +1416,21 @@ class Categorical(PandasObject):
         numpy array
 
         """
+        from pandas import Series
         if self.ordered:
             values = self.codes
             mask = values == -1
             if mask.any():
                 values = values.astype('float64')
                 values[mask] = np.nan
-        else:
+        elif self.categories.is_numeric():
             values = np.array(self)
+        else:
+            #  reorder the categories (so rank can use the float codes)
+            #  instead of passing an object array to rank
+            values = np.array(
+                self.rename_categories(Series(self.categories).rank())
+            )
         return values
 
     def order(self, inplace=False, ascending=True, na_position='last'):
