@@ -76,15 +76,18 @@ class Categoricals3(object):
 
         dt = pd.util.testing.makeDateIndex(n)
         self.s2 = pd.Series(dt).astype('category', categories=dt)
-        self.s2o = pd.Series(dt).astype('category', categories=dt, ordered=True)
+        self.s2o = pd.Series(dt).astype('category', categories=dt,
+                                        ordered=True)
 
         fl = pd.util.testing.makeFloatIndex(n)
         self.s3 = pd.Series(fl).astype('category', categories=fl)
-        self.s3o = pd.Series(fl).astype('category', categories=fl, ordered=True)
+        self.s3o = pd.Series(fl).astype('category', categories=fl,
+                                        ordered=True)
 
         intg = pd.util.testing.makeIntIndex(n)
         self.s4 = pd.Series(intg).astype('category', categories=intg)
-        self.s4o = pd.Series(intg).astype('category', categories=intg, ordered=True)
+        self.s4o = pd.Series(intg).astype('category', categories=intg,
+                                          ordered=True)
 
     def time_rank_string_unordered(self):
         self.s1.rank()

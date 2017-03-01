@@ -1067,7 +1067,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
         ).astype(
             'category',
-            categories=['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+            categories=['first', 'second', 'third',
+                        'fourth', 'fifth', 'sixth'],
             ordered=True
         )
         assert_series_equal(ordered.rank(), exp)
@@ -1078,7 +1079,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
         ).astype(
             'category',
-            categories=['first', 'second', 'third', 'fourth', 'fifth', 'sixth'],
+            categories=['first', 'second', 'third',
+                        'fourth', 'fifth', 'sixth'],
             ordered=False
         )
         exp_unordered = pd.Series([2., 4., 6., 3., 1., 5.])
