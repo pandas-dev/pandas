@@ -864,17 +864,11 @@ class TestPeriodProperties(tm.TestCase):
             self.assertTrue(np.isnan(getattr(t_nat, f)))
 
     def test_pnow(self):
-        dt = datetime.now()
 
-        val = period.pnow('D')
-        exp = Period(dt, freq='D')
-        self.assertEqual(val, exp)
-
-        val2 = period.pnow('2D')
-        exp2 = Period(dt, freq='2D')
-        self.assertEqual(val2, exp2)
-        self.assertEqual(val.ordinal, val2.ordinal)
-        self.assertEqual(val.ordinal, exp2.ordinal)
+        # deprecation, xref #13790
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            period.pnow('D')
 
     def test_constructor_corner(self):
         expected = Period('2007-01', freq='2M')

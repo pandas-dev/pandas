@@ -536,6 +536,12 @@ Deprecations
 - importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
 - ``FrozenList`` addition (new object and inplace) have been deprecated in favor of the ``.union()`` method. (:issue: `15475`)
+- The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`)
+  * ``pd.pnow()``, replaced by ``Period.now()``
+  * ``pd.Term``, not applicable to the user
+  * ``pd.Expr``, not applicable to the user
+  * ``pd.match()``, replaced by a direct import from ``pandas.core.algorithms``
+  * ``pd.groupby()``, replaced by using the ``.groupby()`` method directly on a ``Series/DataFrame``
 
 .. _whatsnew_0200.prior_deprecations:
 

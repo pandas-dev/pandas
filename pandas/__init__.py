@@ -33,7 +33,6 @@ except ImportError as e:  # pragma: no cover
                       "the C extensions first.".format(module))
 
 from datetime import datetime
-from pandas.info import __doc__
 
 # let init-time option registration happen
 import pandas.core.config_init
