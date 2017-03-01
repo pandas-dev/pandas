@@ -337,7 +337,7 @@ class CheckSDist(sdist_class):
                  'pandas/src/period.pyx',
                  'pandas/sparse/sparse.pyx',
                  'pandas/util/testing.pyx',
-                 'pandas/src/hash.pyx',
+                 'pandas/tools/hash.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -514,8 +514,8 @@ ext_data = {
                                      _pxi_dep['sparse'])},
     'util.libtesting': {'pyxfile': 'util/testing',
                         'depends': ['pandas/util/testing.pyx']},
-    '_hash': {'pyxfile': 'src/hash',
-              'depends': [srcpath('hash', suffix='.pyx')]},
+    'tools.libhashing': {'pyxfile': 'tools/hashing',
+                         'depends': ['pandas/tools/hashing.pyx']},
     'io.sas.libsas': {'pyxfile': 'io/sas/sas'},
     }
 
