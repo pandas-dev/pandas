@@ -277,13 +277,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def _can_hold_na(self):
         return self._data._can_hold_na
 
-    @property
-    def is_time_series(self):
-        warnings.warn("is_time_series is deprecated. Please use "
-                      "Series.index.is_all_dates", FutureWarning, stacklevel=2)
-        # return self._subtyp in ['time_series', 'sparse_time_series']
-        return self.index.is_all_dates
-
     _index = None
 
     def _set_axis(self, axis, labels, fastpath=False):
@@ -2984,16 +2977,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     return subarr
 
-
-# backwards compatiblity
-class TimeSeries(Series):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation TimeSeries, #10890
-        warnings.warn("TimeSeries is deprecated. Please use Series",
-                      FutureWarning, stacklevel=2)
-
-        super(TimeSeries, self).__init__(*args, **kwargs)
 
 # ----------------------------------------------------------------------
 # Add plotting methods to Series

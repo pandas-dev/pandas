@@ -383,8 +383,6 @@ class TestTimeSeries(TestData, tm.TestCase):
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertTrue(ser.is_time_series)
         self.assertTrue(ser.index.is_all_dates)
         self.assertIsInstance(ser.index, DatetimeIndex)
 

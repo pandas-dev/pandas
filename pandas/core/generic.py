@@ -1035,6 +1035,7 @@ class NDFrame(PandasObject):
     _shared_docs['to_excel'] = """
     Write %(klass)s to an excel sheet
     %(versionadded_to_excel)s
+
     Parameters
     ----------
     excel_writer : string or ExcelWriter object
@@ -2874,11 +2875,10 @@ class NDFrame(PandasObject):
 
         self._protect_consolidate(f)
 
-    def consolidate(self, inplace=False):
+    def _consolidate(self, inplace=False):
         """
         Compute NDFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray). Mainly an internal API function,
-        but available here to the savvy user
+        grouped together in a single ndarray).
 
         Parameters
         ----------
@@ -2896,6 +2896,15 @@ class NDFrame(PandasObject):
             f = lambda: self._data.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
+
+    def consolidate(self, inplace=False):
+        """
+        DEPRECATED: consolidate will be an internal implementation only.
+        """
+        # 15483
+        warnings.warn("consolidate is deprecated and will be removed in a "
+                      "future release.", FutureWarning, stacklevel=2)
+        return self._consolidate(inplace)
 
     @property
     def _is_mixed_type(self):
@@ -4909,6 +4918,7 @@ class NDFrame(PandasObject):
             not change input %(klass)s (though pandas doesn't check it).
 
             .. versionadded:: 0.18.1
+                A callable can be used as cond.
 
         other : scalar, %(klass)s, or callable
             If other is callable, it is computed on the %(klass)s and
@@ -4916,6 +4926,7 @@ class NDFrame(PandasObject):
             change input %(klass)s (though pandas doesn't check it).
 
             .. versionadded:: 0.18.1
+                A callable can be used as other.
 
         inplace : boolean, default False
             Whether to perform the operation in place on the data

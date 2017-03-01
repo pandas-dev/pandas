@@ -202,8 +202,8 @@ def html():
         raise SystemExit("Building HTML failed.")
     try:
         # remove stale file
-        os.system('rm source/html-styling.html')
-        os.system('cd build; rm -f html/pandas.zip;')
+        os.remove('source/html-styling.html')
+        os.remove('build/html/pandas.zip')
     except:
         pass
 

@@ -418,7 +418,7 @@ class TestHDFStore(Base, tm.TestCase):
             df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
             df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
             df.loc[3:6, ['obj1']] = np.nan
-            df = df.consolidate()._convert(datetime=True)
+            df = df._consolidate()._convert(datetime=True)
 
             warnings.filterwarnings('ignore', category=PerformanceWarning)
             store['df'] = df
@@ -762,7 +762,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.loc[3:6, ['obj1']] = np.nan
-        df = df.consolidate()._convert(datetime=True)
+        df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             _maybe_remove(store, 'df')
@@ -2077,7 +2077,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['datetime1'] = datetime.datetime(2001, 1, 2, 0, 0)
         df['datetime2'] = datetime.datetime(2001, 1, 3, 0, 0)
         df.loc[3:6, ['obj1']] = np.nan
-        df = df.consolidate()._convert(datetime=True)
+        df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             store.append('df1_mixed', df)
@@ -2091,7 +2091,7 @@ class TestHDFStore(Base, tm.TestCase):
         wp['bool2'] = wp['ItemB'] > 0
         wp['int1'] = 1
         wp['int2'] = 2
-        wp = wp.consolidate()
+        wp = wp._consolidate()
 
         with ensure_clean_store(self.path) as store:
             store.append('p1_mixed', wp)
@@ -2106,7 +2106,7 @@ class TestHDFStore(Base, tm.TestCase):
             wp['bool2'] = wp['l2'] > 0
             wp['int1'] = 1
             wp['int2'] = 2
-            wp = wp.consolidate()
+            wp = wp._consolidate()
 
             with ensure_clean_store(self.path) as store:
                 store.append('p4d_mixed', wp)
@@ -2134,7 +2134,7 @@ class TestHDFStore(Base, tm.TestCase):
         df['obj1'] = 'foo'
         df['obj2'] = 'bar'
         df['datetime1'] = datetime.date(2001, 1, 2)
-        df = df.consolidate()._convert(datetime=True)
+        df = df._consolidate()._convert(datetime=True)
 
         with ensure_clean_store(self.path) as store:
             # this fails because we have a date in the object block......
@@ -2949,7 +2949,7 @@ class TestHDFStore(Base, tm.TestCase):
             df['bool2'] = df['B'] > 0
             df['int1'] = 1
             df['int2'] = 2
-            return df.consolidate()
+            return df._consolidate()
 
         df1 = _make_one()
         df2 = _make_one()
@@ -4453,15 +4453,6 @@ class TestHDFStore(Base, tm.TestCase):
             str(store)
             d1 = store['detector']
             self.assertIsInstance(d1, DataFrame)
-
-    def test_legacy_read(self):
-        with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/legacy.h5'),
-                mode='r') as store:
-            store['a']
-            store['b']
-            store['c']
-            store['d']
 
     def test_legacy_table_read(self):
         # legacy table types

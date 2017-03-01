@@ -133,7 +133,8 @@ def _possibly_downcast_to_dtype(result, dtype):
                 if dtype.tz:
                     # convert to datetime and change timezone
                     from pandas import to_datetime
-                    result = to_datetime(result).tz_localize(dtype.tz)
+                    result = to_datetime(result).tz_localize('utc')
+                    result = result.tz_convert(dtype.tz)
 
     except:
         pass

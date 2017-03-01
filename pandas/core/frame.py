@@ -77,7 +77,8 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import deprecate_kwarg, Appender, Substitution
+from pandas.util.decorators import (deprecate_kwarg, Appender,
+                                    Substitution, docstring_wrapper)
 from pandas.util.validators import validate_bool_kwarg
 
 from pandas.tseries.period import PeriodIndex
@@ -1105,13 +1106,17 @@ class DataFrame(NDFrame):
                         count += 1
             elif index_names[0] is None:
                 index_names = ['index']
-            names = lmap(str, index_names) + lmap(str, self.columns)
+            names = (lmap(compat.text_type, index_names) +
+                     lmap(compat.text_type, self.columns))
         else:
             arrays = [self[c].get_values() for c in self.columns]
-            names = lmap(str, self.columns)
+            names = lmap(compat.text_type, self.columns)
 
-        dtype = np.dtype([(x, v.dtype) for x, v in zip(names, arrays)])
-        return np.rec.fromarrays(arrays, dtype=dtype, names=names)
+        formats = [v.dtype for v in arrays]
+        return np.rec.fromarrays(
+            arrays,
+            dtype={'names': names, 'formats': formats}
+        )
 
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):
@@ -4720,6 +4725,7 @@ class DataFrame(NDFrame):
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
+        idx = cols.copy()
         mat = numeric_df.values
 
         if method == 'pearson':
@@ -4752,7 +4758,7 @@ class DataFrame(NDFrame):
                     correl[i, j] = c
                     correl[j, i] = c
 
-        return self._constructor(correl, index=cols, columns=cols)
+        return self._constructor(correl, index=idx, columns=cols)
 
     def cov(self, min_periods=None):
         """
@@ -4775,6 +4781,7 @@ class DataFrame(NDFrame):
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
+        idx = cols.copy()
         mat = numeric_df.values
 
         if notnull(mat).all():
@@ -4788,7 +4795,7 @@ class DataFrame(NDFrame):
             baseCov = _algos.nancorr(_ensure_float64(mat), cov=True,
                                      minp=min_periods)
 
-        return self._constructor(baseCov, index=cols, columns=cols)
+        return self._constructor(baseCov, index=idx, columns=cols)
 
     def corrwith(self, other, axis=0, drop=False):
         """
@@ -5418,6 +5425,16 @@ DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 
 _EMPTY_SERIES = Series([])
+
+
+# patch in the doc-string for to_gbq
+# and bind this method
+def _f():
+    from pandas.io.gbq import _try_import
+    return _try_import().to_gbq.__doc__
+
+
+DataFrame.to_gbq = docstring_wrapper(DataFrame.to_gbq, _f)
 
 
 def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):

@@ -461,7 +461,7 @@ C (cpplint)
 
 *pandas* uses the `Google <https://google.github.io/styleguide/cppguide.html>`_
 standard. Google provides an open source style checker called ``cpplint``, but we
-use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`_.
+use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`__.
 Here are *some* of the more common ``cpplint`` issues:
 
   - we restrict line-length to 80 characters to promote readability
@@ -479,7 +479,7 @@ You can also run this command on an entire directory if necessary::
 
 To make your commits compliant with this standard, you can install the
 `ClangFormat <http://clang.llvm.org/docs/ClangFormat.html>`_ tool, which can be
-downloaded `here <http://llvm.org/builds/>`_. To configure, in your home directory,
+downloaded `here <http://llvm.org/builds/>`__. To configure, in your home directory,
 run the following command::
 
     clang-format style=google -dump-config  > .clang-format
@@ -519,15 +519,6 @@ and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
    git diff master | flake8 --diff
-
-Furthermore, we've written a tool to check that your commits are PEP8 great, `pip install pep8radius
-<https://github.com/hayd/pep8radius>`_. Look at PEP8 fixes in your branch vs master with::
-
-    pep8radius master --diff
-
-and make these changes with::
-
-    pep8radius master --diff --in-place
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -611,7 +602,27 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-For more, see the `pytest<http://doc.pytest.org/en/latest/>`_ documentation.
+Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can 
+speed up local testing on multicore machines. To use this feature, you will
+need to install `pytest-xdist` via::
+
+    pip install pytest-xdist
+    
+Two scripts are provided to assist with this.  These scripts distribute 
+testing across 4 threads.
+
+On Unix variants, one can type::
+
+    test_fast.sh
+    
+On Windows, one can type::
+
+    test_fast.bat
+    
+This can significantly reduce the time it takes to locally run tests before
+submitting a pull request.
+
+For more, see the `pytest <http://doc.pytest.org/en/latest/>`_ documentation.
 
     .. versionadded:: 0.20.0
 
