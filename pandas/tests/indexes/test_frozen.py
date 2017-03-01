@@ -14,6 +14,9 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
         self.container = FrozenList(self.lst)
         self.klass = FrozenList
 
+    def test_add(self):
+        self.assert_produces_warning(FutureWarning)
+
     def test_union(self):
         result = self.container.union((1, 2, 3))
         expected = FrozenList(self.lst + [1, 2, 3])
