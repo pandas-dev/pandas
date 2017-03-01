@@ -336,7 +336,7 @@ class CheckSDist(sdist_class):
                  'pandas/io/parsers.pyx',
                  'pandas/src/period.pyx',
                  'pandas/src/sparse.pyx',
-                 'pandas/src/testing.pyx',
+                 'pandas/util/testing.pyx',
                  'pandas/src/hash.pyx',
                  'pandas/io/sas/sas.pyx']
 
@@ -511,9 +511,9 @@ ext_data = {
                                  'pandas/src/parser/io.c']},
     '_sparse': {'pyxfile': 'src/sparse',
                 'depends': ([srcpath('sparse', suffix='.pyx')] +
-                            _pxi_dep['_sparse'])},
-    '_testing': {'pyxfile': 'src/testing',
-                 'depends': [srcpath('testing', suffix='.pyx')]},
+                            _pxi_dep['sparse'])},
+    'util.libtesting': {'pyxfile': 'util/testing',
+                        'depends': ['pandas/util/testing.pyx']},
     '_hash': {'pyxfile': 'src/hash',
               'depends': [srcpath('hash', suffix='.pyx')]},
     'io.sas.libsas': {'pyxfile': 'io/sas/sas'},
