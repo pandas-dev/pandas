@@ -28,11 +28,11 @@ class FrozenList(PandasObject, list):
 
     def __add__(self, other):
         warnings.warn("__add__ is deprecated, use union(...)", FutureWarning)
-        if isinstance(other, tuple):
-            other = list(other)
-        return self.__class__(super(FrozenList, self).__add__(other))
+        return self.union(other)
 
-    __iadd__ = __add__
+    def __iadd__(self, other):
+        warnings.warn("__iadd__ is deprecated, use union(...)", FutureWarning)
+        return self.union(other)
 
     # Python 2 compat
     def __getslice__(self, i, j):
@@ -84,11 +84,14 @@ class FrozenList(PandasObject, list):
     pop = append = extend = remove = sort = insert = _disabled
 
     def union(self, other):
+        """Returns a FrozenList with other concatenated to the end of self"""
         if isinstance(other, tuple):
             other = list(other)
         return self.__class__(super(FrozenList, self).__add__(other))
 
     def difference(self, other):
+        """Returns a FrozenList with the same elements as self, but with elements
+        that are also in other removed."""
         other = set(other)
         temp = [x for x in self if x not in other]
         return self.__class__(temp)
