@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 from pandas import DataFrame, Series, Index, MultiIndex, Categorical
 from pandas.compat import StringIO
 from pandas.types.dtypes import CategoricalDtype
-from pandas.io.common import ParserWarning
+from pandas.errors import ParserWarning
 
 
 class DtypeTests(object):

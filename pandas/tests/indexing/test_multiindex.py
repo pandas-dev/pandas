@@ -5,7 +5,7 @@ import pandas as pd
 from pandas import (Panel, Series, MultiIndex, DataFrame,
                     Timestamp, Index, date_range)
 from pandas.util import testing as tm
-from pandas.core.common import PerformanceWarning, UnsortedIndexError
+from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.tests.indexing.common import _mklbl
 
 

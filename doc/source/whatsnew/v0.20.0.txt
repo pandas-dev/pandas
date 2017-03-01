@@ -75,6 +75,24 @@ Commonly called 'unix epoch' or POSIX time.
 
    pd.to_datetime([1, 2, 3], unit='D')
 
+.. _whatsnew_0200.enhancements.errors:
+
+pandas errors
+^^^^^^^^^^^^^
+
+We are adding a standard public location for all pandas exceptions & warnings ``pandas.errors``. (:issue:`14800`). Previously
+these exceptions & warnings could be imported from ``pandas.core.common`` or ``pandas.io.common``. These exceptions and warnings
+will be removed from the ``*.common`` locations in a future release. (:issue:`15541`)
+
+The following are now part of this API:
+
+.. ipython:: python
+
+   import pprint
+   from pandas import errors
+   excs = [ e for e in dir(errors) if not e.startswith('_') ]
+   pprint.pprint(excs)
+
 .. _whatsnew_0200.enhancements.groupby_access:
 
 Groupby Enhancements

@@ -29,10 +29,11 @@ from pandas.core.categorical import Categorical
 from pandas.core import algorithms
 from pandas.core.common import AbstractMethodError
 from pandas.io.date_converters import generic_parser
+from pandas.errors import ParserWarning, ParserError, EmptyDataError
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
                               _get_handle, UnicodeReader, UTF8Recoder,
-                              BaseIterator, ParserError, EmptyDataError,
-                              ParserWarning, _NA_VALUES, _infer_compression)
+                              BaseIterator,
+                              _NA_VALUES, _infer_compression)
 from pandas.tseries import tools
 
 from pandas.util.decorators import Appender

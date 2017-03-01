@@ -8,7 +8,7 @@ from numpy import nan
 from pandas import (date_range, bdate_range, Timestamp,
                     isnull, Index, MultiIndex, DataFrame, Series,
                     concat, Panel)
-from pandas.core.common import UnsupportedFunctionCall
+from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
                                  assert_index_equal, assertRaisesRegexp)
@@ -3475,7 +3475,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
 
         expected = lexsorted_df.groupby('a').mean()
-        with tm.assert_produces_warning(com.PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = not_lexsorted_df.groupby('a').mean()
         tm.assert_frame_equal(expected, result)
 

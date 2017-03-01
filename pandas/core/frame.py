@@ -56,7 +56,8 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_named_tuple)
 from pandas.types.missing import isnull, notnull
 
-from pandas.core.common import (PandasError, _try_sort,
+from pandas.errors import PandasError
+from pandas.core.common import (_try_sort,
                                 _default_index,
                                 _values_from_object,
                                 _maybe_box_datetimelike,

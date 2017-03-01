@@ -20,9 +20,8 @@ from pandas import compat
 from pandas import (DataFrame, Index, Series, isnull,
                     MultiIndex, Timedelta, Timestamp,
                     date_range)
-from pandas.core.common import PandasError
+from pandas.errors import PandasError
 import pandas as pd
-import pandas.core.common as com
 import pandas._libs.lib as lib
 import pandas.util.testing as tm
 
@@ -1242,8 +1241,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                                                      dtype=object),
                                             index=[1, 2], columns=['a', 'c']))
 
-        self.assertRaises(com.PandasError, DataFrame, 'a', [1, 2])
-        self.assertRaises(com.PandasError, DataFrame, 'a', columns=['a', 'c'])
+        self.assertRaises(PandasError, DataFrame, 'a', [1, 2])
+        self.assertRaises(PandasError, DataFrame, 'a', columns=['a', 'c'])
         with tm.assertRaisesRegexp(TypeError, 'incompatible data and dtype'):
             DataFrame('a', [1, 2], ['a', 'c'], float)
 
