@@ -6,11 +6,11 @@ from libc.stdlib cimport *
 from libc.string cimport *
 from libc.limits cimport *
 
-from pandas.msgpack.exceptions import PackValueError
-from pandas.msgpack import ExtType
+from pandas.io.msgpack.exceptions import PackValueError
+from pandas.io.msgpack import ExtType
 
 
-cdef extern from "../src/msgpack/pack.h":
+cdef extern from "../../src/msgpack/pack.h":
     struct msgpack_packer:
         char* buf
         size_t length

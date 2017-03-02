@@ -109,20 +109,20 @@ if cython:
 from os.path import join as pjoin
 
 
-_pxipath = pjoin('pandas', 'src')
 _pxi_dep_template = {
-    'algos': ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
-              'algos_take_helper.pxi.in', 'algos_rank_helper.pxi.in'],
-    '_join': ['join_helper.pxi.in', 'joins_func_helper.pxi.in'],
-    'hashtable': ['hashtable_class_helper.pxi.in',
-                  'hashtable_func_helper.pxi.in'],
-    'index': ['index_class_helper.pxi.in'],
-    '_sparse': ['sparse_op_helper.pxi.in']
+    'algos': ['src/algos_common_helper.pxi.in', 'src/algos_groupby_helper.pxi.in',
+               'src/algos_take_helper.pxi.in', 'src/algos_rank_helper.pxi.in'],
+    'join': ['src/join_helper.pxi.in', 'src/joins_func_helper.pxi.in'],
+    'hashtable': ['src/hashtable_class_helper.pxi.in',
+                   'src/hashtable_func_helper.pxi.in'],
+    'index': ['src/index_class_helper.pxi.in'],
+    'sparse': ['sparse/sparse_op_helper.pxi.in'],
 }
+
 _pxifiles = []
 _pxi_dep = {}
 for module, files in _pxi_dep_template.items():
-    pxi_files = [pjoin(_pxipath, x) for x in files]
+    pxi_files = [pjoin('pandas', x) for x in files]
     _pxifiles.extend(pxi_files)
     _pxi_dep[module] = pxi_files
 
@@ -333,12 +333,12 @@ class CheckSDist(sdist_class):
                  'pandas/algos.pyx',
                  'pandas/join.pyx',
                  'pandas/window.pyx',
-                 'pandas/parser.pyx',
+                 'pandas/io/parsers.pyx',
                  'pandas/src/period.pyx',
-                 'pandas/src/sparse.pyx',
-                 'pandas/src/testing.pyx',
-                 'pandas/src/hash.pyx',
-                 'pandas/io/sas/saslib.pyx']
+                 'pandas/sparse/sparse.pyx',
+                 'pandas/util/testing.pyx',
+                 'pandas/tools/hash.pyx',
+                 'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
         sdist_class.initialize_options(self)
@@ -470,55 +470,54 @@ tseries_depends = ['pandas/src/datetime/np_datetime.h',
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
 
-ext_data = dict(
-    lib={'pyxfile': 'lib',
-         'pxdfiles': [],
-         'depends': lib_depends},
-    hashtable={'pyxfile': 'hashtable',
-               'pxdfiles': ['hashtable'],
-               'depends': (['pandas/src/klib/khash_python.h']
-                           + _pxi_dep['hashtable'])},
-    tslib={'pyxfile': 'tslib',
-           'depends': tseries_depends,
-           'sources': ['pandas/src/datetime/np_datetime.c',
-                       'pandas/src/datetime/np_datetime_strings.c',
-                       'pandas/src/period_helper.c']},
-    _period={'pyxfile': 'src/period',
-             'depends': tseries_depends,
-             'sources': ['pandas/src/datetime/np_datetime.c',
-                         'pandas/src/datetime/np_datetime_strings.c',
-                         'pandas/src/period_helper.c']},
-    index={'pyxfile': 'index',
-           'sources': ['pandas/src/datetime/np_datetime.c',
-                       'pandas/src/datetime/np_datetime_strings.c'],
-           'pxdfiles': ['src/util', 'hashtable'],
-           'depends': _pxi_dep['index']},
-    algos={'pyxfile': 'algos',
-           'pxdfiles': ['src/util', 'hashtable'],
-           'depends': _pxi_dep['algos']},
-    _join={'pyxfile': 'src/join',
-           'pxdfiles': ['src/util', 'hashtable'],
-           'depends': _pxi_dep['_join']},
-    _window={'pyxfile': 'window',
-             'pxdfiles': ['src/skiplist', 'src/util'],
-             'depends': ['pandas/src/skiplist.pyx',
-                         'pandas/src/skiplist.h']},
-    parser={'pyxfile': 'parser',
-            'depends': ['pandas/src/parser/tokenizer.h',
-                        'pandas/src/parser/io.h',
-                        'pandas/src/numpy_helper.h'],
-            'sources': ['pandas/src/parser/tokenizer.c',
-                        'pandas/src/parser/io.c']},
-    _sparse={'pyxfile': 'src/sparse',
-             'depends': ([srcpath('sparse', suffix='.pyx')] +
-                         _pxi_dep['_sparse'])},
-    _testing={'pyxfile': 'src/testing',
-              'depends': [srcpath('testing', suffix='.pyx')]},
-    _hash={'pyxfile': 'src/hash',
-           'depends': [srcpath('hash', suffix='.pyx')]},
-)
-
-ext_data["io.sas.saslib"] = {'pyxfile': 'io/sas/saslib'}
+ext_data = {
+    'lib': {'pyxfile': 'lib',
+            'pxdfiles': [],
+            'depends': lib_depends},
+    'hashtable': {'pyxfile': 'hashtable',
+                  'pxdfiles': ['hashtable'],
+                  'depends': (['pandas/src/klib/khash_python.h']
+                              + _pxi_dep['hashtable'])},
+    'tslib': {'pyxfile': 'tslib',
+              'depends': tseries_depends,
+              'sources': ['pandas/src/datetime/np_datetime.c',
+                          'pandas/src/datetime/np_datetime_strings.c',
+                          'pandas/src/period_helper.c']},
+    '_period': {'pyxfile': 'src/period',
+                'depends': tseries_depends,
+                'sources': ['pandas/src/datetime/np_datetime.c',
+                            'pandas/src/datetime/np_datetime_strings.c',
+                            'pandas/src/period_helper.c']},
+    'index': {'pyxfile': 'index',
+              'sources': ['pandas/src/datetime/np_datetime.c',
+                          'pandas/src/datetime/np_datetime_strings.c'],
+              'pxdfiles': ['src/util', 'hashtable'],
+              'depends': _pxi_dep['index']},
+    'algos': {'pyxfile': 'algos',
+              'pxdfiles': ['src/util', 'hashtable'],
+              'depends': _pxi_dep['algos']},
+    '_join': {'pyxfile': 'src/join',
+              'pxdfiles': ['src/util', 'hashtable'],
+              'depends': _pxi_dep['join']},
+    '_window': {'pyxfile': 'window',
+                'pxdfiles': ['src/skiplist', 'src/util'],
+                'depends': ['pandas/src/skiplist.pyx',
+                            'pandas/src/skiplist.h']},
+    'io.libparsers': {'pyxfile': 'io/parsers',
+                     'depends': ['pandas/src/parser/tokenizer.h',
+                                 'pandas/src/parser/io.h',
+                                 'pandas/src/numpy_helper.h'],
+                     'sources': ['pandas/src/parser/tokenizer.c',
+                                 'pandas/src/parser/io.c']},
+    'sparse.libsparse': {'pyxfile': 'sparse/sparse',
+                         'depends': (['pandas/sparse/sparse.pyx'] +
+                                     _pxi_dep['sparse'])},
+    'util.libtesting': {'pyxfile': 'util/testing',
+                        'depends': ['pandas/util/testing.pyx']},
+    'tools.libhashing': {'pyxfile': 'tools/hashing',
+                         'depends': ['pandas/tools/hashing.pyx']},
+    'io.sas.libsas': {'pyxfile': 'io/sas/sas'},
+    }
 
 extensions = []
 
@@ -549,23 +548,23 @@ if sys.byteorder == 'big':
 else:
     macros = [('__LITTLE_ENDIAN__', '1')]
 
-packer_ext = Extension('pandas.msgpack._packer',
+packer_ext = Extension('pandas.io.msgpack._packer',
                         depends=['pandas/src/msgpack/pack.h',
                                  'pandas/src/msgpack/pack_template.h'],
                         sources = [srcpath('_packer',
                                    suffix=suffix if suffix == '.pyx' else '.cpp',
-                                   subdir='msgpack')],
+                                   subdir='io/msgpack')],
                         language='c++',
                         include_dirs=['pandas/src/msgpack'] + common_include,
                         define_macros=macros,
                         extra_compile_args=extra_compile_args)
-unpacker_ext = Extension('pandas.msgpack._unpacker',
+unpacker_ext = Extension('pandas.io.msgpack._unpacker',
                         depends=['pandas/src/msgpack/unpack.h',
                                  'pandas/src/msgpack/unpack_define.h',
                                  'pandas/src/msgpack/unpack_template.h'],
                         sources = [srcpath('_unpacker',
                                    suffix=suffix if suffix == '.pyx' else '.cpp',
-                                   subdir='msgpack')],
+                                   subdir='io/msgpack')],
                         language='c++',
                         include_dirs=['pandas/src/msgpack'] + common_include,
                         define_macros=macros,
@@ -583,7 +582,7 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
             root, _ = os.path.splitext(ext.sources[0])
             ext.sources[0] = root + suffix
 
-ujson_ext = Extension('pandas.json',
+ujson_ext = Extension('pandas.io.json.libjson',
                       depends=['pandas/src/ujson/lib/ultrajson.h',
                                'pandas/src/datetime_helper.h',
                                'pandas/src/numpy_helper.h'],
@@ -631,6 +630,7 @@ setup(name=DISTNAME,
                 'pandas.io',
                 'pandas.io.json',
                 'pandas.io.sas',
+                'pandas.io.msgpack',
                 'pandas.formats',
                 'pandas.sparse',
                 'pandas.stats',
@@ -647,10 +647,10 @@ setup(name=DISTNAME,
                 'pandas.tests.io.json',
                 'pandas.tests.io.parser',
                 'pandas.tests.io.sas',
+                'pandas.tests.io.msgpack',
                 'pandas.tests.groupby',
                 'pandas.tests.series',
                 'pandas.tests.formats',
-                'pandas.tests.msgpack',
                 'pandas.tests.scalar',
                 'pandas.tests.sparse',
                 'pandas.tests.tseries',
@@ -660,7 +660,6 @@ setup(name=DISTNAME,
                 'pandas.tools',
                 'pandas.tseries',
                 'pandas.types',
-                'pandas.msgpack',
                 'pandas.util.clipboard'
                 ],
       package_data={'pandas.tests': ['data/*.csv'],

@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from pandas.msgpack import unpackb
+from pandas.io.msgpack import unpackb
 
 
 def check(src, should, use_list=0):

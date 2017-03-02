@@ -33,16 +33,16 @@ class TestPDApi(Base, tm.TestCase):
     # top-level sub-packages
     lib = ['api', 'compat', 'computation', 'core',
            'indexes', 'formats', 'pandas',
-           'test', 'tools', 'tseries',
+           'test', 'tools', 'tseries', 'sparse',
            'types', 'util', 'options', 'io']
 
     # top-level packages that are c-imports, should rename to _*
     # to avoid naming conflicts
-    lib_to_rename = ['algos', 'hashtable', 'tslib', 'msgpack', 'sparse',
-                     'json', 'lib', 'index', 'parser']
+    lib_to_rename = ['algos', 'hashtable', 'tslib',
+                     'lib', 'index']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['stats', 'datetools']
+    deprecated_modules = ['stats', 'datetools', 'parser', 'json']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -225,3 +225,19 @@ class TestDatetools(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.datetools.monthEnd
+
+
+class TestJson(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.json.dumps([])
+
+
+class TestParser(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.parser.na_values

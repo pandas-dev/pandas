@@ -80,7 +80,7 @@ static PyMethodDef ujsonMethods[] = {
 
 static struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT,
-    "_pandasujson",
+    "_libjson",
     0,            /* m_doc */
     -1,           /* m_size */
     ujsonMethods, /* m_methods */
@@ -90,14 +90,14 @@ static struct PyModuleDef moduledef = {
     NULL          /* m_free */
 };
 
-#define PYMODINITFUNC PyMODINIT_FUNC PyInit_json(void)
+#define PYMODINITFUNC PyMODINIT_FUNC PyInit_libjson(void)
 #define PYMODULE_CREATE() PyModule_Create(&moduledef)
 #define MODINITERROR return NULL
 
 #else
 
-#define PYMODINITFUNC PyMODINIT_FUNC initjson(void)
-#define PYMODULE_CREATE() Py_InitModule("json", ujsonMethods)
+#define PYMODINITFUNC PyMODINIT_FUNC initlibjson(void)
+#define PYMODULE_CREATE() Py_InitModule("libjson", ujsonMethods)
 #define MODINITERROR return
 
 #endif

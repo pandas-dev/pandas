@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from pandas.msgpack import packb, unpackb, ExtType
+from pandas.io.msgpack import packb, unpackb, ExtType
 
 
 def test_str8():

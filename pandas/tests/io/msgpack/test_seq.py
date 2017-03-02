@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import io
-import pandas.msgpack as msgpack
+import pandas.io.msgpack as msgpack
 
 binarydata = bytes(bytearray(range(256)))
 

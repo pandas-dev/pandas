@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import unittest
-from pandas.msgpack import packb, unpackb
+from pandas.io.msgpack import packb, unpackb
 
 
 class DummyException(Exception):

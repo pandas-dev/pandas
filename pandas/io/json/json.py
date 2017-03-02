@@ -3,7 +3,7 @@
 import os
 import numpy as np
 
-import pandas.json as _json
+from pandas.io.json import libjson
 from pandas.tslib import iNaT
 from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
@@ -13,8 +13,8 @@ from pandas.core.common import AbstractMethodError
 from pandas.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
 
-loads = _json.loads
-dumps = _json.dumps
+loads = libjson.loads
+dumps = libjson.dumps
 
 
 # interface to/from
