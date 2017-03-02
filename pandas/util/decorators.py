@@ -261,6 +261,11 @@ class docstring_wrapper(object):
                          if hasattr(func, attr)])
 
     def __get__(self, instance, cls=None):
+
+        # we are called with a class
+        if instance is None:
+            return self
+
         # we want to return the actual passed instance
         return types.MethodType(self, instance)
 
