@@ -5080,6 +5080,25 @@ class TestHDFStore(Base, tm.TestCase):
             expected = df.loc[[1], :]
             tm.assert_frame_equal(expected, result)
 
+    def test_query_ts_string_column(self):
+        # GH 15492
+        df = pd.DataFrame({'date': ['2014-01-01', '2014-01-02'],
+                           'real_date': date_range('2014-01-01', periods=2),
+                           'values': [1, 2]},
+                          columns=['date', 'real_date', 'values'])
+
+        ts = pd.Timestamp('2014-01-01') # noqa
+
+        with ensure_clean_store(self.path) as store:
+            store.append('test', df, format='table', data_columns=True)
+
+            result = store.select('test', where='date > ts')
+            self.assertTrue(result.empty)
+
+            result = store.select('test', where='real_date > ts')
+            expected = df.loc[[1], :]
+            tm.assert_frame_equal(expected, result)
+
 
 class TestHDFComplexValues(Base):
     # GH10447

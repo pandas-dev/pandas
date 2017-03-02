@@ -188,10 +188,6 @@ class BinOp(ops.BinOp):
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
-        elif (isinstance(v, datetime) or hasattr(v, 'timetuple') or
-                kind == u('date')):
-            v = time.mktime(v.timetuple())
-            return TermValue(v, pd.Timestamp(v), kind)
         elif kind == u('timedelta64') or kind == u('timedelta'):
             v = _coerce_scalar_to_timedelta_type(v, unit='s').value
             return TermValue(int(v), v, kind)
