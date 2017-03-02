@@ -1144,17 +1144,18 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError('axis must be a DatetimeIndex, but got '
                             'an instance of %r' % type(ax).__name__)
-
         if len(ax) == 0:
             binner = labels = DatetimeIndex(
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
-
+        
+        tz = ax.tz
+        ax = ax.tz_convert('UTC')
+        
         first, last = ax.min(), ax.max()
         first, last = _get_range_edges(first, last, self.freq,
                                        closed=self.closed,
                                        base=self.base)
-        tz = ax.tz
         # GH #12037
         # use first/last directly instead of call replace() on them
         # because replace() will swallow the nanosecond part
@@ -1163,8 +1164,7 @@ class TimeGrouper(Grouper):
         binner = labels = DatetimeIndex(freq=self.freq,
                                         start=first,
                                         end=last,
-                                        tz=tz,
-                                        name=ax.name)
+                                        name=ax.name).tz_convert(tz)
 
         # a little hack
         trimmed = False
