@@ -940,9 +940,9 @@ class Panel(NDFrame):
             minor_labels, minor_levels, minor_names = construct_index_parts(
                 self.minor_axis, major=False)
 
-        levels = major_levels + minor_levels
-        labels = major_labels + minor_labels
-        names = major_names + minor_names
+        levels = list(major_levels) + list(minor_levels)
+        labels = list(major_labels) + list(minor_labels)
+        names = list(major_names) + list(minor_names)
 
         index = MultiIndex(levels=levels, labels=labels, names=names,
                            verify_integrity=False)
