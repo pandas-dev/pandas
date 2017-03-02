@@ -1761,12 +1761,8 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result = df.loc[[0], "b"]
         assert_series_equal(result, expected)
 
-    def test_irow(self):
+    def test_iloc_row(self):
         df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2))
-
-        # 10711, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            df.irow(1)
 
         result = df.iloc[1]
         exp = df.loc[2]
@@ -1795,13 +1791,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         assert_frame_equal(result, expected)
 
-    def test_icol(self):
+    def test_iloc_col(self):
 
         df = DataFrame(np.random.randn(4, 10), columns=lrange(0, 20, 2))
-
-        # 10711, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            df.icol(1)
 
         result = df.iloc[:, 1]
         exp = df.loc[:, 2]
@@ -1828,8 +1820,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         assert_frame_equal(result, expected)
 
-    def test_irow_icol_duplicates(self):
-        # 10711, deprecated
+    def test_iloc_duplicates(self):
 
         df = DataFrame(np.random.rand(3, 3), columns=list('ABC'),
                        index=list('aab'))
@@ -1874,16 +1865,12 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         expected = df.take([0], axis=1)
         assert_frame_equal(result, expected)
 
-    def test_icol_sparse_propegate_fill_value(self):
+    def test_iloc_sparse_propegate_fill_value(self):
         from pandas.sparse.api import SparseDataFrame
         df = SparseDataFrame({'A': [999, 1]}, default_fill_value=999)
         self.assertTrue(len(df['A'].sp_values) == len(df.iloc[:, 0].sp_values))
 
-    def test_iget_value(self):
-        # 10711 deprecated
-
-        with tm.assert_produces_warning(FutureWarning):
-            self.frame.iget_value(0, 0)
+    def test_iat(self):
 
         for i, row in enumerate(self.frame.index):
             for j, col in enumerate(self.frame.columns):

@@ -389,8 +389,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
         self.assertRaises(Exception, sdf.__getitem__, ['a', 'd'])
 
-    def test_icol(self):
-        # 10711 deprecated
+    def test_iloc(self):
 
         # 2227
         result = self.frame.iloc[:, 0]

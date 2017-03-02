@@ -3828,20 +3828,6 @@ class TestGroupBy(MixIn, tm.TestCase):
                      'mad', 'std', 'var', 'sem']
     AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
 
-    def test_groupby_whitelist_deprecations(self):
-        from string import ascii_lowercase
-        letters = np.array(list(ascii_lowercase))
-        N = 10
-        random_letters = letters.take(np.random.randint(0, 26, N))
-        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
-                        'letters': Series(random_letters)})
-
-        # 10711 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            df.groupby('letters').irow(0)
-        with tm.assert_produces_warning(FutureWarning):
-            df.groupby('letters').floats.irow(0)
-
     def test_regression_whitelist_methods(self):
 
         # GH6944
@@ -3917,7 +3903,7 @@ class TestGroupBy(MixIn, tm.TestCase):
              'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
              'mean', 'median', 'min', 'name', 'ngroups', 'nth', 'ohlc', 'plot',
              'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
-             'nunique', 'head', 'irow', 'describe', 'cummax', 'quantile',
+             'nunique', 'head', 'describe', 'cummax', 'quantile',
              'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
              'cumsum', 'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill',
              'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
