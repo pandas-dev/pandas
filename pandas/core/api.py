@@ -47,7 +47,8 @@ from pandas.core.config import (get_option, set_option, reset_option,
 def match(*args, **kwargs):
     import warnings
 
-    warnings.warn("pd.match() is deprecated. Please use pandas.core.algorithms.match()",
+    warnings.warn("pd.match() is deprecated and will be removed "
+                  "in a future version",
                   FutureWarning, stacklevel=2)
     from pandas.core.algorithms import match
     return match(*args, **kwargs)
@@ -56,6 +57,8 @@ def match(*args, **kwargs):
 def groupby(*args, **kwargs):
     import warnings
 
-    warnings.warn("pd.groupby() is deprecated. Please use the .groupby() method",
+    warnings.warn("pd.groupby() is deprecated and will be removed "
+                  "Please use the Series.groupby() or "
+                  "DataFrame.groupby() methods",
                   FutureWarning, stacklevel=2)
     return args[0].groupby(*args[1:], **kwargs)

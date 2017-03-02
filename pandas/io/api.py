@@ -24,7 +24,8 @@ def Term(*args, **kwargs):
 
     warnings.warn("pd.Term is deprecated as it is not "
                   "applicable to user code. Instead use in-line "
-                  "string expressions in for searching HDFStore",
+                  "string expressions in the where clause when "
+                  "searching in HDFStore",
                   FutureWarning, stacklevel=2)
     from pandas.io.pytables import Term
     return Term(*args, **kwargs)
