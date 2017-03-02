@@ -574,7 +574,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
                                      " not have the same number of levels")
 
             # also copies
-            names = names + _get_consensus_names(indexes)
+            names = list(names) + list(_get_consensus_names(indexes))
 
         return MultiIndex(levels=levels, labels=label_list, names=names,
                           verify_integrity=False)

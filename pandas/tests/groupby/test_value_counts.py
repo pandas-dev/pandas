@@ -28,7 +28,7 @@ def test_series_groupby_value_counts(n, m):
 
             gr = df.groupby(keys, sort=isort)
             right = gr['3rd'].apply(Series.value_counts, **kwargs)
-            right.index.names = right.index.names[:-1] + ['3rd']
+            right.index.names = right.index.names[:-1].union(['3rd'])
 
             # have to sort on index because of unstable sort on values
             left, right = map(rebuild_index, (left, right))  # xref GH9212
