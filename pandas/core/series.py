@@ -875,31 +875,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         return self._values.reshape(shape, **kwargs)
 
-    def iget_value(self, i, axis=0):
-        """
-        DEPRECATED. Use ``.iloc[i]`` or ``.iat[i]`` instead
-        """
-        warnings.warn("iget_value(i) is deprecated. Please use .iloc[i] or "
-                      ".iat[i]", FutureWarning, stacklevel=2)
-        return self._ixs(i)
-
-    def iget(self, i, axis=0):
-        """
-        DEPRECATED. Use ``.iloc[i]`` or ``.iat[i]`` instead
-        """
-
-        warnings.warn("iget(i) is deprecated. Please use .iloc[i] or .iat[i]",
-                      FutureWarning, stacklevel=2)
-        return self._ixs(i)
-
-    def irow(self, i, axis=0):
-        """
-        DEPRECATED. Use ``.iloc[i]`` or ``.iat[i]`` instead
-        """
-        warnings.warn("irow(i) is deprecated. Please use .iloc[i] or .iat[i]",
-                      FutureWarning, stacklevel=2)
-        return self._ixs(i)
-
     def get_value(self, label, takeable=False):
         """
         Quickly retrieve single value at passed index label

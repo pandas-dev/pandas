@@ -164,21 +164,9 @@ class TestSeriesIndexing(TestData, tm.TestCase):
             result = s.get(None)
             self.assertIsNone(result)
 
-    def test_iget(self):
+    def test_iloc(self):
 
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
-
-        # 10711, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            s.iget(1)
-
-        # 10711, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            s.irow(1)
-
-        # 10711, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            s.iget_value(1)
 
         for i in range(len(s)):
             result = s.iloc[i]
@@ -199,7 +187,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         expected = s.reindex(s.index[[0, 2, 3, 4, 5]])
         assert_series_equal(result, expected)
 
-    def test_iget_nonunique(self):
+    def test_iloc_nonunique(self):
         s = Series([0, 1, 2], index=[0, 1, 0])
         self.assertEqual(s.iloc[2], 2)
 

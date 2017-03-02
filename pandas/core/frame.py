@@ -1916,23 +1916,6 @@ class DataFrame(NDFrame):
 
             return self
 
-    def irow(self, i, copy=False):
-        """
-        DEPRECATED. Use ``.iloc[i]`` instead
-        """
-
-        warnings.warn("irow(i) is deprecated. Please use .iloc[i]",
-                      FutureWarning, stacklevel=2)
-        return self._ixs(i, axis=0)
-
-    def icol(self, i):
-        """
-        DEPRECATED. Use ``.iloc[:, i]`` instead
-        """
-        warnings.warn("icol(i) is deprecated. Please use .iloc[:,i]",
-                      FutureWarning, stacklevel=2)
-        return self._ixs(i, axis=1)
-
     def _ixs(self, i, axis=0):
         """
         i : int, slice, or sequence of integers
@@ -2006,14 +1989,6 @@ class DataFrame(NDFrame):
                 result._set_as_cached(label, self)
 
                 return result
-
-    def iget_value(self, i, j):
-        """
-        DEPRECATED. Use ``.iat[i, j]`` instead
-        """
-        warnings.warn("iget_value(i, j) is deprecated. Please use .iat[i, j]",
-                      FutureWarning, stacklevel=2)
-        return self.iat[i, j]
 
     def __getitem__(self, key):
         key = com._apply_if_callable(key, self)
