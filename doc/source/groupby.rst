@@ -126,6 +126,16 @@ We could naturally group by either the ``A`` or ``B`` columns or both:
    grouped = df.groupby('A')
    grouped = df.groupby(['A', 'B'])
 
+.. versionadded:: 0.20
+
+If we also have a MultiIndex on columns ``A`` and ``B``, we can group by all
+but the specified columns.
+
+.. ipython:: python
+
+   df2 = df.set_index(['A', 'B'])
+   grouped = df2.groupby(level=df2.index.names.difference(['B'])
+
 These will split the DataFrame on its index (rows). We could also split by the
 columns:
 

@@ -28,6 +28,7 @@ New features
 
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - ``.str.replace`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
+- ``FrozenList`` has gained the ``.difference()`` setop method (:issue:`15475`)
 
 
 
@@ -534,6 +535,7 @@ Deprecations
 - ``Series.sortlevel`` and ``DataFrame.sortlevel`` have been deprecated in favor of ``Series.sort_index`` and ``DataFrame.sort_index`` (:issue:`15099`)
 - importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
+- ``FrozenList`` addition (new object and inplace) have been deprecated in favor of the ``.union()`` method. (:issue: `15475`)
 
 .. _whatsnew_0200.prior_deprecations:
 
