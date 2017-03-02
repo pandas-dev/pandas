@@ -1278,7 +1278,7 @@ class NDFrame(PandasObject):
                    if_exists=if_exists, index=index, index_label=index_label,
                    chunksize=chunksize, dtype=dtype)
 
-    def to_pickle(self, path):
+    def to_pickle(self, path, protocol):
         """
         Pickle (serialize) object to input file path.
 
@@ -1288,7 +1288,7 @@ class NDFrame(PandasObject):
             File path
         """
         from pandas.io.pickle import to_pickle
-        return to_pickle(self, path)
+        return to_pickle(self, path, protocol)
 
     def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
