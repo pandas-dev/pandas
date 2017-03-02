@@ -216,8 +216,8 @@ class _Unstacker(object):
         width = len(self.value_columns)
         propagator = np.repeat(np.arange(width), stride)
         if isinstance(self.value_columns, MultiIndex):
-            new_levels = self.value_columns.levels + (self.removed_level,)
-            new_names = self.value_columns.names + (self.removed_name,)
+            new_levels = self.value_columns.levels.union((self.removed_level,))
+            new_names = self.value_columns.names.union((self.removed_name,))
 
             new_labels = [lab.take(propagator)
                           for lab in self.value_columns.labels]
@@ -806,7 +806,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     for col in id_vars:
         mdata[col] = np.tile(frame.pop(col).values, K)
 
-    mcolumns = id_vars + var_name + [value_name]
+    mcolumns = list(id_vars) + list(var_name) + list([value_name])
 
     mdata[value_name] = frame.values.ravel('F')
     for i, col in enumerate(var_name):
