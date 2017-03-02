@@ -185,14 +185,17 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     x, dtype = _coerce_to_type(x)
 
     if is_integer(q):
-        quantiles = np.linspace(0, 1, q + 1)
+        if x.size == 0:
+            raise ValueError('Cannot qcut empty array')
 
-        if q == 1:
+        rng = (nanops.nanmin(x), nanops.nanmax(x))
+        if rng[0] == rng[1] and q == 1:
             duplicates = 'allow'
+
+        quantiles = np.linspace(0, 1, q + 1)
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
-
     fac, bins = _bins_to_cuts(x, bins, labels=labels,
                               precision=precision, include_lowest=True,
                               dtype=dtype, duplicates=duplicates)
