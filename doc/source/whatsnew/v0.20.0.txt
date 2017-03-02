@@ -612,6 +612,7 @@ Bug Fixes
 - Bug in ``GroupBy.get_group()`` failing with a categorical grouper (:issue:`15155`)
 - Bug in ``pandas.tools.utils.cartesian_product()`` with large input can cause overflow on windows (:issue:`15265`)
 
+- Bug in ``DataFrame.to_records()`` with converting a ``DatetimeIndex`` with a timezone (:issue:`13937`)
 
 
 - Bug in ``.groupby(...).rolling(...)`` when ``on`` is specified and using a ``DatetimeIndex`` (:issue:`15130`)
