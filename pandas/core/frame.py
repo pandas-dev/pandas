@@ -78,7 +78,7 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (deprecate_kwarg, Appender,
-                                    Substitution, docstring_wrapper)
+                                    Substitution)
 from pandas.util.validators import validate_bool_kwarg
 
 from pandas.tseries.period import PeriodIndex
@@ -908,7 +908,26 @@ class DataFrame(NDFrame):
                verbose=True, reauth=False, if_exists='fail', private_key=None):
         """Write a DataFrame to a Google BigQuery table.
 
-        THIS IS AN EXPERIMENTAL LIBRARY
+        The main method a user calls to export pandas DataFrame contents to
+        Google BigQuery table.
+
+        Google BigQuery API Client Library v2 for Python is used.
+        Documentation is available `here
+        <https://developers.google.com/api-client-library/python/apis/bigquery/v2>`__
+
+        Authentication to the Google BigQuery service is via OAuth 2.0.
+
+        - If "private_key" is not provided:
+
+          By default "application default credentials" are used.
+
+          If default application credentials are not found or are restrictive,
+          user account credentials are used. In this case, you will be asked to
+          grant permissions for product name 'pandas GBQ'.
+
+        - If "private_key" is provided:
+
+          Service account credentials will be used to authenticate.
 
         Parameters
         ----------
@@ -933,8 +952,6 @@ class DataFrame(NDFrame):
             Service account private key in JSON format. Can be file path
             or string contents. This is useful for remote server
             authentication (eg. jupyter iPython notebook on remote host)
-
-            .. versionadded:: 0.17.0
         """
 
         from pandas.io import gbq
@@ -5400,16 +5417,6 @@ DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 
 _EMPTY_SERIES = Series([])
-
-
-# patch in the doc-string for to_gbq
-# and bind this method
-def _f():
-    from pandas.io.gbq import _try_import
-    return _try_import().to_gbq.__doc__
-
-
-DataFrame.to_gbq = docstring_wrapper(DataFrame.to_gbq, _f)
 
 
 def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
