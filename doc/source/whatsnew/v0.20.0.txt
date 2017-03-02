@@ -548,6 +548,8 @@ Removal of prior version deprecations/changes
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
 - ``pandas.stats.fama_macbeth``, ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var``, as well as the top-level ``pandas.fama_macbeth`` and ``pandas.ols`` routines are removed. Similar functionaility can be found in the `statsmodels <shttp://www.statsmodels.org/dev/>`__ package. (:issue:`11898`)
 - ``Series.is_time_series`` is dropped in favor of ``Series.index.is_all_dates`` (:issue:``)
+- The deprecated ``irow``, ``icol``, ``iget`` and ``iget_value`` methods are removed
+  in favor of ``iloc`` and ``iat`` as explained :ref:`here <whatsnew_0170.deprecations>` (:issue:`10711`).
 
 
 .. _whatsnew_0200.performance:
