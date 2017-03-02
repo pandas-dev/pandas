@@ -1144,7 +1144,7 @@ class TimeGrouper(Grouper):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError('axis must be a DatetimeIndex, but got '
                             'an instance of %r' % type(ax).__name__)
-        
+  
         if len(ax) == 0:
             binner = labels = DatetimeIndex(
                 data=[], freq=self.freq, name=ax.name)
