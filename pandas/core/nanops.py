@@ -2,7 +2,6 @@ import itertools
 import functools
 import numpy as np
 import operator
-import os
 
 try:
     import bottleneck as bn
