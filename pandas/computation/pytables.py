@@ -554,9 +554,8 @@ class Expr(expr.Expr):
 
                 # stringify with quotes these values
                 def convert(v):
-                    if (isinstance(v, (datetime, np.datetime64,
-                                       timedelta, np.timedelta64)) or
-                            hasattr(v, 'timetuple')):
+                    if isinstance(v, (datetime, np.datetime64,
+                                      timedelta, np.timedelta64)):
                         return "'{0}'".format(v)
                     return v
 
