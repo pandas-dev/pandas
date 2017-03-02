@@ -15,20 +15,35 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
         self.klass = FrozenList
 
     def test_add(self):
-        result = self.container + (1, 2, 3)
+        q = FrozenList([1])
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            q = q + [2, 3]
+        expected = FrozenList([1, 2, 3])
+        self.check_result(q, expected)
+
+    def test_iadd(self):
+        q = FrozenList([1])
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            q += [2, 3]
+        expected = FrozenList([1, 2, 3])
+        self.check_result(q, expected)
+
+    def test_union(self):
+        result = self.container.union((1, 2, 3))
         expected = FrozenList(self.lst + [1, 2, 3])
         self.check_result(result, expected)
 
-        result = (1, 2, 3) + self.container
-        expected = FrozenList([1, 2, 3] + self.lst)
+    def test_difference(self):
+        result = self.container.difference([2])
+        expected = FrozenList([1, 3, 4, 5])
         self.check_result(result, expected)
 
-    def test_inplace(self):
-        q = r = self.container
-        q += [5]
-        self.check_result(q, self.lst + [5])
-        # other shouldn't be mutated
-        self.check_result(r, self.lst)
+    def test_difference_dupe(self):
+        result = FrozenList([1, 2, 3, 2]).difference([2])
+        expected = FrozenList([1, 3])
+        self.check_result(result, expected)
 
 
 class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
