@@ -1125,7 +1125,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         self.assertEqual(df_s, expected)
 
-    def test_to_latex_specified_header(self):
+    def test_to_string_specified_header(self):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(header=['X', 'Y'])
