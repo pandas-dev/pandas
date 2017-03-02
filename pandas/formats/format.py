@@ -53,7 +53,7 @@ common_docstring = """
     col_space : int, optional
         the minimum width of each column
     header : bool, optional
-        whether to print column labels, default True
+        %s
     index : bool, optional
         whether to print index (row) labels, default True
     na_rep : string, optional
