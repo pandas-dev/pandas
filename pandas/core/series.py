@@ -2089,13 +2089,17 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         Examples
         --------
 
-        Map inputs to outputs
+        >>> import pandas as pd
 
+        Map inputs to outputs (both of type `Series`)
+
+        >>> x = pd.Series([1,2,3], index=['one', 'two', 'three'])
         >>> x
         one   1
         two   2
         three 3
 
+        >>> y = pd.Series(['foo', 'bar', 'baz'], index=[1,2,3])
         >>> y
         1  foo
         2  bar
@@ -2105,6 +2109,16 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         one   foo
         two   bar
         three baz
+
+        Mapping a dictionary keys on the index labels works similar as
+        with a `Series`:
+
+        >>> z = {1: 'A', 2: 'B', 3: 'C'}
+
+        >>> x.map(z)
+        one   A
+        two   B
+        three C
 
         Use na_action to control whether NA values are affected by the mapping
         function.
@@ -2127,6 +2141,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         3                     NaN
         dtype: object
 
+        See also
+        --------
+        Series.apply: For applying more complex functions on a Series
+        DataFrame.apply: Apply a function row-/column-wise
+        DataFrame.applymap: Apply a function elementwise on a whole DataFrame
         """
 
         if is_extension_type(self.dtype):
