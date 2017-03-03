@@ -1144,7 +1144,13 @@ def _make_field_arrays(*fields):
 
 
 def pnow(freq=None):
-    return Period(datetime.now(), freq=freq)
+    # deprecation, xref #13790
+    import warnings
+
+    warnings.warn("pd.pnow() and pandas.tseries.period.pnow() "
+                  "are deprecated. Please use Period.now()",
+                  FutureWarning, stacklevel=2)
+    return Period.now(freq=freq)
 
 
 def period_range(start=None, end=None, periods=None, freq='D', name=None):
