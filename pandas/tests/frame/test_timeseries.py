@@ -398,6 +398,14 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         actual_series = ts.asfreq(freq='1S', fill_value=9.0)
         assert_series_equal(expected_series, actual_series)
 
+    def test_asfreq_datetimeindex_empty_series(self):
+        # GH 14340
+        expected = Series(index=pd.DatetimeIndex(
+            ["2016-09-29 11:00"])).asfreq('H')
+        result = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]),
+                        data=[3]).asfreq('H')
+        self.assert_index_equal(expected.index, result.index)
+
     def test_first_last_valid(self):
         N = len(self.frame.index)
         mat = randn(N)
