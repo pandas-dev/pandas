@@ -934,7 +934,7 @@ class LatexFormatter(TableFormatter):
                 # sum up columns to multicolumns
                 crow = self._format_multicolumn(crow, ilevels)
             if (i >= nlevels and self.fmt.index and self.multirow and
-               ilevels > 1):
+                    ilevels > 1):
                 # sum up rows to multirows
                 crow = self._format_multirow(crow, ilevels, i, strrows)
             buf.write(' & '.join(crow))
@@ -972,14 +972,17 @@ class LatexFormatter(TableFormatter):
             else:
                 row2.append(coltext)
         for c in row[ilevels:]:
-            if c.strip():  # if next col has text, write the previous
+            # if next col has text, write the previous
+            if c.strip():
                 if coltext:
                     append_col()
                 coltext = c
                 ncol = 1
-            else:  # if not, add it to the previous multicolumn
+            # if not, add it to the previous multicolumn
+            else:
                 ncol += 1
-        if coltext:  # write last column name
+        # write last column name
+        if coltext:
             append_col()
         return row2
 
@@ -1016,7 +1019,7 @@ class LatexFormatter(TableFormatter):
         for cl in self.clinebuf:
             if cl[0] == i:
                 buf.write('\cline{{{0:d}-{1:d}}}\n'.format(cl[1], icol))
-        #remove entries that have been written to buffer
+        # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
 
 
