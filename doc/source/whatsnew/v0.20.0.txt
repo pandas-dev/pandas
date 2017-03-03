@@ -461,13 +461,20 @@ New Behavior:
 
 .. code-block:: ipython
 
-   df = pd.DataFrame({'unparsed_date': ['2014-01-01', '2014-01-01']})
-   df.to_hdf('store.h5', 'key', format='table', data_columns=True)
-   ts = pd.Timestamp('2014-01-01')
-   try:
-       pd.read_hdf('store.h5', 'key', where='unparsed_date > ts')
-   except TypeError:
-       print("TypeError raised")
+   In [15]: df = pd.DataFrame({'unparsed_date': ['2014-01-01', '2014-01-01']})
+
+   In [16]: df.dtypes
+   Out[16]: 
+   unparsed_date    object
+   dtype: object
+
+   In [17]: df.to_hdf('store.h5', 'key', format='table', data_columns=True)
+
+   In [18]: ts = pd.Timestamp('2014-01-01')
+
+   In [19]: pd.read_hdf('store.h5', 'key', where='unparsed_date > ts')
+   TypeError: Cannot compare 2014-01-01 00:00:00 of
+   type <class 'pandas.tslib.Timestamp'> to string column
 
 
 .. _whatsnew_0200.api:
