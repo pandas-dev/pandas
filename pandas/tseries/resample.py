@@ -1151,7 +1151,8 @@ class TimeGrouper(Grouper):
             return binner, [], labels
         
         tz = ax.tz
-        ax = ax.tz_convert('UTC')
+        if tz:
+            ax = ax.tz_convert('UTC')
         
         first, last = ax.min(), ax.max()
         first, last = _get_range_edges(first, last, self.freq,
