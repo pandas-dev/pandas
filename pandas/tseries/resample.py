@@ -1165,6 +1165,7 @@ class TimeGrouper(Grouper):
         binner = labels = DatetimeIndex(freq=self.freq,
                                         start=first,
                                         end=last,
+                                        tz='UTC',
                                         name=ax.name).tz_convert(tz)
 
         # a little hack
