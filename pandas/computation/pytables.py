@@ -1,7 +1,6 @@
 """ manage PyTables query interface via Expressions """
 
 import ast
-import time
 import warnings
 from functools import partial
 from datetime import datetime, timedelta
