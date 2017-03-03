@@ -501,6 +501,35 @@ New Behavior:
 
    df.groupby('A').agg([np.mean, np.std, np.min, np.max])
 
+.. _whatsnew_0200.api_breaking.hdfstore_where:
+
+HDFStore where string comparison
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions most types could be compared to string column in a ``HDFStore``
+usually resulting in an invalid comparsion.  These comparisions will now raise a
+``TypeError`` (:issue:`15492`)
+
+New Behavior:
+
+.. code-block:: ipython
+
+   In [15]: df = pd.DataFrame({'unparsed_date': ['2014-01-01', '2014-01-01']})
+
+   In [16]: df.dtypes
+   Out[16]:
+   unparsed_date    object
+   dtype: object
+
+   In [17]: df.to_hdf('store.h5', 'key', format='table', data_columns=True)
+
+   In [18]: ts = pd.Timestamp('2014-01-01')
+
+   In [19]: pd.read_hdf('store.h5', 'key', where='unparsed_date > ts')
+   TypeError: Cannot compare 2014-01-01 00:00:00 of
+   type <class 'pandas.tslib.Timestamp'> to string column
+
+
 .. _whatsnew_0200.api:
 
 Other API Changes
@@ -671,7 +700,7 @@ Bug Fixes
 - Bug in ``pd.merge_asof()`` where ``left_index``/``right_index`` together caused a failure when ``tolerance`` was specified (:issue:`15135`)
 
 
-
+- Bug in ``pd.read_hdf()`` passing a ``Timestamp`` to the ``where`` parameter with a non date column (:issue:`15492`)
 
 
 - Bug in ``Series`` constructor when both ``copy=True`` and ``dtype`` arguments are provided (:issue:`15125`)

@@ -1,7 +1,6 @@
 """ manage PyTables query interface via Expressions """
 
 import ast
-import time
 import warnings
 from functools import partial
 from datetime import datetime, timedelta
@@ -188,10 +187,6 @@ class BinOp(ops.BinOp):
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
-        elif (isinstance(v, datetime) or hasattr(v, 'timetuple') or
-                kind == u('date')):
-            v = time.mktime(v.timetuple())
-            return TermValue(v, pd.Timestamp(v), kind)
         elif kind == u('timedelta64') or kind == u('timedelta'):
             v = _coerce_scalar_to_timedelta_type(v, unit='s').value
             return TermValue(int(v), v, kind)
@@ -218,12 +213,13 @@ class BinOp(ops.BinOp):
             else:
                 v = bool(v)
             return TermValue(v, v, kind)
-        elif not isinstance(v, string_types):
-            v = stringify(v)
+        elif isinstance(v, string_types):
+            # string quoting
             return TermValue(v, stringify(v), u('string'))
-
-        # string quoting
-        return TermValue(v, stringify(v), u('string'))
+        else:
+            raise TypeError(("Cannot compare {v} of type {typ}"
+                            " to {kind} column").format(v=v, typ=type(v),
+                                                        kind=kind))
 
     def convert_values(self):
         pass
@@ -558,9 +554,8 @@ class Expr(expr.Expr):
 
                 # stringify with quotes these values
                 def convert(v):
-                    if (isinstance(v, (datetime, np.datetime64,
-                                       timedelta, np.timedelta64)) or
-                            hasattr(v, 'timetuple')):
+                    if isinstance(v, (datetime, np.datetime64,
+                                      timedelta, np.timedelta64)):
                         return "'{0}'".format(v)
                     return v
 
