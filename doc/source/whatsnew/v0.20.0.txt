@@ -182,6 +182,7 @@ Other enhancements
 - ``Timedelta.isoformat`` method added for formatting Timedeltas as an `ISO 8601 duration`_. See the :ref:`Timedelta docs <timedeltas.isoformat>` (:issue:`15136`)
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 - ``.select_dtypes()`` now allows the string 'datetimetz' to generically select datetimes with tz (:issue:`14910`)
+- The ``.to_latex()`` method will now accept ``multicolumn`` and ``multirow`` arguments to use the accompanying LaTeX enhancements
 - ``pd.merge_asof()`` gained the option ``direction='backward'|'forward'|'nearest'`` (:issue:`14887`)
 - ``Series/DataFrame.asfreq()`` have gained a ``fill_value`` parameter, to fill missing values (:issue:`3715`).
 - ``Series/DataFrame.resample.asfreq`` have gained a ``fill_value`` parameter, to fill missing values during resampling (:issue:`3715`).

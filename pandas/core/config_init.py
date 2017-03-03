@@ -239,14 +239,35 @@ pc_latex_escape = """
 : bool
     This specifies if the to_latex method of a Dataframe uses escapes special
     characters.
-    method. Valid values: False,True
+    Valid values: False,True
 """
 
 pc_latex_longtable = """
 :bool
     This specifies if the to_latex method of a Dataframe uses the longtable
     format.
-    method. Valid values: False,True
+    Valid values: False,True
+"""
+
+pc_latex_multicolumn = """
+: bool
+    This specifies if the to_latex method of a Dataframe uses multicolumns
+    to pretty-print MultiIndex columns.
+    Valid values: False,True
+"""
+
+pc_latex_multicolumn_format = """
+: string
+    This specifies the format for multicolumn headers.
+    Can be surrounded with '|'.
+    Valid values: 'l', 'c', 'r', 'p{<width>}'
+"""
+
+pc_latex_multirow = """
+: bool
+    This specifies if the to_latex method of a Dataframe uses multirows
+    to pretty-print MultiIndex rows.
+    Valid values: False,True
 """
 
 style_backup = dict()
@@ -338,6 +359,12 @@ with cf.config_prefix('display'):
     cf.register_option('latex.escape', True, pc_latex_escape,
                        validator=is_bool)
     cf.register_option('latex.longtable', False, pc_latex_longtable,
+                       validator=is_bool)
+    cf.register_option('latex.multicolumn', True, pc_latex_multicolumn,
+                       validator=is_bool)
+    cf.register_option('latex.multicolumn_format', 'l', pc_latex_multicolumn,
+                       validator=is_text)
+    cf.register_option('latex.multirow', False, pc_latex_multirow,
                        validator=is_bool)
 
 cf.deprecate_option('display.line_width',
