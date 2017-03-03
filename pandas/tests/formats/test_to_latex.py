@@ -168,6 +168,24 @@ c3 & 0 &  0 &  1 &  2 &  3 \\
 
         assert result == expected
 
+        # GH 14184
+        df = df.T
+        df.columns.names = ['a', 'b']
+        result = df.to_latex()
+        expected = r"""\begin{tabular}{lrrrrr}
+\toprule
+a & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+b &  0 &  1 &  0 &  1 &  0 \\
+\midrule
+0 &  0 &  4 &  0 &  4 &  0 \\
+1 &  1 &  5 &  1 &  5 &  1 \\
+2 &  2 &  6 &  2 &  6 &  2 \\
+3 &  3 &  7 &  3 &  7 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        assert result == expected
+
         # GH 10660
         df = pd.DataFrame({'a': [0, 0, 1, 1],
                            'b': list('abab'),
@@ -189,16 +207,95 @@ a & b &    \\
         assert result == expected
 
         result = df.groupby('a').describe().to_latex()
-        expected = ('\\begin{tabular}{lrrrrrrrr}\n\\toprule\n{} &     c &     '
-                    ' &           &      &       &      &       &      '
-                    '\\\\\n{} & count & mean &       std &  min &   25\\% &  '
-                    '50\\% &   75\\% &  max \\\\\na &       &      &          '
-                    ' &      &       &      &       &      \\\\\n\\midrule\n0 '
-                    '&   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 '
-                    '&  2.0 \\\\\n1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 '
-                    '&  3.5 &  3.75 &  4.0 '
-                    '\\\\\n\\bottomrule\n\\end{tabular}\n')
+        expected = r"""\begin{tabular}{lrrrrrrrr}
+\toprule
+{} & \multicolumn{8}{l}{c} \\
+{} & count & mean &       std &  min &   25\% &  50\% &   75\% &  max \\
+a &       &      &           &      &       &      &       &      \\
+\midrule
+0 &   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 &  2.0 \\
+1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 &  3.5 &  3.75 &  4.0 \\
+\bottomrule
+\end{tabular}
+"""
 
+        assert result == expected
+
+    def test_to_latex_multicolumnrow(self):
+        df = pd.DataFrame({
+            ('c1', 0): dict((x, x) for x in range(5)),
+            ('c1', 1): dict((x, x + 5) for x in range(5)),
+            ('c2', 0): dict((x, x) for x in range(5)),
+            ('c2', 1): dict((x, x + 5) for x in range(5)),
+            ('c3', 0): dict((x, x) for x in range(5))
+        })
+        result = df.to_latex()
+        expected = r"""\begin{tabular}{lrrrrr}
+\toprule
+{} & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+{} &  0 &  1 &  0 &  1 &  0 \\
+\midrule
+0 &  0 &  5 &  0 &  5 &  0 \\
+1 &  1 &  6 &  1 &  6 &  1 \\
+2 &  2 &  7 &  2 &  7 &  2 \\
+3 &  3 &  8 &  3 &  8 &  3 \\
+4 &  4 &  9 &  4 &  9 &  4 \\
+\bottomrule
+\end{tabular}
+"""
+        assert result == expected
+
+        result = df.to_latex(multicolumn=False)
+        expected = r"""\begin{tabular}{lrrrrr}
+\toprule
+{} & c1 &    & c2 &    & c3 \\
+{} &  0 &  1 &  0 &  1 &  0 \\
+\midrule
+0 &  0 &  5 &  0 &  5 &  0 \\
+1 &  1 &  6 &  1 &  6 &  1 \\
+2 &  2 &  7 &  2 &  7 &  2 \\
+3 &  3 &  8 &  3 &  8 &  3 \\
+4 &  4 &  9 &  4 &  9 &  4 \\
+\bottomrule
+\end{tabular}
+"""
+        assert result == expected
+
+        result = df.T.to_latex(multirow=True)
+        expected = r"""\begin{tabular}{llrrrrr}
+\toprule
+   &   &  0 &  1 &  2 &  3 &  4 \\
+\midrule
+\multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
+   & 1 &  5 &  6 &  7 &  8 &  9 \\
+\cline{1-7}
+\multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
+   & 1 &  5 &  6 &  7 &  8 &  9 \\
+\cline{1-7}
+c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
+\bottomrule
+\end{tabular}
+"""
+        assert result == expected
+
+        df.index = df.T.index
+        result = df.T.to_latex(multirow=True, multicolumn=True,
+                               multicolumn_format='c')
+        expected = r"""\begin{tabular}{llrrrrr}
+\toprule
+   &   & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
+   &   &  0 &  1 &  0 &  1 &  0 \\
+\midrule
+\multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
+   & 1 &  5 &  6 &  7 &  8 &  9 \\
+\cline{1-7}
+\multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
+   & 1 &  5 &  6 &  7 &  8 &  9 \\
+\cline{1-7}
+c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
+\bottomrule
+\end{tabular}
+"""
         assert result == expected
 
     def test_to_latex_escape(self):
