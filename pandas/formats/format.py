@@ -20,9 +20,9 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_float,
                                  is_numeric_dtype,
                                  is_datetime64_dtype,
-                                 is_timedelta64_dtype)
+                                 is_timedelta64_dtype,
+                                 is_list_like)
 from pandas.types.generic import ABCSparseArray
-
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
@@ -53,7 +53,7 @@ common_docstring = """
     col_space : int, optional
         the minimum width of each column
     header : bool, optional
-        %s
+        %(header)s
     index : bool, optional
         whether to print index (row) labels, default True
     na_rep : string, optional
@@ -487,10 +487,8 @@ class DataFrameFormatter(TableFormatter):
         # may include levels names also
 
         str_index = self._get_formatted_index(frame)
-        str_columns = self._get_formatted_column_labels(frame)
 
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
-        if not (has_aliases or self.header):
+        if not is_list_like(self.header) and not self.header:
             stringified = []
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
@@ -498,25 +496,15 @@ class DataFrameFormatter(TableFormatter):
                                                minimum=(self.col_space or 0),
                                                adj=self.adj)
                 stringified.append(fmt_values)
-        elif has_aliases:
-            if len(self.header) != len(self.columns):
-                raise ValueError(('Writing %d cols but got %d aliases'
-                                  % (len(self.columns), len(self.header))))
-            stringified = []
-            for i, c in enumerate(frame):
-                cheader = [self.header[i]]
-                header_colwidth = max(self.col_space or 0,
-                                      *(self.adj.len(x) for x in cheader))
-                fmt_values = self._format_col(i)
-                fmt_values = _make_fixed_width(fmt_values, self.justify,
-                                               minimum=header_colwidth,
-                                               adj=self.adj)
-
-                max_len = max(np.max([self.adj.len(x) for x in fmt_values]),
-                              header_colwidth)
-                cheader = self.adj.justify(cheader, max_len, mode=self.justify)
-                stringified.append(cheader + fmt_values)
         else:
+            if is_list_like(self.header):
+                if len(self.header) != len(self.columns):
+                    raise ValueError(('Writing %d cols but got %d aliases'
+                                      % (len(self.columns), len(self.header))))
+                str_columns = [[label] for label in self.header]
+            else:
+                str_columns = self._get_formatted_column_labels(frame)
+
             stringified = []
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
