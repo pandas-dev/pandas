@@ -214,12 +214,13 @@ class BinOp(ops.BinOp):
             else:
                 v = bool(v)
             return TermValue(v, v, kind)
-        elif not isinstance(v, string_types):
-            v = stringify(v)
+        elif isinstance(v, string_types):
+            # string quoting
             return TermValue(v, stringify(v), u('string'))
-
-        # string quoting
-        return TermValue(v, stringify(v), u('string'))
+        else:
+            raise TypeError(("Cannot compare {v} of type {typ}"
+                            " to {kind} column").format(v=v, typ=type(v),
+                                                        kind=kind))
 
     def convert_values(self):
         pass
