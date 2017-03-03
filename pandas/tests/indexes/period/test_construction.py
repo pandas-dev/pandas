@@ -120,7 +120,7 @@ class TestPeriodIndex(tm.TestCase):
 
         self.assertRaises(ValueError, PeriodIndex, idx._values)
         self.assertRaises(ValueError, PeriodIndex, list(idx._values))
-        self.assertRaises(ValueError, PeriodIndex,
+        self.assertRaises(TypeError, PeriodIndex,
                           data=Period('2007', freq='A'))
 
         result = PeriodIndex(iter(idx))

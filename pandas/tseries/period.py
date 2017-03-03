@@ -243,9 +243,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if not isinstance(data, (np.ndarray, PeriodIndex,
                                  DatetimeIndex, Int64Index)):
             if is_scalar(data) or isinstance(data, Period):
-                raise ValueError('PeriodIndex() must be called with a '
-                                 'collection of some kind, %s was passed'
-                                 % repr(data))
+                cls._scalar_data_error(data)
 
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
@@ -254,7 +252,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             data = np.asarray(data)
 
         # datetime other than period
-        if np.issubdtype(data.dtype, np.datetime64):
+        if is_datetime64_dtype(data.dtype):
             data = dt64arr_to_periodarr(data, freq, tz)
             return cls._from_ordinals(data, name=name, freq=freq)
 
@@ -297,8 +295,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             values = np.array(values, copy=False)
             if len(values) > 0 and is_float_dtype(values):
                 raise TypeError("PeriodIndex can't take floats")
-            else:
-                return cls(values, name=name, freq=freq, **kwargs)
+            return cls(values, name=name, freq=freq, **kwargs)
 
         return cls._from_ordinals(values, name, freq, **kwargs)
 
@@ -324,12 +321,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """ we always want to return a PeriodIndex """
         return self._shallow_copy(values=values, **kwargs)
 
-    def _shallow_copy(self, values=None, **kwargs):
-        if kwargs.get('freq') is None:
-            kwargs['freq'] = self.freq
+    def _shallow_copy(self, values=None, freq=None, **kwargs):
+        if freq is None:
+            freq = self.freq
         if values is None:
             values = self._values
-        return super(PeriodIndex, self)._shallow_copy(values=values, **kwargs)
+        return super(PeriodIndex, self)._shallow_copy(values=values,
+                                                      freq=freq, **kwargs)
 
     def _coerce_scalar_to_index(self, item):
         """
