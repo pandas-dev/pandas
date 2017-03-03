@@ -410,13 +410,24 @@ def unstack(obj, level, fill_value=None):
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
-            return _unstack_frame(obj, level, fill_value=fill_value)
+            unstacked = _unstack_frame(obj, level, fill_value=fill_value)
         else:
-            return obj.T.stack(dropna=False)
+            unstacked = obj.T.stack(dropna=False)
+
+        if len(unstacked.shape) == 1:
+            return obj._constructor_sliced(unstacked)
+        else:
+            return obj._constructor(unstacked)
+
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                fill_value=fill_value)
-        return unstacker.get_result()
+        unstacked = unstacker.get_result()
+
+        if len(unstacked.shape) == 1:
+            return obj._constructor(unstacked)
+        else:
+            return obj._constructor_expanddim(unstacked)
 
 
 def _unstack_frame(obj, level, fill_value=None):
@@ -515,7 +526,7 @@ def stack(frame, level=-1, dropna=True):
         mask = notnull(new_values)
         new_values = new_values[mask]
         new_index = new_index[mask]
-    return Series(new_values, index=new_index)
+    return frame._constructor_sliced(new_values, index=new_index)
 
 
 def stack_multiple(frame, level, dropna=True):
