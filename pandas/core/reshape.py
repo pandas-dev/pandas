@@ -333,7 +333,7 @@ def pivot(self, index=None, columns=None, values=None):
             index = self.index
         else:
             index = self[index]
-        indexed = Series(self[values].values,
+        indexed = self._constructor_sliced(self[values].values,
                          index=MultiIndex.from_arrays([index, self[columns]]))
         return indexed.unstack(columns)
 
@@ -665,7 +665,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     new_index = MultiIndex(levels=new_levels, labels=new_labels,
                            names=new_names, verify_integrity=False)
 
-    result = DataFrame(new_data, index=new_index, columns=new_columns)
+    result = frame._constructor(new_data, index=new_index, columns=new_columns)
 
     # more efficient way to go about this? can do the whole masking biz but
     # will only save a small amount of time...
@@ -825,7 +825,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         mdata[col] = np.asanyarray(frame.columns
                                    ._get_level_values(i)).repeat(N)
 
-    return DataFrame(mdata, columns=mcolumns)
+    return frame._constructor(mdata, columns=mcolumns)
 
 
 def lreshape(data, groups, dropna=True, label=None):
@@ -894,7 +894,7 @@ def lreshape(data, groups, dropna=True, label=None):
         if not mask.all():
             mdata = dict((k, v[mask]) for k, v in compat.iteritems(mdata))
 
-    return DataFrame(mdata, columns=id_cols + pivot_cols)
+    return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
 def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
