@@ -53,6 +53,12 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
     def test_pickle_compat_construction(self):
         pass
 
+    def test_pickle_round_trip(self):
+        for freq in ['D', 'M', 'Y']:
+            idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
+            result = self.round_trip_pickle(idx)
+            tm.assert_index_equal(result, idx)
+
     def test_get_loc(self):
         idx = pd.period_range('2000-01-01', periods=3)
 
