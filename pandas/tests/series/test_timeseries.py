@@ -260,6 +260,14 @@ class TestTimeSeries(TestData, tm.TestCase):
                           index=[-1.0, 2.0, 1.0, 0.0]).sort_index()
         assert_series_equal(result, expected)
 
+    def test_asfreq_datetimeindex_empty_series(self):
+        # GH 14320
+        expected = Series(index=pd.DatetimeIndex(
+            ["2016-09-29 11:00"])).asfreq('H')
+        result = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]),
+                        data=[3]).asfreq('H')
+        self.assert_index_equal(expected.index, result.index)
+
     def test_diff(self):
         # Just run the function
         self.ts.diff()

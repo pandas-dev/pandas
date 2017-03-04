@@ -217,6 +217,7 @@ Other enhancements
 - ``Timedelta.isoformat`` method added for formatting Timedeltas as an `ISO 8601 duration`_. See the :ref:`Timedelta docs <timedeltas.isoformat>` (:issue:`15136`)
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 - ``.select_dtypes()`` now allows the string 'datetimetz' to generically select datetimes with tz (:issue:`14910`)
+- The ``.to_latex()`` method will now accept ``multicolumn`` and ``multirow`` arguments to use the accompanying LaTeX enhancements
 - ``pd.merge_asof()`` gained the option ``direction='backward'|'forward'|'nearest'`` (:issue:`14887`)
 - ``Series/DataFrame.asfreq()`` have gained a ``fill_value`` parameter, to fill missing values (:issue:`3715`).
 - ``Series/DataFrame.resample.asfreq`` have gained a ``fill_value`` parameter, to fill missing values during resampling (:issue:`3715`).
@@ -226,6 +227,7 @@ Other enhancements
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
 - ``pd.TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
 - ``pd.types.concat.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
+- ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
@@ -535,6 +537,35 @@ New Behavior:
 
    df.groupby('A').agg([np.mean, np.std, np.min, np.max])
 
+.. _whatsnew_0200.api_breaking.hdfstore_where:
+
+HDFStore where string comparison
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions most types could be compared to string column in a ``HDFStore``
+usually resulting in an invalid comparsion.  These comparisions will now raise a
+``TypeError`` (:issue:`15492`)
+
+New Behavior:
+
+.. code-block:: ipython
+
+   In [15]: df = pd.DataFrame({'unparsed_date': ['2014-01-01', '2014-01-01']})
+
+   In [16]: df.dtypes
+   Out[16]:
+   unparsed_date    object
+   dtype: object
+
+   In [17]: df.to_hdf('store.h5', 'key', format='table', data_columns=True)
+
+   In [18]: ts = pd.Timestamp('2014-01-01')
+
+   In [19]: pd.read_hdf('store.h5', 'key', where='unparsed_date > ts')
+   TypeError: Cannot compare 2014-01-01 00:00:00 of
+   type <class 'pandas.tslib.Timestamp'> to string column
+
+
 .. _whatsnew_0200.api:
 
 Other API Changes
@@ -571,6 +602,12 @@ Deprecations
 - importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
 - ``FrozenList`` addition (new object and inplace) have been deprecated in favor of the ``.union()`` method. (:issue: `15475`)
+- The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`)
+  * ``pd.pnow()``, replaced by ``Period.now()``
+  * ``pd.Term``, is removed, as it is not applicable to user code. Instead use in-line string expressions in the where clause when searching in HDFStore
+  * ``pd.Expr``, is removed, as it is not applicable to user code.
+  * ``pd.match()``, is removed.
+  * ``pd.groupby()``, replaced by using the ``.groupby()`` method directly on a ``Series/DataFrame``
 
 .. _whatsnew_0200.prior_deprecations:
 
@@ -633,6 +670,9 @@ Bug Fixes
 
 
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
+
+- Bug in ``.asfreq()``, where frequency was not set for empty ``Series` (:issue:`14320`)
+
 - Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
 - Bug in ``Series.ffill()`` with mixed dtypes containing tz-aware datetimes. (:issue:`14956`)
 
@@ -696,7 +736,7 @@ Bug Fixes
 - Bug in ``pd.merge_asof()`` where ``left_index``/``right_index`` together caused a failure when ``tolerance`` was specified (:issue:`15135`)
 
 
-
+- Bug in ``pd.read_hdf()`` passing a ``Timestamp`` to the ``where`` parameter with a non date column (:issue:`15492`)
 
 
 - Bug in ``Series`` constructor when both ``copy=True`` and ``dtype`` arguments are provided (:issue:`15125`)

@@ -206,14 +206,6 @@ of its first argument in its second:
    s <- 0:4
    match(s, c(2,4))
 
-The :meth:`~pandas.core.groupby.GroupBy.apply` method can be used to replicate
-this:
-
-.. ipython:: python
-
-   s = pd.Series(np.arange(5),dtype=np.float32)
-   pd.Series(pd.match(s,[2,4],np.nan))
-
 For more details and examples see :ref:`the reshaping documentation
 <indexing.basics.indexing_isin>`.
 
