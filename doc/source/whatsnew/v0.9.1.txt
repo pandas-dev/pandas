@@ -105,6 +105,8 @@ New features
   - DataFrame.drop now supports non-unique indexes (:issue:`2101`)
   - Panel.shift now supports negative periods (:issue:`2164`)
   - DataFrame now support unary ~ operator (:issue:`2110`)
+  - `stack`, `unstack`, and `pivot` operations now preserve subclass family
+    (:issue:`15563`) 
 
 API changes
 ~~~~~~~~~~~
