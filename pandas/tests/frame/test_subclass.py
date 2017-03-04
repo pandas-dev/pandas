@@ -160,8 +160,8 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
             [31, 33],
             [40, 42],
             [41, 43]],
-            index=MultiIndex.from_tuples(
-                list(zip(list('AAAABBBB'), list('ccddccdd'), list('yzyzyzyz'))),
+            index=MultiIndex.from_tuples(list(zip(
+                list('AAAABBBB'), list('ccddccdd'), list('yzyzyzyz'))),
                 names=['aaa', 'ccc', 'yyy']),
             columns=Index(['W', 'X'], name='www'))
 
@@ -183,7 +183,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
             [40, 41],
             [42, 43]],
             index=MultiIndex.from_tuples(list(zip(
-                    list('AAAABBBB'), list('ccddccdd'), list('WXWXWXWX'))),
+                list('AAAABBBB'), list('ccddccdd'), list('WXWXWXWX'))),
                 names=['aaa', 'ccc', 'www']),
             columns=Index(['y', 'z'], name='yyy'))
 
@@ -222,8 +222,8 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
             [30, 40, 31, 41, 32, 42, 33, 43]],
             index=Index(['A', 'B'], name='aaa'),
             columns=MultiIndex.from_tuples(list(zip(
-                    list('WWWWXXXX'), list('yyzzyyzz'), list('cdcdcdcd'))),
-                names=['www', 'yyy', 'ccc']))
+                list('WWWWXXXX'), list('yyzzyyzz'), list('cdcdcdcd'))),
+            names=['www', 'yyy', 'ccc']))
 
         res = df.unstack()
         tm.assert_frame_equal(res, exp)
@@ -238,7 +238,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
             [20, 40, 21, 41, 22, 42, 23, 43]],
             index=Index(['c', 'd'], name='ccc'),
             columns=MultiIndex.from_tuples(list(zip(
-                    list('WWWWXXXX'), list('yyzzyyzz'), list('ABABABAB'))),
+                list('WWWWXXXX'), list('yyzzyyzz'), list('ABABABAB'))),
                 names=['www', 'yyy', 'aaa']))
 
         res = df.unstack('aaa')
