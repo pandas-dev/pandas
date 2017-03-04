@@ -2896,27 +2896,38 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _join_multi(self, other, how, return_indexers=True):
         from .multi import MultiIndex
-        self_is_mi = isinstance(self, MultiIndex)
-        other_is_mi = isinstance(other, MultiIndex)
 
         # figure out join names
         self_names = [n for n in self.names if n is not None]
         other_names = [n for n in other.names if n is not None]
         overlap = list(set(self_names) & set(other_names))
 
+        # Drop the non matching levels
+        drop_lvls = [l for l in other_names if l not in overlap]
+        other = other.droplevel(drop_lvls)
+
+        self_is_mi = isinstance(self, MultiIndex)
+        other_is_mi = isinstance(other, MultiIndex)
+
         # need at least 1 in common, but not more than 1
         if not len(overlap):
             raise ValueError("cannot join with no level specified and no "
                              "overlapping names")
-        if len(overlap) > 1:
-            raise NotImplementedError("merging with more than one level "
-                                      "overlap on a multi-index is not "
-                                      "implemented")
-        jl = overlap[0]
 
-        # make the indices into mi's that match
-        if not (self_is_mi and other_is_mi):
+        if self_is_mi and other_is_mi:
+            if other.is_unique:
+                # Join only when the other does not contain dupls
+                lindexer = self.get_indexer(self)
+                rindexer = other.get_indexer(other)
+                result = self, lindexer, rindexer
+                return result
+            else:
+                raise TypeError('Join on level between non-unique '
+                                'MultiIndex objects is ambiguous')
+        else:
+            jl = overlap[0]
 
+            # make the indices into mi's that match
             flip_order = False
             if self_is_mi:
                 self, other = other, self
@@ -2932,10 +2943,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 if isinstance(result, tuple):
                     return result[0], result[2], result[1]
             return result
-
-        # 2 multi-indexes
-        raise NotImplementedError("merging with both multi-indexes is not "
-                                  "implemented")
 
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.tools.merge import _get_join_indexers
@@ -3868,3 +3875,47 @@ def _trim_front(strings):
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise ValueError('do not recognize join method %s' % method)
+
+if __name__ == '__main__':
+    import pandas as pd
+    # GH 3662
+    # merge multi-levels
+    household = (
+        pd.DataFrame(
+            dict(household_id=[1, 2, 3],
+                 male=[0, 1, 0],
+                 wealth=[196087.3, 316478.7, 294750]),
+            columns=['household_id', 'male', 'wealth'])
+        .set_index(['household_id', 'male']))
+    portfolio = (
+        pd.DataFrame(
+            dict(household_id=[1, 2, 2, 3, 3, 3, 4],
+                 asset_id=["nl0000301109", "nl0000289783", "gb00b03mlx29",
+                           "gb00b03mlx29", "lu0197800237", "nl0000289965",
+                           np.nan],
+                 name=["ABN Amro", "Robeco", "Royal Dutch Shell",
+                       "Royal Dutch Shell",
+                       "AAB Eastern Europe Equity Fund",
+                       "Postbank BioTech Fonds", np.nan],
+                 share=[1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0]),
+            columns=['household_id', 'asset_id', 'name', 'share'])
+        .set_index(['household_id', 'asset_id']))
+    #result = household.join(portfolio, how='inner')
+    expected = (
+        pd.DataFrame(
+            dict(male=[0, 1, 1, 0, 0, 0],
+                 wealth=[196087.3, 316478.7, 316478.7,
+                         294750.0, 294750.0, 294750.0],
+                 name=['ABN Amro', 'Robeco', 'Royal Dutch Shell',
+                       'Royal Dutch Shell',
+                       'AAB Eastern Europe Equity Fund',
+                       'Postbank BioTech Fonds'],
+                 share=[1.00, 0.40, 0.60, 0.15, 0.60, 0.25],
+                 household_id=[1, 2, 2, 3, 3, 3],
+                 asset_id=['nl0000301109', 'nl0000289783', 'gb00b03mlx29',
+                           'gb00b03mlx29', 'lu0197800237',
+                           'nl0000289965']))
+        .set_index(['household_id', 'asset_id'])
+        .reindex(columns=['male', 'wealth', 'name', 'share']))
+
+    print(portfolio.share.multiply(household.wealth))

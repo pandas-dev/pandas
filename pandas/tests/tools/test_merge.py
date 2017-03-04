@@ -1213,7 +1213,7 @@ class TestMergeMulti(tm.TestCase):
 
         def f():
             household.join(log_return, how='inner')
-        self.assertRaises(NotImplementedError, f)
+        self.assertRaises(TypeError, f)
 
         # this is the equivalency
         result = (merge(household.reset_index(), log_return.reset_index(),
@@ -1241,4 +1241,4 @@ class TestMergeMulti(tm.TestCase):
 
         def f():
             household.join(log_return, how='outer')
-        self.assertRaises(NotImplementedError, f)
+        self.assertRaises(TypeError, f)
