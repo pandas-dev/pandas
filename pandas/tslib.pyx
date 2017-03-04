@@ -421,7 +421,8 @@ class Timestamp(_Timestamp):
             value = self.tz_localize(None).value
         else:
             value = self.value
-        result = Timestamp(unit * rounder(value / float(unit)), unit='ns')
+        result = (unit * rounder(value / float(unit)).astype('i8'))
+        result = Timestamp(result, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
         return result
