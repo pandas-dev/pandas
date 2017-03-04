@@ -333,8 +333,11 @@ def pivot(self, index=None, columns=None, values=None):
             index = self.index
         else:
             index = self[index]
-        indexed = self._constructor_sliced(self[values].values,
-                         index=MultiIndex.from_arrays([index, self[columns]]))
+
+        indexed = self._constructor_sliced(
+            self[values].values,
+            index=MultiIndex.from_arrays([index, self[columns]]))
+
         return indexed.unstack(columns)
 
 
