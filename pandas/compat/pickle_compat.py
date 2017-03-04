@@ -61,7 +61,8 @@ _class_locations_map = {
     ('pandas.core.base', 'FrozenList'): ('pandas.indexes.frozen', 'FrozenList'),
 
     # 10890
-    ('pandas.core.series', 'TimeSeries'): ('pandas.core.series', 'Series')
+    ('pandas.core.series', 'TimeSeries'): ('pandas.core.series', 'Series'),
+    ('pandas.sparse.series', 'SparseTimeSeries'): ('pandas.sparse.series', 'SparseSeries')
     }
 
 
