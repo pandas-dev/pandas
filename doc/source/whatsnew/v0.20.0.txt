@@ -735,6 +735,7 @@ Bug Fixes
 
 
 - Bug in ``pd.merge_asof()`` where ``left_index``/``right_index`` together caused a failure when ``tolerance`` was specified (:issue:`15135`)
+- Bug in ``DataFrame.pivot_table()`` where ``dropna=True`` would not drop all-NaN columns when the columns was a ``category`` dtype (:issue:`15193`)
 
 
 - Bug in ``pd.read_hdf()`` passing a ``Timestamp`` to the ``where`` parameter with a non date column (:issue:`15492`)
