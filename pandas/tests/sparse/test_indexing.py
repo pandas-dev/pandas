@@ -366,7 +366,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse()
         tm.assert_sp_series_equal(res, exp)
 
-    def test_reindex_fill_value(self):
+    def test_fill_value_reindex(self):
         orig = pd.Series([1, np.nan, 0, 3, 0], index=list('ABCDE'))
         sparse = orig.to_sparse(fill_value=0)
 
@@ -396,6 +396,23 @@ class TestSparseSeriesIndexing(tm.TestCase):
         res = sparse.reindex(['A', 'E', 'C', 'D'])
         exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse(fill_value=0)
         tm.assert_sp_series_equal(res, exp)
+
+    def test_reindex_fill_value(self):
+        floats = pd.Series([1., 2., 3.]).to_sparse()
+        result = floats.reindex([1, 2, 3], fill_value=0)
+        expected = pd.Series([2., 3., 0], index=[1, 2, 3]).to_sparse()
+        tm.assert_sp_series_equal(result, expected)
+
+    def test_reindex_nearest(self):
+        s = pd.Series(np.arange(10, dtype='float64')).to_sparse()
+        target = [0.1, 0.9, 1.5, 2.0]
+        actual = s.reindex(target, method='nearest')
+        expected = pd.Series(np.around(target), target).to_sparse()
+        tm.assert_sp_series_equal(expected, actual)
+
+        actual = s.reindex(target, method='nearest', tolerance=0.2)
+        expected = pd.Series([0, 1, np.nan, 2], target).to_sparse()
+        tm.assert_sp_series_equal(expected, actual)
 
     def tests_indexing_with_sparse(self):
         # GH 13985
