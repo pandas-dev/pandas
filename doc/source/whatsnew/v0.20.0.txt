@@ -641,6 +641,10 @@ Performance Improvements
 - Improved performance of `rank()` for categorical data (:issue:`15498`)
 
 
+- Improve performance of ``pd.core.groupby.GroupBy.apply`` when the applied
+  function used the ``.name`` attribute of the group DataFrame (:issue:`15062`).
+
+
 
 .. _whatsnew_0200.bug_fixes:
 
