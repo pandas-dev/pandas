@@ -1646,7 +1646,7 @@ Thur,Lunch,Yes,51.51,17"""
             'bar', 'one'), ('bar', 'two')])
         df = DataFrame(np.random.randn(4, 4), index=index, columns=index)
         df['Totals', ''] = df.sum(1)
-        df = df.consolidate()
+        df = df._consolidate()
 
     def test_ix_preserve_names(self):
         result = self.ymd.loc[2000]
