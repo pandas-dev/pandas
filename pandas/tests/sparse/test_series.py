@@ -112,12 +112,6 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         [x for x in self.bseries]
         str(self.bseries)
 
-    def test_TimeSeries_deprecation(self):
-
-        # deprecation TimeSeries, #10890
-        with tm.assert_produces_warning(FutureWarning):
-            pd.SparseTimeSeries(1, index=pd.date_range('20130101', periods=3))
-
     def test_construct_DataFrame_with_sp_series(self):
         # it works!
         df = DataFrame({'col': self.bseries})
