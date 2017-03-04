@@ -62,6 +62,11 @@ class TestJSONNormalize(tm.TestCase):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_empty_array(self):
+        result = json_normalize([])
+        expected = DataFrame()
+        tm.assert_frame_equal(result, expected)
+
     def test_more_deeply_nested(self):
         data = [{'country': 'USA',
                  'states': [{'name': 'California',
