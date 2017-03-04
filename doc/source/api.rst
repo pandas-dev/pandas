@@ -60,6 +60,7 @@ JSON
    :toctree: generated/
 
    json_normalize
+   build_table_schema
 
 .. currentmodule:: pandas
 
