@@ -2090,7 +2090,7 @@ A few notes on the generated table schema:
 - All dates are converted to UTC when serializing. Even timezone naïve values,
   which are treated as UTC with an offset of 0.
 
-  .. ipython:: python:
+  .. ipython:: python
 
      from pandas.io.json import build_table_schema
      s = pd.Series(pd.date_range('2016', periods=4))
