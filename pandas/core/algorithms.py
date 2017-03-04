@@ -471,8 +471,8 @@ def _value_counts_arraylike(values, dropna=True):
         # dtype handling
         if is_datetimetz_type:
             keys = DatetimeIndex._simple_new(keys, tz=orig.dtype.tz)
-        if is_period_type:
-            keys = PeriodIndex._simple_new(keys, freq=freq)
+        elif is_period_type:
+            keys = PeriodIndex._from_ordinals(keys, freq=freq)
 
     elif is_signed_integer_dtype(dtype):
         values = _ensure_int64(values)
