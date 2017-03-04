@@ -844,14 +844,3 @@ ops.add_special_arithmetic_methods(SparseSeries, _arith_method,
                                    comp_method=_arith_method,
                                    bool_method=None, use_numexpr=False,
                                    force=True)
-
-
-# backwards compatiblity
-class SparseTimeSeries(SparseSeries):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation TimeSeries, #10890
-        warnings.warn("SparseTimeSeries is deprecated. Please use "
-                      "SparseSeries", FutureWarning, stacklevel=2)
-
-        super(SparseTimeSeries, self).__init__(*args, **kwargs)
