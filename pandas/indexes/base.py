@@ -88,6 +88,11 @@ def _new_Index(cls, d):
     """ This is called upon unpickling, rather than the default which doesn't
     have arguments and breaks __new__
     """
+    # required for backward compat, because PI can't be instantiated with
+    # ordinals through __new__ GH #13277
+    if issubclass(cls, ABCPeriodIndex):
+        from pandas.tseries.period import _new_PeriodIndex
+        return _new_PeriodIndex(cls, **d)
     return cls.__new__(cls, **d)
 
 
