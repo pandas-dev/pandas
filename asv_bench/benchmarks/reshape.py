@@ -59,6 +59,27 @@ class reshape_unstack_simple(object):
         self.df.unstack(1)
 
 
+class reshape_unstack_large_single_dtype(object):
+    goal_time = 0.2
+
+    def setup(self):
+        m = 100
+        n = 1000
+
+        levels = np.arange(m)
+        index = pd.MultiIndex.from_product([levels]*2)
+        columns = np.arange(n)
+        values = np.arange(m*m*n).reshape(m*m, n)
+        self.df = pd.DataFrame(values, index, columns)
+        self.df2 = self.df.iloc[:-1]
+
+    def time_unstack_full_product(self):
+        self.df.unstack()
+
+    def time_unstack_with_mask(self):
+        self.df2.unstack()
+
+
 class unstack_sparse_keyspace(object):
     goal_time = 0.2
 

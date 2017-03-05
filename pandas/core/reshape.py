@@ -7,7 +7,9 @@ import re
 
 import numpy as np
 
-from pandas.types.common import _ensure_platform_int, is_list_like
+from pandas.types.common import (_ensure_platform_int,
+                                 is_list_like, is_bool_dtype,
+                                 needs_i8_conversion)
 from pandas.types.cast import _maybe_promote
 from pandas.types.missing import notnull
 import pandas.types.concat as _concat
@@ -25,6 +27,7 @@ from pandas.core.sorting import (get_group_index, compress_group_index,
 
 import pandas.core.algorithms as algos
 import pandas.algos as _algos
+import pandas._reshape as _reshape
 
 from pandas.core.index import MultiIndex, _get_na_value
 
@@ -182,9 +185,21 @@ class _Unstacker(object):
         stride = values.shape[1]
         result_width = width * stride
         result_shape = (length, result_width)
+        mask = self.mask
+        mask_all = mask.all()
+
+        # we can simply reshape if we don't have a mask
+        if mask_all and len(values):
+            new_values = (self.sorted_values
+                              .reshape(length, width, stride)
+                              .swapaxes(1, 2)
+                              .reshape(result_shape)
+                          )
+            new_mask = np.ones(result_shape, dtype=bool)
+            return new_values, new_mask
 
         # if our mask is all True, then we can use our existing dtype
-        if self.mask.all():
+        if mask_all:
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
         else:
@@ -194,13 +209,36 @@ class _Unstacker(object):
 
         new_mask = np.zeros(result_shape, dtype=bool)
 
-        # is there a simpler / faster way of doing this?
-        for i in range(values.shape[1]):
-            chunk = new_values[:, i * width:(i + 1) * width]
-            mask_chunk = new_mask[:, i * width:(i + 1) * width]
+        name = np.dtype(dtype).name
+        sorted_values = self.sorted_values
 
-            chunk.flat[self.mask] = self.sorted_values[:, i]
-            mask_chunk.flat[self.mask] = True
+        # we need to convert to a basic dtype
+        # and possibly coerce an input to our output dtype
+        # e.g. ints -> floats
+        if needs_i8_conversion(values):
+            sorted_values = sorted_values.view('i8')
+            new_values = new_values.view('i8')
+            name = 'int64'
+        elif is_bool_dtype(values):
+            sorted_values = sorted_values.astype('object')
+            new_values = new_values.astype('object')
+            name = 'object'
+        else:
+            sorted_values = sorted_values.astype(name, copy=False)
+
+        # fill in our values & mask
+        f = getattr(_reshape, "unstack_{}".format(name))
+        f(sorted_values,
+          mask.view('u1'),
+          stride,
+          length,
+          width,
+          new_values,
+          new_mask.view('u1'))
+
+        # reconstruct dtype if needed
+        if needs_i8_conversion(values):
+            new_values = new_values.view(values.dtype)
 
         return new_values, new_mask
 
