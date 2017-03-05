@@ -172,6 +172,12 @@ class NDFrame(PandasObject):
                 raise NotImplementedError("compound dtypes are not implemented"
                                           "in the {0} constructor"
                                           .format(self.__class__.__name__))
+            
+            # check if coerced dtype is of type object
+            if dtype.kind == 'O':
+                raise TypeError("argument 'dtype' must be a valid "
+                                "pandas/numpy dtype")
+                
         return dtype
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
