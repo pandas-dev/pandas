@@ -1249,7 +1249,7 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
             result = op(x, y)
         except TypeError:
             xrav = x.ravel()
-            result = np.empty(x.size, dtype=x.dtype)
+            result = np.empty(x.size, dtype=bool)
             if isinstance(y, (np.ndarray, ABCSeries)):
                 yrav = y.ravel()
                 mask = notnull(xrav) & notnull(yrav)
