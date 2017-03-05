@@ -184,7 +184,7 @@ regular expression object will raise a ``ValueError``.
     @verbatim
     In [1]: s3.str.replace(regex_pat, 'XX-XX ', flags=re.IGNORECASE)
     ---------------------------------------------------------------------------
-    ValueError: case and flags must be default values when pat is a compiled regex
+    ValueError: case and flags cannot be set when pat is a compiled regex
 
 Indexing with ``.str``
 ----------------------

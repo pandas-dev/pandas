@@ -329,8 +329,8 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
     n : int, default -1 (all)
         Number of replacements to make from start
     case : boolean, default None
-        - If True, case sensitive
-        - Defaults to True if `pat` is a string
+        - If True, case sensitive (the default if `pat` is a string)
+        - Set to False for case insensitive
         - Cannot be set if `pat` is a compiled regex
     flags : int, default 0 (no flags)
         - re module flags, e.g. re.IGNORECASE
@@ -404,7 +404,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
     is_compiled_re = is_re(pat)
     if is_compiled_re:
         if (case is not None) or (flags != 0):
-            raise ValueError("case and flags must be default values"
+            raise ValueError("case and flags cannot be set"
                              " when pat is a compiled regex")
     else:
         # not a compiled regex
