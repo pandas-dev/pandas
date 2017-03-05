@@ -113,6 +113,7 @@ _pxipath = pjoin('pandas', 'src')
 _pxi_dep_template = {
     'algos': ['algos_common_helper.pxi.in', 'algos_groupby_helper.pxi.in',
               'algos_take_helper.pxi.in', 'algos_rank_helper.pxi.in'],
+    '_reshape': ['reshape_helper.pxi.in'],
     '_join': ['join_helper.pxi.in', 'joins_func_helper.pxi.in'],
     'hashtable': ['hashtable_class_helper.pxi.in',
                   'hashtable_func_helper.pxi.in'],
@@ -496,6 +497,8 @@ ext_data = dict(
     algos={'pyxfile': 'algos',
            'pxdfiles': ['src/util', 'hashtable'],
            'depends': _pxi_dep['algos']},
+    _reshape={'pyxfile': 'src/reshape',
+              'depends': _pxi_dep['_reshape']},
     _join={'pyxfile': 'src/join',
            'pxdfiles': ['src/util', 'hashtable'],
            'depends': _pxi_dep['_join']},
