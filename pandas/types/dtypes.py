@@ -73,7 +73,7 @@ class ExtensionDtype(object):
 
     @classmethod
     def is_dtype(cls, dtype):
-        """ Return a boolean if we if the passed type is an actual dtype that
+        """ Return a boolean if the passed type is an actual dtype that
         we can match (via string or type)
         """
         if hasattr(dtype, 'dtype'):
