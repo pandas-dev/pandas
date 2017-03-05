@@ -511,13 +511,13 @@ class TestStringMethods(tm.TestCase):
         values = Series(['fooBAD__barBAD__bad', NA])
         pat = re.compile(r'BAD[_]*')
 
-        with tm.assertRaisesRegexp(ValueError, "case and flags must be"):
+        with tm.assertRaisesRegexp(ValueError, "case and flags cannot be"):
             result = values.str.replace(pat, '', flags=re.IGNORECASE)
 
-        with tm.assertRaisesRegexp(ValueError, "case and flags must be"):
+        with tm.assertRaisesRegexp(ValueError, "case and flags cannot be"):
             result = values.str.replace(pat, '', case=False)
 
-        with tm.assertRaisesRegexp(ValueError, "case and flags must be"):
+        with tm.assertRaisesRegexp(ValueError, "case and flags cannot be"):
             result = values.str.replace(pat, '', case=True)
 
         # test with callable
