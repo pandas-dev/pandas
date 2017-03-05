@@ -2128,15 +2128,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 pass
 
         try:
-            indexer = Index(self._values).get_indexer(other._values)
+            indexer = Index(other._values).get_indexer(self._values)
             indexer = indexer.take((indexer != -1).nonzero()[0])
         except:
             # duplicates
-            indexer = Index(self._values).get_indexer_non_unique(
-                other._values)[0].unique()
+            indexer = Index(other._values).get_indexer_non_unique(
+                self._values)[0].unique()
             indexer = indexer[indexer != -1]
 
-        taken = self.take(indexer)
+        taken = other.take(indexer)
         if self.name != other.name:
             taken.name = None
         return taken
