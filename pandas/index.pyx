@@ -44,6 +44,190 @@ PyDateTime_IMPORT
 cdef extern from "Python.h":
     int PySlice_Check(object)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef _count(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
+            int64_t[:] mapping_count, int64_t[:] missing_count):
+    """
+    Compute the number of times a `targets` value is in `values`.
+
+    We also want an indication for the case in which a `targets` value is not
+    found in `values`.
+
+    Parameters
+    ----------
+    values : Sequence of comparable values.
+    targets : Sequence of comparable values.
+    idx0 : np.argsort on `values`.
+    idx1 : np.argsort on `targets`.
+    mapping_count : Number of `targets` elements found in `values`.
+    missing_count : Number of `targets` elements not found in `values`.
+
+    Examples
+    --------
+    Let
+
+    .. code-block:: python
+
+        >>> values = np.array([5, 4, 5, 3, 3, 5, 1])
+        >>> targets = np.array([3, 5, 1, 2, 1])
+
+    be two integer arrays. The first element of `targets` is in `values` in
+    two positions. The second one is in `values` in three positions.
+    On the other hand, the fourth one is not found in `values`. The resulting
+    map will be `mapping_count = np.array([2, 3, 1, -1, 1])`. Moreover, the
+    resulting `missing_count` will be `np.array([0, 0, 0, 1, 0])`
+    """
+
+    cdef:
+        int64_t n_v = values.shape[0]
+        int64_t n_t = targets.shape[0]
+        int64_t i = 0
+        int64_t j = 0
+
+    while i < n_v and j < n_t:
+
+        val0 = values[idx0[i]]
+        val1 = targets[idx1[j]]
+
+        if val0 == val1:
+
+            while i < n_v and values[idx0[i]] == val1:
+               i += 1
+               mapping_count[idx1[j]] += 1
+
+            j += 1
+            while j < n_t and val0 == targets[idx1[j]]:
+                mapping_count[idx1[j]] = mapping_count[idx1[j-1]]
+                j += 1
+
+        elif val0 > val1:
+
+            mapping_count[idx1[j]] += 1
+            missing_count[idx1[j]] = 1
+            j += 1
+
+        else:
+            i += 1
+
+    while j < n_t:
+        mapping_count[idx1[j]] += 1
+        missing_count[idx1[j]] = 1
+        j += 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef _map(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
+            int64_t[:] start_mapping, int64_t[:] start_missing,
+            int64_t[:] mapping, int64_t[:] missing):
+    """
+    Map `targets` values to `values` positions.
+
+    We also want to know the indices of `targets` whose values are not found in
+    `targets`.
+
+    Parameters
+    ----------
+    values : Sequence of comparable values.
+    targets : Sequence of comparable values.
+    idx0 : np.argsort on `values`.
+    idx1 : np.argsort on `targets`.
+    start_mapping : Index of the starting block of `mapping`.
+    start_missing : Index of the starting block of `missing`.
+    mapping : `values` indices of `targets` values found in `values`.
+    missing : `targets` indices of `targets` values not found in `values`.
+
+    Examples
+    --------
+    Let
+
+    .. code-block:: python
+
+        >>> values = np.array([5, 4, 5, 3, 3, 5, 1])
+        >>> targets = np.array([3, 5, 1, 2, 1])
+
+    be two integer arrays. The first block of `mapping` corresponds to the
+    first element of `targets` and will have size `2`. The second block of
+    `mapping` corresponds to the second element of `targets` and will have size
+    `3`. The resulting map will be
+    `mapping = np.array([3, 4, 0, 2, 5, 6, -1, 6])`. Moreover, the resulting
+    `missing` will be `np.array([3])`.
+    """
+
+    cdef:
+        int64_t n_v = values.shape[0]
+        int64_t n_t = targets.shape[0]
+        int64_t i = 0
+        int64_t j = 0
+        int64_t c
+
+    while i < n_v and j < n_t:
+
+        val0 = values[idx0[i]]
+        val1 = targets[idx1[j]]
+
+        if val0 == val1:
+
+            c = 0
+            while i < n_v and values[idx0[i]] == val1:
+                mapping[start_mapping[idx1[j]] + c] = idx0[i]
+                i += 1
+                c += 1
+
+            j += 1
+            while j < n_t and val0 == targets[idx1[j]]:
+                for ii in range(c):
+                    mapping[start_mapping[idx1[j]] + ii] = \
+                        mapping[start_mapping[idx1[j-1]] + ii]
+                j += 1
+
+        elif val0 > val1:
+
+            mapping[start_mapping[idx1[j]]] = -1
+            missing[start_missing[idx1[j]]] = idx1[j]
+            j += 1
+
+        else:
+            i += 1
+
+    while j < n_t:
+
+        mapping[start_mapping[idx1[j]]] = -1
+        missing[start_missing[idx1[j]]] = idx1[j]
+        j += 1
+
+def _map_targets_to_values(values, targets, idx0, idx1):
+    """
+    Map `targets` values to `values` positions.
+
+    Please, refer to function `_map` for a complete description.
+    """
+    n_t = len(targets)
+
+    mapping_count = np.zeros(n_t, np.int64)
+    missing_count = np.zeros(n_t, np.int64)
+
+    if n_t == 0:
+        return np.empty(0, np.int64), np.empty(0, np.int64)
+
+    _count(values, targets, idx0, idx1, mapping_count, missing_count)
+
+    np.cumsum(mapping_count, out=mapping_count)
+    np.cumsum(missing_count, out=missing_count)
+
+    mapping = np.empty(mapping_count[-1], np.int64)
+    missing = np.empty(missing_count[-1], np.int64)
+
+    mapping_count[1:] = mapping_count[:-1]
+    mapping_count[0] = 0
+    missing_count -= 1
+
+    _map(values, targets, idx0, idx1, mapping_count, missing_count, mapping,
+         missing)
+
+    return mapping, missing
 
 cdef inline is_definitely_invalid_key(object val):
     if PyTuple_Check(val):
@@ -371,6 +555,16 @@ cdef class IndexEngine:
 
         return result[0:count], missing[0:count_missing]
 
+    def get_indexer_non_unique_orderable(self, ndarray targets,
+                                         int64_t[:] idx0,
+                                         int64_t[:] idx1):
+
+        cdef:
+            ndarray values
+
+        self._ensure_mapping_populated()
+        values = np.array(self._get_index_values(), copy=False)
+        return _map_targets_to_values(values, targets, idx0, idx1)
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
