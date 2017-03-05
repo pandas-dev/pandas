@@ -1954,7 +1954,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         for attr in ['cummin', 'cummax']:
             f = getattr(df.groupby('group'), attr)
             result = f()
-            tm.assert_index_equal(result.columns, expected_columns_numeric)
+            # GH 15561: numeric_only=False set by default like min/max
+            tm.assert_index_equal(result.columns, expected_columns)
 
             result = f(numeric_only=False)
             tm.assert_index_equal(result.columns, expected_columns)
@@ -4294,6 +4295,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         tm.assert_frame_equal(expected, result)
         result = base_df.groupby('A').B.apply(lambda x: x.cummax()).to_frame()
         tm.assert_frame_equal(expected, result)
+
+        # GH 15561
+        df = pd.DataFrame(dict(a=[1], b=pd.to_datetime(['2001'])))
+        expected = pd.Series(pd.to_datetime('2001'), index=[0], name='b')
+        for method in ['cummax', 'cummin']:
+            result = getattr(df.groupby('a')['b'], method)()
+            tm.assert_series_equal(expected, result)
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
