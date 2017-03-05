@@ -1,9 +1,11 @@
 # cython: profile=False
 
 from numpy cimport ndarray
+from libc.stdlib cimport malloc, free
 
 from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
-                    NPY_DATETIME, NPY_TIMEDELTA)
+                    NPY_DATETIME, NPY_TIMEDELTA, PyArray_SimpleNewFromData,
+                    NPY_INT64)
 cimport cython
 
 cimport numpy as cnp
@@ -23,7 +25,7 @@ from pandas.tslib import Timestamp, Timedelta
 from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
                        pandas_datetimestruct)
 
-from cpython cimport PyTuple_Check, PyList_Check
+from cpython cimport PyTuple_Check, PyList_Check, PyMem_Malloc, PyMem_Free
 
 cdef extern from "datetime.h":
     bint PyDateTime_Check(object o)
@@ -44,6 +46,127 @@ PyDateTime_IMPORT
 cdef extern from "Python.h":
     int PySlice_Check(object)
 
+ctypedef struct Int64ListNode:
+    int64_t value
+    Int64ListNode *next
+
+ctypedef struct Int64List:
+    Int64ListNode *root
+    Int64ListNode *last
+    Py_ssize_t n
+    bint owns
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef _count(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
+            int64_t[:] mapping_count, int64_t[:] missing_count):
+
+    cdef:
+        int64_t n_v = values.shape[0]
+        int64_t n_t = targets.shape[0]
+        int64_t i = 0
+        int64_t j = 0
+
+    while i < n_v and j < n_t:
+
+        val0 = values[idx0[i]]
+        val1 = targets[idx1[j]]
+
+        if val0 == val1:
+
+            while i < n_v and values[idx0[i]] == val1:
+               i += 1
+               mapping_count[idx1[j]] += 1
+
+            j += 1
+            while j < n_t and val0 == targets[idx1[j]]:
+                mapping_count[idx1[j]] = mapping_count[idx1[j-1]]
+                j += 1
+
+        elif val0 > val1:
+
+            mapping_count[idx1[j]] += 1
+            missing_count[idx1[j]] = 1
+            j += 1
+
+        else:
+            i += 1
+
+    while j < n_t:
+        mapping_count[idx1[j]] += 1
+        missing_count[idx1[j]] = 1
+        j += 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+cdef _map(ndarray values, ndarray targets, int64_t[:] idx0, int64_t[:] idx1,
+            int64_t[:] start_mapping, int64_t[:] start_missing,
+            int64_t[:] mapping, int64_t[:] missing):
+
+    cdef:
+        int64_t n_v = values.shape[0]
+        int64_t n_t = targets.shape[0]
+        int64_t i = 0
+        int64_t j = 0
+        int64_t c
+
+    while i < n_v and j < n_t:
+
+        val0 = values[idx0[i]]
+        val1 = targets[idx1[j]]
+
+        if val0 == val1:
+
+            c = 0
+            while i < n_v and values[idx0[i]] == val1:
+                mapping[start_mapping[idx1[j]] + c] = idx0[i]
+                i += 1
+                c += 1
+
+            j += 1
+            while j < n_t and val0 == targets[idx1[j]]:
+                for ii in range(c):
+                    mapping[start_mapping[idx1[j]] + ii] = \
+                        mapping[start_mapping[idx1[j-1]] + ii]
+                j += 1
+
+        elif val0 > val1:
+
+            mapping[start_mapping[idx1[j]]] = -1
+            missing[start_missing[idx1[j]]] = idx1[j]
+            j += 1
+
+        else:
+            i += 1
+
+    while j < n_t:
+
+        mapping[start_mapping[idx1[j]]] = -1
+        missing[start_missing[idx1[j]]] = idx1[j]
+        j += 1
+
+def _map_targets_to_values(values, targets, idx0, idx1):
+    mapping_count = np.zeros(len(targets), np.int64)
+    missing_count = np.zeros(len(targets), np.int64)
+
+    _count(values, targets, idx0, idx1, mapping_count, missing_count)
+
+    np.cumsum(mapping_count, out=mapping_count)
+    np.cumsum(missing_count, out=missing_count)
+
+    mapping = np.empty(mapping_count[-1], np.int64)
+    missing = np.empty(missing_count[-1], np.int64)
+
+    mapping_count[1:] = mapping_count[:-1]
+    mapping_count[0] = 0
+    missing_count -= 1
+
+    _map(values, targets, idx0, idx1, mapping_count, missing_count, mapping,
+         missing)
+
+    return mapping, missing
 
 cdef inline is_definitely_invalid_key(object val):
     if PyTuple_Check(val):
@@ -371,6 +494,18 @@ cdef class IndexEngine:
 
         return result[0:count], missing[0:count_missing]
 
+    def get_indexer_non_unique_orderable(self, ndarray targets,
+                                         int64_t[:] idx0,
+                                         int64_t[:] idx1):
+
+        cdef:
+            ndarray values
+            object val0, val1
+            Py_ssize_t n_t
+
+        self._ensure_mapping_populated()
+        values = np.array(self._get_index_values(), copy=False)
+        return _map_targets_to_values(values, targets, idx0, idx1)
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     cdef:
