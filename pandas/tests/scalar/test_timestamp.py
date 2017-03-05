@@ -732,6 +732,15 @@ class TestTimestamp(tm.TestCase):
         for freq in ['Y', 'M', 'foobar']:
             self.assertRaises(ValueError, lambda: dti.round(freq))
 
+        # GH 14440
+        result = pd.Timestamp('2016-10-17 12:00:00.0015').round('ms')
+        expected = pd.Timestamp('2016-10-17 12:00:00.002000')
+        self.assertEqual(result, expected)
+
+        result = pd.Timestamp('2016-10-17 12:00:00.00149').round('ms')
+        expected = pd.Timestamp('2016-10-17 12:00:00.001000')
+        self.assertEqual(result, expected)
+
     def test_class_ops_pytz(self):
         tm._skip_if_no_pytz()
         from pytz import timezone

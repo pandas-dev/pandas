@@ -83,7 +83,7 @@ class TimelikeOps(object):
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
 
-        result = (unit * rounder(values / float(unit))).astype('i8')
+        result = (unit * rounder(values / float(unit)).astype('i8'))
         result = self._maybe_mask_results(result, fill_value=tslib.NaT)
         attribs = self._get_attributes_dict()
         if 'freq' in attribs:

@@ -175,6 +175,17 @@ class TestDatetimeIndexOps(Ops):
             tm.assertRaisesRegexp(ValueError, msg, rng.round, freq='M')
             tm.assertRaisesRegexp(ValueError, msg, elt.round, freq='M')
 
+            # GH 14440
+            index = pd.DatetimeIndex(['2016-10-17 12:00:00.0015'], tz=tz)
+            result = index.round('ms')
+            expected = pd.DatetimeIndex(['2016-10-17 12:00:00.002000'], tz=tz)
+            tm.assert_index_equal(result, expected)
+
+            index = pd.DatetimeIndex(['2016-10-17 12:00:00.00149'], tz=tz)
+            result = index.round('ms')
+            expected = pd.DatetimeIndex(['2016-10-17 12:00:00.001000'], tz=tz)
+            tm.assert_index_equal(result, expected)
+
     def test_repeat_range(self):
         rng = date_range('1/1/2000', '1/1/2001')
 
