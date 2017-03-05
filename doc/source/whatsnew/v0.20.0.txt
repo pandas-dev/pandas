@@ -677,7 +677,7 @@ Bug Fixes
 - Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
 - Bug in ``Series.ffill()`` with mixed dtypes containing tz-aware datetimes. (:issue:`14956`)
 
-
+- Bug in ``DataFrame.isin`` comparing datetimelike to empty frame (:issue:`15473`)
 
 - Bug in ``Series.where()`` and ``DataFrame.where()`` where array-like conditionals were being rejected (:issue:`15414`)
 - Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
