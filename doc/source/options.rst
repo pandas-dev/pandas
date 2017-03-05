@@ -533,3 +533,9 @@ by default. False by default, this can be enabled globally with the
   pd.set_option('display.html.table_schema', True)
 
 Only ``'display.max_rows'`` are serialized and published.
+
+
+.. ipython:: python
+    :suppress:
+
+    pd.reset_option('display.html.table_schema')
