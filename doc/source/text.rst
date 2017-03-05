@@ -164,6 +164,27 @@ positional argument (a regex object) and return a string.
    repl = lambda m: m.group('two').swapcase()
    pd.Series(['Foo Bar Baz', np.nan]).str.replace(pat, repl)
 
+The ``replace`` method also accepts a compiled regular expression object
+from :func:`re.compile` as a pattern. All flags should be included in the
+compiled regular expression object.
+
+.. versionadded:: 0.20.0
+
+.. ipython:: python
+
+   import re
+   regex_pat = re.compile(r'^.a|dog', flags=re.IGNORECASE)
+   s3.str.replace(regex_pat, 'XX-XX ')
+
+Including a ``flags`` argument when calling ``replace`` with a compiled
+regular expression object will raise a ``ValueError``.
+
+.. ipython::
+
+    @verbatim
+    In [1]: s3.str.replace(regex_pat, 'XX-XX ', flags=re.IGNORECASE)
+    ---------------------------------------------------------------------------
+    ValueError: case and flags cannot be set when pat is a compiled regex
 
 Indexing with ``.str``
 ----------------------
