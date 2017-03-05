@@ -156,7 +156,11 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             if data is None:
                 data = {}
             if dtype is not None:
-                dtype = self._validate_dtype(dtype)
+                if dtype is numpy.dtype or dtype is pandas.dtype:
+                    dtype = self._validate_dtype(dtype)
+                else:
+                    raise TypeError("Argument 'dtype' must be
+                                    numpy.dtype or pandas.dtype")
 
             if isinstance(data, MultiIndex):
                 raise NotImplementedError("initializing a Series from a "
