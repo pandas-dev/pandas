@@ -504,8 +504,8 @@ def _is_fillable_value(value):
                   is_numeric_dtype(value) or
                   is_datetime_or_timedelta_dtype(value) or
                   is_period_dtype(value) or
-                  type(value).__name__ in pandas_ts_types) or
-                  type(value).__name__ in pandas_block_types)]):
+                  type(value).__name__ in pandas_ts_types)),
+            type(value).__name__ in pandas_block_types]):
         return False
     else:
         return True
