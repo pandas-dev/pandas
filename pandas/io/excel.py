@@ -1331,8 +1331,15 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             self.sheets[sheet_name] = wks
 
         if freeze_panes is not None:
-            wks.freeze_panes = wks.cell(row=freeze_panes[0] + 1,
-                                        column=freeze_panes[1] + 1)
+            if (
+                len(freeze_panes) == 2 and
+                all(isinstance(item, int) for item in freeze_panes)
+            ):
+                wks.freeze_panes = wks.cell(row=freeze_panes[0] + 1,
+                                            column=freeze_panes[1] + 1)
+            else:
+                raise ValueError("freeze_panes must be of form (row, column)"
+                                 " where row and column are integers")
 
         for cell in cells:
             xcell = wks.cell(
@@ -1419,9 +1426,16 @@ class _XlwtWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         if freeze_panes is not None:
-            wks.set_panes_frozen(True)
-            wks.set_horz_split_pos(freeze_panes[0])
-            wks.set_vert_split_pos(freeze_panes[1])
+            if (
+                len(freeze_panes) == 2 and
+                all(isinstance(item, int) for item in freeze_panes)
+            ):
+                wks.set_panes_frozen(True)
+                wks.set_horz_split_pos(freeze_panes[0])
+                wks.set_vert_split_pos(freeze_panes[1])
+            else:
+                raise ValueError("freeze_panes must be of form (row, column)"
+                                 " where row and column are integers")
 
         style_dict = {}
 
@@ -1551,7 +1565,14 @@ class _XlsxWriter(ExcelWriter):
         style_dict = {}
 
         if freeze_panes is not None:
-            wks.freeze_panes(*(freeze_panes))
+            if (
+                len(freeze_panes) == 2 and
+                all(isinstance(item, int) for item in freeze_panes)
+            ):
+                wks.freeze_panes(*(freeze_panes))
+            else:
+                raise ValueError("freeze_panes must be of form (row, column)"
+                                 " where row and column are integers")
 
         for cell in cells:
             val = _conv_value(cell.val)
