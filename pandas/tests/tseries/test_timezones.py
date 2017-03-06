@@ -358,7 +358,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         dr = date_range('2011-10-02 00:00', freq='h', periods=10,
                         tz=self.tzstr('America/Atikokan'))
 
-        expected = pd.Index(np.arange(10, dtype=np.int64))
+        expected = Index(np.arange(10, dtype=np.int64))
         self.assert_index_equal(dr.hour, expected)
 
     def test_with_tz(self):

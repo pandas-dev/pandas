@@ -604,7 +604,7 @@ class TestTimestamp(tm.TestCase):
         for field in fields:
             result = getattr(idx, field)
             expected = [getattr(x, field) for x in idx]
-            self.assert_numpy_array_equal(result, np.array(expected))
+            self.assert_index_equal(result, pd.Index(expected))
 
         s = pd.Series(idx)
 
