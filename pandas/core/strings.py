@@ -822,7 +822,7 @@ def str_extractall(arr, pat, flags=0):
     if 0 < len(index_list):
         from pandas import MultiIndex
         index = MultiIndex.from_tuples(
-            index_list, names=arr.index.names.union(["match"]))
+            index_list, names=arr.index.names + ["match"])
     else:
         index = None
     result = arr._constructor_expanddim(match_list, index=index,
