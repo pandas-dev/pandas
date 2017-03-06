@@ -474,16 +474,36 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_series_groupby_nunique(self):
 
         def check_nunique(df, keys, as_index=True):
-            for sort, dropna in cart_product((False, True), repeat=2):
-                gr = df.groupby(keys, as_index=as_index, sort=sort)
-                left = gr['julie'].nunique(dropna=dropna)
+            choices = cart_product((False, True), repeat=3)
+            for sort, nunique_dropna, groupby_dropna in choices:
+                gr = df.groupby(
+                    keys,
+                    as_index=as_index,
+                    sort=sort,
+                    dropna=groupby_dropna,
+                )
+                left = gr['julie'].nunique(
+                    dropna=nunique_dropna,
+                )
 
-                gr = df.groupby(keys, as_index=as_index, sort=sort)
-                right = gr['julie'].apply(Series.nunique, dropna=dropna)
+                gr = df.groupby(
+                    keys,
+                    as_index=as_index,
+                    sort=sort,
+                    dropna=groupby_dropna,
+                )
+                right = gr['julie'].apply(
+                    Series.nunique,
+                    dropna=nunique_dropna,
+                )
                 if not as_index:
                     right = right.reset_index(drop=True)
 
-                assert_series_equal(left, right, check_names=False)
+                assert_series_equal(
+                    left,
+                    right,
+                    check_names=False,
+                )
 
         days = date_range('2015-08-23', periods=10)
 
