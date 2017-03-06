@@ -304,47 +304,39 @@ def test_pickle_v0_15_2():
     tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
 
-class TestPickleCompression(object):
+# ---------------------
+# test pickle compression
+# ---------------------
+def get_random_path():
+    return u'__%s__.pickle' % tm.rands(10)
 
-    def setup_class(self):
-        self.path = u'__%s__.pickle' % tm.rands(10)
 
-    def compression_explicit(self, compression):
-        # issue 11666
-        if compression == 'xz':
-            tm._skip_if_no_lzma()
-        with tm.ensure_clean(self.path) as path:
+@pytest.mark.parametrize('compression', [None, 'gzip', 'bz2', 'xz'])
+def test_compression_explicit(compression):
+    # issue 11666
+    if compression == 'xz':
+        tm._skip_if_no_lzma()
+    with tm.ensure_clean(get_random_path()) as path:
+        df = tm.makeDataFrame()
+        df.to_pickle(path, compression=compression)
+        df2 = pd.read_pickle(path, compression=compression)
+        tm.assert_frame_equal(df, df2)
+
+
+@pytest.mark.parametrize('compression', ['', 'None', 'bad', '7z'])
+def test_compression_explicit_bad(compression):
+    with tm.assertRaisesRegexp(ValueError,
+                               "Unrecognized compression type"):
+        with tm.ensure_clean(get_random_path()) as path:
             df = tm.makeDataFrame()
             df.to_pickle(path, compression=compression)
-            df2 = pd.read_pickle(path, compression=compression)
-            tm.assert_frame_equal(df, df2)
 
-    def test_compression_explicit(self):
-        compressions = [None, 'gzip', 'bz2', 'xz']
-        for c in compressions:
-            yield self.compression_explicit, c
 
-    def compression_explicit_bad(self, compression):
-        with tm.assertRaisesRegexp(ValueError,
-                                   "Unrecognized compression type"):
-            with tm.ensure_clean(self.path) as path:
-                df = tm.makeDataFrame()
-                df.to_pickle(path, compression=compression)
-
-    def test_compression_explicit_bad(self):
-        compressions = ['', 'None', 'bad', '7z']
-        for c in compressions:
-            yield self.compression_explicit_bad, c
-
-    def compression_infer(self, ext):
-        if ext == '.xz':
-            tm._skip_if_no_lzma()
-        with tm.ensure_clean(self.path + ext) as path:
-            df = tm.makeDataFrame()
-            df.to_pickle(path)
-            tm.assert_frame_equal(df, pd.read_pickle(path))
-
-    def test_compression_infer(self):
-        extensions = ['', '.gz', '.bz2', '.xz', '.no_compress']
-        for ext in extensions:
-            yield self.compression_infer, ext
+@pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.xz', '.no_compress'])
+def test_compression_infer(ext):
+    if ext == '.xz':
+        tm._skip_if_no_lzma()
+    with tm.ensure_clean(get_random_path() + ext) as path:
+        df = tm.makeDataFrame()
+        df.to_pickle(path)
+        tm.assert_frame_equal(df, pd.read_pickle(path))
