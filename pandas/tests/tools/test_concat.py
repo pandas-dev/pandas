@@ -1899,3 +1899,38 @@ bar2,12,13,14,15
         tm.assert_frame_equal(result_copy, expected)
         result_no_copy = pd.concat(example_dict, names=['testname'])
         tm.assert_frame_equal(result_no_copy, expected)
+
+
+    def test_concat_no_unnecessary_upcats(self):
+        # GH 13247
+
+        for pdt in [pd.Series, pd.DataFrame, pd.Panel, pd.Panel4D]:
+            dims = pdt().ndim
+            for dt in np.sctypes['float']:
+                dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
+                       pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
+                       pdt(np.array([5], dtype=dt, ndmin=dims))]
+                x = pd.concat(dfs)
+                self.assertTrue(x.values.dtype == dt)
+
+            for dt in(np.sctypes['int'] + np.sctypes['uint']):
+                dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
+                       pdt(np.array([5], dtype=dt ,ndmin=dims))]
+                x = pd.concat(dfs)
+                self.assertTrue(x.values.dtype == dt)
+
+            objs = []
+            objs.append(pdt(np.array([1], dtype=np.float32, ndmin=dims)))
+            objs.append(pdt(np.array([1], dtype=np.float16, ndmin=dims)))
+            self.assertTrue(pd.concat(objs).values.dtype == np.float32)
+
+            objs = []
+            objs.append(pdt(np.array([1], dtype=np.int32, ndmin=dims)))
+            objs.append(pdt(np.array([1], dtype=np.int64, ndmin=dims)))
+            self.assertTrue(pd.concat(objs).values.dtype == np.int64)
+
+            # not sure what is the best answer here
+            objs = []
+            objs.append(pdt(np.array([1], dtype=np.int32, ndmin=dims)))
+            objs.append(pdt(np.array([1], dtype=np.float16, ndmin=dims)))
+            self.assertTrue(pd.concat(objs).values.dtype == np.float64)

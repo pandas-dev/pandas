@@ -651,7 +651,7 @@ class TestBlockManager(tm.TestCase):
         mgr = create_mgr('a: f8; b: i8')
         self.assertEqual(mgr.as_matrix().dtype, 'f8')
         mgr = create_mgr('a: f4; b: i8')
-        self.assertEqual(mgr.as_matrix().dtype, 'f4')
+        self.assertEqual(mgr.as_matrix().dtype, 'f8')
         mgr = create_mgr('a: f4; b: i8; d: object')
         self.assertEqual(mgr.as_matrix().dtype, 'object')
         mgr = create_mgr('a: bool; b: i8')

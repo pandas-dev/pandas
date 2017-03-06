@@ -31,6 +31,7 @@ from pandas.types.cast import (_possibly_downcast_to_dtype,
                                _maybe_convert_string_to_object,
                                _maybe_upcast,
                                _maybe_convert_scalar, _maybe_promote,
+                               is_float_dtype, is_numeric_dtype,
                                _infer_dtype_from_scalar,
                                _soft_convert_objects,
                                _possibly_convert_objects,
@@ -4523,6 +4524,8 @@ def _interleaved_dtype(blocks):
             return np.dtype('int%s' % (lcd.itemsize * 8 * 2))
         return lcd
 
+    elif have_int and have_float and not have_complex:
+        return np.dtype('float64')
     elif have_complex:
         return np.dtype('c16')
     else:
@@ -4892,6 +4895,8 @@ def get_empty_dtype_and_na(join_units):
             upcast_cls = 'datetime'
         elif is_timedelta64_dtype(dtype):
             upcast_cls = 'timedelta'
+        elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
+            upcast_cls = dtype.name
         else:
             upcast_cls = 'float'
 
@@ -4916,8 +4921,6 @@ def get_empty_dtype_and_na(join_units):
             return np.dtype(np.bool_), None
     elif 'category' in upcast_classes:
         return np.dtype(np.object_), np.nan
-    elif 'float' in upcast_classes:
-        return np.dtype(np.float64), np.nan
     elif 'datetimetz' in upcast_classes:
         dtype = upcast_classes['datetimetz']
         return dtype[0], tslib.iNaT
@@ -4926,7 +4929,17 @@ def get_empty_dtype_and_na(join_units):
     elif 'timedelta' in upcast_classes:
         return np.dtype('m8[ns]'), tslib.iNaT
     else:  # pragma
-        raise AssertionError("invalid dtype determination in get_concat_dtype")
+        g = pandas.types._.find_common_type(upcast_classes, [])
+        if is_float_type(g):
+            return g, g.type(np.nan)
+        elif is_numeric_dtype(g):
+            if has_none_blocks:
+                return np.float64, np.nan
+            else:
+                return g, None
+        else:
+            msg = "invalid dtype determination in get_concat_dtype"
+            raise AssertionError(msg)
 
 
 def concatenate_join_units(join_units, concat_axis, copy):
@@ -5191,7 +5204,6 @@ class JoinUnit(object):
         return True
 
     def get_reindexed_values(self, empty_dtype, upcasted_na):
-
         if upcasted_na is None:
             # No upcasting is necessary
             fill_value = self.block.fill_value
