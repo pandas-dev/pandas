@@ -91,8 +91,8 @@ class TestPeriodIndex(tm.TestCase):
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
-        self.assert_index_equal(pindex.year, pd.Index(years))
-        self.assert_index_equal(pindex.quarter, pd.Index(quarters))
+        self.assert_numpy_array_equal(pindex.year, years)
+        self.assert_numpy_array_equal(pindex.quarter, quarters)
 
     def test_constructor_invalid_quarters(self):
         self.assertRaises(ValueError, PeriodIndex, year=lrange(2000, 2004),

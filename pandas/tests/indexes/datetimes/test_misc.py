@@ -307,5 +307,5 @@ class TestDatetime64(tm.TestCase):
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
 
-        self.assert_index_equal(dti.nanosecond,
-                                pd.Index(np.arange(10, dtype=np.int64)))
+        self.assert_numpy_array_equal(dti.nanosecond,
+                                      np.arange(10, dtype=np.int32))
