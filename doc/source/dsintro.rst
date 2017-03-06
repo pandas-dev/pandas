@@ -763,6 +763,14 @@ completion mechanism so they can be tab-completed:
 Panel
 -----
 
+.. warning::
+
+    In 0.20.0, ``Panel`` is deprecated and will be removed in
+    a future version. The recommended way to represent 3-D data are
+    with a ``MultiIndex``on a ``DataFrame`` via the :meth:`~Panel.to_frame` or
+    with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+    provides a :meth:`~Panel.to_xarray` method to automate this conversion.
+
 Panel is a somewhat less-used, but still important container for 3-dimensional
 data. The term `panel data <http://en.wikipedia.org/wiki/Panel_data>`__ is
 derived from econometrics and is partially responsible for the name pandas:

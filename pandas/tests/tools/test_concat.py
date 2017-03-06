@@ -1,4 +1,5 @@
 from warnings import catch_warnings
+
 import numpy as np
 from numpy.random import randn
 
@@ -1283,8 +1284,9 @@ class TestConcatenate(ConcatenateBase):
         assert_frame_equal(result, expected)
 
         # invalid concatente of mixed dims
-        panel = tm.makePanel()
-        self.assertRaises(ValueError, lambda: concat([panel, s1], axis=1))
+        with catch_warnings(record=True):
+            panel = tm.makePanel()
+            self.assertRaises(ValueError, lambda: concat([panel, s1], axis=1))
 
     def test_empty_dtype_coerce(self):
 
@@ -1322,56 +1324,59 @@ class TestConcatenate(ConcatenateBase):
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
     def test_panel_concat_other_axes(self):
-        panel = tm.makePanel()
+        with catch_warnings(record=True):
+            panel = tm.makePanel()
 
-        p1 = panel.iloc[:, :5, :]
-        p2 = panel.iloc[:, 5:, :]
+            p1 = panel.iloc[:, :5, :]
+            p2 = panel.iloc[:, 5:, :]
 
-        result = concat([p1, p2], axis=1)
-        tm.assert_panel_equal(result, panel)
+            result = concat([p1, p2], axis=1)
+            tm.assert_panel_equal(result, panel)
 
-        p1 = panel.iloc[:, :, :2]
-        p2 = panel.iloc[:, :, 2:]
+            p1 = panel.iloc[:, :, :2]
+            p2 = panel.iloc[:, :, 2:]
 
-        result = concat([p1, p2], axis=2)
-        tm.assert_panel_equal(result, panel)
+            result = concat([p1, p2], axis=2)
+            tm.assert_panel_equal(result, panel)
 
-        # if things are a bit misbehaved
-        p1 = panel.iloc[:2, :, :2]
-        p2 = panel.iloc[:, :, 2:]
-        p1['ItemC'] = 'baz'
+            # if things are a bit misbehaved
+            p1 = panel.iloc[:2, :, :2]
+            p2 = panel.iloc[:, :, 2:]
+            p1['ItemC'] = 'baz'
 
-        result = concat([p1, p2], axis=2)
+            result = concat([p1, p2], axis=2)
 
-        expected = panel.copy()
-        expected['ItemC'] = expected['ItemC'].astype('O')
-        expected.loc['ItemC', :, :2] = 'baz'
-        tm.assert_panel_equal(result, expected)
+            expected = panel.copy()
+            expected['ItemC'] = expected['ItemC'].astype('O')
+            expected.loc['ItemC', :, :2] = 'baz'
+            tm.assert_panel_equal(result, expected)
 
     def test_panel_concat_buglet(self):
-        # #2257
-        def make_panel():
-            index = 5
-            cols = 3
+        with catch_warnings(record=True):
+            # #2257
+            def make_panel():
+                index = 5
+                cols = 3
 
-            def df():
-                return DataFrame(np.random.randn(index, cols),
-                                 index=["I%s" % i for i in range(index)],
-                                 columns=["C%s" % i for i in range(cols)])
-            return Panel(dict([("Item%s" % x, df()) for x in ['A', 'B', 'C']]))
+                def df():
+                    return DataFrame(np.random.randn(index, cols),
+                                     index=["I%s" % i for i in range(index)],
+                                     columns=["C%s" % i for i in range(cols)])
+                return Panel(dict([("Item%s" % x, df())
+                                   for x in ['A', 'B', 'C']]))
 
-        panel1 = make_panel()
-        panel2 = make_panel()
+            panel1 = make_panel()
+            panel2 = make_panel()
 
-        panel2 = panel2.rename_axis(dict([(x, "%s_1" % x)
-                                          for x in panel2.major_axis]),
-                                    axis=1)
+            panel2 = panel2.rename_axis(dict([(x, "%s_1" % x)
+                                              for x in panel2.major_axis]),
+                                        axis=1)
 
-        panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
-        panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
+            panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
+            panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
 
-        # it works!
-        concat([panel1, panel3], axis=1, verify_integrity=True)
+            # it works!
+            concat([panel1, panel3], axis=1, verify_integrity=True)
 
     def test_panel4d_concat(self):
         with catch_warnings(record=True):

@@ -2,6 +2,7 @@
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 
+from warnings import catch_warnings
 import re
 import operator
 import pytest
@@ -32,19 +33,26 @@ _mixed2 = DataFrame({'A': _frame2['A'].copy(),
                      'D': _frame2['D'].astype('int32')})
 _integer = DataFrame(
     np.random.randint(1, 100,
-                      size=(10001, 4)), columns=list('ABCD'), dtype='int64')
+                      size=(10001, 4)),
+    columns=list('ABCD'), dtype='int64')
 _integer2 = DataFrame(np.random.randint(1, 100, size=(101, 4)),
                       columns=list('ABCD'), dtype='int64')
-_frame_panel = Panel(dict(ItemA=_frame.copy(), ItemB=(
-    _frame.copy() + 3), ItemC=_frame.copy(), ItemD=_frame.copy()))
-_frame2_panel = Panel(dict(ItemA=_frame2.copy(), ItemB=(_frame2.copy() + 3),
-                           ItemC=_frame2.copy(), ItemD=_frame2.copy()))
-_integer_panel = Panel(dict(ItemA=_integer, ItemB=(_integer + 34).astype(
-    'int64')))
-_integer2_panel = Panel(dict(ItemA=_integer2, ItemB=(_integer2 + 34).astype(
-    'int64')))
-_mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
-_mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
+
+with catch_warnings(record=True):
+    _frame_panel = Panel(dict(ItemA=_frame.copy(),
+                              ItemB=(_frame.copy() + 3),
+                              ItemC=_frame.copy(),
+                              ItemD=_frame.copy()))
+    _frame2_panel = Panel(dict(ItemA=_frame2.copy(),
+                               ItemB=(_frame2.copy() + 3),
+                               ItemC=_frame2.copy(),
+                               ItemD=_frame2.copy()))
+    _integer_panel = Panel(dict(ItemA=_integer,
+                                ItemB=(_integer + 34).astype('int64')))
+    _integer2_panel = Panel(dict(ItemA=_integer2,
+                                 ItemB=(_integer2 + 34).astype('int64')))
+    _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
+    _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
 
 
 @pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
@@ -204,7 +212,7 @@ class TestExpressions(tm.TestCase):
 
     @slow
     def test_panel4d(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
                            assert_func=assert_panel4d_equal, binary_comp=3)
 

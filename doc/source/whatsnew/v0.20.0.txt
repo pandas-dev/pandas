@@ -10,10 +10,11 @@ users upgrade to this version.
 Highlights include:
 
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
+- ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
 - Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
 - Improved support for UInt64 dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
-- Window Binary Corr/Cov operations return a MultiIndex DataFrame rather than a Panel, see :ref:`here <whhatsnew_0200.api_breaking.rolling_pairwise>`
 - A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
+- Window Binary Corr/Cov operations return a MultiIndex DataFrame rather than a Panel, see :ref:`here <whhatsnew_0200.api_breaking.rolling_pairwise>`
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
@@ -426,6 +427,33 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
+
+.. _whatsnew_0200.api_breaking.deprecate_panel:
+
+Deprecate Panel
+^^^^^^^^^^^^^^^
+
+``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
+with a ``MultiIndex``on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+provides a :meth:`~Panel.to_xarray` method to automate this conversion (:issue:`13563`).
+
+.. ipython:: python
+   :okwarning:
+
+   p = tm.makePanel()
+   p
+
+Convert to a MultiIndex DataFrame
+
+.. ipython:: python
+
+   p.frame()
+
+Convert to an xarray DataArray
+
+.. ipython:: python
+
+   p.to_xarray()
 
 .. _whatsnew.api_breaking.io_compat:
 

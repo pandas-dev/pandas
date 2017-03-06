@@ -1747,8 +1747,10 @@ def makePeriodPanel(nper=None):
 
 
 def makePanel4D(nper=None):
-    return Panel4D(dict(l1=makePanel(nper), l2=makePanel(nper),
-                        l3=makePanel(nper)))
+    with warnings.catch_warnings(record=True):
+        d = dict(l1=makePanel(nper), l2=makePanel(nper),
+                 l3=makePanel(nper))
+    return Panel4D(d)
 
 
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
