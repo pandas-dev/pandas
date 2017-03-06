@@ -61,37 +61,32 @@ class SharedWithSparse(object):
         # left / right
 
         f = self.frame.reindex(columns=['A', 'B'])[:10]
-        f2 = self.frame.reindex(columns=['C', 'D'])
+        f2 = self.frame.reindex(columns=['C', 'D'])[5:][::-1]
 
         joined = f.join(f2)
         self.assert_index_equal(f.index, joined.index)
-        self.assertEqual(len(joined.columns), 4)
+        expected_columns = pd.Index(['A', 'B', 'C', 'D'])
+        self.assert_index_equal(joined.columns, expected_columns)
 
         joined = f.join(f2, how='left')
         self.assert_index_equal(joined.index, f.index)
-        self.assertEqual(len(joined.columns), 4)
+        self.assert_index_equal(joined.columns, expected_columns)
 
         joined = f.join(f2, how='right')
         self.assert_index_equal(joined.index, f2.index)
-        self.assertEqual(len(joined.columns), 4)
+        self.assert_index_equal(joined.columns, expected_columns)
 
         # inner
 
-        f = self.frame.reindex(columns=['A', 'B'])[:10]
-        f2 = self.frame.reindex(columns=['C', 'D'])
-
         joined = f.join(f2, how='inner')
         self.assert_index_equal(joined.index, f.index.intersection(f2.index))
-        self.assertEqual(len(joined.columns), 4)
+        self.assert_index_equal(joined.columns, expected_columns)
 
         # outer
 
-        f = self.frame.reindex(columns=['A', 'B'])[:10]
-        f2 = self.frame.reindex(columns=['C', 'D'])
-
         joined = f.join(f2, how='outer')
-        self.assertTrue(tm.equalContents(self.frame.index, joined.index))
-        self.assertEqual(len(joined.columns), 4)
+        self..assert_index_equal(joined.index, self.frame.index.sort_values())
+        self.assert_index_equal(joined.columns, expected_columns)
 
         assertRaisesRegexp(ValueError, 'join method', f.join, f2, how='foo')
 

@@ -626,14 +626,16 @@ class TestIndex(Base, tm.TestCase):
         # non monotonic
         idx1 = Index([5, 3, 2, 4, 1], name='idx')
         idx2 = Index([4, 7, 6, 5, 3], name='idx')
-        result2 = idx1.intersection(idx2)
-        self.assertTrue(tm.equalContents(result2, expected2))
-        self.assertEqual(result2.name, expected2.name)
+        expected = Index([5, 3, 4], name='idx')
+        result = idx1.intersection(idx2)
+        self.assert_index_equal(result, expected)
+        self.assertEqual(result.name, expected.name)
 
-        idx3 = Index([4, 7, 6, 5, 3], name='other')
-        result3 = idx1.intersection(idx3)
-        self.assertTrue(tm.equalContents(result3, expected3))
-        self.assertEqual(result3.name, expected3.name)
+        idx2 = Index([4, 7, 6, 5, 3], name='other')
+        expected = Index([5, 3, 4], name=None)
+        result = idx1.intersection(idx2)
+        self.assert_index_equal(result, expected)
+        self.assertEqual(result.name, expected.name)
 
         # non-monotonic non-unique
         idx1 = Index(['A', 'B', 'A', 'C'])
