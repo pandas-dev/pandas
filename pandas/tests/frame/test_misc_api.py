@@ -85,7 +85,7 @@ class SharedWithSparse(object):
         # outer
 
         joined = f.join(f2, how='outer')
-        self..assert_index_equal(joined.index, self.frame.index.sort_values())
+        self.assert_index_equal(joined.index, self.frame.index.sort_values())
         self.assert_index_equal(joined.columns, expected_columns)
 
         assertRaisesRegexp(ValueError, 'join method', f.join, f2, how='foo')
