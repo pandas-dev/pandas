@@ -52,8 +52,7 @@ _index_doc_kwargs.update(
 def _field_accessor(name, alias, docstring=None):
     def f(self):
         base, mult = _gfc(self.freq)
-        result = get_period_field_arr(alias, self._values, base)
-        return Index(result)
+        return get_period_field_arr(alias, self._values, base)
     f.__name__ = name
     f.__doc__ = docstring
     return property(f)
@@ -586,7 +585,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @property
     def is_leap_year(self):
         """ Logical indicating if the date belongs to a leap year """
-        return tslib._isleapyear_arr(np.asarray(self.year))
+        return tslib._isleapyear_arr(self.year)
 
     @property
     def start_time(self):
