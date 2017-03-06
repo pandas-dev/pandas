@@ -23,18 +23,6 @@ Officially Python 2.7, 3.4, 3.5, and 3.6
 Installing pandas
 -----------------
 
-Trying out pandas, no installation required!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The easiest way to start experimenting with pandas doesn't involve installing
-pandas at all.
-
-`Wakari <https://wakari.io>`__ is a free service that provides a hosted
-`IPython Notebook <http://ipython.org/notebook.html>`__ service in the cloud.
-
-Simply create an account, and have access to pandas from within your brower via
-an `IPython Notebook <http://ipython.org/notebook.html>`__ in a few minutes.
-
 .. _install.anaconda:
 
 Installing pandas with Anaconda
