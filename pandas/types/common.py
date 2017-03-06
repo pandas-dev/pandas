@@ -491,3 +491,27 @@ def pandas_dtype(dtype):
         return dtype
 
     return np.dtype(dtype)
+
+
+def _is_fillable_value(value):
+    pandas_ts_types = ('Timestamp', 'Period', 'Timedelta')
+    pandas_block_types = ('Series', 'DataFrame')
+
+    if any([isinstance(value, (list, dict)),
+            callable(value),
+            (not (isinstance(value, string_types) or
+                  isinstance(value, (int, float, complex, str, None.__class__)) or
+                  is_numeric_dtype(value) or
+                  is_datetime_or_timedelta_dtype(value) or
+                  is_period_dtype(value) or
+                  type(value).__name__ in pandas_ts_types) or
+                  type(value).__name__ in pandas_block_types)]):
+        return False
+    else:
+        return True
+
+
+def validate_fill_value(value):
+    if not _is_fillable_value(value):
+        raise TypeError('"value" parameter must be a scalar, but '
+                        'you passed a "{0}"'.format(type(value).__name__))
