@@ -150,6 +150,14 @@ class TestAPI(TestPackers):
         tm.assertRaises(ValueError, read_msgpack, path_or_buf={})
         tm.assertRaises(ValueError, read_msgpack, path_or_buf=A())
 
+    def test_msgpack_categorical_index(self):
+        # GH15487        
+        df = DataFrame(np.random.randn(10, 2))
+        df = df.astype({0: 'category'}).set_index(0)
+        s = to_msgpack(None, df)
+        result = read_msgpack(s)
+        tm.assert_frame_equal(result, df)
+
 
 class TestNumpy(TestPackers):
 
