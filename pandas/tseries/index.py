@@ -73,16 +73,19 @@ def _field_accessor(name, field, docstring=None):
 
             result = libts.get_start_end_field(values, field, self.freqstr,
                                                month_kw)
+            result = self._maybe_mask_results(result, convert='float64')
+
         elif field in ['weekday_name']:
             result = libts.get_date_name_field(values, field)
-            return self._maybe_mask_results(result)
+            result = self._maybe_mask_results(result)
         elif field in ['is_leap_year']:
             # no need to mask NaT
-            return libts.get_date_field(values, field)
+            result = libts.get_date_field(values, field)
         else:
             result = libts.get_date_field(values, field)
+            result = self._maybe_mask_results(result, convert='float64')
 
-        return self._maybe_mask_results(result, convert='float64')
+        return Index(result)
 
     f.__name__ = name
     f.__doc__ = docstring
@@ -1909,9 +1912,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
-        year = self.year
-        month = self.month
-        day = self.day
+        year = np.asarray(self.year)
+        month = np.asarray(self.month)
+        day = np.asarray(self.day)
         testarr = month < 3
         year[testarr] -= 1
         month[testarr] += 12

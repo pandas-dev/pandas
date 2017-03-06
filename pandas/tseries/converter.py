@@ -455,7 +455,7 @@ def period_break(dates, period):
     """
     current = getattr(dates, period)
     previous = getattr(dates - 1, period)
-    return (current - previous).nonzero()[0]
+    return np.nonzero(current - previous)[0]
 
 
 def has_level_label(label_flags, vmin):
