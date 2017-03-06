@@ -4591,7 +4591,7 @@ class DataFrame(NDFrame):
             other = DataFrame({other.name: other})
 
         if isinstance(other, DataFrame):
-            return merge(self, other, left_on=on, how=how,
+            return merge(other, self, left_on=on, how=how,
                          left_index=on is None, right_index=True,
                          suffixes=(lsuffix, rsuffix), sort=sort)
         else:
