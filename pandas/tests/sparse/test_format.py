@@ -116,3 +116,15 @@ class TestSparseDataFrameFormatting(tm.TestCase):
 
         with option_context("display.max_rows", 3):
             self.assertEqual(repr(sparse), repr(df))
+
+    def test_sparse_repr_after_set(self):
+        # GH 15488
+        sdf = pd.SparseDataFrame([[np.nan, 1], [2, np.nan]])
+        res = sdf.copy()
+
+        # Ignore the warning
+        with pd.option_context('mode.chained_assignment', None):
+            sdf[0][1] = 2  # This line triggers the bug
+
+        repr(sdf)
+        tm.assert_sp_frame_equal(sdf, res)
