@@ -185,13 +185,6 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     x, dtype = _coerce_to_type(x)
 
     if is_integer(q):
-        if x.size == 0:
-            raise ValueError('Cannot qcut empty array')
-
-        rng = (nanops.nanmin(x), nanops.nanmax(x))
-        if rng[0] == rng[1] and q == 1:
-            duplicates = 'allow'
-
         quantiles = np.linspace(0, 1, q + 1)
     else:
         quantiles = q
@@ -208,17 +201,17 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
                   precision=3, include_lowest=False,
                   dtype=None, duplicates='raise'):
 
-    if duplicates not in ['raise', 'drop', 'allow']:
+    if duplicates not in ['raise', 'drop']:
         raise ValueError("invalid value for 'duplicates' parameter, "
                          "valid options are: raise, drop")
 
     unique_bins = algos.unique(bins)
-    if len(unique_bins) < len(bins):
+    if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == 'raise':
             raise ValueError("Bin edges must be unique: {}.\nYou "
                              "can drop duplicate edges by setting "
                              "the 'duplicates' kwarg".format(repr(bins)))
-        elif duplicates == 'drop':
+        else:
             bins = unique_bins
 
     side = 'left' if right else 'right'
