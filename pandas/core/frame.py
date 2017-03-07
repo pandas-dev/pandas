@@ -1431,23 +1431,11 @@ class DataFrame(NDFrame):
                                        inf_rep=inf_rep)
 
         formatted_cells = formatter.get_formatted_cells()
-        freeze_panes = self._validate_freeze_panes(freeze_panes)
         excel_writer.write_cells(formatted_cells, sheet_name,
                                  startrow=startrow, startcol=startcol,
                                  freeze_panes=freeze_panes)
         if need_save:
             excel_writer.save()
-
-    def _validate_freeze_panes(self, freeze_panes):
-        if freeze_panes is not None:
-            if (
-                len(freeze_panes) == 2 and
-                all(isinstance(item, int) for item in freeze_panes)
-            ):
-                return freeze_panes
-
-                raise ValueError("freeze_panes must be of form (row, column)"
-                                 " where row and column are integers")
 
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,

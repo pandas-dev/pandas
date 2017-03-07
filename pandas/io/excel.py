@@ -543,6 +543,22 @@ class ExcelFile(object):
         self.close()
 
 
+def _validate_freeze_panes(freeze_panes):
+    if freeze_panes is not None:
+        if (
+            len(freeze_panes) == 2 and
+            all(isinstance(item, int) for item in freeze_panes)
+        ):
+            return True
+
+        raise ValueError("freeze_panes must be of form (row, column)"
+                         " where row and column are integers")
+
+    # freeze_panes wasn't specified, return False so it won't be applied
+    # to output sheet
+    return False
+
+
 def _trim_excel_header(row):
     # trim header row so auto-index inference works
     # xlrd uses '' , openpyxl None
@@ -1330,7 +1346,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             wks.title = sheet_name
             self.sheets[sheet_name] = wks
 
-        if freeze_panes is not None:
+        if _validate_freeze_panes(freeze_panes):
             wks.freeze_panes = wks.cell(row=freeze_panes[0] + 1,
                                         column=freeze_panes[1] + 1)
 
@@ -1418,7 +1434,7 @@ class _XlwtWriter(ExcelWriter):
             wks = self.book.add_sheet(sheet_name)
             self.sheets[sheet_name] = wks
 
-        if freeze_panes is not None:
+        if _validate_freeze_panes(freeze_panes):
             wks.set_panes_frozen(True)
             wks.set_horz_split_pos(freeze_panes[0])
             wks.set_vert_split_pos(freeze_panes[1])
@@ -1550,7 +1566,7 @@ class _XlsxWriter(ExcelWriter):
 
         style_dict = {}
 
-        if freeze_panes is not None:
+        if _validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
 
         for cell in cells:
