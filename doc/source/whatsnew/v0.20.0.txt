@@ -672,6 +672,10 @@ Bug Fixes
 - Bug in ``Rolling.quantile`` function that caused a segmentation fault when called with a quantile value outside of the range [0, 1] (:issue:`15463`)
 
 
+- Bug in ``SparseSeries.reindex`` on single level with list of length 1 (:issue:`15447`)
+
+
+
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 
 - Bug in ``.asfreq()``, where frequency was not set for empty ``Series` (:issue:`14320`)

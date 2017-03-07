@@ -366,7 +366,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse()
         tm.assert_sp_series_equal(res, exp)
 
-    def test_reindex_fill_value(self):
+    def test_fill_value_reindex(self):
         orig = pd.Series([1, np.nan, 0, 3, 0], index=list('ABCDE'))
         sparse = orig.to_sparse(fill_value=0)
 
@@ -396,6 +396,23 @@ class TestSparseSeriesIndexing(tm.TestCase):
         res = sparse.reindex(['A', 'E', 'C', 'D'])
         exp = orig.reindex(['A', 'E', 'C', 'D']).to_sparse(fill_value=0)
         tm.assert_sp_series_equal(res, exp)
+
+    def test_reindex_fill_value(self):
+        floats = pd.Series([1., 2., 3.]).to_sparse()
+        result = floats.reindex([1, 2, 3], fill_value=0)
+        expected = pd.Series([2., 3., 0], index=[1, 2, 3]).to_sparse()
+        tm.assert_sp_series_equal(result, expected)
+
+    def test_reindex_nearest(self):
+        s = pd.Series(np.arange(10, dtype='float64')).to_sparse()
+        target = [0.1, 0.9, 1.5, 2.0]
+        actual = s.reindex(target, method='nearest')
+        expected = pd.Series(np.around(target), target).to_sparse()
+        tm.assert_sp_series_equal(expected, actual)
+
+        actual = s.reindex(target, method='nearest', tolerance=0.2)
+        expected = pd.Series([0, 1, np.nan, 2], target).to_sparse()
+        tm.assert_sp_series_equal(expected, actual)
 
     def tests_indexing_with_sparse(self):
         # GH 13985
@@ -504,6 +521,11 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         exp = orig.loc[[1, 3, 4, 5]].to_sparse()
         tm.assert_sp_series_equal(result, exp)
 
+        # single element list (GH 15447)
+        result = sparse.loc[['A']]
+        exp = orig.loc[['A']].to_sparse()
+        tm.assert_sp_series_equal(result, exp)
+
         # dense array
         result = sparse.loc[orig % 2 == 1]
         exp = orig.loc[orig % 2 == 1].to_sparse()
@@ -536,6 +558,35 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         tm.assert_sp_series_equal(sparse.loc['A':'B'],
                                   orig.loc['A':'B'].to_sparse())
         tm.assert_sp_series_equal(sparse.loc[:'B'], orig.loc[:'B'].to_sparse())
+
+    def test_reindex(self):
+        # GH 15447
+        orig = self.orig
+        sparse = self.sparse
+
+        res = sparse.reindex([('A', 0), ('C', 1)])
+        exp = orig.reindex([('A', 0), ('C', 1)]).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+
+        # On specific level:
+        res = sparse.reindex(['A', 'C', 'B'], level=0)
+        exp = orig.reindex(['A', 'C', 'B'], level=0).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+
+        # single element list (GH 15447)
+        res = sparse.reindex(['A'], level=0)
+        exp = orig.reindex(['A'], level=0).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+
+        with tm.assertRaises(TypeError):
+            # Incomplete keys are not accepted for reindexing:
+            sparse.reindex(['A', 'C'])
+
+        # "copy" argument:
+        res = sparse.reindex(sparse.index, copy=True)
+        exp = orig.reindex(orig.index, copy=True).to_sparse()
+        tm.assert_sp_series_equal(res, exp)
+        self.assertIsNot(sparse, res)
 
 
 class TestSparseDataFrameIndexing(tm.TestCase):
