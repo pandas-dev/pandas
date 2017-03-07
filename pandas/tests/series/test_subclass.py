@@ -33,6 +33,7 @@ class TestSeriesSubclassing(tm.TestCase):
         tm.assertIsInstance(res, tm.SubclassedDataFrame)
 
     def test_subclass_unstack(self):
+        # GH 15564
         s = tm.SubclassedSeries(
             [1, 2, 3, 4], index=[list('aabb'), list('xyxy')])
 
@@ -87,6 +88,7 @@ class TestSparseSeriesSubclassing(tm.TestCase):
         tm.assert_sp_series_equal(s1 + s2, exp)
 
     def test_subclass_sparse_to_frame(self):
+        # GH 15564
         s = tm.SubclassedSparseSeries([1, 2], index=list('abcd'), name='xxx')
         res = s.to_frame()
 

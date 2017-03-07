@@ -126,6 +126,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assertIsInstance(res, tm.SubclassedSeries)
 
     def test_subclass_stack(self):
+        # GH 15564
         df = tm.SubclassedDataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                                     index=['a', 'b', 'c'],
                                     columns=['X', 'Y', 'Z'])
@@ -139,6 +140,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assertIsInstance(res, tm.SubclassedSeries)
 
     def test_subclass_stack_multi(self):
+        # GH 15564
         df = tm.SubclassedDataFrame([
             [10, 11, 12, 13],
             [20, 21, 22, 23],
@@ -192,6 +194,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assertIsInstance(res, tm.SubclassedDataFrame)
 
     def test_subclass_unstack(self):
+        # GH 15564
         df = tm.SubclassedDataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                                     index=['a', 'b', 'c'],
                                     columns=['X', 'Y', 'Z'])
@@ -205,6 +208,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assertIsInstance(res, tm.SubclassedSeries)
 
     def test_subclass_unstack_multi(self):
+        # GH 15564
         df = tm.SubclassedDataFrame([
             [10, 11, 12, 13],
             [20, 21, 22, 23],
@@ -246,6 +250,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         tm.assertIsInstance(res, tm.SubclassedDataFrame)
 
     def test_subclass_pivot(self):
+        # GH 15564
         df = tm.SubclassedDataFrame({
             'index': ['A', 'B', 'C', 'C', 'B', 'A'],
             'columns': ['One', 'One', 'One', 'Two', 'Two', 'Two'],
