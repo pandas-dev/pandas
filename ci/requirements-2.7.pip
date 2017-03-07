@@ -4,3 +4,5 @@ pathlib
 backports.lzma
 py
 PyCrypto
+mock
+ipython

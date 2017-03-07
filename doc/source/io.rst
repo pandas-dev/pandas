@@ -2033,6 +2033,126 @@ using Hadoop or Spark.
   df
   df.to_json(orient='records', lines=True)
 
+
+.. _io.table_schema:
+
+Table Schema
+''''''''''''
+
+.. versionadded:: 0.20.0
+
+`Table Schema`_ is a spec for describing tabular datasets as a JSON
+object. The JSON includes information on the field names, types, and
+other attributes. You can use the orient ``table`` to build
+a JSON string with two fields, ``schema`` and ``data``.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {'A': [1, 2, 3],
+        'B': ['a', 'b', 'c'],
+        'C': pd.date_range('2016-01-01', freq='d', periods=3),
+       }, index=pd.Index(range(3), name='idx'))
+   df
+   df.to_json(orient='table', date_format="iso")
+
+The ``schema`` field contains the ``fields`` key, which itself contains
+a list of column name to type pairs, including the ``Index`` or ``MultiIndex``
+(see below for a list of types).
+The ``schema`` field also contains a ``primaryKey`` field if the (Multi)index
+is unique.
+
+The second field, ``data``, contains the serialized data with the ``records``
+orient.
+The index is included, and any datetimes are ISO 8601 formatted, as required
+by the Table Schema spec.
+
+The full list of types supported are described in the Table Schema
+spec. This table shows the mapping from pandas types:
+
+==============  =================
+Pandas type     Table Schema type
+==============  =================
+int64           integer
+float64         number
+bool            boolean
+datetime64[ns]  datetime
+timedelta64[ns] duration
+categorical     any
+object          str
+=============== =================
+
+A few notes on the generated table schema:
+
+- The ``schema`` object contains a ``pandas_version`` field. This contains
+  the version of pandas' dialect of the schema, and will be incremented
+  with each revision.
+- All dates are converted to UTC when serializing. Even timezone naïve values,
+  which are treated as UTC with an offset of 0.
+
+  .. ipython:: python
+
+     from pandas.io.json import build_table_schema
+     s = pd.Series(pd.date_range('2016', periods=4))
+     build_table_schema(s)
+
+- datetimes with a timezone (before serializing), include an additional field
+  ``tz`` with the time zone name (e.g. ``'US/Central'``).
+
+  .. ipython:: python
+
+     s_tz = pd.Series(pd.date_range('2016', periods=12,
+                                    tz='US/Central'))
+     build_table_schema(s_tz)
+
+- Periods are converted to timestamps before serialization, and so have the
+  same behavior of being converted to UTC. In addition, periods will contain
+  and additional field ``freq`` with the period's frequency, e.g. ``'A-DEC'``
+
+  .. ipython:: python
+
+     s_per = pd.Series(1, index=pd.period_range('2016', freq='A-DEC',
+                                                periods=4))
+     build_table_schema(s_per)
+
+- Categoricals use the ``any`` type and an ``enum`` constraint listing
+  the set of possible values. Additionally, an ``ordered`` field is included
+
+  .. ipython:: python
+
+     s_cat = pd.Series(pd.Categorical(['a', 'b', 'a']))
+     build_table_schema(s_cat)
+
+- A ``primaryKey`` field, containing an array of labels, is included
+  *if the index is unique*:
+
+  .. ipython:: python
+
+     s_dupe = pd.Series([1, 2], index=[1, 1])
+     build_table_schema(s_dupe)
+
+- The ``primaryKey`` behavior is the same with MultiIndexes, but in this
+  case the ``primaryKey`` is an array:
+
+  .. ipython:: python
+
+     s_multi = pd.Series(1, index=pd.MultiIndex.from_product([('a', 'b'),
+                                                              (0, 1)]))
+     build_table_schema(s_multi)
+
+- The default naming roughly follows these rules:
+
+  + For series, the ``object.name`` is used. If that's none, then the
+    name is ``values``
+  + For DataFrames, the stringified version of the column name is used
+  + For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
+    fallback to ``index`` if that is None.
+  + For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
+    then ``level_<i>`` is used.
+
+
+_Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+
 HTML
 ----
 
