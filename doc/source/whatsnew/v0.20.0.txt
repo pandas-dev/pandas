@@ -471,6 +471,36 @@ New Behavior:
 
    s.map(lambda x: x.hour)
 
+
+Accessing datetime fields of Index now return Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The several datetime-related attributes (see :ref:`here <timeseries.components>`
+for an overview) of DatetimeIndex, PeriodIndex and TimedeltaIndex previously
+returned numpy arrays, now they will return a new Index object (:issue:`15022`).
+
+Previous behaviour:
+
+.. code-block:: ipython
+
+    In [1]: idx = pd.date_range("2015-01-01", periods=5, freq='10H')
+
+    In [2]: idx.hour
+    Out[2]: array([ 0, 10, 20,  6, 16], dtype=int32)
+
+New Behavior:
+
+.. ipython:: python
+
+    idx = pd.date_range("2015-01-01", periods=5, freq='10H')
+    idx.hour
+
+This has the advantage that specific Index methods are still available on the
+result. On the other hand, this might have backward incompatibilities: e.g.
+compared to numpy arrays, Index objects are not mutable (values cannot be set
+by indexing). To get the original result, you can convert to a nunpy array
+explicitly using ``np.asarray(idx.hour)``.
+
 .. _whatsnew_0200.api_breaking.s3:
 
 S3 File Handling
