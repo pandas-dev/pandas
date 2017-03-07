@@ -85,7 +85,7 @@ def _field_accessor(name, field, docstring=None):
             result = libts.get_date_field(values, field)
             result = self._maybe_mask_results(result, convert='float64')
 
-        return Index(result)
+        return Index(result, name=self.name)
 
     f.__name__ = name
     f.__doc__ = docstring

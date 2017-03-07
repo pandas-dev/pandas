@@ -172,6 +172,7 @@ class TestTimeSeries(tm.TestCase):
 class TestDatetime64(tm.TestCase):
 
     def test_datetimeindex_accessors(self):
+<<<<<<< f2831e2a2074e27e5cd3cfc0728d989742ee4680
         dti_naive = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
                                   periods=365)
         # GH 13303
@@ -254,6 +255,19 @@ class TestDatetime64(tm.TestCase):
             self.assertEqual(len(dti.is_year_start), 365)
             self.assertEqual(len(dti.is_year_end), 365)
             self.assertEqual(len(dti.weekday_name), 365)
+
+            dti.name = 'name'
+
+            for accessor in ['year', 'month', 'day', 'hour', 'minute', 'second',
+                             'microsecond', 'nanosecond', 'dayofweek', 'dayofyear',
+                             'weekofyear', 'quarter',
+                             'is_month_start', 'is_month_end',
+                             'is_quarter_start', 'is_quarter_end',
+                             'is_year_start', 'is_year_end', 'weekday_name']:
+                res = getattr(dti, accessor)
+                self.assertEqual(len(res), 365)
+                self.assertIsInstance(res, Index)
+                self.assertEqual(res.name, 'name')
 
         dti = DatetimeIndex(freq='BQ-FEB', start=datetime(1998, 1, 1),
                             periods=4)
