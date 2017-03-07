@@ -732,7 +732,7 @@ class TestTimestamp(tm.TestCase):
         for freq in ['Y', 'M', 'foobar']:
             self.assertRaises(ValueError, lambda: dti.round(freq))
 
-        # GH 14440
+        # GH 14440 & 15578
         result = pd.Timestamp('2016-10-17 12:00:00.0015').round('ms')
         expected = pd.Timestamp('2016-10-17 12:00:00.002000')
         self.assertEqual(result, expected)
@@ -740,6 +740,17 @@ class TestTimestamp(tm.TestCase):
         result = pd.Timestamp('2016-10-17 12:00:00.00149').round('ms')
         expected = pd.Timestamp('2016-10-17 12:00:00.001000')
         self.assertEqual(result, expected)
+
+        ts = pd.Timestamp('2016-10-17 12:00:00.0015')
+        for freq in ['us', 'ns']:
+            self.assertEqual(ts, ts.round(freq))
+
+        result = pd.Timestamp('2016-10-17 12:00:00.001501031').round('10ns')
+        expected = pd.Timestamp('2016-10-17 12:00:00.001501030')
+        self.assertEqual(result, expected)
+
+        with tm.assert_produces_warning():
+            pd.Timestamp('2016-10-17 12:00:00.001501031').round('1010ns')
 
     def test_class_ops_pytz(self):
         tm._skip_if_no_pytz()

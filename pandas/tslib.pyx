@@ -421,7 +421,18 @@ class Timestamp(_Timestamp):
             value = self.tz_localize(None).value
         else:
             value = self.value
-        result = (unit * rounder(value / float(unit)).astype('i8'))
+        if unit < 1000 and unit % 1000 != 0:
+            # for nano rounding, work with the last 6 digits separately
+            # due to float precision
+            buff = 1000000
+            result = (buff * (value // buff) + unit *
+                      (rounder((value % buff) / float(unit))).astype('i8'))
+        elif unit >= 1000 and unit % 1000 != 0:
+            msg = 'Precision will be lost using frequency: {}'
+            warnings.warn(msg.format(freq))
+            result = (unit * rounder(value / float(unit)).astype('i8'))
+        else:
+            result = (unit * rounder(value / float(unit)).astype('i8'))
         result = Timestamp(result, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
