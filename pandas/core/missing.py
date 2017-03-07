@@ -12,7 +12,11 @@ from pandas.types.common import (is_numeric_v_string_like,
                                  is_float_dtype, is_datetime64_dtype,
                                  is_datetime64tz_dtype, is_integer_dtype,
                                  _ensure_float64, is_scalar,
-                                 needs_i8_conversion, is_integer)
+                                 needs_i8_conversion, is_integer,
+                                 is_list_like, is_dict_like,
+                                 is_numeric_dtype,
+                                 is_datetime64_any_dtype, is_float,
+                                 is_complex, is_timedelta64_dtype)
 from pandas.types.missing import isnull
 
 
@@ -621,3 +625,29 @@ def fill_zeros(result, x, y, name, fill):
             result = result.reshape(shape)
 
     return result
+
+
+def validate_fill_value(value, dtype):
+    if is_list_like(value) or is_dict_like(value) or callable(value):
+        raise TypeError('"fill_value" parameter must be '
+                        'a scalar, but you passed a '
+                        '"{0}"'.format(type(value).__name__))
+    elif not isnull(value):
+        from datetime import datetime, timedelta
+
+        if is_numeric_dtype(dtype):
+            if not (is_float(value) or is_integer(value) or is_complex(value)):
+                raise TypeError('"fill_value" parameter must be '
+                                'numeric, but you passed a '
+                                '"{0}"'.format(type(value).__name__))
+        elif is_datetime64_any_dtype(dtype):
+            if not isinstance(value, (np.datetime64, datetime)):
+                raise TypeError('"fill_value" parameter must be a '
+                                'datetime, but you passed a '
+                                '"{0}"'.format(type(value).__name__))
+        elif is_timedelta64_dtype(dtype):
+            if not isinstance(value, (np.timedelta64, timedelta)):
+                raise TypeError('"value" parameter must be '
+                                'a timedelta, but you  passed a '
+                                '"{0}"'.format(type(value).__name__))
+    # if object dtype, do nothing.
