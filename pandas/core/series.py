@@ -14,6 +14,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
+                                 is_bool,
                                  is_integer, is_integer_dtype,
                                  is_float_dtype,
                                  is_extension_type, is_datetimetz,
@@ -1721,6 +1722,15 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         idx = _default_index(len(self))
 
         argsorted = _try_kind_sort(arr[good])
+
+        if is_list_like(ascending):
+            if len(ascending) != 1:
+                raise ValueError('Length of ascending (%d) must be 1 '
+                                 'for Series' % (len(ascending)))
+            ascending = ascending[0]
+
+        if not is_bool(ascending):
+            raise ValueError('ascending must be boolean')
 
         if not ascending:
             argsorted = argsorted[::-1]
