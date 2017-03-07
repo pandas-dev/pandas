@@ -25,6 +25,7 @@ from pandas.core.sorting import (get_group_index, compress_group_index,
 
 import pandas.core.algorithms as algos
 import pandas.algos as _algos
+from pandas.core.missing import validate_fill_value
 
 from pandas.core.index import MultiIndex, _get_na_value
 
@@ -406,7 +407,6 @@ def _slow_pivot(index, columns, values):
 
 def unstack(obj, level, fill_value=None):
     if fill_value:
-        from pandas.core.missing import validate_fill_value
         validate_fill_value(fill_value, obj.values.dtype)
 
     if isinstance(level, (tuple, list)):

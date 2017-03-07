@@ -19,7 +19,10 @@ from .common import (is_string_dtype, is_datetimelike,
                      is_object_dtype,
                      is_integer,
                      _TD_DTYPE,
-                     _NS_DTYPE)
+                     _NS_DTYPE,
+                     is_datetime64_any_dtype, is_float,
+                     is_numeric_dtype, is_complex)
+from datetime import datetime, timedelta
 from .inference import is_list_like
 
 
@@ -391,3 +394,30 @@ def na_value_for_dtype(dtype):
     elif is_bool_dtype(dtype):
         return False
     return np.nan
+
+
+def validate_fill_value(value, dtype):
+    """
+    Make sure the fill value is appropriate for the given dtype.
+    """
+    if not is_scalar(value):
+        raise TypeError('"fill_value" parameter must be '
+                        'a scalar, but you passed a '
+                        '"{0}"'.format(type(value).__name__))
+    elif not isnull(value):
+        if is_numeric_dtype(dtype):
+            if not (is_float(value) or is_integer(value) or is_complex(value)):
+                raise TypeError('"fill_value" parameter must be '
+                                'numeric, but you passed a '
+                                '"{0}"'.format(type(value).__name__))
+        elif is_datetime64_any_dtype(dtype):
+            if not isinstance(value, (np.datetime64, datetime)):
+                raise TypeError('"fill_value" parameter must be a '
+                                'datetime, but you passed a '
+                                '"{0}"'.format(type(value).__name__))
+        elif is_timedelta64_dtype(dtype):
+            if not isinstance(value, (np.timedelta64, timedelta)):
+                raise TypeError('"value" parameter must be '
+                                'a timedelta, but you  passed a '
+                                '"{0}"'.format(type(value).__name__))
+    # if object dtype, do nothing.

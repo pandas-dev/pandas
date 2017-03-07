@@ -12,7 +12,8 @@ from pandas import (NaT, Float64Index, Series,
                     DatetimeIndex, TimedeltaIndex, date_range)
 from pandas.types.dtypes import DatetimeTZDtype
 from pandas.types.missing import (array_equivalent, isnull, notnull,
-                                  na_value_for_dtype)
+                                  na_value_for_dtype,
+                                  validate_fill_value)
 
 
 def test_notnull():
@@ -301,3 +302,11 @@ def test_na_value_for_dtype():
 
     for dtype in ['O']:
         assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
+
+
+class TestValidateFillValue(tm.TestCase):
+    # TODO: Fill out the test cases.
+    def test_validate_fill_value(self):
+        # validate_fill_value()
+        # import pdb; pdb.set_trace()
+        pass
