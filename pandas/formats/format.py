@@ -716,9 +716,6 @@ class DataFrameFormatter(TableFormatter):
     def _get_formatted_column_labels(self, frame):
         from pandas.core.index import _sparsify
 
-        def is_numeric_dtype(dtype):
-            return issubclass(dtype.type, np.number)
-
         columns = frame.columns
 
         if isinstance(columns, MultiIndex):
