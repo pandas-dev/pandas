@@ -7,11 +7,9 @@ import gc
 import json
 
 import numpy as np
-import pandas.lib as lib
-
 import pandas as pd
 
-
+from pandas._libs import tslib, lib
 from pandas.types.common import (_coerce_to_dtype,
                                  _ensure_int64,
                                  needs_i8_conversion,
@@ -6115,7 +6113,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):
             result = accum_func(y, axis)
             mask = isnull(self)
-            np.putmask(result, mask, pd.tslib.iNaT)
+            np.putmask(result, mask, tslib.iNaT)
         elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
             mask = isnull(self)
             np.putmask(y, mask, mask_a)

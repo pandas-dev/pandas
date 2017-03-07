@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, time
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.tslib import iNaT
+from pandas._libs.tslib import iNaT
 from pandas.compat import lrange, StringIO, product
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.index import DatetimeIndex

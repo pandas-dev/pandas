@@ -6,6 +6,7 @@ from pandas.util import testing as tm
 from pandas import Series, DataFrame, Timestamp, MultiIndex, concat, date_range
 from pandas.types.common import _ensure_platform_int, is_timedelta64_dtype
 from pandas.compat import StringIO
+from pandas._libs import algos
 from .common import MixIn, assert_fp_equal
 
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -417,8 +418,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         dtypes = [np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint32,
                   np.uint64, np.float32, np.float64]
 
-        ops = [(pd.algos.group_cumprod_float64, np.cumproduct, [np.float64]),
-               (pd.algos.group_cumsum, np.cumsum, dtypes)]
+        ops = [(algos.group_cumprod_float64, np.cumproduct, [np.float64]),
+               (algos.group_cumsum, np.cumsum, dtypes)]
 
         is_datetimelike = False
         for pd_op, np_op, dtypes in ops:
@@ -436,13 +437,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         data = np.array([[1], [2], [3], [np.nan], [4]], dtype='float64')
         actual = np.zeros_like(data)
         actual.fill(np.nan)
-        pd.algos.group_cumprod_float64(actual, data, labels, is_datetimelike)
+        algos.group_cumprod_float64(actual, data, labels, is_datetimelike)
         expected = np.array([1, 2, 6, np.nan, 24], dtype='float64')
         self.assert_numpy_array_equal(actual[:, 0], expected)
 
         actual = np.zeros_like(data)
         actual.fill(np.nan)
-        pd.algos.group_cumsum(actual, data, labels, is_datetimelike)
+        algos.group_cumsum(actual, data, labels, is_datetimelike)
         expected = np.array([1, 3, 6, np.nan, 10], dtype='float64')
         self.assert_numpy_array_equal(actual[:, 0], expected)
 
@@ -450,8 +451,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         is_datetimelike = True
         data = np.array([np.timedelta64(1, 'ns')] * 5, dtype='m8[ns]')[:, None]
         actual = np.zeros_like(data, dtype='int64')
-        pd.algos.group_cumsum(actual, data.view('int64'), labels,
-                              is_datetimelike)
+        algos.group_cumsum(actual, data.view('int64'), labels,
+                           is_datetimelike)
         expected = np.array([np.timedelta64(1, 'ns'), np.timedelta64(
             2, 'ns'), np.timedelta64(3, 'ns'), np.timedelta64(4, 'ns'),
             np.timedelta64(5, 'ns')])

@@ -1,5 +1,5 @@
 from pandas.compat import StringIO, callable, signature
-from pandas.lib import cache_readonly  # noqa
+from pandas._libs.lib import cache_readonly  # noqa
 import types
 import sys
 import warnings

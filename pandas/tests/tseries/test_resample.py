@@ -26,7 +26,7 @@ from pandas.tseries.resample import (DatetimeIndex, TimeGrouper,
 from pandas.tseries.tdi import timedelta_range, TimedeltaIndex
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
-from pandas._period import IncompatibleFrequency
+from pandas._libs.period import IncompatibleFrequency
 
 bday = BDay()
 

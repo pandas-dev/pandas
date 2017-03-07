@@ -13,7 +13,7 @@ import pandas.core.nanops as nanops
 from pandas.compat import zip
 from pandas import to_timedelta, to_datetime
 from pandas.types.common import is_datetime64_dtype, is_timedelta64_dtype
-from pandas.lib import infer_dtype
+from pandas._libs.lib import infer_dtype
 
 import numpy as np
 

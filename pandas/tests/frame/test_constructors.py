@@ -23,7 +23,7 @@ from pandas import (DataFrame, Index, Series, isnull,
 from pandas.core.common import PandasError
 import pandas as pd
 import pandas.core.common as com
-import pandas.lib as lib
+import pandas._libs.lib as lib
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData

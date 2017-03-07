@@ -637,13 +637,14 @@ class TestPandasContainer(tm.TestCase):
 
     def test_convert_dates_infer(self):
         # GH10747
+        from pandas.io.json import dumps
         infer_words = ['trade_time', 'date', 'datetime', 'sold_at',
                        'modified', 'timestamp', 'timestamps']
         for infer_word in infer_words:
             data = [{'id': 1, infer_word: 1036713600000}, {'id': 2}]
             expected = DataFrame([[1, Timestamp('2002-11-08')], [2, pd.NaT]],
                                  columns=['id', infer_word])
-            result = read_json(pd.json.dumps(data))[['id', infer_word]]
+            result = read_json(dumps(data))[['id', infer_word]]
             assert_frame_equal(result, expected)
 
     def test_date_format_frame(self):
@@ -910,50 +911,53 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         self.assertEqual(expected, ss.to_json())
 
     def test_tz_is_utc(self):
+        from pandas.io.json import dumps
         exp = '"2013-01-10T05:00:00.000Z"'
 
         ts = Timestamp('2013-01-10 05:00:00Z')
-        self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
+        self.assertEqual(exp, dumps(ts, iso_dates=True))
         dt = ts.to_pydatetime()
-        self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
+        self.assertEqual(exp, dumps(dt, iso_dates=True))
 
         ts = Timestamp('2013-01-10 00:00:00', tz='US/Eastern')
-        self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
+        self.assertEqual(exp, dumps(ts, iso_dates=True))
         dt = ts.to_pydatetime()
-        self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
+        self.assertEqual(exp, dumps(dt, iso_dates=True))
 
         ts = Timestamp('2013-01-10 00:00:00-0500')
-        self.assertEqual(exp, pd.json.dumps(ts, iso_dates=True))
+        self.assertEqual(exp, dumps(ts, iso_dates=True))
         dt = ts.to_pydatetime()
-        self.assertEqual(exp, pd.json.dumps(dt, iso_dates=True))
+        self.assertEqual(exp, dumps(dt, iso_dates=True))
 
     def test_tz_range_is_utc(self):
+        from pandas.io.json import dumps
+
         exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
         dfexp = ('{"DT":{'
                  '"0":"2013-01-01T05:00:00.000Z",'
                  '"1":"2013-01-02T05:00:00.000Z"}}')
 
         tz_range = pd.date_range('2013-01-01 05:00:00Z', periods=2)
-        self.assertEqual(exp, pd.json.dumps(tz_range, iso_dates=True))
+        self.assertEqual(exp, dumps(tz_range, iso_dates=True))
         dti = pd.DatetimeIndex(tz_range)
-        self.assertEqual(exp, pd.json.dumps(dti, iso_dates=True))
+        self.assertEqual(exp, dumps(dti, iso_dates=True))
         df = DataFrame({'DT': dti})
-        self.assertEqual(dfexp, pd.json.dumps(df, iso_dates=True))
+        self.assertEqual(dfexp, dumps(df, iso_dates=True))
 
         tz_range = pd.date_range('2013-01-01 00:00:00', periods=2,
                                  tz='US/Eastern')
-        self.assertEqual(exp, pd.json.dumps(tz_range, iso_dates=True))
+        self.assertEqual(exp, dumps(tz_range, iso_dates=True))
         dti = pd.DatetimeIndex(tz_range)
-        self.assertEqual(exp, pd.json.dumps(dti, iso_dates=True))
+        self.assertEqual(exp, dumps(dti, iso_dates=True))
         df = DataFrame({'DT': dti})
-        self.assertEqual(dfexp, pd.json.dumps(df, iso_dates=True))
+        self.assertEqual(dfexp, dumps(df, iso_dates=True))
 
         tz_range = pd.date_range('2013-01-01 00:00:00-0500', periods=2)
-        self.assertEqual(exp, pd.json.dumps(tz_range, iso_dates=True))
+        self.assertEqual(exp, dumps(tz_range, iso_dates=True))
         dti = pd.DatetimeIndex(tz_range)
-        self.assertEqual(exp, pd.json.dumps(dti, iso_dates=True))
+        self.assertEqual(exp, dumps(dti, iso_dates=True))
         df = DataFrame({'DT': dti})
-        self.assertEqual(dfexp, pd.json.dumps(df, iso_dates=True))
+        self.assertEqual(dfexp, dumps(df, iso_dates=True))
 
     def test_read_jsonl(self):
         # GH9180

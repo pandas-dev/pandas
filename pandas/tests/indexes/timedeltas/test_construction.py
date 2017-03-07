@@ -3,9 +3,7 @@ from datetime import timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, tslib, to_timedelta
-
-iNaT = tslib.iNaT
+from pandas import TimedeltaIndex, timedelta_range, to_timedelta
 
 
 class TestTimedeltaIndex(tm.TestCase):

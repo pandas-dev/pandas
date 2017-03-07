@@ -11,7 +11,7 @@ from pandas import (date_range, Series, Index, Float64Index,
 import pandas.util.testing as tm
 
 import pandas as pd
-from pandas.lib import Timestamp
+from pandas._libs.lib import Timestamp
 
 from pandas.tests.indexes.common import Base
 

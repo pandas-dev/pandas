@@ -23,7 +23,7 @@ from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
                            is_platform_windows)
 from pandas.io.common import URLError, urlopen, file_path_to_url
 from pandas.io.html import read_html
-from pandas.parser import ParserError
+from pandas.io.libparsers import ParserError
 
 import pandas.util.testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf, network

@@ -8,8 +8,8 @@ from pandas import to_timedelta
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 from pandas import (Series, Timedelta, DataFrame, Timestamp, TimedeltaIndex,
                     timedelta_range, date_range, DatetimeIndex, Int64Index,
-                    _np_version_under1p10, Float64Index, Index, tslib)
-
+                    _np_version_under1p10, Float64Index, Index)
+from pandas._libs.tslib import iNaT
 from pandas.tests.test_base import Ops
 
 
@@ -772,7 +772,7 @@ Freq: D"""
         tm.assert_index_equal(result, exp)
 
         result = idx._nat_new(box=False)
-        exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
+        exp = np.array([iNaT] * 5, dtype=np.int64)
         tm.assert_numpy_array_equal(result, exp)
 
     def test_shift(self):

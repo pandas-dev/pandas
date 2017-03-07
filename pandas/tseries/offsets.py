@@ -10,8 +10,7 @@ from pandas.core.common import AbstractMethodError
 # import after tools, dateutil check
 from dateutil.relativedelta import relativedelta, weekday
 from dateutil.easter import easter
-import pandas.tslib as tslib
-from pandas.tslib import Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 
 import functools
 import operator

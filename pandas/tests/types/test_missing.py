@@ -7,7 +7,7 @@ from pandas.util import testing as tm
 import pandas as pd
 from pandas.core import config as cf
 from pandas.compat import u
-from pandas.tslib import iNaT
+from pandas._libs.tslib import iNaT
 from pandas import (NaT, Float64Index, Series,
                     DatetimeIndex, TimedeltaIndex, date_range)
 from pandas.types.dtypes import DatetimeTZDtype

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from warnings import catch_warnings
 import numpy as np
 
 import pandas as pd
@@ -33,16 +34,12 @@ class TestPDApi(Base, tm.TestCase):
     # top-level sub-packages
     lib = ['api', 'compat', 'computation', 'core',
            'indexes', 'formats', 'pandas',
-           'test', 'tools', 'tseries',
+           'test', 'tools', 'tseries', 'sparse',
            'types', 'util', 'options', 'io']
 
-    # top-level packages that are c-imports, should rename to _*
-    # to avoid naming conflicts
-    lib_to_rename = ['algos', 'hashtable', 'tslib', 'msgpack', 'sparse',
-                     'json', 'lib', 'index', 'parser']
-
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['stats', 'datetools']
+    deprecated_modules = ['stats', 'datetools', 'parser',
+                          'json', 'lib', 'tslib']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -113,7 +110,7 @@ class TestPDApi(Base, tm.TestCase):
     def test_api(self):
 
         self.check(pd,
-                   self.lib + self.lib_to_rename + self.misc +
+                   self.lib + self.misc +
                    self.modules + self.deprecated_modules +
                    self.classes + self.deprecated_classes +
                    self.deprecated_classes_in_future +
@@ -206,7 +203,7 @@ class TestTypes(Base, tm.TestCase):
             self.assertRaises(AttributeError, lambda: getattr(com, t))
 
 
-class TestDatetools(tm.TestCase):
+class TestDatetoolsDeprecation(tm.TestCase):
 
     def test_deprecation_access_func(self):
         with tm.assert_produces_warning(FutureWarning,
@@ -247,3 +244,36 @@ class TestTopLevelDeprecations(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.groupby(pd.Series([1, 2, 3]), [1, 1, 1])
+
+
+class TestJson(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.json.dumps([])
+
+
+class TestParser(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.parser.na_values
+
+
+class TestLib(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.lib.infer_dtype
+
+
+class TestTSLib(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        # some libraries may be imported before we
+        # test and could show the warning
+        with catch_warnings(record=True):
+            pd.tslib.Timestamp

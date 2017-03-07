@@ -20,7 +20,7 @@ from pandas.types.common import (is_float, is_integer,
 
 from pandas.compat import lrange
 import pandas.compat as compat
-import pandas.lib as lib
+import pandas._libs.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
 

@@ -10,8 +10,8 @@ from datetime import datetime
 
 import pytest
 import numpy as np
-import pandas.lib as lib
-from pandas.lib import Timestamp
+import pandas._libs.lib as lib
+from pandas._libs.lib import Timestamp
 
 import pandas as pd
 import pandas.io.parsers as parsers

@@ -2,8 +2,7 @@ from datetime import datetime, timedelta, time
 import numpy as np
 from collections import MutableMapping
 
-import pandas.lib as lib
-import pandas.tslib as tslib
+from pandas._libs import lib, tslib
 
 from pandas.types.common import (_ensure_object,
                                  is_datetime64_ns_dtype,

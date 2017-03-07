@@ -6,7 +6,9 @@ import pandas.util.testing as tm
 import pandas.tseries.period as period
 from pandas.compat import text_type, iteritems
 from pandas.compat.numpy import np_datetime64_compat
-from pandas import Period, Timestamp, tslib, offsets, _period
+
+from pandas._libs import tslib, period as libperiod
+from pandas import Period, Timestamp, offsets
 from pandas.tseries.frequencies import DAYS, MONTHS
 
 
@@ -256,8 +258,8 @@ class TestPeriodProperties(tm.TestCase):
             self.assertEqual(p.tz, exp.tz)
 
     def test_timestamp_tz_arg_dateutil(self):
-        from pandas.tslib import _dateutil_gettz as gettz
-        from pandas.tslib import maybe_get_tz
+        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslib import maybe_get_tz
         for case in ['dateutil/Europe/Brussels', 'dateutil/Asia/Tokyo',
                      'dateutil/US/Pacific']:
             p = Period('1/1/2005', freq='M').to_timestamp(
@@ -275,7 +277,7 @@ class TestPeriodProperties(tm.TestCase):
             self.assertEqual(p.tz, exp.tz)
 
     def test_timestamp_tz_arg_dateutil_from_string(self):
-        from pandas.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslib import _dateutil_gettz as gettz
         p = Period('1/1/2005',
                    freq='M').to_timestamp(tz='dateutil/Europe/Brussels')
         self.assertEqual(p.tz, gettz('Europe/Brussels'))
@@ -939,10 +941,10 @@ class TestPeriodProperties(tm.TestCase):
 class TestPeriodField(tm.TestCase):
 
     def test_get_period_field_raises_on_out_of_range(self):
-        self.assertRaises(ValueError, _period.get_period_field, -1, 0, 0)
+        self.assertRaises(ValueError, libperiod.get_period_field, -1, 0, 0)
 
     def test_get_period_field_array_raises_on_out_of_range(self):
-        self.assertRaises(ValueError, _period.get_period_field_arr, -1,
+        self.assertRaises(ValueError, libperiod.get_period_field_arr, -1,
                           np.empty(1), 0)
 
 

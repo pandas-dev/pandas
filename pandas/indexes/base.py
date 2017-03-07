@@ -3,12 +3,10 @@ import warnings
 import operator
 
 import numpy as np
-import pandas.tslib as tslib
-import pandas.lib as lib
-import pandas._join as _join
-import pandas.algos as _algos
-import pandas.index as _index
-from pandas.lib import Timestamp, Timedelta, is_datetime_array
+from pandas._libs import (lib, index as libindex, tslib as libts,
+                          algos as libalgos, join as libjoin,
+                          Timestamp, Timedelta, )
+from pandas._libs.lib import is_datetime_array
 
 from pandas.compat import range, u
 from pandas.compat.numpy import function as nv
@@ -120,11 +118,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     _join_precedence = 1
 
     # Cython methods
-    _arrmap = _algos.arrmap_object
-    _left_indexer_unique = _join.left_join_indexer_unique_object
-    _left_indexer = _join.left_join_indexer_object
-    _inner_indexer = _join.inner_join_indexer_object
-    _outer_indexer = _join.outer_join_indexer_object
+    _arrmap = libalgos.arrmap_object
+    _left_indexer_unique = libjoin.left_join_indexer_unique_object
+    _left_indexer = libjoin.left_join_indexer_object
+    _inner_indexer = libjoin.inner_join_indexer_object
+    _outer_indexer = libjoin.outer_join_indexer_object
     _box_scalars = False
 
     _typ = 'index'
@@ -144,7 +142,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     # used to infer integers as datetime-likes
     _infer_as_myclass = False
 
-    _engine_type = _index.ObjectEngine
+    _engine_type = libindex.ObjectEngine
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
@@ -285,7 +283,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
-                            except tslib.OutOfBoundsDatetime:
+                            except libts.OutOfBoundsDatetime:
                                 pass
 
                     elif inferred.startswith('timedelta'):
@@ -2314,7 +2312,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 raise
 
             try:
-                return tslib.get_value_box(s, key)
+                return libts.get_value_box(s, key)
             except IndexError:
                 raise
             except TypeError:
@@ -2972,7 +2970,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         order of the data indexed by the MultiIndex will not be changed;
         otherwise, it will tie out with `other`.
         """
-        from pandas.algos import groupsort_indexer
         from .multi import MultiIndex
 
         def _get_leaf_sorter(labels):
@@ -2985,7 +2982,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             if len(labels) == 1:
                 lab = _ensure_int64(labels[0])
-                sorter, _ = groupsort_indexer(lab, 1 + lab.max())
+                sorter, _ = libalgos.groupsort_indexer(lab, 1 + lab.max())
                 return sorter
 
             # find indexers of begining of each set of
@@ -3051,8 +3048,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             else:  # tie out the order with other
                 if level == 0:  # outer most level, take the fast route
                     ngroups = 1 + new_lev_labels.max()
-                    left_indexer, counts = groupsort_indexer(new_lev_labels,
-                                                             ngroups)
+                    left_indexer, counts = libalgos.groupsort_indexer(
+                        new_lev_labels, ngroups)
+
                     # missing values are placed first; drop them!
                     left_indexer = left_indexer[counts[0]:]
                     new_labels = [lab[left_indexer] for lab in new_labels]
@@ -3846,8 +3844,8 @@ def _ensure_index(index_like, copy=False):
 
 
 def _get_na_value(dtype):
-    return {np.datetime64: tslib.NaT,
-            np.timedelta64: tslib.NaT}.get(dtype, np.nan)
+    return {np.datetime64: libts.NaT,
+            np.timedelta64: libts.NaT}.get(dtype, np.nan)
 
 
 def _ensure_has_len(seq):

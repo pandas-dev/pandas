@@ -350,7 +350,7 @@ class TestBusinessDateRange(tm.TestCase):
         # GH 2906
         tm._skip_if_no_dateutil()
         # Use maybe_get_tz to fix filename in tz under dateutil.
-        from pandas.tslib import maybe_get_tz
+        from pandas._libs.tslib import maybe_get_tz
         tz = lambda x: maybe_get_tz('dateutil/' + x)
 
         start = datetime(2011, 1, 1, tzinfo=tz('US/Eastern'))

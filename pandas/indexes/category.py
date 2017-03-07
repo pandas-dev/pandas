@@ -1,5 +1,5 @@
 import numpy as np
-import pandas.index as _index
+from pandas._libs import index as libindex
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
@@ -45,7 +45,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
     """
 
     _typ = 'categoricalindex'
-    _engine_type = _index.Int64Engine
+    _engine_type = libindex.Int64Engine
     _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
@@ -303,7 +303,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
                                                    False: 'first'})
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
-        from pandas.hashtable import duplicated_int64
+        from pandas._libs.hashtable import duplicated_int64
         codes = self.codes.astype('i8')
         return duplicated_int64(codes, keep)
 

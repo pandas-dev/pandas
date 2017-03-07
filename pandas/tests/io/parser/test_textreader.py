@@ -20,8 +20,8 @@ from pandas.util.testing import assert_frame_equal
 
 import pandas.util.testing as tm
 
-from pandas.parser import TextReader
-import pandas.parser as parser
+from pandas.io.libparsers import TextReader
+import pandas.io.libparsers as parser
 
 
 class TestTextReader(tm.TestCase):

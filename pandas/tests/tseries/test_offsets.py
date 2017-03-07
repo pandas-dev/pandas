@@ -31,8 +31,8 @@ from pandas.tseries.tools import (format, ole2datetime, parse_time_string,
                                   to_datetime, DateParseError)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
-from pandas.tslib import normalize_date, NaT, Timestamp, Timedelta
-import pandas.tslib as tslib
+from pandas._libs.tslib import normalize_date, NaT, Timestamp, Timedelta
+import pandas._libs.tslib as tslib
 from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar

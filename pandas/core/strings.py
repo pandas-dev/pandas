@@ -18,7 +18,7 @@ import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
 from pandas.util.decorators import Appender
 import re
-import pandas.lib as lib
+import pandas._libs.lib as lib
 import warnings
 import textwrap
 import codecs

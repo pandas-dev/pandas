@@ -18,6 +18,7 @@ from pandas.compat import StringIO
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.tseries.base import DatetimeIndexOpsMixin
+from pandas._libs.tslib import iNaT
 
 
 class CheckStringMixin(object):
@@ -451,15 +452,15 @@ class TestIndexOps(Ops):
                 if is_datetimetz(o):
                     if isinstance(o, DatetimeIndex):
                         v = o.asi8
-                        v[0:2] = pd.tslib.iNaT
+                        v[0:2] = iNaT
                         values = o._shallow_copy(v)
                     else:
                         o = o.copy()
-                        o[0:2] = pd.tslib.iNaT
+                        o[0:2] = iNaT
                         values = o._values
 
                 elif needs_i8_conversion(o):
-                    values[0:2] = pd.tslib.iNaT
+                    values[0:2] = iNaT
                     values = o._shallow_copy(values)
                 else:
                     values[0:2] = null_obj

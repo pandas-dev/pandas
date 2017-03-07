@@ -62,7 +62,7 @@ class TestSeriesDtypes(TestData, tm.TestCase):
         self.assert_series_equal(result, Series(np.arange(1, 5)))
 
     def test_astype_datetimes(self):
-        import pandas.tslib as tslib
+        import pandas._libs.tslib as tslib
 
         s = Series(tslib.iNaT, dtype='M8[ns]', index=lrange(5))
         s = s.astype('O')

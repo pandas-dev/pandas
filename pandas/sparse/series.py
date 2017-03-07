@@ -20,13 +20,13 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.ops as ops
-import pandas.index as _index
+import pandas._libs.index as _index
 from pandas.util.decorators import Appender
 
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray,
                                  _make_index)
-from pandas._sparse import BlockIndex, IntIndex
-import pandas._sparse as splib
+from pandas.sparse.libsparse import BlockIndex, IntIndex
+import pandas.sparse.libsparse as splib
 
 from pandas.sparse.scipy_sparse import (_sparse_series_to_coo,
                                         _coo_to_sparse_series)

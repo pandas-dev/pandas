@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 import pandas.tseries.period as period
 from pandas.compat import lrange
 from pandas.tseries.frequencies import get_freq, MONTHS
-from pandas._period import period_ordinal, period_asfreq
+from pandas._libs.period import period_ordinal, period_asfreq
 from pandas import (PeriodIndex, Period, DatetimeIndex, Timestamp, Series,
                     date_range, to_datetime, period_range)
 

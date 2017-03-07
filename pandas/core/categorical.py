@@ -4,9 +4,9 @@ import numpy as np
 from warnings import warn
 import types
 
-from pandas import compat, lib
+from pandas import compat
 from pandas.compat import u, lzip
-import pandas.algos as _algos
+from pandas._libs import lib, algos as libalgos
 
 from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
 from pandas.types.missing import isnull, notnull
@@ -1817,8 +1817,8 @@ class Categorical(PandasObject):
 
         """
         categories = self.categories
-        r, counts = _algos.groupsort_indexer(self.codes.astype('int64'),
-                                             categories.size)
+        r, counts = libalgos.groupsort_indexer(self.codes.astype('int64'),
+                                               categories.size)
         counts = counts.cumsum()
         result = [r[counts[indexer]:counts[indexer + 1]]
                   for indexer in range(len(counts) - 1)]
@@ -1897,7 +1897,7 @@ class Categorical(PandasObject):
         modes : `Categorical` (sorted)
         """
 
-        import pandas.hashtable as htable
+        import pandas._libs.hashtable as htable
         good = self._codes != -1
         values = sorted(htable.mode_int64(_ensure_int64(self._codes[good])))
         result = self._constructor(values=values, categories=self.categories,

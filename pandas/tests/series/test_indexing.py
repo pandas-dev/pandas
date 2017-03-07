@@ -7,14 +7,14 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-import pandas.index as _index
+import pandas._libs.index as _index
 from pandas.types.common import is_integer, is_scalar
 from pandas import (Index, Series, DataFrame, isnull,
                     date_range, NaT, MultiIndex,
                     Timestamp, DatetimeIndex, Timedelta)
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
-from pandas import lib, tslib
+from pandas._libs import tslib, lib
 
 from pandas.compat import lrange, range
 from pandas import compat
@@ -375,7 +375,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_getitem_setitem_datetime_tz_dateutil(self):
         tm._skip_if_no_dateutil()
         from dateutil.tz import tzutc
-        from pandas.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslib import _dateutil_gettz as gettz
 
         tz = lambda x: tzutc() if x == 'UTC' else gettz(
             x)  # handle special case for utc in dateutil

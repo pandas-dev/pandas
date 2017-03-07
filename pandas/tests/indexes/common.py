@@ -10,6 +10,7 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     TimedeltaIndex, PeriodIndex, notnull, isnull)
 from pandas.types.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
+from pandas._libs.tslib import iNaT
 
 import pandas.util.testing as tm
 
@@ -322,7 +323,7 @@ class Base(object):
 
             if needs_i8_conversion(ind):
                 vals = ind.asi8[[0] * 5]
-                vals[0] = pd.tslib.iNaT
+                vals[0] = iNaT
             else:
                 vals = ind.values[[0] * 5]
                 vals[0] = np.nan
@@ -407,7 +408,7 @@ class Base(object):
             # pandas compatibility input validation - the
             # rest already perform separate (or no) such
             # validation via their 'values' attribute as
-            # defined in pandas/indexes/base.py - they
+            # defined in pandas.indexes/base.py - they
             # cannot be changed at the moment due to
             # backwards compatibility concerns
             if isinstance(type(ind), (CategoricalIndex, RangeIndex)):
@@ -836,7 +837,7 @@ class Base(object):
                 if len(index) == 0:
                     continue
                 elif isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
-                    values[1] = pd.tslib.iNaT
+                    values[1] = iNaT
                 elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
                 else:
@@ -876,7 +877,7 @@ class Base(object):
                 values = idx.values
 
                 if isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
-                    values[1] = pd.tslib.iNaT
+                    values[1] = iNaT
                 elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
                 else:

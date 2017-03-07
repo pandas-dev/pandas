@@ -6,7 +6,7 @@ from __future__ import division
 from warnings import warn
 import numpy as np
 
-from pandas import compat, lib, tslib, _np_version_under1p8
+from pandas import compat, _np_version_under1p8
 from pandas.types.cast import _maybe_promote
 from pandas.types.generic import ABCSeries, ABCIndex
 from pandas.types.common import (is_unsigned_integer_dtype,
@@ -34,10 +34,9 @@ from pandas.compat.numpy import _np_version_under1p10
 from pandas.types.missing import isnull
 
 import pandas.core.common as com
-import pandas.algos as algos
-import pandas.hashtable as htable
 from pandas.compat import string_types
-from pandas.tslib import iNaT
+from pandas._libs import algos, lib, hashtable as htable
+from pandas._libs.tslib import iNaT
 
 
 # --------------- #
@@ -1412,7 +1411,7 @@ def diff(arr, n, axis=0):
     if needs_i8_conversion(arr):
         dtype = np.float64
         arr = arr.view('i8')
-        na = tslib.iNaT
+        na = iNaT
         is_timedelta = True
     elif issubclass(dtype.type, np.integer):
         dtype = np.float64

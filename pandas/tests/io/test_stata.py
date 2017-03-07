@@ -19,7 +19,7 @@ from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
-from pandas.tslib import NaT
+from pandas._libs.tslib import NaT
 from pandas.types.common import is_categorical_dtype
 
 

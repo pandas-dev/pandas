@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 import numpy as np
 
-from pandas.lib import convert_json_to_lines
+from pandas._libs.lib import convert_json_to_lines
 from pandas import compat, DataFrame
 
 

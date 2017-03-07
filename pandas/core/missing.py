@@ -5,8 +5,8 @@ Routines for filling missing data
 import numpy as np
 from distutils.version import LooseVersion
 
-import pandas.algos as algos
-import pandas.lib as lib
+from pandas._libs import algos, lib
+
 from pandas.compat import range, string_types
 from pandas.types.common import (is_numeric_v_string_like,
                                  is_float_dtype, is_datetime64_dtype,

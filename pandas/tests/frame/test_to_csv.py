@@ -8,7 +8,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
-from pandas.parser import ParserError
+from pandas.io.common import ParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
                     date_range, read_csv, compat, to_datetime)
 import pandas as pd

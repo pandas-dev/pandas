@@ -18,6 +18,7 @@ from pandas import (DataFrame, Index, Series, notnull, isnull,
                     date_range)
 import pandas as pd
 
+from pandas._libs.tslib import iNaT
 from pandas.tseries.offsets import BDay
 from pandas.types.common import (is_float_dtype,
                                  is_integer,
@@ -1491,8 +1492,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_series_equal(result, expected)
 
         # set an allowable datetime64 type
-        from pandas import tslib
-        df.loc['b', 'timestamp'] = tslib.iNaT
+        df.loc['b', 'timestamp'] = iNaT
         self.assertTrue(isnull(df.loc['b', 'timestamp']))
 
         # allow this syntax

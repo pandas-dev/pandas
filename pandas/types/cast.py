@@ -2,8 +2,8 @@
 
 from datetime import datetime, timedelta
 import numpy as np
-from pandas import lib, tslib
-from pandas.tslib import iNaT
+from pandas._libs import tslib, lib
+from pandas._libs.tslib import iNaT
 from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
@@ -807,14 +807,14 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
                                     "dtype [%s]" % dtype)
 
             if is_scalar(value):
-                if value == tslib.iNaT or isnull(value):
-                    value = tslib.iNaT
+                if value == iNaT or isnull(value):
+                    value = iNaT
             else:
                 value = np.array(value, copy=False)
 
                 # have a scalar array-like (e.g. NaT)
                 if value.ndim == 0:
-                    value = tslib.iNaT
+                    value = iNaT
 
                 # we have an array of datetime or timedeltas & nulls
                 elif np.prod(value.shape) or not is_dtype_equal(value.dtype,

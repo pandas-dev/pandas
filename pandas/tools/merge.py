@@ -37,9 +37,7 @@ from pandas.util.decorators import Appender, Substitution
 from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-
-import pandas._join as _join
-import pandas.hashtable as _hash
+from pandas._libs import hashtable as libhashtable, join as libjoin
 
 
 # back-compat of pseudo-public API
@@ -1005,8 +1003,8 @@ class _OrderedMerge(_MergeOperation):
                                                      rdata.items, rsuf)
 
         if self.fill_method == 'ffill':
-            left_join_indexer = _join.ffill_indexer(left_indexer)
-            right_join_indexer = _join.ffill_indexer(right_indexer)
+            left_join_indexer = libjoin.ffill_indexer(left_indexer)
+            right_join_indexer = libjoin.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -1030,11 +1028,11 @@ class _OrderedMerge(_MergeOperation):
 
 
 def _asof_function(direction, on_type):
-    return getattr(_join, 'asof_join_%s_%s' % (direction, on_type), None)
+    return getattr(libjoin, 'asof_join_%s_%s' % (direction, on_type), None)
 
 
 def _asof_by_function(direction, on_type, by_type):
-    return getattr(_join, 'asof_join_%s_%s_by_%s' %
+    return getattr(libjoin, 'asof_join_%s_%s_by_%s' %
                    (direction, on_type, by_type), None)
 
 
@@ -1294,13 +1292,13 @@ def _get_multiindex_indexer(join_keys, index, sort):
     # factorize keys to a dense i8 space
     lkey, rkey, count = fkeys(lkey, rkey)
 
-    return _join.left_outer_join(lkey, rkey, count, sort=sort)
+    return libjoin.left_outer_join(lkey, rkey, count, sort=sort)
 
 
 def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
-    left_indexer, right_indexer = _join.left_outer_join(
+    left_indexer, right_indexer = libjoin.left_outer_join(
         _ensure_int64(left_key),
         _ensure_int64(right_key),
         count, sort=sort)
@@ -1335,15 +1333,15 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
 
 def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = _join.left_outer_join(y, x, max_groups)
+    right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 
 _join_functions = {
-    'inner': _join.inner_join,
-    'left': _join.left_outer_join,
+    'inner': libjoin.inner_join,
+    'left': libjoin.left_outer_join,
     'right': _right_outer_join,
-    'outer': _join.full_outer_join,
+    'outer': libjoin.full_outer_join,
 }
 
 
@@ -1352,11 +1350,11 @@ def _factorize_keys(lk, rk, sort=True):
         lk = lk.values
         rk = rk.values
     if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
-        klass = _hash.Int64Factorizer
+        klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))
         rk = _ensure_int64(com._values_from_object(rk))
     else:
-        klass = _hash.Factorizer
+        klass = libhashtable.Factorizer
         lk = _ensure_object(lk)
         rk = _ensure_object(rk)
 

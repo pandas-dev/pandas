@@ -29,10 +29,11 @@ from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string
 import pandas.tseries.offsets as offsets
 
-import pandas._period as period
-from pandas._period import (Period, IncompatibleFrequency,
-                            get_period_field_arr, _validate_end_alias,
-                            _quarter_to_myear)
+from pandas._libs.lib import infer_dtype
+from pandas._libs import tslib, period
+from pandas._libs.period import (Period, IncompatibleFrequency,
+                                 get_period_field_arr, _validate_end_alias,
+                                 _quarter_to_myear)
 
 from pandas.core.base import _shared_docs
 from pandas.indexes.base import _index_shared_docs, _ensure_index
@@ -40,9 +41,8 @@ from pandas.indexes.base import _index_shared_docs, _ensure_index
 from pandas import compat
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate_kwarg)
-from pandas.lib import infer_dtype
-import pandas.tslib as tslib
 from pandas.compat import zip, u
+
 import pandas.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(

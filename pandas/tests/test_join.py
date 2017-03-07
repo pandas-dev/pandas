@@ -3,7 +3,7 @@
 import numpy as np
 from pandas import Index
 
-import pandas._join as _join
+from pandas._libs import join as _join
 import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 

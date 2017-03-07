@@ -6,7 +6,7 @@ import numpy as np
 from pandas.compat import long
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
-from pandas.tslib import iNaT
+from pandas._libs.tslib import iNaT
 
 
 class TestTake(tm.TestCase):

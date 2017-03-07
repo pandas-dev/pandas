@@ -24,7 +24,7 @@ import pandas.core.config as cf
 from pandas.tseries.index import _to_m8
 
 import pandas as pd
-from pandas.lib import Timestamp
+from pandas._libs.lib import Timestamp
 
 
 class TestIndex(Base, tm.TestCase):

@@ -1,9 +1,6 @@
 import numpy as np
-import pandas.lib as lib
-import pandas._join as _join
-import pandas.algos as _algos
-import pandas.index as _index
-
+from pandas._libs import (lib, index as libindex,
+                          algos as libalgos, join as libjoin)
 from pandas.types.common import (is_dtype_equal, pandas_dtype,
                                  is_float_dtype, is_object_dtype,
                                  is_integer_dtype, is_scalar)
@@ -114,16 +111,13 @@ class Int64Index(NumericIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _int64_descr_args
 
     _typ = 'int64index'
-    _arrmap = _algos.arrmap_int64
-    _left_indexer_unique = _join.left_join_indexer_unique_int64
-    _left_indexer = _join.left_join_indexer_int64
-    _inner_indexer = _join.inner_join_indexer_int64
-    _outer_indexer = _join.outer_join_indexer_int64
-
+    _arrmap = libalgos.arrmap_int64
+    _left_indexer_unique = libjoin.left_join_indexer_unique_int64
+    _left_indexer = libjoin.left_join_indexer_int64
+    _inner_indexer = libjoin.inner_join_indexer_int64
+    _outer_indexer = libjoin.outer_join_indexer_int64
     _can_hold_na = False
-
-    _engine_type = _index.Int64Engine
-
+    _engine_type = libindex.Int64Engine
     _default_dtype = np.int64
 
     @property
@@ -175,17 +169,14 @@ class UInt64Index(NumericIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _uint64_descr_args
 
     _typ = 'uint64index'
-    _arrmap = _algos.arrmap_uint64
-    _left_indexer_unique = _join.left_join_indexer_unique_uint64
-    _left_indexer = _join.left_join_indexer_uint64
-    _inner_indexer = _join.inner_join_indexer_uint64
-    _outer_indexer = _join.outer_join_indexer_uint64
-
+    _arrmap = libalgos.arrmap_uint64
+    _left_indexer_unique = libjoin.left_join_indexer_unique_uint64
+    _left_indexer = libjoin.left_join_indexer_uint64
+    _inner_indexer = libjoin.inner_join_indexer_uint64
+    _outer_indexer = libjoin.outer_join_indexer_uint64
     _can_hold_na = False
     _na_value = 0
-
-    _engine_type = _index.UInt64Engine
-
+    _engine_type = libindex.UInt64Engine
     _default_dtype = np.uint64
 
     @property
@@ -255,12 +246,12 @@ class Float64Index(NumericIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _float64_descr_args
 
     _typ = 'float64index'
-    _engine_type = _index.Float64Engine
-    _arrmap = _algos.arrmap_float64
-    _left_indexer_unique = _join.left_join_indexer_unique_float64
-    _left_indexer = _join.left_join_indexer_float64
-    _inner_indexer = _join.inner_join_indexer_float64
-    _outer_indexer = _join.outer_join_indexer_float64
+    _engine_type = libindex.Float64Engine
+    _arrmap = libalgos.arrmap_float64
+    _left_indexer_unique = libjoin.left_join_indexer_unique_float64
+    _left_indexer = libjoin.left_join_indexer_float64
+    _inner_indexer = libjoin.inner_join_indexer_float64
+    _outer_indexer = libjoin.outer_join_indexer_float64
 
     _default_dtype = np.float64
 
