@@ -11,7 +11,8 @@ import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip
 from pandas.tseries.index import bdate_range, date_range
 from pandas.types.dtypes import DatetimeTZDtype
-from pandas import (Index, Series, DataFrame, isnull, Timestamp, tslib, NaT,
+from pandas._libs import tslib
+from pandas import (Index, Series, DataFrame, isnull, Timestamp, NaT,
                     DatetimeIndex, to_datetime)
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  set_timezone)
@@ -924,7 +925,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         # Skipped on win32 due to dateutil bug
         tm._skip_if_windows()
 
-        from pandas.tslib import maybe_get_tz
+        from pandas._libs.tslib import maybe_get_tz
 
         # from system utc to real utc
         ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))

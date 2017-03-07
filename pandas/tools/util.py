@@ -1,5 +1,5 @@
 import numpy as np
-import pandas.lib as lib
+import pandas._libs.lib as lib
 
 from pandas.types.common import (is_number,
                                  is_numeric_dtype,

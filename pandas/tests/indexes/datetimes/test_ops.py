@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from itertools import product
 import pandas as pd
-import pandas.tslib as tslib
+import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.core.common import PerformanceWarning
 from pandas.tseries.index import cdate_range

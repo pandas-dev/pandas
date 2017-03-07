@@ -3,7 +3,7 @@
 import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
-from pandas import lib, algos
+from pandas._libs import algos, lib
 from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      DatetimeTZDtype, DatetimeTZDtypeType,
                      PeriodDtype, PeriodDtypeType,

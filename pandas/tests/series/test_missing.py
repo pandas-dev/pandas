@@ -9,9 +9,9 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, DataFrame, isnull, date_range,
-                    MultiIndex, Index, Timestamp)
+                    MultiIndex, Index, Timestamp, NaT)
 from pandas.compat import range
-from pandas import tslib
+from pandas._libs.tslib import iNaT
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 
@@ -69,9 +69,8 @@ class TestSeriesMissingData(TestData, tm.TestCase):
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
-        from pandas import tslib
-        result = td.fillna(tslib.NaT)
-        expected = Series([tslib.NaT, timedelta(0), timedelta(1),
+        result = td.fillna(NaT)
+        expected = Series([NaT, timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)],
                           dtype='m8[ns]')
         assert_series_equal(result, expected)
@@ -102,8 +101,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
             '20130101'), Timestamp('20130104'), Timestamp('20130103 9:01:01')])
         assert_series_equal(result, expected)
 
-        from pandas import tslib
-        result = s.fillna(tslib.NaT)
+        result = s.fillna(NaT)
         expected = s
         assert_series_equal(result, expected)
 
@@ -303,7 +301,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
                     s.fillna(1, limit=limit, method=method)
 
     def test_fillna_nat(self):
-        series = Series([0, 1, 2, tslib.iNaT], dtype='M8[ns]')
+        series = Series([0, 1, 2, iNaT], dtype='M8[ns]')
 
         filled = series.fillna(method='pad')
         filled2 = series.fillna(value=series.values[2])
@@ -321,7 +319,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         assert_frame_equal(filled, expected)
         assert_frame_equal(filled2, expected)
 
-        series = Series([tslib.iNaT, 0, 1, 2], dtype='M8[ns]')
+        series = Series([iNaT, 0, 1, 2], dtype='M8[ns]')
 
         filled = series.fillna(method='bfill')
         filled2 = series.fillna(value=series[1])
@@ -460,26 +458,25 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
     def test_timedelta64_nan(self):
 
-        from pandas import tslib
         td = Series([timedelta(days=i) for i in range(10)])
 
         # nan ops on timedeltas
         td1 = td.copy()
         td1[0] = np.nan
         self.assertTrue(isnull(td1[0]))
-        self.assertEqual(td1[0].value, tslib.iNaT)
+        self.assertEqual(td1[0].value, iNaT)
         td1[0] = td[0]
         self.assertFalse(isnull(td1[0]))
 
-        td1[1] = tslib.iNaT
+        td1[1] = iNaT
         self.assertTrue(isnull(td1[1]))
-        self.assertEqual(td1[1].value, tslib.iNaT)
+        self.assertEqual(td1[1].value, iNaT)
         td1[1] = td[1]
         self.assertFalse(isnull(td1[1]))
 
-        td1[2] = tslib.NaT
+        td1[2] = NaT
         self.assertTrue(isnull(td1[2]))
-        self.assertEqual(td1[2].value, tslib.iNaT)
+        self.assertEqual(td1[2].value, iNaT)
         td1[2] = td[2]
         self.assertFalse(isnull(td1[2]))
 
