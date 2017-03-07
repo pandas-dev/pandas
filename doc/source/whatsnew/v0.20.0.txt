@@ -765,7 +765,7 @@ Bug Fixes
 - Bug in ``.read_csv()`` with ``parse_dates`` when multiline headers are specified (:issue:`15376`)
 - Bug in ``groupby.transform()`` that would coerce the resultant dtypes back to the original (:issue:`10972`, :issue:`11444`)
 
-- Bug in ``DataFrame.hist`` where ``plt.tight_layout`` caused an ``AttributeError``  (use ``matplotlib >= 0.2.0``) (:issue:`9351`)
+- Bug in ``DataFrame.hist`` where ``plt.tight_layout`` caused an ``AttributeError`` (:issue:`9351`)
 - Bug in ``DataFrame.boxplot`` where ``fontsize`` was not applied to the tick labels on both axes (:issue:`15108`)
 - Bug in ``Series.replace`` and ``DataFrame.replace`` which failed on empty replacement dicts (:issue:`15289`)
 - Bug in ``pd.melt()`` where passing a tuple value for ``value_vars`` caused a ``TypeError`` (:issue:`15348`)

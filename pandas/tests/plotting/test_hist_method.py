@@ -242,7 +242,7 @@ class TestDataFramePlots(TestPlotBase):
     # GH 9351
     def test_tight_layout(self):
         if self.mpl_ge_2_0_0:
-            df = DataFrame(randn(100, 2))
+            df = DataFrame(randn(100, 3))
             _check_plot_works(df.hist)
             self.plt.tight_layout()
 

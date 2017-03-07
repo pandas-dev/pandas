@@ -3457,7 +3457,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
 
     if naxes != nplots:
         for ax in axarr[naxes:]:
-            ax.set_visible(False)
+            ax.axis('off')
 
     _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey)
 
