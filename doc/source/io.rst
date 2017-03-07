@@ -3758,7 +3758,7 @@ be data_columns
 
    # on-disk operations
    store.append('df_dc', df_dc, data_columns = ['B', 'C', 'string', 'string2'])
-   store.select('df_dc', [ pd.Term('B>0') ])
+   store.select('df_dc', where='B>0')
 
    # getting creative
    store.select('df_dc', 'B > 0 & C > 0 & string == foo')
@@ -4352,6 +4352,9 @@ HDFStore supports ``Panel4D`` storage.
 .. ipython:: python
    :okwarning:
 
+   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+                 major_axis=pd.date_range('1/1/2000', periods=5),
+                 minor_axis=['A', 'B', 'C', 'D'])
    p4d = pd.Panel4D({ 'l1' : wp })
    p4d
    store.append('p4d', p4d)
@@ -4368,8 +4371,7 @@ object). This cannot be changed after table creation.
    :okwarning:
 
    store.append('p4d2', p4d, axes=['labels', 'major_axis', 'minor_axis'])
-   store
-   store.select('p4d2', [ pd.Term('labels=l1'), pd.Term('items=Item1'), pd.Term('minor_axis=A_big_strings') ])
+   store.select('p4d2', where='labels=l1 and items=Item1 and minor_axis=A')
 
 .. ipython:: python
    :suppress:
