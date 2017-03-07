@@ -1165,14 +1165,14 @@ class TestMergeMulti(tm.TestCase):
 
         def f():
             household.join(portfolio, how='inner')
-        self.assertRaises(ValueError, f)
+        self.assertRaises(TypeError, f)
 
         portfolio2 = portfolio.copy()
         portfolio2.index.set_names(['household_id', 'foo'])
 
         def f():
             portfolio2.join(portfolio, how='inner')
-        self.assertRaises(ValueError, f)
+        self.assertRaises(TypeError, f)
 
     def test_join_multi_levels2(self):
 
@@ -1215,7 +1215,7 @@ class TestMergeMulti(tm.TestCase):
             household.join(log_return, how='inner')
         self.assertRaises(TypeError, f)
 
-        # this is the equivalency
+        # this is equivalency the
         result = (merge(household.reset_index(), log_return.reset_index(),
                         on=['asset_id'], how='inner')
                   .set_index(['household_id', 'asset_id', 't']))
@@ -1242,3 +1242,33 @@ class TestMergeMulti(tm.TestCase):
         def f():
             household.join(log_return, how='outer')
         self.assertRaises(TypeError, f)
+
+    def test_join_multi_levels3(self):
+        matrix = (
+            pd.DataFrame(
+                dict(Origin=[1, 1, 2, 2, 3],
+                     Destination=[1, 2, 1, 3, 1],
+                     Trips=[1987, 3647, 2470, 7521, 4296]),
+                columns=['Origin', 'Destination', 'Trips'])
+            .set_index(['Origin', 'Destination']))
+
+        distances = (
+            pd.DataFrame(
+                dict(Origin=[1, 1, 2, 2, 3, 3],
+                     Destination=[2, 3, 1, 3, 1, 2],
+                     Distance=[100, 80, 90, 80, 70, 70]),
+                columns=['Origin', 'Destination', 'Distance'])
+            .set_index(['Origin', 'Destination']))
+
+        result = matrix.join(distances, how='left')
+
+        expected = (
+            pd.DataFrame(
+                dict(Origin=[1, 1, 2, 2, 3],
+                     Destination=[1, 2, 1, 3, 1],
+                     Trips=[1987, 3647, 2470, 7521, 4296],
+                     Distance=[np.nan, 100, 90, 80, 70]),
+                columns=['Origin', 'Destination', 'Trips', 'Distance'])
+            .set_index(['Origin', 'Destination']))
+
+        assert_frame_equal(result, expected)

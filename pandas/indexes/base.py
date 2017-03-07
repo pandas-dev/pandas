@@ -2904,7 +2904,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         # Drop the non matching levels
         drop_lvls = [l for l in other_names if l not in overlap]
-        other = other.droplevel(drop_lvls)
 
         self_is_mi = isinstance(self, MultiIndex)
         other_is_mi = isinstance(other, MultiIndex)
@@ -2915,6 +2914,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                              "overlapping names")
 
         if self_is_mi and other_is_mi:
+            other = other.droplevel(drop_lvls)
             if other.is_unique:
                 # Join only when the other does not contain dupls
                 lindexer = self.get_indexer(self)
@@ -3879,14 +3879,14 @@ def _validate_join_method(method):
 if __name__ == '__main__':
     import pandas as pd
     # GH 3662
-    # merge multi-levels
+# merge multi-levels
     household = (
         pd.DataFrame(
             dict(household_id=[1, 2, 3],
                  male=[0, 1, 0],
                  wealth=[196087.3, 316478.7, 294750]),
             columns=['household_id', 'male', 'wealth'])
-        .set_index(['household_id', 'male']))
+        .set_index('household_id'))
     portfolio = (
         pd.DataFrame(
             dict(household_id=[1, 2, 2, 3, 3, 3, 4],
@@ -3900,7 +3900,6 @@ if __name__ == '__main__':
                  share=[1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0]),
             columns=['household_id', 'asset_id', 'name', 'share'])
         .set_index(['household_id', 'asset_id']))
-    #result = household.join(portfolio, how='inner')
     expected = (
         pd.DataFrame(
             dict(male=[0, 1, 1, 0, 0, 0],
@@ -3918,4 +3917,5 @@ if __name__ == '__main__':
         .set_index(['household_id', 'asset_id'])
         .reindex(columns=['male', 'wealth', 'name', 'share']))
 
-    print(portfolio.share.multiply(household.wealth))
+    result = household.join(portfolio, how='inner')
+    print(result)
