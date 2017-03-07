@@ -9,7 +9,8 @@ try:
 except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
-from pandas import compat, lib, algos, tslib
+from pandas import compat
+from pandas._libs import tslib, algos, lib
 from pandas.types.common import (_get_dtype,
                                  is_float, is_scalar,
                                  is_integer, is_complex, is_float_dtype,

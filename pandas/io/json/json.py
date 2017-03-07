@@ -2,8 +2,8 @@
 import os
 import numpy as np
 
-import pandas.json as _json
-from pandas.tslib import iNaT
+from pandas.io.json import libjson
+from pandas._libs.tslib import iNaT
 from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
@@ -14,8 +14,8 @@ from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema
 from pandas.types.common import is_period_dtype
 
-loads = _json.loads
-dumps = _json.dumps
+loads = libjson.loads
+dumps = libjson.dumps
 
 TABLE_SCHEMA_VERSION = '0.20.0'
 

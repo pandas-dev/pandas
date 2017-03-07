@@ -28,7 +28,7 @@ from pandas.computation.ops import (_binary_ops_dict,
 
 import pandas.computation.expr as expr
 import pandas.util.testing as tm
-import pandas.lib as lib
+import pandas._libs.lib as lib
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp, assert_numpy_array_equal,
                                  assert_produces_warning, assert_series_equal,

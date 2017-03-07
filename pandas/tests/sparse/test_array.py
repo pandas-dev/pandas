@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas import _np_version_under1p8
 from pandas.sparse.api import SparseArray, SparseSeries
-from pandas._sparse import IntIndex
+from pandas.sparse.libsparse import IntIndex
 from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
 

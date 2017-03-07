@@ -12,7 +12,7 @@ from pandas.util.validators import validate_bool_kwarg
 
 from pandas.core import common as com
 import pandas.core.nanops as nanops
-import pandas.lib as lib
+import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)

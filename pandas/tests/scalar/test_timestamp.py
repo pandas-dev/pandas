@@ -9,13 +9,15 @@ from distutils.version import LooseVersion
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas._period as period
+
 from pandas.tseries import offsets, frequencies
-from pandas.tslib import get_timezone, iNaT
+from pandas._libs import tslib, period
+from pandas._libs.tslib import get_timezone, iNaT
+
 from pandas.compat import lrange, long
 from pandas.util.testing import assert_series_equal
 from pandas.compat.numpy import np_datetime64_compat
-from pandas import (Timestamp, date_range, Period, Timedelta, tslib, compat,
+from pandas import (Timestamp, date_range, Period, Timedelta, compat,
                     Series, NaT, isnull, DataFrame, DatetimeIndex)
 from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
                                         RESO_MS, RESO_SEC)
@@ -1482,7 +1484,7 @@ class TestTimeSeries(tm.TestCase):
     def test_timestamp_to_datetime_explicit_dateutil(self):
         tm._skip_if_windows_python_3()
         tm._skip_if_no_dateutil()
-        from pandas.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslib import _dateutil_gettz as gettz
         rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
 
         stamp = rng[0]

@@ -9,7 +9,7 @@ from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas import tslib
+from pandas._libs import tslib, lib
 from pandas.tseries import tools
 from pandas.tseries.tools import normalize_date
 from pandas.compat import lmap
@@ -19,7 +19,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 from pandas import (isnull, to_datetime, Timestamp, Series, DataFrame,
                     Index, DatetimeIndex, NaT, date_range, bdate_range,
-                    compat, lib)
+                    compat)
 
 
 class TimeConversionFormats(tm.TestCase):

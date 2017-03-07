@@ -10,15 +10,17 @@ import warnings
 import numpy as np
 import pandas as pd
 import datetime
-from pandas import compat, lib, tslib
-import pandas.index as _index
+
+from pandas._libs import (lib, index as libindex,
+                          tslib as libts, algos as libalgos, iNaT)
+
+from pandas import compat
 from pandas.util.decorators import Appender
 import pandas.computation.expressions as expressions
-from pandas.lib import isscalar
-from pandas.tslib import iNaT
+
 from pandas.compat import bind_method
 import pandas.core.missing as missing
-import pandas.algos as _algos
+
 from pandas.core.common import (_values_from_object, _maybe_match_name,
                                 PerformanceWarning)
 from pandas.types.missing import notnull, isnull
@@ -29,6 +31,7 @@ from pandas.types.common import (needs_i8_conversion,
                                  is_datetime64_dtype, is_datetime64tz_dtype,
                                  is_bool_dtype, is_datetimetz,
                                  is_list_like,
+                                 is_scalar,
                                  _ensure_object)
 from pandas.types.cast import _maybe_upcast_putmask, _find_common_type
 from pandas.types.generic import ABCSeries, ABCIndex, ABCPeriodIndex
@@ -476,7 +479,7 @@ class _TimeOp(_Op):
                     values = values._values
             elif not (isinstance(values, (np.ndarray, ABCSeries)) and
                       is_datetime64_dtype(values)):
-                values = tslib.array_to_datetime(values)
+                values = libts.array_to_datetime(values)
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
             values = to_timedelta(values, errors='coerce', box=False)
@@ -680,12 +683,12 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             if isinstance(rvalues, ABCSeries):
                 if is_object_dtype(rvalues):
                     # if dtype is object, try elementwise op
-                    return _algos.arrmap_object(rvalues,
-                                                lambda x: op(lvalues, x))
+                    return libalgos.arrmap_object(rvalues,
+                                                  lambda x: op(lvalues, x))
             else:
                 if is_object_dtype(lvalues):
-                    return _algos.arrmap_object(lvalues,
-                                                lambda x: op(x, rvalues))
+                    return libalgos.arrmap_object(lvalues,
+                                                  lambda x: op(x, rvalues))
             raise
 
     def wrapper(left, right, name=name, na_op=na_op):
@@ -754,7 +757,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
         # in either operand
         if is_categorical_dtype(x):
             return op(x, y)
-        elif is_categorical_dtype(y) and not isscalar(y):
+        elif is_categorical_dtype(y) and not is_scalar(y):
             return op(y, x)
 
         if is_object_dtype(x.dtype):
@@ -770,7 +773,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 raise TypeError("invalid type comparison")
 
             # numpy does not like comparisons vs None
-            if isscalar(y) and isnull(y):
+            if is_scalar(y) and isnull(y):
                 if name == '__ne__':
                     return np.ones(len(x), dtype=bool)
                 else:
@@ -779,11 +782,11 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             # we have a datetime/timedelta and may need to convert
             mask = None
             if (needs_i8_conversion(x) or
-                    (not isscalar(y) and needs_i8_conversion(y))):
+                    (not is_scalar(y) and needs_i8_conversion(y))):
 
-                if isscalar(y):
+                if is_scalar(y):
                     mask = isnull(x)
-                    y = _index.convert_scalar(x, _values_from_object(y))
+                    y = libindex.convert_scalar(x, _values_from_object(y))
                 else:
                     mask = isnull(x) | isnull(y)
                     y = y.view('i8')
@@ -819,7 +822,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
         elif isinstance(other, (np.ndarray, pd.Index)):
             # do not check length of zerodim array
             # as it will broadcast
-            if (not lib.isscalar(lib.item_from_zerodim(other)) and
+            if (not is_scalar(lib.item_from_zerodim(other)) and
                     len(self) != len(other)):
                 raise ValueError('Lengths must match to compare')
 
@@ -855,7 +858,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
             with np.errstate(all='ignore'):
                 res = na_op(values, other)
-            if isscalar(res):
+            if is_scalar(res):
                 raise TypeError('Could not compare %s type with Series' %
                                 type(other))
 
@@ -1333,7 +1336,7 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
 
     # work only for scalars
     def f(self, other):
-        if not isscalar(other):
+        if not is_scalar(other):
             raise ValueError('Simple arithmetic with %s can only be '
                              'done with scalar values' %
                              self._constructor.__name__)
