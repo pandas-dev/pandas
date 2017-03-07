@@ -698,7 +698,7 @@ Bug Fixes
 
 - Bug in ``to_sql`` when writing a DataFrame with numeric index names (:issue:`15404`).
 - Bug in ``Series.iloc`` where a ``Categorical`` object for list-like indexes input was returned, where a ``Series`` was expected. (:issue:`14580`)
-
+- Bug in repr-formatting a ``SparseDataFrame`` after a value was set on (a copy of) one of its series (:issue:`15488`)
 
 
 - Bug in  groupby operations with timedelta64 when passing ``numeric_only=False`` (:issue:`5724`)
