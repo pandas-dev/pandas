@@ -443,6 +443,10 @@ def _slow_pivot(index, columns, values):
 
 
 def unstack(obj, level, fill_value=None):
+    if fill_value:
+        from pandas.core.missing import validate_fill_value
+        validate_fill_value(fill_value, obj.values.dtype)
+
     if isinstance(level, (tuple, list)):
         return _unstack_multiple(obj, level)
 
