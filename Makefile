@@ -9,9 +9,6 @@ clean:
 clean_pyc:
 	-find . -name '*.py[co]' -exec rm {} \;
 
-sparse: pandas/src/sparse.pyx
-	python setup.py build_ext --inplace
-
 build: clean_pyc
 	python setup.py build_ext --inplace
 
