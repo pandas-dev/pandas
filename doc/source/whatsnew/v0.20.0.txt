@@ -12,10 +12,12 @@ Highlights include:
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
 - Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
 - Improved support for UInt64 dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
+- Window Binary Corr/Cov operations return a MultiIndex DataFrame rather than a Panel, see :ref:`here <whhatsnew_0200.api_breaking.rolling_pairwise>`
 - A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
+
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
@@ -835,6 +837,50 @@ New Behavior:
    df.groupby('A').describe()
 
    df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+
+.. _whatsnew_0200.api_breaking.rolling_pairwise:
+
+Window Binary Corr/Cov operations return a MultiIndex DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A binary window operation, like ``.corr()`` or ``.cov()``, when operating on a ``.rolling(..)``, ``.expanding(..)``, or ``.ewm(..)`` object,
+will now return a 2-level ``MultiIndexed DataFrame`` rather than a ``Panel``. These are equivalent in function,
+but MultiIndexed DataFrames enjoy more support in pandas.
+See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for more information. (:issue:`15677`)
+
+.. ipython:: python
+
+   np.random.seed(1234)
+   df = DataFrame(np.random.rand(100, 2),
+                 columns=['A', 'B'],
+                 index=pd.date_range('20160101', periods=100, freq='D'))
+   df
+
+Old Behavior:
+
+.. code-block:: ipython
+
+   In [2]: df.rolling(12).corr()
+   Out[2]:
+   <class 'pandas.core.panel.Panel'>
+   Dimensions: 100 (items) x 2 (major_axis) x 2 (minor_axis)
+   Items axis: 2016-01-01 00:00:00 to 2016-04-09 00:00:00
+   Major_axis axis: A to B
+   Minor_axis axis: A to B
+
+New Behavior:
+
+.. ipython:: python
+
+   res = df.rolling(12).corr()
+   res
+
+Retrieving a correlation matrix for a specified index
+
+.. ipython:: python
+
+   res.iloc[-1].unstack()
+
 
 .. _whatsnew_0200.api_breaking.hdfstore_where:
 
