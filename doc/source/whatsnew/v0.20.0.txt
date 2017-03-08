@@ -227,7 +227,7 @@ Other enhancements
 - ``pd.TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
 - ``pd.types.concat.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
-
+- ``Series.sort_values`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values`` (:issue:`15604`)
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
 
