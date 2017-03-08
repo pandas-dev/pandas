@@ -150,7 +150,7 @@ New Behavior:
 
   df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
 
-.. _whatsnew_0200.enhancements.table_schema
+.. _whatsnew_0200.enhancements.table_schema:
 
 Table Schema Output
 ^^^^^^^^^^^^^^^^^^^
@@ -308,7 +308,7 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
 
-.. _whatsnew.api_breaking.io_compat
+.. _whatsnew.api_breaking.io_compat:
 
 Possible incompat for HDF5 formats for pandas < 0.13.0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -729,7 +729,7 @@ Bug Fixes
 
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 
-- Bug in ``.asfreq()``, where frequency was not set for empty ``Series` (:issue:`14320`)
+- Bug in ``.asfreq()``, where frequency was not set for empty ``Series`` (:issue:`14320`)
 
 - Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
 - Bug in ``Series.ffill()`` with mixed dtypes containing tz-aware datetimes. (:issue:`14956`)
