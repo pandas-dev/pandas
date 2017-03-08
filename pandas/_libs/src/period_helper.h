@@ -11,8 +11,8 @@ Cython to pandas. This primarily concerns interval representation and
 frequency conversion routines.
 */
 
-#ifndef PANDAS_SRC_PERIOD_HELPER_H_
-#define PANDAS_SRC_PERIOD_HELPER_H_
+#ifndef PANDAS__LIBS_SRC_PERIOD_HELPER_H_
+#define PANDAS__LIBS_SRC_PERIOD_HELPER_H_
 
 #include <Python.h>
 #include "headers/stdint.h"
@@ -188,4 +188,4 @@ int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
 
 void initialize_daytime_conversion_factor_matrix(void);
 
-#endif  // PANDAS_SRC_PERIOD_HELPER_H_
+#endif  // PANDAS__LIBS_SRC_PERIOD_HELPER_H_
