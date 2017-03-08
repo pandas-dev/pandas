@@ -14,8 +14,8 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 */
 
-#ifndef PANDAS_SRC_DATETIME_NP_DATETIME_H_
-#define PANDAS_SRC_DATETIME_NP_DATETIME_H_
+#ifndef PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
+#define PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
 
 #include <numpy/ndarraytypes.h>
 
@@ -124,4 +124,4 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
 PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj);
 
 
-#endif  // PANDAS_SRC_DATETIME_NP_DATETIME_H_
+#endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_

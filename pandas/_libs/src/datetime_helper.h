@@ -7,8 +7,8 @@ Distributed under the terms of the BSD Simplified License.
 The full license is in the LICENSE file, distributed with this software.
 */
 
-#ifndef PANDAS_SRC_DATETIME_HELPER_H_
-#define PANDAS_SRC_DATETIME_HELPER_H_
+#ifndef PANDAS__LIBS_SRC_DATETIME_HELPER_H_
+#define PANDAS__LIBS_SRC_DATETIME_HELPER_H_
 
 #include <stdio.h>
 #include "datetime.h"
@@ -33,4 +33,4 @@ npy_float64 total_seconds(PyObject *td) {
   return (microseconds + (seconds + days_in_seconds) * 1000000.0) / 1000000.0;
 }
 
-#endif  // PANDAS_SRC_DATETIME_HELPER_H_
+#endif  // PANDAS__LIBS_SRC_DATETIME_HELPER_H_

@@ -7,8 +7,8 @@ Distributed under the terms of the BSD Simplified License.
 The full license is in the LICENSE file, distributed with this software.
 */
 
-#ifndef PANDAS_SRC_PARSE_HELPER_H_
-#define PANDAS_SRC_PARSE_HELPER_H_
+#ifndef PANDAS__LIBS_SRC_PARSE_HELPER_H_
+#define PANDAS__LIBS_SRC_PARSE_HELPER_H_
 
 #include <errno.h>
 #include <float.h>
@@ -270,4 +270,4 @@ static double xstrtod(const char *str, char **endptr, char decimal, char sci,
     return number;
 }
 
-#endif  // PANDAS_SRC_PARSE_HELPER_H_
+#endif  // PANDAS__LIBS_SRC_PARSE_HELPER_H_

@@ -49,8 +49,8 @@ tree doesn't have cyclic references.
 
 */
 
-#ifndef PANDAS_SRC_UJSON_LIB_ULTRAJSON_H_
-#define PANDAS_SRC_UJSON_LIB_ULTRAJSON_H_
+#ifndef PANDAS__LIBS_SRC_UJSON_LIB_ULTRAJSON_H_
+#define PANDAS__LIBS_SRC_UJSON_LIB_ULTRAJSON_H_
 
 #include <stdio.h>
 #include <wchar.h>
@@ -307,4 +307,4 @@ EXPORTFUNCTION JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec,
                                        const char *buffer, size_t cbBuffer);
 EXPORTFUNCTION void encode(JSOBJ, JSONObjectEncoder *, const char *, size_t);
 
-#endif  // PANDAS_SRC_UJSON_LIB_ULTRAJSON_H_
+#endif  // PANDAS__LIBS_SRC_UJSON_LIB_ULTRAJSON_H_

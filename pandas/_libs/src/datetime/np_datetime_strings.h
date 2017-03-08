@@ -19,8 +19,8 @@ This file implements string parsing and creation for NumPy datetime.
 
 */
 
-#ifndef PANDAS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
-#define PANDAS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+#ifndef PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+#define PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
 
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
@@ -103,4 +103,4 @@ make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
                     int local, PANDAS_DATETIMEUNIT base, int tzoffset,
                     NPY_CASTING casting);
 
-#endif  // PANDAS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+#endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_

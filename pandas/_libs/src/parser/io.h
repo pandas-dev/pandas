@@ -7,8 +7,8 @@ Distributed under the terms of the BSD Simplified License.
 The full license is in the LICENSE file, distributed with this software.
 */
 
-#ifndef PANDAS_SRC_PARSER_IO_H_
-#define PANDAS_SRC_PARSER_IO_H_
+#ifndef PANDAS__LIBS_SRC_PARSER_IO_H_
+#define PANDAS__LIBS_SRC_PARSER_IO_H_
 
 #include "Python.h"
 #include "tokenizer.h"
@@ -83,4 +83,4 @@ void *buffer_file_bytes(void *source, size_t nbytes, size_t *bytes_read,
 void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
                       int *status);
 
-#endif  // PANDAS_SRC_PARSER_IO_H_
+#endif  // PANDAS__LIBS_SRC_PARSER_IO_H_
