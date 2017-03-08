@@ -2214,7 +2214,7 @@ it is assumed to be aliases for the column names')
 
         try:
             new_data = self.loc[res]
-        except ValueError:
+        except (ValueError, NotImplementedError):
             # when res is multi-dimensional loc raises, but this is sometimes a
             # valid query
             new_data = self[res]
