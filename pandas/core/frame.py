@@ -3846,12 +3846,12 @@ class DataFrame(NDFrame):
 
                 if overwrite:
                     mask = isnull(that)
-
-                    # don't overwrite columns unecessarily
-                    if mask.all():
-                        continue
                 else:
                     mask = notnull(this)
+
+                # don't overwrite columns unecessarily
+                if mask.all():
+                    continue
 
             self[col] = expressions.where(mask, this, that,
                                           raise_on_error=True)
