@@ -109,15 +109,33 @@ aggregate, transform
 
 Examples
 --------
->>> df = pd.DataFrame(np.repeat(np.arange(10), 3).reshape(-1, 3),
-                      columns=list('ABC'))
->>> grouped = df.groupby(df.index // 3)
 
 # Same shape
->>> grouped.%(selected)stransform(lambda x: (x - x.mean()) / x.std())
+>>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+...                           'foo', 'bar'],
+...                    'B' : ['one', 'one', 'two', 'three',
+...                          'two', 'two'],
+...                    'C' : [1, 5, 5, 2, 5, 5],
+...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
+>>> grouped = df.groupby('A')
+>>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+          C         D
+0 -1.154701 -0.577350
+1  0.577350  0.000000
+2  0.577350  1.154701
+3 -1.154701 -1.000000
+4  0.577350 -0.577350
+5  0.577350  1.000000
 
 # Broadcastable
->>> grouped.%(selected)stransform(lambda x: x.max() - x.min())
+>>> grouped.transform(lambda x: x.max() - x.min())
+   C    D
+0  4  6.0
+1  3  8.0
+2  4  6.0
+3  3  8.0
+4  4  6.0
+5  3  8.0
 
 """
 
@@ -2982,7 +3000,17 @@ class SeriesGroupBy(GroupBy):
 
         Examples
         --------
-        >>> grouped.filter(lambda x: x.mean() > 0)
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+        ...                           'foo', 'bar'],
+        ...                    'B' : [1, 2, 3, 4, 5, 6],
+        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
+        >>> grouped = df.groupby('A')
+        >>> df.groupby('A').B.filter(lambda x: x.mean() > 3.)
+        1    2
+        3    4
+        5    6
+        Name: B, dtype: int64
 
         Returns
         -------
@@ -3784,9 +3812,21 @@ class NDFrameGroupBy(GroupBy):
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(10, 3), columns=list('ABC'))
-        >>> grouped = df.groupby(df.index % 3)
-        >>> grouped.filter(lambda x: x['A'].sum() + x['B'].sum() > 0)
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+        ...                           'foo', 'bar'],
+        ...                    'B' : [1, 2, 3, 4, 5, 6],
+        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
+        >>> grouped = df.groupby('A')
+        >>> grouped.filter(lambda x: x['B'].mean() > 3.)
+             A  B    C
+        1  bar  2  5.0
+        3  bar  4  1.0
+        5  bar  6  9.0
+
+        Returns
+        -------
+        filtered : DataFrame
         """
 
         indices = []
