@@ -197,7 +197,7 @@ def html():
                 print(e)
                 print("Failed to convert %s" % nb)
 
-    if os.system('sphinx-build -P -b html -d build/doctrees '
+    if os.system('sphinx-build -j 2 -P -b html -d build/doctrees '
                  'source build/html'):
         raise SystemExit("Building HTML failed.")
     try:
@@ -222,7 +222,7 @@ def latex():
     check_build()
     if sys.platform != 'win32':
         # LaTeX format.
-        if os.system('sphinx-build -b latex -d build/doctrees '
+        if os.system('sphinx-build -j 2 -b latex -d build/doctrees '
                      'source build/latex'):
             raise SystemExit("Building LaTeX failed.")
         # Produce pdf.
@@ -245,7 +245,7 @@ def latex_forced():
     check_build()
     if sys.platform != 'win32':
         # LaTeX format.
-        if os.system('sphinx-build -b latex -d build/doctrees '
+        if os.system('sphinx-build -j 2 -b latex -d build/doctrees '
                      'source build/latex'):
             raise SystemExit("Building LaTeX failed.")
         # Produce pdf.

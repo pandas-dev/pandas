@@ -484,6 +484,35 @@ New Behavior:
    In [11]: index.memory_usage(deep=True)
    Out[11]: 260
 
+.. _whatsnew_0200.api_breaking.extensions:
+
+Extension Modules Moved
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Some formerly public c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
+If indicated, a deprecation warning will be issued if you reference that module. (:issue:`12588`)
+
+.. csv-table::
+    :header: "Previous Location", "New Location", "Deprecated"
+    :widths: 30, 30, 4
+
+    "pandas.lib", "pandas._libs.lib", "X"
+    "pandas.tslib", "pandas._libs.tslib", "X"
+    "pandas._join", "pandas._libs.join", ""
+    "pandas._period", "pandas._libs.period", ""
+    "pandas.msgpack", "pandas.io.msgpack", ""
+    "pandas.index", "pandas._libs.index", ""
+    "pandas.algos", "pandas._libs.algos", ""
+    "pandas.hashtable", "pandas._libs.hashtable", ""
+    "pandas.json", "pandas.io.json.libjson", "X"
+    "pandas.parser", "pandas.io.libparsers", "X"
+    "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
+    "pandas._testing", "pandas.util.libtesting", ""
+    "pandas._sparse", "pandas.sparse.libsparse", ""
+    "pandas._hash", "pandas.tools.libhash", ""
+    "pandas._window", "pandas.core.libwindow", ""
+
+
 .. _whatsnew_0200.api_breaking.groupby_describe:
 
 Groupby Describe Formatting
@@ -652,7 +681,7 @@ Bug Fixes
 - Bug in ``Index`` power operations with reversed operands (:issue:`14973`)
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
 - Bug in ``TimedeltaIndex`` raising a ``ValueError`` when boolean indexing with ``loc`` (:issue:`14946`)
-- Bug in ``DatetimeIndex.round()`` and ``Timestamp.round()`` floating point accuracy when rounding by milliseconds (:issue: `14440`)
+- Bug in ``DatetimeIndex.round()`` and ``Timestamp.round()`` floating point accuracy when rounding by milliseconds or less (:issue: `14440`, :issue:`15578`)
 - Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
 - Bug in ``DataFrame(..).apply(to_numeric)`` when values are of type decimal.Decimal. (:issue:`14827`)
 - Bug in ``describe()`` when passing a numpy array which does not contain the median to the ``percentiles`` keyword argument (:issue:`14908`)
@@ -670,6 +699,10 @@ Bug Fixes
 - Bug in ``DataFrame.loc`` with indexing a ``MultiIndex`` with a ``Series`` indexer (:issue:`14730`, :issue:`15424`)
 - Bug in ``DataFrame.loc`` with indexing a ``MultiIndex`` with a numpy array (:issue:`15434`)
 - Bug in ``Rolling.quantile`` function that caused a segmentation fault when called with a quantile value outside of the range [0, 1] (:issue:`15463`)
+
+
+- Bug in ``SparseSeries.reindex`` on single level with list of length 1 (:issue:`15447`)
+
 
 
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
@@ -698,7 +731,7 @@ Bug Fixes
 
 - Bug in ``to_sql`` when writing a DataFrame with numeric index names (:issue:`15404`).
 - Bug in ``Series.iloc`` where a ``Categorical`` object for list-like indexes input was returned, where a ``Series`` was expected. (:issue:`14580`)
-
+- Bug in repr-formatting a ``SparseDataFrame`` after a value was set on (a copy of) one of its series (:issue:`15488`)
 
 
 - Bug in  groupby operations with timedelta64 when passing ``numeric_only=False`` (:issue:`5724`)

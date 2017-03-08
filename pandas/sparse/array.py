@@ -25,9 +25,9 @@ from pandas.types.cast import (_possibly_convert_platform, _maybe_promote,
                                _astype_nansafe, _find_common_type)
 from pandas.types.missing import isnull, notnull, na_value_for_dtype
 
-from pandas._sparse import SparseIndex, BlockIndex, IntIndex
-import pandas._sparse as splib
-import pandas.index as _index
+from pandas.sparse import libsparse as splib
+from pandas.sparse.libsparse import SparseIndex, BlockIndex, IntIndex
+from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
 import pandas.core.ops as ops
 import pandas.formats.printing as printing
@@ -447,7 +447,7 @@ class SparseArray(PandasObject, np.ndarray):
         if sp_loc == -1:
             return self.fill_value
         else:
-            return _index.get_value_at(self, sp_loc)
+            return libindex.get_value_at(self, sp_loc)
 
     @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,

@@ -20,7 +20,7 @@ from pandas.compat import (range, lrange, StringIO, lzip, u, product as
                            cart_product, zip)
 import pandas as pd
 
-import pandas.index as _index
+import pandas._libs.index as _index
 
 
 class TestMultiLevel(tm.TestCase):

@@ -2,9 +2,10 @@ import numpy as np
 from datetime import timedelta
 
 import pandas as pd
-from pandas import tslib, offsets, lib
+from pandas import offsets
 import pandas.util.testing as tm
-from pandas.tslib import OutOfBoundsDatetime
+from pandas._libs import tslib, lib
+from pandas._libs.tslib import OutOfBoundsDatetime
 from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
                     to_datetime)
 

@@ -30,13 +30,8 @@ from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.timedeltas import (to_timedelta,
                                        _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
-
-import pandas.lib as lib
-import pandas.tslib as tslib
-import pandas._join as _join
-import pandas.index as _index
-
-Timedelta = tslib.Timedelta
+from pandas._libs import (lib, index as libindex, tslib as libts,
+                          join as libjoin, Timedelta, NaT, iNaT)
 
 
 def _td_index_cmp(opname, nat_result=False):
@@ -47,7 +42,7 @@ def _td_index_cmp(opname, nat_result=False):
     def wrapper(self, other):
         msg = "cannot compare a TimedeltaIndex with type {0}"
         func = getattr(super(TimedeltaIndex, self), opname)
-        if _is_convertible_to_td(other) or other is tslib.NaT:
+        if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = _to_m8(other)
             except ValueError:
@@ -65,9 +60,9 @@ def _td_index_cmp(opname, nat_result=False):
             result = _values_from_object(result)
 
             if isinstance(other, Index):
-                o_mask = other.values.view('i8') == tslib.iNaT
+                o_mask = other.values.view('i8') == iNaT
             else:
-                o_mask = other.view('i8') == tslib.iNaT
+                o_mask = other.view('i8') == iNaT
 
             if o_mask.any():
                 result[o_mask] = nat_result
@@ -126,11 +121,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return DatetimeIndexOpsMixin._join_i8_wrapper(
             joinf, dtype='m8[ns]', **kwargs)
 
-    _inner_indexer = _join_i8_wrapper(_join.inner_join_indexer_int64)
-    _outer_indexer = _join_i8_wrapper(_join.outer_join_indexer_int64)
-    _left_indexer = _join_i8_wrapper(_join.left_join_indexer_int64)
+    _inner_indexer = _join_i8_wrapper(libjoin.inner_join_indexer_int64)
+    _outer_indexer = _join_i8_wrapper(libjoin.outer_join_indexer_int64)
+    _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
     _left_indexer_unique = _join_i8_wrapper(
-        _join.left_join_indexer_unique_int64, with_indexers=False)
+        libjoin.left_join_indexer_unique_int64, with_indexers=False)
     _arrmap = None
     _datetimelike_ops = ['days', 'seconds', 'microseconds', 'nanoseconds',
                          'freq', 'components']
@@ -142,7 +137,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     __le__ = _td_index_cmp('__le__')
     __ge__ = _td_index_cmp('__ge__')
 
-    _engine_type = _index.TimedeltaEngine
+    _engine_type = libindex.TimedeltaEngine
 
     _comparables = ['name', 'freq']
     _attributes = ['name', 'freq']
@@ -274,7 +269,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
         values = np.array(values, copy=False)
         if values.dtype == np.object_:
-            values = tslib.array_to_timedelta64(values)
+            values = libts.array_to_timedelta64(values)
         if values.dtype != _TD_DTYPE:
             values = _ensure_int64(values).view(_TD_DTYPE)
 
@@ -341,18 +336,18 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
         from pandas import Timestamp, DatetimeIndex
-        if other is tslib.NaT:
+        if other is NaT:
             result = self._nat_new(box=False)
         else:
             other = Timestamp(other)
             i8 = self.asi8
             result = checked_add_with_arr(i8, other.value)
-            result = self._maybe_mask_results(result, fill_value=tslib.iNaT)
+            result = self._maybe_mask_results(result, fill_value=iNaT)
         return DatetimeIndex(result, name=self.name, copy=False)
 
     def _sub_datelike(self, other):
         from pandas import DatetimeIndex
-        if other is tslib.NaT:
+        if other is NaT:
             result = self._nat_new(box=False)
         else:
             raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
@@ -452,7 +447,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         datetimes : ndarray
         """
-        return tslib.ints_to_pytimedelta(self.asi8)
+        return libts.ints_to_pytimedelta(self.asi8)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -677,7 +672,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             raise TypeError
 
         if isnull(key):
-            key = tslib.NaT
+            key = NaT
 
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
@@ -736,7 +731,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
-        if is_integer(key) or is_float(key) or key is tslib.NaT:
+        if is_integer(key) or is_float(key) or key is NaT:
             self._invalid_indexer('slice', key)
         loc = self._partial_td_slice(key, freq, use_lhs=use_lhs,
                                      use_rhs=use_rhs)
@@ -837,7 +832,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 pass
 
         freq = None
-        if isinstance(item, (Timedelta, tslib.NaTType)):
+        if isinstance(item, (Timedelta, libts.NaTType)):
 
             # check freq can be preserved on edge cases
             if self.freq is not None:
