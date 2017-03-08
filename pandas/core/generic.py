@@ -4360,6 +4360,8 @@ class NDFrame(PandasObject):
 
             .. versionadded:: 0.19.0
 
+        Notes
+        -----
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
