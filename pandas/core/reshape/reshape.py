@@ -40,8 +40,27 @@ class _Unstacker(object):
 
     Parameters
     ----------
+    values : ndarray
+        Values of DataFrame to "Unstack"
+
+    index : object
+        Pandas ``Index`` or ``MultiIndex``
+
     level : int or str, default last level
         Level to "unstack". Accepts a name for the level.
+
+    value_columns : object, optional
+        Pandas ``Index`` or ``MultiIndex`` object if unstacking a DataFrame
+
+    fill_value : scalar, optional
+        Default value to fill in missing values if subgroups do not have the
+        same set of labels. By default, missing values will be replaced with
+        the default fill value for that data type, NaN for float, NaT for
+        datetimelike, etc. For integer types, by default data will converted to
+        float and missing values will be set to NaN.
+
+    constructor : object, default DataFrame
+        ``Series``, ``DataFrame``, or subclass used to create unstacked response
 
     Examples
     --------
