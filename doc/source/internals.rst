@@ -128,7 +128,7 @@ Property Attributes          ``Series``              ``DataFrame``       ``Panel
 ``_constructor_expanddim``   ``DataFrame``           ``Panel``           ``NotImplementedError``
 ===========================  ======================= =================== =======================
 
-Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
+The below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties:
 
 .. code-block:: python
 
@@ -152,6 +152,8 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
        def _constructor_sliced(self):
            return SubclassedSeries
 
+Overriding constructor properties allows subclass families to be preserved across slice and reshape operations:
+
 .. code-block:: python
 
    >>> s = SubclassedSeries([1, 2, 3])
@@ -162,7 +164,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(to_framed)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> df = SubclassedDataFrame({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7
@@ -188,6 +190,21 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    2    3
    Name: A, dtype: int64
    >>> type(sliced2)
+   <class '__main__.SubclassedSeries'>
+
+   >>> stacked = df.stack()
+   >>> stacked
+   0  A    1
+      B    4
+      C    7
+   1  A    2
+      B    5
+      C    8
+   2  A    3
+      B    6
+      C    9
+   dtype: int64
+   >>> type(stacked)
    <class '__main__.SubclassedSeries'>
 
 Define Original Properties
