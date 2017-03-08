@@ -9,7 +9,7 @@ from pandas.types.common import (is_integer_dtype,
                                  is_float_dtype,
                                  is_scalar)
 from pandas.compat import range, lrange, lzip, StringIO, lmap
-from pandas.tslib import NaT
+from pandas._libs.tslib import NaT
 from numpy import nan
 from numpy.random import randn
 import numpy as np

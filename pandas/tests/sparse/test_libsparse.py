@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas import compat
 
 from pandas.sparse.array import IntIndex, BlockIndex, _make_index
-import pandas._sparse as splib
+import pandas.sparse.libsparse as splib
 
 TEST_LENGTH = 20
 

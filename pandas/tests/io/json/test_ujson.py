@@ -17,7 +17,7 @@ import re
 import decimal
 from functools import partial
 from pandas.compat import range, zip, StringIO, u
-import pandas.json as ujson
+import pandas.io.json.libjson as ujson
 import pandas.compat as compat
 
 import numpy as np
@@ -400,7 +400,7 @@ class UltraJSONTests(TestCase):
         assert ujson.encode(input) == 'null', "Expected null"
 
     def test_datetime_units(self):
-        from pandas.lib import Timestamp
+        from pandas._libs.lib import Timestamp
 
         val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
         stamp = Timestamp(val)

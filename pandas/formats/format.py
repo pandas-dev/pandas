@@ -33,8 +33,9 @@ from pandas.core.config import get_option, set_option
 from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
 from pandas.formats.printing import adjoin, justify, pprint_thing
 import pandas.core.common as com
-import pandas.lib as lib
-from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
+import pandas._libs.lib as lib
+from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
+                                format_array_from_datetime)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 import pandas as pd
@@ -715,9 +716,6 @@ class DataFrameFormatter(TableFormatter):
 
     def _get_formatted_column_labels(self, frame):
         from pandas.core.index import _sparsify
-
-        def is_numeric_dtype(dtype):
-            return issubclass(dtype.type, np.number)
 
         columns = frame.columns
 

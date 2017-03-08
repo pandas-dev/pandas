@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from itertools import product
 import pandas as pd
-import pandas.tslib as tslib
+import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.core.common import PerformanceWarning
 from pandas.tseries.index import cdate_range
@@ -175,16 +175,28 @@ class TestDatetimeIndexOps(Ops):
             tm.assertRaisesRegexp(ValueError, msg, rng.round, freq='M')
             tm.assertRaisesRegexp(ValueError, msg, elt.round, freq='M')
 
-            # GH 14440
+            # GH 14440 & 15578
             index = pd.DatetimeIndex(['2016-10-17 12:00:00.0015'], tz=tz)
             result = index.round('ms')
             expected = pd.DatetimeIndex(['2016-10-17 12:00:00.002000'], tz=tz)
             tm.assert_index_equal(result, expected)
 
+            for freq in ['us', 'ns']:
+                tm.assert_index_equal(index, index.round(freq))
+
             index = pd.DatetimeIndex(['2016-10-17 12:00:00.00149'], tz=tz)
             result = index.round('ms')
             expected = pd.DatetimeIndex(['2016-10-17 12:00:00.001000'], tz=tz)
             tm.assert_index_equal(result, expected)
+
+            index = pd.DatetimeIndex(['2016-10-17 12:00:00.001501031'])
+            result = index.round('10ns')
+            expected = pd.DatetimeIndex(['2016-10-17 12:00:00.001501030'])
+            tm.assert_index_equal(result, expected)
+
+            with tm.assert_produces_warning():
+                ts = '2016-10-17 12:00:00.001501031'
+                pd.DatetimeIndex([ts]).round('1010ns')
 
     def test_repeat_range(self):
         rng = date_range('1/1/2000', '1/1/2001')

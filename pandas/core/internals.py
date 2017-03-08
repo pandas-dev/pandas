@@ -53,17 +53,16 @@ from pandas.formats.printing import pprint_thing
 
 import pandas.core.missing as missing
 from pandas.sparse.array import _maybe_to_sparse, SparseArray
-import pandas.lib as lib
-import pandas.tslib as tslib
+from pandas._libs import lib, tslib
+from pandas._libs.tslib import Timedelta
+from pandas._libs.lib import BlockPlacement
+
 import pandas.computation.expressions as expressions
 from pandas.util.decorators import cache_readonly
 from pandas.util.validators import validate_bool_kwarg
 
-from pandas.tslib import Timedelta
 from pandas import compat, _np_version_under1p9
 from pandas.compat import range, map, zip, u
-
-from pandas.lib import BlockPlacement
 
 
 class Block(PandasObject):

@@ -20,19 +20,19 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.ops as ops
-import pandas.index as _index
+import pandas._libs.index as _index
 from pandas.util.decorators import Appender
 
 from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray,
                                  _make_index)
-from pandas._sparse import BlockIndex, IntIndex
-import pandas._sparse as splib
+from pandas.sparse.libsparse import BlockIndex, IntIndex
+import pandas.sparse.libsparse as splib
 
 from pandas.sparse.scipy_sparse import (_sparse_series_to_coo,
                                         _coo_to_sparse_series)
 
 
-_shared_doc_kwargs = dict(klass='SparseSeries',
+_shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
                           axes_single_arg="{0, 'index'}")
 
 # -----------------------------------------------------------------------------
@@ -570,27 +570,13 @@ class SparseSeries(Series):
         return self._constructor(new_data, sparse_index=self.sp_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
+    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
     def reindex(self, index=None, method=None, copy=True, limit=None,
                 **kwargs):
-        """
-        Conform SparseSeries to new Index
 
-        See Series.reindex docstring for general behavior
-
-        Returns
-        -------
-        reindexed : SparseSeries
-        """
-        new_index = _ensure_index(index)
-
-        if self.index.equals(new_index):
-            if copy:
-                return self.copy()
-            else:
-                return self
-        return self._constructor(self._data.reindex(new_index, method=method,
-                                                    limit=limit, copy=copy),
-                                 index=new_index).__finalize__(self)
+        return super(SparseSeries, self).reindex(index=index, method=method,
+                                                 copy=copy, limit=limit,
+                                                 **kwargs)
 
     def sparse_reindex(self, new_index):
         """
