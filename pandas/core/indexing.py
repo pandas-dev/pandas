@@ -67,7 +67,6 @@ class _IndexSlice(object):
 
     >>> idx = pd.IndexSlice
     >>> dfmi.loc[idx[:,['B0','B1']],:]
-
                foo  bar
         A0 B0    0    1
            B1    2    3
