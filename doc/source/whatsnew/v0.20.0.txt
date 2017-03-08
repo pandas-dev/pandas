@@ -12,7 +12,7 @@ Highlights include:
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
 - Switched the test framework to `pytest`_ (:issue:`13097`)
-- A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref: `here <whatsnew_0200.enhancements.table_schema>`
+- A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
 
 .. _pytest: http://doc.pytest.org/en/latest/
 
@@ -26,11 +26,6 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 
 New features
 ~~~~~~~~~~~~
-
-- Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
-- ``Series.str.replace()`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
-- ``Series.str.replace()`` now accepts a compiled regular expression as a pattern (:issue:`15446`)
-
 
 
 .. _whatsnew_0200.enhancements.dataio_dtype:
@@ -193,6 +188,11 @@ You must enable this by setting the ``display.html.table_schema`` option to True
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
+- ``Series.str.replace()`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
+- ``Series.str.replace()`` now accepts a compiled regular expression as a pattern (:issue:`15446`)
+
+
 - ``Series.sort_index`` accepts parameters ``kind`` and ``na_position`` (:issue:`13589`, :issue:`14444`)
 
 - ``DataFrame`` has gained a ``nunique()`` method to count the distinct values over an axis (:issue:`14336`).
@@ -201,7 +201,6 @@ Other enhancements
 - ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
 - Multiple offset aliases with decimal points are now supported (e.g. '0.5min' is parsed as '30s') (:issue:`8419`)
 - ``.isnull()`` and ``.notnull()`` have been added to ``Index`` object to make them more consistent with the ``Series`` API (:issue:`15300`)
-- ``pd.read_gbq`` method now allows query configuration preferences (:issue:`14742`)
 
 - New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an
   unsorted MultiIndex (:issue:`11897`). This allows differentiation between errors due to lack
@@ -228,7 +227,7 @@ Other enhancements
 - ``pd.TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
 - ``pd.types.concat.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
-- ``Series.sort_values`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values`` (:issue:`15604`)
+
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
 
@@ -444,7 +443,7 @@ Pandas Google BigQuery support has moved
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 pandas has split off Google BigQuery support into a separate package ``pandas-gbq``. You can ``pip install pandas-gbq`` to get it.
-The functionality of ``pd.read_gbq()`` and ``.to_gbq()`` remains the same with the currently released version of ``pandas-gbq=0.1.2``. (:issue:`15347`)
+The functionality of ``pd.read_gbq()`` and ``.to_gbq()`` remains the same with the currently released version of ``pandas-gbq=0.1.3``. (:issue:`15347`)
 Documentation is now hosted `here <https://pandas-gbq.readthedocs.io/>`__
 
 .. _whatsnew_0200.api_breaking.memory_usage:
@@ -611,9 +610,9 @@ Other API Changes
 - ``inplace`` arguments now require a boolean value, else a ``ValueError`` is thrown (:issue:`14189`)
 - ``pandas.api.types.is_datetime64_ns_dtype`` will now report ``True`` on a tz-aware dtype, similar to ``pandas.api.types.is_datetime64_any_dtype``
 - ``DataFrame.asof()`` will return a null filled ``Series`` instead the scalar ``NaN`` if a match is not found (:issue:`15118`)
-- The :func:`pd.read_gbq` method now stores ``INTEGER`` columns as ``dtype=object`` if they contain ``NULL`` values. Otherwise they are stored as ``int64``. This prevents precision lost for integers greather than 2**53. Furthermore ``FLOAT`` columns with values above 10**4 are no longer casted to ``int64`` which also caused precision loss (:issue:`14064`, :issue:`14305`).
 - Reorganization of timeseries development tests (:issue:`14854`)
 - Specific support for ``copy.copy()`` and ``copy.deepcopy()`` functions on NDFrame objects (:issue:`15444`)
+- ``Series.sort_values()`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values()`` (:issue:`15604`)
 
 .. _whatsnew_0200.deprecations:
 
@@ -651,7 +650,7 @@ Removal of prior version deprecations/changes
 - ``pandas.stats.fama_macbeth``, ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var``, as well as the top-level ``pandas.fama_macbeth`` and ``pandas.ols`` routines are removed. Similar functionaility can be found in the `statsmodels <shttp://www.statsmodels.org/dev/>`__ package. (:issue:`11898`)
 - The ``TimeSeries`` and ``SparseTimeSeries`` classes, aliases of ``Series``
   and ``SparseSeries``, are removed (:issue:`10890`, :issue:`15098`).
-- ``Series.is_time_series`` is dropped in favor of ``Series.index.is_all_dates`` (:issue:``)
+- ``Series.is_time_series`` is dropped in favor of ``Series.index.is_all_dates`` (:issue:`15098`)
 - The deprecated ``irow``, ``icol``, ``iget`` and ``iget_value`` methods are removed
   in favor of ``iloc`` and ``iat`` as explained :ref:`here <whatsnew_0170.deprecations>` (:issue:`10711`).
 
@@ -681,7 +680,7 @@ Bug Fixes
 - Bug in ``Index`` power operations with reversed operands (:issue:`14973`)
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
 - Bug in ``TimedeltaIndex`` raising a ``ValueError`` when boolean indexing with ``loc`` (:issue:`14946`)
-- Bug in ``DatetimeIndex.round()`` and ``Timestamp.round()`` floating point accuracy when rounding by milliseconds or less (:issue: `14440`, :issue:`15578`)
+- Bug in ``DatetimeIndex.round()`` and ``Timestamp.round()`` floating point accuracy when rounding by milliseconds or less (:issue:`14440`, :issue:`15578`)
 - Bug in ``astype()`` where ``inf`` values were incorrectly converted to integers. Now raises error now with ``astype()`` for Series and DataFrames (:issue:`14265`)
 - Bug in ``DataFrame(..).apply(to_numeric)`` when values are of type decimal.Decimal. (:issue:`14827`)
 - Bug in ``describe()`` when passing a numpy array which does not contain the median to the ``percentiles`` keyword argument (:issue:`14908`)
