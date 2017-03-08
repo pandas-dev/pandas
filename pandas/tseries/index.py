@@ -1528,7 +1528,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _set_freq(self, value):
         self.offset = value
     freq = property(fget=_get_freq, fset=_set_freq,
-                    doc="get/set the frequncy of the Index")
+                    doc="get/set the frequency of the Index")
 
     year = _field_accessor('year', 'Y', "The year of the datetime")
     month = _field_accessor('month', 'M',
