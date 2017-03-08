@@ -174,6 +174,10 @@ class TestMultiIndexBasic(object):
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
 
+        with tm.assertRaises(KeyError):
+            # GH15452
+            x.loc[[4, 5]]
+
     def test_loc_getitem_array(self):
         # GH15434
         # passing an array as a key with a MultiIndex
