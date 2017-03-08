@@ -99,6 +99,34 @@ support for bz2 compression in the python 2 c-engine improved (:issue:`14874`).
 
 .. _whatsnew_0200.enhancements.uint64_support:
 
+Pickle file I/O now supports compression
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``read_pickle`` and ``to_pickle`` can now read from and write to compressed
+pickle files. Compression methods can be explicit parameter or be inferred
+from file extension.
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+       'A': np.random.randn(1000),
+       'B': np.random.randn(1000),
+       'C': np.random.randn(1000)})
+   df.to_pickle("data.pkl.xz")
+   df.to_pickle("data.pkl.compress", compression="gzip")
+   df["A"].to_pickle("s1.pkl.bz2")
+
+   df = pd.read_pickle("data.pkl.xz")
+   df = pd.read_pickle("data.pkl.compress", compression="gzip")
+   s = pd.read_pickle("s1.pkl.bz2")
+
+.. ipython:: python
+   :suppress:
+   import os
+   os.remove("data.pkl.xz")
+   os.remove("data.pkl.compress")
+   os.remove("s1.pkl.bz2")
+
 UInt64 Support Improved
 ^^^^^^^^^^^^^^^^^^^^^^^
 

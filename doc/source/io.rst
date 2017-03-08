@@ -2908,6 +2908,38 @@ any pickled pandas object (or any other pickled object) from file:
    import os
    os.remove('foo.pkl')
 
+The ``to_pickle`` and ``read_pickle`` methods can read and write compressed pickle files.
+For ``read_pickle`` method, ``compression`` parameter can be one of
+{``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``}, default ``'infer'``.
+If 'infer', then use gzip, bz2, zip, or xz if filename ends in '.gz', '.bz2', '.zip', or
+'.xz', respectively. If using 'zip', the ZIP file must contain only one data file to be
+read in. Set to ``None`` for no decompression.
+``to_pickle`` works in a similar way, except that 'zip' format is not supported. If the
+filename ends with '.zip', an exception will be raised.
+
+  .. versionadded:: 0.20.0
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+       'A': np.random.randn(1000),
+       'B': np.random.randn(1000),
+       'C': np.random.randn(1000)})
+   df.to_pickle("data.pkl.xz")
+   df.to_pickle("data.pkl.compress", compression="gzip")
+   df["A"].to_pickle("s1.pkl.bz2")
+
+   df = pd.read_pickle("data.pkl.xz")
+   df = pd.read_pickle("data.pkl.compress", compression="gzip")
+   s = pd.read_pickle("s1.pkl.bz2")
+
+.. ipython:: python
+   :suppress:
+   import os
+   os.remove("data.pkl.xz")
+   os.remove("data.pkl.compress")
+   os.remove("s1.pkl.bz2")
+
 .. warning::
 
    Loading pickled data received from untrusted sources can be unsafe.
