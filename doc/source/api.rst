@@ -1405,6 +1405,7 @@ MultiIndex
    :toctree: generated/
 
    MultiIndex
+   IndexSlice
 
 MultiIndex Components
 ~~~~~~~~~~~~~~~~~~~~~~
