@@ -3,7 +3,7 @@ import os
 import numpy as np
 from pandas.compat import zip
 
-from pandas import Series, Index
+from pandas import Series, Index, Categorical
 import pandas.util.testing as tm
 from pandas.util.testing import assertRaisesRegexp
 import pandas.core.common as com
@@ -239,7 +239,6 @@ class TestCut(tm.TestCase):
             self.assertTrue(ep <= sn)
 
     def test_cut_return_categorical(self):
-        from pandas import Categorical
         s = Series([0, 1, 2, 3, 4, 5, 6, 7, 8])
         res = cut(s, 3)
         exp = Series(Categorical.from_codes([0, 0, 0, 1, 1, 1, 2, 2, 2],
@@ -249,7 +248,6 @@ class TestCut(tm.TestCase):
         tm.assert_series_equal(res, exp)
 
     def test_qcut_return_categorical(self):
-        from pandas import Categorical
         s = Series([0, 1, 2, 3, 4, 5, 6, 7, 8])
         res = qcut(s, [0, 0.333, 0.666, 1])
         exp = Series(Categorical.from_codes([0, 0, 0, 1, 1, 1, 2, 2, 2],
@@ -285,6 +283,60 @@ class TestCut(tm.TestCase):
         # invalid
         self.assertRaises(ValueError, qcut, values, 3, duplicates='foo')
 
+    def test_single_quantile(self):
+        # issue 15431
+        expected = Series([0, 0])
+
+        s = Series([9., 9.])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+        result = qcut(s, 1)
+        exp_lab = Series(Categorical.from_codes([0, 0], ["[9, 9]"],
+                                                ordered=True))
+        tm.assert_series_equal(result, exp_lab)
+
+        s = Series([-9., -9.])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+        result = qcut(s, 1)
+        exp_lab = Series(Categorical.from_codes([0, 0], ["[-9, -9]"],
+                                                ordered=True))
+        tm.assert_series_equal(result, exp_lab)
+
+        s = Series([0., 0.])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+        result = qcut(s, 1)
+        exp_lab = Series(Categorical.from_codes([0, 0], ["[0, 0]"],
+                                                ordered=True))
+        tm.assert_series_equal(result, exp_lab)
+
+        expected = Series([0])
+
+        s = Series([9])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+        result = qcut(s, 1)
+        exp_lab = Series(Categorical.from_codes([0], ["[9, 9]"],
+                                                ordered=True))
+        tm.assert_series_equal(result, exp_lab)
+
+        s = Series([-9])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+        result = qcut(s, 1)
+        exp_lab = Series(Categorical.from_codes([0], ["[-9, -9]"],
+                                                ordered=True))
+        tm.assert_series_equal(result, exp_lab)
+
+        s = Series([0])
+        result = qcut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+        result = qcut(s, 1)
+        exp_lab = Series(Categorical.from_codes([0], ["[0, 0]"],
+                                                ordered=True))
+        tm.assert_series_equal(result, exp_lab)
+
     def test_single_bin(self):
         # issue 14652
         expected = Series([0, 0])
@@ -294,6 +346,29 @@ class TestCut(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         s = Series([-9., -9.])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([0])
+
+        s = Series([9])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        s = Series([-9])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        # issue 15428
+        expected = Series([0, 0])
+
+        s = Series([0., 0.])
+        result = cut(s, 1, labels=False)
+        tm.assert_series_equal(result, expected)
+
+        expected = Series([0])
+
+        s = Series([0])
         result = cut(s, 1, labels=False)
         tm.assert_series_equal(result, expected)
 

@@ -698,8 +698,8 @@ Bug Fixes
 - Bug in ``DataFrame.loc`` with indexing a ``MultiIndex`` with a ``Series`` indexer (:issue:`14730`, :issue:`15424`)
 - Bug in ``DataFrame.loc`` with indexing a ``MultiIndex`` with a numpy array (:issue:`15434`)
 - Bug in ``Rolling.quantile`` function that caused a segmentation fault when called with a quantile value outside of the range [0, 1] (:issue:`15463`)
-
-
+- Bug in ``pd.cut()`` with a single bin on an all 0s array (:issue:`15428`)
+- Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
 - Bug in ``SparseSeries.reindex`` on single level with list of length 1 (:issue:`15447`)
 
 
