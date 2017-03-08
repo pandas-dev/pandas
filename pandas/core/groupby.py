@@ -2963,7 +2963,17 @@ class SeriesGroupBy(GroupBy):
 
         Examples
         --------
-        >>> grouped.filter(lambda x: x.mean() > 0)
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+        ...                           'foo', 'bar'],
+        ...                    'B' : [1, 2, 3, 4, 5, 6],
+        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
+        >>> grouped = df.groupby('A')
+        >>> grouped.filter(lambda x: x['B'].mean() > 3.)
+             A  B    C
+        1  bar  2  5.0
+        3  bar  4  1.0
+        5  bar  6  9.0
 
         Returns
         -------
