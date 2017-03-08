@@ -4928,8 +4928,8 @@ def get_empty_dtype_and_na(join_units):
     elif 'timedelta' in upcast_classes:
         return np.dtype('m8[ns]'), tslib.iNaT
     else:  # pragma
-        g = pandas.types._.find_common_type(upcast_classes, [])
-        if is_float_type(g):
+        g = np.find_common_type(upcast_classes, [])
+        if is_float_dtype(g):
             return g, g.type(np.nan)
         elif is_numeric_dtype(g):
             if has_none_blocks:
