@@ -440,7 +440,7 @@ def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name + suffix)
 
 if suffix == '.pyx':
-    lib_depends = [srcpath(f, suffix='.pyx') for f in lib_depends]
+    lib_depends = [srcpath(f, suffix='.pyx', subdir='_libs/src') for f in lib_depends]
     lib_depends.append('pandas/_libs/src/util.pxd')
 else:
     lib_depends = []
@@ -474,13 +474,13 @@ libraries = ['m'] if not is_platform_windows() else []
 
 ext_data = {
     '_libs.lib': {'pyxfile': '_libs/lib',
-                  'pxdfiles': [],
-                  'depends': lib_depends},
+                  'depends': lib_depends + tseries_depends},
     '_libs.hashtable': {'pyxfile': '_libs/hashtable',
                         'pxdfiles': ['_libs/hashtable'],
                         'depends': (['pandas/_libs/src/klib/khash_python.h']
                                     + _pxi_dep['hashtable'])},
     '_libs.tslib': {'pyxfile': '_libs/tslib',
+                    'pxdfiles': ['_libs/src/util', '_libs/lib'],
                     'depends': tseries_depends,
                     'sources': ['pandas/_libs/src/datetime/np_datetime.c',
                                 'pandas/_libs/src/datetime/np_datetime_strings.c',
