@@ -203,6 +203,27 @@ class TestMultiIndexBasic(object):
         result = x.loc[scalar]
         tm.assert_series_equal(result, expected)
 
+    def test_loc_generator(self):
+        index = MultiIndex.from_product([[1, 2, 3], ['A', 'B', 'C']])
+        x = Series(index=index, data=range(9), dtype=np.float64)
+        y = [1, 3]
+
+        # getitem:
+        expected = Series(
+            data=[0, 1, 2, 6, 7, 8],
+            index=MultiIndex.from_product([[1, 3], ['A', 'B', 'C']]),
+            dtype=np.float64)
+        result = x.loc[iter(y)]
+        tm.assert_series_equal(result, expected)
+
+        # setitem:
+        expected = Series(
+            data=[9, 10, 11, 3, 4, 5, 12, 13, 14],
+            index=index,
+            dtype=np.float64)
+        x.loc[iter(y)] = range(9, 15)
+        tm.assert_series_equal(x, expected)
+
     def test_iloc_getitem_multiindex(self):
         mi_labels = DataFrame(np.random.randn(4, 3),
                               columns=[['i', 'i', 'j'], ['A', 'A', 'B']],
