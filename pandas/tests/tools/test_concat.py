@@ -1933,8 +1933,8 @@ bar2,12,13,14,15
             objs.append(pdt(np.array([1], dtype=np.float16, ndmin=dims)))
             self.assertTrue(pd.concat(objs).values.dtype == np.float64)
 
-    @parametrize('dtype', np.sctypes('float'))
-    @parametrize('klass', [Series, DataFrame, Panel])
+    @pytest.mark.parametrize('dtype', np.sctypes('float'))
+    @pytest.mark.parametrize('klass', [Series, DataFrame, Panel])
     def test_concat_no_unnecessary_upcats_pytest(self, dtype, klass):
         # GH 13247
         for pdt in klass:
