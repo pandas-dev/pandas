@@ -41,8 +41,8 @@
 <tr>
   <td></td>
   <td>
-    <a href="https://ci.appveyor.com/project/jreback/pandas-465">
-    <img src="https://ci.appveyor.com/api/projects/status/iblk29s98quexwxi/branch/master?svg=true" alt="appveyor build status" />
+    <a href="https://ci.appveyor.com/project/pandas-dev/pandas">
+    <img src="https://ci.appveyor.com/api/projects/status/86vn83mxgnl4xf1s/branch/master?svg=true" alt="appveyor build status" />
     </a>
   </td>
 </tr>
