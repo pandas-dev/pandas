@@ -336,6 +336,12 @@ def _skip_if_no_xarray():
         import pytest
         pytest.skip("xarray not version is too low: {0}".format(v))
 
+def _skip_if_scipy_0_17():
+    import scipy
+    v = scipy.__version__
+    if v >= LooseVersion("0.17.0"):
+        import nose
+        raise nose.SkipTest("scipy 0.17")
 
 def _skip_if_no_pytz():
     try:
