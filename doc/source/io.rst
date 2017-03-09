@@ -2070,9 +2070,9 @@ by the Table Schema spec.
 The full list of types supported are described in the Table Schema
 spec. This table shows the mapping from pandas types:
 
-==============  =================
+=============== =================
 Pandas type     Table Schema type
-==============  =================
+=============== =================
 int64           integer
 float64         number
 bool            boolean
@@ -3096,6 +3096,7 @@ The default is to 'infer
 
 .. ipython:: python
    :suppress:
+
    import os
    os.remove("data.pkl.compress")
    os.remove("data.pkl.xz")

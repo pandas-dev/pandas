@@ -140,6 +140,7 @@ The default is to 'infer
 
 .. ipython:: python
    :suppress:
+
    import os
    os.remove("data.pkl.compress")
    os.remove("data.pkl.xz")

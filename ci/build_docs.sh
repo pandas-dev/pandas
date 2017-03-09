@@ -23,9 +23,6 @@ if [ x"$DOC_BUILD" != x"" ]; then
 
     source activate pandas
 
-    # install sudo deps
-    time sudo apt-get $APT_ARGS install dvipng texlive-latex-base texlive-latex-extra
-
     mv "$TRAVIS_BUILD_DIR"/doc /tmp
     cd /tmp/doc
 
