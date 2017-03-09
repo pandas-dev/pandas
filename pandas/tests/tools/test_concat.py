@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_frame_equal,
 
 import pytest
 
+
 class ConcatenateBase(tm.TestCase):
 
     def setUp(self):
@@ -1934,30 +1935,30 @@ bar2,12,13,14,15
             objs.append(pdt(np.array([1], dtype=np.float16, ndmin=dims)))
             self.assertTrue(pd.concat(objs).values.dtype == np.float64)
 
-    # @pytest.mark.parametrize('dtype', np.sctypes['float'])
-    # def test_concat_no_unnecessary_upcast_pytest(dtype):
-    #     klass = [Series, DataFrame, Panel]
-    #     for pdt in klass:
-    #         dims = pdt().ndim
-    #         for dt in dtype:
-    #             dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
-    #                    pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
-    #                    pdt(np.array([5], dtype=dt, ndmin=dims))]
-    #             x = pd.concat(dfs)
-    #             assert x.values.dtype == dt
-    #
-    #         objs = []
-    #         objs.append(pdt(np.array([1], dtype=np.float32, ndmin=dims)))
-    #         objs.append(pdt(np.array([1], dtype=np.float16, ndmin=dims)))
-    #         assert pd.concat(objs).values.dtype == np.float32
-    #
-    #         objs = []
-    #         objs.append(pdt(np.array([1], dtype=np.int32, ndmin=dims)))
-    #         objs.append(pdt(np.array([1], dtype=np.int64, ndmin=dims)))
-    #         assert pd.concat(objs).values.dtype == np.int64
-    #
-    #         # not sure what is the best answer here
-    #         objs = []
-    #         objs.append(pdt(np.array([1], dtype=np.int32, ndmin=dims)))
-    #         objs.append(pdt(np.array([1], dtype=np.float16, ndmin=dims)))
-    #         assert pd.concat(objs).values.dtype == np.float64
+
+@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
+@pytest.mark.parametrize('dt', np.sctypes['float'])
+def test_concat_no_unnecessary_upcast_pytest(dt, pdt):
+    # GH 13247
+    dims = pdt().ndim
+    dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
+           pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
+           pdt(np.array([5], dtype=dt, ndmin=dims))]
+    x = pd.concat(dfs)
+    assert x.values.dtype == dt
+
+    objs = []
+    objs.append(pdt(np.array([1], dtype=np.float32, ndmin=dims)))
+    objs.append(pdt(np.array([1], dtype=np.float16, ndmin=dims)))
+    assert pd.concat(objs).values.dtype == np.float32
+
+    objs = []
+    objs.append(pdt(np.array([1], dtype=np.int32, ndmin=dims)))
+    objs.append(pdt(np.array([1], dtype=np.int64, ndmin=dims)))
+    assert pd.concat(objs).values.dtype == np.int64
+
+    # not sure what is the best answer here
+    objs = []
+    objs.append(pdt(np.array([1], dtype=np.int32, ndmin=dims)))
+    objs.append(pdt(np.array([1], dtype=np.float16, ndmin=dims)))
+    assert pd.concat(objs).values.dtype == np.float64
