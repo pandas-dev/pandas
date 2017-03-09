@@ -1,11 +1,4 @@
 import pytest
-import numpy
-import pandas
-
-@pytest.fixture(autouse=True)
-def add_imports(doctest_namespace):
-    doctest_namespace['np'] = numpy
-    doctest_namespace['pd'] = pandas
 
 import numpy
 import pandas

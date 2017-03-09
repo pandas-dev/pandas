@@ -370,7 +370,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         >>> pd.Series(pd.date_range('20130101', periods=3,
         ...                         tz='US/Eastern')).values
-        array(['2013-01-01T05:00:00.000000000', '2013-01-02T05:00:00.000000000',
+        array(['2013-01-01T05:00:00.000000000',
+               '2013-01-02T05:00:00.000000000',
                '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
 
         """
@@ -1922,17 +1923,17 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> import numpy as np
         >>> s = pd.Series(np.random.randn(10**6))
         >>> s.nlargest(10)  # only sorts up to the N requested
-            219921    4.644710
-            82124     4.608745
-            421689    4.564644
-            425277    4.447014
-            718691    4.414137
-            43154     4.403520
-            283187    4.313922
-            595519    4.273635
-            503969    4.250236
-            121637    4.240952
-            dtype: float64
+        219921    4.644710
+        82124     4.608745
+        421689    4.564644
+        425277    4.447014
+        718691    4.414137
+        43154     4.403520
+        283187    4.313922
+        595519    4.273635
+        503969    4.250236
+        121637    4.240952
+        dtype: float64
         """
         return algorithms.select_n_series(self, n=n, keep=keep,
                                           method='nlargest')
@@ -1972,17 +1973,17 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         >>> import numpy as np
         >>> s = pd.Series(np.random.randn(10**6))
         >>> s.nsmallest(10)  # only sorts up to the N requested
-            288532   -4.954580
-            732345   -4.835960
-            64803    -4.812550
-            446457   -4.609998
-            501225   -4.483945
-            669476   -4.472935
-            973615   -4.401699
-            621279   -4.355126
-            773916   -4.347355
-            359919   -4.331927
-            dtype: float64
+        288532   -4.954580
+        732345   -4.835960
+        64803    -4.812550
+        446457   -4.609998
+        501225   -4.483945
+        669476   -4.472935
+        973615   -4.401699
+        621279   -4.355126
+        773916   -4.347355
+        359919   -4.331927
+        dtype: float64
         """
         return algorithms.select_n_series(self, n=n, keep=keep,
                                           method='nsmallest')
@@ -2075,7 +2076,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4], index=pd.MultiIndex.from_product([['one', 'two'], ['a', 'b']]))
+        >>> s = pd.Series([1, 2, 3, 4],
+        ...     index=pd.MultiIndex.from_product([['one', 'two'], ['a', 'b']]))
         >>> s
         one  a    1
              b    2
