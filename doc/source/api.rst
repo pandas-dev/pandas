@@ -118,7 +118,6 @@ Google BigQuery
    :toctree: generated/
 
    read_gbq
-   to_gbq
 
 
 .. currentmodule:: pandas
@@ -1237,7 +1236,7 @@ Serialization / IO / Conversion
    Panel.to_frame
    Panel.to_xarray
    Panel.to_clipboard
-   
+
 .. _api.index:
 
 Index
