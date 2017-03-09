@@ -17,7 +17,6 @@ import pytest
 import os
 from distutils.version import LooseVersion
 import pandas as pd
-import numpy as np
 from pandas import Index
 from pandas.compat import is_platform_little_endian
 import pandas
@@ -391,12 +390,16 @@ def test_write_explicit(compression):
 
     with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
         df = tm.makeDataFrame()
+
         # write to compressed file
         df.to_pickle(p1, compression=compression)
+
         # decompress
         decompress_file(p1, p2, compression=compression)
+
         # read decompressed file
         df2 = pd.read_pickle(p2, compression=None)
+
         tm.assert_frame_equal(df, df2)
 
 
@@ -425,12 +428,16 @@ def test_write_infer(ext):
 
     with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
         df = tm.makeDataFrame()
+
         # write to compressed file by inferred compression method
         df.to_pickle(p1)
+
         # decompress
         decompress_file(p1, p2, compression=compression)
+
         # read decompressed file
         df2 = pd.read_pickle(p2, compression=None)
+
         tm.assert_frame_equal(df, df2)
 
 
@@ -446,12 +453,16 @@ def test_read_explicit(compression):
 
     with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
         df = tm.makeDataFrame()
+
         # write to uncompressed file
         df.to_pickle(p1, compression=None)
+
         # compress
         compress_file(p1, p2, compression=compression)
+
         # read compressed file
         df2 = pd.read_pickle(p2, compression=compression)
+
         tm.assert_frame_equal(df, df2)
 
 
@@ -472,43 +483,14 @@ def test_read_infer(ext):
 
     with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
         df = tm.makeDataFrame()
+
         # write to uncompressed file
         df.to_pickle(p1, compression=None)
+
         # compress
         compress_file(p1, p2, compression=compression)
+
         # read compressed file by inferred compression method
         df2 = pd.read_pickle(p2)
+
         tm.assert_frame_equal(df, df2)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def notest_zip():
-    df = pd.DataFrame({
-        'A': np.random.randn(100).repeat(10),
-        'B': np.random.randn(100).repeat(10),
-        'C': np.random.randn(100).repeat(10)})
-    os.chdir("d:\\test")
-
-    df.to_pickle("data.raw")
-    compress_file("data.raw", "data.zip", "zip")
-    compress_file("data.raw", "data.xz", "xz")
-    compress_file("data.raw", "data.bz2", "bz2")
-    compress_file("data.raw", "data.gz", "gzip")
-
-    decompress_file("data.zip", "data.zip.raw", "zip")
-    decompress_file("data.xz", "data.xz.raw", "xz")
-    decompress_file("data.bz2", "data.bz2.raw", "bz2")
-    decompress_file("data.gz", "data.gz.raw", "gzip")

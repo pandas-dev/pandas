@@ -97,14 +97,15 @@ support for bz2 compression in the python 2 c-engine improved (:issue:`14874`).
    df = pd.read_table(url, compression='bz2')  # explicitly specify compression
    df.head(2)
 
-.. _whatsnew_0200.enhancements.uint64_support:
+.. _whatsnew_0200.enhancements.pickle_compression:
 
 Pickle file I/O now supports compression
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``read_pickle`` and ``to_pickle`` can now read from and write to compressed
-pickle files. Compression methods can be explicit parameter or be inferred
-from file extension.
+:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle`
+can now read from and write to compressed pickle files. Compression methods
+can be an explicit parameter or be inferred from the file extension.
+See :ref:`Read/Write compressed pickle files <io.pickle.compression>`
 
 .. ipython:: python
 
@@ -112,20 +113,25 @@ from file extension.
        'A': np.random.randn(1000),
        'B': np.random.randn(1000),
        'C': np.random.randn(1000)})
-   df.to_pickle("data.pkl.xz")
-   df.to_pickle("data.pkl.compress", compression="gzip")
+   df.to_pickle("data.pkl.compress", compression="gzip")  # explicit compression type
+   df.to_pickle("data.pkl.xz", compression="infer")  # infer compression type from extension
+   df.to_pickle("data.pkl.gz")  # default, using "infer"
    df["A"].to_pickle("s1.pkl.bz2")
 
-   df = pd.read_pickle("data.pkl.xz")
    df = pd.read_pickle("data.pkl.compress", compression="gzip")
+   df = pd.read_pickle("data.pkl.xz", compression="infer")
+   df = pd.read_pickle("data.pkl.gz")
    s = pd.read_pickle("s1.pkl.bz2")
 
 .. ipython:: python
    :suppress:
    import os
-   os.remove("data.pkl.xz")
    os.remove("data.pkl.compress")
+   os.remove("data.pkl.xz")
+   os.remove("data.pkl.gz")
    os.remove("s1.pkl.bz2")
+
+.. _whatsnew_0200.enhancements.uint64_support:
 
 UInt64 Support Improved
 ^^^^^^^^^^^^^^^^^^^^^^^
