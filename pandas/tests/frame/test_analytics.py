@@ -181,28 +181,33 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][10:])
         del b['B']
 
-        colcorr = a.corrwith(b, axis=0)
-        tm.assert_almost_equal(colcorr['A'], a['A'].corr(b['A']))
+        for meth in ['pearson', 'kendall', 'spearman']:
+            colcorr = a.corrwith(b, axis=0, method=meth)
+            tm.assert_almost_equal(colcorr['A'],
+                                   a['A'].corr(b['A'], method=meth))
 
-        rowcorr = a.corrwith(b, axis=1)
-        tm.assert_series_equal(rowcorr, a.T.corrwith(b.T, axis=0))
+            rowcorr = a.corrwith(b, axis=1, method=meth)
+            tm.assert_series_equal(rowcorr,
+                                   a.T.corrwith(b.T, axis=0, method=meth))
 
-        dropped = a.corrwith(b, axis=0, drop=True)
-        tm.assert_almost_equal(dropped['A'], a['A'].corr(b['A']))
-        self.assertNotIn('B', dropped)
+            dropped = a.corrwith(b, axis=0, drop=True, method=meth)
+            tm.assert_almost_equal(dropped['A'],
+                                   a['A'].corr(b['A'], method=meth))
+            self.assertNotIn('B', dropped)
 
-        dropped = a.corrwith(b, axis=1, drop=True)
-        self.assertNotIn(a.index[-1], dropped.index)
+            dropped = a.corrwith(b, axis=1, drop=True, method=meth)
+            self.assertNotIn(a.index[-1], dropped.index)
 
-        # non time-series data
-        index = ['a', 'b', 'c', 'd', 'e']
-        columns = ['one', 'two', 'three', 'four']
-        df1 = DataFrame(randn(5, 4), index=index, columns=columns)
-        df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
-        correls = df1.corrwith(df2, axis=1)
-        for row in index[:4]:
-            tm.assert_almost_equal(correls[row],
-                                   df1.loc[row].corr(df2.loc[row]))
+            # non time-series data
+            index = ['a', 'b', 'c', 'd', 'e']
+            columns = ['one', 'two', 'three', 'four']
+            df1 = DataFrame(randn(5, 4), index=index, columns=columns)
+            df2 = DataFrame(randn(4, 4), index=index[:4], columns=columns)
+            correls = df1.corrwith(df2, axis=1, method=meth)
+            for row in index[:4]:
+                tm.assert_almost_equal(correls[row],
+                                       df1.loc[row].corr(df2.loc[row],
+                                                         method=meth))
 
     def test_corrwith_with_objects(self):
         df1 = tm.makeTimeDataFrame()
@@ -212,19 +217,22 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df1['obj'] = 'foo'
         df2['obj'] = 'bar'
 
-        result = df1.corrwith(df2)
-        expected = df1.loc[:, cols].corrwith(df2.loc[:, cols])
-        tm.assert_series_equal(result, expected)
+        for meth in ['pearson', 'kendall', 'spearman']:
+            result = df1.corrwith(df2, method=meth)
+            expected = df1.loc[:, cols].corrwith(df2.loc[:, cols], method=meth)
+            tm.assert_series_equal(result, expected)
 
-        result = df1.corrwith(df2, axis=1)
-        expected = df1.loc[:, cols].corrwith(df2.loc[:, cols], axis=1)
-        tm.assert_series_equal(result, expected)
+            result = df1.corrwith(df2, axis=1, method=meth)
+            expected = df1.loc[:, cols].corrwith(df2.loc[:, cols],
+                                                 axis=1, method=meth)
+            tm.assert_series_equal(result, expected)
 
     def test_corrwith_series(self):
-        result = self.tsframe.corrwith(self.tsframe['A'])
-        expected = self.tsframe.apply(self.tsframe['A'].corr)
+        for meth in ['pearson', 'kendall', 'spearman']:
+            result = self.tsframe.corrwith(self.tsframe['A'], method=meth)
+            expected = self.tsframe.apply(self.tsframe['A'].corr, method=meth)
 
-        tm.assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
     def test_corrwith_matches_corrcoef(self):
         df1 = DataFrame(np.arange(10000), columns=['a'])

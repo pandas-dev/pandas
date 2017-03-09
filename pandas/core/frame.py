@@ -4805,7 +4805,8 @@ class DataFrame(NDFrame):
 
         return self._constructor(baseCov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False):
+    def corrwith(self, other, axis=0, drop=False, method='pearson',
+                 min_periods=1):
         """
         Compute pairwise correlation between rows or columns of two DataFrame
         objects.
@@ -4817,6 +4818,17 @@ class DataFrame(NDFrame):
             0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
         drop : boolean, default False
             Drop missing indices from result, default returns union of all
+        method : {'pearson', 'kendall', 'spearman'}
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+
+            .. versionadded:: 0.20.0
+
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result
+
+            .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -4824,29 +4836,23 @@ class DataFrame(NDFrame):
         """
         axis = self._get_axis_number(axis)
         if isinstance(other, Series):
-            return self.apply(other.corr, axis=axis)
+            return self.apply(other.corr, axis=axis,
+                              method=method, min_periods=min_periods)
 
         this = self._get_numeric_data()
         other = other._get_numeric_data()
 
         left, right = this.align(other, join='inner', copy=False)
 
-        # mask missing values
-        left = left + right * 0
-        right = right + left * 0
-
         if axis == 1:
             left = left.T
             right = right.T
 
-        # demeaned data
-        ldem = left - left.mean()
-        rdem = right - right.mean()
-
-        num = (ldem * rdem).sum()
-        dom = (left.count() - 1) * left.std() * right.std()
-
-        correl = num / dom
+        correl = Series({col: nanops.nancorr(left[col].values,
+                                             right[col].values,
+                                             method=method,
+                                             min_periods=min_periods)
+                         for col in left.columns})
 
         if not drop:
             raxis = 1 if axis == 0 else 0

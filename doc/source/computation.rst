@@ -157,6 +157,7 @@ objects.
    df2 = pd.DataFrame(np.random.randn(4, 4), index=index[:4], columns=columns)
    df1.corrwith(df2)
    df2.corrwith(df1, axis=1)
+   df2.corrwith(df1, axis=1, method='kendall')
 
 .. _computation.ranking:
 
