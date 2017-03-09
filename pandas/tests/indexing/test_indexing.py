@@ -76,7 +76,8 @@ def _get_result(obj, method, key, axis):
 
     # in case we actually want 0 index slicing
     try:
-        xp = getattr(obj, method).__getitem__(_axify(obj, key, axis))
+        with catch_warnings(record=True):
+            xp = getattr(obj, method).__getitem__(_axify(obj, key, axis))
     except:
         xp = getattr(obj, method).__getitem__(key)
 
@@ -1023,8 +1024,7 @@ class TestIndexing(tm.TestCase):
             [6, 7, 8], ['a', 'b'])])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[6:8, :]
-        with catch_warnings(record=True):
-            expected = df.ix[6:8, :]
+        expected = df
         tm.assert_frame_equal(result, expected)
 
         index = MultiIndex.from_tuples([t
@@ -1032,14 +1032,13 @@ class TestIndexing(tm.TestCase):
                                             [10, 20, 30], ['a', 'b'])])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[20:30, :]
-        with catch_warnings(record=True):
-            expected = df.ix[20:30, :]
+        expected = df.iloc[2:]
         tm.assert_frame_equal(result, expected)
 
         # doc examples
         result = df.loc[10, :]
-        with catch_warnings(record=True):
-            expected = df.ix[10, :]
+        expected = df.iloc[0:2]
+        expected.index = ['a', 'b']
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[:, 10]
@@ -1276,8 +1275,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         df.loc[:, 'B':'D'] = 0
         expected = df.loc[:, 'B':'D']
-        with catch_warnings(record=True):
-            result = df.ix[:, 1:]
+        result = df.iloc[:, 1:]
         tm.assert_frame_equal(result, expected)
 
         # GH 6254
@@ -1487,12 +1485,6 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df['bar'] = np.zeros(10, dtype=np.complex)
 
         # invalid
-        def f():
-            with catch_warnings(record=True):
-                df.ix[2:5, 'bar'] = np.array([2.33j, 1.23 + 0.1j, 2.2])
-
-        self.assertRaises(ValueError, f)
-
         def f():
             df.loc[df.index[2:5], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
                                                      2.2, 1.0])
@@ -1758,22 +1750,23 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # inconsistent returns for unique/duplicate indices when values are
         # missing
         df = DataFrame(randn(4, 3), index=list('ABCD'))
-        expected = df.ix[['E']]
+        expected = df.reindex(['E'])
 
         dfnu = DataFrame(randn(5, 3), index=list('AABCD'))
-        result = dfnu.ix[['E']]
+        with catch_warnings(record=True):
+            result = dfnu.ix[['E']]
         tm.assert_frame_equal(result, expected)
 
         # ToDo: check_index_type can be True after GH 11497
 
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": [0, 1, 2]})
-        result = df.ix[[0, 8, 0]]
+        result = df.loc[[0, 8, 0]]
         expected = DataFrame({"A": [0, np.nan, 0]}, index=[0, 8, 0])
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
         df = DataFrame({"A": list('abc')})
-        result = df.ix[[0, 8, 0]]
+        result = df.loc[[0, 8, 0]]
         expected = DataFrame({"A": ['a', np.nan, 'a']}, index=[0, 8, 0])
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
@@ -1781,7 +1774,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame({'test': [5, 7, 9, 11]}, index=['A', 'A', 'B', 'C'])
         expected = DataFrame(
             {'test': [5, 7, 5, 7, np.nan]}, index=['A', 'A', 'A', 'A', 'E'])
-        result = df.ix[['A', 'A', 'E']]
+        result = df.loc[['A', 'A', 'E']]
         tm.assert_frame_equal(result, expected)
 
         # GH 5835
@@ -1790,9 +1783,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             np.random.randn(5, 5), columns=['A', 'B', 'B', 'B', 'A'])
 
         expected = pd.concat(
-            [df.ix[:, ['A', 'B']], DataFrame(np.nan, columns=['C'],
-                                             index=df.index)], axis=1)
-        result = df.ix[:, ['A', 'B', 'C']]
+            [df.loc[:, ['A', 'B']], DataFrame(np.nan, columns=['C'],
+                                              index=df.index)], axis=1)
+        result = df.loc[:, ['A', 'B', 'C']]
         tm.assert_frame_equal(result, expected)
 
         # GH 6504, multi-axis indexing
@@ -1822,8 +1815,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # this does not work, ie column test is not changed
         idx = df['test'] == '_'
-        temp = df.ix[idx, 'a'].apply(lambda x: '-----' if x == 'aaa' else x)
-        df.ix[idx, 'test'] = temp
+        temp = df.loc[idx, 'a'].apply(lambda x: '-----' if x == 'aaa' else x)
+        df.loc[idx, 'test'] = temp
         self.assertEqual(df.iloc[0, 2], '-----')
 
         # if I look at df, then element [0,2] equals '_'. If instead I type
@@ -1925,14 +1918,14 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                         'PF': [0, 0, 0, 0, 1, 1],
                         'col1': lrange(6),
                         'col2': lrange(6, 12)})
-        df.ix[1, 0] = np.nan
+        df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
         mask = ~df2.FC.isnull()
         cols = ['col1', 'col2']
 
         dft = df2 * 2
-        dft.ix[3, 3] = np.nan
+        dft.iloc[3, 3] = np.nan
 
         expected = DataFrame({'FC': ['a', np.nan, 'a', 'b', 'a', 'b'],
                               'PF': [0, 0, 0, 0, 1, 1],
@@ -1940,17 +1933,17 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                               'col2': [12, 7, 16, np.nan, 20, 22]})
 
         # frame on rhs
-        df2.ix[mask, cols] = dft.ix[mask, cols]
+        df2.loc[mask, cols] = dft.loc[mask, cols]
         tm.assert_frame_equal(df2, expected)
 
-        df2.ix[mask, cols] = dft.ix[mask, cols]
+        df2.loc[mask, cols] = dft.loc[mask, cols]
         tm.assert_frame_equal(df2, expected)
 
         # with an ndarray on rhs
         df2 = df.copy()
-        df2.ix[mask, cols] = dft.ix[mask, cols].values
+        df2.loc[mask, cols] = dft.loc[mask, cols].values
         tm.assert_frame_equal(df2, expected)
-        df2.ix[mask, cols] = dft.ix[mask, cols].values
+        df2.loc[mask, cols] = dft.loc[mask, cols].values
         tm.assert_frame_equal(df2, expected)
 
         # broadcasting on the rhs is required
@@ -1970,8 +1963,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame(tm.getSeriesData())
         df['foo'] = 'bar'
 
-        orig = df.ix[:, 'B'].copy()
-        df.ix[:, 'B'] = df.ix[:, 'B'] + 1
+        orig = df.loc[:, 'B'].copy()
+        df.loc[:, 'B'] = df.loc[:, 'B'] + 1
         tm.assert_series_equal(df.B, orig + 1)
 
         # GH 3668, mixed frame with series value
@@ -1981,21 +1974,21 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         for i in range(5):
             indexer = i * 2
             v = 1000 + i * 200
-            expected.ix[indexer, 'y'] = v
-            self.assertEqual(expected.ix[indexer, 'y'], v)
+            expected.loc[indexer, 'y'] = v
+            self.assertEqual(expected.loc[indexer, 'y'], v)
 
-        df.ix[df.x % 2 == 0, 'y'] = df.ix[df.x % 2 == 0, 'y'] * 100
+        df.loc[df.x % 2 == 0, 'y'] = df.loc[df.x % 2 == 0, 'y'] * 100
         tm.assert_frame_equal(df, expected)
 
         # GH 4508, making sure consistency of assignments
         df = DataFrame({'a': [1, 2, 3], 'b': [0, 1, 2]})
-        df.ix[[0, 2, ], 'b'] = [100, -100]
+        df.loc[[0, 2, ], 'b'] = [100, -100]
         expected = DataFrame({'a': [1, 2, 3], 'b': [100, 1, -100]})
         tm.assert_frame_equal(df, expected)
 
         df = pd.DataFrame({'a': lrange(4)})
         df['b'] = np.nan
-        df.ix[[1, 3], 'b'] = [100, -100]
+        df.loc[[1, 3], 'b'] = [100, -100]
         expected = DataFrame({'a': [0, 1, 2, 3],
                               'b': [np.nan, 100, np.nan, -100]})
         tm.assert_frame_equal(df, expected)
@@ -2005,7 +1998,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         with option_context('chained_assignment', None):
             df = pd.DataFrame({'a': lrange(4)})
             df['b'] = np.nan
-            df['b'].ix[[1, 3]] = [100, -100]
+            df['b'].loc[[1, 3]] = [100, -100]
             tm.assert_frame_equal(df, expected)
 
     def test_ix_get_set_consistency(self):
@@ -2017,15 +2010,18 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                        columns=['a', 'b', 8, 'c'],
                        index=['e', 7, 'f', 'g'])
 
-        self.assertEqual(df.ix['e', 8], 2)
+        with catch_warnings(record=True):
+            self.assertEqual(df.ix['e', 8], 2)
         self.assertEqual(df.loc['e', 8], 2)
 
-        df.ix['e', 8] = 42
-        self.assertEqual(df.ix['e', 8], 42)
+        with catch_warnings(record=True):
+            df.ix['e', 8] = 42
+            self.assertEqual(df.ix['e', 8], 42)
         self.assertEqual(df.loc['e', 8], 42)
 
         df.loc['e', 8] = 45
-        self.assertEqual(df.ix['e', 8], 45)
+        with catch_warnings(record=True):
+            self.assertEqual(df.ix['e', 8], 45)
         self.assertEqual(df.loc['e', 8], 45)
 
     def test_setitem_list(self):
@@ -2033,11 +2029,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # GH 6043
         # ix with a list
         df = DataFrame(index=[0, 1], columns=[0])
-        df.ix[1, 0] = [1, 2, 3]
-        df.ix[1, 0] = [1, 2]
+        with catch_warnings(record=True):
+            df.ix[1, 0] = [1, 2, 3]
+            df.ix[1, 0] = [1, 2]
 
         result = DataFrame(index=[0, 1], columns=[0])
-        result.ix[1, 0] = [1, 2]
+        with catch_warnings(record=True):
+            result.ix[1, 0] = [1, 2]
 
         tm.assert_frame_equal(result, df)
 
@@ -2059,18 +2057,21 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                 return self
 
         df = DataFrame(index=[0, 1], columns=[0])
-        df.ix[1, 0] = TO(1)
-        df.ix[1, 0] = TO(2)
+        with catch_warnings(record=True):
+            df.ix[1, 0] = TO(1)
+            df.ix[1, 0] = TO(2)
 
         result = DataFrame(index=[0, 1], columns=[0])
-        result.ix[1, 0] = TO(2)
+        with catch_warnings(record=True):
+            result.ix[1, 0] = TO(2)
 
         tm.assert_frame_equal(result, df)
 
         # remains object dtype even after setting it back
         df = DataFrame(index=[0, 1], columns=[0])
-        df.ix[1, 0] = TO(1)
-        df.ix[1, 0] = np.nan
+        with catch_warnings(record=True):
+            df.ix[1, 0] = TO(1)
+            df.ix[1, 0] = np.nan
         result = DataFrame(index=[0, 1], columns=[0])
 
         tm.assert_frame_equal(result, df)
@@ -2146,7 +2147,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame(data)
         x = df[~df.Classification.isin(['SA EQUITY CFD', 'SA EQUITY', 'SA SSF'
                                         ])]
-        df.ix[x.index, 'X'] = df['Classification']
+        with catch_warnings(record=True):
+            df.ix[x.index, 'X'] = df['Classification']
 
         expected = DataFrame({'Classification': {0: 'SA EQUITY CFD',
                                                  1: 'bbb',
@@ -2204,7 +2206,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[[0, 1]].index.name
         self.assertEqual(result, 'index_name')
 
-        result = df.ix[[0, 1]].index.name
+        with catch_warnings(record=True):
+            result = df.ix[[0, 1]].index.name
         self.assertEqual(result, 'index_name')
 
         result = df.loc[[0, 1]].index.name
@@ -2488,28 +2491,32 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # single dtype frame, overwrite
         expected = DataFrame(dict({'A': [0, 2, 4], 'B': [0, 2, 4]}))
         df = df_orig.copy()
-        df.ix[:, 'B'] = df.ix[:, 'A']
+        with catch_warnings(record=True):
+            df.ix[:, 'B'] = df.ix[:, 'A']
         tm.assert_frame_equal(df, expected)
 
         # mixed dtype frame, overwrite
         expected = DataFrame(dict({'A': [0, 2, 4], 'B': Series([0, 2, 4])}))
         df = df_orig.copy()
         df['B'] = df['B'].astype(np.float64)
-        df.ix[:, 'B'] = df.ix[:, 'A']
+        with catch_warnings(record=True):
+            df.ix[:, 'B'] = df.ix[:, 'A']
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, partial setting
         expected = df_orig.copy()
         expected['C'] = df['A']
         df = df_orig.copy()
-        df.ix[:, 'C'] = df.ix[:, 'A']
+        with catch_warnings(record=True):
+            df.ix[:, 'C'] = df.ix[:, 'A']
         tm.assert_frame_equal(df, expected)
 
         # mixed frame, partial setting
         expected = df_orig.copy()
         expected['C'] = df['A']
         df = df_orig.copy()
-        df.ix[:, 'C'] = df.ix[:, 'A']
+        with catch_warnings(record=True):
+            df.ix[:, 'C'] = df.ix[:, 'A']
         tm.assert_frame_equal(df, expected)
 
         # ## panel ##
@@ -2750,29 +2757,34 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # don't allow not string inserts
         def f():
-            df.loc[100.0, :] = df.ix[0]
+            with catch_warnings(record=True):
+                df.loc[100.0, :] = df.ix[0]
 
         self.assertRaises(TypeError, f)
 
         def f():
-            df.loc[100, :] = df.ix[0]
+            with catch_warnings(record=True):
+                df.loc[100, :] = df.ix[0]
 
         self.assertRaises(TypeError, f)
 
         def f():
-            df.ix[100.0, :] = df.ix[0]
+            with catch_warnings(record=True):
+                df.ix[100.0, :] = df.ix[0]
 
         self.assertRaises(TypeError, f)
 
         def f():
-            df.ix[100, :] = df.ix[0]
+            with catch_warnings(record=True):
+                df.ix[100, :] = df.ix[0]
 
         self.assertRaises(ValueError, f)
 
         # allow object conversion here
         df = orig.copy()
-        df.loc['a', :] = df.ix[0]
-        exp = orig.append(pd.Series(df.ix[0], name='a'))
+        with catch_warnings(record=True):
+            df.loc['a', :] = df.ix[0]
+            exp = orig.append(pd.Series(df.ix[0], name='a'))
         tm.assert_frame_equal(df, exp)
         tm.assert_index_equal(df.index,
                               pd.Index(orig.index.tolist() + ['a']))
@@ -2979,15 +2991,17 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         df = tm.makeDataFrame()
         df['A']  # cache series
-        df.ix["Hello Friend"] = df.ix[0]
+        with catch_warnings(record=True):
+            df.ix["Hello Friend"] = df.ix[0]
         self.assertIn("Hello Friend", df['A'].index)
         self.assertIn("Hello Friend", df['B'].index)
 
-        panel = tm.makePanel()
-        panel.ix[0]  # get first item into cache
-        panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-        self.assertIn("A+1", panel.ix[0].columns)
-        self.assertIn("A+1", panel.ix[1].columns)
+        with catch_warnings(record=True):
+            panel = tm.makePanel()
+            panel.ix[0]  # get first item into cache
+            panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
+            self.assertIn("A+1", panel.ix[0].columns)
+            self.assertIn("A+1", panel.ix[1].columns)
 
         # 5216
         # make sure that we don't try to set a dead cache
@@ -3029,13 +3043,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = pd.DataFrame(
             randn(2, 5), index=["row%s" % i for i in range(2)],
             columns=["col%s" % i for i in range(5)])
-        self.assertRaises(ValueError, df.ix.__setitem__, (2, 0), 100)
+        with catch_warnings(record=True):
+            self.assertRaises(ValueError, df.ix.__setitem__, (2, 0), 100)
 
     def test_set_ix_out_of_bounds_axis_1(self):
         df = pd.DataFrame(
             randn(5, 2), index=["row%s" % i for i in range(5)],
             columns=["col%s" % i for i in range(2)])
-        self.assertRaises(ValueError, df.ix.__setitem__, (0, 2), 100)
+        with catch_warnings(record=True):
+            self.assertRaises(ValueError, df.ix.__setitem__, (0, 2), 100)
 
     def test_iloc_empty_list_indexer_is_ok(self):
         from pandas.util.testing import makeCustomDataframe as mkdf
@@ -3066,74 +3082,77 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                               check_column_type=True)
 
     def test_ix_empty_list_indexer_is_ok(self):
-        from pandas.util.testing import makeCustomDataframe as mkdf
-        df = mkdf(5, 2)
-        # vertical empty
-        tm.assert_frame_equal(df.ix[:, []], df.iloc[:, :0],
-                              check_index_type=True,
-                              check_column_type=True)
-        # horizontal empty
-        tm.assert_frame_equal(df.ix[[], :], df.iloc[:0, :],
-                              check_index_type=True,
-                              check_column_type=True)
-        # horizontal empty
-        tm.assert_frame_equal(df.ix[[]], df.iloc[:0, :],
-                              check_index_type=True,
-                              check_column_type=True)
+        with catch_warnings(record=True):
+            from pandas.util.testing import makeCustomDataframe as mkdf
+            df = mkdf(5, 2)
+            # vertical empty
+            tm.assert_frame_equal(df.ix[:, []], df.iloc[:, :0],
+                                  check_index_type=True,
+                                  check_column_type=True)
+            # horizontal empty
+            tm.assert_frame_equal(df.ix[[], :], df.iloc[:0, :],
+                                  check_index_type=True,
+                                  check_column_type=True)
+            # horizontal empty
+            tm.assert_frame_equal(df.ix[[]], df.iloc[:0, :],
+                                  check_index_type=True,
+                                  check_column_type=True)
 
     def test_index_type_coercion(self):
 
-        # GH 11836
-        # if we have an index type and set it with something that looks
-        # to numpy like the same, but is actually, not
-        # (e.g. setting with a float or string '0')
-        # then we need to coerce to object
+        with catch_warnings(record=True):
 
-        # integer indexes
-        for s in [Series(range(5)),
-                  Series(range(5), index=range(1, 6))]:
+            # GH 11836
+            # if we have an index type and set it with something that looks
+            # to numpy like the same, but is actually, not
+            # (e.g. setting with a float or string '0')
+            # then we need to coerce to object
 
-            self.assertTrue(s.index.is_integer())
+            # integer indexes
+            for s in [Series(range(5)),
+                      Series(range(5), index=range(1, 6))]:
 
-            for indexer in [lambda x: x.ix,
-                            lambda x: x.loc,
-                            lambda x: x]:
-                s2 = s.copy()
-                indexer(s2)[0.1] = 0
-                self.assertTrue(s2.index.is_floating())
-                self.assertTrue(indexer(s2)[0.1] == 0)
+                self.assertTrue(s.index.is_integer())
 
-                s2 = s.copy()
-                indexer(s2)[0.0] = 0
-                exp = s.index
-                if 0 not in s:
-                    exp = Index(s.index.tolist() + [0])
-                tm.assert_index_equal(s2.index, exp)
+                for indexer in [lambda x: x.ix,
+                                lambda x: x.loc,
+                                lambda x: x]:
+                    s2 = s.copy()
+                    indexer(s2)[0.1] = 0
+                    self.assertTrue(s2.index.is_floating())
+                    self.assertTrue(indexer(s2)[0.1] == 0)
 
-                s2 = s.copy()
-                indexer(s2)['0'] = 0
-                self.assertTrue(s2.index.is_object())
+                    s2 = s.copy()
+                    indexer(s2)[0.0] = 0
+                    exp = s.index
+                    if 0 not in s:
+                        exp = Index(s.index.tolist() + [0])
+                    tm.assert_index_equal(s2.index, exp)
 
-        for s in [Series(range(5), index=np.arange(5.))]:
+                    s2 = s.copy()
+                    indexer(s2)['0'] = 0
+                    self.assertTrue(s2.index.is_object())
 
-            self.assertTrue(s.index.is_floating())
+            for s in [Series(range(5), index=np.arange(5.))]:
 
-            for idxr in [lambda x: x.ix,
-                         lambda x: x.loc,
-                         lambda x: x]:
+                self.assertTrue(s.index.is_floating())
 
-                s2 = s.copy()
-                idxr(s2)[0.1] = 0
-                self.assertTrue(s2.index.is_floating())
-                self.assertTrue(idxr(s2)[0.1] == 0)
+                for idxr in [lambda x: x.ix,
+                             lambda x: x.loc,
+                             lambda x: x]:
 
-                s2 = s.copy()
-                idxr(s2)[0.0] = 0
-                tm.assert_index_equal(s2.index, s.index)
+                    s2 = s.copy()
+                    idxr(s2)[0.1] = 0
+                    self.assertTrue(s2.index.is_floating())
+                    self.assertTrue(idxr(s2)[0.1] == 0)
 
-                s2 = s.copy()
-                idxr(s2)['0'] = 0
-                self.assertTrue(s2.index.is_object())
+                    s2 = s.copy()
+                    idxr(s2)[0.0] = 0
+                    tm.assert_index_equal(s2.index, s.index)
+
+                    s2 = s.copy()
+                    idxr(s2)['0'] = 0
+                    self.assertTrue(s2.index.is_object())
 
     def test_float_index_to_mixed(self):
         df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})
@@ -3146,7 +3165,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_duplicate_ix_returns_series(self):
         df = DataFrame(np.random.randn(3, 3), index=[0.1, 0.2, 0.2],
                        columns=list('abc'))
-        r = df.ix[0.2, 'a']
+        with catch_warnings(record=True):
+            r = df.ix[0.2, 'a']
         e = df.loc[0.2, 'a']
         tm.assert_series_equal(r, e)
 
@@ -3185,15 +3205,18 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
-            left.ix[s, l] = rhs
+            with catch_warnings(record=True):
+                left.ix[s, l] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
-            left.ix[i, j] = rhs
+            with catch_warnings(record=True):
+                left.ix[i, j] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
-            left.ix[r, c] = rhs
+            with catch_warnings(record=True):
+                left.ix[r, c] = rhs
             tm.assert_frame_equal(left, right)
 
         xs = np.arange(20).reshape(5, 4)
@@ -3226,7 +3249,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             if not idx.is_integer:
                 # For integer indices, ix and plain getitem are position-based.
                 tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
-                tm.assert_series_equal(s.ix[l_slc], s.iloc[i_slc])
+                tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
 
         for idx in [_mklbl('A', 20), np.arange(20) + 100,
                     np.linspace(100, 150, 20)]:
@@ -3243,8 +3266,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                                 lambda: s[::0])
         self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
                                 lambda: s.loc[::0])
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: s.ix[::0])
+        with catch_warnings(record=True):
+            self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                    lambda: s.ix[::0])
 
     def test_indexing_assignment_dict_already_exists(self):
         df = pd.DataFrame({'x': [1, 2, 6],
@@ -3259,11 +3283,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_indexing_dtypes_on_empty(self):
         # Check that .iloc and .ix return correct dtypes GH9983
         df = DataFrame({'a': [1, 2, 3], 'b': ['b', 'b2', 'b3']})
-        df2 = df.ix[[], :]
+        with catch_warnings(record=True):
+            df2 = df.ix[[], :]
 
         self.assertEqual(df2.loc[:, 'a'].dtype, np.int64)
         tm.assert_series_equal(df2.loc[:, 'a'], df2.iloc[:, 0])
-        tm.assert_series_equal(df2.loc[:, 'a'], df2.ix[:, 0])
+        with catch_warnings(record=True):
+            tm.assert_series_equal(df2.loc[:, 'a'], df2.ix[:, 0])
 
     def test_range_in_series_indexing(self):
         # range can cause an indexing error

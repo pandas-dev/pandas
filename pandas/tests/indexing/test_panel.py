@@ -1,3 +1,5 @@
+from warnings import catch_warnings
+
 import numpy as np
 from pandas.util import testing as tm
 from pandas import Panel, date_range, DataFrame
@@ -112,8 +114,8 @@ class TestPanel(tm.TestCase):
                 len(ind), 5), index=ind, columns=list('ABCDE'))
         panel = Panel(dict([('frame_' + c, df) for c in list('ABC')]))
 
-        test2 = panel.ix[:, "2002":"2002-12-31"]
-        test1 = panel.ix[:, "2002"]
+        test2 = panel.loc[:, "2002":"2002-12-31"]
+        test1 = panel.loc[:, "2002"]
         tm.assert_panel_equal(test1, test2)
 
         # GH8710
@@ -134,10 +136,8 @@ class TestPanel(tm.TestCase):
         result = panel.loc['ItemA':'ItemB']
         tm.assert_panel_equal(result, expected)
 
-        result = panel.ix['ItemA':'ItemB']
-        tm.assert_panel_equal(result, expected)
-
-        result = panel.ix[['ItemA', 'ItemB']]
+        with catch_warnings(record=True):
+            result = panel.ix[['ItemA', 'ItemB']]
         tm.assert_panel_equal(result, expected)
 
         # with an object-like

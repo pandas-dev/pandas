@@ -41,13 +41,13 @@ class TestCaching(tm.TestCase):
 
             # ref the cache
             if do_ref:
-                df.ix[0, "c"]
+                df.loc[0, "c"]
 
             # set it
-            df.ix[7, 'c'] = 1
+            df.loc[7, 'c'] = 1
 
-            self.assertEqual(df.ix[0, 'c'], 0.0)
-            self.assertEqual(df.ix[7, 'c'], 1.0)
+            self.assertEqual(df.loc[0, 'c'], 0.0)
+            self.assertEqual(df.loc[7, 'c'], 1.0)
 
         # GH 7084
         # not updating cache on series setting with slices
@@ -226,21 +226,21 @@ class TestChaining(tm.TestCase):
 
         # explicity copy
         indexer = df.letters.apply(lambda x: len(x) > 10)
-        df = df.ix[indexer].copy()
+        df = df.loc[indexer].copy()
         self.assertIsNone(df.is_copy)
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
-        df = df.ix[indexer]
+        df = df.loc[indexer]
         self.assertIsNotNone(df.is_copy)
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take 2
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
-        df = df.ix[indexer]
+        df = df.loc[indexer]
         self.assertIsNotNone(df.is_copy)
         df.loc[:, 'letters'] = df['letters'].apply(str.lower)
 
@@ -251,7 +251,8 @@ class TestChaining(tm.TestCase):
 
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
-        df.ix[indexer, 'letters'] = df.ix[indexer, 'letters'].apply(str.lower)
+        df.loc[indexer, 'letters'] = (
+            df.loc[indexer, 'letters'].apply(str.lower))
 
         # an identical take, so no copy
         df = DataFrame({'a': [1]}).dropna()
@@ -312,12 +313,12 @@ class TestChaining(tm.TestCase):
                             D=list('abcde')))
 
         def f():
-            df.ix[2]['D'] = 'foo'
+            df.loc[2]['D'] = 'foo'
 
         self.assertRaises(com.SettingWithCopyError, f)
 
         def f():
-            df.ix[2]['C'] = 'foo'
+            df.loc[2]['C'] = 'foo'
 
         self.assertRaises(com.SettingWithCopyError, f)
 
