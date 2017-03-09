@@ -1125,6 +1125,17 @@ class TestDataFrameFormatting(tm.TestCase):
 
         self.assertEqual(df_s, expected)
 
+    def test_to_string_specified_header(self):
+        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+
+        df_s = df.to_string(header=['X', 'Y'])
+        expected = '   X  Y\n0  1  4\n1  2  5\n2  3  6'
+
+        self.assertEqual(df_s, expected)
+
+        with tm.assertRaises(ValueError):
+            df.to_string(header=['X'])
+
     def test_to_string_no_index(self):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 

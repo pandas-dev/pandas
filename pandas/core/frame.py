@@ -1516,6 +1516,8 @@ class DataFrame(NDFrame):
         from pandas.io.feather_format import to_feather
         to_feather(self, fname)
 
+    @Substitution(header='Write out column names. If a list of string is given, \
+it is assumed to be aliases for the column names')
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -1543,6 +1545,7 @@ class DataFrame(NDFrame):
             result = formatter.buf.getvalue()
             return result
 
+    @Substitution(header='whether to print column labels, default True')
     @Appender(fmt.docstring_to_string, indents=1)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -1596,6 +1599,8 @@ class DataFrame(NDFrame):
         if buf is None:
             return formatter.buf.getvalue()
 
+    @Substitution(header='Write out column names. If a list of string is given, \
+it is assumed to be aliases for the column names.')
     @Appender(fmt.common_docstring + fmt.return_docstring, indents=1)
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
