@@ -49,14 +49,14 @@ class _IndexSlice(object):
     Examples
     --------
 
-    >>> midx = pd.MultiIndex.from_product([['A0','A1'],['B0','B1','B2','B3']])
+    >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
     >>> columns = ['foo', 'bar']
     >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
-                          index=midx, columns=columns)
+                            index=midx, columns=columns)
 
     Using the default slice command:
 
-    >>> dfmi.loc[(slice(None), slice('B0', 'B1')), :] 
+    >>> dfmi.loc[(slice(None), slice('B0', 'B1')), :]
                foo  bar
         A0 B0    0    1
            B1    2    3
@@ -73,7 +73,7 @@ class _IndexSlice(object):
         A1 B0    8    9
            B1   10   11
     """
-    
+
     def __getitem__(self, arg):
         return arg
 
