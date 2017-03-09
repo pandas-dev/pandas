@@ -3046,6 +3046,45 @@ any pickled pandas object (or any other pickled object) from file:
 
     These methods were previously ``pd.save`` and ``pd.load``, prior to 0.12.0, and are now deprecated.
 
+.. _io.pickle.compression:
+
+Read/Write compressed pickle files
+''''''''''''''
+
+.. versionadded:: 0.20.0
+
+:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
+and write compressed pickle files. Compression types of ``gzip``, ``bz2``, ``xz`` supports
+both read and write. ``zip`` file supports read only and must contain only one data file
+to be read in.
+Compression type can be an explicitely parameter or be inferred from the file extension.
+If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
+``'.xz'``, respectively.
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+       'A': np.random.randn(1000),
+       'B': np.random.randn(1000),
+       'C': np.random.randn(1000)})
+   df.to_pickle("data.pkl.compress", compression="gzip")  # explicit compression type
+   df.to_pickle("data.pkl.xz", compression="infer")  # infer compression type from extension
+   df.to_pickle("data.pkl.gz")  # default, using "infer"
+   df["A"].to_pickle("s1.pkl.bz2")
+
+   df = pd.read_pickle("data.pkl.compress", compression="gzip")
+   df = pd.read_pickle("data.pkl.xz", compression="infer")
+   df = pd.read_pickle("data.pkl.gz")
+   s = pd.read_pickle("s1.pkl.bz2")
+
+.. ipython:: python
+   :suppress:
+   import os
+   os.remove("data.pkl.compress")
+   os.remove("data.pkl.xz")
+   os.remove("data.pkl.gz")
+   os.remove("s1.pkl.bz2")
+
 .. _io.msgpack:
 
 msgpack
