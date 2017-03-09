@@ -331,6 +331,25 @@ class TestSeriesRank(TestData):
                 expected = Series(exp).astype(result.dtype)
                 assert_series_equal(result, expected)
 
+    def test_rank_dense_(self):
+        # GH15630, pct should be on 100% basis even when method='dense'
+        in_out = [([1], [1.]),
+                  ([2], [1.]),
+                  ([0], [1.]),
+                  ([2, 2], [1., 1.]),
+                  ([1, 2, 3], [1. / 3, 2. / 3, 3. / 3]),
+                  ([4, 2, 1], [3. / 3, 2. / 3, 1. / 3],),
+                  ([1, 1, 5, 5, 3], [1. / 3, 1. / 3, 3. / 3, 3. / 3, 2. / 3]),
+                  ([-5, -4, -3, -2, -1],
+                   [1. / 5, 2. / 5, 3. / 5, 4. / 5, 5. / 5])]
+
+        for ser, exp in in_out:
+            for dtype in dtypes:
+                s = Series(ser).astype(dtype)
+                result = s.rank(method='dense', pct=True)
+                expected = Series(exp).astype(result.dtype)
+                assert_series_equal(result, expected)
+
     def test_rank_descending(self):
         dtypes = ['O', 'f8', 'i8']
 

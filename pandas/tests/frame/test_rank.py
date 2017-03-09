@@ -217,6 +217,14 @@ class TestRank(TestData):
                         expected = expected.astype('float64')
                     tm.assert_frame_equal(result, expected)
 
+    def test_rank_dense_(self):
+        df = DataFrame([['2012', 'B', 3], ['2012', 'A', 2], ['2012', 'A', 1]])
+        result = df.rank(method='dense', pct=True)
+        expected = DataFrame([[1., 1., 1.],
+                              [1., 0.5, 2. / 3],
+                              [1., 0.5, 1. / 3]])
+        assert_frame_equal(result, expected)
+
     def test_rank_descending(self):
         dtypes = ['O', 'f8', 'i8']
 
