@@ -1355,7 +1355,7 @@ class NDFrame(PandasObject):
                    if_exists=if_exists, index=index, index_label=index_label,
                    chunksize=chunksize, dtype=dtype)
 
-    def to_pickle(self, path):
+    def to_pickle(self, path, compression='infer'):
         """
         Pickle (serialize) object to input file path.
 
@@ -1363,9 +1363,13 @@ class NDFrame(PandasObject):
         ----------
         path : string
             File path
+        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+            a string representing the compression to use in the output file
+
+            .. versionadded:: 0.20.0
         """
         from pandas.io.pickle import to_pickle
-        return to_pickle(self, path)
+        return to_pickle(self, path, compression=compression)
 
     def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
