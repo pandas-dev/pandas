@@ -46,7 +46,7 @@ extensions = ['sphinx.ext.autodoc',
               'ipython_sphinxext.ipython_console_highlighting',
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
-              'sphinx.ext.pngmath',
+              'sphinx.ext.mathjax',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
               ]
