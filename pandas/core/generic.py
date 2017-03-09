@@ -4462,6 +4462,30 @@ class NDFrame(PandasObject):
         2000-01-01 00:06:00    26
         Freq: 3T, dtype: int64
 
+        For DataFrame objects, the keyword ``on`` can be used to specify the
+        column instead of the index for resampling.
+
+        >>> df = pd.DataFrame(data=9*[range(4)], columns=['a', 'b', 'c', 'd'])
+        >>> df['time'] = pd.date_range('1/1/2000', periods=9, freq='T')
+        >>> df.resample('3T', on='time').sum()
+                             a  b  c  d
+        time
+        2000-01-01 00:00:00  0  3  6  9
+        2000-01-01 00:03:00  0  3  6  9
+        2000-01-01 00:06:00  0  3  6  9
+
+        For a DataFrame with MultiIndex, the keyword ``level`` can be used to
+        specify on level the resampling needs to take place.
+
+        >>> time = pd.date_range('1/1/2000', periods=5, freq='T')
+        >>> df2 = pd.DataFrame(data=10*[range(4)],
+                               columns=['a', 'b', 'c', 'd'],
+                               index=pd.MultiIndex.from_product([time, [1, 2]])
+                               )
+        >>> df2.resample('3T', level=0).sum()
+                             a  b   c   d
+        2000-01-01 00:00:00  0  6  12  18
+        2000-01-01 00:03:00  0  4   8  12
         """
         from pandas.tseries.resample import (resample,
                                              _maybe_process_deprecations)
