@@ -3042,22 +3042,19 @@ any pickled pandas object (or any other pickled object) from file:
    See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
-.. note::
-
-    These methods were previously ``pd.save`` and ``pd.load``, prior to 0.12.0, and are now deprecated.
-
 .. _io.pickle.compression:
 
-Read/Write compressed pickle files
-''''''''''''''
+Compressed pickle files
+'''''''''''''''''''''''
 
 .. versionadded:: 0.20.0
 
 :func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
-and write compressed pickle files. Compression types of ``gzip``, ``bz2``, ``xz`` supports
-both read and write. ``zip`` file supports read only and must contain only one data file
+and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
+`zip`` file supports read only and must contain only one data file
 to be read in.
-Compression type can be an explicitely parameter or be inferred from the file extension.
+
+The compression type can be an explicit parameter or be inferred from the file extension.
 If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
 ``'.xz'``, respectively.
 
@@ -3065,17 +3062,37 @@ If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in `
 
    df = pd.DataFrame({
        'A': np.random.randn(1000),
-       'B': np.random.randn(1000),
-       'C': np.random.randn(1000)})
-   df.to_pickle("data.pkl.compress", compression="gzip")  # explicit compression type
-   df.to_pickle("data.pkl.xz", compression="infer")  # infer compression type from extension
-   df.to_pickle("data.pkl.gz")  # default, using "infer"
-   df["A"].to_pickle("s1.pkl.bz2")
+       'B': 'foo',
+       'C': pd.date_range('20130101', periods=1000, freq='s')})
+   df
 
-   df = pd.read_pickle("data.pkl.compress", compression="gzip")
-   df = pd.read_pickle("data.pkl.xz", compression="infer")
-   df = pd.read_pickle("data.pkl.gz")
-   s = pd.read_pickle("s1.pkl.bz2")
+Using an explicit compression type
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.compress", compression="gzip")
+   rt = pd.read_pickle("data.pkl.compress", compression="gzip")
+   rt
+
+Inferring compression type from the extension
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.xz", compression="infer")
+   rt = pd.read_pickle("data.pkl.xz", compression="infer")
+   rt
+
+The default is to 'infer
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.gz")
+   rt = pd.read_pickle("data.pkl.gz")
+   rt
+
+   df["A"].to_pickle("s1.pkl.bz2")
+   rt = pd.read_pickle("s1.pkl.bz2")
+   rt
 
 .. ipython:: python
    :suppress:

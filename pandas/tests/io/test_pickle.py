@@ -306,191 +306,188 @@ def test_pickle_v0_15_2():
 # ---------------------
 # test pickle compression
 # ---------------------
-_compression_to_extension = {
-    None: ".none",
-    'gzip': '.gz',
-    'bz2': '.bz2',
-    'zip': '.zip',
-    'xz': '.xz',
-}
 
-
+@pytest.fixture
 def get_random_path():
     return u'__%s__.pickle' % tm.rands(10)
 
 
-def compress_file(src_path, dest_path, compression):
-    if compression is None:
-        shutil.copyfile(src_path, dest_path)
-        return
+class TestCompression(object):
 
-    if compression == 'gzip':
-        import gzip
-        f = gzip.open(dest_path, "w")
-    elif compression == 'bz2':
-        import bz2
-        f = bz2.BZ2File(dest_path, "w")
-    elif compression == 'zip':
-        import zipfile
-        zip_file = zipfile.ZipFile(dest_path, "w",
-                                   compression=zipfile.ZIP_DEFLATED)
-        zip_file.write(src_path, os.path.basename(src_path))
-    elif compression == 'xz':
-        lzma = pandas.compat.import_lzma()
-        f = lzma.LZMAFile(dest_path, "w")
-    else:
-        msg = 'Unrecognized compression type: {}'.format(compression)
-        raise ValueError(msg)
+    _compression_to_extension = {
+        None: ".none",
+        'gzip': '.gz',
+        'bz2': '.bz2',
+        'zip': '.zip',
+        'xz': '.xz',
+    }
 
-    if compression != "zip":
-        f.write(open(src_path, "rb").read())
+    def compress_file(self, src_path, dest_path, compression):
+        if compression is None:
+            shutil.copyfile(src_path, dest_path)
+            return
+
+        if compression == 'gzip':
+            import gzip
+            f = gzip.open(dest_path, "w")
+        elif compression == 'bz2':
+            import bz2
+            f = bz2.BZ2File(dest_path, "w")
+        elif compression == 'zip':
+            import zipfile
+            zip_file = zipfile.ZipFile(dest_path, "w",
+                                       compression=zipfile.ZIP_DEFLATED)
+            zip_file.write(src_path, os.path.basename(src_path))
+        elif compression == 'xz':
+            lzma = pandas.compat.import_lzma()
+            f = lzma.LZMAFile(dest_path, "w")
+        else:
+            msg = 'Unrecognized compression type: {}'.format(compression)
+            raise ValueError(msg)
+
+        if compression != "zip":
+            f.write(open(src_path, "rb").read())
+            f.close()
+
+    def decompress_file(self, src_path, dest_path, compression):
+        if compression is None:
+            shutil.copyfile(src_path, dest_path)
+            return
+
+        if compression == 'gzip':
+            import gzip
+            f = gzip.open(src_path, "r")
+        elif compression == 'bz2':
+            import bz2
+            f = bz2.BZ2File(src_path, "r")
+        elif compression == 'zip':
+            import zipfile
+            zip_file = zipfile.ZipFile(src_path)
+            zip_names = zip_file.namelist()
+            if len(zip_names) == 1:
+                f = zip_file.open(zip_names.pop())
+            else:
+                raise ValueError('ZIP file {} error. Only one file per ZIP.'
+                                 .format(src_path))
+        elif compression == 'xz':
+            lzma = pandas.compat.import_lzma()
+            f = lzma.LZMAFile(src_path, "r")
+        else:
+            msg = 'Unrecognized compression type: {}'.format(compression)
+            raise ValueError(msg)
+
+        open(dest_path, "wb").write(f.read())
         f.close()
 
+    @pytest.mark.parametrize('compression', [None, 'gzip', 'bz2', 'xz'])
+    def test_write_explicit(self, compression, get_random_path):
+        # issue 11666
+        if compression == 'xz':
+            tm._skip_if_no_lzma()
 
-def decompress_file(src_path, dest_path, compression):
-    if compression is None:
-        shutil.copyfile(src_path, dest_path)
-        return
+        base = get_random_path
+        path1 = base + ".compressed"
+        path2 = base + ".raw"
 
-    if compression == 'gzip':
-        import gzip
-        f = gzip.open(src_path, "r")
-    elif compression == 'bz2':
-        import bz2
-        f = bz2.BZ2File(src_path, "r")
-    elif compression == 'zip':
-        import zipfile
-        zip_file = zipfile.ZipFile(src_path)
-        zip_names = zip_file.namelist()
-        if len(zip_names) == 1:
-            f = zip_file.open(zip_names.pop())
-        else:
-            raise ValueError('ZIP file {} error. Only one file per ZIP.'
-                             .format(src_path))
-    elif compression == 'xz':
-        lzma = pandas.compat.import_lzma()
-        f = lzma.LZMAFile(src_path, "r")
-    else:
-        msg = 'Unrecognized compression type: {}'.format(compression)
-        raise ValueError(msg)
-
-    open(dest_path, "wb").write(f.read())
-    f.close()
-
-
-@pytest.mark.parametrize('compression', [None, 'gzip', 'bz2', 'xz'])
-def test_write_explicit(compression):
-    # issue 11666
-    if compression == 'xz':
-        tm._skip_if_no_lzma()
-
-    base = get_random_path()
-    path1 = base + ".compressed"
-    path2 = base + ".raw"
-
-    with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-        df = tm.makeDataFrame()
-
-        # write to compressed file
-        df.to_pickle(p1, compression=compression)
-
-        # decompress
-        decompress_file(p1, p2, compression=compression)
-
-        # read decompressed file
-        df2 = pd.read_pickle(p2, compression=None)
-
-        tm.assert_frame_equal(df, df2)
-
-
-@pytest.mark.parametrize('compression', ['', 'None', 'bad', '7z'])
-def test_write_explicit_bad(compression):
-    with tm.assertRaisesRegexp(ValueError,
-                               "Unrecognized compression type"):
-        with tm.ensure_clean(get_random_path()) as path:
+        with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()
-            df.to_pickle(path, compression=compression)
 
+            # write to compressed file
+            df.to_pickle(p1, compression=compression)
 
-@pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.xz', '.no_compress'])
-def test_write_infer(ext):
-    if ext == '.xz':
-        tm._skip_if_no_lzma()
+            # decompress
+            self.decompress_file(p1, p2, compression=compression)
 
-    base = get_random_path()
-    path1 = base + ext
-    path2 = base + ".raw"
-    compression = None
-    for c in _compression_to_extension:
-        if _compression_to_extension[c] == ext:
-            compression = c
-            break
+            # read decompressed file
+            df2 = pd.read_pickle(p2, compression=None)
 
-    with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-        df = tm.makeDataFrame()
+            tm.assert_frame_equal(df, df2)
 
-        # write to compressed file by inferred compression method
-        df.to_pickle(p1)
+    @pytest.mark.parametrize('compression', ['', 'None', 'bad', '7z'])
+    def test_write_explicit_bad(self, compression, get_random_path):
+        with tm.assertRaisesRegexp(ValueError,
+                                   "Unrecognized compression type"):
+            with tm.ensure_clean(get_random_path) as path:
+                df = tm.makeDataFrame()
+                df.to_pickle(path, compression=compression)
 
-        # decompress
-        decompress_file(p1, p2, compression=compression)
+    @pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.xz', '.no_compress'])
+    def test_write_infer(self, ext, get_random_path):
+        if ext == '.xz':
+            tm._skip_if_no_lzma()
 
-        # read decompressed file
-        df2 = pd.read_pickle(p2, compression=None)
+        base = get_random_path
+        path1 = base + ext
+        path2 = base + ".raw"
+        compression = None
+        for c in self._compression_to_extension:
+            if self._compression_to_extension[c] == ext:
+                compression = c
+                break
 
-        tm.assert_frame_equal(df, df2)
+        with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
+            df = tm.makeDataFrame()
 
+            # write to compressed file by inferred compression method
+            df.to_pickle(p1)
 
-@pytest.mark.parametrize('compression', [None, 'gzip', 'bz2', 'xz', "zip"])
-def test_read_explicit(compression):
-    # issue 11666
-    if compression == 'xz':
-        tm._skip_if_no_lzma()
+            # decompress
+            self.decompress_file(p1, p2, compression=compression)
 
-    base = get_random_path()
-    path1 = base + ".raw"
-    path2 = base + ".compressed"
+            # read decompressed file
+            df2 = pd.read_pickle(p2, compression=None)
 
-    with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-        df = tm.makeDataFrame()
+            tm.assert_frame_equal(df, df2)
 
-        # write to uncompressed file
-        df.to_pickle(p1, compression=None)
+    @pytest.mark.parametrize('compression', [None, 'gzip', 'bz2', 'xz', "zip"])
+    def test_read_explicit(self, compression, get_random_path):
+        # issue 11666
+        if compression == 'xz':
+            tm._skip_if_no_lzma()
 
-        # compress
-        compress_file(p1, p2, compression=compression)
+        base = get_random_path
+        path1 = base + ".raw"
+        path2 = base + ".compressed"
 
-        # read compressed file
-        df2 = pd.read_pickle(p2, compression=compression)
+        with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
+            df = tm.makeDataFrame()
 
-        tm.assert_frame_equal(df, df2)
+            # write to uncompressed file
+            df.to_pickle(p1, compression=None)
 
+            # compress
+            self.compress_file(p1, p2, compression=compression)
 
-@pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.xz', '.zip',
-                                 '.no_compress'])
-def test_read_infer(ext):
-    if ext == '.xz':
-        tm._skip_if_no_lzma()
+            # read compressed file
+            df2 = pd.read_pickle(p2, compression=compression)
 
-    base = get_random_path()
-    path1 = base + ".raw"
-    path2 = base + ext
-    compression = None
-    for c in _compression_to_extension:
-        if _compression_to_extension[c] == ext:
-            compression = c
-            break
+            tm.assert_frame_equal(df, df2)
 
-    with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-        df = tm.makeDataFrame()
+    @pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.xz', '.zip',
+                                     '.no_compress'])
+    def test_read_infer(self, ext, get_random_path):
+        if ext == '.xz':
+            tm._skip_if_no_lzma()
 
-        # write to uncompressed file
-        df.to_pickle(p1, compression=None)
+        base = get_random_path
+        path1 = base + ".raw"
+        path2 = base + ext
+        compression = None
+        for c in self._compression_to_extension:
+            if self._compression_to_extension[c] == ext:
+                compression = c
+                break
 
-        # compress
-        compress_file(p1, p2, compression=compression)
+        with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
+            df = tm.makeDataFrame()
 
-        # read compressed file by inferred compression method
-        df2 = pd.read_pickle(p2)
+            # write to uncompressed file
+            df.to_pickle(p1, compression=None)
 
-        tm.assert_frame_equal(df, df2)
+            # compress
+            self.compress_file(p1, p2, compression=compression)
+
+            # read compressed file by inferred compression method
+            df2 = pd.read_pickle(p2)
+
+            tm.assert_frame_equal(df, df2)
