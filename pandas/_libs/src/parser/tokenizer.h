@@ -9,8 +9,8 @@ See LICENSE for the license
 
 */
 
-#ifndef PANDAS_SRC_PARSER_TOKENIZER_H_
-#define PANDAS_SRC_PARSER_TOKENIZER_H_
+#ifndef PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
+#define PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
 
 #include <errno.h>
 #include <stdio.h>
@@ -276,4 +276,4 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing);
 int to_boolean(const char *item, uint8_t *val);
 
-#endif  // PANDAS_SRC_PARSER_TOKENIZER_H_
+#endif  // PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
