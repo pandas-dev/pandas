@@ -20,6 +20,7 @@ from pandas.types.common import (_ensure_platform_int,
                                  is_integer_dtype,
                                  is_bool_dtype,
                                  is_list_like,
+                                 is_string_dtype,
                                  is_scalar, is_dtype_equal)
 from pandas.types.cast import (_possibly_convert_platform, _maybe_promote,
                                _astype_nansafe, _find_common_type)
@@ -769,6 +770,12 @@ def make_sparse(arr, kind='block', fill_value=None):
     if isnull(fill_value):
         mask = notnull(arr)
     else:
+        # For str arrays in NumPy 1.12.0, operator!= below isn't
+        # element-wise but just returns False if fill_value is not str,
+        # so cast to object comparison to be safe
+        if is_string_dtype(arr):
+            arr = arr.astype(object)
+
         mask = arr != fill_value
 
     length = len(arr)
@@ -776,7 +783,7 @@ def make_sparse(arr, kind='block', fill_value=None):
         # the arr is a SparseArray
         indices = mask.sp_index.indices
     else:
-        indices = np.arange(length, dtype=np.int32)[mask]
+        indices = mask.nonzero()[0].astype(np.int32)
 
     index = _make_index(length, indices, kind)
     sparsified_values = arr[mask]

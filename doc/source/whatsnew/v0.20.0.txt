@@ -237,10 +237,37 @@ You must enable this by setting the ``display.html.table_schema`` option to True
 .. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
 .. _nteract: http://nteract.io/
 
+.. _whatsnew_0200.enhancements.scipy_sparse:
+
+SciPy sparse matrix from/to SparseDataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
+See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
+
+All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
+
+.. ipython:: python
+
+   from scipy.sparse import csr_matrix
+   arr = np.random.random(size=(1000, 5))
+   arr[arr < .9] = 0
+   sp_arr = csr_matrix(arr)
+   sp_arr
+   sdf = pd.SparseDataFrame(sp_arr)
+   sdf
+
+To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you can use:
+
+.. ipython:: python
+
+   sdf.to_coo()
+
 .. _whatsnew_0200.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - ``Series.str.replace()`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
 - ``Series.str.replace()`` now accepts a compiled regular expression as a pattern (:issue:`15446`)
@@ -752,7 +779,6 @@ Bug Fixes
 - Bug in ``Rolling.quantile`` function that caused a segmentation fault when called with a quantile value outside of the range [0, 1] (:issue:`15463`)
 - Bug in ``pd.cut()`` with a single bin on an all 0s array (:issue:`15428`)
 - Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
-- Bug in ``SparseSeries.reindex`` on single level with list of length 1 (:issue:`15447`)
 
 
 
@@ -783,6 +809,7 @@ Bug Fixes
 - Bug in ``to_sql`` when writing a DataFrame with numeric index names (:issue:`15404`).
 - Bug in ``Series.iloc`` where a ``Categorical`` object for list-like indexes input was returned, where a ``Series`` was expected. (:issue:`14580`)
 - Bug in repr-formatting a ``SparseDataFrame`` after a value was set on (a copy of) one of its series (:issue:`15488`)
+- Bug in ``SparseSeries.reindex`` on single level with list of length 1 (:issue:`15447`)
 
 
 - Bug in  groupby operations with timedelta64 when passing ``numeric_only=False`` (:issue:`5724`)
