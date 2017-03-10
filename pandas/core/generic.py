@@ -899,16 +899,6 @@ class NDFrame(PandasObject):
         for h in self._info_axis:
             yield h, self[h]
 
-    # originally used to get around 2to3's changes to iteritems.
-    # Now unnecessary. Sidenote: don't want to deprecate this for a while,
-    # otherwise libraries that use 2to3 will have issues.
-    def iterkv(self, *args, **kwargs):
-        "iteritems alias used to get around 2to3. Deprecated"
-        warnings.warn("iterkv is deprecated and will be removed in a future "
-                      "release, use ``iteritems`` instead.", FutureWarning,
-                      stacklevel=2)
-        return self.iteritems(*args, **kwargs)
-
     def __len__(self):
         """Returns length of info axis"""
         return len(self._info_axis)
