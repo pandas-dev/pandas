@@ -4097,9 +4097,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         expected = df.copy()
 
         # object-cat
+        # note that we propogate the category
+        # because we don't have any matching rows
         cright = right.copy()
         cright['d'] = cright['d'].astype('category')
         result = pd.merge(left, cright, how='left', left_on='b', right_on='c')
+        expected['d'] = expected['d'].astype('category', categories=['null'])
         tm.assert_frame_equal(result, expected)
 
         # cat-object
