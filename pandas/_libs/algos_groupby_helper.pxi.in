@@ -603,7 +603,7 @@ def group_cummin_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        {{dest_type2}} val, min_val = 0
+        {{dest_type2}} val
         ndarray[{{dest_type2}}, ndim=2] accum
         int64_t lab
 
@@ -629,8 +629,7 @@ def group_cummin_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 if val == val:
                 {{endif}}
                     if val < accum[lab, j]:
-                        min_val = val
-                    accum[lab, j] = min_val
+                        accum[lab, j] = val
                     out[i, j] = accum[lab, j]
 
 
@@ -645,7 +644,7 @@ def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        {{dest_type2}} val, max_val = 0
+        {{dest_type2}} val
         ndarray[{{dest_type2}}, ndim=2] accum
         int64_t lab
 
@@ -670,8 +669,7 @@ def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 if val == val:
                 {{endif}}
                     if val > accum[lab, j]:
-                        max_val = val
-                    accum[lab, j] = max_val
+                        accum[lab, j] = val
                     out[i, j] = accum[lab, j]
 
 {{endfor}}
