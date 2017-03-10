@@ -297,6 +297,11 @@ def _skip_if_no_scipy():
     except ImportError:
         import pytest
         pytest.skip('scipy.interpolate missing')
+    try:
+        import scipy.sparse  # noqa
+    except ImportError:
+        import pytest
+        pytest.skip('scipy.sparse missing')
 
 
 def _skip_if_scipy_0_17():
