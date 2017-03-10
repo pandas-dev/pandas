@@ -14,8 +14,9 @@ def _try_import():
                           "the pandas-gbq package is not installed\n"
                           "see the docs: https://pandas-gbq.readthedocs.io\n"
                           "\n"
-                          "you can install via:\n"
-                          "pip install pandas-gbq\n")
+                          "you can install via pip or conda:\n"
+                          "pip install pandas-gbq\n"
+                          "conda install pandas-gbq -c conda-forge\n")
 
     return pandas_gbq
 
