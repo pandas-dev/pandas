@@ -4303,6 +4303,17 @@ class TestGroupBy(MixIn, tm.TestCase):
             result = getattr(df.groupby('a')['b'], method)()
             tm.assert_series_equal(expected, result)
 
+        # GH 15635
+        df = pd.DataFrame(dict(a=[1, 2, 1], b=[2, 1, 1]))
+        result = df.groupby('a').b.cummax()
+        expected = pd.Series([2, 1, 2], name='b')
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
+        result = df.groupby('a').b.cummin()
+        expected = pd.Series([1, 2, 1], name='b')
+        tm.assert_series_equal(result, expected)
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = lmap(tuple, df[keys].values)
