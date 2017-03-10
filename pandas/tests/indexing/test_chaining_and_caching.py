@@ -1,3 +1,5 @@
+from warnings import catch_warnings
+
 import numpy as np
 import pandas as pd
 from pandas.core import common as com
@@ -41,13 +43,13 @@ class TestCaching(tm.TestCase):
 
             # ref the cache
             if do_ref:
-                df.ix[0, "c"]
+                df.loc[0, "c"]
 
             # set it
-            df.ix[7, 'c'] = 1
+            df.loc[7, 'c'] = 1
 
-            self.assertEqual(df.ix[0, 'c'], 0.0)
-            self.assertEqual(df.ix[7, 'c'], 1.0)
+            self.assertEqual(df.loc[0, 'c'], 0.0)
+            self.assertEqual(df.loc[7, 'c'], 1.0)
 
         # GH 7084
         # not updating cache on series setting with slices
@@ -226,21 +228,21 @@ class TestChaining(tm.TestCase):
 
         # explicity copy
         indexer = df.letters.apply(lambda x: len(x) > 10)
-        df = df.ix[indexer].copy()
+        df = df.loc[indexer].copy()
         self.assertIsNone(df.is_copy)
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
-        df = df.ix[indexer]
+        df = df.loc[indexer]
         self.assertIsNotNone(df.is_copy)
         df['letters'] = df['letters'].apply(str.lower)
 
         # implicity take 2
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
-        df = df.ix[indexer]
+        df = df.loc[indexer]
         self.assertIsNotNone(df.is_copy)
         df.loc[:, 'letters'] = df['letters'].apply(str.lower)
 
@@ -251,7 +253,8 @@ class TestChaining(tm.TestCase):
 
         df = random_text(100000)
         indexer = df.letters.apply(lambda x: len(x) > 10)
-        df.ix[indexer, 'letters'] = df.ix[indexer, 'letters'].apply(str.lower)
+        df.loc[indexer, 'letters'] = (
+            df.loc[indexer, 'letters'].apply(str.lower))
 
         # an identical take, so no copy
         df = DataFrame({'a': [1]}).dropna()
@@ -312,12 +315,12 @@ class TestChaining(tm.TestCase):
                             D=list('abcde')))
 
         def f():
-            df.ix[2]['D'] = 'foo'
+            df.loc[2]['D'] = 'foo'
 
         self.assertRaises(com.SettingWithCopyError, f)
 
         def f():
-            df.ix[2]['C'] = 'foo'
+            df.loc[2]['C'] = 'foo'
 
         self.assertRaises(com.SettingWithCopyError, f)
 
@@ -356,3 +359,76 @@ class TestChaining(tm.TestCase):
             with tm.assert_produces_warning(
                     expected_warning=com.SettingWithCopyWarning):
                 df.loc[0]['A'] = 111
+
+    def test_chained_getitem_with_lists(self):
+
+        # GH6394
+        # Regression in chained getitem indexing with embedded list-like from
+        # 0.12
+        def check(result, expected):
+            tm.assert_numpy_array_equal(result, expected)
+            tm.assertIsInstance(result, np.ndarray)
+
+        df = DataFrame({'A': 5 * [np.zeros(3)], 'B': 5 * [np.ones(3)]})
+        expected = df['A'].iloc[2]
+        result = df.loc[2, 'A']
+        check(result, expected)
+        result2 = df.iloc[2]['A']
+        check(result2, expected)
+        result3 = df['A'].loc[2]
+        check(result3, expected)
+        result4 = df['A'].iloc[2]
+        check(result4, expected)
+
+    def test_cache_updating(self):
+        # GH 4939, make sure to update the cache on setitem
+
+        df = tm.makeDataFrame()
+        df['A']  # cache series
+        with catch_warnings(record=True):
+            df.ix["Hello Friend"] = df.ix[0]
+        self.assertIn("Hello Friend", df['A'].index)
+        self.assertIn("Hello Friend", df['B'].index)
+
+        with catch_warnings(record=True):
+            panel = tm.makePanel()
+            panel.ix[0]  # get first item into cache
+            panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
+            self.assertIn("A+1", panel.ix[0].columns)
+            self.assertIn("A+1", panel.ix[1].columns)
+
+        # 5216
+        # make sure that we don't try to set a dead cache
+        a = np.random.rand(10, 3)
+        df = DataFrame(a, columns=['x', 'y', 'z'])
+        tuples = [(i, j) for i in range(5) for j in range(2)]
+        index = MultiIndex.from_tuples(tuples)
+        df.index = index
+
+        # setting via chained assignment
+        # but actually works, since everything is a view
+        df.loc[0]['z'].iloc[0] = 1.
+        result = df.loc[(0, 0), 'z']
+        self.assertEqual(result, 1)
+
+        # correct setting
+        df.loc[(0, 0), 'z'] = 2
+        result = df.loc[(0, 0), 'z']
+        self.assertEqual(result, 2)
+
+        # 10264
+        df = DataFrame(np.zeros((5, 5), dtype='int64'), columns=[
+                       'a', 'b', 'c', 'd', 'e'], index=range(5))
+        df['f'] = 0
+        df.f.values[3] = 1
+
+        # TODO(wesm): unused?
+        # y = df.iloc[np.arange(2, len(df))]
+
+        df.f.values[3] = 2
+        expected = DataFrame(np.zeros((5, 6), dtype='int64'), columns=[
+                             'a', 'b', 'c', 'd', 'e', 'f'], index=range(5))
+        expected.at[3, 'f'] = 2
+        tm.assert_frame_equal(df, expected)
+        expected = Series([0, 0, 0, 2, 0], name='f')
+        tm.assert_series_equal(df.f, expected)
