@@ -692,6 +692,7 @@ Other API Changes
 - Reorganization of timeseries development tests (:issue:`14854`)
 - Specific support for ``copy.copy()`` and ``copy.deepcopy()`` functions on NDFrame objects (:issue:`15444`)
 - ``Series.sort_values()`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values()`` (:issue:`15604`)
+- ``DataFrame.iterkv()`` has been removed in favor of ``DataFrame.iteritems()`` (:issue:`10711`)
 
 .. _whatsnew_0200.deprecations:
 
