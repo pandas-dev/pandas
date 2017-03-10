@@ -389,10 +389,6 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         exp = '              X\nNaT        a  1\n2013-01-01 b  2'
         self.assertEqual(res, exp)
 
-    def test_iterkv_deprecation(self):
-        with tm.assert_produces_warning(FutureWarning):
-            self.mixed_float.iterkv()
-
     def test_iterkv_names(self):
         for k, v in compat.iteritems(self.mixed_frame):
             self.assertEqual(v.name, k)
