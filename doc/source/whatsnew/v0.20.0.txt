@@ -792,6 +792,7 @@ Bug Fixes
 - Bug in ``DataFrame.isin`` comparing datetimelike to empty frame (:issue:`15473`)
 
 - Bug in ``Series.where()`` and ``DataFrame.where()`` where array-like conditionals were being rejected (:issue:`15414`)
+- Bug in ``Index`` construction with ``NaN`` elements and integer dtype specified (:issue:`15187`)
 - Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
 - Bug in output formatting of a ``MultiIndex`` when names are integers (:issue:`12223`, :issue:`15262`)
 

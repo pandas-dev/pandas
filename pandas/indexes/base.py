@@ -203,6 +203,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         if inferred == 'integer':
                             data = np.array(data, copy=copy, dtype=dtype)
                         elif inferred in ['floating', 'mixed-integer-float']:
+                            if isnull(data).any():
+                                raise ValueError('cannot convert float '
+                                                 'NaN to integer')
 
                             # If we are actually all equal to integers,
                             # then coerce to integer.
@@ -230,8 +233,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     else:
                         data = np.array(data, dtype=dtype, copy=copy)
 
-                except (TypeError, ValueError):
-                    pass
+                except (TypeError, ValueError) as e:
+                    msg = str(e)
+                    if 'cannot convert float' in msg:
+                        raise
 
             # maybe coerce to a sub-class
             from pandas.tseries.period import (PeriodIndex,
@@ -585,7 +590,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if other is None:
             other = self._na_value
         values = np.where(cond, self.values, other)
-        return self._shallow_copy_with_infer(values, dtype=self.dtype)
+
+        dtype = self.dtype
+        if self._is_numeric_dtype and np.any(isnull(values)):
+            # We can't coerce to the numeric dtype of "self" (unless
+            # it's float) if there are NaN values in our output.
+            dtype = None
+
+        return self._shallow_copy_with_infer(values, dtype=dtype)
 
     def ravel(self, order='C'):
         """
@@ -689,7 +701,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         ----------
         item : scalar item to coerce
         """
-        return Index([item], dtype=self.dtype, **self._get_attributes_dict())
+        dtype = self.dtype
+
+        if self._is_numeric_dtype and isnull(item):
+            # We can't coerce to the numeric dtype of "self" (unless
+            # it's float) if there are NaN values in our output.
+            dtype = None
+
+        return Index([item], dtype=dtype, **self._get_attributes_dict())
 
     _index_shared_docs['copy'] = """
         Make a copy of this object.  Name and dtype sets those attributes on
