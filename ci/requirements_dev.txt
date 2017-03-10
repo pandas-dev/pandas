@@ -4,5 +4,4 @@ numpy
 cython
 pytest
 pytest-cov
-pytest-xdist
 flake8
