@@ -646,6 +646,9 @@ In this case the categories are not the same and so an error is raised:
 
 The same applies to ``df.append(df_different)``.
 
+See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about preserving merge dtypes and performance.
+
+
 .. _categorical.union:
 
 Unioning

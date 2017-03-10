@@ -18,8 +18,10 @@ from pandas.types.common import (is_datetime64tz_dtype,
                                  is_datetime64_dtype,
                                  needs_i8_conversion,
                                  is_int64_dtype,
+                                 is_categorical_dtype,
                                  is_integer_dtype,
                                  is_float_dtype,
+                                 is_numeric_dtype,
                                  is_integer,
                                  is_int_or_datetime_dtype,
                                  is_dtype_equal,
@@ -37,7 +39,7 @@ from pandas.util.decorators import Appender, Substitution
 from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-from pandas._libs import hashtable as libhashtable, join as libjoin
+from pandas._libs import hashtable as libhashtable, join as libjoin, lib
 
 
 # back-compat of pseudo-public API
@@ -570,6 +572,10 @@ class _MergeOperation(object):
          self.right_join_keys,
          self.join_names) = self._get_merge_keys()
 
+        # validate the merge keys dtypes. We may need to coerce
+        # to avoid incompat dtypes
+        self._maybe_coerce_merge_keys()
+
     def get_result(self):
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(
@@ -760,26 +766,6 @@ class _MergeOperation(object):
             join_index = join_index.astype(object)
         return join_index, left_indexer, right_indexer
 
-    def _get_merge_data(self):
-        """
-        Handles overlapping column names etc.
-        """
-        ldata, rdata = self.left._data, self.right._data
-        lsuf, rsuf = self.suffixes
-
-        llabels, rlabels = items_overlap_with_suffix(
-            ldata.items, lsuf, rdata.items, rsuf)
-
-        if not llabels.equals(ldata.items):
-            ldata = ldata.copy(deep=False)
-            ldata.set_axis(0, llabels)
-
-        if not rlabels.equals(rdata.items):
-            rdata = rdata.copy(deep=False)
-            rdata.set_axis(0, rlabels)
-
-        return ldata, rdata
-
     def _get_merge_keys(self):
         """
         Note: has side effects (copy/delete key columns)
@@ -891,6 +877,51 @@ class _MergeOperation(object):
 
         return left_keys, right_keys, join_names
 
+    def _maybe_coerce_merge_keys(self):
+        # we have valid mergee's but we may have to further
+        # coerce these if they are originally incompatible types
+        #
+        # for example if these are categorical, but are not dtype_equal
+        # or if we have object and integer dtypes
+
+        for lk, rk, name in zip(self.left_join_keys,
+                                self.right_join_keys,
+                                self.join_names):
+            if (len(lk) and not len(rk)) or (not len(lk) and len(rk)):
+                continue
+
+            # if either left or right is a categorical
+            # then the must match exactly in categories & ordered
+            if is_categorical_dtype(lk) and is_categorical_dtype(rk):
+                if lk.is_dtype_equal(rk):
+                    continue
+            elif is_categorical_dtype(lk) or is_categorical_dtype(rk):
+                pass
+
+            elif is_dtype_equal(lk.dtype, rk.dtype):
+                continue
+
+            # if we are numeric, then allow differing
+            # kinds to proceed, eg. int64 and int8
+            # further if we are object, but we infer to
+            # the same, then proceed
+            if (is_numeric_dtype(lk) and is_numeric_dtype(rk)):
+                if lk.dtype.kind == rk.dtype.kind:
+                    continue
+
+                # let's infer and see if we are ok
+                if lib.infer_dtype(lk) == lib.infer_dtype(rk):
+                    continue
+
+            # Houston, we have a problem!
+            # let's coerce to object
+            if name in self.left.columns:
+                self.left = self.left.assign(
+                    **{name: self.left[name].astype(object)})
+            if name in self.right.columns:
+                self.right = self.right.assign(
+                    **{name: self.right[name].astype(object)})
+
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??
         if self.on is None and self.left_on is None and self.right_on is None:
@@ -942,9 +973,15 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
 
     Parameters
     ----------
+    left_keys: ndarray, Index, Series
+    right_keys: ndarray, Index, Series
+    sort: boolean, default False
+    how: string {'inner', 'outer', 'left', 'right'}, default 'inner'
 
     Returns
     -------
+    tuple of (left_indexer, right_indexer)
+        indexers into the left_keys, right_keys
 
     """
     from functools import partial
@@ -1349,6 +1386,13 @@ def _factorize_keys(lk, rk, sort=True):
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = lk.values
         rk = rk.values
+
+    # if we exactly match in categories, allow us to use codes
+    if (is_categorical_dtype(lk) and
+            is_categorical_dtype(rk) and
+            lk.is_dtype_equal(rk)):
+        return lk.codes, rk.codes, len(lk.categories)
+
     if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))

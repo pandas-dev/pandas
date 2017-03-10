@@ -692,7 +692,7 @@ Other API Changes
 - Reorganization of timeseries development tests (:issue:`14854`)
 - Specific support for ``copy.copy()`` and ``copy.deepcopy()`` functions on NDFrame objects (:issue:`15444`)
 - ``Series.sort_values()`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values()`` (:issue:`15604`)
-- ``DataFrame.iterkv()`` has been removed in favor of ``DataFrame.iteritems()`` (:issue:`10711`)
+- ``.merge()`` and ``.join()`` on ``category`` dtype columns will now preserve the category dtype when possible (:issue:`10409`)
 
 .. _whatsnew_0200.deprecations:
 
@@ -733,6 +733,7 @@ Removal of prior version deprecations/changes
 - ``Series.is_time_series`` is dropped in favor of ``Series.index.is_all_dates`` (:issue:`15098`)
 - The deprecated ``irow``, ``icol``, ``iget`` and ``iget_value`` methods are removed
   in favor of ``iloc`` and ``iat`` as explained :ref:`here <whatsnew_0170.deprecations>` (:issue:`10711`).
+- The deprecated ``DataFrame.iterkv()`` has been removed in favor of ``DataFrame.iteritems()`` (:issue:`10711`)
 
 
 .. _whatsnew_0200.performance:
@@ -749,6 +750,7 @@ Performance Improvements
 - When reading buffer object in ``read_sas()`` method without specified format, filepath string is inferred rather than buffer object. (:issue:`14947`)
 - Improved performance of ``.rank()`` for categorical data (:issue:`15498`)
 - Improved performance when using ``.unstack()`` (:issue:`15503`)
+- Improved performance of merge/join on ``category`` columns (:issue:`10409`)
 
 
 .. _whatsnew_0200.bug_fixes:
