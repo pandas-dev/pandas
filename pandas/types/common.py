@@ -23,6 +23,9 @@ _NS_DTYPE = np.dtype('M8[ns]')
 _TD_DTYPE = np.dtype('m8[ns]')
 _INT64_DTYPE = np.dtype(np.int64)
 
+# oh the troubles to reduce import time
+_is_scipy_sparse = None
+
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
 
@@ -57,6 +60,17 @@ def is_object_dtype(arr_or_dtype):
 def is_sparse(array):
     """ return if we are a sparse array """
     return isinstance(array, (ABCSparseArray, ABCSparseSeries))
+
+
+def is_scipy_sparse(array):
+    """ return if we are a scipy.sparse.spmatrix """
+    global _is_scipy_sparse
+    if _is_scipy_sparse is None:
+        try:
+            from scipy.sparse import issparse as _is_scipy_sparse
+        except ImportError:
+            _is_scipy_sparse = lambda _: False
+    return _is_scipy_sparse(array)
 
 
 def is_categorical(array):

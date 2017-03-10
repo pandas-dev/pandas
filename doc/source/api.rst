@@ -711,8 +711,8 @@ Serialization / IO / Conversion
    Series.to_string
    Series.to_clipboard
 
-Sparse methods
-~~~~~~~~~~~~~~
+Sparse
+~~~~~~
 .. autosummary::
    :toctree: generated/
 
@@ -1029,6 +1029,13 @@ Serialization / IO / Conversion
    DataFrame.to_dense
    DataFrame.to_string
    DataFrame.to_clipboard
+
+Sparse
+~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   SparseDataFrame.to_coo
 
 .. _api.panel:
 
