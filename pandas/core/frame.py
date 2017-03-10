@@ -3083,44 +3083,2392 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> df = pd.DataFrame([[np.nan, 2, np.nan, 0], [3, 4, np.nan, 1],
-                               [np.nan, np.nan, np.nan, 5]],
-                              columns=list('ABCD'))
+        ...                    [np.nan, np.nan, np.nan, 5]],
+        ...                   columns=list('ABCD'))
         >>> df
-        >>>     A    B   C    D
-            0   NaN  2.0 NaN  0
-            1   3.0  4.0 NaN  1
-            2   NaN  NaN NaN  5
+             A    B   C  D
+        0  NaN  2.0 NaN  0
+        1  3.0  4.0 NaN  1
+        2  NaN  NaN NaN  5
 
-        Drop the columns where all elements are nan
+        Drop the columns where all elements are nan:
 
         >>> df.dropna(axis=1, how='all')
-        >>>     A   B    D
-            0  NaN  2.0  0
-            1  3.0  4.0  1
-            2  NaN  NaN  5
-        >>> df.dropna(axis=1, how='any')
+             A    B  D
+        0  NaN  2.0  0
+        1  3.0  4.0  1
+        2  NaN  NaN  5
 
         Drop the columns where any of the elements is nan
 
-        >>>    D
-            0  0
-            1  1
-            2  5
-        Drop the rows where all of the elements is nan
-        (there is no row to drop, so df stays the same)
+        >>> df.dropna(axis=1, how='any')
+           D
+        0  0
+        1  1
+        2  5
+
+        Drop the rows where all of the elements are nan
+        (there is no row to drop, so df stays the same):
 
         >>> df.dropna(axis=0, how='all')
-        >>>     A    B   C    D
-            0   NaN  2.0 NaN  0
-            1   3.0  4.0 NaN  1
-            2   NaN  NaN NaN  5
+             A    B   C  D
+        0  NaN  2.0 NaN  0
+        1  3.0  4.0 NaN  1
+        2  NaN  NaN NaN  5
 
-        Keep only the rows with at least 2 non-na values
-        
+        Keep only the rows with at least 2 non-na values:
+
         >>> df.dropna(thresh=2)
-        >>>    A    B     C    D
-            0  NaN  2.0   NaN  0
-            1  3.0  4.0   NaN  1
+             A    B   C  D
+        0  NaN  2.0 NaN  0
+        1  3.0  4.0 NaN  1
+
+        """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        if isinstance(axis, (tuple, list)):
+            result = self
+            for ax in axis:
+                result = result.dropna(how=how, thresh=thresh, subset=subset,
+                                       axis=ax)
+        else:
+            axis = self._get_axis_number(axis)
+            agg_axis = 1 - axis
+
+            agg_obj = self
+            if subset is not None:
+                ax = self._get_axis(agg_axis)
+                indices = ax.get_indexer_for(subset)
+                check = indices == -1
+                if check.any():
+                    raise KeyError(list(np.compress(check, subset)))
+                agg_obj = self.take(indices, axis=agg_axis)
+
+            count = agg_obj.count(axis=agg_axis)
+
+            if thresh is not None:
+                mask = count >= thresh
+            elif how == 'any':
+                mask = count == len(agg_obj._get_axis(agg_axis))
+            elif how == 'all':
+                mask = count > 0
+            else:
+                if how is not None:
+                    raise ValueError('invalid how option: %s' % how)
+                else:
+                    raise TypeError('must specify how or thresh')
+
+            result = self.take(mask.nonzero()[0], axis=axis, convert=False)
+
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result
+
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
+                                                   False: 'first'})
+    def drop_duplicates(self, subset=None, keep='first', inplace=False):
+        """
+        Return DataFrame with duplicate rows removed, optionally only
+        considering certain columns
+
+        Parameters
+        ----------
+        subset : column label or sequence of labels, optional
+            Only consider certain columns for identifying duplicates, by
+            default use all of the columns
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Drop duplicates except for the first occurrence.
+            - ``last`` : Drop duplicates except for the last occurrence.
+            - False : Drop all duplicates.
+        take_last : deprecated
+        inplace : boolean, default False
+            Whether to drop duplicates in place or to return a copy
+
+        Returns
+        -------
+        deduplicated : DataFrame
+        """
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        duplicated = self.duplicated(subset, keep=keep)
+
+        if inplace:
+            inds, = (-duplicated).nonzero()
+            new_data = self._data.take(inds)
+            self._update_inplace(new_data)
+        else:
+            return self[-duplicated]
+
+    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
+                                                   False: 'first'})
+    def duplicated(self, subset=None, keep='first'):
+        """
+        Return boolean Series denoting duplicate rows, optionally only
+        considering certain columns
+
+        Parameters
+        ----------
+        subset : column label or sequence of labels, optional
+            Only consider certain columns for identifying duplicates, by
+            default use all of the columns
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the
+              first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the
+              last occurrence.
+            - False : Mark all duplicates as ``True``.
+        take_last : deprecated
+
+        Returns
+        -------
+        duplicated : Series
+        """
+        from pandas.core.sorting import get_group_index
+        from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
+
+        def f(vals):
+            labels, shape = algorithms.factorize(
+                vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))
+            return labels.astype('i8', copy=False), len(shape)
+
+        if subset is None:
+            subset = self.columns
+        elif (not np.iterable(subset) or
+              isinstance(subset, compat.string_types) or
+              isinstance(subset, tuple) and subset in self.columns):
+            subset = subset,
+
+        vals = (self[col].values for col in subset)
+        labels, shape = map(list, zip(*map(f, vals)))
+
+        ids = get_group_index(labels, shape, sort=False, xnull=False)
+        return Series(duplicated_int64(ids, keep), index=self.index)
+
+    # ----------------------------------------------------------------------
+    # Sorting
+
+    @Appender(_shared_docs['sort_values'] % _shared_doc_kwargs)
+    def sort_values(self, by, axis=0, ascending=True, inplace=False,
+                    kind='quicksort', na_position='last'):
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        axis = self._get_axis_number(axis)
+        other_axis = 0 if axis == 1 else 1
+
+        if not isinstance(by, list):
+            by = [by]
+        if is_sequence(ascending) and len(by) != len(ascending):
+            raise ValueError('Length of ascending (%d) != length of by (%d)' %
+                             (len(ascending), len(by)))
+        if len(by) > 1:
+            from pandas.core.sorting import lexsort_indexer
+
+            def trans(v):
+                if needs_i8_conversion(v):
+                    return v.view('i8')
+                return v
+
+            keys = []
+            for x in by:
+                k = self.xs(x, axis=other_axis).values
+                if k.ndim == 2:
+                    raise ValueError('Cannot sort by duplicate column %s' %
+                                     str(x))
+                keys.append(trans(k))
+            indexer = lexsort_indexer(keys, orders=ascending,
+                                      na_position=na_position)
+            indexer = _ensure_platform_int(indexer)
+        else:
+            from pandas.core.sorting import nargsort
+
+            by = by[0]
+            k = self.xs(by, axis=other_axis).values
+            if k.ndim == 2:
+
+                # try to be helpful
+                if isinstance(self.columns, MultiIndex):
+                    raise ValueError('Cannot sort by column %s in a '
+                                     'multi-index you need to explicitly '
+                                     'provide all the levels' % str(by))
+
+                raise ValueError('Cannot sort by duplicate column %s' %
+                                 str(by))
+            if isinstance(ascending, (tuple, list)):
+                ascending = ascending[0]
+
+            indexer = nargsort(k, kind=kind, ascending=ascending,
+                               na_position=na_position)
+
+        new_data = self._data.take(indexer,
+                                   axis=self._get_block_manager_axis(axis),
+                                   convert=False, verify=False)
+
+        if inplace:
+            return self._update_inplace(new_data)
+        else:
+            return self._constructor(new_data).__finalize__(self)
+
+    def sort(self, columns=None, axis=0, ascending=True, inplace=False,
+             kind='quicksort', na_position='last', **kwargs):
+        """
+        DEPRECATED: use :meth:`DataFrame.sort_values`
+
+        Sort DataFrame either by labels (along either axis) or by the values in
+        column(s)
+
+        Parameters
+        ----------
+        columns : object
+            Column name(s) in frame. Accepts a column name or a list
+            for a nested sort. A tuple will be interpreted as the
+            levels of a multi-index.
+        ascending : boolean or list, default True
+            Sort ascending vs. descending. Specify list for multiple sort
+            orders
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Sort index/rows versus columns
+        inplace : boolean, default False
+            Sort the DataFrame without creating a new instance
+        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+            This option is only applied when sorting on a single column or
+            label.
+        na_position : {'first', 'last'} (optional, default='last')
+            'first' puts NaNs at the beginning
+            'last' puts NaNs at the end
+
+        Examples
+        --------
+        >>> result = df.sort(['A', 'B'], ascending=[1, 0])
+
+        Returns
+        -------
+        sorted : DataFrame
+        """
+        nv.validate_sort(tuple(), kwargs)
+
+        if columns is None:
+            warnings.warn("sort(....) is deprecated, use sort_index(.....)",
+                          FutureWarning, stacklevel=2)
+            return self.sort_index(axis=axis, ascending=ascending,
+                                   inplace=inplace)
+
+        warnings.warn("sort(columns=....) is deprecated, use "
+                      "sort_values(by=.....)", FutureWarning, stacklevel=2)
+        return self.sort_values(by=columns, axis=axis, ascending=ascending,
+                                inplace=inplace, kind=kind,
+                                na_position=na_position)
+
+    @Appender(_shared_docs['sort_index'] % _shared_doc_kwargs)
+    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
+                   kind='quicksort', na_position='last', sort_remaining=True,
+                   by=None):
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        # 10726
+        if by is not None:
+            warnings.warn("by argument to sort_index is deprecated, pls use "
+                          ".sort_values(by=...)", FutureWarning, stacklevel=2)
+            if level is not None:
+                raise ValueError("unable to simultaneously sort by and level")
+            return self.sort_values(by, axis=axis, ascending=ascending,
+                                    inplace=inplace)
+
+        axis = self._get_axis_number(axis)
+        labels = self._get_axis(axis)
+
+        # sort by the index
+        if level is not None:
+
+            new_axis, indexer = labels.sortlevel(level, ascending=ascending,
+                                                 sort_remaining=sort_remaining)
+
+        elif isinstance(labels, MultiIndex):
+            from pandas.core.sorting import lexsort_indexer
+
+            # make sure that the axis is lexsorted to start
+            # if not we need to reconstruct to get the correct indexer
+            if not labels.is_lexsorted():
+                labels = MultiIndex.from_tuples(labels.values)
+
+            indexer = lexsort_indexer(labels.labels, orders=ascending,
+                                      na_position=na_position)
+        else:
+            from pandas.core.sorting import nargsort
+
+            # GH11080 - Check monotonic-ness before sort an index
+            # if monotonic (already sorted), return None or copy() according
+            # to 'inplace'
+            if ((ascending and labels.is_monotonic_increasing) or
+                    (not ascending and labels.is_monotonic_decreasing)):
+                if inplace:
+                    return
+                else:
+                    return self.copy()
+
+            indexer = nargsort(labels, kind=kind, ascending=ascending,
+                               na_position=na_position)
+
+        new_data = self._data.take(indexer,
+                                   axis=self._get_block_manager_axis(axis),
+                                   convert=False, verify=False)
+
+        if inplace:
+            return self._update_inplace(new_data)
+        else:
+            return self._constructor(new_data).__finalize__(self)
+
+    def sortlevel(self, level=0, axis=0, ascending=True, inplace=False,
+                  sort_remaining=True):
+        """
+        DEPRECATED: use :meth:`DataFrame.sort_index`
+
+        Sort multilevel index by chosen axis and primary level. Data will be
+        lexicographically sorted by the chosen level followed by the other
+        levels (in order)
+
+        Parameters
+        ----------
+        level : int
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+        ascending : boolean, default True
+        inplace : boolean, default False
+            Sort the DataFrame without creating a new instance
+        sort_remaining : boolean, default True
+            Sort by the other levels too.
+
+        Returns
+        -------
+        sorted : DataFrame
+
+        See Also
+        --------
+        DataFrame.sort_index(level=...)
+
+        """
+        warnings.warn("sortlevel is deprecated, use sort_index(level= ...)",
+                      FutureWarning, stacklevel=2)
+        return self.sort_index(level=level, axis=axis, ascending=ascending,
+                               inplace=inplace, sort_remaining=sort_remaining)
+
+    def nlargest(self, n, columns, keep='first'):
+        """Get the rows of a DataFrame sorted by the `n` largest
+        values of `columns`.
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        n : int
+            Number of items to retrieve
+        columns : list or str
+            Column name or names to order by
+        keep : {'first', 'last', False}, default 'first'
+            Where there are duplicate values:
+            - ``first`` : take the first occurrence.
+            - ``last`` : take the last occurrence.
+
+        Returns
+        -------
+        DataFrame
+
+        Examples
+        --------
+        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                 'b': list('abdce'),
+        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df.nlargest(3, 'a')
+            a  b   c
+        3  11  c   3
+        1  10  b   2
+        2   8  d NaN
+        """
+        return algorithms.select_n_frame(self, columns, n, 'nlargest', keep)
+
+    def nsmallest(self, n, columns, keep='first'):
+        """Get the rows of a DataFrame sorted by the `n` smallest
+        values of `columns`.
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        n : int
+            Number of items to retrieve
+        columns : list or str
+            Column name or names to order by
+        keep : {'first', 'last', False}, default 'first'
+            Where there are duplicate values:
+            - ``first`` : take the first occurrence.
+            - ``last`` : take the last occurrence.
+
+        Returns
+        -------
+        DataFrame
+
+        Examples
+        --------
+        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                 'b': list('abdce'),
+        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df.nsmallest(3, 'a')
+           a  b   c
+        4 -1  e   4
+        0  1  a   1
+        2  8  d NaN
+        """
+        return algorithms.select_n_frame(self, columns, n, 'nsmallest', keep)
+
+    def swaplevel(self, i=-2, j=-1, axis=0):
+        """
+        Swap levels i and j in a MultiIndex on a particular axis
+
+        Parameters
+        ----------
+        i, j : int, string (can be mixed)
+            Level of index to be swapped. Can pass level name as string.
+
+        Returns
+        -------
+        swapped : type of caller (new object)
+
+        .. versionchanged:: 0.18.1
+
+           The indexes ``i`` and ``j`` are now optional, and default to
+           the two innermost levels of the index.
+
+        """
+        result = self.copy()
+
+        axis = self._get_axis_number(axis)
+        if axis == 0:
+            result.index = result.index.swaplevel(i, j)
+        else:
+            result.columns = result.columns.swaplevel(i, j)
+        return result
+
+    def reorder_levels(self, order, axis=0):
+        """
+        Rearrange index levels using input order.
+        May not drop or duplicate levels
+
+        Parameters
+        ----------
+        order : list of int or list of str
+            List representing new level order. Reference level by number
+            (position) or by key (label).
+        axis : int
+            Where to reorder levels.
+
+        Returns
+        -------
+        type of caller (new object)
+        """
+        axis = self._get_axis_number(axis)
+        if not isinstance(self._get_axis(axis),
+                          MultiIndex):  # pragma: no cover
+            raise TypeError('Can only reorder levels on a hierarchical axis.')
+
+        result = self.copy()
+
+        if axis == 0:
+            result.index = result.index.reorder_levels(order)
+        else:
+            result.columns = result.columns.reorder_levels(order)
+        return result
+
+    # ----------------------------------------------------------------------
+    # Arithmetic / combination related
+
+    def _combine_frame(self, other, func, fill_value=None, level=None):
+        this, other = self.align(other, join='outer', level=level, copy=False)
+        new_index, new_columns = this.index, this.columns
+
+        def _arith_op(left, right):
+            if fill_value is not None:
+                left_mask = isnull(left)
+                right_mask = isnull(right)
+                left = left.copy()
+                right = right.copy()
+
+                # one but not both
+                mask = left_mask ^ right_mask
+                left[left_mask & mask] = fill_value
+                right[right_mask & mask] = fill_value
+
+            return func(left, right)
+
+        if this._is_mixed_type or other._is_mixed_type:
+
+            # unique
+            if this.columns.is_unique:
+
+                def f(col):
+                    r = _arith_op(this[col].values, other[col].values)
+                    return self._constructor_sliced(r, index=new_index,
+                                                    dtype=r.dtype)
+
+                result = dict([(col, f(col)) for col in this])
+
+            # non-unique
+            else:
+
+                def f(i):
+                    r = _arith_op(this.iloc[:, i].values,
+                                  other.iloc[:, i].values)
+                    return self._constructor_sliced(r, index=new_index,
+                                                    dtype=r.dtype)
+
+                result = dict([
+                    (i, f(i)) for i, col in enumerate(this.columns)
+                ])
+                result = self._constructor(result, index=new_index, copy=False)
+                result.columns = new_columns
+                return result
+
+        else:
+            result = _arith_op(this.values, other.values)
+
+        return self._constructor(result, index=new_index, columns=new_columns,
+                                 copy=False)
+
+    def _combine_series(self, other, func, fill_value=None, axis=None,
+                        level=None):
+        if axis is not None:
+            axis = self._get_axis_name(axis)
+            if axis == 'index':
+                return self._combine_match_index(other, func, level=level,
+                                                 fill_value=fill_value)
+            else:
+                return self._combine_match_columns(other, func, level=level,
+                                                   fill_value=fill_value)
+        return self._combine_series_infer(other, func, level=level,
+                                          fill_value=fill_value)
+
+    def _combine_series_infer(self, other, func, level=None, fill_value=None):
+        if len(other) == 0:
+            return self * NA
+
+        if len(self) == 0:
+            # Ambiguous case, use _series so works with DataFrame
+            return self._constructor(data=self._series, index=self.index,
+                                     columns=self.columns)
+
+        return self._combine_match_columns(other, func, level=level,
+                                           fill_value=fill_value)
+
+    def _combine_match_index(self, other, func, level=None, fill_value=None):
+        left, right = self.align(other, join='outer', axis=0, level=level,
+                                 copy=False)
+        if fill_value is not None:
+            raise NotImplementedError("fill_value %r not supported." %
+                                      fill_value)
+        return self._constructor(func(left.values.T, right.values).T,
+                                 index=left.index, columns=self.columns,
+                                 copy=False)
+
+    def _combine_match_columns(self, other, func, level=None, fill_value=None):
+        left, right = self.align(other, join='outer', axis=1, level=level,
+                                 copy=False)
+        if fill_value is not None:
+            raise NotImplementedError("fill_value %r not supported" %
+                                      fill_value)
+
+        new_data = left._data.eval(func=func, other=right,
+                                   axes=[left.columns, self.index])
+        return self._constructor(new_data)
+
+    def _combine_const(self, other, func, raise_on_error=True):
+        new_data = self._data.eval(func=func, other=other,
+                                   raise_on_error=raise_on_error)
+        return self._constructor(new_data)
+
+    def _compare_frame_evaluate(self, other, func, str_rep):
+
+        # unique
+        if self.columns.is_unique:
+
+            def _compare(a, b):
+                return dict([(col, func(a[col], b[col])) for col in a.columns])
+
+            new_data = expressions.evaluate(_compare, str_rep, self, other)
+            return self._constructor(data=new_data, index=self.index,
+                                     columns=self.columns, copy=False)
+        # non-unique
+        else:
+
+            def _compare(a, b):
+                return dict([(i, func(a.iloc[:, i], b.iloc[:, i]))
+                             for i, col in enumerate(a.columns)])
+
+            new_data = expressions.evaluate(_compare, str_rep, self, other)
+            result = self._constructor(data=new_data, index=self.index,
+                                       copy=False)
+            result.columns = self.columns
+            return result
+
+    def _compare_frame(self, other, func, str_rep):
+        if not self._indexed_same(other):
+            raise ValueError('Can only compare identically-labeled '
+                             'DataFrame objects')
+        return self._compare_frame_evaluate(other, func, str_rep)
+
+    def _flex_compare_frame(self, other, func, str_rep, level):
+        if not self._indexed_same(other):
+            self, other = self.align(other, 'outer', level=level, copy=False)
+        return self._compare_frame_evaluate(other, func, str_rep)
+
+    def combine(self, other, func, fill_value=None, overwrite=True):
+        """
+        Add two DataFrame objects and do not propagate NaN values, so if for a
+        (column, time) one frame is missing a value, it will default to the
+        other frame's value (which might be NaN as well)
+
+        Parameters
+        ----------
+        other : DataFrame
+        func : function
+        fill_value : scalar value
+        overwrite : boolean, default True
+            If True then overwrite values for common keys in the calling frame
+
+        Returns
+        -------
+        result : DataFrame
+        """
+
+        other_idxlen = len(other.index)  # save for compare
+
+        this, other = self.align(other, copy=False)
+        new_index = this.index
+
+        if other.empty and len(new_index) == len(self.index):
+            return self.copy()
+
+        if self.empty and len(other) == other_idxlen:
+            return other.copy()
+
+        # sorts if possible
+        new_columns = this.columns.union(other.columns)
+        do_fill = fill_value is not None
+
+        result = {}
+        for col in new_columns:
+            series = this[col]
+            otherSeries = other[col]
+
+            this_dtype = series.dtype
+            other_dtype = otherSeries.dtype
+
+            this_mask = isnull(series)
+            other_mask = isnull(otherSeries)
+
+            # don't overwrite columns unecessarily
+            # DO propagate if this column is not in the intersection
+            if not overwrite and other_mask.all():
+                result[col] = this[col].copy()
+                continue
+
+            if do_fill:
+                series = series.copy()
+                otherSeries = otherSeries.copy()
+                series[this_mask] = fill_value
+                otherSeries[other_mask] = fill_value
+
+            # if we have different dtypes, possibily promote
+            new_dtype = this_dtype
+            if not is_dtype_equal(this_dtype, other_dtype):
+                new_dtype = _find_common_type([this_dtype, other_dtype])
+                if not is_dtype_equal(this_dtype, new_dtype):
+                    series = series.astype(new_dtype)
+                if not is_dtype_equal(other_dtype, new_dtype):
+                    otherSeries = otherSeries.astype(new_dtype)
+
+            # see if we need to be represented as i8 (datetimelike)
+            # try to keep us at this dtype
+            needs_i8_conversion_i = needs_i8_conversion(new_dtype)
+            if needs_i8_conversion_i:
+                arr = func(series, otherSeries, True)
+            else:
+                arr = func(series, otherSeries)
+
+            if do_fill:
+                arr = _ensure_float(arr)
+                arr[this_mask & other_mask] = NA
+
+            # try to downcast back to the original dtype
+            if needs_i8_conversion_i:
+                # ToDo: This conversion should be handled in
+                # _possibly_cast_to_datetime but the change affects lot...
+                if is_datetime64tz_dtype(new_dtype):
+                    arr = DatetimeIndex._simple_new(arr, tz=new_dtype.tz)
+                else:
+                    arr = _possibly_cast_to_datetime(arr, new_dtype)
+            else:
+                arr = _possibly_downcast_to_dtype(arr, this_dtype)
+
+            result[col] = arr
+
+        # convert_objects just in case
+        return self._constructor(result, index=new_index,
+                                 columns=new_columns)._convert(datetime=True,
+                                                               copy=False)
+
+    def combine_first(self, other):
+        """
+        Combine two DataFrame objects and default to non-null values in frame
+        calling the method. Result index columns will be the union of the
+        respective indexes and columns
+
+        Parameters
+        ----------
+        other : DataFrame
+
+        Examples
+        --------
+        a's values prioritized, use values from b to fill holes:
+
+        >>> a.combine_first(b)
+
+
+        Returns
+        -------
+        combined : DataFrame
+        """
+
+        def combiner(x, y, needs_i8_conversion=False):
+            x_values = x.values if hasattr(x, 'values') else x
+            y_values = y.values if hasattr(y, 'values') else y
+            if needs_i8_conversion:
+                mask = isnull(x)
+                x_values = x_values.view('i8')
+                y_values = y_values.view('i8')
+            else:
+                mask = isnull(x_values)
+
+            return expressions.where(mask, y_values, x_values,
+                                     raise_on_error=True)
+
+        return self.combine(other, combiner, overwrite=False)
+
+    def update(self, other, join='left', overwrite=True, filter_func=None,
+               raise_conflict=False):
+        """
+        Modify DataFrame in place using non-NA values from passed
+        DataFrame. Aligns on indices
+
+        Parameters
+        ----------
+        other : DataFrame, or object coercible into a DataFrame
+        join : {'left'}, default 'left'
+        overwrite : boolean, default True
+            If True then overwrite values for common keys in the calling frame
+        filter_func : callable(1d-array) -> 1d-array<boolean>, default None
+            Can choose to replace values other than NA. Return True for values
+            that should be updated
+        raise_conflict : boolean
+            If True, will raise an error if the DataFrame and other both
+            contain data in the same place.
+        """
+        # TODO: Support other joins
+        if join != 'left':  # pragma: no cover
+            raise NotImplementedError("Only left join is supported")
+
+        if not isinstance(other, DataFrame):
+            other = DataFrame(other)
+
+        other = other.reindex_like(self)
+
+        for col in self.columns:
+            this = self[col].values
+            that = other[col].values
+            if filter_func is not None:
+                with np.errstate(all='ignore'):
+                    mask = ~filter_func(this) | isnull(that)
+            else:
+                if raise_conflict:
+                    mask_this = notnull(that)
+                    mask_that = notnull(this)
+                    if any(mask_this & mask_that):
+                        raise ValueError("Data overlaps.")
+
+                if overwrite:
+                    mask = isnull(that)
+
+                    # don't overwrite columns unecessarily
+                    if mask.all():
+                        continue
+                else:
+                    mask = notnull(this)
+
+            self[col] = expressions.where(mask, this, that,
+                                          raise_on_error=True)
+
+    # ----------------------------------------------------------------------
+    # Misc methods
+
+    def first_valid_index(self):
+        """
+        Return label for first non-NA/null value
+        """
+        if len(self) == 0:
+            return None
+
+        return self.index[self.count(1) > 0][0]
+
+    def last_valid_index(self):
+        """
+        Return label for last non-NA/null value
+        """
+        if len(self) == 0:
+            return None
+
+        return self.index[self.count(1) > 0][-1]
+
+    # ----------------------------------------------------------------------
+    # Data reshaping
+
+    def pivot(self, index=None, columns=None, values=None):
+        """
+        Reshape data (produce a "pivot" table) based on column values. Uses
+        unique values from index / columns to form axes of the resulting
+        DataFrame.
+
+        Parameters
+        ----------
+        index : string or object, optional
+            Column name to use to make new frame's index. If None, uses
+            existing index.
+        columns : string or object
+            Column name to use to make new frame's columns
+        values : string or object, optional
+            Column name to use for populating new frame's values. If not
+            specified, all remaining columns will be used and the result will
+            have hierarchically indexed columns
+
+        Returns
+        -------
+        pivoted : DataFrame
+
+        See also
+        --------
+        DataFrame.pivot_table : generalization of pivot that can handle
+            duplicate values for one index/column pair
+        DataFrame.unstack : pivot based on the index values instead of a
+            column
+
+        Notes
+        -----
+        For finer-tuned control, see hierarchical indexing documentation along
+        with the related stack/unstack methods
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame({'foo': ['one','one','one','two','two','two'],
+                               'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+                               'baz': [1, 2, 3, 4, 5, 6]})
+        >>> df
+            foo   bar  baz
+        0   one   A    1
+        1   one   B    2
+        2   one   C    3
+        3   two   A    4
+        4   two   B    5
+        5   two   C    6
+
+        >>> df.pivot(index='foo', columns='bar', values='baz')
+             A   B   C
+        one  1   2   3
+        two  4   5   6
+
+        >>> df.pivot(index='foo', columns='bar')['baz']
+             A   B   C
+        one  1   2   3
+        two  4   5   6
+
+
+        """
+        from pandas.core.reshape import pivot
+        return pivot(self, index=index, columns=columns, values=values)
+
+    def stack(self, level=-1, dropna=True):
+        """
+        Pivot a level of the (possibly hierarchical) column labels, returning a
+        DataFrame (or Series in the case of an object with a single level of
+        column labels) having a hierarchical index with a new inner-most level
+        of row labels.
+        The level involved will automatically get sorted.
+
+        Parameters
+        ----------
+        level : int, string, or list of these, default last level
+            Level(s) to stack, can pass level name
+        dropna : boolean, default True
+            Whether to drop rows in the resulting Frame/Series with no valid
+            values
+
+        Examples
+        ----------
+        >>> s
+             a   b
+        one  1.  2.
+        two  3.  4.
+
+        >>> s.stack()
+        one a    1
+            b    2
+        two a    3
+            b    4
+
+        Returns
+        -------
+        stacked : DataFrame or Series
+        """
+        from pandas.core.reshape import stack, stack_multiple
+
+        if isinstance(level, (tuple, list)):
+            return stack_multiple(self, level, dropna=dropna)
+        else:
+            return stack(self, level, dropna=dropna)
+
+    def unstack(self, level=-1, fill_value=None):
+        """
+        Pivot a level of the (necessarily hierarchical) index labels, returning
+        a DataFrame having a new level of column labels whose inner-most level
+        consists of the pivoted index labels. If the index is not a MultiIndex,
+        the output will be a Series (the analogue of stack when the columns are
+        not a MultiIndex).
+        The level involved will automatically get sorted.
+
+        Parameters
+        ----------
+        level : int, string, or list of these, default -1 (last level)
+            Level(s) of index to unstack, can pass level name
+        fill_value : replace NaN with this value if the unstack produces
+            missing values
+
+            .. versionadded: 0.18.0
+
+        See also
+        --------
+        DataFrame.pivot : Pivot a table based on column values.
+        DataFrame.stack : Pivot a level of the column labels (inverse operation
+            from `unstack`).
+
+        Examples
+        --------
+        >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
+        ...                                    ('two', 'a'), ('two', 'b')])
+        >>> s = pd.Series(np.arange(1.0, 5.0), index=index)
+        >>> s
+        one  a   1.0
+             b   2.0
+        two  a   3.0
+             b   4.0
+        dtype: float64
+
+        >>> s.unstack(level=-1)
+             a   b
+        one  1.0  2.0
+        two  3.0  4.0
+
+        >>> s.unstack(level=0)
+           one  two
+        a  1.0   3.0
+        b  2.0   4.0
+
+        >>> df = s.unstack(level=0)
+        >>> df.unstack()
+        one  a  1.0
+             b  2.0
+        two  a  3.0
+             b  4.0
+        dtype: float64
+
+        Returns
+        -------
+        unstacked : DataFrame or Series
+        """
+        from pandas.core.reshape import unstack
+        return unstack(self, level, fill_value)
+
+    # ----------------------------------------------------------------------
+    # Time series-related
+
+    def diff(self, periods=1, axis=0):
+        """
+        1st discrete difference of object
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for forming difference
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Take difference over rows (0) or columns (1).
+
+            .. versionadded: 0.16.1
+
+        Returns
+        -------
+        diffed : DataFrame
+        """
+        bm_axis = self._get_block_manager_axis(axis)
+        new_data = self._data.diff(n=periods, axis=bm_axis)
+        return self._constructor(new_data)
+
+    # ----------------------------------------------------------------------
+    # Function application
+
+    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
+              args=(), **kwds):
+        """
+        Applies function along input axis of DataFrame.
+
+        Objects passed to functions are Series objects having index
+        either the DataFrame's index (axis=0) or the columns (axis=1).
+        Return type depends on whether passed function aggregates, or the
+        reduce argument if the DataFrame is empty.
+
+        Parameters
+        ----------
+        func : function
+            Function to apply to each column/row
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            * 0 or 'index': apply function to each column
+            * 1 or 'columns': apply function to each row
+        broadcast : boolean, default False
+            For aggregation functions, return object of same size with values
+            propagated
+        raw : boolean, default False
+            If False, convert each row or column into a Series. If raw=True the
+            passed function will receive ndarray objects instead. If you are
+            just applying a NumPy reduction function this will achieve much
+            better performance
+        reduce : boolean or None, default None
+            Try to apply reduction procedures. If the DataFrame is empty,
+            apply will use reduce to determine whether the result should be a
+            Series or a DataFrame. If reduce is None (the default), apply's
+            return value will be guessed by calling func an empty Series (note:
+            while guessing, exceptions raised by func will be ignored). If
+            reduce is True a Series will always be returned, and if False a
+            DataFrame will always be returned.
+        args : tuple
+            Positional arguments to pass to function in addition to the
+            array/series
+        Additional keyword arguments will be passed as keywords to the function
+
+        Notes
+        -----
+        In the current implementation apply calls func twice on the
+        first column/row to decide whether it can take a fast or slow
+        code path. This can lead to unexpected behavior if func has
+        side-effects, as they will take effect twice for the first
+        column/row.
+
+        Examples
+        --------
+        >>> df.apply(numpy.sqrt) # returns DataFrame
+        >>> df.apply(numpy.sum, axis=0) # equiv to df.sum(0)
+        >>> df.apply(numpy.sum, axis=1) # equiv to df.sum(1)
+
+        See also
+        --------
+        DataFrame.applymap: For elementwise operations
+
+        Returns
+        -------
+        applied : Series or DataFrame
+        """
+        axis = self._get_axis_number(axis)
+        if kwds or args and not isinstance(func, np.ufunc):
+
+            def f(x):
+                return func(x, *args, **kwds)
+        else:
+            f = func
+
+        if len(self.columns) == 0 and len(self.index) == 0:
+            return self._apply_empty_result(func, axis, reduce, *args, **kwds)
+
+        if isinstance(f, np.ufunc):
+            with np.errstate(all='ignore'):
+                results = f(self.values)
+            return self._constructor(data=results, index=self.index,
+                                     columns=self.columns, copy=False)
+        else:
+            if not broadcast:
+                if not all(self.shape):
+                    return self._apply_empty_result(func, axis, reduce, *args,
+                                                    **kwds)
+
+                if raw and not self._is_mixed_type:
+                    return self._apply_raw(f, axis)
+                else:
+                    if reduce is None:
+                        reduce = True
+                    return self._apply_standard(f, axis, reduce=reduce)
+            else:
+                return self._apply_broadcast(f, axis)
+
+    def _apply_empty_result(self, func, axis, reduce, *args, **kwds):
+        if reduce is None:
+            reduce = False
+            try:
+                reduce = not isinstance(func(_EMPTY_SERIES, *args, **kwds),
+                                        Series)
+            except Exception:
+                pass
+
+        if reduce:
+            return Series(NA, index=self._get_agg_axis(axis))
+        else:
+            return self.copy()
+
+    def _apply_raw(self, func, axis):
+        try:
+            result = lib.reduce(self.values, func, axis=axis)
+        except Exception:
+            result = np.apply_along_axis(func, axis, self.values)
+
+        # TODO: mixed type case
+        if result.ndim == 2:
+            return DataFrame(result, index=self.index, columns=self.columns)
+        else:
+            return Series(result, index=self._get_agg_axis(axis))
+
+    def _apply_standard(self, func, axis, ignore_failures=False, reduce=True):
+
+        # skip if we are mixed datelike and trying reduce across axes
+        # GH6125
+        if (reduce and axis == 1 and self._is_mixed_type and
+                self._is_datelike_mixed_type):
+            reduce = False
+
+        # try to reduce first (by default)
+        # this only matters if the reduction in values is of different dtype
+        # e.g. if we want to apply to a SparseFrame, then can't directly reduce
+        if reduce:
+            values = self.values
+
+            # we cannot reduce using non-numpy dtypes,
+            # as demonstrated in gh-12244
+            if not is_extension_type(values):
+                # Create a dummy Series from an empty array
+                index = self._get_axis(axis)
+                empty_arr = np.empty(len(index), dtype=values.dtype)
+                dummy = Series(empty_arr, index=self._get_axis(axis),
+                               dtype=values.dtype)
+
+                try:
+                    labels = self._get_agg_axis(axis)
+                    result = lib.reduce(values, func, axis=axis, dummy=dummy,
+                                        labels=labels)
+                    return Series(result, index=labels)
+                except Exception:
+                    pass
+
+        dtype = object if self._is_mixed_type else None
+        if axis == 0:
+            series_gen = (self._ixs(i, axis=1)
+                          for i in range(len(self.columns)))
+            res_index = self.columns
+            res_columns = self.index
+        elif axis == 1:
+            res_index = self.index
+            res_columns = self.columns
+            values = self.values
+            series_gen = (Series.from_array(arr, index=res_columns, name=name,
+                                            dtype=dtype)
+                          for i, (arr, name) in enumerate(zip(values,
+                                                              res_index)))
+        else:  # pragma : no cover
+            raise AssertionError('Axis must be 0 or 1, got %s' % str(axis))
+
+        i = None
+        keys = []
+        results = {}
+        if ignore_failures:
+            successes = []
+            for i, v in enumerate(series_gen):
+                try:
+                    results[i] = func(v)
+                    keys.append(v.name)
+                    successes.append(i)
+                except Exception:
+                    pass
+            # so will work with MultiIndex
+            if len(successes) < len(res_index):
+                res_index = res_index.take(successes)
+        else:
+            try:
+                for i, v in enumerate(series_gen):
+                    results[i] = func(v)
+                    keys.append(v.name)
+            except Exception as e:
+                if hasattr(e, 'args'):
+                    # make sure i is defined
+                    if i is not None:
+                        k = res_index[i]
+                        e.args = e.args + ('occurred at index %s' %
+                                           pprint_thing(k), )
+                raise
+
+        if len(results) > 0 and is_sequence(results[0]):
+            if not isinstance(results[0], Series):
+                index = res_columns
+            else:
+                index = None
+
+            result = self._constructor(data=results, index=index)
+            result.columns = res_index
+
+            if axis == 1:
+                result = result.T
+            result = result._convert(datetime=True, timedelta=True, copy=False)
+
+        else:
+
+            result = Series(results)
+            result.index = res_index
+
+        return result
+
+    def _apply_broadcast(self, func, axis):
+        if axis == 0:
+            target = self
+        elif axis == 1:
+            target = self.T
+        else:  # pragma: no cover
+            raise AssertionError('Axis must be 0 or 1, got %s' % axis)
+
+        result_values = np.empty_like(target.values)
+        columns = target.columns
+        for i, col in enumerate(columns):
+            result_values[:, i] = func(target[col])
+
+        result = self._constructor(result_values, index=target.index,
+                                   columns=target.columns)
+
+        if axis == 1:
+            result = result.T
+
+        return result
+
+    def applymap(self, func):
+        """
+        Apply a function to a DataFrame that is intended to operate
+        elementwise, i.e. like doing map(func, series) for each series in the
+        DataFrame
+
+        Parameters
+        ----------
+        func : function
+            Python function, returns a single value from a single value
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame(np.random.randn(3, 3))
+        >>> df
+            0         1          2
+        0  -0.029638  1.081563   1.280300
+        1   0.647747  0.831136  -1.549481
+        2   0.513416 -0.884417   0.195343
+        >>> df = df.applymap(lambda x: '%.2f' % x)
+        >>> df
+            0         1          2
+        0  -0.03      1.08       1.28
+        1   0.65      0.83      -1.55
+        2   0.51     -0.88       0.20
+
+        Returns
+        -------
+        applied : DataFrame
+
+        See also
+        --------
+        DataFrame.apply : For operations on rows/columns
+
+        """
+
+        # if we have a dtype == 'M8[ns]', provide boxed values
+        def infer(x):
+            if x.empty:
+                return lib.map_infer(x, func)
+            return lib.map_infer(x.asobject, func)
+
+        return self.apply(infer)
+
+    # ----------------------------------------------------------------------
+    # Merging / joining methods
+
+    def append(self, other, ignore_index=False, verify_integrity=False):
+        """
+        Append rows of `other` to the end of this frame, returning a new
+        object. Columns not in this frame are added as new columns.
+
+        Parameters
+        ----------
+        other : DataFrame or Series/dict-like object, or list of these
+            The data to append.
+        ignore_index : boolean, default False
+            If True, do not use the index labels.
+        verify_integrity : boolean, default False
+            If True, raise ValueError on creating index with duplicates.
+
+        Returns
+        -------
+        appended : DataFrame
+
+        Notes
+        -----
+        If a list of dict/series is passed and the keys are all contained in
+        the DataFrame's index, the order of the columns in the resulting
+        DataFrame will be unchanged.
+
+        See also
+        --------
+        pandas.concat : General function to concatenate DataFrame, Series
+            or Panel objects
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+        >>> df
+           A  B
+        0  1  2
+        1  3  4
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+        >>> df.append(df2)
+           A  B
+        0  1  2
+        1  3  4
+        0  5  6
+        1  7  8
+
+        With `ignore_index` set to True:
+
+        >>> df.append(df2, ignore_index=True)
+           A  B
+        0  1  2
+        1  3  4
+        2  5  6
+        3  7  8
+
+        """
+        if isinstance(other, (Series, dict)):
+            if isinstance(other, dict):
+                other = Series(other)
+            if other.name is None and not ignore_index:
+                raise TypeError('Can only append a Series if ignore_index=True'
+                                ' or if the Series has a name')
+
+            if other.name is None:
+                index = None
+            else:
+                # other must have the same index name as self, otherwise
+                # index name will be reset
+                index = Index([other.name], name=self.index.name)
+
+            combined_columns = self.columns.tolist() + self.columns.union(
+                other.index).difference(self.columns).tolist()
+            other = other.reindex(combined_columns, copy=False)
+            other = DataFrame(other.values.reshape((1, len(other))),
+                              index=index,
+                              columns=combined_columns)
+            other = other._convert(datetime=True, timedelta=True)
+            if not self.columns.equals(combined_columns):
+                self = self.reindex(columns=combined_columns)
+        elif isinstance(other, list) and not isinstance(other[0], DataFrame):
+            other = DataFrame(other)
+            if (self.columns.get_indexer(other.columns) >= 0).all():
+                other = other.loc[:, self.columns]
+
+        from pandas.tools.concat import concat
+        if isinstance(other, (list, tuple)):
+            to_concat = [self] + other
+        else:
+            to_concat = [self, other]
+        return concat(to_concat, ignore_index=ignore_index,
+                      verify_integrity=verify_integrity)
+
+    def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
+             sort=False):
+        """
+        Join columns with other DataFrame either on index or on a key
+        column. Efficiently Join multiple DataFrame objects by index at once by
+        passing a list.
+
+        Parameters
+        ----------
+        other : DataFrame, Series with name field set, or list of DataFrame
+            Index should be similar to one of the columns in this one. If a
+            Series is passed, its name attribute must be set, and that will be
+            used as the column name in the resulting joined DataFrame
+        on : column name, tuple/list of column names, or array-like
+            Column(s) in the caller to join on the index in other,
+            otherwise joins index-on-index. If multiples
+            columns given, the passed DataFrame must have a MultiIndex. Can
+            pass an array as the join key if not already contained in the
+            calling DataFrame. Like an Excel VLOOKUP operation
+        how : {'left', 'right', 'outer', 'inner'}, default: 'left'
+            How to handle the operation of the two objects.
+
+            * left: use calling frame's index (or column if on is specified)
+            * right: use other frame's index
+            * outer: form union of calling frame's index (or column if on is
+                specified) with other frame's index
+            * inner: form intersection of calling frame's index (or column if
+                on is specified) with other frame's index
+        lsuffix : string
+            Suffix to use from left frame's overlapping columns
+        rsuffix : string
+            Suffix to use from right frame's overlapping columns
+        sort : boolean, default False
+            Order result DataFrame lexicographically by the join key. If False,
+            preserves the index order of the calling (left) DataFrame
+
+        Notes
+        -----
+        on, lsuffix, and rsuffix options are not supported when passing a list
+        of DataFrame objects
+
+        Examples
+        --------
+        >>> caller = pd.DataFrame({'key': ['K0', 'K1', 'K2', 'K3', 'K4', 'K5'],
+        ...                        'A': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']})
+
+        >>> caller
+            A key
+        0  A0  K0
+        1  A1  K1
+        2  A2  K2
+        3  A3  K3
+        4  A4  K4
+        5  A5  K5
+
+        >>> other = pd.DataFrame({'key': ['K0', 'K1', 'K2'],
+        ...                       'B': ['B0', 'B1', 'B2']})
+
+        >>> other
+            B key
+        0  B0  K0
+        1  B1  K1
+        2  B2  K2
+
+        Join DataFrames using their indexes.
+
+        >>> caller.join(other, lsuffix='_caller', rsuffix='_other')
+
+        >>>     A key_caller    B key_other
+            0  A0         K0   B0        K0
+            1  A1         K1   B1        K1
+            2  A2         K2   B2        K2
+            3  A3         K3  NaN       NaN
+            4  A4         K4  NaN       NaN
+            5  A5         K5  NaN       NaN
+
+
+        If we want to join using the key columns, we need to set key to be
+        the index in both caller and other. The joined DataFrame will have
+        key as its index.
+
+        >>> caller.set_index('key').join(other.set_index('key'))
+
+        >>>      A    B
+            key
+            K0   A0   B0
+            K1   A1   B1
+            K2   A2   B2
+            K3   A3  NaN
+            K4   A4  NaN
+            K5   A5  NaN
+
+        Another option to join using the key columns is to use the on
+        parameter. DataFrame.join always uses other's index but we can use any
+        column in the caller. This method preserves the original caller's
+        index in the result.
+
+        >>> caller.join(other.set_index('key'), on='key')
+
+        >>>     A key    B
+            0  A0  K0   B0
+            1  A1  K1   B1
+            2  A2  K2   B2
+            3  A3  K3  NaN
+            4  A4  K4  NaN
+            5  A5  K5  NaN
+
+
+        See also
+        --------
+        DataFrame.merge : For column(s)-on-columns(s) operations
+
+        Returns
+        -------
+        joined : DataFrame
+        """
+        # For SparseDataFrame's benefit
+        return self._join_compat(other, on=on, how=how, lsuffix=lsuffix,
+                                 rsuffix=rsuffix, sort=sort)
+
+    def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
+                     sort=False):
+        from pandas.tools.merge import merge
+        from pandas.tools.concat import concat
+
+        if isinstance(other, Series):
+            if other.name is None:
+                raise ValueError('Other Series must have a name')
+            other = DataFrame({other.name: other})
+
+        if isinstance(other, DataFrame):
+            return merge(self, other, left_on=on, how=how,
+                         left_index=on is None, right_index=True,
+                         suffixes=(lsuffix, rsuffix), sort=sort)
+        else:
+            if on is not None:
+                raise ValueError('Joining multiple DataFrames only supported'
+                                 ' for joining on index')
+
+            # join indexes only using concat
+            if how == 'left':
+                how = 'outer'
+                join_axes = [self.index]
+            else:
+                join_axes = None
+
+            frames = [self] + list(other)
+
+            can_concat = all(df.index.is_unique for df in frames)
+
+            if can_concat:
+                return concat(frames, axis=1, join=how, join_axes=join_axes,
+                              verify_integrity=True)
+
+            joined = frames[0]
+
+            for frame in frames[1:]:
+                joined = merge(joined, frame, how=how, left_index=True,
+                               right_index=True)
+
+            return joined
+
+    @Substitution('')
+    @Appender(_merge_doc, indents=2)
+    def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
+              left_index=False, right_index=False, sort=False,
+              suffixes=('_x', '_y'), copy=True, indicator=False):
+        from pandas.tools.merge import merge
+        return merge(self, right, how=how, on=on, left_on=left_on,
+                     right_on=right_on, left_index=left_index,
+                     right_index=right_index, sort=sort, suffixes=suffixes,
+                     copy=copy, indicator=indicator)
+
+    def round(self, decimals=0, *args, **kwargs):
+        """
+        Round a DataFrame to a variable number of decimal places.
+
+        .. versionadded:: 0.17.0
+
+        Parameters
+        ----------
+        decimals : int, dict, Series
+            Number of decimal places to round each column to. If an int is
+            given, round each column to the same number of places.
+            Otherwise dict and Series round to variable numbers of places.
+            Column names should be in the keys if `decimals` is a
+            dict-like, or in the index if `decimals` is a Series. Any
+            columns not included in `decimals` will be left as is. Elements
+            of `decimals` which are not columns of the input will be
+            ignored.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.random.random([3, 3]),
+        ...     columns=['A', 'B', 'C'], index=['first', 'second', 'third'])
+        >>> df
+                       A         B         C
+        first   0.028208  0.992815  0.173891
+        second  0.038683  0.645646  0.577595
+        third   0.877076  0.149370  0.491027
+        >>> df.round(2)
+                   A     B     C
+        first   0.03  0.99  0.17
+        second  0.04  0.65  0.58
+        third   0.88  0.15  0.49
+        >>> df.round({'A': 1, 'C': 2})
+                  A         B     C
+        first   0.0  0.992815  0.17
+        second  0.0  0.645646  0.58
+        third   0.9  0.149370  0.49
+        >>> decimals = pd.Series([1, 0, 2], index=['A', 'B', 'C'])
+        >>> df.round(decimals)
+                  A  B     C
+        first   0.0  1  0.17
+        second  0.0  1  0.58
+        third   0.9  0  0.49
+
+        Returns
+        -------
+        DataFrame object
+
+        See Also
+        --------
+        numpy.around
+        Series.round
+
+        """
+        from pandas.tools.concat import concat
+
+        def _dict_round(df, decimals):
+            for col, vals in df.iteritems():
+                try:
+                    yield _series_round(vals, decimals[col])
+                except KeyError:
+                    yield vals
+
+        def _series_round(s, decimals):
+            if is_integer_dtype(s) or is_float_dtype(s):
+                return s.round(decimals)
+            return s
+
+        nv.validate_round(args, kwargs)
+
+        if isinstance(decimals, (dict, Series)):
+            if isinstance(decimals, Series):
+                if not decimals.index.is_unique:
+                    raise ValueError("Index of decimals must be unique")
+            new_cols = [col for col in _dict_round(self, decimals)]
+        elif is_integer(decimals):
+            # Dispatch to Series.round
+            new_cols = [_series_round(v, decimals)
+                        for _, v in self.iteritems()]
+        else:
+            raise TypeError("decimals must be an integer, a dict-like or a "
+                            "Series")
+
+        if len(new_cols) > 0:
+            return self._constructor(concat(new_cols, axis=1),
+                                     index=self.index,
+                                     columns=self.columns)
+        else:
+            return self
+
+    # ----------------------------------------------------------------------
+    # Statistical methods, etc.
+
+    def corr(self, method='pearson', min_periods=1):
+        """
+        Compute pairwise correlation of columns, excluding NA/null values
+
+        Parameters
+        ----------
+        method : {'pearson', 'kendall', 'spearman'}
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result. Currently only available for pearson
+            and spearman correlation
+
+        Returns
+        -------
+        y : DataFrame
+        """
+        numeric_df = self._get_numeric_data()
+        cols = numeric_df.columns
+        idx = cols.copy()
+        mat = numeric_df.values
+
+        if method == 'pearson':
+            correl = libalgos.nancorr(_ensure_float64(mat), minp=min_periods)
+        elif method == 'spearman':
+            correl = libalgos.nancorr_spearman(_ensure_float64(mat),
+                                               minp=min_periods)
+        else:
+            if min_periods is None:
+                min_periods = 1
+            mat = _ensure_float64(mat).T
+            corrf = nanops.get_corr_func(method)
+            K = len(cols)
+            correl = np.empty((K, K), dtype=float)
+            mask = np.isfinite(mat)
+            for i, ac in enumerate(mat):
+                for j, bc in enumerate(mat):
+                    if i > j:
+                        continue
+
+                    valid = mask[i] & mask[j]
+                    if valid.sum() < min_periods:
+                        c = NA
+                    elif i == j:
+                        c = 1.
+                    elif not valid.all():
+                        c = corrf(ac[valid], bc[valid])
+                    else:
+                        c = corrf(ac, bc)
+                    correl[i, j] = c
+                    correl[j, i] = c
+
+        return self._constructor(correl, index=idx, columns=cols)
+
+    def cov(self, min_periods=None):
+        """
+        Compute pairwise covariance of columns, excluding NA/null values
+
+        Parameters
+        ----------
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result.
+
+        Returns
+        -------
+        y : DataFrame
+
+        Notes
+        -----
+        `y` contains the covariance matrix of the DataFrame's time series.
+        The covariance is normalized by N-1 (unbiased estimator).
+        """
+        numeric_df = self._get_numeric_data()
+        cols = numeric_df.columns
+        idx = cols.copy()
+        mat = numeric_df.values
+
+        if notnull(mat).all():
+            if min_periods is not None and min_periods > len(mat):
+                baseCov = np.empty((mat.shape[1], mat.shape[1]))
+                baseCov.fill(np.nan)
+            else:
+                baseCov = np.cov(mat.T)
+            baseCov = baseCov.reshape((len(cols), len(cols)))
+        else:
+            baseCov = libalgos.nancorr(_ensure_float64(mat), cov=True,
+                                       minp=min_periods)
+
+        return self._constructor(baseCov, index=idx, columns=cols)
+
+    def corrwith(self, other, axis=0, drop=False):
+        """
+        Compute pairwise correlation between rows or columns of two DataFrame
+        objects.
+
+        Parameters
+        ----------
+        other : DataFrame
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
+        drop : boolean, default False
+            Drop missing indices from result, default returns union of all
+
+        Returns
+        -------
+        correls : Series
+        """
+        axis = self._get_axis_number(axis)
+        if isinstance(other, Series):
+            return self.apply(other.corr, axis=axis)
+
+        this = self._get_numeric_data()
+        other = other._get_numeric_data()
+
+        left, right = this.align(other, join='inner', copy=False)
+
+        # mask missing values
+        left = left + right * 0
+        right = right + left * 0
+
+        if axis == 1:
+            left = left.T
+            right = right.T
+
+        # demeaned data
+        ldem = left - left.mean()
+        rdem = right - right.mean()
+
+        num = (ldem * rdem).sum()
+        dom = (left.count() - 1) * left.std() * right.std()
+
+        correl = num / dom
+
+        if not drop:
+            raxis = 1 if axis == 0 else 0
+            result_index = this._get_axis(raxis).union(other._get_axis(raxis))
+            correl = correl.reindex(result_index)
+
+        return correl
+
+    # ----------------------------------------------------------------------
+    # ndarray-like stats methods
+
+    def count(self, axis=0, level=None, numeric_only=False):
+        """
+        Return Series with number of non-NA/null observations over requested
+        axis. Works with non-floating point data as well (detects NaN and None)
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        level : int or level name, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a DataFrame
+        numeric_only : boolean, default False
+            Include only float, int, boolean data
+
+        Returns
+        -------
+        count : Series (or DataFrame if level specified)
+        """
+        axis = self._get_axis_number(axis)
+        if level is not None:
+            return self._count_level(level, axis=axis,
+                                     numeric_only=numeric_only)
+
+        if numeric_only:
+            frame = self._get_numeric_data()
+        else:
+            frame = self
+
+        # GH #423
+        if len(frame._get_axis(axis)) == 0:
+            result = Series(0, index=frame._get_agg_axis(axis))
+        else:
+            if frame._is_mixed_type:
+                result = notnull(frame).sum(axis=axis)
+            else:
+                counts = notnull(frame.values).sum(axis=axis)
+                result = Series(counts, index=frame._get_agg_axis(axis))
+
+        return result.astype('int64')
+
+    def _count_level(self, level, axis=0, numeric_only=False):
+        if numeric_only:
+            frame = self._get_numeric_data()
+        else:
+            frame = self
+
+        count_axis = frame._get_axis(axis)
+        agg_axis = frame._get_agg_axis(axis)
+
+        if not isinstance(count_axis, MultiIndex):
+            raise TypeError("Can only count levels on hierarchical %s." %
+                            self._get_axis_name(axis))
+
+        if frame._is_mixed_type:
+            # Since we have mixed types, calling notnull(frame.values) might
+            # upcast everything to object
+            mask = notnull(frame).values
+        else:
+            # But use the speedup when we have homogeneous dtypes
+            mask = notnull(frame.values)
+
+        if axis == 1:
+            # We're transposing the mask rather than frame to avoid potential
+            # upcasts to object, which induces a ~20x slowdown
+            mask = mask.T
+
+        if isinstance(level, compat.string_types):
+            level = count_axis._get_level_number(level)
+
+        level_index = count_axis.levels[level]
+        labels = _ensure_int64(count_axis.labels[level])
+        counts = lib.count_level_2d(mask, labels, len(level_index), axis=0)
+
+        result = DataFrame(counts, index=level_index, columns=agg_axis)
+
+        if axis == 1:
+            # Undo our earlier transpose
+            return result.T
+        else:
+            return result
+
+    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
+        axis = self._get_axis_number(axis)
+
+        def f(x):
+            return op(x, axis=axis, skipna=skipna, **kwds)
+
+        labels = self._get_agg_axis(axis)
+
+        # exclude timedelta/datetime unless we are uniform types
+        if axis == 1 and self._is_mixed_type and self._is_datelike_mixed_type:
+            numeric_only = True
+
+        if numeric_only is None:
+            try:
+                values = self.values
+                result = f(values)
+            except Exception as e:
+
+                # try by-column first
+                if filter_type is None and axis == 0:
+                    try:
+
+                        # this can end up with a non-reduction
+                        # but not always. if the types are mixed
+                        # with datelike then need to make sure a series
+                        result = self.apply(f, reduce=False)
+                        if result.ndim == self.ndim:
+                            result = result.iloc[0]
+                        return result
+                    except:
+                        pass
+
+                if filter_type is None or filter_type == 'numeric':
+                    data = self._get_numeric_data()
+                elif filter_type == 'bool':
+                    data = self._get_bool_data()
+                else:  # pragma: no cover
+                    e = NotImplementedError("Handling exception with filter_"
+                                            "type %s not implemented." %
+                                            filter_type)
+                    raise_with_traceback(e)
+                with np.errstate(all='ignore'):
+                    result = f(data.values)
+                labels = data._get_agg_axis(axis)
+        else:
+            if numeric_only:
+                if filter_type is None or filter_type == 'numeric':
+                    data = self._get_numeric_data()
+                elif filter_type == 'bool':
+                    data = self._get_bool_data()
+                else:  # pragma: no cover
+                    msg = ("Generating numeric_only data with filter_type %s"
+                           "not supported." % filter_type)
+                    raise NotImplementedError(msg)
+                values = data.values
+                labels = data._get_agg_axis(axis)
+            else:
+                values = self.values
+            result = f(values)
+
+        if hasattr(result, 'dtype') and is_object_dtype(result.dtype):
+            try:
+                if filter_type is None or filter_type == 'numeric':
+                    result = result.astype(np.float64)
+                elif filter_type == 'bool' and notnull(result).all():
+                    result = result.astype(np.bool_)
+            except (ValueError, TypeError):
+
+                # try to coerce to the original dtypes item by item if we can
+                if axis == 0:
+                    result = _coerce_to_dtypes(result, self.dtypes)
+
+        return Series(result, index=labels)
+
+    def nunique(self, axis=0, dropna=True):
+        """
+        Return Series with number of distinct observations over requested
+        axis.
+
+        .. versionadded:: 0.20.0
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+        dropna : boolean, default True
+            Don't include NaN in the counts.
+
+        Returns
+        -------
+        nunique : Series
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 1, 1]})
+        >>> df.nunique()
+        A    3
+        B    1
+
+        >>> df.nunique(axis=1)
+        0    1
+        1    2
+        2    2
+        """
+        return self.apply(Series.nunique, axis=axis, dropna=dropna)
+
+    def idxmin(self, axis=0, skipna=True):
+        """
+        Return index of first occurrence of minimum over requested axis.
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA
+
+        Returns
+        -------
+        idxmin : Series
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmin``.
+
+        See Also
+        --------
+        Series.idxmin
+        """
+        axis = self._get_axis_number(axis)
+        indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        index = self._get_axis(axis)
+        result = [index[i] if i >= 0 else NA for i in indices]
+        return Series(result, index=self._get_agg_axis(axis))
+
+    def idxmax(self, axis=0, skipna=True):
+        """
+        Return index of first occurrence of maximum over requested axis.
+        NA/null values are excluded.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        skipna : boolean, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be first index.
+
+        Returns
+        -------
+        idxmax : Series
+
+        Notes
+        -----
+        This method is the DataFrame version of ``ndarray.argmax``.
+
+        See Also
+        --------
+        Series.idxmax
+        """
+        axis = self._get_axis_number(axis)
+        indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        index = self._get_axis(axis)
+        result = [index[i] if i >= 0 else NA for i in indices]
+        return Series(result, index=self._get_agg_axis(axis))
+
+    def _get_agg_axis(self, axis_num):
+        """ let's be explict about this """
+        if axis_num == 0:
+            return self.columns
+        elif axis_num == 1:
+            return self.index
+        else:
+            raise ValueError('Axis must be 0 or 1 (got %r)' % axis_num)
+
+    def mode(self, axis=0, numeric_only=False):
+        """
+        Gets the mode(s) of each element along the axis selected. Empty if
+        nothing has 2+ occurrences. Adds a row for each mode per label, fills
+        in gaps with nan.
+
+        Note that there could be multiple values returned for the selected
+        axis (when more than one item share the maximum frequency), which is
+        the reason why a dataframe is returned. If you want to impute missing
+        values with the mode in a dataframe ``df``, you can just do this:
+        ``df.fillna(df.mode().iloc[0])``
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            * 0 or 'index' : get mode of each column
+            * 1 or 'columns' : get mode of each row
+        numeric_only : boolean, default False
+            if True, only apply to numeric columns
+
+        Returns
+        -------
+        modes : DataFrame (sorted)
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 1, 2, 1, 2, 3]})
+        >>> df.mode()
+           A
+        0  1
+        1  2
+        """
+        data = self if not numeric_only else self._get_numeric_data()
+
+        def f(s):
+            return s.mode()
+
+        return data.apply(f, axis=axis)
+
+    def quantile(self, q=0.5, axis=0, numeric_only=True,
+                 interpolation='linear'):
+        """
+        Return values at the given quantile over requested axis, a la
+        numpy.percentile.
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50% quantile)
+            0 <= q <= 1, the quantile(s) to compute
+        axis : {0, 1, 'index', 'columns'} (default 0)
+            0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+            .. versionadded:: 0.18.0
+
+            This optional parameter specifies the interpolation method to use,
+            when the desired quantile lies between two data points `i` and `j`:
+
+            * linear: `i + (j - i) * fraction`, where `fraction` is the
+              fractional part of the index surrounded by `i` and `j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
+
+        Returns
+        -------
+        quantiles : Series or DataFrame
+
+            - If ``q`` is an array, a DataFrame will be returned where the
+              index is ``q``, the columns are the columns of self, and the
+              values are the quantiles.
+            - If ``q`` is a float, a Series will be returned where the
+              index is the columns of self and the values are the quantiles.
+
+        Examples
+        --------
+
+        >>> df = DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
+                           columns=['a', 'b'])
+        >>> df.quantile(.1)
+        a    1.3
+        b    3.7
+        dtype: float64
+        >>> df.quantile([.1, .5])
+               a     b
+        0.1  1.3   3.7
+        0.5  2.5  55.0
+        """
+        self._check_percentile(q)
+
+        data = self._get_numeric_data() if numeric_only else self
+        axis = self._get_axis_number(axis)
+        is_transposed = axis == 1
+
+        if is_transposed:
+            data = data.T
+
+        result = data._data.quantile(qs=q,
+                                     axis=1,
+                                     interpolation=interpolation,
+                                     transposed=is_transposed)
+
+        if result.ndim == 2:
+            result = self._constructor(result)
+        else:
+            result = self._constructor_sliced(result, name=q)
+
+        if is_transposed:
+            result = result.T
+
+        return result
+
+    def to_timestamp(self, freq=None, how='start', axis=0, copy=True):
+        """
+        Cast to DatetimeIndex of timestamps, at *beginning* of period
+
+        Parameters
+        ----------
+        freq : string, default frequency of PeriodIndex
+            Desired frequency
+        how : {'s', 'e', 'start', 'end'}
+            Convention for converting period to timestamp; start of period
+            vs. end
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to convert (the index by default)
+        copy : boolean, default True
+            If false then underlying input data is not copied
+
+        Returns
+        -------
+        df : DataFrame with DatetimeIndex
+        """
+        new_data = self._data
+        if copy:
+            new_data = new_data.copy()
+
+        axis = self._get_axis_number(axis)
+        if axis == 0:
+            new_data.set_axis(1, self.index.to_timestamp(freq=freq, how=how))
+        elif axis == 1:
+            new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
+        else:  # pragma: no cover
+            raise AssertionError('Axis must be 0 or 1. Got %s' % str(axis))
+
+        return self._constructor(new_data)
+
+    def to_period(self, freq=None, axis=0, copy=True):
+        """
+        Convert DataFrame from DatetimeIndex to PeriodIndex with desired
+        frequency (inferred from index if not passed)
+
+        Parameters
+        ----------
+        freq : string, default
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to convert (the index by default)
+        copy : boolean, default True
+            If False then underlying input data is not copied
+
+        Returns
+        -------
+        ts : TimeSeries with PeriodIndex
+        """
+        new_data = self._data
+        if copy:
+            new_data = new_data.copy()
+
+        axis = self._get_axis_number(axis)
+        if axis == 0:
+            new_data.set_axis(1, self.index.to_period(freq=freq))
+        elif axis == 1:
+            new_data.set_axis(0, self.columns.to_period(freq=freq))
+        else:  # pragma: no cover
+            raise AssertionError('Axis must be 0 or 1. Got %s' % str(axis))
+
+        return self._constructor(new_data)
+
+    def isin(self, values):
+        """
+        Return boolean DataFrame showing whether each element in the
+        DataFrame is contained in values.
+
+        Parameters
+        ----------
+        values : iterable, Series, DataFrame or dictionary
+            The result will only be true at a location if all the
+            labels match. If `values` is a Series, that's the index. If
+            `values` is a dictionary, the keys must be the column names,
+            which must match. If `values` is a DataFrame,
+            then both the index and column labels must match.
+
+        Returns
+        -------
+
+        DataFrame of booleans
+
+        Examples
+        --------
+        When ``values`` is a list:
+
+        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        >>> df.isin([1, 3, 12, 'a'])
+               A      B
+        0   True   True
+        1  False  False
+        2   True  False
+
+        When ``values`` is a dict:
+
+        >>> df = DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
+        >>> df.isin({'A': [1, 3], 'B': [4, 7, 12]})
+               A      B
+        0   True  False  # Note that B didn't match the 1 here.
+        1  False   True
+        2   True   True
+
+        When ``values`` is a Series or DataFrame:
+
+        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        >>> other = DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
+        >>> df.isin(other)
+               A      B
+        0   True  False
+        1  False  False  # Column A in `other` has a 3, but not at index 1.
+        2   True   True
+        """
+        if isinstance(values, dict):
+            from collections import defaultdict
+            from pandas.tools.concat import concat
+            values = defaultdict(list, values)
+            return concat((self.iloc[:, [i]].isin(values[col])
+                           for i, col in enumerate(self.columns)), axis=1)
+        elif isinstance(values, Series):
+            if not values.index.is_unique:
+                raise ValueError("cannot compute isin with "
+                                 "a duplicate axis.")
+            return self.eq(values.reindex_like(self), axis='index')
+        elif isinstance(values, DataFrame):
+            if not (values.columns.is_unique and values.index.is_unique):
+                raise ValueError("cannot compute isin with "
+                                 "a duplicate axis.")
+            return self.eq(values.reindex_like(self))
+        else:
+            if not is_list_like(values):
+                raise TypeError("only list-like or dict-like objects are "
+                                "allowed to be passed to DataFrame.isin(), "
+                                "you passed a "
+                                "{0!r}".format(type(values).__name__))
+            return DataFrame(
+                lib.ismember(self.values.ravel(),
+                             set(values)).reshape(self.shape), self.index,
+                self.columns)
+
+    # ----------------------------------------------------------------------
+    # Deprecated stuff
+
+    def combineAdd(self, other):
+        """
+        DEPRECATED. Use ``DataFrame.add(other, fill_value=0.)`` instead.
+
+        Add two DataFrame objects and do not propagate
+        NaN values, so if for a (column, time) one frame is missing a
+        value, it will default to the other frame's value (which might
+        be NaN as well)
+
+        Parameters
+        ----------
+        other : DataFrame
+
+        Returns
+        -------
+        DataFrame
+
+        See also
+        --------
+        DataFrame.add
+
+        """
+        warnings.warn("'combineAdd' is deprecated. Use "
+                      "'DataFrame.add(other, fill_value=0.)' instead",
+                      FutureWarning, stacklevel=2)
+        return self.add(other, fill_value=0.)
+
+    def combineMult(self, other):
+        """
+        DEPRECATED. Use ``DataFrame.mul(other, fill_value=1.)`` instead.
+
+        Multiply two DataFrame objects and do not propagate NaN values, so if
+        for a (column, time) one frame is missing a value, it will default to
+        the other frame's value (which might be NaN as well)
+
+        Parameters
+        ----------
+        other : DataFrame
+
+        Returns
+        -------
+        DataFrame
+
+        See also
+        --------
+        DataFrame.mul
+
+        """
+        warnings.warn("'combineMult' is deprecated. Use "
+                      "'DataFrame.mul(other, fill_value=1.)' instead",
+                      FutureWarning, stacklevel=2)
+        return self.mul(other, fill_value=1.)
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
