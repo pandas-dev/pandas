@@ -186,9 +186,32 @@ the correct dense result.
 Interaction with scipy.sparse
 -----------------------------
 
-Experimental api to transform between sparse pandas and scipy.sparse structures.
+.. versionadded:: 0.20.0
 
-A :meth:`SparseSeries.to_coo` method is implemented for transforming a ``SparseSeries`` indexed by a ``MultiIndex`` to a ``scipy.sparse.coo_matrix``.
+Pandas supports creating sparse dataframes directly from ``scipy.sparse`` matrices.
+
+.. ipython:: python
+
+   from scipy.sparse import csr_matrix
+
+   arr = np.random.random(size=(1000, 5))
+   arr[arr < .9] = 0
+
+   sp_arr = csr_matrix(arr)
+   sp_arr
+
+   sdf = pd.SparseDataFrame(sp_arr)
+   sdf
+
+All sparse formats are supported, but matrices that aren't in :mod:`COOrdinate <scipy.sparse>` format will be converted to it, copying the data as needed. To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you can use :meth:`SparseDataFrame.to_coo` method:
+
+.. ipython:: python
+
+   sdf.to_coo()
+
+.. versionadded:: 0.16.0
+
+Additionally, a :meth:`SparseSeries.to_coo` method is implemented for transforming a ``SparseSeries`` indexed by a ``MultiIndex`` to a ``scipy.sparse.coo_matrix``.
 
 The method requires a ``MultiIndex`` with two or more levels.
 

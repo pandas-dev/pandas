@@ -237,6 +237,30 @@ You must enable this by setting the ``display.html.table_schema`` option to True
 .. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
 .. _nteract: http://nteract.io/
 
+.. _whatsnew_0200.enhancements.scipy_sparse:
+
+SciPy sparse matrix from/to SparseDataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances. See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
+
+All sparse formats are supported, but matrices that aren't in :mod:`COOrdinate <scipy.sparse>` format will be converted to it, copying the data as needed.
+
+.. ipython:: python
+
+   from scipy.sparse import csr_matrix
+   arr = np.random.random(size=(1000, 5))
+   arr[arr < .9] = 0
+   sp_arr = csr_matrix(arr)
+   sp_arr
+   sdf = pd.SparseDataFrame(sp_arr)
+   sdf
+
+To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you can use:
+
+.. ipython:: python
+
+   sdf.to_coo()
+
 .. _whatsnew_0200.enhancements.other:
 
 Other enhancements
