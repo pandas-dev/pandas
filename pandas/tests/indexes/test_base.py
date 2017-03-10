@@ -199,6 +199,23 @@ class TestIndex(Base, tm.TestCase):
             result = pd.Index(ArrayLike(array))
             self.assert_index_equal(result, expected)
 
+    def test_constructor_int_dtype_nan(self):
+        # see gh-15187
+        data = [np.nan]
+        msg = "cannot convert"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Index(data, dtype='int64')
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            Index(data, dtype='uint64')
+
+        # This, however, should not break
+        # because NaN is float.
+        expected = Float64Index(data)
+        result = Index(data, dtype='float')
+        tm.assert_index_equal(result, expected)
+
     def test_index_ctor_infer_nan_nat(self):
         # GH 13467
         exp = pd.Float64Index([np.nan, np.nan])
