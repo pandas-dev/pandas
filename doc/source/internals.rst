@@ -217,7 +217,7 @@ Below is an example to define 2 original properties, "internal_cache" as a tempo
 
 .. code-block:: python
 
-   >>> df = SubclassedDataFrame2({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame2({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7
