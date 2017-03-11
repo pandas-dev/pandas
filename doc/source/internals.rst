@@ -116,7 +116,7 @@ There are 3 constructors to be defined:
 
 - ``_constructor``: Used when a manipulation result has the same dimesions as the original.
 - ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
-- ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()`` and ``DataFrame.to_panel()``.
+- ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()``.
 
 The following table shows how ``pandas`` data structures define constructor properties by default.
 
@@ -128,7 +128,7 @@ Property Attributes          ``Series``              ``DataFrame``       ``Panel
 ``_constructor_expanddim``   ``DataFrame``           ``Panel``           ``NotImplementedError``
 ===========================  ======================= =================== =======================
 
-The below example shows how to define ``SubclassedSeries``, ``SubclassedDataFrame``, and ``SubclassedPanel`` classes, overriding the default constructor properties.
+The below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` classes, overriding the default constructor properties.
 
 .. code-block:: python
 
@@ -152,19 +152,6 @@ The below example shows how to define ``SubclassedSeries``, ``SubclassedDataFram
        def _constructor_sliced(self):
            return SubclassedSeries
 
-       @property
-       def _constructor_expanddim(self):
-           return SubclassedPanel
-
-    class SubclassedPanel(Panel):
-
-      @property
-      def _constructor(self):
-          return SubclassedPanel
-
-      @property
-      def _constructor_sliced(self):
-          return SubclassedDataFrame
 
 Overriding constructor properties allows subclass families to be preserved across slice and reshape operations:
 
