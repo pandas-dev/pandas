@@ -272,10 +272,10 @@ class TestDataFrameSubclassing(TestData):
     def test_subclassed_melt(self):
         # GH 15564
         cheese = tm.SubclassedDataFrame({
-            'first' : ['John', 'Mary'],
-            'last' : ['Doe', 'Bo'],
-            'height' : [5.5, 6.0],
-            'weight' : [130, 150]})
+            'first': ['John', 'Mary'],
+            'last': ['Doe', 'Bo'],
+            'height': [5.5, 6.0],
+            'weight': [130, 150]})
 
         melted = pd.melt(cheese, id_vars=['first', 'last'])
 
@@ -310,7 +310,7 @@ class TestDataFrameSubclassing(TestData):
         expected = tm.SubclassedDataFrame(exp_data)
         expected = expected.set_index(['id', 'year'])[["X", "A", "B"]]
         long_frame = pd.wide_to_long(df, ["A", "B"], i="id", j="year")
-        
+
         tm.assert_frame_equal(long_frame, expected)
         tm.assertIsInstance(long_frame, tm.SubclassedDataFrame)
 
