@@ -110,7 +110,7 @@ This section describes how to subclass ``pandas`` data structures to meet more s
 Override Constructor Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each data structure has constructor properties to specifying data constructors. By overriding these properties, you can retain defined-classes through ``pandas`` data manipulations.
+Each data structure has constructor properties to specifying data constructors. By overriding these properties, you can retain defined subclass families through ``pandas`` data manipulations.
 
 There are 3 constructors to be defined:
 
@@ -118,7 +118,7 @@ There are 3 constructors to be defined:
 - ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
 - ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()`` and ``DataFrame.to_panel()``.
 
-Following table shows how ``pandas`` data structures define constructor properties by default.
+The following table shows how ``pandas`` data structures define constructor properties by default.
 
 ===========================  ======================= =================== =======================
 Property Attributes          ``Series``              ``DataFrame``       ``Panel``
@@ -128,7 +128,7 @@ Property Attributes          ``Series``              ``DataFrame``       ``Panel
 ``_constructor_expanddim``   ``DataFrame``           ``Panel``           ``NotImplementedError``
 ===========================  ======================= =================== =======================
 
-Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
+The below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
 
 .. code-block:: python
 
@@ -152,22 +152,47 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
        def _constructor_sliced(self):
            return SubclassedSeries
 
+       @property
+       def _constructor_expanddim(self):
+           return SubclassedPanel
+
+    class SubclassedPanel(Panel):
+
+      @property
+      def _constructor(self):
+          return SubclassedPanel
+
+      @property
+      def _constructor_sliced(self):
+          return SubclassedDataFrame
+
+Overriding constructor properties allows subclass families to be preserved across slice and reshape operations:
+
 .. code-block:: python
 
-   >>> s = SubclassedSeries([1, 2, 3])
-   >>> type(s)
+   >>> ser = SubclassedSeries([1, 2, 3])
+   >>> ser
+   0    1
+   1    2
+   2    3
+   dtype: int64
+   >>> type(ser)
    <class '__main__.SubclassedSeries'>
 
    >>> to_framed = s.to_frame()
    >>> type(to_framed)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> df = SubclassedDataFrame({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame({
+   ...     'A': ['a', 'a', 'b', 'b'], 
+   ...     'B': ['x', 'y', 'x', 'y'], 
+   ...     'C': [1, 2, 3, 4]})
    >>> df
       A  B  C
-   0  1  4  7
-   1  2  5  8
-   2  3  6  9
+   0  a  x  0
+   1  a  y  1
+   2  b  x  2
+   3  b  y  3
 
    >>> type(df)
    <class '__main__.SubclassedDataFrame'>
@@ -175,20 +200,74 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> sliced1 = df[['A', 'B']]
    >>> sliced1
       A  B
-   0  1  4
-   1  2  5
-   2  3  6
+   0  a  x
+   1  a  y
+   2  b  x
+   3  b  y
    >>> type(sliced1)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> sliced2 = df['A']
+   >>> sliced2 = df['C']
    >>> sliced2
-   0    1
-   1    2
-   2    3
+   0    0
+   1    1
+   2    2
+   3    3
    Name: A, dtype: int64
    >>> type(sliced2)
    <class '__main__.SubclassedSeries'>
+
+   >>> stacked = df.stack()
+   >>> stacked
+   0  A    a
+      B    x
+      C    1
+   1  A    a
+      B    y
+      C    2
+   2  A    b
+      B    x
+      C    3
+   3  A    b
+      B    y
+      C    4
+   dtype: object
+   >>> type(stacked)
+   <class '__main__.SubclassedSeries'>
+
+   >>> pivoted = df.pivot(index='A', columns='B', values='C')
+   >>> pivoted
+   B  x  y
+   A
+   a  1  2
+   b  3  4
+   >>> type(pivoted)
+   <class '__main__.SubclassedDataFrame'>
+
+Most data operations also preserve the class:
+
+.. code-block:: python
+
+   >>> squared = pivoted**2
+   >>> squared
+   B  x   y
+   A
+   a  1   4
+   b  9  16
+   >>> type(pivoted)
+   <class '__main__.SubclassedDataFrame'>
+
+   >>> interped = ser.loc[[0, 0.5, 1, 1.5, 2]].interpolate()
+   >>> interped
+   0.0    1.0
+   0.5    1.5
+   1.0    2.0
+   1.5    2.5
+   2.0    3.0
+   dtype: float64
+   >>> type(interped)
+   <class '__main__.SubclassedSeries'>
+
 
 Define Original Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
