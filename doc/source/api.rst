@@ -118,7 +118,6 @@ Google BigQuery
    :toctree: generated/
 
    read_gbq
-   to_gbq
 
 
 .. currentmodule:: pandas
@@ -712,8 +711,8 @@ Serialization / IO / Conversion
    Series.to_string
    Series.to_clipboard
 
-Sparse methods
-~~~~~~~~~~~~~~
+Sparse
+~~~~~~
 .. autosummary::
    :toctree: generated/
 
@@ -1031,6 +1030,13 @@ Serialization / IO / Conversion
    DataFrame.to_string
    DataFrame.to_clipboard
 
+Sparse
+~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   SparseDataFrame.to_coo
+
 .. _api.panel:
 
 Panel
@@ -1237,7 +1243,7 @@ Serialization / IO / Conversion
    Panel.to_frame
    Panel.to_xarray
    Panel.to_clipboard
-   
+
 .. _api.index:
 
 Index
@@ -1405,6 +1411,7 @@ MultiIndex
    :toctree: generated/
 
    MultiIndex
+   IndexSlice
 
 MultiIndex Components
 ~~~~~~~~~~~~~~~~~~~~~~

@@ -668,6 +668,7 @@ class NDFrame(PandasObject):
         dtype: int64
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename(2)
+        Traceback (most recent call last):
         ...
         TypeError: 'int' object is not callable
         >>> df.rename(index=str, columns={"A": "a", "B": "c"})
@@ -898,16 +899,6 @@ class NDFrame(PandasObject):
         for h in self._info_axis:
             yield h, self[h]
 
-    # originally used to get around 2to3's changes to iteritems.
-    # Now unnecessary. Sidenote: don't want to deprecate this for a while,
-    # otherwise libraries that use 2to3 will have issues.
-    def iterkv(self, *args, **kwargs):
-        "iteritems alias used to get around 2to3. Deprecated"
-        warnings.warn("iterkv is deprecated and will be removed in a future "
-                      "release, use ``iteritems`` instead.", FutureWarning,
-                      stacklevel=2)
-        return self.iteritems(*args, **kwargs)
-
     def __len__(self):
         """Returns length of info axis"""
         return len(self._info_axis)
@@ -1115,7 +1106,7 @@ class NDFrame(PandasObject):
     to the existing workbook.  This can be used to save different
     DataFrames to one workbook:
 
-    >>> writer = ExcelWriter('output.xlsx')
+    >>> writer = pd.ExcelWriter('output.xlsx')
     >>> df1.to_excel(writer,'Sheet1')
     >>> df2.to_excel(writer,'Sheet2')
     >>> writer.save()
@@ -1354,7 +1345,7 @@ class NDFrame(PandasObject):
                    if_exists=if_exists, index=index, index_label=index_label,
                    chunksize=chunksize, dtype=dtype)
 
-    def to_pickle(self, path):
+    def to_pickle(self, path, compression='infer'):
         """
         Pickle (serialize) object to input file path.
 
@@ -1362,9 +1353,13 @@ class NDFrame(PandasObject):
         ----------
         path : string
             File path
+        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+            a string representing the compression to use in the output file
+
+            .. versionadded:: 0.20.0
         """
         from pandas.io.pickle import to_pickle
-        return to_pickle(self, path)
+        return to_pickle(self, path, compression=compression)
 
     def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
@@ -2260,7 +2255,7 @@ class NDFrame(PandasObject):
         ...      'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]},
         ...       index=index)
         >>> df
-                    http_status  response_time
+                   http_status  response_time
         Firefox            200           0.04
         Chrome             200           0.02
         Safari             404           0.07
@@ -2275,11 +2270,11 @@ class NDFrame(PandasObject):
         ...             'Chrome']
         >>> df.reindex(new_index)
                        http_status  response_time
-        Safari                 404           0.07
+        Safari               404.0           0.07
         Iceweasel              NaN            NaN
         Comodo Dragon          NaN            NaN
-        IE10                   404           0.08
-        Chrome                 200           0.02
+        IE10                 404.0           0.08
+        Chrome               200.0           0.02
 
         We can fill in the missing values by passing a value to
         the keyword ``fill_value``. Because the index is not monotonically
@@ -4462,6 +4457,30 @@ class NDFrame(PandasObject):
         2000-01-01 00:06:00    26
         Freq: 3T, dtype: int64
 
+        For DataFrame objects, the keyword ``on`` can be used to specify the
+        column instead of the index for resampling.
+
+        >>> df = pd.DataFrame(data=9*[range(4)], columns=['a', 'b', 'c', 'd'])
+        >>> df['time'] = pd.date_range('1/1/2000', periods=9, freq='T')
+        >>> df.resample('3T', on='time').sum()
+                             a  b  c  d
+        time
+        2000-01-01 00:00:00  0  3  6  9
+        2000-01-01 00:03:00  0  3  6  9
+        2000-01-01 00:06:00  0  3  6  9
+
+        For a DataFrame with MultiIndex, the keyword ``level`` can be used to
+        specify on level the resampling needs to take place.
+
+        >>> time = pd.date_range('1/1/2000', periods=5, freq='T')
+        >>> df2 = pd.DataFrame(data=10*[range(4)],
+                               columns=['a', 'b', 'c', 'd'],
+                               index=pd.MultiIndex.from_product([time, [1, 2]])
+                               )
+        >>> df2.resample('3T', level=0).sum()
+                             a  b   c   d
+        2000-01-01 00:00:00  0  6  12  18
+        2000-01-01 00:03:00  0  4   8  12
         """
         from pandas.tseries.resample import (resample,
                                              _maybe_process_deprecations)

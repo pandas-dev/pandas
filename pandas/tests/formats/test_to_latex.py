@@ -428,6 +428,51 @@ b &       b &     b \\
 
         assert withoutindex_result == withoutindex_expected
 
+    def test_to_latex_specified_header(self):
+        # GH 7124
+        df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
+        withindex_result = df.to_latex(header=['AA', 'BB'])
+        withindex_expected = r"""\begin{tabular}{lrl}
+\toprule
+{} & AA &  BB \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+
+        assert withindex_result == withindex_expected
+
+        withoutindex_result = df.to_latex(header=['AA', 'BB'], index=False)
+        withoutindex_expected = r"""\begin{tabular}{rl}
+\toprule
+AA &  BB \\
+\midrule
+ 1 &  b1 \\
+ 2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+
+        assert withoutindex_result == withoutindex_expected
+
+        withoutescape_result = df.to_latex(header=['$A$', '$B$'], escape=False)
+        withoutescape_expected = r"""\begin{tabular}{lrl}
+\toprule
+{} & $A$ & $B$ \\
+\midrule
+0 &   1 &  b1 \\
+1 &   2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+
+        assert withoutescape_result == withoutescape_expected
+
+        with tm.assertRaises(ValueError):
+            df.to_latex(header=['A'])
+
     def test_to_latex_decimal(self, frame):
         # GH 12031
         frame.to_latex()

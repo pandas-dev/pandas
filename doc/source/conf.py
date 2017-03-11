@@ -16,6 +16,14 @@ import re
 import inspect
 from pandas.compat import u, PY3
 
+# https://github.com/sphinx-doc/sphinx/pull/2325/files
+# Workaround for sphinx-build recursion limit overflow:
+# pickle.dump(doctree, f, pickle.HIGHEST_PROTOCOL)
+#  RuntimeError: maximum recursion depth exceeded while pickling an object
+#
+# Python's default allowed recursion depth is 1000.
+sys.setrecursionlimit(5000)
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -46,7 +54,7 @@ extensions = ['sphinx.ext.autodoc',
               'ipython_sphinxext.ipython_console_highlighting',
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
-              'sphinx.ext.pngmath',
+              'sphinx.ext.mathjax',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
               ]

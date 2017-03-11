@@ -260,7 +260,7 @@ Optional Dependencies
   <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
   <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* For Google BigQuery I/O - see :ref:`here <io.bigquery_deps>`.
+* For Google BigQuery I/O - see `here <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__
 
 * `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
 * One of the following combinations of libraries is needed to use the

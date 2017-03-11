@@ -94,6 +94,59 @@ support for bz2 compression in the python 2 c-engine improved (:issue:`14874`).
    df = pd.read_table(url, compression='bz2')  # explicitly specify compression
    df.head(2)
 
+.. _whatsnew_0200.enhancements.pickle_compression:
+
+Pickle file I/O now supports compression
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle`
+can now read from and write to compressed pickle files. Compression methods
+can be an explicit parameter or be inferred from the file extension.
+See :ref:`the docs here <io.pickle.compression>`
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+       'A': np.random.randn(1000),
+       'B': 'foo',
+       'C': pd.date_range('20130101', periods=1000, freq='s')})
+
+Using an explicit compression type
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.compress", compression="gzip")
+   rt = pd.read_pickle("data.pkl.compress", compression="gzip")
+   rt
+
+Inferring compression type from the extension
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.xz", compression="infer")
+   rt = pd.read_pickle("data.pkl.xz", compression="infer")
+   rt
+
+The default is to 'infer
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.gz")
+   rt = pd.read_pickle("data.pkl.gz")
+   rt
+   df["A"].to_pickle("s1.pkl.bz2")
+   rt = pd.read_pickle("s1.pkl.bz2")
+   rt
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove("data.pkl.compress")
+   os.remove("data.pkl.xz")
+   os.remove("data.pkl.gz")
+   os.remove("s1.pkl.bz2")
+
 .. _whatsnew_0200.enhancements.uint64_support:
 
 UInt64 Support Improved
@@ -150,7 +203,7 @@ New Behavior:
 
   df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
 
-.. _whatsnew_0200.enhancements.table_schema
+.. _whatsnew_0200.enhancements.table_schema:
 
 Table Schema Output
 ^^^^^^^^^^^^^^^^^^^
@@ -184,10 +237,37 @@ You must enable this by setting the ``display.html.table_schema`` option to True
 .. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
 .. _nteract: http://nteract.io/
 
+.. _whatsnew_0200.enhancements.scipy_sparse:
+
+SciPy sparse matrix from/to SparseDataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
+See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
+
+All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
+
+.. ipython:: python
+
+   from scipy.sparse import csr_matrix
+   arr = np.random.random(size=(1000, 5))
+   arr[arr < .9] = 0
+   sp_arr = csr_matrix(arr)
+   sp_arr
+   sdf = pd.SparseDataFrame(sp_arr)
+   sdf
+
+To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you can use:
+
+.. ipython:: python
+
+   sdf.to_coo()
+
 .. _whatsnew_0200.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - ``Series.str.replace()`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
 - ``Series.str.replace()`` now accepts a compiled regular expression as a pattern (:issue:`15446`)
@@ -227,6 +307,7 @@ Other enhancements
 - ``pd.TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
 - ``pd.types.concat.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
+- ``pd.DataFrame.to_latex`` and ``pd.DataFrame.to_string`` now allow optional header aliases. (:issue:`15536`)
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
@@ -283,7 +364,7 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
 
-.. _whatsnew.api_breaking.io_compat
+.. _whatsnew.api_breaking.io_compat:
 
 Possible incompat for HDF5 formats for pandas < 0.13.0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -611,6 +692,7 @@ Other API Changes
 - Reorganization of timeseries development tests (:issue:`14854`)
 - Specific support for ``copy.copy()`` and ``copy.deepcopy()`` functions on NDFrame objects (:issue:`15444`)
 - ``Series.sort_values()`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values()`` (:issue:`15604`)
+- ``.merge()`` and ``.join()`` on ``category`` dtype columns will now preserve the category dtype when possible (:issue:`10409`)
 
 .. _whatsnew_0200.deprecations:
 
@@ -651,6 +733,7 @@ Removal of prior version deprecations/changes
 - ``Series.is_time_series`` is dropped in favor of ``Series.index.is_all_dates`` (:issue:`15098`)
 - The deprecated ``irow``, ``icol``, ``iget`` and ``iget_value`` methods are removed
   in favor of ``iloc`` and ``iat`` as explained :ref:`here <whatsnew_0170.deprecations>` (:issue:`10711`).
+- The deprecated ``DataFrame.iterkv()`` has been removed in favor of ``DataFrame.iteritems()`` (:issue:`10711`)
 
 
 .. _whatsnew_0200.performance:
@@ -662,11 +745,12 @@ Performance Improvements
 - Increased performance of ``pd.factorize()`` by releasing the GIL with ``object`` dtype when inferred as strings (:issue:`14859`)
 - Improved performance of timeseries plotting with an irregular DatetimeIndex
   (or with ``compat_x=True``) (:issue:`15073`).
-- Improved performance of ``groupby().cummin()`` and ``groupby().cummax()`` (:issue:`15048`, :issue:`15109`, :issue:`15561`)
+- Improved performance of ``groupby().cummin()`` and ``groupby().cummax()`` (:issue:`15048`, :issue:`15109`, :issue:`15561`, :issue:`15635`)
 - Improved performance and reduced memory when indexing with a ``MultiIndex`` (:issue:`15245`)
 - When reading buffer object in ``read_sas()`` method without specified format, filepath string is inferred rather than buffer object. (:issue:`14947`)
 - Improved performance of ``.rank()`` for categorical data (:issue:`15498`)
 - Improved performance when using ``.unstack()`` (:issue:`15503`)
+- Improved performance of merge/join on ``category`` columns (:issue:`10409`)
 
 
 .. _whatsnew_0200.bug_fixes:
@@ -698,13 +782,12 @@ Bug Fixes
 - Bug in ``Rolling.quantile`` function that caused a segmentation fault when called with a quantile value outside of the range [0, 1] (:issue:`15463`)
 - Bug in ``pd.cut()`` with a single bin on an all 0s array (:issue:`15428`)
 - Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
-- Bug in ``SparseSeries.reindex`` on single level with list of length 1 (:issue:`15447`)
 
 
 
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 
-- Bug in ``.asfreq()``, where frequency was not set for empty ``Series` (:issue:`14320`)
+- Bug in ``.asfreq()``, where frequency was not set for empty ``Series`` (:issue:`14320`)
 
 - Bug in ``pd.read_msgpack()`` in which ``Series`` categoricals were being improperly processed (:issue:`14901`)
 - Bug in ``Series.ffill()`` with mixed dtypes containing tz-aware datetimes. (:issue:`14956`)
@@ -712,6 +795,7 @@ Bug Fixes
 - Bug in ``DataFrame.isin`` comparing datetimelike to empty frame (:issue:`15473`)
 
 - Bug in ``Series.where()`` and ``DataFrame.where()`` where array-like conditionals were being rejected (:issue:`15414`)
+- Bug in ``Index`` construction with ``NaN`` elements and integer dtype specified (:issue:`15187`)
 - Bug in ``Series`` construction with a datetimetz (:issue:`14928`)
 - Bug in output formatting of a ``MultiIndex`` when names are integers (:issue:`12223`, :issue:`15262`)
 
@@ -729,6 +813,7 @@ Bug Fixes
 - Bug in ``to_sql`` when writing a DataFrame with numeric index names (:issue:`15404`).
 - Bug in ``Series.iloc`` where a ``Categorical`` object for list-like indexes input was returned, where a ``Series`` was expected. (:issue:`14580`)
 - Bug in repr-formatting a ``SparseDataFrame`` after a value was set on (a copy of) one of its series (:issue:`15488`)
+- Bug in ``SparseSeries.reindex`` on single level with list of length 1 (:issue:`15447`)
 
 
 - Bug in  groupby operations with timedelta64 when passing ``numeric_only=False`` (:issue:`5724`)
