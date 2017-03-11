@@ -265,12 +265,8 @@ def test_round_trip_current(current_pickle_data):
 
 def test_pickle_v0_14_1():
 
-    # we have the name warning
-    # 10482
-    with tm.assert_produces_warning(UserWarning):
-        cat = pd.Categorical(values=['a', 'b', 'c'],
-                             categories=['a', 'b', 'c', 'd'],
-                             name='foobar', ordered=False)
+    cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
+                         categories=['a', 'b', 'c', 'd'])
     pickle_path = os.path.join(tm.get_data_path(),
                                'categorical_0_14_1.pickle')
     # This code was executed once on v0.14.1 to generate the pickle:
@@ -286,12 +282,8 @@ def test_pickle_v0_15_2():
     # ordered -> _ordered
     # GH 9347
 
-    # we have the name warning
-    # 10482
-    with tm.assert_produces_warning(UserWarning):
-        cat = pd.Categorical(values=['a', 'b', 'c'],
-                             categories=['a', 'b', 'c', 'd'],
-                             name='foobar', ordered=False)
+    cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
+                         categories=['a', 'b', 'c', 'd'])
     pickle_path = os.path.join(tm.get_data_path(),
                                'categorical_0_15_2.pickle')
     # This code was executed once on v0.15.2 to generate the pickle:
