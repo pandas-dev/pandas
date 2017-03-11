@@ -60,7 +60,8 @@ class _Unstacker(object):
         float and missing values will be set to NaN.
 
     constructor : object, default DataFrame
-        ``Series``, ``DataFrame``, or subclass used to create unstacked response
+        ``Series``, ``DataFrame``, or subclass used to create unstacked
+        response
 
     Examples
     --------
