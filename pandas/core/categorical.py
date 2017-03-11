@@ -231,8 +231,7 @@ class Categorical(PandasObject):
     __array_priority__ = 1000
     _typ = 'categorical'
 
-    def __init__(self, values, categories=None, ordered=False,
-                 name=None, fastpath=False):
+    def __init__(self, values, categories=None, ordered=False, fastpath=False):
 
         self._validate_ordered(ordered)
 
@@ -243,12 +242,6 @@ class Categorical(PandasObject):
                 categories, fastpath=isinstance(categories, ABCIndexClass))
             self._ordered = ordered
             return
-
-        if name is not None:
-            msg = ("the 'name' keyword is removed, use 'name' with consumers "
-                   "of the categorical instead (e.g. 'Series(cat, "
-                   "name=\"something\")'")
-            warn(msg, UserWarning, stacklevel=2)
 
         # sanitize input
         if is_categorical_dtype(values):
@@ -431,7 +424,7 @@ class Categorical(PandasObject):
         return cls(data, **kwargs)
 
     @classmethod
-    def from_codes(cls, codes, categories, ordered=False, name=None):
+    def from_codes(cls, codes, categories, ordered=False):
         """
         Make a Categorical type from codes and categories arrays.
 
@@ -454,12 +447,6 @@ class Categorical(PandasObject):
             categorical. If not given, the resulting categorical will be
             unordered.
         """
-        if name is not None:
-            msg = ("the 'name' keyword is removed, use 'name' with consumers "
-                   "of the categorical instead (e.g. 'Series(cat, "
-                   "name=\"something\")'")
-            warn(msg, UserWarning, stacklevel=2)
-
         try:
             codes = np.asarray(codes, np.int64)
         except:
