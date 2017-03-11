@@ -765,9 +765,6 @@ class TestDeprecatedTests(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.assertNotAlmostEquals(1, 2)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            tm.assert_isinstance(Series([1, 2]), Series, msg='xxx')
-
 
 class TestLocale(tm.TestCase):
 
