@@ -1,6 +1,7 @@
-import pytest
-
 import copy
+import textwrap
+
+import pytest
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
@@ -717,3 +718,32 @@ class TestStylerMatplotlibDep(TestCase):
         result = (df.style.background_gradient(subset=pd.IndexSlice[1, 'A'])
                     ._compute().ctx)
         self.assertEqual(result[(1, 0)], ['background-color: #fff7fb'])
+
+
+def test_block_names():
+    # catch accidental removal of a block
+    expected = {
+        'before_style', 'style', 'table_styles', 'before_cellstyle',
+        'cellstyle', 'before_table', 'table', 'caption', 'thead', 'tbody',
+        'after_table', 'before_head_rows', 'head_tr', 'after_head_rows',
+        'before_rows', 'tr', 'after_rows',
+    }
+    result = set(Styler.template.blocks)
+    assert result == expected
+
+
+def test_from_custom_template(tmpdir):
+    p = tmpdir.mkdir("templates").join("myhtml.tpl")
+    p.write(textwrap.dedent("""\
+        {% extends "html.tpl" %}
+        {% block table %}
+        <h1>{{ table_title|default("My Table") }}</h1>
+        {{ super() }}
+        {% endblock table %}"""))
+    result = Styler.from_custom_template(str(tmpdir.join('templates')),
+                                         'myhtml.tpl')
+    assert issubclass(result, Styler)
+    assert result.env is not Styler.env
+    assert result.template is not Styler.template
+    styler = result(pd.DataFrame({"A": [1, 2]}))
+    assert styler.render()
