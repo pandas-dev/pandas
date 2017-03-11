@@ -128,7 +128,7 @@ Property Attributes          ``Series``              ``DataFrame``       ``Panel
 ``_constructor_expanddim``   ``DataFrame``           ``Panel``           ``NotImplementedError``
 ===========================  ======================= =================== =======================
 
-The below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
+The below example shows how to define ``SubclassedSeries``, ``SubclassedDataFrame``, and ``SubclassedPanel`` classes, overriding the default constructor properties.
 
 .. code-block:: python
 
