@@ -991,11 +991,6 @@ def assertIsInstance(obj, cls, msg=''):
         raise AssertionError(err_msg.format(msg, cls, type(obj)))
 
 
-def assert_isinstance(obj, class_type_or_tuple, msg=''):
-    return deprecate('assert_isinstance', assertIsInstance)(
-        obj, class_type_or_tuple, msg=msg)
-
-
 def assertNotIsInstance(obj, cls, msg=''):
     """Test that obj is not an instance of cls
     (which can be a class or a tuple of classes,
