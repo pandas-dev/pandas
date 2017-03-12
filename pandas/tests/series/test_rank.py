@@ -246,7 +246,8 @@ class TestSeriesRank(tm.TestCase, TestData):
             _check(series, results[method], method=method)
 
     def test_rank_methods_series(self):
-        tm.skip_if_no_package('scipy', '0.13', 'scipy.stats.rankdata')
+        tm.skip_if_no_package('scipy', min_version='0.13',
+                              app='scipy.stats.rankdata')
         import scipy
         from scipy.stats import rankdata
 
