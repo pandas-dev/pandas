@@ -304,14 +304,6 @@ def _skip_if_no_scipy():
         pytest.skip('scipy.sparse missing')
 
 
-def _skip_if_scipy_0_17():
-    import scipy
-    v = scipy.__version__
-    if v >= LooseVersion("0.17.0"):
-        import pytest
-        pytest.skip("scipy 0.17")
-
-
 def _check_if_lzma():
     try:
         return compat.import_lzma()
@@ -2020,15 +2012,18 @@ class TestSubDict(dict):
 
 # Dependency checks.  Copied this from Nipy/Nipype (Copyright of
 # respective developers, license: BSD-3)
-def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion):
-    """Check that the minimal version of the required package is installed.
+def package_check(pkg_name, min_version=None, max_version=None, app='pandas',
+                  checker=LooseVersion):
+    """Check that the min/max version of the required package is installed.
 
     Parameters
     ----------
     pkg_name : string
         Name of the required package.
-    version : string, optional
+    min_version : string, optional
         Minimal version number for required package.
+    max_version : string, optional
+        Max version number for required package.
     app : string, optional
         Application that is performing the check.  For instance, the
         name of the tutorial being executed that depends on specific
@@ -2040,7 +2035,6 @@ def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion):
     Examples
     --------
     package_check('numpy', '1.3')
-    package_check('networkx', '1.0', 'tutorial1')
 
     """
 
@@ -2049,8 +2043,10 @@ def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion):
         msg = '%s requires %s' % (app, pkg_name)
     else:
         msg = 'module requires %s' % pkg_name
-    if version:
-        msg += ' with version >= %s' % (version,)
+    if min_version:
+        msg += ' with version >= %s' % (min_version,)
+    if max_version:
+        msg += ' with version < %s' % (max_version,)
     try:
         mod = __import__(pkg_name)
     except ImportError:
@@ -2059,7 +2055,9 @@ def package_check(pkg_name, version=None, app='pandas', checker=LooseVersion):
         have_version = mod.__version__
     except AttributeError:
         pytest.skip('Cannot find version for %s' % pkg_name)
-    if version and checker(have_version) < checker(version):
+    if min_version and checker(have_version) < checker(min_version):
+        pytest.skip(msg)
+    if max_version and checker(have_version) >= checker(max_version):
         pytest.skip(msg)
 
 
