@@ -1132,7 +1132,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 @pytest.mark.parametrize('dtype', [object, bool, int, float, np.uint16])
 def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     # GH 4343
-    tm._skip_if_no_scipy()
+    tm.skip_if_no_package('scipy', max_version='0.19.0')
 
     # Make one ndarray and from it one sparse matrix, both to be used for
     # constructing frames and comparing results
