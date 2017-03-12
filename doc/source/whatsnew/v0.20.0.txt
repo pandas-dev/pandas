@@ -734,7 +734,7 @@ Removal of prior version deprecations/changes
 - The deprecated ``irow``, ``icol``, ``iget`` and ``iget_value`` methods are removed
   in favor of ``iloc`` and ``iat`` as explained :ref:`here <whatsnew_0170.deprecations>` (:issue:`10711`).
 - The deprecated ``DataFrame.iterkv()`` has been removed in favor of ``DataFrame.iteritems()`` (:issue:`10711`)
-
+- The ``Categorical`` constructor has dropped the ``name`` parameter (:issue:`10632`)
 
 .. _whatsnew_0200.performance:
 

@@ -589,8 +589,7 @@ def decode(obj):
         from_codes = globals()[obj[u'klass']].from_codes
         return from_codes(codes=obj[u'codes'],
                           categories=obj[u'categories'],
-                          ordered=obj[u'ordered'],
-                          name=obj[u'name'])
+                          ordered=obj[u'ordered'])
 
     elif typ == u'series':
         dtype = dtype_for(obj[u'dtype'])
