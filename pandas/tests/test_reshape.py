@@ -250,6 +250,7 @@ class TestGetDummies(tm.TestCase):
         self.assertEqual(type(r), exp_df_type)
 
         r = get_dummies(s_df, sparse=self.sparse, columns=['a'])
+        exp_blk_type = pd.core.internals.IntBlock
         self.assertEqual(type(r[['a_0']]._data.blocks[0]), exp_blk_type)
         self.assertEqual(type(r[['a_1']]._data.blocks[0]), exp_blk_type)
         self.assertEqual(type(r[['a_2']]._data.blocks[0]), exp_blk_type)
