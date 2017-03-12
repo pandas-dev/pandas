@@ -607,7 +607,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     dayofyear,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
-    dayofweek,"The numer of the day of the week with Monday=0, Sunday=6"
+    dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
     weekday_name,"The name of the day in a week (ex: Friday)"
     quarter,"Quarter of the date: Jan-Mar = 1, Apr-Jun = 2, etc."
