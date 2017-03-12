@@ -130,7 +130,7 @@ Property Attributes          ``Series``              ``DataFrame``       ``Panel
 
 The below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` classes, overriding the default constructor properties.
 
-.. code-block:: python
+.. ipython:: python
 
    class SubclassedSeries(Series):
 
@@ -152,10 +152,9 @@ The below example shows how to define ``SubclassedSeries`` and ``SubclassedDataF
        def _constructor_sliced(self):
            return SubclassedSeries
 
-
 Overriding constructor properties allows subclass families to be preserved across slice and reshape operations:
 
-.. code-block:: python
+.. ipython:: python
 
    >>> ser = SubclassedSeries([1, 2, 3])
    >>> ser
@@ -266,7 +265,7 @@ To let original data structures have additional properties, you should let ``pan
 
 Below is an example to define 2 original properties, "internal_cache" as a temporary property and "added_property" as a normal property
 
-.. code-block:: python
+.. ipython:: python
 
    class SubclassedDataFrame2(DataFrame):
 
@@ -281,7 +280,7 @@ Below is an example to define 2 original properties, "internal_cache" as a tempo
        def _constructor(self):
            return SubclassedDataFrame2
 
-.. code-block:: python
+.. ipython:: python
 
    >>> df = SubclassedDataFrame2({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
    >>> df
