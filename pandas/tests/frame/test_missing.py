@@ -548,7 +548,8 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
             df.interpolate(method='values')
 
     def test_interp_various(self):
-        tm._skip_if_no_scipy()
+        tm.skip_if_no_package('scipy', max_version='0.19.0')
+
         df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
                         'C': [1, 2, 3, 5, 8, 13, 21]})
         df = df.set_index('C')

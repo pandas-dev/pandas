@@ -5,7 +5,7 @@ from functools import partial
 
 import warnings
 import numpy as np
-from pandas import Series, isnull
+from pandas import Series, isnull, _np_version_under1p9
 from pandas.types.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
@@ -338,8 +338,7 @@ class TestnanopsDataFrame(tm.TestCase):
         # is now consistent with numpy
 
         # numpy < 1.9.0 is not computing this correctly
-        from distutils.version import LooseVersion
-        if LooseVersion(np.__version__) >= '1.9.0':
+        if not _np_version_under1p9:
             for a in [2 ** 55, -2 ** 55, 20150515061816532]:
                 s = Series(a, index=range(500), dtype=np.int64)
                 result = s.mean()
@@ -388,8 +387,7 @@ class TestnanopsDataFrame(tm.TestCase):
                              allow_tdelta=True, allow_obj='convert')
 
     def test_nansem(self):
-        tm.skip_if_no_package('scipy.stats')
-        tm._skip_if_scipy_0_17()
+        tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import sem
         self.check_funs_ddof(nanops.nansem, sem, allow_complex=False,
                              allow_str=False, allow_date=False,
@@ -448,16 +446,14 @@ class TestnanopsDataFrame(tm.TestCase):
         return result
 
     def test_nanskew(self):
-        tm.skip_if_no_package('scipy.stats')
-        tm._skip_if_scipy_0_17()
+        tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
         self.check_funs(nanops.nanskew, func, allow_complex=False,
                         allow_str=False, allow_date=False, allow_tdelta=False)
 
     def test_nankurt(self):
-        tm.skip_if_no_package('scipy.stats')
-        tm._skip_if_scipy_0_17()
+        tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)

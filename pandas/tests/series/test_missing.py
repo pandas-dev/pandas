@@ -827,7 +827,8 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
     def test_interp_scipy_basic(self):
-        tm._skip_if_no_scipy()
+        tm.skip_if_no_package('scipy', max_version='0.19.0')
+
         s = Series([1, 3, np.nan, 12, np.nan, 25])
         # slinear
         expected = Series([1., 3., 7.5, 12., 18.5, 25.])
@@ -1027,8 +1028,8 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
 
     def test_spline_extrapolate(self):
         tm.skip_if_no_package(
-            'scipy', '0.15',
-            'setting ext on scipy.interpolate.UnivariateSpline')
+            'scipy', min_version='0.15',
+            app='setting ext on scipy.interpolate.UnivariateSpline')
         s = Series([1, 2, 3, 4, np.nan, 6, np.nan])
         result3 = s.interpolate(method='spline', order=1, ext=3)
         expected3 = Series([1., 2., 3., 4., 5., 6., 6.])

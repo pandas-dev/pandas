@@ -193,7 +193,8 @@ class TestRank(tm.TestCase, TestData):
         tm.assert_frame_equal(df.rank(axis=1), df.rank(axis='columns'))
 
     def test_rank_methods_frame(self):
-        tm.skip_if_no_package('scipy', '0.13', 'scipy.stats.rankdata')
+        tm.skip_if_no_package('scipy', min_version='0.13',
+                              app='scipy.stats.rankdata')
         import scipy
         from scipy.stats import rankdata
 
