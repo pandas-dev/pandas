@@ -162,6 +162,7 @@ int parser_cleanup(parser_t *self) {
         if (self->cb_cleanup(self->source) < 0) {
             status = -1;
         }
+        self->cb_cleanup = NULL;
     }
 
     return status;
@@ -239,6 +240,9 @@ int parser_init(parser_t *self) {
 void parser_free(parser_t *self) {
     // opposite of parser_init
     parser_cleanup(self);
+}
+
+void parser_del(parser_t *self) {
     free(self);
 }
 
