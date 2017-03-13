@@ -210,7 +210,7 @@ class TestPartialSetting(tm.TestCase):
         df.loc[3] = [6, 7]
 
         exp = DataFrame([[6, 7]], index=[3], columns=['A', 'B'],
-                        dtype='float64')
+                        dtype='object')
         tm.assert_frame_equal(df, exp)
 
     def test_series_partial_set(self):
