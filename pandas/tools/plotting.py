@@ -150,6 +150,14 @@ def _mpl_ge_2_0_0():
         return False
 
 
+def _mpl_ge_2_0_1():
+    try:
+        import matplotlib
+        return (matplotlib.__version__ >= LooseVersion('2.0.1'))
+    except ImportError:
+        return False
+
+
 if _mpl_ge_1_5_0():
     # Compat with mp 1.5, which uses cycler.
     import cycler
