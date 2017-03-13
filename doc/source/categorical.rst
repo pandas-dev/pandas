@@ -617,6 +617,7 @@ Assigning a `Categorical` to parts of a column of other types will use the value
     df
     df.dtypes
 
+.. _categorical.merge:
 
 Merging
 ~~~~~~~

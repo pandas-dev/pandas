@@ -779,7 +779,7 @@ resulting dtype will be upcast.
 
 .. versionadded:: 0.20.0
 
-Merging will preserve ``category`` dtypes of the mergands.
+Merging will preserve ``category`` dtypes of the mergands. See also the section on :ref:`categoricals <categorical.merge>`
 
 The left frame.
 
@@ -788,8 +788,8 @@ The left frame.
    X = pd.Series(np.random.choice(['foo', 'bar'], size=(10,)))
    X = X.astype('category', categories=['foo', 'bar'])
 
-   left = DataFrame({'X': X,
-                     'Y': np.random.choice(['one', 'two', 'three'], size=(10,))})
+   left = pd.DataFrame({'X': X,
+                        'Y': np.random.choice(['one', 'two', 'three'], size=(10,))})
    left
    left.dtypes
 
@@ -797,8 +797,8 @@ The right frame.
 
 .. ipython:: python
 
-   right = DataFrame({'X': Series(['foo', 'bar']).astype('category', categories=['foo', 'bar']),
-                      'Z': [1, 2]})
+   right = pd.DataFrame({'X': Series(['foo', 'bar']).astype('category', categories=['foo', 'bar']),
+                         'Z': [1, 2]})
    right
    right.dtypes
 
