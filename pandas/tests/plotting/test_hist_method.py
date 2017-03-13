@@ -238,16 +238,6 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assertRaises(ValueError):
             df.hist(layout=(-1, -1))
 
-    @slow
-    # GH 9351
-    def test_tight_layout(self):
-        if self.mpl_ge_2_0_0:
-            df = DataFrame(randn(100, 2))
-            _check_plot_works(df.hist)
-            self.plt.tight_layout()
-
-            tm.close()
-
 
 @tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
