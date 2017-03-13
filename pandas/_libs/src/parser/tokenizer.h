@@ -243,6 +243,8 @@ int parser_set_skipfirstnrows(parser_t *self, int64_t nrows);
 
 void parser_free(parser_t *self);
 
+void parser_del(parser_t *self);
+
 void parser_set_default_options(parser_t *self);
 
 void debug_print_parser(parser_t *self);
