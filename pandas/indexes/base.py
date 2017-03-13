@@ -1339,6 +1339,27 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         return indexer
 
+    def _convert_listlike_indexer(self, keyarr, kind=None):
+        """
+        Parameters
+        ----------
+        keyarr : list-like
+            Indexer to convert.
+
+        Returns
+        -------
+        tuple (indexer, keyarr)
+            indexer is an ndarray or None if cannot convert
+            keyarr are tuple-safe keys
+        """
+        if isinstance(keyarr, Index):
+            keyarr = self._convert_index_indexer(keyarr)
+        else:
+            keyarr = self._convert_arr_indexer(keyarr)
+
+        indexer = self._convert_list_indexer(keyarr, kind=kind)
+        return indexer, keyarr
+
     _index_shared_docs['_convert_arr_indexer'] = """
         Convert an array-like indexer to the appropriate dtype.
 
@@ -1354,6 +1375,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
+        keyarr = _asarray_tuplesafe(keyarr)
         return keyarr
 
     _index_shared_docs['_convert_index_indexer'] = """
@@ -1373,6 +1395,21 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _convert_index_indexer(self, keyarr):
         return keyarr
 
+    _index_shared_docs['_convert_list_indexer'] = """
+        Convert a list-like indexer to the appropriate dtype.
+
+        Parameters
+        ----------
+        keyarr : Index (or sub-class)
+            Indexer to convert.
+        kind : iloc, ix, loc, optional
+
+        Returns
+        -------
+        positional indexer or None
+    """
+
+    @Appender(_index_shared_docs['_convert_list_indexer'])
     def _convert_list_indexer(self, keyarr, kind=None):
         """
         passed a key that is tuplesafe that is integer based
