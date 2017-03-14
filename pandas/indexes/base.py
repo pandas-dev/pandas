@@ -2089,8 +2089,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         Form the intersection of two Index objects.
 
-        This returns a new Index with elements common to the index and `other`.
-        Sortedness of the result is not guaranteed.
+        This returns a new Index with elements common to the index and `other`,
+        preserving the calling index order.
 
         Parameters
         ----------

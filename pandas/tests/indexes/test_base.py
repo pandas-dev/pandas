@@ -629,18 +629,21 @@ class TestIndex(Base, tm.TestCase):
         expected = Index([5, 3, 4], name='idx')
         result = idx1.intersection(idx2)
         self.assert_index_equal(result, expected)
-        self.assertEqual(result.name, expected.name)
 
         idx2 = Index([4, 7, 6, 5, 3], name='other')
         expected = Index([5, 3, 4], name=None)
         result = idx1.intersection(idx2)
         self.assert_index_equal(result, expected)
-        self.assertEqual(result.name, expected.name)
 
         # non-monotonic non-unique
         idx1 = Index(['A', 'B', 'A', 'C'])
         idx2 = Index(['B', 'D'])
         expected = Index(['B'], dtype='object')
+        result = idx1.intersection(idx2)
+        self.assert_index_equal(result, expected)
+
+        idx2 = Index(['B', 'D', 'A'])
+        expected = Index(['A', 'B', 'A'], dtype='object')
         result = idx1.intersection(idx2)
         self.assert_index_equal(result, expected)
 

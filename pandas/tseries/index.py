@@ -1203,8 +1203,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
               not other.offset.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
             result = Index.intersection(self, other)
-            result = self._simple_new(result._values, name=result.name,
-                                      tz=result.tz)
+            result = self._shallow_copy(result._values, name=result.name,
+                                        tz=result.tz, freq=None)
             if result.freq is None:
                 result.offset = to_offset(result.inferred_freq)
             return result
