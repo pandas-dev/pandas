@@ -4314,7 +4314,14 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = pd.Series([1, 2, 1], name='b')
         tm.assert_series_equal(result, expected)
 
-
+    def test_numeric_coercion(self):
+        # GH 14423
+        df = pd.DataFrame({'Number' : [1, 2], 'Date' : ["2017-03-02"] * 2, 'Str' : ["foo", "inf"]})
+        expected = df.groupby(['Number']).apply(lambda x: x.iloc[0])
+        df.Date = pd.to_datetime(df.Date)
+        result = df.groupby(['Number']).apply(lambda x: x.iloc[0])
+        tm.assert_series_equal(result['Str'], expected['Str'])
+        
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = lmap(tuple, df[keys].values)
     tups = com._asarray_tuplesafe(tups)
