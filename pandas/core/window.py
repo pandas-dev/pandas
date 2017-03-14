@@ -544,7 +544,9 @@ class Window(_Window):
                 return all_args
 
             win_type = _validate_win_type(self.win_type, kwargs)
-            return sig.get_window(win_type, window).astype(float)
+            # GH #15662.
+            # fftbins should be False; previously it was a mistake on pandas' side.
+            return sig.get_window(win_type, window, fftbins=False).astype(float)
 
     def _apply_window(self, mean=True, how=None, **kwargs):
         """
