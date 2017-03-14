@@ -345,6 +345,20 @@ class TestiLoc(Base):
             drop=True)
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(reason="BlockManager.setitem() broken")
+    def test_iloc_setitem_dups_slice(self):
+        # GH 12991
+        df = DataFrame(index=['a', 'b', 'c'],
+                       columns=['d', 'e', 'd']).fillna(0)
+        expected = df.iloc[:, 2].copy(deep=True)
+
+        first_col = df.iloc[:, 0]
+        first_col['a'] = 3
+
+        result = df.iloc[:, 2]
+
+        tm.assert_series_equal(result, expected)
+
     def test_iloc_getitem_frame(self):
         df = DataFrame(np.random.randn(10, 4), index=lrange(0, 20, 2),
                        columns=lrange(0, 8, 2))
