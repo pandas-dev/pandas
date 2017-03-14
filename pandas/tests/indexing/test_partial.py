@@ -205,7 +205,7 @@ class TestPartialSetting(tm.TestCase):
 
         self.assertRaises(ValueError, f)
 
-        # these are coerced to float unavoidably (as its a list-like to begin)
+        # TODO: #15657, these are left as object and not coerced
         df = DataFrame(columns=['A', 'B'])
         df.loc[3] = [6, 7]
 

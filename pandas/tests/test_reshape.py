@@ -2,7 +2,6 @@
 # pylint: disable-msg=W0612,E1101
 
 from pandas import DataFrame, Series
-from pandas.core.sparse import SparseDataFrame
 import pandas as pd
 
 from numpy import nan
@@ -234,26 +233,31 @@ class TestGetDummies(tm.TestCase):
                           'b': ['A', 'A', 'B', 'C', 'C'],
                           'c': [2, 3, 3, 3, 2]})
 
+        expected = DataFrame({'a': [1, 0, 0],
+                              'b': [0, 1, 0],
+                              'c': [0, 0, 1]},
+                             dtype='uint8',
+                             columns=list('abc'))
         if not self.sparse:
-            exp_df_type = DataFrame
-            exp_blk_type = pd.core.internals.IntBlock
+            compare = tm.assert_frame_equal
         else:
-            exp_df_type = SparseDataFrame
-            exp_blk_type = pd.core.internals.SparseBlock
+            expected = expected.to_sparse(fill_value=0, kind='integer')
+            compare = tm.assert_sp_frame_equal
 
-        self.assertEqual(
-            type(get_dummies(s_list, sparse=self.sparse)), exp_df_type)
-        self.assertEqual(
-            type(get_dummies(s_series, sparse=self.sparse)), exp_df_type)
+        result = get_dummies(s_list, sparse=self.sparse)
+        compare(result, expected)
 
-        r = get_dummies(s_df, sparse=self.sparse, columns=s_df.columns)
-        self.assertEqual(type(r), exp_df_type)
+        result = get_dummies(s_series, sparse=self.sparse)
+        compare(result, expected)
 
-        r = get_dummies(s_df, sparse=self.sparse, columns=['a'])
-        exp_blk_type = pd.core.internals.IntBlock
-        self.assertEqual(type(r[['a_0']]._data.blocks[0]), exp_blk_type)
-        self.assertEqual(type(r[['a_1']]._data.blocks[0]), exp_blk_type)
-        self.assertEqual(type(r[['a_2']]._data.blocks[0]), exp_blk_type)
+        result = get_dummies(s_df, sparse=self.sparse, columns=s_df.columns)
+        tm.assert_series_equal(result.get_dtype_counts(),
+                               Series({'uint8': 8}))
+
+        result = get_dummies(s_df, sparse=self.sparse, columns=['a'])
+        expected = Series({'uint8': 3, 'int64': 1, 'object': 1}).sort_values()
+        tm.assert_series_equal(result.get_dtype_counts().sort_values(),
+                               expected)
 
     def test_just_na(self):
         just_na_list = [np.nan]

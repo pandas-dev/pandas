@@ -516,6 +516,39 @@ New Behavior:
   In [5]: df['a']['2011-12-31 23:59:59']
   Out[5]: 1
 
+.. _whatsnew_0200.api_breaking.concat_dtypes:
+
+Concat of different float dtypes will not automatically upcast
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, ``concat`` of multiple objects with different ``float`` dtypes would automatically upcast results to a dtype of ``float64``.
+Now the smallest acceptable dtype will be used (:issue:`13247`)
+
+.. ipython:: python
+
+   df1 = pd.DataFrame(np.array([1.0], dtype=np.float32, ndmin=2))
+   df1.dtypes
+
+.. ipython:: python
+
+   df2 = pd.DataFrame(np.array([np.nan], dtype=np.float32, ndmin=2))
+   df2.dtypes
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [7]: pd.concat([df1,df2]).dtypes
+   Out[7]:
+   0    float64
+   dtype: object
+
+New Behavior:
+
+.. ipython:: python
+
+   pd.concat([df1,df2]).dtypes
+
 .. _whatsnew_0200.api_breaking.gbq:
 
 Pandas Google BigQuery support has moved
@@ -693,6 +726,7 @@ Other API Changes
 - Specific support for ``copy.copy()`` and ``copy.deepcopy()`` functions on NDFrame objects (:issue:`15444`)
 - ``Series.sort_values()`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values()`` (:issue:`15604`)
 - ``.merge()`` and ``.join()`` on ``category`` dtype columns will now preserve the category dtype when possible (:issue:`10409`)
+- ``SparseDataFrame.default_fill_value`` will be 0, previously was ``nan`` in the return from ``pd.get_dummies(..., sparse=True)`` (:issue:`15594`)
 
 .. _whatsnew_0200.deprecations:
 
@@ -782,7 +816,6 @@ Bug Fixes
 - Bug in ``Rolling.quantile`` function that caused a segmentation fault when called with a quantile value outside of the range [0, 1] (:issue:`15463`)
 - Bug in ``pd.cut()`` with a single bin on an all 0s array (:issue:`15428`)
 - Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
-
 
 
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
@@ -886,5 +919,3 @@ Bug Fixes
 - Bug in ``pd.melt()`` where passing a tuple value for ``value_vars`` caused a ``TypeError`` (:issue:`15348`)
 - Bug in ``.eval()`` which caused multiline evals to fail with local variables not on the first line (:issue:`15342`)
 - Bug in ``pd.read_msgpack`` which did not allow to load dataframe with an index of type ``CategoricalIndex`` (:issue:`15487`)
-
-- Concating multiple objects will no longer result in automatically upcast to `float64`, and instead try to find the smallest `dtype` that would suffice (:issue:`13247`)
