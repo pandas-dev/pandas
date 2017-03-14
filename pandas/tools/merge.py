@@ -1165,13 +1165,16 @@ class _AsOfMerge(_OrderedMerge):
         if self.left_by is not None and self.right_by is None:
             raise MergeError('missing right_by')
 
-        # add by to our key-list so we can have it in the
+        # add 'by' to our key-list so we can have it in the
         # output as a key
         if self.left_by is not None:
             if not is_list_like(self.left_by):
                 self.left_by = [self.left_by]
             if not is_list_like(self.right_by):
                 self.right_by = [self.right_by]
+
+            if len(self.left_by) != len(self.right_by):
+                raise MergeError('left_by and right_by must be same length')
 
             self.left_on = self.left_by + list(self.left_on)
             self.right_on = self.right_by + list(self.right_on)

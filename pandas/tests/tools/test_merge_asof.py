@@ -399,6 +399,10 @@ class TestAsOfMerge(tm.TestCase):
 
         assert_frame_equal(expected, result)
 
+        with self.assertRaises(MergeError):
+            pd.merge_asof(left, right, left_index=True, right_index=True,
+                          left_by=['k1', 'k2'], right_by=['k1'])
+
     def test_basic2(self):
 
         expected = self.read_data('asof2.csv')
