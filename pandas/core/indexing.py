@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     _ensure_platform_int)
 from pandas.core.dtypes.missing import isnull, _infer_fill_value
+from pandas.core.dtypes.cast import _maybe_convert_indexer
 
 from pandas.core.index import Index, MultiIndex
 
@@ -79,6 +80,24 @@ class _IndexSlice(object):
 
 
 IndexSlice = _IndexSlice()
+
+
+class InfoCleaner:
+    """
+    A context manager which temporarily removes labels on the "info" axis,
+    replacing them with a RangeIndex, and then puts them back in place.
+    Used to unambiguously index by position.
+    """
+    def __init__(self, obj):
+        self._obj = obj
+        self._info_axis = self._obj._AXIS_NAMES[self._obj._info_axis_number]
+
+    def __enter__(self):
+        self._old_col = getattr(self._obj, self._info_axis)
+        setattr(self._obj, self._info_axis, range(len(self._old_col)))
+
+    def __exit__(self, *args):
+        setattr(self._obj, self._info_axis, self._old_col)
 
 
 class IndexingError(Exception):
@@ -492,29 +511,10 @@ class _NDFrameIndexer(object):
                 else:
                     lplane_indexer = 0
 
-            def setter(item, v):
-                s = self.obj[item]
-                pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
-
-                # perform the equivalent of a setitem on the info axis
-                # as we have a null slice or a slice with full bounds
-                # which means essentially reassign to the columns of a
-                # multi-dim object
-                # GH6149 (null slice), GH10408 (full bounds)
-                if (isinstance(pi, tuple) and
-                        all(is_null_slice(idx) or
-                            is_full_slice(idx, len(self.obj))
-                            for idx in pi)):
-                    s = v
-                else:
-                    # set the item, possibly having a dtype change
-                    s._consolidate_inplace()
-                    s = s.copy()
-                    s._data = s._data.setitem(indexer=pi, value=v)
-                    s._maybe_update_cacher(clear=True)
-
-                # reset the sliced object if unique
-                self.obj[item] = s
+            setter_kwargs = {'items': labels,
+                             'indexer': indexer,
+                             'pi': plane_indexer[0] if lplane_indexer == 1
+                             else plane_indexer}
 
             def can_do_equal_len():
                 """ return True if we have an equal len settable """
@@ -542,7 +542,7 @@ class _NDFrameIndexer(object):
                     sub_indexer = list(indexer)
                     multiindex_indexer = isinstance(labels, MultiIndex)
 
-                    for item in labels:
+                    for idx, item in enumerate(labels):
                         if item in value:
                             sub_indexer[info_axis] = item
                             v = self._align_series(
@@ -551,7 +551,7 @@ class _NDFrameIndexer(object):
                         else:
                             v = np.nan
 
-                        setter(item, v)
+                        self._setter(idx, v, force_loc=True, **setter_kwargs)
 
                 # we have an equal len ndarray/convertible to our labels
                 elif np.array(value).ndim == 2:
@@ -563,14 +563,15 @@ class _NDFrameIndexer(object):
                         raise ValueError('Must have equal len keys and value '
                                          'when setting with an ndarray')
 
-                    for i, item in enumerate(labels):
+                    for i in range(len(labels)):
 
                         # setting with a list, recoerces
-                        setter(item, value[:, i].tolist())
+                        self._setter(i, value[:, i].tolist(), force_loc=True,
+                                     **setter_kwargs)
 
                 # we have an equal len list/ndarray
                 elif can_do_equal_len():
-                    setter(labels[0], value)
+                    self._setter(0, value, **setter_kwargs)
 
                 # per label values
                 else:
@@ -579,13 +580,12 @@ class _NDFrameIndexer(object):
                         raise ValueError('Must have equal len keys and value '
                                          'when setting with an iterable')
 
-                    for item, v in zip(labels, value):
-                        setter(item, v)
+                    for i, v in zip(range(len(labels)), value):
+                        self._setter(i, v, **setter_kwargs)
             else:
-
                 # scalar
-                for item in labels:
-                    setter(item, value)
+                for idx in range(len(labels)):
+                    self._setter(idx, value, **setter_kwargs)
 
         else:
             if isinstance(indexer, tuple):
@@ -618,6 +618,47 @@ class _NDFrameIndexer(object):
             self.obj._data = self.obj._data.setitem(indexer=indexer,
                                                     value=value)
             self.obj._maybe_update_cacher(clear=True)
+
+    def _setter(self, idx, v, items, pi, **kwargs):
+        """
+        Set a single value on the underlying object. Label-based.
+
+        Parameters
+        ----------
+        idx : int
+            The index of the desired element inside "items"
+
+        v : any
+            The value to assign to the specified location
+
+        items: list
+            A list of labels
+
+        pi: tuple or list-like
+            Components of original indexer preceding the info axis
+        """
+        item = items[idx]
+        s = self.obj[item]
+
+        # perform the equivalent of a setitem on the info axis
+        # as we have a null slice or a slice with full bounds
+        # which means essentially reassign to the columns of a
+        # multi-dim object
+        # GH6149 (null slice), GH10408 (full bounds)
+        if (isinstance(pi, tuple) and
+                all(is_null_slice(ix) or
+                    is_full_slice(ix, len(self.obj))
+                    for ix in pi)):
+            s = v
+        else:
+            # set the item, possibly having a dtype change
+            s._consolidate_inplace()
+            s = s.copy()
+            s._data = s._data.setitem(indexer=pi, value=v)
+            s._maybe_update_cacher(clear=True)
+
+        # reset the sliced object if unique
+        self.obj[item] = s
 
     def _align_series(self, indexer, ser, multiindex_indexer=False):
         """
@@ -1765,6 +1806,37 @@ class _iLocIndexer(_LocationIndexer):
 
         raise ValueError("Can only index by location with a [%s]" %
                          self._valid_types)
+
+    def _setter(self, idx, v, indexer, force_loc=False, **kwargs):
+        """
+        Set a single value on the underlying object. Position-based by default.
+
+        Parameters
+        ----------
+        idx : int
+            The index of the desired element
+
+        v : any
+            The value to assign to the specified location
+
+        indexer: list
+            The original indexer
+
+        force_loc: bool
+            If True, use location-based indexing.
+
+        Other keyword arguments are forwarded to _NDFrameIndexer._setter()
+        """
+
+        if force_loc:
+            super(_iLocIndexer, self)._setter(idx, v, **kwargs)
+        else:
+            info_axis = self.obj._info_axis_number
+            max_idx = len(self.obj._get_axis(info_axis))
+            kwargs['items'] = _maybe_convert_indexer(indexer[info_axis],
+                                                     max_idx)
+            with InfoCleaner(self.obj):
+                super(_iLocIndexer, self)._setter(idx, v, **kwargs)
 
 
 class _ScalarAccessIndexer(_NDFrameIndexer):
