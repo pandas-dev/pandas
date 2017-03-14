@@ -1308,7 +1308,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         if not sparse:
             return DataFrame(index=index)
         else:
-            return SparseDataFrame(index=index)
+            return SparseDataFrame(index=index, default_fill_value=0)
 
     # if all NaN
     if not dummy_na and len(levels) == 0:
@@ -1357,6 +1357,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             sparse_series[col] = SparseSeries(data=sarr, index=index)
 
         out = SparseDataFrame(sparse_series, index=index, columns=dummy_cols,
+                              default_fill_value=0,
                               dtype=np.uint8)
         return out
 
