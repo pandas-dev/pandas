@@ -548,7 +548,7 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
             df.interpolate(method='values')
 
     def test_interp_various(self):
-        tm.skip_if_no_package('scipy', max_version='0.19.0')
+        tm._skip_if_no_scipy()
 
         df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
                         'C': [1, 2, 3, 5, 8, 13, 21]})
@@ -561,8 +561,13 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='cubic')
-        expected.A.loc[3] = 2.81621174
-        expected.A.loc[13] = 5.64146581
+        import scipy
+        if scipy.__version__ >= LooseVersion('0.19.0'):
+            expected.A.loc[3] = 2.81547781
+            expected.A.loc[13] = 5.52964175
+        else:
+            expected.A.loc[3] = 2.81621174
+            expected.A.loc[13] = 5.64146581
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='nearest')
@@ -571,8 +576,12 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
         assert_frame_equal(result, expected, check_dtype=False)
 
         result = df.interpolate(method='quadratic')
-        expected.A.loc[3] = 2.82533638
-        expected.A.loc[13] = 6.02817974
+        if scipy.__version__ >= LooseVersion('0.19.0'):
+            expected.A.loc[3] = 2.82150771
+            expected.A.loc[13] = 6.12648668
+        else:
+            expected.A.loc[3] = 2.82533638
+            expected.A.loc[13] = 6.02817974
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='slinear')
@@ -585,10 +594,6 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
         expected.A.loc[13] = 5
         assert_frame_equal(result, expected, check_dtype=False)
 
-        result = df.interpolate(method='quadratic')
-        expected.A.loc[3] = 2.82533638
-        expected.A.loc[13] = 6.02817974
-        assert_frame_equal(result, expected)
 
     def test_interp_alt_scipy(self):
         tm._skip_if_no_scipy()

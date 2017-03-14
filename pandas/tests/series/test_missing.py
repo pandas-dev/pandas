@@ -4,6 +4,7 @@
 import pytz
 from datetime import timedelta, datetime
 
+from distutils.version import LooseVersion
 from numpy import nan
 import numpy as np
 import pandas as pd
@@ -827,7 +828,7 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
     def test_interp_scipy_basic(self):
-        tm.skip_if_no_package('scipy', max_version='0.19.0')
+        tm._skip_if_no_scipy()
 
         s = Series([1, 3, np.nan, 12, np.nan, 25])
         # slinear
@@ -852,7 +853,11 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         result = s.interpolate(method='zero', downcast='infer')
         assert_series_equal(result, expected)
         # quadratic
-        expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
+        import scipy
+        if scipy.__version__ >= LooseVersion('0.19.0'):
+            expected = Series([1, 3., 6.823529, 12., 18.058824, 25.])
+        else:
+            expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
         result = s.interpolate(method='quadratic')
         assert_series_equal(result, expected)
 
