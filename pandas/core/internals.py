@@ -4936,9 +4936,9 @@ def get_empty_dtype_and_na(join_units):
                 return np.float64, np.nan
             else:
                 return g, None
-        else:
-            msg = "invalid dtype determination in get_concat_dtype"
-            raise AssertionError(msg)
+
+    msg = "invalid dtype determination in get_concat_dtype"
+    raise AssertionError(msg)
 
 
 def concatenate_join_units(join_units, concat_axis, copy):
