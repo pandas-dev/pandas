@@ -884,6 +884,7 @@ Bug Fixes
 - Bug in the HTML display with with a ``MultiIndex`` and truncation (:issue:`14882`)
 
 
+- Bug in ``pd.merge_asof()`` where ``left_index`` or ``right_index`` caused a failure when multiple ``by`` was specified (:issue:`15676`)
 - Bug in ``pd.merge_asof()`` where ``left_index``/``right_index`` together caused a failure when ``tolerance`` was specified (:issue:`15135`)
 - Bug in ``DataFrame.pivot_table()`` where ``dropna=True`` would not drop all-NaN columns when the columns was a ``category`` dtype (:issue:`15193`)
 

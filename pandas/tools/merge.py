@@ -1165,13 +1165,16 @@ class _AsOfMerge(_OrderedMerge):
         if self.left_by is not None and self.right_by is None:
             raise MergeError('missing right_by')
 
-        # add by to our key-list so we can have it in the
+        # add 'by' to our key-list so we can have it in the
         # output as a key
         if self.left_by is not None:
             if not is_list_like(self.left_by):
                 self.left_by = [self.left_by]
             if not is_list_like(self.right_by):
                 self.right_by = [self.right_by]
+
+            if len(self.left_by) != len(self.right_by):
+                raise MergeError('left_by and right_by must be same length')
 
             self.left_on = self.left_by + list(self.left_on)
             self.right_on = self.right_by + list(self.right_on)
@@ -1264,13 +1267,21 @@ class _AsOfMerge(_OrderedMerge):
 
         # a "by" parameter requires special handling
         if self.left_by is not None:
-            if len(self.left_join_keys) > 2:
-                # get tuple representation of values if more than one
-                left_by_values = flip(self.left_join_keys[0:-1])
-                right_by_values = flip(self.right_join_keys[0:-1])
+            # remove 'on' parameter from values if one existed
+            if self.left_index and self.right_index:
+                left_by_values = self.left_join_keys
+                right_by_values = self.right_join_keys
             else:
-                left_by_values = self.left_join_keys[0]
-                right_by_values = self.right_join_keys[0]
+                left_by_values = self.left_join_keys[0:-1]
+                right_by_values = self.right_join_keys[0:-1]
+
+            # get tuple representation of values if more than one
+            if len(left_by_values) == 1:
+                left_by_values = left_by_values[0]
+                right_by_values = right_by_values[0]
+            else:
+                left_by_values = flip(left_by_values)
+                right_by_values = flip(right_by_values)
 
             # upcast 'by' parameter because HashTable is limited
             by_type = _get_cython_type_upcast(left_by_values.dtype)
