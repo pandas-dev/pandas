@@ -288,13 +288,31 @@ class TestiLoc(Base):
         # iloc with a mask aligning from another iloc
         df1 = DataFrame([{'A': None, 'B': 1}, {'A': 2, 'B': 2}])
         df2 = DataFrame([{'A': 3, 'B': 3}, {'A': 4, 'B': 4}])
-        df = concat([df1, df2], axis=1)
+        df_orig = concat([df1, df2], axis=1)
+        df = df_orig.copy()
 
+        # GH 15686
+        # iloc with mask, duplicated index and multiple blocks
         expected = df.fillna(3)
-        expected['A'] = expected['A'].astype('float64')
+        expected.iloc[:, 0] = expected.iloc[:, 0].astype('float64')
         inds = np.isnan(df.iloc[:, 0])
         mask = inds[inds].index
         df.iloc[mask, 0] = df.iloc[mask, 2]
+        tm.assert_frame_equal(df, expected)
+
+        # GH 15686
+        # iloc with scalar, duplicated index and multiple blocks
+        df = df_orig.copy()
+        expected = df.fillna(15)
+        df.iloc[0, 0] = 15
+        tm.assert_frame_equal(df, expected)
+
+        # GH 15686
+        # iloc with repeated value, duplicated index and multiple blocks
+        df = df_orig.copy()
+        expected = concat([DataFrame([{'A': 15, 'B': 1}, {'A': 15, 'B': 2}]),
+                          df2], axis=1)
+        df.iloc[:, 0] = 15
         tm.assert_frame_equal(df, expected)
 
         # del a dup column across blocks
