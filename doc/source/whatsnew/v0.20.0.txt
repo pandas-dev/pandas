@@ -731,7 +731,7 @@ Other API Changes
 .. _whatsnew_0200.deprecations:
 
 Deprecations
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 - ``SparseArray.to_dense()`` has deprecated the ``fill`` parameter, as that parameter was not being respected (:issue:`14647`)
 - ``SparseSeries.to_dense()`` has deprecated the ``sparse_only`` parameter (:issue:`14647`)
@@ -753,7 +753,7 @@ Deprecations
 .. _whatsnew_0200.prior_deprecations:
 
 Removal of prior version deprecations/changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The ``pandas.rpy`` module is removed. Similar functionality can be accessed
   through the `rpy2 <https://rpy2.readthedocs.io/>`__ project.
