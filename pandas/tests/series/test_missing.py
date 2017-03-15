@@ -18,6 +18,12 @@ import pandas.util.testing as tm
 
 from .common import TestData
 
+try:
+    import scipy
+    _is_scipy_ge_0190 = scipy.__version__ >= LooseVersion('0.19.0')
+except:
+    _is_scipy_ge_0190 = False
+
 
 def _skip_if_no_pchip():
     try:
@@ -853,8 +859,10 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         result = s.interpolate(method='zero', downcast='infer')
         assert_series_equal(result, expected)
         # quadratic
-        import scipy
-        if scipy.__version__ >= LooseVersion('0.19.0'):
+        # GH #15662.
+        # new cubic and quadratic interpolation algorithms from scipy 0.19.0.
+        # previously `splmake` was used. See scipy/scipy#6710
+        if _is_scipy_ge_0190:
             expected = Series([1, 3., 6.823529, 12., 18.058824, 25.])
         else:
             expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
