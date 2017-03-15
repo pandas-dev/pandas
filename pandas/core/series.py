@@ -1751,17 +1751,31 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
 
+        # TODO: this can be combined with DataFrame.sort_index impl as
+        # almost identical
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
         index = self.index
-        if level is not None:
+
+        if level:
             new_index, indexer = index.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
         elif isinstance(index, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
-            indexer = lexsort_indexer(index.labels, orders=ascending)
+            labels = index._reconstruct(sort=True)
+            indexer = lexsort_indexer(labels.labels, orders=ascending)
         else:
             from pandas.core.sorting import nargsort
+
+            # Check monotonic-ness before sort an index
+            # GH11080
+            if ((ascending and index.is_monotonic_increasing) or
+                    (not ascending and index.is_monotonic_decreasing)):
+                if inplace:
+                    return
+                else:
+                    return self.copy()
+
             indexer = nargsort(index, kind=kind, ascending=ascending,
                                na_position=na_position)
 

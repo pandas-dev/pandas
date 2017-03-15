@@ -3322,6 +3322,10 @@ it is assumed to be aliases for the column names.')
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True,
                    by=None):
+
+        # TODO: this can be combined with Series.sort_index impl as
+        # almost identical
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         # 10726
         if by is not None:
@@ -3335,8 +3339,7 @@ it is assumed to be aliases for the column names.')
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
 
-        # sort by the index
-        if level is not None:
+        if level:
 
             new_axis, indexer = labels.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
@@ -3346,17 +3349,15 @@ it is assumed to be aliases for the column names.')
 
             # make sure that the axis is lexsorted to start
             # if not we need to reconstruct to get the correct indexer
-            if not labels.is_lexsorted():
-                labels = MultiIndex.from_tuples(labels.values)
+            labels = labels._reconstruct(sort=True)
 
             indexer = lexsort_indexer(labels.labels, orders=ascending,
                                       na_position=na_position)
         else:
             from pandas.core.sorting import nargsort
 
-            # GH11080 - Check monotonic-ness before sort an index
-            # if monotonic (already sorted), return None or copy() according
-            # to 'inplace'
+            # Check monotonic-ness before sort an index
+            # GH11080
             if ((ascending and labels.is_monotonic_increasing) or
                     (not ascending and labels.is_monotonic_decreasing)):
                 if inplace:
@@ -3367,8 +3368,9 @@ it is assumed to be aliases for the column names.')
             indexer = nargsort(labels, kind=kind, ascending=ascending,
                                na_position=na_position)
 
+        baxis = self._get_block_manager_axis(axis)
         new_data = self._data.take(indexer,
-                                   axis=self._get_block_manager_axis(axis),
+                                   axis=baxis,
                                    convert=False, verify=False)
 
         if inplace:
