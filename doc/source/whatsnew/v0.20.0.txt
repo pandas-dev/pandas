@@ -816,6 +816,7 @@ Bug Fixes
 - Bug in ``Rolling.quantile`` function that caused a segmentation fault when called with a quantile value outside of the range [0, 1] (:issue:`15463`)
 - Bug in ``pd.cut()`` with a single bin on an all 0s array (:issue:`15428`)
 - Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
+- Compat with SciPy 0.19.0 for testing on ``.interpolate()`` (:issue:`15662`)
 
 
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)

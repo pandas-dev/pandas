@@ -905,7 +905,7 @@ class TestMoments(Base):
 
     def test_cmov_window_regular(self):
         # GH 8238
-        tm.skip_if_no_package('scipy', max_version='0.19.0')
+        tm._skip_if_no_scipy()
 
         win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
                      'blackmanharris', 'nuttall', 'barthann']
@@ -938,7 +938,7 @@ class TestMoments(Base):
 
     def test_cmov_window_regular_linear_range(self):
         # GH 8238
-        tm.skip_if_no_package('scipy', max_version='0.19.0')
+        tm._skip_if_no_scipy()
 
         win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
                      'blackmanharris', 'nuttall', 'barthann']
@@ -955,7 +955,7 @@ class TestMoments(Base):
 
     def test_cmov_window_regular_missing_data(self):
         # GH 8238
-        tm.skip_if_no_package('scipy', max_version='0.19.0')
+        tm._skip_if_no_scipy()
 
         win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
                      'blackmanharris', 'nuttall', 'barthann']
@@ -988,7 +988,7 @@ class TestMoments(Base):
 
     def test_cmov_window_special(self):
         # GH 8238
-        tm.skip_if_no_package('scipy', max_version='0.19.0')
+        tm._skip_if_no_scipy()
 
         win_types = ['kaiser', 'gaussian', 'general_gaussian', 'slepian']
         kwds = [{'beta': 1.}, {'std': 1.}, {'power': 2.,
@@ -1015,7 +1015,7 @@ class TestMoments(Base):
 
     def test_cmov_window_special_linear_range(self):
         # GH 8238
-        tm.skip_if_no_package('scipy', max_version='0.19.0')
+        tm._skip_if_no_scipy()
 
         win_types = ['kaiser', 'gaussian', 'general_gaussian', 'slepian']
         kwds = [{'beta': 1.}, {'std': 1.}, {'power': 2.,
