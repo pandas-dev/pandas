@@ -1599,7 +1599,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                labels=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]])
         expected = DataFrame({'bar': s.values},
                              index=exp_index).sort_index(level=0)
-        unstacked = s.unstack(0)
+        unstacked = s.unstack(0).sort_index()
         assert_frame_equal(unstacked, expected)
 
         # GH5873

@@ -1173,9 +1173,57 @@ class MultiIndex(Index):
 
         labels, levels = _factorize_from_iterables(iterables)
         labels = cartesian_product(labels)
+        return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
-        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
-                          names=names)
+    def _reconstruct(self, sort=False):
+        """
+        reconstruct the MultiIndex
+
+        The MultiIndex will have the same outward appearance (e.g. values)
+        and will also .equals()
+
+        Parameters
+        ----------
+        sort: boolean, default False
+            monotonically sort the levels
+
+        Returns
+        -------
+        MultiIndex
+
+        """
+        new_levels = []
+        new_labels = []
+
+        if sort:
+
+            if self.is_monotonic:
+                return self
+
+            for lev, lab in zip(self.levels, self.labels):
+
+                if lev.is_monotonic:
+                    new_levels.append(lev)
+                    new_labels.append(lab)
+                    continue
+
+                # indexer to reorder the levels
+                indexer = lev.argsort()
+                lev = lev.take(indexer)
+
+                # indexer to reorder the labels
+                ri = lib.get_reverse_indexer(indexer, len(indexer))
+                lab = algos.take_1d(ri, lab)
+
+                new_levels.append(lev)
+                new_labels.append(lab)
+
+        else:
+            return self
+
+        return MultiIndex(new_levels, new_labels,
+                          names=self.names, sortorder=self.sortorder,
+                          verify_integrity=False)
 
     @property
     def nlevels(self):
