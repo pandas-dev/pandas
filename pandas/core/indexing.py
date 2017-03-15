@@ -1852,7 +1852,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
 
 # 32-bit floating point machine epsilon
-_eps = np.finfo('f4').eps
+_eps = 1.1920929e-07
 
 
 def length_of_indexer(indexer, target=None):
