@@ -544,7 +544,8 @@ class Window(_Window):
                 return all_args
 
             win_type = _validate_win_type(self.win_type, kwargs)
-            return sig.get_window(win_type, window).astype(float)
+            # GH #15662. `False` makes symmetric window, rather than periodic.
+            return sig.get_window(win_type, window, False).astype(float)
 
     def _apply_window(self, mean=True, how=None, **kwargs):
         """
