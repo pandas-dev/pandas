@@ -112,7 +112,7 @@ class TestDataFrameJoin(TestData):
         # corner case - overlapping columns
         for how in ('outer', 'left', 'inner'):
             with tm.assertRaisesRegexp(ValueError, 'columns overlap but '
-                                    'no suffix'):
+                                       'no suffix'):
                 self.frame.join(self.frame, how=how)
 
     def test_join_index_more(self):
