@@ -738,6 +738,55 @@ New Behavior:
    TypeError: Cannot compare 2014-01-01 00:00:00 of
    type <class 'pandas.tslib.Timestamp'> to string column
 
+.. _whatsnew_0200.api_breaking.index_order:
+
+Index order after DataFrame inner join or Index intersection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``DataFrame`` inner join and the ``Index`` intersection, now preserve the
+order of the calling's Index (left) instead of the other's Index (right)
+(:issue:`15582`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+   In [2]: df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+
+   In [3]: df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+
+   In [4]: df1.join(df2, how='inner')
+   Out[4]:
+       a    b
+   1  10  100
+   2  20  200
+
+   In [5]: idx1 = pd.Index([5, 3, 2, 4, 1])
+
+   In [6]: idx2 = pd.Index([4, 7, 6, 5, 3])
+
+   In [7]: idx1.intersection(idx2)
+   Out[7]: Int64Index([4, 5, 3], dtype='int64')
+
+New Behavior:
+
+.. code-block:: ipython
+   In [2]: df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+
+   In [3]: df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+
+   In [4]: df1.join(df2, how='inner')
+   Out[4]:
+       a    b
+   2  20  200
+   1  10  100
+
+   In [5]: idx1 = pd.Index([5, 3, 2, 4, 1])
+
+   In [6]: idx2 = pd.Index([4, 7, 6, 5, 3])
+
+   In [7]: idx1.intersection(idx2)
+   Out[7]: Int64Index([5, 3, 4], dtype='int64')
+
 
 .. _whatsnew_0200.api:
 
