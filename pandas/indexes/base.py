@@ -2831,7 +2831,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         new_index = self._shallow_copy_with_infer(new_labels, freq=None)
         return new_index, indexer, new_indexer
 
-    def join(self, other, how='left', level=None, return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         """
         *this is an internal non-public method*
 
@@ -2844,6 +2845,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         how : {'left', 'right', 'inner', 'outer'}
         level : int or level name, default None
         return_indexers : boolean, default False
+        sort : boolean, default False
 
         Returns
         -------
@@ -2928,6 +2930,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             join_index = self.intersection(other)
         elif how == 'outer':
             join_index = self.union(other)
+
+        if sort:
+            join_index = join_index.sort_values()
 
         if return_indexers:
             if join_index is self:

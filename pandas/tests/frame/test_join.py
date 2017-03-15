@@ -41,6 +41,41 @@ class TestDataFrameJoin(TestData):
                                 index=[0, 1, 2, 3])
         tm.assert_frame_equal(result, expected)
 
+    def test_join_sort(self):
+        df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+        df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+
+        result = df1.join(df2, sort=True)
+        expected = pd.DataFrame({'a': [0, 10, 20], 'b': [None, 100, 200]},
+                                index=[0, 1, 2])
+        tm.assert_frame_equal(result, expected)
+
+        result = df1.join(df2, how='left', sort=True)
+        expected = pd.DataFrame({'a': [0, 10, 20], 'b': [None, 100, 200]},
+                                index=[0, 1, 2])
+        tm.assert_frame_equal(result, expected)
+
+        result = df1.join(df2, how='right', sort=True)
+        expected = pd.DataFrame({'a': [10, 20, None], 'b': [100, 200, 300]},
+                                index=[1, 2, 3])
+        tm.assert_frame_equal(result, expected)
+
+        result = df2.join(df1, how='right', sort=True)
+        expected = pd.DataFrame([[None, 0], [100, 10], [200, 20]],
+                                columns=['b', 'a'], index=[0, 1, 2])
+        tm.assert_frame_equal(result, expected)
+
+        result = df1.join(df2, how='inner', sort=True)
+        expected = pd.DataFrame({'a': [10, 20], 'b': [100, 200]},
+                                index=[1, 2])
+        tm.assert_frame_equal(result, expected)
+
+        result = df1.join(df2, how='outer', sort=True)
+        expected = pd.DataFrame({'a': [0, 10, 20, None],
+                                 'b': [None, 100, 200, 300]},
+                                index=[0, 1, 2, 3])
+        tm.assert_frame_equal(result, expected)
+
     def test_join_index(self):
         # left / right
 

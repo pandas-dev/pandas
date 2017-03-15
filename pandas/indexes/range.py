@@ -431,7 +431,8 @@ class RangeIndex(Int64Index):
 
         return self._int64index.union(other)
 
-    def join(self, other, how='left', level=None, return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         """
         *this is an internal non-public method*
 
@@ -444,6 +445,7 @@ class RangeIndex(Int64Index):
         how : {'left', 'right', 'inner', 'outer'}
         level : int or level name, default None
         return_indexers : boolean, default False
+        sort : boolean, default False
 
         Returns
         -------
@@ -451,9 +453,11 @@ class RangeIndex(Int64Index):
         """
         if how == 'outer' and self is not other:
             # note: could return RangeIndex in more circumstances
-            return self._int64index.join(other, how, level, return_indexers)
+            return self._int64index.join(other, how, level, return_indexers,
+                                         sort)
 
-        return super(RangeIndex, self).join(other, how, level, return_indexers)
+        return super(RangeIndex, self).join(other, how, level, return_indexers,
+                                            sort)
 
     def __len__(self):
         """

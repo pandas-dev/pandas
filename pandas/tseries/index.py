@@ -1037,7 +1037,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             this.offset = to_offset(this.inferred_freq)
         return this
 
-    def join(self, other, how='left', level=None, return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         """
         See Index.join
         """
@@ -1051,7 +1052,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         this, other = self._maybe_utc_convert(other)
         return Index.join(this, other, how=how, level=level,
-                          return_indexers=return_indexers)
+                          return_indexers=return_indexers, sort=sort)
 
     def _maybe_utc_convert(self, other):
         this = self
