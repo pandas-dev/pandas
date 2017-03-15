@@ -4465,13 +4465,15 @@ it is assumed to be aliases for the column names.')
             * outer: form union of calling frame's index (or column if on is
                 specified) with other frame's index, and sort it
             * inner: form intersection of calling frame's index (or column if
-                on is specified) with other frame's index
+                on is specified) with other frame's index, preserving the
+                order of the calling's one
         lsuffix : string
             Suffix to use from left frame's overlapping columns
         rsuffix : string
             Suffix to use from right frame's overlapping columns
         sort : boolean, default False
-            Order result DataFrame lexicographically by the join key
+            Order result DataFrame lexicographically by the join key. If False,
+            the order of the join key depends on the join type (how keyword)
 
         Notes
         -----
