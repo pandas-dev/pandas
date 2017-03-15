@@ -2,22 +2,13 @@
 
 from __future__ import print_function
 
-from datetime import datetime
-
-import numpy as np
-from numpy import nan
-
 import pandas as pd
-
-from pandas import DataFrame, Index, Series, Timestamp, date_range
-from pandas.compat import lrange
 
 from pandas.tests.frame.common import TestData
 
 import pandas.util.testing as tm
 from pandas.util.testing import (assertRaisesRegexp,
-                                 assert_frame_equal,
-                                 assert_series_equal)
+                                 assert_frame_equal)
 
 
 class TestDataFrameJoin(tm.TestCase, TestData):
@@ -110,4 +101,3 @@ class TestDataFrameJoin(tm.TestCase, TestData):
 
         # column order not necessarily sorted
         assert_frame_equal(joined, expected.loc[:, joined.columns])
-
