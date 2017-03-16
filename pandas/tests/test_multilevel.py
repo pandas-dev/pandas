@@ -2559,16 +2559,32 @@ class TestSorted(Base, tm.TestCase):
         assert result.columns.is_lexsorted()
         assert result.columns.is_monotonic
 
+    def test_sort_index_and_reconstruction_doc_example(self):
         # doc example
         df = DataFrame({'value': [1, 2, 3, 4]},
                        index=MultiIndex(
                            levels=[['a', 'b'], ['bb', 'aa']],
-                           labels=[[0, 0, 1, 1], [1, 0, 1, 0]]))
-        result = df.sort_index()
+                           labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+        assert df.index.is_lexsorted()
+        assert not df.index.is_monotonic
+
+        # sort it
         expected = DataFrame({'value': [2, 1, 4, 3]},
                              index=MultiIndex(
                                  levels=[['a', 'b'], ['aa', 'bb']],
-                                 labels=[[0, 0, 1, 1], [1, 0, 1, 0]]))
+                                 labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+        result = df.sort_index()
+        assert not result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
+        tm.assert_frame_equal(result, expected)
+
+        # reconstruct
+        result = df.sort_index().copy()
+        result.index = result.index._reconstruct(sort=True)
+        assert result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
         tm.assert_frame_equal(result, expected)
 
     def test_sort_index_reorder_on_ops(self):

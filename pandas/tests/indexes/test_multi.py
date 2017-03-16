@@ -2411,6 +2411,18 @@ class TestMultiIndex(Base, tm.TestCase):
 
         self.assertFalse(i.is_monotonic)
 
+    def test_reconstruct_api(self):
+
+        mi = MultiIndex.from_arrays([
+            ['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]
+        ])
+
+        with pytest.raises(ValueError):
+            mi._reconstruct()
+
+        with pytest.raises(ValueError):
+            mi._reconstruct(sort=True, remove_unused=True)
+
     def test_reconstruct_sort(self):
 
         # starts off lexsorted & monotonic
@@ -2421,14 +2433,6 @@ class TestMultiIndex(Base, tm.TestCase):
         assert mi.is_monotonic
 
         recons = mi._reconstruct(sort=True)
-        assert recons.is_lexsorted()
-        assert recons.is_monotonic
-        assert mi is recons
-
-        assert mi.equals(recons)
-        assert Index(mi.values).equals(Index(recons.values))
-
-        recons = mi._reconstruct(sort=False)
         assert recons.is_lexsorted()
         assert recons.is_monotonic
         assert mi is recons
@@ -2463,6 +2467,35 @@ class TestMultiIndex(Base, tm.TestCase):
 
         assert mi.equals(recons)
         assert Index(mi.values).equals(Index(recons.values))
+
+    def test_reconstruct_remove_unused(self):
+        # xref to GH 2770
+        df = DataFrame([['deleteMe', 1, 9],
+                        ['keepMe', 2, 9],
+                        ['keepMeToo', 3, 9]],
+                       columns=['first', 'second', 'third'])
+        df2 = df.set_index(['first', 'second'], drop=False)
+        df2 = df2[df2['first'] != 'deleteMe']
+
+        # removed levels are there
+        expected = MultiIndex(levels=[['deleteMe', 'keepMe', 'keepMeToo'],
+                                      [1, 2, 3]],
+                              labels=[[1, 2], [1, 2]],
+                              names=['first', 'second'])
+        result = df2.index
+        tm.assert_index_equal(result, expected)
+
+        expected = MultiIndex(levels=[['keepMe', 'keepMeToo'],
+                                      [2, 3]],
+                              labels=[[0, 1], [0, 1]],
+                              names=['first', 'second'])
+        result = df2.index._reconstruct(remove_unused=True)
+        tm.assert_index_equal(result, expected)
+
+        # idempotent
+        result2 = result._reconstruct(remove_unused=True)
+        tm.assert_index_equal(result2, expected)
+        assert result2 is result
 
     def test_isin(self):
         values = [('foo', 2), ('bar', 3), ('quux', 4)]
