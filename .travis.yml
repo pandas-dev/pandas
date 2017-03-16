@@ -123,11 +123,6 @@ matrix:
         - PANDAS_TESTING_MODE="deprecate"
         - CACHE_NAME="35_numpy_dev"
         - USE_CACHE=true
-      addons:
-        apt:
-          packages:
-          - libatlas-base-dev
-          - gfortran
 #    In allow_failures
     - python: 3.5
       env:
@@ -167,11 +162,6 @@ matrix:
           - PANDAS_TESTING_MODE="deprecate"
           - CACHE_NAME="35_numpy_dev"
           - USE_CACHE=true
-        addons:
-          apt:
-            packages:
-            - libatlas-base-dev
-            - gfortran
       - python: 3.5
         env:
         - PYTHON_VERSION=3.5
