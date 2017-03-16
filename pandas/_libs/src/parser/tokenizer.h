@@ -9,8 +9,8 @@ See LICENSE for the license
 
 */
 
-#ifndef PANDAS_SRC_PARSER_TOKENIZER_H_
-#define PANDAS_SRC_PARSER_TOKENIZER_H_
+#ifndef PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
+#define PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
 
 #include <errno.h>
 #include <stdio.h>
@@ -243,6 +243,8 @@ int parser_set_skipfirstnrows(parser_t *self, int64_t nrows);
 
 void parser_free(parser_t *self);
 
+void parser_del(parser_t *self);
+
 void parser_set_default_options(parser_t *self);
 
 void debug_print_parser(parser_t *self);
@@ -276,4 +278,4 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing);
 int to_boolean(const char *item, uint8_t *val);
 
-#endif  // PANDAS_SRC_PARSER_TOKENIZER_H_
+#endif  // PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_

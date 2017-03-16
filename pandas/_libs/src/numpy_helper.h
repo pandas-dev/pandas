@@ -7,8 +7,8 @@ Distributed under the terms of the BSD Simplified License.
 The full license is in the LICENSE file, distributed with this software.
 */
 
-#ifndef PANDAS_SRC_NUMPY_HELPER_H_
-#define PANDAS_SRC_NUMPY_HELPER_H_
+#ifndef PANDAS__LIBS_SRC_NUMPY_HELPER_H_
+#define PANDAS__LIBS_SRC_NUMPY_HELPER_H_
 
 #include "Python.h"
 #include "helper.h"
@@ -159,4 +159,4 @@ PANDAS_INLINE PyObject* unbox_if_zerodim(PyObject* arr) {
     }
 }
 
-#endif  // PANDAS_SRC_NUMPY_HELPER_H_
+#endif  // PANDAS__LIBS_SRC_NUMPY_HELPER_H_

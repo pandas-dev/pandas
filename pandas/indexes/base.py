@@ -203,6 +203,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         if inferred == 'integer':
                             data = np.array(data, copy=copy, dtype=dtype)
                         elif inferred in ['floating', 'mixed-integer-float']:
+                            if isnull(data).any():
+                                raise ValueError('cannot convert float '
+                                                 'NaN to integer')
 
                             # If we are actually all equal to integers,
                             # then coerce to integer.
@@ -230,8 +233,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     else:
                         data = np.array(data, dtype=dtype, copy=copy)
 
-                except (TypeError, ValueError):
-                    pass
+                except (TypeError, ValueError) as e:
+                    msg = str(e)
+                    if 'cannot convert float' in msg:
+                        raise
 
             # maybe coerce to a sub-class
             from pandas.tseries.period import (PeriodIndex,
@@ -585,7 +590,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if other is None:
             other = self._na_value
         values = np.where(cond, self.values, other)
-        return self._shallow_copy_with_infer(values, dtype=self.dtype)
+
+        dtype = self.dtype
+        if self._is_numeric_dtype and np.any(isnull(values)):
+            # We can't coerce to the numeric dtype of "self" (unless
+            # it's float) if there are NaN values in our output.
+            dtype = None
+
+        return self._shallow_copy_with_infer(values, dtype=dtype)
 
     def ravel(self, order='C'):
         """
@@ -689,7 +701,14 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         ----------
         item : scalar item to coerce
         """
-        return Index([item], dtype=self.dtype, **self._get_attributes_dict())
+        dtype = self.dtype
+
+        if self._is_numeric_dtype and isnull(item):
+            # We can't coerce to the numeric dtype of "self" (unless
+            # it's float) if there are NaN values in our output.
+            dtype = None
+
+        return Index([item], dtype=dtype, **self._get_attributes_dict())
 
     _index_shared_docs['copy'] = """
         Make a copy of this object.  Name and dtype sets those attributes on
@@ -1320,6 +1339,27 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         return indexer
 
+    def _convert_listlike_indexer(self, keyarr, kind=None):
+        """
+        Parameters
+        ----------
+        keyarr : list-like
+            Indexer to convert.
+
+        Returns
+        -------
+        tuple (indexer, keyarr)
+            indexer is an ndarray or None if cannot convert
+            keyarr are tuple-safe keys
+        """
+        if isinstance(keyarr, Index):
+            keyarr = self._convert_index_indexer(keyarr)
+        else:
+            keyarr = self._convert_arr_indexer(keyarr)
+
+        indexer = self._convert_list_indexer(keyarr, kind=kind)
+        return indexer, keyarr
+
     _index_shared_docs['_convert_arr_indexer'] = """
         Convert an array-like indexer to the appropriate dtype.
 
@@ -1335,6 +1375,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
+        keyarr = _asarray_tuplesafe(keyarr)
         return keyarr
 
     _index_shared_docs['_convert_index_indexer'] = """
@@ -1354,6 +1395,21 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _convert_index_indexer(self, keyarr):
         return keyarr
 
+    _index_shared_docs['_convert_list_indexer'] = """
+        Convert a list-like indexer to the appropriate dtype.
+
+        Parameters
+        ----------
+        keyarr : Index (or sub-class)
+            Indexer to convert.
+        kind : iloc, ix, loc, optional
+
+        Returns
+        -------
+        positional indexer or None
+    """
+
+    @Appender(_index_shared_docs['_convert_list_indexer'])
     def _convert_list_indexer(self, keyarr, kind=None):
         """
         passed a key that is tuplesafe that is integer based

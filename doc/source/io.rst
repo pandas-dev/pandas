@@ -2070,9 +2070,9 @@ by the Table Schema spec.
 The full list of types supported are described in the Table Schema
 spec. This table shows the mapping from pandas types:
 
-==============  =================
+=============== =================
 Pandas type     Table Schema type
-==============  =================
+=============== =================
 int64           integer
 float64         number
 bool            boolean
@@ -3042,9 +3042,66 @@ any pickled pandas object (or any other pickled object) from file:
    See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
-.. note::
+.. _io.pickle.compression:
 
-    These methods were previously ``pd.save`` and ``pd.load``, prior to 0.12.0, and are now deprecated.
+Compressed pickle files
+'''''''''''''''''''''''
+
+.. versionadded:: 0.20.0
+
+:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
+and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
+`zip`` file supports read only and must contain only one data file
+to be read in.
+
+The compression type can be an explicit parameter or be inferred from the file extension.
+If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
+``'.xz'``, respectively.
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+       'A': np.random.randn(1000),
+       'B': 'foo',
+       'C': pd.date_range('20130101', periods=1000, freq='s')})
+   df
+
+Using an explicit compression type
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.compress", compression="gzip")
+   rt = pd.read_pickle("data.pkl.compress", compression="gzip")
+   rt
+
+Inferring compression type from the extension
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.xz", compression="infer")
+   rt = pd.read_pickle("data.pkl.xz", compression="infer")
+   rt
+
+The default is to 'infer
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.gz")
+   rt = pd.read_pickle("data.pkl.gz")
+   rt
+
+   df["A"].to_pickle("s1.pkl.bz2")
+   rt = pd.read_pickle("s1.pkl.bz2")
+   rt
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove("data.pkl.compress")
+   os.remove("data.pkl.xz")
+   os.remove("data.pkl.gz")
+   os.remove("s1.pkl.bz2")
 
 .. _io.msgpack:
 

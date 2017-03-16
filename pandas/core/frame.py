@@ -1516,6 +1516,8 @@ class DataFrame(NDFrame):
         from pandas.io.feather_format import to_feather
         to_feather(self, fname)
 
+    @Substitution(header='Write out column names. If a list of string is given, \
+it is assumed to be aliases for the column names')
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -1543,6 +1545,7 @@ class DataFrame(NDFrame):
             result = formatter.buf.getvalue()
             return result
 
+    @Substitution(header='whether to print column labels, default True')
     @Appender(fmt.docstring_to_string, indents=1)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -1596,6 +1599,8 @@ class DataFrame(NDFrame):
         if buf is None:
             return formatter.buf.getvalue()
 
+    @Substitution(header='Write out column names. If a list of string is given, \
+it is assumed to be aliases for the column names.')
     @Appender(fmt.common_docstring + fmt.return_docstring, indents=1)
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -3079,6 +3084,50 @@ class DataFrame(NDFrame):
         Returns
         -------
         dropped : DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[np.nan, 2, np.nan, 0], [3, 4, np.nan, 1],
+        ...                    [np.nan, np.nan, np.nan, 5]],
+        ...                   columns=list('ABCD'))
+        >>> df
+             A    B   C  D
+        0  NaN  2.0 NaN  0
+        1  3.0  4.0 NaN  1
+        2  NaN  NaN NaN  5
+
+        Drop the columns where all elements are nan:
+
+        >>> df.dropna(axis=1, how='all')
+             A    B  D
+        0  NaN  2.0  0
+        1  3.0  4.0  1
+        2  NaN  NaN  5
+
+        Drop the columns where any of the elements is nan
+
+        >>> df.dropna(axis=1, how='any')
+           D
+        0  0
+        1  1
+        2  5
+
+        Drop the rows where all of the elements are nan
+        (there is no row to drop, so df stays the same):
+
+        >>> df.dropna(axis=0, how='all')
+             A    B   C  D
+        0  NaN  2.0 NaN  0
+        1  3.0  4.0 NaN  1
+        2  NaN  NaN NaN  5
+
+        Keep only the rows with at least 2 non-na values:
+
+        >>> df.dropna(thresh=2)
+             A    B   C  D
+        0  NaN  2.0 NaN  0
+        1  3.0  4.0 NaN  1
+
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(axis, (tuple, list)):

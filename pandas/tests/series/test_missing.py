@@ -4,6 +4,7 @@
 import pytz
 from datetime import timedelta, datetime
 
+from distutils.version import LooseVersion
 from numpy import nan
 import numpy as np
 import pandas as pd
@@ -16,6 +17,12 @@ from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 
 from .common import TestData
+
+try:
+    import scipy
+    _is_scipy_ge_0190 = scipy.__version__ >= LooseVersion('0.19.0')
+except:
+    _is_scipy_ge_0190 = False
 
 
 def _skip_if_no_pchip():
@@ -828,6 +835,7 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
 
     def test_interp_scipy_basic(self):
         tm._skip_if_no_scipy()
+
         s = Series([1, 3, np.nan, 12, np.nan, 25])
         # slinear
         expected = Series([1., 3., 7.5, 12., 18.5, 25.])
@@ -851,7 +859,13 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         result = s.interpolate(method='zero', downcast='infer')
         assert_series_equal(result, expected)
         # quadratic
-        expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
+        # GH #15662.
+        # new cubic and quadratic interpolation algorithms from scipy 0.19.0.
+        # previously `splmake` was used. See scipy/scipy#6710
+        if _is_scipy_ge_0190:
+            expected = Series([1, 3., 6.823529, 12., 18.058824, 25.])
+        else:
+            expected = Series([1, 3., 6.769231, 12., 18.230769, 25.])
         result = s.interpolate(method='quadratic')
         assert_series_equal(result, expected)
 
@@ -1027,8 +1041,8 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
 
     def test_spline_extrapolate(self):
         tm.skip_if_no_package(
-            'scipy', '0.15',
-            'setting ext on scipy.interpolate.UnivariateSpline')
+            'scipy', min_version='0.15',
+            app='setting ext on scipy.interpolate.UnivariateSpline')
         s = Series([1, 2, 3, 4, np.nan, 6, np.nan])
         result3 = s.interpolate(method='spline', order=1, ext=3)
         expected3 = Series([1., 2., 3., 4., 5., 6., 6.])

@@ -147,6 +147,7 @@ class TestAsOfMerge(tm.TestCase):
         trades.ticker = trades.ticker.astype('category')
         quotes = self.quotes.copy()
         quotes.ticker = quotes.ticker.astype('category')
+        expected.ticker = expected.ticker.astype('category')
 
         result = merge_asof(trades, quotes,
                             on='time',
@@ -366,6 +367,41 @@ class TestAsOfMerge(tm.TestCase):
         result = pd.merge_asof(trades, quotes, on='time',
                                by=['ticker', 'exch'])
         assert_frame_equal(result, expected)
+
+    def test_multiby_indexed(self):
+        # GH15676
+        left = pd.DataFrame([
+            [pd.to_datetime('20160602'), 1, 'a'],
+            [pd.to_datetime('20160602'), 2, 'a'],
+            [pd.to_datetime('20160603'), 1, 'b'],
+            [pd.to_datetime('20160603'), 2, 'b']],
+            columns=['time', 'k1', 'k2']).set_index('time')
+
+        right = pd.DataFrame([
+            [pd.to_datetime('20160502'), 1, 'a', 1.0],
+            [pd.to_datetime('20160502'), 2, 'a', 2.0],
+            [pd.to_datetime('20160503'), 1, 'b', 3.0],
+            [pd.to_datetime('20160503'), 2, 'b', 4.0]],
+            columns=['time', 'k1', 'k2', 'value']).set_index('time')
+
+        expected = pd.DataFrame([
+            [pd.to_datetime('20160602'), 1, 'a', 1.0],
+            [pd.to_datetime('20160602'), 2, 'a', 2.0],
+            [pd.to_datetime('20160603'), 1, 'b', 3.0],
+            [pd.to_datetime('20160603'), 2, 'b', 4.0]],
+            columns=['time', 'k1', 'k2', 'value']).set_index('time')
+
+        result = pd.merge_asof(left,
+                               right,
+                               left_index=True,
+                               right_index=True,
+                               by=['k1', 'k2'])
+
+        assert_frame_equal(expected, result)
+
+        with self.assertRaises(MergeError):
+            pd.merge_asof(left, right, left_index=True, right_index=True,
+                          left_by=['k1', 'k2'], right_by=['k1'])
 
     def test_basic2(self):
 
