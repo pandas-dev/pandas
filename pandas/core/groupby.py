@@ -10,6 +10,7 @@ from pandas.compat import (
     zip, range, lzip,
     callable, map
 )
+
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat.numpy import _np_version_under1p8
@@ -3424,6 +3425,7 @@ class NDFrameGroupBy(GroupBy):
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         from pandas.core.index import _all_indexes_same
+        from pandas.tools.util import to_numeric
 
         if len(keys) == 0:
             return DataFrame(index=keys)
@@ -3566,7 +3568,8 @@ class NDFrameGroupBy(GroupBy):
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
                 if (so.ndim == 2 and so.dtypes.apply(is_datetimelike).any()):
-                    result = result._convert(numeric=True)
+                    result = result.apply(
+                        lambda x: to_numeric(x, errors='ignore'))
                     date_cols = self._selected_obj.select_dtypes(
                         include=['datetime', 'timedelta']).columns
                     date_cols = date_cols.intersection(result.columns)
