@@ -1792,9 +1792,10 @@ class MultiIndex(Index):
 
     def _partial_tup_index(self, tup, side='left'):
         if len(tup) > self.lexsort_depth:
-            raise KeyError('Key length (%d) was greater than MultiIndex'
-                           ' lexsort depth (%d)' %
-                           (len(tup), self.lexsort_depth))
+            raise UnsortedIndexError(
+                'Key length (%d) was greater than MultiIndex'
+                ' lexsort depth (%d)' %
+                (len(tup), self.lexsort_depth))
 
         n = len(tup)
         start, end = 0, len(self)
