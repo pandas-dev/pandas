@@ -2752,6 +2752,30 @@ class TestMultiIndex(Base, tm.TestCase):
         with assertRaises(KeyError):
             df.loc(axis=0)['q', :]
 
+    def test_unsortedindex_doc_examples(self):
+        # http://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex  # noqa
+        dfm = DataFrame({'jim': [0, 0, 1, 1],
+                         'joe': ['x', 'x', 'z', 'y'],
+                         'jolie': np.random.rand(4)})
+
+        dfm = dfm.set_index(['jim', 'joe'])
+        with tm.assert_produces_warning(PerformanceWarning):
+            dfm.loc[(1, 'z')]
+
+        with pytest.raises(UnsortedIndexError):
+            dfm.loc[(0, 'y'):(1, 'z')]
+
+        assert not dfm.index.is_lexsorted()
+        assert dfm.index.lexsort_depth == 1
+
+        # sort it
+        dfm = dfm.sort_index()
+        dfm.loc[(1, 'z')]
+        dfm.loc[(0, 'y'):(1, 'z')]
+
+        assert dfm.index.is_lexsorted()
+        assert dfm.index.lexsort_depth == 2
+
     def test_tuples_with_name_string(self):
         # GH 15110 and GH 14848
 
