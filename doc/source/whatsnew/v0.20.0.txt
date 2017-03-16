@@ -850,7 +850,8 @@ Bug Fixes
 - Bug in ``SparseSeries.reindex`` on single level with list of length 1 (:issue:`15447`)
 
 
-- Bug in  groupby operations with timedelta64 when passing ``numeric_only=False`` (:issue:`5724`)
+- Bug in groupby operations with timedelta64 when passing ``numeric_only=False`` (:issue:`5724`)
+- Bug in ``groupby.apply()`` coercing ``object`` dtypes to numeric types, when not all values were numeric (:issue:`14423`, :issue:`15421`, :issue:`15670`)
 
 
 - Bug in ``DataFrame.to_html`` with ``index=False`` and ``max_rows`` raising in ``IndexError`` (:issue:`14998`)
