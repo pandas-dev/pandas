@@ -1381,12 +1381,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
         self.assertEqual(len(result), 0)
 
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates('AAA', take_last=True)
-            expected = df.loc[[6, 7]]
-            tm.assert_frame_equal(result, expected)
-
         # multi column
         expected = df.loc[[0, 1, 2, 3]]
         result = df.drop_duplicates(np.array(['AAA', 'B']))
@@ -1400,12 +1394,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         result = df.drop_duplicates(('AAA', 'B'), keep=False)
         expected = df.loc[[0]]
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(('AAA', 'B'), take_last=True)
-        expected = df.loc[[0, 5, 6, 7]]
         tm.assert_frame_equal(result, expected)
 
         # consider everything
@@ -1422,13 +1410,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         result = df2.drop_duplicates(keep=False)
         expected = df2.drop_duplicates(['AAA', 'B'], keep=False)
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df2.drop_duplicates(take_last=True)
-        with tm.assert_produces_warning(FutureWarning):
-            expected = df2.drop_duplicates(['AAA', 'B'], take_last=True)
         tm.assert_frame_equal(result, expected)
 
         # integers
@@ -1529,12 +1510,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         self.assertEqual(len(result), 0)
         tm.assert_frame_equal(result, expected)
 
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(('AA', 'AB'), take_last=True)
-        expected = df.loc[[6, 7]]
-        tm.assert_frame_equal(result, expected)
-
         # multi column
         expected = df.loc[[0, 1, 2, 3]]
         result = df.drop_duplicates((('AA', 'AB'), 'B'))
@@ -1563,12 +1538,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
         self.assertEqual(len(result), 0)
 
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates('A', take_last=True)
-        expected = df.loc[[1, 6, 7]]
-        tm.assert_frame_equal(result, expected)
-
         # multi column
         result = df.drop_duplicates(['A', 'B'])
         expected = df.loc[[0, 2, 3, 6]]
@@ -1580,12 +1549,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         result = df.drop_duplicates(['A', 'B'], keep=False)
         expected = df.loc[[6]]
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(['A', 'B'], take_last=True)
-        expected = df.loc[[1, 5, 6, 7]]
         tm.assert_frame_equal(result, expected)
 
         # nan
@@ -1610,12 +1573,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
         self.assertEqual(len(result), 0)
 
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates('C', take_last=True)
-        expected = df.loc[[3, 7]]
-        tm.assert_frame_equal(result, expected)
-
         # multi column
         result = df.drop_duplicates(['C', 'B'])
         expected = df.loc[[0, 1, 2, 4]]
@@ -1627,12 +1584,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         result = df.drop_duplicates(['C', 'B'], keep=False)
         expected = df.loc[[1]]
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(['C', 'B'], take_last=True)
-        expected = df.loc[[1, 3, 6, 7]]
         tm.assert_frame_equal(result, expected)
 
     def test_drop_duplicates_NA_for_take_all(self):
@@ -1697,14 +1648,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
         self.assertEqual(len(df), 0)
 
-        # deprecate take_last
-        df = orig.copy()
-        with tm.assert_produces_warning(FutureWarning):
-            df.drop_duplicates('A', take_last=True, inplace=True)
-        expected = orig.loc[[6, 7]]
-        result = df
-        tm.assert_frame_equal(result, expected)
-
         # multi column
         df = orig.copy()
         df.drop_duplicates(['A', 'B'], inplace=True)
@@ -1721,14 +1664,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df = orig.copy()
         df.drop_duplicates(['A', 'B'], keep=False, inplace=True)
         expected = orig.loc[[0]]
-        result = df
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        df = orig.copy()
-        with tm.assert_produces_warning(FutureWarning):
-            df.drop_duplicates(['A', 'B'], take_last=True, inplace=True)
-        expected = orig.loc[[0, 5, 6, 7]]
         result = df
         tm.assert_frame_equal(result, expected)
 
@@ -1754,17 +1689,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         result = df2
         tm.assert_frame_equal(result, expected)
 
-        # deprecate take_last
-        df2 = orig2.copy()
-        with tm.assert_produces_warning(FutureWarning):
-            df2.drop_duplicates(take_last=True, inplace=True)
-        with tm.assert_produces_warning(FutureWarning):
-            expected = orig2.drop_duplicates(['A', 'B'], take_last=True)
-        result = df2
-        tm.assert_frame_equal(result, expected)
-
     # Rounding
-
     def test_round(self):
         # GH 2665
 

@@ -51,8 +51,8 @@ from pandas.core.panel import Panel
 from pandas.core.sorting import (get_group_index_sorter, get_group_index,
                                  compress_group_index, get_flattened_iterator,
                                  decons_obs_group_ids, get_indexer_dict)
-from pandas.util.decorators import (cache_readonly, Substitution, Appender,
-                                    make_signature, deprecate_kwarg)
+from pandas.util.decorators import (cache_readonly, Substitution,
+                                    Appender, make_signature)
 from pandas.formats.printing import pprint_thing
 from pandas.util.validators import validate_kwargs
 
@@ -94,12 +94,12 @@ _common_apply_whitelist = frozenset([
     'corr', 'cov', 'diff',
 ]) | _plotting_methods
 
-_series_apply_whitelist = \
-    (_common_apply_whitelist - set(['boxplot'])) | \
-    frozenset(['dtype', 'unique'])
+_series_apply_whitelist = ((_common_apply_whitelist |
+                            {'nlargest', 'nsmallest'}) -
+                           {'boxplot'}) | frozenset(['dtype', 'unique'])
 
-_dataframe_apply_whitelist = \
-    _common_apply_whitelist | frozenset(['dtypes', 'corrwith'])
+_dataframe_apply_whitelist = (_common_apply_whitelist |
+                              frozenset(['dtypes', 'corrwith']))
 
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
@@ -3024,20 +3024,6 @@ class SeriesGroupBy(GroupBy):
         return Series(res,
                       index=ri,
                       name=self.name)
-
-    @deprecate_kwarg('take_last', 'keep',
-                     mapping={True: 'last', False: 'first'})
-    @Appender(Series.nlargest.__doc__)
-    def nlargest(self, n=5, keep='first'):
-        # ToDo: When we remove deprecate_kwargs, we can remote these methods
-        # and include nlargest and nsmallest to _series_apply_whitelist
-        return self.apply(lambda x: x.nlargest(n=n, keep=keep))
-
-    @deprecate_kwarg('take_last', 'keep',
-                     mapping={True: 'last', False: 'first'})
-    @Appender(Series.nsmallest.__doc__)
-    def nsmallest(self, n=5, keep='first'):
-        return self.apply(lambda x: x.nsmallest(n=n, keep=keep))
 
     @Appender(Series.describe.__doc__)
     def describe(self, **kwargs):

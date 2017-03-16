@@ -3816,7 +3816,8 @@ class TestGroupBy(MixIn, tm.TestCase):
             'cov',
             'diff',
             'unique',
-            # 'nlargest', 'nsmallest',
+            'nlargest',
+            'nsmallest',
         ])
 
         for obj, whitelist in zip((df, s), (df_whitelist, s_whitelist)):
@@ -4025,8 +4026,6 @@ class TestGroupBy(MixIn, tm.TestCase):
             3, 2, 1, 3, 3, 2
         ], index=MultiIndex.from_arrays([list('aaabbb'), [2, 3, 1, 6, 5, 7]]))
         assert_series_equal(gb.nlargest(3, keep='last'), e)
-        with tm.assert_produces_warning(FutureWarning):
-            assert_series_equal(gb.nlargest(3, take_last=True), e)
 
     def test_nsmallest(self):
         a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
@@ -4044,8 +4043,6 @@ class TestGroupBy(MixIn, tm.TestCase):
             0, 1, 1, 0, 1, 2
         ], index=MultiIndex.from_arrays([list('aaabbb'), [4, 1, 0, 9, 8, 7]]))
         assert_series_equal(gb.nsmallest(3, keep='last'), e)
-        with tm.assert_produces_warning(FutureWarning):
-            assert_series_equal(gb.nsmallest(3, take_last=True), e)
 
     def test_transform_doesnt_clobber_ints(self):
         # GH 7972

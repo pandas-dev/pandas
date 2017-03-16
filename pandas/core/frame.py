@@ -77,8 +77,7 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import (deprecate_kwarg, Appender,
-                                    Substitution)
+from pandas.util.decorators import Appender, Substitution
 from pandas.util.validators import validate_bool_kwarg
 
 from pandas.tseries.period import PeriodIndex
@@ -3169,8 +3168,6 @@ it is assumed to be aliases for the column names.')
         else:
             return result
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     def drop_duplicates(self, subset=None, keep='first', inplace=False):
         """
         Return DataFrame with duplicate rows removed, optionally only
@@ -3185,7 +3182,6 @@ it is assumed to be aliases for the column names.')
             - ``first`` : Drop duplicates except for the first occurrence.
             - ``last`` : Drop duplicates except for the last occurrence.
             - False : Drop all duplicates.
-        take_last : deprecated
         inplace : boolean, default False
             Whether to drop duplicates in place or to return a copy
 
@@ -3203,8 +3199,6 @@ it is assumed to be aliases for the column names.')
         else:
             return self[-duplicated]
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     def duplicated(self, subset=None, keep='first'):
         """
         Return boolean Series denoting duplicate rows, optionally only
@@ -3221,7 +3215,6 @@ it is assumed to be aliases for the column names.')
             - ``last`` : Mark duplicates as ``True`` except for the
               last occurrence.
             - False : Mark all duplicates as ``True``.
-        take_last : deprecated
 
         Returns
         -------
