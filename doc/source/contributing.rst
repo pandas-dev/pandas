@@ -520,6 +520,15 @@ submitting code to run the check yourself on the diff::
 
    git diff master | flake8 --diff
 
+This command will catch any stylistic errors in your changes specifically, but
+be beware it may not catch all of them. For example, if you delete the only
+usage of an imported function, it is stylistically incorrect to import an
+unused function. However, style-checking the diff will not catch this because
+the actual import is not part of the diff. Thus, for completeness, you should
+run this command, though it will take longer::
+
+   git diff master --name-only -- '*.py' | grep 'pandas' | xargs -r flake8
+
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
