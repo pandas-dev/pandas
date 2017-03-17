@@ -2094,7 +2094,17 @@ class DataCol(IndexCol):
 
                 # we have a categorical
                 categories = self.metadata
-                self.data = Categorical.from_codes(self.data.ravel(),
+                codes = self.data.ravel()
+
+                # if we have stored a NaN in the categories
+                # then strip it; in theory we could have BOTH
+                # -1s in the codes and nulls :<
+                mask = isnull(categories)
+                if mask.any():
+                    categories = categories[~mask]
+                    codes[codes != -1] -= mask.astype(int).cumsum().values
+
+                self.data = Categorical.from_codes(codes,
                                                    categories=categories,
                                                    ordered=self.ordered)
 
@@ -3404,10 +3414,12 @@ class Table(Fixed):
                 if existing_table is not None:
                     indexer = len(self.non_index_axes)
                     exist_axis = existing_table.non_index_axes[indexer][1]
-                    if append_axis != exist_axis:
+                    if not array_equivalent(np.array(append_axis),
+                                            np.array(exist_axis)):
 
                         # ahah! -> reindex
-                        if sorted(append_axis) == sorted(exist_axis):
+                        if array_equivalent(np.array(sorted(append_axis)),
+                                            np.array(sorted(exist_axis))):
                             append_axis = exist_axis
 
                 # the non_index_axes info

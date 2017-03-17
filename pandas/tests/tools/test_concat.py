@@ -1,3 +1,4 @@
+from warnings import catch_warnings
 import numpy as np
 from numpy.random import randn
 
@@ -1373,7 +1374,7 @@ class TestConcatenate(ConcatenateBase):
         concat([panel1, panel3], axis=1, verify_integrity=True)
 
     def test_panel4d_concat(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             p4d = tm.makePanel4D()
 
             p1 = p4d.iloc[:, :, :5, :]
@@ -1389,7 +1390,7 @@ class TestConcatenate(ConcatenateBase):
             tm.assert_panel4d_equal(result, p4d)
 
     def test_panel4d_concat_mixed_type(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             p4d = tm.makePanel4D()
 
             # if things are a bit misbehaved

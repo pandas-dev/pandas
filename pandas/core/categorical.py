@@ -550,8 +550,8 @@ class Categorical(PandasObject):
             # we don't allow NaNs in the categories themselves
 
             if categories.hasnans:
-                # NaNs in cats deprecated in 0.17,
-                # remove in 0.18 or 0.19 GH 10748
+                # NaNs in cats deprecated in 0.17
+                # GH 10748
                 msg = ('\nSetting NaNs in `categories` is deprecated and '
                        'will be removed in a future version of pandas.')
                 warn(msg, FutureWarning, stacklevel=3)
