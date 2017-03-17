@@ -728,7 +728,8 @@ class TestHDFStore(Base, tm.TestCase):
                               format='fixed', complib='zlib')
 
     def test_put_compression_blosc(self):
-        tm.skip_if_no_package('tables', '2.2', app='blosc support')
+        tm.skip_if_no_package('tables', min_version='2.2',
+                              app='blosc support')
         if skip_compression:
             pytest.skip("skipping on windows/PY3")
 

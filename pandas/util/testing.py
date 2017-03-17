@@ -2010,11 +2010,15 @@ class TestSubDict(dict):
         dict.__init__(self, *args, **kwargs)
 
 
-# Dependency checks.  Copied this from Nipy/Nipype (Copyright of
-# respective developers, license: BSD-3)
-def package_check(pkg_name, min_version=None, max_version=None, app='pandas',
-                  checker=LooseVersion):
+# Dependency checker when running tests.
+#
+# Copied this from nipy/nipype
+# Copyright of respective developers, License: BSD-3
+def skip_if_no_package(pkg_name, min_version=None, max_version=None,
+                       app='pandas', checker=LooseVersion):
     """Check that the min/max version of the required package is installed.
+
+    If the package check fails, the test is automatically skipped.
 
     Parameters
     ----------
@@ -2025,11 +2029,11 @@ def package_check(pkg_name, min_version=None, max_version=None, app='pandas',
     max_version : string, optional
         Max version number for required package.
     app : string, optional
-        Application that is performing the check.  For instance, the
+        Application that is performing the check. For instance, the
         name of the tutorial being executed that depends on specific
         packages.
     checker : object, optional
-        The class that will perform the version checking.  Default is
+        The class that will perform the version checking. Default is
         distutils.version.LooseVersion.
 
     Examples
@@ -2059,17 +2063,6 @@ def package_check(pkg_name, min_version=None, max_version=None, app='pandas',
         pytest.skip(msg)
     if max_version and checker(have_version) >= checker(max_version):
         pytest.skip(msg)
-
-
-def skip_if_no_package(*args, **kwargs):
-    """pytest.skip() if package_check fails
-
-    Parameters
-    ----------
-    *args Positional parameters passed to `package_check`
-    *kwargs Keyword parameters passed to `package_check`
-    """
-    package_check(*args, **kwargs)
 
 
 def optional_args(decorator):
