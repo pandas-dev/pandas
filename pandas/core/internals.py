@@ -2440,7 +2440,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         if isinstance(other, bool):
             raise TypeError
-        elif is_null_datelike_scalar(other):
+        elif (is_null_datelike_scalar(other) or
+              (is_scalar(other) and isnull(other))):
             other = tslib.iNaT
             other_mask = True
         elif isinstance(other, self._holder):

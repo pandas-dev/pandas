@@ -1385,6 +1385,14 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         expected = Series([10, None], dtype='datetime64[ns]')
         assert_series_equal(rs, expected)
 
+        # GH 15701
+        timestamps = ['2016-12-31 12:00:04+00:00',
+                      '2016-12-31 12:00:04.010000+00:00']
+        s = Series([pd.Timestamp(s) for s in timestamps])
+        rs = s.where(Series([False, True]))
+        expected = Series([pd.NaT, s[1]])
+        assert_series_equal(rs, expected)
+
     def test_where_timedelta(self):
         s = Series([1, 2], dtype='timedelta64[ns]')
         expected = Series([10, 10], dtype='timedelta64[ns]')
