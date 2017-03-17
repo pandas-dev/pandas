@@ -646,7 +646,7 @@ class Dtype(object):
             f = self.funcs[f_name]
             d = self.data[d_name]
             exp = self.expects[d_name][f_name]
-            yield self.check_dtypes, f, f_name, d, d_name, exp
+            self.check_dtypes(f, f_name, d, d_name, exp)
 
     def check_dtypes(self, f, f_name, d, d_name, exp):
         roll = d.rolling(window=self.window)
