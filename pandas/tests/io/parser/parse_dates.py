@@ -22,10 +22,10 @@ import pandas.io.date_converters as conv
 from pandas import DataFrame, Series, Index, DatetimeIndex
 from pandas import compat
 from pandas.compat import parse_date, StringIO, lrange
+from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.io.parsers import read_table
 from pandas.tseries.index import date_range
 
-# from pandas.io.parsers import read_table
-# from pandas.compat.numpy import np_array_datetime64_compat
 
 class ParseDatesTests(object):
 
@@ -617,7 +617,7 @@ year, month, day, hour, minute, second, a, b
         self.assertEqual(df.ym.loc[0], date(2001, 1, 1))
 
     def test_dateparser_resolution_if_not_ns(self):
-        # issue 10245
+        # GH 10245
         data = """\
 date,time,prn,rxstatus
 2013-11-03,19:00:00,126,00E80000
@@ -630,7 +630,8 @@ date,time,prn,rxstatus
                 date + 'T' + time + 'Z', dtype='datetime64[s]')
             return datetime
 
-        df = read_csv(StringIO(data), date_parser=date_parser,
+            
+        df = self.read_csv(StringIO(data), date_parser=date_parser,
                       parse_dates={'datetime': ['date', 'time']},
                       index_col=['datetime', 'prn'])
 
@@ -650,7 +651,7 @@ date,time,prn,rxstatus
                   7,10/18/2006
                   7,10/18/2008
                   621, """
-        result = read_csv(StringIO(data), parse_dates=['opdate'])
+        result = self.read_csv(StringIO(data), parse_dates=['opdate'])
         expected_data = [[7, '10/18/2006'],
                          [7, '10/18/2008'],
                          [621, ' ']]
