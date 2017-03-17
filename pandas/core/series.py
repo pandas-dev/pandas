@@ -1192,8 +1192,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def mode(self):
         """Return the mode(s) of the dataset.
 
-        Empty if nothing occurs at least 2 times. Always returns Series even
-        if only one value is returned.
+        Always returns Series even if only one value is returned.
 
         Returns
         -------

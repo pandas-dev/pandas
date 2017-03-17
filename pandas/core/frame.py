@@ -5168,9 +5168,8 @@ it is assumed to be aliases for the column names.')
 
     def mode(self, axis=0, numeric_only=False):
         """
-        Gets the mode(s) of each element along the axis selected. Empty if
-        nothing has 2+ occurrences. Adds a row for each mode per label, fills
-        in gaps with nan.
+        Gets the mode(s) of each element along the axis selected. Adds a row for
+        each mode per label, fills in gaps with nan.
 
         Note that there could be multiple values returned for the selected
         axis (when more than one item share the maximum frequency), which is

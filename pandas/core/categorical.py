@@ -1876,8 +1876,7 @@ class Categorical(PandasObject):
         """
         Returns the mode(s) of the Categorical.
 
-        Empty if nothing occurs at least 2 times.  Always returns `Categorical`
-        even if only one value.
+        Always returns `Categorical` even if only one value.
 
         Returns
         -------
