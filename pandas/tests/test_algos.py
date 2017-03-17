@@ -1262,6 +1262,15 @@ class TestMode(tm.TestCase):
         exp = Series([], dtype=np.object)
         tm.assert_series_equal(algos.mode(['a', 'b', 'c']), exp)
 
+    def test_mode_single(self):
+        exp_single = [1]
+        data_single = [1]
+
+        for dt in np.typecodes['AllInteger'] + np.typecodes['Float']:
+            s = Series(data_single, dtype=dt)
+            exp = Series(exp_single, dtype=dt)
+            tm.assert_series_equal(algos.mode(s), exp)
+
     def test_number_mode(self):
         exp_single = [1]
         data_single = [1] * 5 + [2] * 3
