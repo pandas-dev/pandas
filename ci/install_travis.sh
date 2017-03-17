@@ -32,6 +32,11 @@ edit_init
 home_dir=$(pwd)
 echo "[home_dir: $home_dir]"
 
+if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+    echo "[install ccache]"
+    time brew install ccache
+fi
+
 # install miniconda
 MINICONDA_DIR="$HOME/miniconda3"
 
