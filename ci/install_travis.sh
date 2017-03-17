@@ -35,7 +35,7 @@ echo "[home_dir: $home_dir]"
 # install miniconda
 MINICONDA_DIR="$HOME/miniconda3"
 
-if [ "$USE_CACHE" ] && [ -d "$MINICONDA_DIR" ]; then
+if [ "$USE_CACHE" ] && [ -d "$MINICONDA_DIR/bin" ]; then
     echo "[Using cached Miniconda install]"
 
 else
@@ -53,6 +53,9 @@ else
     fi
     bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 fi
+
+echo "[show conds]"
+which conda
 
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
