@@ -54,7 +54,7 @@ else
     bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 fi
 
-echo "[show conds]"
+echo "[show conda]"
 which conda
 
 echo "[update conda]"
@@ -78,7 +78,7 @@ fi
 conda info -a || exit 1
 
 # set the compiler cache to work
-if [ "$USE_CACHE" ] && "${TRAVIS_OS_NAME}" == "linux" ]; then
+if [ "$USE_CACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
     echo "[Using ccache]"
     export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
     gcc=$(which gcc)
