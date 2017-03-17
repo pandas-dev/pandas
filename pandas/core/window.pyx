@@ -232,7 +232,7 @@ cdef class VariableWindowIndexer(WindowIndexer):
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 ndarray index):
+                 ndarray index, closed='right'):
 
         self.is_variable = 1
         self.N = len(index)
@@ -249,6 +249,9 @@ cdef class VariableWindowIndexer(WindowIndexer):
         # max window size
         self.win = (self.end - self.start).max()
 
+        if closed not in ['right', 'left', 'both', 'neither']:
+            closed = 'right'
+
     def build(self, ndarray[int64_t] index, int64_t win):
 
         cdef:
@@ -261,7 +264,10 @@ cdef class VariableWindowIndexer(WindowIndexer):
         N = self.N
 
         start[0] = 0
-        end[0] = 1
+        if closed in ['right', 'both']:
+            end[0] = 1
+        else:
+            end[0] = 0
 
         with nogil:
 
@@ -270,6 +276,9 @@ cdef class VariableWindowIndexer(WindowIndexer):
             for i in range(1, N):
                 end_bound = index[i]
                 start_bound = index[i] - win
+
+                if closed in ['left', 'both']:
+                    start_bound -= 1
 
                 # advance the start bound until we are
                 # within the constraint
@@ -285,6 +294,9 @@ cdef class VariableWindowIndexer(WindowIndexer):
                     end[i] = i + 1
                 else:
                     end[i] = end[i - 1]
+
+                if closed in ['left', 'neither']:
+                end[i] -= 1
 
 
 def get_window_indexer(input, win, minp, index, floor=None,
