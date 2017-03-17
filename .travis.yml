@@ -8,7 +8,7 @@ language: python
 # The cash directories will be deleted if anything in ci/ changes in a commit
 cache:
  directories:
-  - $HOME/miniconda # miniconda cache
+  - $HOME/miniconda3 # miniconda cache
   - $HOME/.cache # cython cache
   - $HOME/.ccache # compiler cache
 
