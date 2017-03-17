@@ -33,20 +33,26 @@ home_dir=$(pwd)
 echo "[home_dir: $home_dir]"
 
 # install miniconda
-echo "[Using clean Miniconda install]"
-
 MINICONDA_DIR="$HOME/miniconda3"
-if [ -d "$MINICONDA_DIR" ]; then
-    rm -rf "$MINICONDA_DIR"
-fi
 
-# install miniconda
-if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+if [ "$USE_CACHE" ] && [ -d "$MINICONDA_DIR" ]; then
+    echo "[Using cached Miniconda install]"
+
 else
-    wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+    echo "[Using clean Miniconda install]"
+
+    if [ -d "$MINICONDA_DIR" ]; then
+        rm -rf "$MINICONDA_DIR"
+    fi
+
+    # install miniconda
+    if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+    else
+        wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+    fi
+    bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 fi
-bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
