@@ -237,6 +237,12 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         for k, v in compat.iteritems(df):
             self.assertEqual(type(v), Series)
 
+    def test_items(self):
+        # items is the same as iteritems (#13918)
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
+        for k, v in df.items():
+            self.assertEqual(type(v), Series)
+
     def test_iter(self):
         self.assertTrue(tm.equalContents(list(self.frame), self.frame.columns))
 

@@ -1072,8 +1072,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """
         return zip(iter(self.index), iter(self))
 
-    if compat.PY3:  # pragma: no cover
-        items = iteritems
+    items = iteritems
 
     # ----------------------------------------------------------------------
     # Misc public methods
