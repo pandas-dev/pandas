@@ -47,11 +47,11 @@ else
 
     # install miniconda
     if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+        time wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
     else
-        wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+        time wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
     fi
-    bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
+    time bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 fi
 
 echo "[show conda]"
@@ -90,13 +90,16 @@ else
     echo "[Not using ccache]"
 fi
 
+echo "[create env]"
+
 # may have installation instructions for this build
 INSTALL="ci/install-${PYTHON_VERSION}${JOB_TAG}.sh"
 if [ -e ${INSTALL} ]; then
     time bash $INSTALL || exit 1
 else
     # create new env
-    time conda create -n pandas python=$PYTHON_VERSION pytest || exit 1
+    # this may already exists, in which case our caching worked
+    time conda create -n pandas python=$PYTHON_VERSION pytest
 fi
 
 # build deps
