@@ -6,7 +6,7 @@ parsers defined in parsers.py
 """
 
 from distutils.version import LooseVersion
-from datetime import datetime
+from datetime import datetime, date
 
 import pytest
 import numpy as np
@@ -19,12 +19,13 @@ import pandas.tseries.tools as tools
 import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
-from pandas import DataFrame, Series, Index, DatetimeIndex
+from pandas import DataFrame, Series, Index, DatetimeIndex, MultiIndex
 from pandas import compat
 from pandas.compat import parse_date, StringIO, lrange
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.io.parsers import read_table
 from pandas.tseries.index import date_range
+
 
 
 class ParseDatesTests(object):
@@ -542,7 +543,7 @@ date, time, a, b
                 "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
 
         date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
-        df = read_csv(StringIO(data), header=None, parse_dates=date_spec,
+        df = self.read_csv(StringIO(data), header=None, parse_dates=date_spec,
                       date_parser=conv.parse_date_time)
 
     def test_parse_date_fields(self):
@@ -630,7 +631,7 @@ date,time,prn,rxstatus
                 date + 'T' + time + 'Z', dtype='datetime64[s]')
             return datetime
 
-            
+
         df = self.read_csv(StringIO(data), date_parser=date_parser,
                       parse_dates={'datetime': ['date', 'time']},
                       index_col=['datetime', 'prn'])
@@ -656,4 +657,4 @@ date,time,prn,rxstatus
                          [7, '10/18/2008'],
                          [621, ' ']]
         expected = DataFrame(expected_data, columns=['case', 'opdate'])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
