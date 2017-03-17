@@ -93,11 +93,7 @@ class TestCase(unittest.TestCase):
         pd.reset_option('^display.', silent=True)
 
     def round_trip_pickle(self, obj, path=None):
-        if path is None:
-            path = u('__%s__.pickle' % rands(10))
-        with ensure_clean(path) as path:
-            pd.to_pickle(obj, path)
-            return pd.read_pickle(path)
+        return round_trip_pickle(obj, path=path)
 
     # https://docs.python.org/3/library/unittest.html#deprecated-aliases
     def assertEquals(self, *args, **kwargs):
@@ -119,6 +115,14 @@ class TestCase(unittest.TestCase):
     def assertNotAlmostEquals(self, *args, **kwargs):
         return deprecate('assertNotAlmostEquals',
                          self.assertNotAlmostEqual)(*args, **kwargs)
+
+
+def round_trip_pickle(obj, path=None):
+    if path is None:
+        path = u('__%s__.pickle' % rands(10))
+    with ensure_clean(path) as path:
+        pd.to_pickle(obj, path)
+        return pd.read_pickle(path)
 
 
 def assert_almost_equal(left, right, check_exact=False,
