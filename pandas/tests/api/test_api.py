@@ -249,31 +249,26 @@ class TestTopLevelDeprecations(tm.TestCase):
 class TestJson(tm.TestCase):
 
     def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+        with catch_warnings(record=True):
             pd.json.dumps([])
 
 
 class TestParser(tm.TestCase):
 
     def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+        with catch_warnings(record=True):
             pd.parser.na_values
 
 
 class TestLib(tm.TestCase):
 
     def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+        with catch_warnings(record=True):
             pd.lib.infer_dtype
 
 
 class TestTSLib(tm.TestCase):
 
     def test_deprecation_access_func(self):
-        # some libraries may be imported before we
-        # test and could show the warning
         with catch_warnings(record=True):
             pd.tslib.Timestamp
