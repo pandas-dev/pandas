@@ -66,6 +66,7 @@ from pandas import compat, _np_version_under1p9
 from pandas.compat import range, map, zip, u
 
 
+
 class Block(PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
@@ -3424,10 +3425,7 @@ class BlockManager(PandasObject):
         else:
             mgr = self
 
-        if self._is_single_block or not self.is_mixed_type:
-            return mgr.blocks[0].get_values()
-        else:
-            return mgr._interleave()
+        return mgr._interleave()
 
     def _interleave(self):
         """
@@ -3435,6 +3433,11 @@ class BlockManager(PandasObject):
         Items must be contained in the blocks
         """
         dtype = _interleaved_dtype(self.blocks)
+
+        # TODO: add shortcut to avoid copy
+        if self._is_single_block and dtype != np.object:
+            return np.array(self.blocks[0].get_values(),
+                            dtype=dtype, copy=False)
 
         result = np.empty(self.shape, dtype=dtype)
 
@@ -4485,33 +4488,65 @@ def _interleaved_dtype(blocks):
     for x in blocks:
         counts[type(x)].append(x)
 
-    have_int = len(counts[IntBlock]) > 0
     have_bool = len(counts[BoolBlock]) > 0
     have_object = len(counts[ObjectBlock]) > 0
+    have_int = len(counts[IntBlock]) > 0
     have_float = len(counts[FloatBlock]) > 0
     have_complex = len(counts[ComplexBlock]) > 0
     have_dt64 = len(counts[DatetimeBlock]) > 0
     have_dt64_tz = len(counts[DatetimeTZBlock]) > 0
     have_td64 = len(counts[TimeDeltaBlock]) > 0
-    have_cat = len(counts[CategoricalBlock]) > 0
+    have_cat = len(counts[CategoricalBlock])
     # TODO: have_sparse is not used
     have_sparse = len(counts[SparseBlock]) > 0  # noqa
-    have_numeric = have_float or have_complex or have_int
-    has_non_numeric = have_dt64 or have_dt64_tz or have_td64 or have_cat
+    have_numeric = have_float + have_complex + have_int
+    have_non_numeric = have_dt64 + have_dt64_tz + have_td64 + have_cat
+    have_mixed = have_numeric + have_non_numeric
+
+    # print(have_cat, blocks, blocks[0].dtype)
+    # if have_cat:
+    #     print(blocks[0].get_values().dtype)
 
     if (have_object or
-        (have_bool and
-         (have_numeric or have_dt64 or have_dt64_tz or have_td64)) or
-        (have_numeric and has_non_numeric) or have_cat or have_dt64 or
-            have_dt64_tz or have_td64):
+            (have_bool and have_mixed) or # bool and something else
+            (have_non_numeric > 1) or # more than one type of non numeric
+            (have_non_numeric and have_numeric) or  # mix of a numeric et non numeric
+             have_cat>1 or have_dt64_tz):
         return np.dtype(object)
     elif have_bool:
         return np.dtype(bool)
+    elif have_dt64:
+        return np.dtype("datetime64[ns]")
+    elif have_td64:
+        return np.dtype("timedelta64[ns]")
+    elif have_cat:
+        # return blocks[0].get_values().dtype
+        # if we are mixing unsigned and signed, then return
+        # the next biggest int type (if we can)
+
+        dts = [b.get_values().dtype for b in counts[CategoricalBlock]]
+        lcd = _find_common_type(dts)
+        kinds = set([_dt.kind for _dt in dts])
+
+        if len(kinds) == 1:
+            return lcd
+
+        if lcd == 'uint64' or lcd == 'int64':
+            return np.dtype('int64')
+
+        # return 1 bigger on the itemsize if unsinged
+        if lcd.kind == 'u':
+            return np.dtype('int%s' % (lcd.itemsize * 8 * 2))
+        return lcd
+
     elif have_int and not have_float and not have_complex:
         # if we are mixing unsigned and signed, then return
         # the next biggest int type (if we can)
-        lcd = _find_common_type([b.dtype for b in counts[IntBlock]])
-        kinds = set([i.dtype.kind for i in counts[IntBlock]])
+
+        dts = [b.dtype for b in counts[IntBlock]]
+        lcd = _find_common_type(dts)
+        kinds = set([_dt.kind for _dt in dts])
+
         if len(kinds) == 1:
             return lcd
 
