@@ -727,6 +727,7 @@ Other API Changes
 - ``Series.sort_values()`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values()`` (:issue:`15604`)
 - ``.merge()`` and ``.join()`` on ``category`` dtype columns will now preserve the category dtype when possible (:issue:`10409`)
 - ``SparseDataFrame.default_fill_value`` will be 0, previously was ``nan`` in the return from ``pd.get_dummies(..., sparse=True)`` (:issue:`15594`)
+- Reorganization of date converter test to parse test (:issue:`15707`)
 
 .. _whatsnew_0200.deprecations:
 
