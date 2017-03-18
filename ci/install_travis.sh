@@ -99,7 +99,7 @@ if [ -e ${INSTALL} ]; then
 else
     # create new env
     # this may already exists, in which case our caching worked
-    time conda create -n pandas python=$PYTHON_VERSION pytest
+    time conda create -n pandas python=$PYTHON_VERSION pytest nomkl
 fi
 
 # build deps
