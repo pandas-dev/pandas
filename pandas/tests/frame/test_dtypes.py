@@ -622,3 +622,54 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                         'NaT                       NaT' in result)
         self.assertTrue('2 2013-01-03 2013-01-03 00:00:00-05:00 '
                         '2013-01-03 00:00:00+01:00' in result)
+
+    def test_values_is_ndarray_with_datetime64tz(self):
+        df = DataFrame({'A': date_range('20130101', periods=3),
+                        'B': date_range('20130101', periods=3, tz='US/Eastern'),
+                        })
+
+        for col in [
+            ["A"],
+            ["A", "A"],
+            ["A", "B"],
+            ["B"],
+            ["B", "B"],
+        ]:
+            if col==["B"]:
+                self.assertTrue(type(df[col].values)==pd.DatetimeIndex)
+            else:
+                self.assertTrue(type(df[col].values)==np.ndarray)
+
+
+    def test_values_dtypes_with_datetime64tz(self):
+        df = DataFrame({'A': date_range('20130101', periods=3),
+                        'B': date_range('20130101', periods=3, tz='US/Eastern'),
+                        })
+
+        for col in [
+            ["A"],
+            ["A", "A"],
+            ["A", "B"],
+            ["B"],
+            ["B", "B"],
+        ]:
+
+            df_sub = df[col]
+            arr = df_sub.values
+
+            # array has the same dtype as dataframe only and only if
+            # - all columns are of type datetime64[ns]
+
+            # TODO: replace 2nd condition by 'all columns are of type datetime64[ns,same timezone]'
+            # - all columns are of the same dtype being one of type datetime64[ns]
+            # or datetime64[ns,tz] with the same tz
+            if all(df_sub.dtypes.values == "<M8[ns]"):
+                self.assertTrue(arr.dtype == df_sub.dtypes.values[0])
+
+            # otherwise, dtype is object
+            else:
+                if col==["B"]:
+                    self.assertTrue(type(arr)==pd.DatetimeIndex)
+                    self.assertTrue(isinstance(arr.dtype, DatetimeTZDtype))
+                else:
+                    self.assertTrue(arr.dtype == object)
