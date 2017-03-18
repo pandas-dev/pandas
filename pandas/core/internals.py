@@ -3435,7 +3435,7 @@ class BlockManager(PandasObject):
         dtype = _interleaved_dtype(self.blocks)
 
         # TODO: add shortcut to avoid copy
-        if self._is_single_block and dtype != np.object:
+        if self._is_single_block: # and dtype != np.object:
             return np.array(self.blocks[0].get_values(),
                             dtype=dtype, copy=False)
 
