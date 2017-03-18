@@ -295,7 +295,7 @@ def merge_asof(left, right, on=None,
       - A "nearest" search selects the row in the right DataFrame whose 'on'
         key is closest in absolute distance to the left's key.
 
-    The default is "backward" and is the compatible in versions below 0.20.0.
+    The default is "backward" and is compatible in versions below 0.20.0.
     The direction parameter was added in version 0.20.0 and introduces
     "forward" and "nearest".
 
@@ -340,13 +340,13 @@ def merge_asof(left, right, on=None,
 
     suffixes : 2-length sequence (tuple, list, ...)
         Suffix to apply to overlapping column names in the left and right
-        side, respectively
+        side, respectively.
     tolerance : integer or Timedelta, optional, default None
-        select asof tolerance within this range; must be compatible
-        to the merge index.
+        Select asof tolerance within this range; must be compatible
+        with the merge index.
     allow_exact_matches : boolean, default True
 
-        - If True, allow matching the same 'on' value
+        - If True, allow matching with the same 'on' value
           (i.e. less-than-or-equal-to / greater-than-or-equal-to)
         - If False, don't match the same 'on' value
           (i.e., stricly less-than / strictly greater-than)
