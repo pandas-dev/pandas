@@ -55,31 +55,36 @@ class TestDataFrameMerge(object):
         tm.assert_frame_equal(result, expected)
 
         # how='left'
-        result = df1.merge(df2, left_index=True, right_index=True, how='left', sort=True)
+        result = df1.merge(df2, left_index=True, right_index=True, how='left',
+                           sort=True)
         expected = pd.DataFrame({'a': [0, 10, 20], 'b': [np.nan, 100, 200]},
                                 index=[0, 1, 2])
         tm.assert_frame_equal(result, expected)
 
         # how='right' (already sorted)
-        result = df1.merge(df2, left_index=True, right_index=True, how='right', sort=True)
+        result = df1.merge(df2, left_index=True, right_index=True,
+                           how='right', sort=True)
         expected = pd.DataFrame({'a': [10, 20, np.nan], 'b': [100, 200, 300]},
                                 index=[1, 2, 3])
         tm.assert_frame_equal(result, expected)
 
         # how='right'
-        result = df2.merge(df1, left_index=True, right_index=True, how='right', sort=True)
+        result = df2.merge(df1, left_index=True, right_index=True,
+                           how='right', sort=True)
         expected = pd.DataFrame([[np.nan, 0], [100, 10], [200, 20]],
                                 columns=['b', 'a'], index=[0, 1, 2])
         tm.assert_frame_equal(result, expected)
 
         # how='inner'
-        result = df1.merge(df2, left_index=True, right_index=True, how='inner', sort=True)
+        result = df1.merge(df2, left_index=True, right_index=True,
+                           how='inner', sort=True)
         expected = pd.DataFrame({'a': [10, 20], 'b': [100, 200]},
                                 index=[1, 2])
         tm.assert_frame_equal(result, expected)
 
         # how='outer'
-        result = df1.merge(df2, left_index=True, right_index=True, how='outer', sort=True)
+        result = df1.merge(df2, left_index=True, right_index=True,
+                           how='outer', sort=True)
         expected = pd.DataFrame({'a': [0, 10, 20, np.nan],
                                  'b': [np.nan, 100, 200, 300]},
                                 index=[0, 1, 2, 3])
