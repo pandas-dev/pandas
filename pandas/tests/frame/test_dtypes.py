@@ -1,23 +1,25 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
+import itertools
 from datetime import timedelta
 
 import numpy as np
+
+import pandas as pd
+import pandas.util.testing as tm
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     compat, concat, option_context)
 from pandas.compat import u
-from pandas.types.dtypes import DatetimeTZDtype
 from pandas.tests.frame.common import TestData
+from pandas.types.dtypes import DatetimeTZDtype
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  makeCustomDataframe as mkdf)
-import pandas.util.testing as tm
-import pandas as pd
 
 
 class TestDataFrameDataTypes(tm.TestCase, TestData):
-
     def test_concat_empty_dataframe_dtypes(self):
         df = DataFrame(columns=list("abc"))
         df['a'] = df['a'].astype(np.bool_)
@@ -198,7 +200,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
     def test_select_dtypes_empty(self):
         df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
         with tm.assertRaisesRegexp(ValueError, 'at least one of include or '
-                                   'exclude must be nonempty'):
+                                               'exclude must be nonempty'):
             df.select_dtypes()
 
     def test_select_dtypes_raises_on_string(self):
@@ -536,7 +538,6 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
 
 class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
-
     def test_interleave(self):
 
         # interleave with object
@@ -635,33 +636,44 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             ["B"],
             ["B", "B"],
         ]:
-            self.assertTrue(type(df[col].values)==np.ndarray)
-
+            self.assertTrue(type(df[col].values) == np.ndarray)
 
     def test_values_dtypes_with_datetime64tz(self):
-        df = DataFrame({'A': date_range('20130101', periods=3),
-                        'B': date_range('20130101', periods=3, tz='US/Eastern'),
+        df = DataFrame({'dt': date_range('20130101', periods=3),
+                        'dttz': date_range('20130101', periods=3, tz='US/Eastern'),
+                        'td': date_range('20130102', periods=3)
+                              - date_range('20130101', periods=3),
+                        'cat': pd.Categorical(['a', 'b', 'b']),
+                        'b': [True, False, False],
+                        'i': [1, 2, 3],
+                        'f': [1.3, 2, 3],
+                        'c': [1j, 2, 3],
                         })
 
-        for col in [
-            ["A"],
-            ["A", "A"],
-            ["A", "B"],
-            ["B"],
-            ["B", "B"],
-        ]:
+        cols = itertools.chain(itertools.combinations_with_replacement(df.columns, 1),
+                               itertools.combinations_with_replacement(df.columns, 2))
+        for col in cols:
 
-            df_sub = df[col]
+            df_sub = df[list(col)]
             arr = df_sub.values
+            dts = df_sub.dtypes.values
+            dt = arr.dtype
 
-            # array has the same dtype as dataframe only and only if
-            # - all columns are of type datetime64[ns]
-            # TODO: replace 2nd condition by 'all columns are of type datetime64[ns,same timezone]'
-            # - all columns are of the same dtype being one of type datetime64[ns]
-            # or datetime64[ns,tz] with the same tz
-            if all(df_sub.dtypes.values == "<M8[ns]"):
-                self.assertTrue(arr.dtype == df_sub.dtypes.values[0])
+            # all columns of the same type
+            if len(set(dts)) == 1:
+                if dts[0] in ("<M8[ns]", "<m8[ns]",
+                              bool, complex, int, float):
+                    self.assertTrue(dt == dts[0])
+                else:
+                    self.assertTrue(dt == object)
 
-            # otherwise, dtype is object
+            # different type of columns
             else:
-                self.assertTrue(arr.dtype == object)
+                # all numeric and complex
+                if all(np.in1d(dts, (complex, int, float))) and complex in dts:
+                    self.assertTrue(arr.dtype == complex)
+                # all numeric and float
+                elif all(np.in1d(dts, (complex, int, float))) and float in dts:
+                    self.assertTrue(arr.dtype == float)
+                else:
+                    self.assertTrue(arr.dtype == object)
