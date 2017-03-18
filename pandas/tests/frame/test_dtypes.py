@@ -635,10 +635,7 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             ["B"],
             ["B", "B"],
         ]:
-            if col==["B"]:
-                self.assertTrue(type(df[col].values)==pd.DatetimeIndex)
-            else:
-                self.assertTrue(type(df[col].values)==np.ndarray)
+            self.assertTrue(type(df[col].values)==np.ndarray)
 
 
     def test_values_dtypes_with_datetime64tz(self):
@@ -659,7 +656,6 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
 
             # array has the same dtype as dataframe only and only if
             # - all columns are of type datetime64[ns]
-
             # TODO: replace 2nd condition by 'all columns are of type datetime64[ns,same timezone]'
             # - all columns are of the same dtype being one of type datetime64[ns]
             # or datetime64[ns,tz] with the same tz
@@ -668,8 +664,4 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
 
             # otherwise, dtype is object
             else:
-                if col==["B"]:
-                    self.assertTrue(type(arr)==pd.DatetimeIndex)
-                    self.assertTrue(isinstance(arr.dtype, DatetimeTZDtype))
-                else:
-                    self.assertTrue(arr.dtype == object)
+                self.assertTrue(arr.dtype == object)
