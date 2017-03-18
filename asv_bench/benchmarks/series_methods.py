@@ -68,8 +68,8 @@ class series_nlargest1(object):
         self.s4 = self.s3.astype('object')
 
     def time_series_nlargest1(self):
-        self.s1.nlargest(3, take_last=True)
-        self.s1.nlargest(3, take_last=False)
+        self.s1.nlargest(3, keep='last')
+        self.s1.nlargest(3, keep='first')
 
 
 class series_nlargest2(object):
@@ -83,8 +83,8 @@ class series_nlargest2(object):
         self.s4 = self.s3.astype('object')
 
     def time_series_nlargest2(self):
-        self.s2.nlargest(3, take_last=True)
-        self.s2.nlargest(3, take_last=False)
+        self.s2.nlargest(3, keep='last')
+        self.s2.nlargest(3, keep='first')
 
 
 class series_nsmallest2(object):
@@ -98,8 +98,8 @@ class series_nsmallest2(object):
         self.s4 = self.s3.astype('object')
 
     def time_series_nsmallest2(self):
-        self.s2.nsmallest(3, take_last=True)
-        self.s2.nsmallest(3, take_last=False)
+        self.s2.nsmallest(3, keep='last')
+        self.s2.nsmallest(3, keep='first')
 
 
 class series_dropna_int64(object):

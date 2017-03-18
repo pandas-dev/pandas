@@ -816,15 +816,6 @@ class TestIndexOps(Ops):
                 result = idx.drop_duplicates(keep='last')
                 tm.assert_index_equal(result, idx[~expected])
 
-                # deprecate take_last
-                with tm.assert_produces_warning(FutureWarning):
-                    duplicated = idx.duplicated(take_last=True)
-                tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
-                with tm.assert_produces_warning(FutureWarning):
-                    result = idx.drop_duplicates(take_last=True)
-                tm.assert_index_equal(result, idx[~expected])
-
                 base = [False] * len(original) + [True, True]
                 base[3] = True
                 base[5] = True
@@ -867,13 +858,6 @@ class TestIndexOps(Ops):
                 tm.assert_series_equal(s.drop_duplicates(keep='last'),
                                        s[~np.array(base)])
 
-                # deprecate take_last
-                with tm.assert_produces_warning(FutureWarning):
-                    tm.assert_series_equal(
-                        s.duplicated(take_last=True), expected)
-                with tm.assert_produces_warning(FutureWarning):
-                    tm.assert_series_equal(s.drop_duplicates(take_last=True),
-                                           s[~np.array(base)])
                 base = [False] * len(original) + [True, True]
                 base[3] = True
                 base[5] = True

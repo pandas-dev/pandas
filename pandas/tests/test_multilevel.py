@@ -2037,17 +2037,6 @@ Thur,Lunch,Yes,51.51,17"""
         expected = MultiIndex.from_arrays(([2, 3, 2, 3], [1, 1, 2, 2]))
         tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
 
-        # deprecate take_last
-        expected = np.array([True, False, False, False, False, False])
-        with tm.assert_produces_warning(FutureWarning):
-            duplicated = idx.duplicated(take_last=True)
-        tm.assert_numpy_array_equal(duplicated, expected)
-        self.assertTrue(duplicated.dtype == bool)
-        expected = MultiIndex.from_arrays(([2, 3, 1, 2, 3], [1, 1, 1, 2, 2]))
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_index_equal(
-                idx.drop_duplicates(take_last=True), expected)
-
     def test_multiindex_set_index(self):
         # segfault in #3308
         d = {'t1': [2, 2.5, 3], 't2': [4, 5, 6]}

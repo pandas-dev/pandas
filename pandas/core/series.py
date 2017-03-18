@@ -1211,14 +1211,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             return result.asobject.values
         return result
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     @Appender(base._shared_docs['drop_duplicates'] % _shared_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
         return super(Series, self).drop_duplicates(keep=keep, inplace=inplace)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     @Appender(base._shared_docs['duplicated'] % _shared_doc_kwargs)
     def duplicated(self, keep='first'):
         return super(Series, self).duplicated(keep=keep)
@@ -1888,8 +1884,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                 np.argsort(values, kind=kind), index=self.index,
                 dtype='int64').__finalize__(self)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     def nlargest(self, n=5, keep='first'):
         """Return the largest `n` elements.
 
@@ -1901,7 +1895,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
-        take_last : deprecated
 
         Returns
         -------
@@ -1938,8 +1931,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         return algorithms.select_n_series(self, n=n, keep=keep,
                                           method='nlargest')
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     def nsmallest(self, n=5, keep='first'):
         """Return the smallest `n` elements.
 
@@ -1951,7 +1942,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
-        take_last : deprecated
 
         Returns
         -------

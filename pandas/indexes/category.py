@@ -11,8 +11,7 @@ from pandas.types.common import (is_categorical_dtype,
 from pandas.types.missing import array_equivalent
 
 
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate_kwarg)
+from pandas.util.decorators import Appender, cache_readonly
 from pandas.core.config import get_option
 from pandas.indexes.base import Index, _index_shared_docs
 import pandas.core.base as base
@@ -301,8 +300,6 @@ class CategoricalIndex(Index, base.PandasDelegate):
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas._libs.hashtable import duplicated_int64

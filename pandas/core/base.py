@@ -1065,7 +1065,6 @@ class IndexOpsMixin(object):
             - ``first`` : Drop duplicates except for the first occurrence.
             - ``last`` : Drop duplicates except for the last occurrence.
             - False : Drop all duplicates.
-        take_last : deprecated
         %(inplace)s
 
         Returns
@@ -1073,8 +1072,6 @@ class IndexOpsMixin(object):
         deduplicated : %(klass)s
         """)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -1100,15 +1097,12 @@ class IndexOpsMixin(object):
             - ``last`` : Mark duplicates as ``True`` except for the last
               occurrence.
             - False : Mark all duplicates as ``True``.
-        take_last : deprecated
 
         Returns
         -------
         duplicated : %(duplicated)s
         """)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.algorithms import duplicated

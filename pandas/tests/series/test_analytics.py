@@ -917,17 +917,6 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             sc.drop_duplicates(keep='last', inplace=True)
             assert_series_equal(sc, s[~expected])
 
-            # deprecate take_last
-            with tm.assert_produces_warning(FutureWarning):
-                assert_series_equal(s.duplicated(take_last=True), expected)
-            with tm.assert_produces_warning(FutureWarning):
-                assert_series_equal(
-                    s.drop_duplicates(take_last=True), s[~expected])
-            sc = s.copy()
-            with tm.assert_produces_warning(FutureWarning):
-                sc.drop_duplicates(take_last=True, inplace=True)
-            assert_series_equal(sc, s[~expected])
-
             expected = Series([False, False, True, True])
             assert_series_equal(s.duplicated(keep=False), expected)
             assert_series_equal(s.drop_duplicates(keep=False), s[~expected])
@@ -949,17 +938,6 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             assert_series_equal(s.drop_duplicates(keep='last'), s[~expected])
             sc = s.copy()
             sc.drop_duplicates(keep='last', inplace=True)
-            assert_series_equal(sc, s[~expected])
-
-            # deprecate take_last
-            with tm.assert_produces_warning(FutureWarning):
-                assert_series_equal(s.duplicated(take_last=True), expected)
-            with tm.assert_produces_warning(FutureWarning):
-                assert_series_equal(
-                    s.drop_duplicates(take_last=True), s[~expected])
-            sc = s.copy()
-            with tm.assert_produces_warning(FutureWarning):
-                sc.drop_duplicates(take_last=True, inplace=True)
             assert_series_equal(sc, s[~expected])
 
             expected = Series([False, True, True, False, True, True, False])
@@ -1443,18 +1421,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         for s in s_list:
 
             assert_series_equal(s.nsmallest(2), s.iloc[[2, 1]])
-
             assert_series_equal(s.nsmallest(2, keep='last'), s.iloc[[2, 3]])
-            with tm.assert_produces_warning(FutureWarning):
-                assert_series_equal(
-                    s.nsmallest(2, take_last=True), s.iloc[[2, 3]])
-
-            assert_series_equal(s.nlargest(3), s.iloc[[4, 0, 1]])
-
-            assert_series_equal(s.nlargest(3, keep='last'), s.iloc[[4, 0, 3]])
-            with tm.assert_produces_warning(FutureWarning):
-                assert_series_equal(
-                    s.nlargest(3, take_last=True), s.iloc[[4, 0, 3]])
 
             empty = s.iloc[0:0]
             assert_series_equal(s.nsmallest(0), empty)
