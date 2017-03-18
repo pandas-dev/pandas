@@ -33,7 +33,6 @@ matrix:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "35_osx"
         - TEST_ARGS="--skip-slow --skip-network"
-        - BUILD_TYPE=conda
         - JOB_TAG=_OSX
         - TRAVIS_PYTHON_VERSION=3.5
         - CACHE_NAME="35_osx"
@@ -107,12 +106,12 @@ matrix:
     - python: 2.7
       env:
         - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_build_test_conda"
+        - JOB_NAME: "27_build_test"
         - JOB_TAG=_BUILD_TEST
         - TEST_ARGS="--skip-slow"
         - FULL_DEPS=true
         - BUILD_TEST=true
-        - CACHE_NAME="27_build_test_conda"
+        - CACHE_NAME="27_build_test"
         - USE_CACHE=true
 #    In allow_failures
     - python: 3.5
@@ -147,12 +146,12 @@ matrix:
       - python: 2.7
         env:
         - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_build_test_conda"
+        - JOB_NAME: "27_build_test"
         - JOB_TAG=_BUILD_TEST
         - TEST_ARGS="--skip-slow"
         - FULL_DEPS=true
         - BUILD_TEST=true
-        - CACHE_NAME="27_build_test_conda"
+        - CACHE_NAME="27_build_test"
         - USE_CACHE=true
       - python: 3.5
         env:
