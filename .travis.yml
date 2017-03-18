@@ -74,7 +74,7 @@ matrix:
         - CLIPBOARD=xsel
         - COVERAGE=true
         - CACHE_NAME="35_nslow"
-#        - USE_CACHE=true # Don't use cache for 35_nslow
+        - USE_CACHE=true
       addons:
         apt:
           packages:
@@ -86,6 +86,7 @@ matrix:
         - TEST_ARGS="--skip-slow --skip-network"
         - PANDAS_TESTING_MODE="deprecate"
         - CONDA_FORGE=true
+        - USE_CACHE=true
       addons:
         apt:
           packages:
@@ -154,13 +155,13 @@ matrix:
         - USE_CACHE=true
       - python: 3.5
         env:
-          - PYTHON_VERSION=3.5
-          - JOB_NAME: "35_numpy_dev"
-          - JOB_TAG=_NUMPY_DEV
-          - TEST_ARGS="--skip-slow --skip-network"
-          - PANDAS_TESTING_MODE="deprecate"
-          - CACHE_NAME="35_numpy_dev"
-          - USE_CACHE=true
+        - PYTHON_VERSION=3.5
+        - JOB_NAME: "35_numpy_dev"
+        - JOB_TAG=_NUMPY_DEV
+        - TEST_ARGS="--skip-slow --skip-network"
+        - PANDAS_TESTING_MODE="deprecate"
+        - CACHE_NAME="35_numpy_dev"
+        - USE_CACHE=true
       - python: 3.5
         env:
         - PYTHON_VERSION=3.5
