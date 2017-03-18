@@ -153,6 +153,7 @@ fi
 echo
 echo "[removing installed pandas]"
 conda remove pandas -y --force
+pip uninstall -y pandas
 
 if [ "$BUILD_TEST" ]; then
 
