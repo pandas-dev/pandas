@@ -309,6 +309,7 @@ Other enhancements
 - ``pd.types.concat.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pd.DataFrame.to_latex`` and ``pd.DataFrame.to_string`` now allow optional header aliases. (:issue:`15536`)
+- ``Index.intersection()`` accepts parameter ``sort`` (:issue:`15582`)
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
@@ -740,52 +741,135 @@ New Behavior:
 
 .. _whatsnew_0200.api_breaking.index_order:
 
-Index order after DataFrame inner join or Index intersection
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Index order after inner join due to Index intersection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``DataFrame`` inner join and the ``Index`` intersection, now preserve the
-order of the calling's Index (left) instead of the other's Index (right)
-(:issue:`15582`)
+The ``Index.intersection`` now preserves the order of the calling Index (left)
+instead of the other Index (right) (:issue:`15582`). This affects the inner
+joins (methods ``Index.join``, ``DataFrame.join``, ``DataFrame.merge`` and
+``pd.merge``) and the alignments with inner join (methods ``Series.align`` and
+``DataFrame.align``).
 
-Previous Behavior:
+- ``Index.intersection`` and ``Index.join``
 
-.. code-block:: ipython
-   In [2]: df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+  .. ipython:: python
 
-   In [3]: df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+     idx1 = pd.Index([2, 1, 0])
+     idx1
+     idx2 = pd.Index([1, 2, 3])
+     idx2
 
-   In [4]: df1.join(df2, how='inner')
-   Out[4]:
-       a    b
-   1  10  100
-   2  20  200
+  Previous Behavior:
 
-   In [5]: idx1 = pd.Index([5, 3, 2, 4, 1])
+  .. code-block:: ipython
 
-   In [6]: idx2 = pd.Index([4, 7, 6, 5, 3])
+     In [4]: idx1.intersection(idx2)
+     Out[4]: Int64Index([1, 2], dtype='int64')
 
-   In [7]: idx1.intersection(idx2)
-   Out[7]: Int64Index([4, 5, 3], dtype='int64')
+     In [5]: idx1.join(idx2, how='inner')
+     Out[5]: Int64Index([1, 2], dtype='int64')
 
-New Behavior:
+  New Behavior:
 
-.. code-block:: ipython
-   In [2]: df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+  .. ipython:: python
 
-   In [3]: df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+     idx1.intersection(idx2)
 
-   In [4]: df1.join(df2, how='inner')
-   Out[4]:
-       a    b
-   2  20  200
-   1  10  100
+     idx1.join(idx2, how='inner')
 
-   In [5]: idx1 = pd.Index([5, 3, 2, 4, 1])
+- ``Series.align``
 
-   In [6]: idx2 = pd.Index([4, 7, 6, 5, 3])
+  .. ipython:: python
 
-   In [7]: idx1.intersection(idx2)
-   Out[7]: Int64Index([5, 3, 4], dtype='int64')
+     s1 = pd.Series([20, 10, 0], index=[2, 1, 0])
+     s1
+     s2 = pd.Series([100, 200, 300], index=[1, 2, 3])
+     s2
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+     In [4]: (res1, res2) = s1.align(s2, join='inner')
+
+     In [5]: res1
+     Out[5]:
+     1    10
+     2    20
+     dtype: int64
+
+     In [6]: res2
+     Out[6]:
+     1    100
+     2    200
+     dtype: int64
+
+  New Behavior:
+
+  .. ipython:: python
+
+     (res1, res2) = s1.align(s2, join='inner')
+     res1
+     res2
+
+- ``DataFrame.join``, ``DataFrame.merge`` and ``pd.merge``
+
+  .. ipython:: python
+
+     df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+     df1
+     df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+     df2
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+     In [4]: df1.join(df2, how='inner')
+     Out[4]:
+         a    b
+     1  10  100
+     2  20  200
+
+     In [5]: df1.merge(df2, how='inner', left_index=True, right_index=True)
+     Out[5]:
+         a    b
+     1  10  100
+     2  20  200
+
+     In [6]: pd.merge(df1, df2, how='inner', left_index=True, right_index=True)
+     Out[6]:
+         a    b
+     1  10  100
+     2  20  200
+
+     In [7]: (res1, res2) = df1.align(df2, axis=0, join='inner')
+
+     In [8]: res1
+     Out[8]:
+         a
+     1  10
+     2  20
+
+     In [9]: res2
+     Out[9]:
+          b
+     1  100
+     2  200
+
+  New Behavior:
+
+  .. ipython:: python
+
+     df1.join(df2, how='inner')
+
+     df1.merge(df2, how='inner', left_index=True, right_index=True)
+
+     pd.merge(df1, df2, how='inner', left_index=True, right_index=True)
+
+     (res1, res2) = df1.align(df2, axis=0, join='inner')
+     res1
+     res2
 
 
 .. _whatsnew_0200.api:
@@ -1024,3 +1108,4 @@ Bug Fixes
 - Bug in ``pd.melt()`` where passing a tuple value for ``value_vars`` caused a ``TypeError`` (:issue:`15348`)
 - Bug in ``.eval()`` which caused multiline evals to fail with local variables not on the first line (:issue:`15342`)
 - Bug in ``pd.read_msgpack`` which did not allow to load dataframe with an index of type ``CategoricalIndex`` (:issue:`15487`)
+- Bug with ``sort=True`` in ``DataFrame.join``, ``DataFrame.merge`` and ``pd.merge`` when joining on index (:issue:`15582`)

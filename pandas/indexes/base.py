@@ -2090,7 +2090,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         Form the intersection of two Index objects.
 
         This returns a new Index with elements common to the index and `other`,
-        preserving the calling index order.
+        preserving the order of the calling index.
 
         Parameters
         ----------
@@ -2831,9 +2831,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         new_index = self._shallow_copy_with_infer(new_labels, freq=None)
         return new_index, indexer, new_indexer
 
-    def join(self, other, how='left', level=None, return_indexers=False,
-             sort=False):
-        """
+    _index_shared_docs['join'] = """
         *this is an internal non-public method*
 
         Compute join_index and indexers to conform data
@@ -2847,10 +2845,16 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return_indexers : boolean, default False
         sort : boolean, default False
 
+            .. versionadded:: 0.20.0
+
         Returns
         -------
         join_index, (left_indexer, right_indexer)
         """
+
+    @Appender(_index_shared_docs['join'])
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         from .multi import MultiIndex
         self_is_mi = isinstance(self, MultiIndex)
         other_is_mi = isinstance(other, MultiIndex)

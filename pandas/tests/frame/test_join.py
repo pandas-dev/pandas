@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import numpy as np
+
 import pandas as pd
 
 from pandas.tests.frame.common import TestData
@@ -15,29 +17,34 @@ class TestDataFrameJoin(TestData):
         df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
         df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
 
+        # default how='left'
         result = df1.join(df2)
-        expected = pd.DataFrame({'a': [20, 10, 0], 'b': [200, 100, None]},
+        expected = pd.DataFrame({'a': [20, 10, 0], 'b': [200, 100, np.nan]},
                                 index=[2, 1, 0])
         tm.assert_frame_equal(result, expected)
 
+        # how='left'
         result = df1.join(df2, how='left')
-        expected = pd.DataFrame({'a': [20, 10, 0], 'b': [200, 100, None]},
+        expected = pd.DataFrame({'a': [20, 10, 0], 'b': [200, 100, np.nan]},
                                 index=[2, 1, 0])
         tm.assert_frame_equal(result, expected)
 
+        # how='right'
         result = df1.join(df2, how='right')
-        expected = pd.DataFrame({'a': [10, 20, None], 'b': [100, 200, 300]},
+        expected = pd.DataFrame({'a': [10, 20, np.nan], 'b': [100, 200, 300]},
                                 index=[1, 2, 3])
         tm.assert_frame_equal(result, expected)
 
+        # how='inner'
         result = df1.join(df2, how='inner')
         expected = pd.DataFrame({'a': [20, 10], 'b': [200, 100]},
                                 index=[2, 1])
         tm.assert_frame_equal(result, expected)
 
+        # how='outer'
         result = df1.join(df2, how='outer')
-        expected = pd.DataFrame({'a': [0, 10, 20, None],
-                                 'b': [None, 100, 200, 300]},
+        expected = pd.DataFrame({'a': [0, 10, 20, np.nan],
+                                 'b': [np.nan, 100, 200, 300]},
                                 index=[0, 1, 2, 3])
         tm.assert_frame_equal(result, expected)
 
@@ -45,34 +52,40 @@ class TestDataFrameJoin(TestData):
         df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
         df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
 
+        # default how='left'
         result = df1.join(df2, sort=True)
-        expected = pd.DataFrame({'a': [0, 10, 20], 'b': [None, 100, 200]},
+        expected = pd.DataFrame({'a': [0, 10, 20], 'b': [np.nan, 100, 200]},
                                 index=[0, 1, 2])
         tm.assert_frame_equal(result, expected)
 
+        # how='left'
         result = df1.join(df2, how='left', sort=True)
-        expected = pd.DataFrame({'a': [0, 10, 20], 'b': [None, 100, 200]},
+        expected = pd.DataFrame({'a': [0, 10, 20], 'b': [np.nan, 100, 200]},
                                 index=[0, 1, 2])
         tm.assert_frame_equal(result, expected)
 
+        # how='right' (already sorted)
         result = df1.join(df2, how='right', sort=True)
-        expected = pd.DataFrame({'a': [10, 20, None], 'b': [100, 200, 300]},
+        expected = pd.DataFrame({'a': [10, 20, np.nan], 'b': [100, 200, 300]},
                                 index=[1, 2, 3])
         tm.assert_frame_equal(result, expected)
 
+        # how='right'
         result = df2.join(df1, how='right', sort=True)
-        expected = pd.DataFrame([[None, 0], [100, 10], [200, 20]],
+        expected = pd.DataFrame([[np.nan, 0], [100, 10], [200, 20]],
                                 columns=['b', 'a'], index=[0, 1, 2])
         tm.assert_frame_equal(result, expected)
 
+        # how='inner'
         result = df1.join(df2, how='inner', sort=True)
         expected = pd.DataFrame({'a': [10, 20], 'b': [100, 200]},
                                 index=[1, 2])
         tm.assert_frame_equal(result, expected)
 
+        # how='outer'
         result = df1.join(df2, how='outer', sort=True)
-        expected = pd.DataFrame({'a': [0, 10, 20, None],
-                                 'b': [None, 100, 200, 300]},
+        expected = pd.DataFrame({'a': [0, 10, 20, np.nan],
+                                 'b': [np.nan, 100, 200, 300]},
                                 index=[0, 1, 2, 3])
         tm.assert_frame_equal(result, expected)
 
