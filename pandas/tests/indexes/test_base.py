@@ -1808,21 +1808,6 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def create_index(self):
         return self.mixedIndex
 
-    def test_order(self):
-        idx = self.create_index()
-        # 9816 deprecated
-        if PY36:
-            with tm.assertRaisesRegexp(TypeError, "'>' not supported"):
-                with tm.assert_produces_warning(FutureWarning):
-                    idx.order()
-        elif PY3:
-            with tm.assertRaisesRegexp(TypeError, "unorderable types"):
-                with tm.assert_produces_warning(FutureWarning):
-                    idx.order()
-        else:
-            with tm.assert_produces_warning(FutureWarning):
-                idx.order()
-
     def test_argsort(self):
         idx = self.create_index()
         if PY36:
