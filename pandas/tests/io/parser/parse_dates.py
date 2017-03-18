@@ -6,7 +6,7 @@ parsers defined in parsers.py
 """
 
 from distutils.version import LooseVersion
-from datetime import datetime
+from datetime import datetime, date
 
 import pytest
 import numpy as np
@@ -19,9 +19,10 @@ import pandas.tseries.tools as tools
 import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
-from pandas import DataFrame, Series, Index, DatetimeIndex
+from pandas import DataFrame, Series, Index, DatetimeIndex, MultiIndex
 from pandas import compat
 from pandas.compat import parse_date, StringIO, lrange
+from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.tseries.index import date_range
 
 
@@ -509,4 +510,147 @@ date, time,a,b
                          [datetime(2001, 1, 6, 0, 0, 0), 1., 11.]]
         expected = DataFrame(expected_data,
                              columns=['date_time', ('A', 'a'), ('B', 'b')])
+        tm.assert_frame_equal(result, expected)
+
+    def test_parse_date_time(self):
+        dates = np.array(['2007/1/3', '2008/2/4'], dtype=object)
+        times = np.array(['05:07:09', '06:08:00'], dtype=object)
+        expected = np.array([datetime(2007, 1, 3, 5, 7, 9),
+                             datetime(2008, 2, 4, 6, 8, 0)])
+
+        result = conv.parse_date_time(dates, times)
+        self.assertTrue((result == expected).all())
+
+        data = """\
+date, time, a, b
+2001-01-05, 10:00:00, 0.0, 10.
+2001-01-05, 00:00:00, 1., 11.
+"""
+        datecols = {'date_time': [0, 1]}
+        df = self.read_csv(StringIO(data), sep=',', header=0,
+                           parse_dates=datecols,
+                           date_parser=conv.parse_date_time)
+        self.assertIn('date_time', df)
+        self.assertEqual(df.date_time.loc[0], datetime(2001, 1, 5, 10, 0, 0))
+
+        data = ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
+                "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
+                "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
+                "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
+                "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
+                "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
+
+        date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
+        df = self.read_csv(StringIO(data), header=None, parse_dates=date_spec,
+                           date_parser=conv.parse_date_time)
+
+    def test_parse_date_fields(self):
+        years = np.array([2007, 2008])
+        months = np.array([1, 2])
+        days = np.array([3, 4])
+        result = conv.parse_date_fields(years, months, days)
+        expected = np.array([datetime(2007, 1, 3), datetime(2008, 2, 4)])
+        self.assertTrue((result == expected).all())
+
+        data = ("year, month, day, a\n 2001 , 01 , 10 , 10.\n"
+                "2001 , 02 , 1 , 11.")
+        datecols = {'ymd': [0, 1, 2]}
+        df = self.read_csv(StringIO(data), sep=',', header=0,
+                           parse_dates=datecols,
+                           date_parser=conv.parse_date_fields)
+        self.assertIn('ymd', df)
+        self.assertEqual(df.ymd.loc[0], datetime(2001, 1, 10))
+
+    def test_datetime_six_col(self):
+        years = np.array([2007, 2008])
+        months = np.array([1, 2])
+        days = np.array([3, 4])
+        hours = np.array([5, 6])
+        minutes = np.array([7, 8])
+        seconds = np.array([9, 0])
+        expected = np.array([datetime(2007, 1, 3, 5, 7, 9),
+                             datetime(2008, 2, 4, 6, 8, 0)])
+
+        result = conv.parse_all_fields(years, months, days,
+                                       hours, minutes, seconds)
+
+        self.assertTrue((result == expected).all())
+
+        data = """\
+year, month, day, hour, minute, second, a, b
+2001, 01, 05, 10, 00, 0, 0.0, 10.
+2001, 01, 5, 10, 0, 00, 1., 11.
+"""
+        datecols = {'ymdHMS': [0, 1, 2, 3, 4, 5]}
+        df = self.read_csv(StringIO(data), sep=',', header=0,
+                           parse_dates=datecols,
+                           date_parser=conv.parse_all_fields)
+        self.assertIn('ymdHMS', df)
+        self.assertEqual(df.ymdHMS.loc[0], datetime(2001, 1, 5, 10, 0, 0))
+
+    def test_datetime_fractional_seconds(self):
+        data = """\
+year, month, day, hour, minute, second, a, b
+2001, 01, 05, 10, 00, 0.123456, 0.0, 10.
+2001, 01, 5, 10, 0, 0.500000, 1., 11.
+"""
+        datecols = {'ymdHMS': [0, 1, 2, 3, 4, 5]}
+        df = self.read_csv(StringIO(data), sep=',', header=0,
+                           parse_dates=datecols,
+                           date_parser=conv.parse_all_fields)
+        self.assertIn('ymdHMS', df)
+        self.assertEqual(df.ymdHMS.loc[0], datetime(2001, 1, 5, 10, 0, 0,
+                                                    microsecond=123456))
+        self.assertEqual(df.ymdHMS.loc[1], datetime(2001, 1, 5, 10, 0, 0,
+                                                    microsecond=500000))
+
+    def test_generic(self):
+        data = "year, month, day, a\n 2001, 01, 10, 10.\n 2001, 02, 1, 11."
+        datecols = {'ym': [0, 1]}
+        dateconverter = lambda y, m: date(year=int(y), month=int(m), day=1)
+        df = self.read_csv(StringIO(data), sep=',', header=0,
+                           parse_dates=datecols,
+                           date_parser=dateconverter)
+        self.assertIn('ym', df)
+        self.assertEqual(df.ym.loc[0], date(2001, 1, 1))
+
+    def test_dateparser_resolution_if_not_ns(self):
+        # GH 10245
+        data = """\
+date,time,prn,rxstatus
+2013-11-03,19:00:00,126,00E80000
+2013-11-03,19:00:00,23,00E80000
+2013-11-03,19:00:00,13,00E80000
+"""
+
+        def date_parser(date, time):
+            datetime = np_array_datetime64_compat(
+                date + 'T' + time + 'Z', dtype='datetime64[s]')
+            return datetime
+
+        df = self.read_csv(StringIO(data), date_parser=date_parser,
+                           parse_dates={'datetime': ['date', 'time']},
+                           index_col=['datetime', 'prn'])
+
+        datetimes = np_array_datetime64_compat(['2013-11-03T19:00:00Z'] * 3,
+                                               dtype='datetime64[s]')
+        df_correct = DataFrame(data={'rxstatus': ['00E80000'] * 3},
+                               index=MultiIndex.from_tuples(
+                                   [(datetimes[0], 126),
+                                    (datetimes[1], 23),
+                                    (datetimes[2], 13)],
+                               names=['datetime', 'prn']))
+        tm.assert_frame_equal(df, df_correct)
+
+    def test_parse_date_column_with_empty_string(self):
+        # GH 6428
+        data = """case,opdate
+                  7,10/18/2006
+                  7,10/18/2008
+                  621, """
+        result = self.read_csv(StringIO(data), parse_dates=['opdate'])
+        expected_data = [[7, '10/18/2006'],
+                         [7, '10/18/2008'],
+                         [621, ' ']]
+        expected = DataFrame(expected_data, columns=['case', 'opdate'])
         tm.assert_frame_equal(result, expected)
