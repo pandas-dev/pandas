@@ -131,8 +131,13 @@ fi
 
 if [ "$BUILD_TEST" ]; then
 
-    # build testing
-    python setup.py install || exit 1
+    # build & install testing
+    echo ["Starting installation test."]
+    python setup.py clean
+    python setup.py build_ext --inplace
+    python setup.py sdist --formats=gztar
+    conda uninstall cython
+    pip install dist/*tar.gz || exit 1
 
 else
 
