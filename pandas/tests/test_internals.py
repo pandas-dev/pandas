@@ -532,7 +532,7 @@ class TestBlockManager(tm.TestCase):
         mgr = create_mgr('h: M8[ns, US/Eastern]; g: M8[ns, CET]')
         self.assertEqual(mgr.get('h').dtype, 'datetime64[ns, US/Eastern]')
         self.assertEqual(mgr.get('g').dtype, 'datetime64[ns, CET]')
-        self.assertEqual(mgr.as_matrix().dtype, 'object')
+        self.assertEqual(mgr.as_matrix().dtype, 'M8[ns]')
 
     def test_astype(self):
         # coerce all
