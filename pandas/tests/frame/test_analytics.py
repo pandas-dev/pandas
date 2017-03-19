@@ -660,26 +660,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             self.assertFalse((result < 0).any())
             nanops._USE_BOTTLENECK = True
 
-    def test_sort_invalid_kwargs(self):
-        df = DataFrame([1, 2, 3], columns=['a'])
-
-        msg = r"sort\(\) got an unexpected keyword argument 'foo'"
-        tm.assertRaisesRegexp(TypeError, msg, df.sort, foo=2)
-
-        # Neither of these should raise an error because they
-        # are explicit keyword arguments in the signature and
-        # hence should not be swallowed by the kwargs parameter
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            df.sort(axis=1)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            df.sort(kind='mergesort')
-
-        msg = "the 'order' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, df.sort, order=2)
-
     def test_skew(self):
         tm._skip_if_no_scipy()
         from scipy.stats import skew
