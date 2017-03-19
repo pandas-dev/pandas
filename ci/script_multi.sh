@@ -24,7 +24,8 @@ export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 429496
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
 if [ "$BUILD_TEST" ]; then
-    echo "We are not running pytest as this is simply a build test."
+    cd /tmp
+    python -c "import pandas; pandas.test(['-n 2'])"
 elif [ "$COVERAGE" ]; then
     echo pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/cov.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
     pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/cov.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas

@@ -131,10 +131,13 @@ fi
 
 if [ "$BUILD_TEST" ]; then
 
-    # build testing
-    pip uninstall --yes cython
-    pip install cython==0.23
-    ( python setup.py build_ext --inplace && python setup.py develop ) || true
+    # build & install testing
+    echo ["Starting installation test."]
+    python setup.py clean
+    python setup.py build_ext --inplace
+    python setup.py sdist --formats=gztar
+    conda uninstall cython
+    pip install dist/*tar.gz || exit 1
 
 else
 
@@ -142,26 +145,31 @@ else
     echo "[build em]"
     time python setup.py build_ext --inplace || exit 1
 
-    # we may have run installations
-    echo "[conda installs]"
-    REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.run"
-    if [ -e ${REQ} ]; then
-        time conda install -n pandas --file=${REQ} || exit 1
-    fi
+fi
 
-    # we may have additional pip installs
-    echo "[pip installs]"
-    REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.pip"
-    if [ -e ${REQ} ]; then
-       pip install -r $REQ
-    fi
+# we may have run installations
+echo "[conda installs]"
+REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.run"
+if [ -e ${REQ} ]; then
+    time conda install -n pandas --file=${REQ} || exit 1
+fi
 
-    # may have addtl installation instructions for this build
-    echo "[addtl installs]"
-    REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.sh"
-    if [ -e ${REQ} ]; then
-        time bash $REQ || exit 1
-    fi
+# we may have additional pip installs
+echo "[pip installs]"
+REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.pip"
+if [ -e ${REQ} ]; then
+   pip install -r $REQ
+fi
+
+# may have addtl installation instructions for this build
+echo "[addtl installs]"
+REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.sh"
+if [ -e ${REQ} ]; then
+    time bash $REQ || exit 1
+fi
+
+# finish install if we are not doing a build-testk
+if [ -z "$BUILD_TEST" ]; then
 
     # remove any installed pandas package
     # w/o removing anything else
