@@ -1912,17 +1912,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         else:
             return sorted_index
 
-    def order(self, return_indexer=False, ascending=True):
-        """
-        Return sorted copy of Index
-
-        DEPRECATED: use :meth:`Index.sort_values`
-        """
-        warnings.warn("order is deprecated, use sort_values(...)",
-                      FutureWarning, stacklevel=2)
-        return self.sort_values(return_indexer=return_indexer,
-                                ascending=ascending)
-
     def sort(self, *args, **kwargs):
         raise TypeError("cannot sort an Index object in-place, use "
                         "sort_values instead")
