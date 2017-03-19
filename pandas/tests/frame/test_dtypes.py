@@ -637,7 +637,6 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             ["B"],
         ]:
             arr = df[col].values
-            print(col, arr.shape, df[col].blocks)
             fst_elem = arr[0,0]
 
             self.assertEqual(type(arr), np.ndarray)
@@ -669,17 +668,17 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             if len(set(dts)) == 1:
                 if dts[0] in ("<M8[ns]", "<m8[ns]",
                               bool, complex, int, float):
-                    self.assertTrue(dt == dts[0])
+                    self.assertEqual(dt, dts[0])
                 else:
-                    self.assertTrue(dt == object)
+                    self.assertEqual(dt, object)
 
             # different type of columns
             else:
                 # all numeric and complex
                 if all(np.in1d(dts, (complex, int, float))) and complex in dts:
-                    self.assertTrue(arr.dtype == complex)
+                    self.assertEqual(arr.dtype, complex)
                 # all numeric and float
                 elif all(np.in1d(dts, (complex, int, float))) and float in dts:
-                    self.assertTrue(arr.dtype == float)
+                    self.assertEqual(arr.dtype, float)
                 else:
-                    self.assertTrue(arr.dtype == object)
+                    self.assertEqual(arr.dtype, object)
