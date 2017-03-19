@@ -105,7 +105,7 @@ _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
 
 
-def _groupby_function(name, alias, npfunc, numeric_only=True,
+def _groupby_function(name, alias, npfunc, numeric_only=True, skipna=True,
                       _convert=False):
 
     _local_template = "Compute %(f)s of group values"
@@ -116,16 +116,34 @@ def _groupby_function(name, alias, npfunc, numeric_only=True,
     def f(self, **kwargs):
         if 'numeric_only' not in kwargs:
             kwargs['numeric_only'] = numeric_only
+        if 'skipna' in kwargs:
+            checknan = not kwargs.pop('skipna')
+        else:
+            checknan = not skipna
+
         self._set_group_selection()
         try:
-            return self._cython_agg_general(alias, alt=npfunc, **kwargs)
+            result = self._cython_agg_general(alias, alt=npfunc, **kwargs)
         except AssertionError as e:
             raise SpecificationError(str(e))
         except Exception:
             result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-            if _convert:
-                result = result._convert(datetime=True)
-            return result
+
+        if checknan:
+            if isinstance(result, Series):
+                for name, obj in self:
+                    if np.isnan(obj).any():
+                        result.loc[name] = np.nan
+            else:
+                cols = result.columns
+                for name, obj in self:
+                    for col in cols:
+                        if np.isnan(obj[col]).any():
+                            result.loc[name,col] = np.nan
+
+        if _convert:
+            result = result._convert(datetime=True)
+        return result
 
         f.__name__ = name
 
@@ -1020,7 +1038,7 @@ class GroupBy(_GroupBy):
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        nv.validate_groupby_func('mean', args, kwargs, ['numeric_only'])
+        nv.validate_groupby_func('mean', args, kwargs, ['numeric_only','skipna'])
         try:
             return self._cython_agg_general('mean', **kwargs)
         except GroupByError:
@@ -1067,7 +1085,7 @@ class GroupBy(_GroupBy):
         """
 
         # TODO: implement at Cython level?
-        nv.validate_groupby_func('std', args, kwargs)
+        nv.validate_groupby_func('std', args, kwargs,['skipna'])
         return np.sqrt(self.var(ddof=ddof, **kwargs))
 
     @Substitution(name='groupby')
@@ -1083,8 +1101,8 @@ class GroupBy(_GroupBy):
         ddof : integer, default 1
             degrees of freedom
         """
-        nv.validate_groupby_func('var', args, kwargs)
-        if ddof == 1:
+        nv.validate_groupby_func('var', args, kwargs, ['skipna'])
+        if ddof == 1 and 'skipna' not in kwargs:
             return self._cython_agg_general('var', **kwargs)
         else:
             self._set_group_selection()
@@ -1093,7 +1111,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def sem(self, ddof=1):
+    def sem(self, ddof=1, **kwargs):
         """
         Compute standard error of the mean of groups, excluding missing values
 
@@ -1105,7 +1123,7 @@ class GroupBy(_GroupBy):
             degrees of freedom
         """
 
-        return self.std(ddof=ddof) / np.sqrt(self.count())
+        return self.std(ddof=ddof, **kwargs) / np.sqrt(self.count())
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1117,10 +1135,10 @@ class GroupBy(_GroupBy):
             result.name = getattr(self, 'name', None)
         return result
 
-    sum = _groupby_function('sum', 'add', np.sum)
-    prod = _groupby_function('prod', 'prod', np.prod)
-    min = _groupby_function('min', 'min', np.min, numeric_only=False)
-    max = _groupby_function('max', 'max', np.max, numeric_only=False)
+    sum = _groupby_function('sum', 'add', np.sum, skipna=True)
+    prod = _groupby_function('prod', 'prod', np.prod, skipna=True)
+    min = _groupby_function('min', 'min', np.min, numeric_only=False, skipna=True)
+    max = _groupby_function('max', 'max', np.max, numeric_only=False, skipna=True)
     first = _groupby_function('first', 'first', _first_compat,
                               numeric_only=False, _convert=True)
     last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
