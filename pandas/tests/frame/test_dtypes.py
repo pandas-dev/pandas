@@ -637,7 +637,8 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             ["B"],
         ]:
             arr = df[col].values
-            fst_elem = arr[0,0] if len(arr.shape)==2 else arr[0]
+            print(col, arr.shape, df[col].blocks)
+            fst_elem = arr[0,0]
 
             self.assertEqual(type(arr), np.ndarray)
             self.assertEqual(type(fst_elem), pd.Timestamp if "B" in col else np.datetime64)

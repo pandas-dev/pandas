@@ -943,7 +943,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dti = pd.DatetimeIndex(tz_range)
         self.assertEqual(exp, dumps(dti, iso_dates=True))
         df = DataFrame({'DT': dti})
-        # self.assertEqual(dfexp, dumps(df, iso_dates=True))
+        self.assertEqual(dfexp, dumps(df, iso_dates=True))
 
         tz_range = pd.date_range('2013-01-01 00:00:00', periods=2,
                                  tz='US/Eastern')
@@ -951,14 +951,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dti = pd.DatetimeIndex(tz_range)
         self.assertEqual(exp, dumps(dti, iso_dates=True))
         df = DataFrame({'DT': dti})
-        # self.assertEqual(dfexp, dumps(df, iso_dates=True))
+        self.assertEqual(dfexp, dumps(df, iso_dates=True))
 
         tz_range = pd.date_range('2013-01-01 00:00:00-0500', periods=2)
         self.assertEqual(exp, dumps(tz_range, iso_dates=True))
         dti = pd.DatetimeIndex(tz_range)
         self.assertEqual(exp, dumps(dti, iso_dates=True))
         df = DataFrame({'DT': dti})
-        # self.assertEqual(dfexp, dumps(df, iso_dates=True))
+        self.assertEqual(dfexp, dumps(df, iso_dates=True))
 
     def test_read_jsonl(self):
         # GH9180
