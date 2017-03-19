@@ -4207,7 +4207,6 @@ class SingleBlockManager(BlockManager):
     def internal_values(self):
         return self._block.internal_values()
 
-
     def get_values(self):
         """ return a dense type view """
         return np.array(self._block.to_dense(), copy=False)
@@ -4510,11 +4509,11 @@ def _interleaved_dtype(blocks):
     have_mixed = bool(have_numeric) + bool(have_non_dt) + bool(have_dt)
 
     if (have_object or
-            (have_non_numeric > 1) or # more than one type of non numeric
+            (have_non_numeric > 1) or  # more than one type of non numeric
             (have_bool and have_mixed) or  # mix of a numeric et non numeric
-            (have_mixed>1) or  # mix of a numeric et non numeric
+            (have_mixed > 1) or  # mix of a numeric et non numeric
             have_dt64_tz or
-            (have_cat>1)):
+            (have_cat > 1)):
         return np.dtype(object)
     elif have_dt64:
         return np.dtype("datetime64[ns]")
@@ -4567,13 +4566,7 @@ def _interleaved_dtype(blocks):
         return np.dtype('c16')
     else:
         introspection_blks = counts[FloatBlock] + counts[SparseBlock]
-        try:
-            return _find_common_type([b.dtype for b in introspection_blks])
-        except ValueError:
-            print([(k,v) for k,v in locals().items() if k.startswith("have_") and v])
-            print(blocks)
-
-            raise
+        return _find_common_type([b.dtype for b in introspection_blks])
 
 
 def _consolidate(blocks):

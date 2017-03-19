@@ -625,9 +625,10 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                         '2013-01-03 00:00:00+01:00' in result)
 
     def test_values_is_ndarray_with_datetime64tz(self):
-        df = DataFrame({'A': date_range('20130101', periods=3),
-                        'B': date_range('20130101', periods=3, tz='US/Eastern'),
-                        })
+        df = DataFrame({
+            'A': date_range('20130101', periods=3),
+            'B': date_range('20130101', periods=3, tz='US/Eastern'),
+        })
 
         for col in [
             ["A"],
@@ -637,17 +638,20 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             ["B"],
         ]:
             arr = df[col].values
-            fst_elem = arr[0,0]
+            fst_elem = arr[0, 0]
 
             self.assertEqual(type(arr), np.ndarray)
-            self.assertEqual(type(fst_elem), pd.Timestamp if "B" in col else np.datetime64)
-
+            if "B" in col:
+                self.assertEqual(type(fst_elem), pd.Timestamp)
+            else:
+                self.assertEqual(type(fst_elem), np.datetime64)
 
     def test_values_dtypes_with_datetime64tz(self):
         df = DataFrame({'dt': date_range('20130101', periods=3),
-                        'dttz': date_range('20130101', periods=3, tz='US/Eastern'),
-                        'td': date_range('20130102', periods=3)
-                              - date_range('20130101', periods=3),
+                        'dttz': date_range('20130101', periods=3,
+                                           tz='US/Eastern'),
+                        'td': (date_range('20130102', periods=3) -
+                               date_range('20130101', periods=3)),
                         'cat': pd.Categorical(['a', 'b', 'b']),
                         'b': [True, False, False],
                         'i': [1, 2, 3],
@@ -655,8 +659,10 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                         'c': [1j, 2, 3],
                         })
 
-        cols = itertools.chain(itertools.combinations_with_replacement(df.columns, 1),
-                               itertools.combinations_with_replacement(df.columns, 2))
+        cols = itertools.chain(
+            itertools.combinations_with_replacement(df.columns, 1),
+            itertools.combinations_with_replacement(df.columns, 2)
+        )
         for col in cols:
 
             df_sub = df[list(col)]
