@@ -2390,11 +2390,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             f = lambda x: lib.Timestamp(x, tz=self.values.tz)
             values = lib.map_infer(
                 self.values.ravel(), f).reshape(self.values.shape)
-        else:
-            values = self.values
 
-        if values.ndim == self.ndim - 1:
-            values = values.reshape((1,) + values.shape)
+            if values.ndim == self.ndim - 1:
+                values = values.reshape((1,) + values.shape)
+        else:
+            return self.values
+
         return values
 
     def to_object_block(self, mgr):
