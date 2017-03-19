@@ -66,7 +66,6 @@ from pandas import compat, _np_version_under1p9
 from pandas.compat import range, map, zip, u
 
 
-
 class Block(PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
@@ -3434,11 +3433,11 @@ class BlockManager(PandasObject):
         """
         dtype = _interleaved_dtype(self.blocks)
 
-        # TODO: add shortcut to avoid copy
-        if self._is_single_block: # and dtype != np.object:
+        # print(dtype, self._is_single_block , not self.is_mixed_type, self.blocks)
+
+        if self._is_single_block or not self.is_mixed_type: # and dtype != np.object:
             return np.array(self.blocks[0].get_values(),
                             dtype=dtype, copy=False)
-
         result = np.empty(self.shape, dtype=dtype)
 
         if result.shape[0] == 0:
@@ -4500,25 +4499,23 @@ def _interleaved_dtype(blocks):
     # TODO: have_sparse is not used
     have_sparse = len(counts[SparseBlock]) > 0  # noqa
     have_numeric = have_float + have_complex + have_int
+    have_dt = have_dt64 + have_dt64_tz
     have_non_numeric = have_dt64 + have_dt64_tz + have_td64 + have_cat
-    have_mixed = have_numeric + have_non_numeric
-
-    # print(have_cat, blocks, blocks[0].dtype)
-    # if have_cat:
-    #     print(blocks[0].get_values().dtype)
+    have_non_dt = have_td64 + have_cat
+    have_mixed = bool(have_numeric) + bool(have_non_dt) + bool(have_dt)
 
     if (have_object or
-            (have_bool and have_mixed) or # bool and something else
             (have_non_numeric > 1) or # more than one type of non numeric
-            (have_non_numeric and have_numeric) or  # mix of a numeric et non numeric
-             have_cat>1 or have_dt64_tz):
+            (have_bool and have_mixed) or  # mix of a numeric et non numeric
+            (have_mixed>1) or  # mix of a numeric et non numeric
+            (have_cat>1)):
         return np.dtype(object)
-    elif have_bool:
-        return np.dtype(bool)
-    elif have_dt64:
+    elif have_dt:
         return np.dtype("datetime64[ns]")
     elif have_td64:
         return np.dtype("timedelta64[ns]")
+    elif have_bool:
+        return np.dtype("bool")
     elif have_cat:
         # return blocks[0].get_values().dtype
         # if we are mixing unsigned and signed, then return
@@ -4563,8 +4560,16 @@ def _interleaved_dtype(blocks):
     elif have_complex:
         return np.dtype('c16')
     else:
+
+
         introspection_blks = counts[FloatBlock] + counts[SparseBlock]
-        return _find_common_type([b.dtype for b in introspection_blks])
+        try:
+            return _find_common_type([b.dtype for b in introspection_blks])
+        except ValueError:
+            print([(k,v) for k,v in locals().items() if k.startswith("have_") and v])
+            print(blocks)
+
+            raise
 
 
 def _consolidate(blocks):
