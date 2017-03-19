@@ -1137,11 +1137,46 @@ class TestDataFrameFormatting(tm.TestCase):
             df.to_string(header=['X'])
 
     def test_to_string_no_index(self):
-        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
-
+        df = DataFrame({'aaaaa': [100, 200, 300], 'bbbbb': [400, 500, 600]})
         df_s = df.to_string(index=False)
-        expected = "x  y\n1  4\n2  5\n3  6"
+        expected = "aaaaa  bbbbb\n" \
+                   "  100    400\n" \
+                   "  200    500\n" \
+                   "  300    600"
+        self.assertEqual(df_s, expected)
 
+        df = DataFrame({'aaa': [100, 200, 300], 'bbb': [400, 500, 600]})
+        df_s = df.to_string(index=False)
+        expected = "aaa  bbb\n" \
+                   "100  400\n" \
+                   "200  500\n" \
+                   "300  600"
+        self.assertEqual(df_s, expected)
+
+        df = DataFrame({'a': [100, 200, 300], 'b': [400, 500, 600]})
+        df_s = df.to_string(index=False)
+        expected = "  a    b\n" \
+                   "100  400\n" \
+                   "200  500\n" \
+                   "300  600"
+        self.assertEqual(df_s, expected)
+
+        df = DataFrame({'aaaaa': ['xxx', 'xxx', 'xxx'],
+                        'bbbbb': ['xxx', 'xxx', 'xxx']})
+        df_s = df.to_string(index=False)
+        expected = "aaaaa bbbbb\n" \
+                   "  xxx   xxx\n" \
+                   "  xxx   xxx\n" \
+                   "  xxx   xxx"
+        self.assertEqual(df_s, expected)
+
+        df = DataFrame({'aaaaa': [-1.0, -2.0, -3.0],
+                        'bbbbb': [-4.0, -5.0, -6.0]})
+        df_s = df.to_string(index=False)
+        expected = "aaaaa  bbbbb\n" \
+                   " -1.0   -4.0\n" \
+                   " -2.0   -5.0\n" \
+                   " -3.0   -6.0"
         self.assertEqual(df_s, expected)
 
     def test_to_string_line_width_no_index(self):

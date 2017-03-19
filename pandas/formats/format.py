@@ -615,8 +615,15 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-        if not self.index:
-            text = text.replace('\n ', '\n').strip()
+
+        first_column_dtype = (None if len(frame.columns) == 0
+            else frame.dtypes[frame.columns[0]])
+        if not self.index and first_column_dtype.kind != 'O':
+            # Remove a single space from the beginning of each line
+            # and remove any trailing spaces
+            if len(text) > 0 and text[0] == ' ':
+                text = text[1:]
+            text = text.replace('\n ', '\n').rstrip()
         self.buf.writelines(text)
 
         if self.should_show_dimensions:
