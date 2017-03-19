@@ -670,9 +670,16 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             dts = df_sub.dtypes.values
             dt = arr.dtype
 
+            if dts[0] == "M8[ns]":
+                self.assertEqual(arr[0, 0], np.datetime64(df_sub.iloc[0, 0]))
+            elif dts[0] == "m8[ns]":
+                self.assertEqual(arr[0, 0], np.timedelta64(df_sub.iloc[0, 0]))
+            else:
+                self.assertEqual(arr[0, 0], df_sub.iloc[0, 0])
+
             # all columns of the same type
             if len(set(dts)) == 1:
-                if dts[0] in ("<M8[ns]", "<m8[ns]",
+                if dts[0] in ("M8[ns]", "m8[ns]",
                               bool, complex, int, float):
                     self.assertEqual(dt, dts[0])
                 else:
