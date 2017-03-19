@@ -1130,7 +1130,9 @@ SHORT_VERSION_PY = """
 # unpacked source archive. Distribution tarballs contain a pre-generated copy
 # of this file.
 
-import json
+from warnings import catch_warnings
+with catch_warnings(record=True):
+    import json
 import sys
 
 version_json = '''
