@@ -13,23 +13,12 @@ from .common import TestData
 
 class TestSeriesSorting(TestData, tm.TestCase):
 
-    def test_sort(self):
-
+    def test_sortlevel_deprecated(self):
         ts = self.ts.copy()
 
-        # 9816 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            ts.sort()  # sorts inplace
-        self.assert_series_equal(ts, self.ts.sort_values())
+        # see gh-9816
         with tm.assert_produces_warning(FutureWarning):
             ts.sortlevel()
-
-    def test_order(self):
-
-        # 9816 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            result = self.ts.order()
-        self.assert_series_equal(result, self.ts.sort_values())
 
     def test_sort_values(self):
 
