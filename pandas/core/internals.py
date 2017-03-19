@@ -2388,9 +2388,14 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         # return object dtype as Timestamps with the zones
         if is_object_dtype(dtype):
             f = lambda x: lib.Timestamp(x, tz=self.values.tz)
-            return lib.map_infer(
+            print("self.values.shape, self.ndim, self.shape",self.values.shape, self.ndim, self.shape)
+            values = lib.map_infer(
                 self.values.ravel(), f).reshape(self.values.shape)
-        return self.values
+        else:
+            values = self.values
+        if values.ndim == self.ndim - 1:
+            values = values.reshape((1,) + values.shape)
+        return values
 
     def to_object_block(self, mgr):
         """
@@ -4201,6 +4206,7 @@ class SingleBlockManager(BlockManager):
 
     def internal_values(self):
         return self._block.internal_values()
+
 
     def get_values(self):
         """ return a dense type view """
