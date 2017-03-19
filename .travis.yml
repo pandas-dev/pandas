@@ -50,7 +50,7 @@ matrix:
           - python-gtk2
     - os: linux
       env:
-        - JOB="3.5" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true
+        - JOB="3.5" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true TYPING=true
       addons:
         apt:
           packages:
@@ -116,6 +116,7 @@ script:
   - ci/script_single.sh
   - ci/script_multi.sh
   - ci/lint.sh
+  - ci/typing.sh
   - echo "script done"
 
 after_success:

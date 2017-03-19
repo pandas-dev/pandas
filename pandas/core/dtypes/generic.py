@@ -53,6 +53,19 @@ ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ",
                                         ("categorical"))
 ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period", ))
 
+# For mypy
+ABCPandasObject = create_pandas_abc_type("ABCPandasObject", "_typ", ("_cache"))
+ABCSelectionMixin = create_pandas_abc_type("ABCSelectionMixin", "_type",
+                                           ("_selection", "_selection_name",
+                                            "obj", "exclusions", "name",
+                                            "_constructor", "_attributes"))
+ABCGroupbyMixin = create_pandas_abc_type("ABCGroupbyMixin", "_type",
+                                         ("obj", "_attributes", "_groupby",
+                                          "_reset_cache"))
+ABCIndexOpsMixin = create_pandas_abc_type("ABCIndexOpsMixin", "_type",
+                                          ("values", "_shallow_copy",
+                                           "_constructor", "index"))
+
 
 class _ABCGeneric(type):
 
