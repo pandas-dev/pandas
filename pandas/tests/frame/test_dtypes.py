@@ -633,10 +633,15 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             ["A"],
             ["A", "A"],
             ["A", "B"],
-            ["B"],
             ["B", "B"],
+            ["B"],
         ]:
-            self.assertTrue(type(df[col].values) == np.ndarray)
+            arr = df[col].values
+            fst_elem = arr[0,0] if len(arr.shape)==2 else arr[0]
+
+            self.assertEqual(type(arr), np.ndarray)
+            self.assertEqual(type(fst_elem), pd.Timestamp if "B" in col else np.datetime64)
+
 
     def test_values_dtypes_with_datetime64tz(self):
         df = DataFrame({'dt': date_range('20130101', periods=3),

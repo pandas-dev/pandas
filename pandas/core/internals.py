@@ -3433,11 +3433,10 @@ class BlockManager(PandasObject):
         """
         dtype = _interleaved_dtype(self.blocks)
 
-        # print(dtype, self._is_single_block , not self.is_mixed_type, self.blocks)
-
-        if self._is_single_block or not self.is_mixed_type: # and dtype != np.object:
-            return np.array(self.blocks[0].get_values(),
+        if self._is_single_block or not self.is_mixed_type:
+            return np.array(self.blocks[0].get_values(dtype),
                             dtype=dtype, copy=False)
+
         result = np.empty(self.shape, dtype=dtype)
 
         if result.shape[0] == 0:
@@ -4508,9 +4507,10 @@ def _interleaved_dtype(blocks):
             (have_non_numeric > 1) or # more than one type of non numeric
             (have_bool and have_mixed) or  # mix of a numeric et non numeric
             (have_mixed>1) or  # mix of a numeric et non numeric
+            have_dt64_tz or
             (have_cat>1)):
         return np.dtype(object)
-    elif have_dt:
+    elif have_dt64:
         return np.dtype("datetime64[ns]")
     elif have_td64:
         return np.dtype("timedelta64[ns]")
@@ -4560,8 +4560,6 @@ def _interleaved_dtype(blocks):
     elif have_complex:
         return np.dtype('c16')
     else:
-
-
         introspection_blks = counts[FloatBlock] + counts[SparseBlock]
         try:
             return _find_common_type([b.dtype for b in introspection_blks])
