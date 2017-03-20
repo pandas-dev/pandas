@@ -1233,7 +1233,10 @@ cdef class _Timestamp(datetime):
         return datetime.__sub__(self, other)
 
     cpdef _get_field(self, field):
-        out = get_date_field(np.array([self.value], dtype=np.int64), field)
+        val = self.value
+        if self.tz is not None and not _is_utc(self.tz):
+            val = tz_convert_single(self.value, 'UTC', self.tz)
+        out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
     cpdef _get_start_end_field(self, field):
@@ -1241,8 +1244,11 @@ cdef class _Timestamp(datetime):
             'startingMonth', self.freq.kwds.get(
                 'month', 12)) if self.freq else 12
         freqstr = self.freqstr if self.freq else None
+        val = self.value
+        if self.tz is not None and not _is_utc(self.tz):
+            val = tz_convert_single(self.value, 'UTC', self.tz)
         out = get_start_end_field(
-            np.array([self.value], dtype=np.int64), field, freqstr, month_kw)
+            np.array([val], dtype=np.int64), field, freqstr, month_kw)
         return out[0]
 
     property _repr_base:
