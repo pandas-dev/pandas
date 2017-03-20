@@ -550,6 +550,32 @@ class TestTimestamp(tm.TestCase):
         check(ts.daysinmonth, 31)
         check(ts.daysinmonth, 31)
 
+        # GH 13303
+        ts = Timestamp('2014-12-31 23:59:00-05:00', tz='US/Eastern')
+        check(ts.year, 2014)
+        check(ts.month, 12)
+        check(ts.day, 31)
+        check(ts.hour, 23)
+        check(ts.minute, 59)
+        check(ts.second, 0)
+        self.assertRaises(AttributeError, lambda: ts.millisecond)
+        check(ts.microsecond, 0)
+        check(ts.nanosecond, 0)
+        check(ts.dayofweek, 2)
+        check(ts.quarter, 4)
+        check(ts.dayofyear, 365)
+        check(ts.week, 1)
+        check(ts.daysinmonth, 31)
+
+        ts = Timestamp('2014-01-01 00:00:00+01:00')
+        starts = ['is_month_start', 'is_quarter_start', 'is_year_start']
+        for start in starts:
+            self.assertTrue(getattr(ts, start))
+        ts = Timestamp('2014-12-31 23:59:59+01:00')
+        ends = ['is_month_end', 'is_year_end', 'is_quarter_end']
+        for end in ends:
+            self.assertTrue(getattr(ts, end))
+
     def test_nat_fields(self):
         # GH 10050
         ts = Timestamp('NaT')
