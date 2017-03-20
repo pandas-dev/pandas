@@ -3076,7 +3076,10 @@ class NDFrame(PandasObject):
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32.  If dtypes are int32 and uint8, dtype will be upcast to
         int32. By numpy.find_common_type convention, mixing int64 and uint64
-        will result in a flot64 dtype.
+        will result in a float64 dtype.
+
+        Unlike ``Series.values``, Timezone aware datetime data are
+        converted to ``pandas.Timestamp`` objects and not to UTC datetime64.
         """
         return self.as_matrix()
 
