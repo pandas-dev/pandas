@@ -18,11 +18,6 @@ try:
 except:
     import pandas._libs.lib as lib
 
-try:
-    Panel = WidePanel
-except Exception:
-    pass
-
 # didn't add to namespace until later
 try:
     from pandas.core.index import MultiIndex
