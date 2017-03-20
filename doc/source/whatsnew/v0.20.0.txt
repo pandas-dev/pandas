@@ -788,6 +788,7 @@ Performance Improvements
 - Improved performance of ``.rank()`` for categorical data (:issue:`15498`)
 - Improved performance when using ``.unstack()`` (:issue:`15503`)
 - Improved performance of merge/join on ``category`` columns (:issue:`10409`)
+- Improved performance of ``drop_duplicates()`` on ``bool`` columns (:issue:`12963`)
 
 
 .. _whatsnew_0200.bug_fixes:

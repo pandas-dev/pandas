@@ -19,6 +19,7 @@ from pandas.types.common import (is_unsigned_integer_dtype,
                                  is_period_dtype,
                                  is_period_arraylike,
                                  is_float_dtype,
+                                 is_bool_dtype,
                                  needs_i8_conversion,
                                  is_categorical,
                                  is_datetime64_dtype,
@@ -341,6 +342,10 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
             # numpy dtype
             dtype = values.dtype
             vals = values.view(np.int64)
+    elif is_bool_dtype(values):
+        dtype = bool
+        # transform to int dtype to avoid object path
+        vals = np.asarray(values).view('uint8')
     else:
         vals = np.asarray(values)
 
