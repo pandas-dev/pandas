@@ -792,7 +792,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in ``DataFrame.values`` now returns an ``numpy.ndarray`` of ``pandas.Timestamp`` for tz-aware columns; previously this returned ``pandas.DateTimeIndex`` (:issue:`14052`)
+- Bug in ``DataFrame.values`` now returns object dtyped numpy array of ``Timestamp`` for tz-aware columns; previously this returned ``DateTimeIndex`` (:issue:`14052`)
 - Bug in ``Timestamp.replace`` now raises ``TypeError`` when incorrect argument names are given; previously this raised ``ValueError`` (:issue:`15240`)
 - Bug in ``Index`` power operations with reversed operands (:issue:`14973`)
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
