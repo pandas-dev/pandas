@@ -638,13 +638,11 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             ["B"],
         ]:
             arr = df[col].values
-            fst_elem = arr[0, 0]
+            dtype_expected = "<M8[ns]" if "B" not in col else object
+            arr_expected = np.array(list(df[col].itertuples(index=False)),
+                                    dtype=dtype_expected)
 
-            self.assertEqual(type(arr), np.ndarray)
-            if "B" in col:
-                self.assertEqual(type(fst_elem), pd.Timestamp)
-            else:
-                self.assertEqual(type(fst_elem), np.datetime64)
+            tm.assert_numpy_array_equal(arr, arr_expected)
 
     def test_values_dtypes_with_datetime64tz(self):
         df = DataFrame({'dt': date_range('20130101', periods=3),
@@ -664,34 +662,34 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
             itertools.combinations_with_replacement(df.columns, 2)
         )
         for col in cols:
-
             df_sub = df[list(col)]
-            arr = df_sub.values
             dts = df_sub.dtypes.values
-            dt = arr.dtype
 
-            if dts[0] == "M8[ns]":
-                self.assertEqual(arr[0, 0], np.datetime64(df_sub.iloc[0, 0]))
-            elif dts[0] == "m8[ns]":
-                self.assertEqual(arr[0, 0], np.timedelta64(df_sub.iloc[0, 0]))
-            else:
-                self.assertEqual(arr[0, 0], df_sub.iloc[0, 0])
+            # calculate dtype_expected in function of dtypes of dataframe
+            # (testing the logic of the _interleaved_dtype
+            # function in pandas/core/internals.py
 
             # all columns of the same type
             if len(set(dts)) == 1:
                 if dts[0] in ("M8[ns]", "m8[ns]",
                               bool, complex, int, float):
-                    self.assertEqual(dt, dts[0])
+                    dtype_expected = dts[0]
                 else:
-                    self.assertEqual(dt, object)
+                    dtype_expected = object
 
             # different type of columns
             else:
                 # all numeric and complex
                 if all(np.in1d(dts, (complex, int, float))) and complex in dts:
-                    self.assertEqual(arr.dtype, complex)
+                    dtype_expected = complex
                 # all numeric and float
                 elif all(np.in1d(dts, (complex, int, float))) and float in dts:
-                    self.assertEqual(arr.dtype, float)
+                    dtype_expected = float
                 else:
-                    self.assertEqual(arr.dtype, object)
+                    dtype_expected = object
+
+            arr = df_sub.values
+            arr_expected = np.array(list(df_sub.itertuples(index=False)),
+                                    dtype=dtype_expected)
+
+            tm.assert_numpy_array_equal(arr, arr_expected)
