@@ -5787,7 +5787,7 @@ class NDFrame(PandasObject):
                                   **kwargs)) - 1)
         if freq is None:
             mask = isnull(_values_from_object(self))
-            rs[mask] = np.nan
+            rs.mask(mask, np.nan, inplace=True)
         return rs
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
