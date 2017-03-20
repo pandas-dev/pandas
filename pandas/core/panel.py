@@ -4,8 +4,6 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable=E1103,W0231,W0212,W0621
 from __future__ import division
 
-import warnings
-
 import numpy as np
 
 from pandas.types.cast import (_infer_dtype_from_scalar,
@@ -1556,24 +1554,3 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
 ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
 Panel._add_aggregate_operations()
 Panel._add_numeric_operations()
-
-
-# legacy
-class WidePanel(Panel):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation, #10892
-        warnings.warn("WidePanel is deprecated. Please use Panel",
-                      FutureWarning, stacklevel=2)
-
-        super(WidePanel, self).__init__(*args, **kwargs)
-
-
-class LongPanel(DataFrame):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation, #10892
-        warnings.warn("LongPanel is deprecated. Please use DataFrame",
-                      FutureWarning, stacklevel=2)
-
-        super(LongPanel, self).__init__(*args, **kwargs)

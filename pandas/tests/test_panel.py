@@ -178,10 +178,6 @@ class SafeForLongAndSparse(object):
 
 class SafeForSparse(object):
 
-    @classmethod
-    def assert_panel_equal(cls, x, y):
-        assert_panel_equal(x, y)
-
     def test_get_axis(self):
         assert (self.panel._get_axis(0) is self.panel.items)
         assert (self.panel._get_axis(1) is self.panel.major_axis)
@@ -346,10 +342,10 @@ class SafeForSparse(object):
 
     def test_combinePanel(self):
         result = self.panel.add(self.panel)
-        self.assert_panel_equal(result, self.panel * 2)
+        assert_panel_equal(result, self.panel * 2)
 
     def test_neg(self):
-        self.assert_panel_equal(-self.panel, self.panel * -1)
+        assert_panel_equal(-self.panel, self.panel * -1)
 
     # issue 7692
     def test_raise_when_not_implemented(self):
@@ -369,22 +365,22 @@ class SafeForSparse(object):
         # select items
         result = p.select(lambda x: x in ('ItemA', 'ItemC'), axis='items')
         expected = p.reindex(items=['ItemA', 'ItemC'])
-        self.assert_panel_equal(result, expected)
+        assert_panel_equal(result, expected)
 
         # select major_axis
         result = p.select(lambda x: x >= datetime(2000, 1, 15), axis='major')
         new_major = p.major_axis[p.major_axis >= datetime(2000, 1, 15)]
         expected = p.reindex(major=new_major)
-        self.assert_panel_equal(result, expected)
+        assert_panel_equal(result, expected)
 
         # select minor_axis
         result = p.select(lambda x: x in ('D', 'A'), axis=2)
         expected = p.reindex(minor=['A', 'D'])
-        self.assert_panel_equal(result, expected)
+        assert_panel_equal(result, expected)
 
         # corner case, empty thing
         result = p.select(lambda x: x in ('foo', ), axis='items')
-        self.assert_panel_equal(result, p.reindex(items=[]))
+        assert_panel_equal(result, p.reindex(items=[]))
 
     def test_get_value(self):
         for item in self.panel.items:
@@ -399,8 +395,8 @@ class SafeForSparse(object):
         result = self.panel.abs()
         result2 = abs(self.panel)
         expected = np.abs(self.panel)
-        self.assert_panel_equal(result, expected)
-        self.assert_panel_equal(result2, expected)
+        assert_panel_equal(result, expected)
+        assert_panel_equal(result2, expected)
 
         df = self.panel['ItemA']
         result = df.abs()
@@ -866,10 +862,6 @@ tm.add_nans(_panel)
 
 class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 SafeForSparse):
-
-    @classmethod
-    def assert_panel_equal(cls, x, y):
-        assert_panel_equal(x, y)
 
     def setUp(self):
         self.panel = _panel.copy()
@@ -1967,7 +1959,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                          major_axis=pd.date_range('1/1/2000', periods=5),
                          minor_axis=['A', 'B'])
         result = p.round()
-        self.assert_panel_equal(expected, result)
+        assert_panel_equal(expected, result)
 
     def test_numpy_round(self):
         values = [[[-3.2, 2.2], [0, -4.8213], [3.123, 123.12],
@@ -1983,7 +1975,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                          major_axis=pd.date_range('1/1/2000', periods=5),
                          minor_axis=['A', 'B'])
         result = np.round(p)
-        self.assert_panel_equal(expected, result)
+        assert_panel_equal(expected, result)
 
         msg = "the 'out' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, msg, np.round, p, out=p)
@@ -2270,15 +2262,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         self.assertRaises(NotImplementedError, self.panel.any, bool_only=True)
 
 
-class TestLongPanel(tm.TestCase):
+class TestPanelFrame(tm.TestCase):
     """
-    LongPanel no longer exists, but...
+    Check that conversions to and from Panel to DataFrame work.
     """
 
     def setUp(self):
-        import warnings
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
-
         panel = tm.makePanel()
         tm.add_nans(panel)
 
