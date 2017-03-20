@@ -651,6 +651,7 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                         'td': (date_range('20130102', periods=3) -
                                date_range('20130101', periods=3)),
                         'cat': pd.Categorical(['a', 'b', 'b']),
+                        'cati': pd.Categorical([100, 4, 3]),
                         'b': [True, False, False],
                         'i': [1, 2, 3],
                         'f': [1.3, 2, 3],
@@ -675,7 +676,10 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                               bool, complex, int, float):
                     dtype_expected = dts[0]
                 else:
-                    dtype_expected = object
+                    if col == ("cati", ):
+                        dtype_expected = 'int64'
+                    else:
+                        dtype_expected = object
 
             # different type of columns
             else:
