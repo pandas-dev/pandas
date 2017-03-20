@@ -128,7 +128,7 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     * right: use only keys from right frame (SQL: right outer join)
     * outer: use union of keys from both frames (SQL: full outer join)
     * inner: use intersection of keys from both frames (SQL: inner join),
-        preserving the order of the left keys
+      preserving the order of the left keys
 on : label or list
     Field names to join on. Must be found in both DataFrames. If on is
     None and not merging on indexes, then it merges on the intersection of
@@ -4465,11 +4465,11 @@ it is assumed to be aliases for the column names.')
             * left: use calling frame's index (or column if on is specified)
             * right: use other frame's index
             * outer: form union of calling frame's index (or column if on is
-                specified) with other frame's index, and sort it
-                lexicographically
+              specified) with other frame's index, and sort it
+              lexicographically
             * inner: form intersection of calling frame's index (or column if
-                on is specified) with other frame's index, preserving the
-                order of the calling's one
+              on is specified) with other frame's index, preserving the order
+              of the calling's one
         lsuffix : string
             Suffix to use from left frame's overlapping columns
         rsuffix : string
