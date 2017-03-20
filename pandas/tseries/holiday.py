@@ -365,7 +365,7 @@ class AbstractHolidayCalendar(object):
         ----------
         start : starting date, datetime-like, optional
         end : ending date, datetime-like, optional
-        return_names : bool, optional
+        return_name : bool, optional
             If True, return a series that has dates and holiday names.
             False will only return a DatetimeIndex of dates.
 
