@@ -527,7 +527,12 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it will take longer::
 
-   git diff master --name-only -- '*.py' | grep 'pandas' | xargs -r flake8
+   git diff master --name-only -- '*.py' | grep 'pandas/' | xargs -r flake8
+
+Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
+run this slightly modified command::
+
+   git diff master --name-only -- '*.py' | grep 'pandas/' | xargs flake8
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
