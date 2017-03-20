@@ -28,7 +28,11 @@ matrix:
       os: osx
       compiler: clang
       osx_image: xcode6.4
-      cache: ccache
+      cache:
+        ccache: true
+        directories:
+          - $HOME/.cache # cython cache
+          - $HOME/.ccache # compiler cache
       env:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "35_osx"
