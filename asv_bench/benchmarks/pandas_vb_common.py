@@ -25,11 +25,6 @@ for imp in ['pandas_tseries', 'pandas.lib', 'pandas._libs.lib']:
     except:
         pass
 
-try:
-    Panel = Panel
-except Exception:
-    Panel = WidePanel
-
 # didn't add to namespace until later
 try:
     from pandas.core.index import MultiIndex
