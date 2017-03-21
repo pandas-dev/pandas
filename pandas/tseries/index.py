@@ -1329,7 +1329,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # try to find a the dates
         return (lhs_mask & rhs_mask).nonzero()[0]
 
-    def _possibly_promote(self, other):
+    def _maybe_promote(self, other):
         if other.inferred_type == 'date':
             other = DatetimeIndex(other)
         return self, other

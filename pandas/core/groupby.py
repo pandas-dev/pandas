@@ -32,7 +32,7 @@ from pandas.types.common import (is_numeric_dtype,
                                  _ensure_object,
                                  _ensure_categorical,
                                  _ensure_float)
-from pandas.types.cast import _possibly_downcast_to_dtype
+from pandas.types.cast import maybe_downcast_to_dtype
 from pandas.types.missing import isnull, notnull, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
@@ -783,7 +783,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         if not is_scalar(result):
             if numeric_only and is_numeric_dtype(dtype) or not numeric_only:
-                result = _possibly_downcast_to_dtype(result, dtype)
+                result = maybe_downcast_to_dtype(result, dtype)
 
         return result
 
@@ -2914,7 +2914,7 @@ class SeriesGroupBy(GroupBy):
         # the cython take a different path (and casting)
         dtype = self._selected_obj.dtype
         if is_numeric_dtype(dtype):
-            result = _possibly_downcast_to_dtype(result, dtype)
+            result = maybe_downcast_to_dtype(result, dtype)
 
         result.name = self._selected_obj.name
         result.index = self._selected_obj.index

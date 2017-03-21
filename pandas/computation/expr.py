@@ -348,7 +348,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         op = self.visit(op_instance)
         return op, op_instance, left, right
 
-    def _possibly_transform_eq_ne(self, node, left=None, right=None):
+    def _maybe_transform_eq_ne(self, node, left=None, right=None):
         if left is None:
             left = self.visit(node.left, side='left')
         if right is None:
@@ -357,7 +357,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                                                                 right)
         return op, op_class, left, right
 
-    def _possibly_downcast_constants(self, left, right):
+    def _maybe_downcast_constants(self, left, right):
         f32 = np.dtype(np.float32)
         if left.isscalar and not right.isscalar and right.return_type == f32:
             # right is a float32 array, left is a scalar
@@ -370,7 +370,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         return left, right
 
-    def _possibly_eval(self, binop, eval_in_python):
+    def _maybe_eval(self, binop, eval_in_python):
         # eval `in` and `not in` (for now) in "partial" python space
         # things that can be evaluated in "eval" space will be turned into
         # temporary variables. for example,
@@ -380,9 +380,9 @@ class BaseExprVisitor(ast.NodeVisitor):
         return binop.evaluate(self.env, self.engine, self.parser,
                               self.term_type, eval_in_python)
 
-    def _possibly_evaluate_binop(self, op, op_class, lhs, rhs,
-                                 eval_in_python=('in', 'not in'),
-                                 maybe_eval_in_python=('==', '!=', '<', '>',
+    def _maybe_evaluate_binop(self, op, op_class, lhs, rhs,
+                              eval_in_python=('in', 'not in'),
+                              maybe_eval_in_python=('==', '!=', '<', '>',
                                                        '<=', '>=')):
         res = op(lhs, rhs)
 
@@ -397,24 +397,24 @@ class BaseExprVisitor(ast.NodeVisitor):
                     getattr(rhs, 'is_datetime', False)):
                 # all date ops must be done in python bc numexpr doesn't work
                 # well with NaT
-                return self._possibly_eval(res, self.binary_ops)
+                return self._maybe_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python
-            return self._possibly_eval(res, eval_in_python)
+            return self._maybe_eval(res, eval_in_python)
         elif self.engine != 'pytables':
             if (getattr(lhs, 'return_type', None) == object or
                     getattr(rhs, 'return_type', None) == object):
                 # evaluate "==" and "!=" in python if either of our operands
                 # has an object return type
-                return self._possibly_eval(res, eval_in_python +
-                                           maybe_eval_in_python)
+                return self._maybe_eval(res, eval_in_python +
+                                        maybe_eval_in_python)
         return res
 
     def visit_BinOp(self, node, **kwargs):
-        op, op_class, left, right = self._possibly_transform_eq_ne(node)
-        left, right = self._possibly_downcast_constants(left, right)
-        return self._possibly_evaluate_binop(op, op_class, left, right)
+        op, op_class, left, right = self._maybe_transform_eq_ne(node)
+        left, right = self._maybe_downcast_constants(left, right)
+        return self._maybe_evaluate_binop(op, op_class, left, right)
 
     def visit_Div(self, node, **kwargs):
         truediv = self.env.scope['truediv']
@@ -662,9 +662,9 @@ class BaseExprVisitor(ast.NodeVisitor):
             lhs = self._try_visit_binop(x)
             rhs = self._try_visit_binop(y)
 
-            op, op_class, lhs, rhs = self._possibly_transform_eq_ne(node, lhs,
-                                                                    rhs)
-            return self._possibly_evaluate_binop(op, node.op, lhs, rhs)
+            op, op_class, lhs, rhs = self._maybe_transform_eq_ne(
+                node, lhs, rhs)
+            return self._maybe_evaluate_binop(op, node.op, lhs, rhs)
 
         operands = node.values
         return reduce(visitor, operands)
