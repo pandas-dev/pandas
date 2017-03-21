@@ -4,7 +4,7 @@ Quantilization functions and related stuff
 
 from pandas.types.missing import isnull
 from pandas.types.common import (is_float, is_integer,
-                                 is_scalar)
+                                 is_scalar, _ensure_int64)
 
 from pandas.core.api import Series
 from pandas.core.categorical import Categorical
@@ -215,7 +215,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             bins = unique_bins
 
     side = 'left' if right else 'right'
-    ids = bins.searchsorted(x, side=side)
+    ids = _ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
         ids[x == bins[0]] = 1

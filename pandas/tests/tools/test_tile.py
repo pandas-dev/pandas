@@ -19,8 +19,8 @@ class TestCut(tm.TestCase):
     def test_simple(self):
         data = np.ones(5)
         result = cut(data, 4, labels=False)
-        desired = np.array([1, 1, 1, 1, 1])
-        tm.assert_numpy_array_equal(result, desired,
+        expected = np.array([1, 1, 1, 1, 1])
+        tm.assert_numpy_array_equal(result, expected,
                                     check_dtype=False)
 
     def test_bins(self):
