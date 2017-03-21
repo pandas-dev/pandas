@@ -4,7 +4,7 @@ import numpy as np
 from pandas import (offsets, Series, notnull,
                     isnull, date_range, Timestamp)
 
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.util.testing import assert_series_equal
 
 import pandas.util.testing as tm
 
@@ -155,4 +155,3 @@ class TestSeriesAsof(TestData, tm.TestCase):
         result = Series([np.nan]).asof([0])
         expected = Series([np.nan])
         assert_series_equal(result, expected)
-
