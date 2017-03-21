@@ -3971,7 +3971,7 @@ class NDFrame(PandasObject):
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])
 
-        if self.isnull().all():
+        if self.isnull().values.all():
             return pd.Series([np.nan])
 
         nulls = self.isnull() if is_series else self[subset].isnull().any(1)
