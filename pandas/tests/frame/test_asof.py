@@ -4,7 +4,6 @@ import numpy as np
 from pandas import (DataFrame, date_range, Timestamp, Series,
                     to_datetime)
 
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -51,19 +50,19 @@ class TestFrameAsof(TestData, tm.TestCase):
         # with a subset of A should be the same
         result = df.asof(dates, subset='A')
         expected = df.asof(dates)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # same with A/B
         result = df.asof(dates, subset=['A', 'B'])
         expected = df.asof(dates)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # B gives self.df.asof
         result = df.asof(dates, subset='B')
         expected = df.resample('25s', closed='right').ffill().reindex(dates)
         expected.iloc[20:] = 9
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_missing(self):
         # GH 15118
@@ -75,9 +74,15 @@ class TestFrameAsof(TestData, tm.TestCase):
         result = df.asof('1989-12-31')
 
         expected = Series(index=['A', 'B'], name=Timestamp('1989-12-31'))
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = df.asof(to_datetime(['1989-12-31']))
         expected = DataFrame(index=to_datetime(['1989-12-31']),
                              columns=['A', 'B'], dtype='float64')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+
+    def test_all_nans(self):
+        # series is all nans
+        result = DataFrame([np.nan]).asof([0])
+        expected = DataFrame([np.nan])
+        tm.assert_frame_equal(result, expected)

@@ -3971,10 +3971,13 @@ class NDFrame(PandasObject):
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])
 
-        if self.isnull().values.all():
-            return pd.Series([np.nan])
-
         nulls = self.isnull() if is_series else self[subset].isnull().any(1)
+        if nulls.values.all():
+            if is_series:
+                return pd.Series([np.nan])
+            else:
+                return pd.DataFrame([np.nan])
+
         locs = self.index.asof_locs(where, ~(nulls.values))
 
         # mask the missing
