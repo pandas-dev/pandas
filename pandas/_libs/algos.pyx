@@ -96,14 +96,83 @@ class NegInfinity(object):
     __ge__ = lambda self, other: self is other
 
 
-cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil except -1:
-    cdef numeric t
 
-    # cython doesn't allow pointer dereference so use array syntax
-    t = a[0]
-    a[0] = b[0]
-    b[0] = t
-    return 0
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_lexsorted(list list_of_arrays):
+    cdef:
+        int i
+        Py_ssize_t n, nlevels
+        int64_t k, cur, pre
+        ndarray arr
+
+    nlevels = len(list_of_arrays)
+    n = len(list_of_arrays[0])
+
+    cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
+    for i from 0 <= i < nlevels:
+        arr = list_of_arrays[i]
+        vecs[i] = <int64_t*> arr.data
+
+    # Assume uniqueness??
+    for i from 1 <= i < n:
+        for k from 0 <= k < nlevels:
+            cur = vecs[k][i]
+            pre = vecs[k][i -1]
+            if cur == pre:
+                continue
+            elif cur > pre:
+                break
+            else:
+                return False
+    free(vecs)
+    return True
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
+    """
+    compute a 1-d indexer that is an ordering of the passed index,
+    ordered by the groups. This is a reverse of the label
+    factorization process.
+
+    Parameters
+    ----------
+    index: int64 ndarray
+        mappings from group -> position
+    ngroups: int64
+        number of groups
+
+    return a tuple of (1-d indexer ordered by groups, group counts)
+    """
+
+    cdef:
+        Py_ssize_t i, loc, label, n
+        ndarray[int64_t] counts, where, result
+
+    counts = np.zeros(ngroups + 1, dtype=np.int64)
+    n = len(index)
+    result = np.zeros(n, dtype=np.int64)
+    where = np.zeros(ngroups + 1, dtype=np.int64)
+
+    with nogil:
+
+        # count group sizes, location 0 for NA
+        for i from 0 <= i < n:
+            counts[index[i] + 1] += 1
+
+        # mark the start of each contiguous group of like-indexed data
+        for i from 1 <= i < ngroups + 1:
+            where[i] = where[i - 1] + counts[i - 1]
+
+        # this is our indexer
+        for i from 0 <= i < n:
+            label = index[i] + 1
+            result[where[label]] = i
+            where[label] += 1
+
+    return result, counts
 
 
 @cython.boundscheck(False)
@@ -133,32 +202,6 @@ cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k):
             if j < k: l = i
             if k < i: m = j
         return a[k]
-
-
-cdef inline kth_smallest_c(float64_t* a, Py_ssize_t k, Py_ssize_t n):
-    cdef:
-        Py_ssize_t i, j, l, m
-        double_t x, t
-
-    l = 0
-    m = n -1
-    while (l<m):
-        x = a[k]
-        i = l
-        j = m
-
-        while 1:
-            while a[i] < x: i += 1
-            while x < a[j]: j -= 1
-            if i <= j:
-                swap(&a[i], &a[j])
-                i += 1; j -= 1
-
-            if i > j: break
-
-        if j < k: l = i
-        if k < i: m = j
-    return a[k]
 
 
 cpdef numeric median(numeric[:] arr):
@@ -343,322 +386,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
 
     return result
 
-#----------------------------------------------------------------------
-# group operations
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def is_lexsorted(list list_of_arrays):
-    cdef:
-        int i
-        Py_ssize_t n, nlevels
-        int64_t k, cur, pre
-        ndarray arr
-
-    nlevels = len(list_of_arrays)
-    n = len(list_of_arrays[0])
-
-    cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
-    for i from 0 <= i < nlevels:
-        arr = list_of_arrays[i]
-        vecs[i] = <int64_t*> arr.data
-
-    # Assume uniqueness??
-    for i from 1 <= i < n:
-        for k from 0 <= k < nlevels:
-            cur = vecs[k][i]
-            pre = vecs[k][i -1]
-            if cur == pre:
-                continue
-            elif cur > pre:
-                break
-            else:
-                return False
-    free(vecs)
-    return True
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
-    """
-    compute a 1-d indexer that is an ordering of the passed index,
-    ordered by the groups. This is a reverse of the label
-    factorization process.
-
-    Parameters
-    ----------
-    index: int64 ndarray
-        mappings from group -> position
-    ngroups: int64
-        number of groups
-
-    return a tuple of (1-d indexer ordered by groups, group counts)
-    """
-
-    cdef:
-        Py_ssize_t i, loc, label, n
-        ndarray[int64_t] counts, where, result
-
-    counts = np.zeros(ngroups + 1, dtype=np.int64)
-    n = len(index)
-    result = np.zeros(n, dtype=np.int64)
-    where = np.zeros(ngroups + 1, dtype=np.int64)
-
-    with nogil:
-
-        # count group sizes, location 0 for NA
-        for i from 0 <= i < n:
-            counts[index[i] + 1] += 1
-
-        # mark the start of each contiguous group of like-indexed data
-        for i from 1 <= i < ngroups + 1:
-            where[i] = where[i - 1] + counts[i - 1]
-
-        # this is our indexer
-        for i from 0 <= i < n:
-            label = index[i] + 1
-            result[where[label]] = i
-            where[label] += 1
-
-    return result, counts
-
-# TODO: aggregate multiple columns in single pass
-#----------------------------------------------------------------------
-# first, nth, last
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_nth_object(ndarray[object, ndim=2] out,
-                     ndarray[int64_t] counts,
-                     ndarray[object, ndim=2] values,
-                     ndarray[int64_t] labels,
-                     int64_t rank):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, lab
-        object val
-        float64_t count
-        ndarray[int64_t, ndim=2] nobs
-        ndarray[object, ndim=2] resx
-
-    nobs = np.zeros((<object> out).shape, dtype=np.int64)
-    resx = np.empty((<object> out).shape, dtype=object)
-
-    N, K = (<object> values).shape
-
-    for i in range(N):
-        lab = labels[i]
-        if lab < 0:
-            continue
-
-        counts[lab] += 1
-        for j in range(K):
-            val = values[i, j]
-
-            # not nan
-            if val == val:
-                nobs[lab, j] += 1
-                if nobs[lab, j] == rank:
-                    resx[lab, j] = val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = <object> nan
-            else:
-                out[i, j] = resx[i, j]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_nth_bin_object(ndarray[object, ndim=2] out,
-                         ndarray[int64_t] counts,
-                         ndarray[object, ndim=2] values,
-                         ndarray[int64_t] bins, int64_t rank):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
-        object val
-        float64_t count
-        ndarray[object, ndim=2] resx
-        ndarray[float64_t, ndim=2] nobs
-
-    nobs = np.zeros((<object> out).shape, dtype=np.float64)
-    resx = np.empty((<object> out).shape, dtype=object)
-
-    if len(bins) == 0:
-        return
-    if bins[len(bins) - 1] == len(values):
-        ngroups = len(bins)
-    else:
-        ngroups = len(bins) + 1
-
-    N, K = (<object> values).shape
-
-    b = 0
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
-
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
-
-            # not nan
-            if val == val:
-                nobs[b, j] += 1
-                if nobs[b, j] == rank:
-                    resx[b, j] = val
-
-    for i in range(ngroups):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = resx[i, j]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_last_object(ndarray[object, ndim=2] out,
-                      ndarray[int64_t] counts,
-                      ndarray[object, ndim=2] values,
-                      ndarray[int64_t] labels):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, lab
-        object val
-        float64_t count
-        ndarray[object, ndim=2] resx
-        ndarray[int64_t, ndim=2] nobs
-
-    nobs = np.zeros((<object> out).shape, dtype=np.int64)
-    resx = np.empty((<object> out).shape, dtype=object)
-
-    N, K = (<object> values).shape
-
-    for i in range(N):
-        lab = labels[i]
-        if lab < 0:
-            continue
-
-        counts[lab] += 1
-        for j in range(K):
-            val = values[i, j]
-
-            # not nan
-            if val == val:
-                nobs[lab, j] += 1
-                resx[lab, j] = val
-
-    for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = resx[i, j]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_last_bin_object(ndarray[object, ndim=2] out,
-                          ndarray[int64_t] counts,
-                          ndarray[object, ndim=2] values,
-                          ndarray[int64_t] bins):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
-        object val
-        float64_t count
-        ndarray[object, ndim=2] resx
-        ndarray[float64_t, ndim=2] nobs
-
-    nobs = np.zeros((<object> out).shape, dtype=np.float64)
-    resx = np.empty((<object> out).shape, dtype=object)
-
-    if len(bins) == 0:
-        return
-    if bins[len(bins) - 1] == len(values):
-        ngroups = len(bins)
-    else:
-        ngroups = len(bins) + 1
-
-    N, K = (<object> values).shape
-
-    b = 0
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
-
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
-
-            # not nan
-            if val == val:
-                nobs[b, j] += 1
-                resx[b, j] = val
-
-    for i in range(ngroups):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = resx[i, j]
-
-cdef inline float64_t _median_linear(float64_t* a, int n):
-    cdef int i, j, na_count = 0
-    cdef float64_t result
-    cdef float64_t* tmp
-
-    if n == 0:
-        return NaN
-
-    # count NAs
-    for i in range(n):
-        if a[i] != a[i]:
-            na_count += 1
-
-    if na_count:
-        if na_count == n:
-            return NaN
-
-        tmp = <float64_t*> malloc((n - na_count) * sizeof(float64_t))
-
-        j = 0
-        for i in range(n):
-            if a[i] == a[i]:
-                tmp[j] = a[i]
-                j += 1
-
-        a = tmp
-        n -= na_count
-
-    if n % 2:
-        result = kth_smallest_c( a, n / 2, n)
-    else:
-        result = (kth_smallest_c(a, n / 2, n) +
-                  kth_smallest_c(a, n / 2 - 1, n)) / 2
-
-    if na_count:
-        free(a)
-
-    return result
-
-
 # generated from template
 include "algos_common_helper.pxi"
-include "algos_groupby_helper.pxi"
 include "algos_rank_helper.pxi"
 include "algos_take_helper.pxi"
