@@ -892,12 +892,28 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
 
 
 def _find_common_type(types):
-    """Find a common data type among the given dtypes."""
+    """
+    Find a common data type among the given dtypes.
+
+    Parameters
+    ----------
+    types : list of dtypes
+
+    Returns
+    -------
+    pandas extension or numpy dtype
+
+    See Also
+    --------
+    numpy.find_common_type
+
+    """
 
     if len(types) == 0:
         raise ValueError('no types given')
 
     first = types[0]
+
     # workaround for find_common_type([np.dtype('datetime64[ns]')] * 2)
     # => object
     if all(is_dtype_equal(first, t) for t in types[1:]):
@@ -911,5 +927,15 @@ def _find_common_type(types):
         return np.dtype('datetime64[ns]')
     if all(is_timedelta64_dtype(t) for t in types):
         return np.dtype('timedelta64[ns]')
+
+    # don't mix bool / int or float or complex
+    # this is different from numpy, which casts bool with float/int as int
+    has_bools = any(is_bool_dtype(t) for t in types)
+    if has_bools:
+        has_ints = any(is_integer_dtype(t) for t in types)
+        has_floats = any(is_float_dtype(t) for t in types)
+        has_complex = any(is_complex_dtype(t) for t in types)
+        if has_ints or has_floats or has_complex:
+            return np.object
 
     return np.find_common_type(types, [])
