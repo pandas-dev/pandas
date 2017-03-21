@@ -1183,13 +1183,6 @@ class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
 
         result = obj.replace(replacer)
 
-        # buggy on windows for bool/int64
-        if (from_key == 'bool' and
-                to_key == 'int64' and
-                tm.is_platform_windows()):
-            pytest.skip("windows platform buggy: {0} -> {1}".format
-                        (from_key, to_key))
-
         if ((from_key == 'float64' and to_key in ('int64')) or
             (from_key == 'complex128' and
              to_key in ('int64', 'float64'))):

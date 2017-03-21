@@ -928,13 +928,14 @@ def _find_common_type(types):
     if all(is_timedelta64_dtype(t) for t in types):
         return np.dtype('timedelta64[ns]')
 
-    # don't mix bool / int or float
-    # this is different from numpy, which casts bool/int as int
+    # don't mix bool / int or float or complex
+    # this is different from numpy, which casts bool with float/int as int
     has_bools = any(is_bool_dtype(t) for t in types)
-    has_ints = any(is_integer_dtype(t) for t in types)
-    has_floats = any(is_float_dtype(t) for t in types)
-    has_complex = any(is_complex_dtype(t) for t in types)
-    if has_bools and (has_ints or has_floats or has_complex):
-        return np.object
+    if has_bools:
+        has_ints = any(is_integer_dtype(t) for t in types)
+        has_floats = any(is_float_dtype(t) for t in types)
+        has_complex = any(is_complex_dtype(t) for t in types)
+        if has_ints or has_floats or has_complex:
+            return np.object
 
     return np.find_common_type(types, [])
