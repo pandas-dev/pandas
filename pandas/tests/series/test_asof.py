@@ -153,8 +153,6 @@ class TestSeriesAsof(TestData, tm.TestCase):
 
         # series is all nans
         result = Series([np.nan]).asof([0])
-
         expected = Series([np.nan])
-
         assert_series_equal(result, expected)
 

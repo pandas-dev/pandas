@@ -1890,7 +1890,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         locs = self.values[mask].searchsorted(where.values, side='right')
 
         locs = np.where(locs > 0, locs - 1, 0)
-
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
