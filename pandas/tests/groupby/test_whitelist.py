@@ -206,10 +206,8 @@ def test_groupby_blacklist(df_letters):
     s = df_letters.floats
 
     blacklist = [
-        'eval', 'query', 'abs', 'where',
-        'mask', 'align', 'groupby', 'clip', 'astype',
-        'at', 'combine', 'consolidate', 'convert_objects',
-    ]
+        'eval', 'query', 'abs', 'where', 'mask', 'align',
+        'groupby', 'clip', 'astype', 'at', 'combine', 'consolidate']
     to_methods = [method for method in dir(df) if method.startswith('to_')]
 
     blacklist.extend(to_methods)

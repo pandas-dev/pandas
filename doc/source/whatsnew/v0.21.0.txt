@@ -122,6 +122,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- ``Series``, ``Index``, and ``DataFrame`` have dropped the ``convert_objects`` method (:issue:`11173`)
 - :func:`read_excel()` has dropped the ``has_index_names`` parameter (:issue:`10967`)
 - The ``pd.options.display.mpl_style`` configuration has been dropped (:issue:`12190`)
 - ``Index`` has dropped the ``.sym_diff()`` method in favor of ``.symmetric_difference()`` (:issue:`12591`)
