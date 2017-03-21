@@ -384,29 +384,18 @@ def _read(filepath_or_buffer, kwds):
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get('iterator', False)
     chunksize = kwds.get('chunksize', None)
-    nrows = _validate_nrows(kwds.pop('nrows', None))
+    nrows = _validate_nrows(kwds.get('nrows', None))
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
-    if (nrows is not None) and (chunksize is not None):
-        raise NotImplementedError("'nrows' and 'chunksize' cannot be used"
-                                  " together yet.")
-    elif nrows is not None:
-        try:
-            data = parser.read(nrows)
-        finally:
-            parser.close()
-        return data
-
-    elif chunksize or iterator:
+    if chunksize or iterator:
         return parser
 
     try:
-        data = parser.read()
+        data = parser.read(nrows)
     finally:
         parser.close()
-
     return data
 
 
@@ -445,7 +434,7 @@ _parser_defaults = {
 
     'usecols': None,
 
-    # 'nrows': None,
+    'nrows': None,
     # 'iterator': False,
     'chunksize': None,
     'verbose': False,
@@ -749,6 +738,7 @@ class TextFileReader(BaseIterator):
         options = self._get_options_with_defaults(engine)
 
         self.chunksize = options.pop('chunksize', None)
+        self.nrows = options.pop('nrows', None)
         self.squeeze = options.pop('squeeze', False)
 
         # might mutate self.engine
@@ -1009,6 +999,10 @@ class TextFileReader(BaseIterator):
     def get_chunk(self, size=None):
         if size is None:
             size = self.chunksize
+        if self.nrows is not None:
+            if self._currow >= self.nrows:
+                raise StopIteration
+            size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
 
