@@ -156,7 +156,7 @@ path_or_buf : string or file-like object
 
 @Appender(_read_stata_doc)
 def read_stata(filepath_or_buffer, convert_dates=True,
-               convert_categoricals=True, encoding='latin-1', index=None,
+               convert_categoricals=True, encoding=None, index=None,
                convert_missing=False, preserve_dtypes=True, columns=None,
                order_categoricals=True, chunksize=None, iterator=False):
 
@@ -821,11 +821,11 @@ class StataMissingValue(StringMixin):
 class StataParser(object):
     _default_encoding = 'latin-1'
 
-    def __init__(self, encoding='latin-1'):
-
-        if encoding not in VALID_ENCODINGS:
-            raise ValueError('Unknown encoding. Only latin-1 and  ascii '
-                             'supported.')
+    def __init__(self, encoding):
+        if encoding is not None:
+            if encoding not in VALID_ENCODINGS:
+                raise ValueError('Unknown encoding. Only latin-1 and ascii '
+                                 'supported.')
 
         self._encoding = encoding
 
@@ -957,9 +957,10 @@ class StataReader(StataParser, BaseIterator):
         self._preserve_dtypes = preserve_dtypes
         self._columns = columns
         self._order_categoricals = order_categoricals
-        if encoding not in VALID_ENCODINGS:
-            raise ValueError('Unknown encoding. Only latin-1 and  ascii '
-                             'supported.')
+        if encoding is not None:
+            if encoding not in VALID_ENCODINGS:
+                raise ValueError('Unknown encoding. Only latin-1 and  ascii '
+                                 'supported.')
         self._encoding = encoding
         self._chunksize = chunksize
 
@@ -1373,7 +1374,8 @@ class StataReader(StataParser, BaseIterator):
 
     def _read_strls(self):
         self.path_or_buf.seek(self.seek_strls)
-        self.GSO = {0: ''}
+        # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
+        self.GSO = {'0': ''}
         while True:
             if self.path_or_buf.read(3) != b'GSO':
                 break
@@ -1398,7 +1400,8 @@ class StataReader(StataParser, BaseIterator):
                 if self.format_version == 117:
                     encoding = self._encoding or self._default_encoding
                 va = va[0:-1].decode(encoding)
-            self.GSO[v_o] = va
+            # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
+            self.GSO[str(v_o)] = va
 
     # legacy
     @Appender('DEPRECATED: ' + _data_method_doc)
@@ -1634,7 +1637,8 @@ class StataReader(StataParser, BaseIterator):
         for i, typ in enumerate(self.typlist):
             if typ != 'Q':
                 continue
-            data.iloc[:, i] = [self.GSO[k] for k in data.iloc[:, i]]
+            # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
+            data.iloc[:, i] = [self.GSO[str(k)] for k in data.iloc[:, i]]
         return data
 
     def _do_select_columns(self, data, columns):

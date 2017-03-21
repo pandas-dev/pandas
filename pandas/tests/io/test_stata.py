@@ -1277,6 +1277,7 @@ class TestStata(tm.TestCase):
             tm.assertTrue('ColumnTooBig' in cm.exception)
             tm.assertTrue('infinity' in cm.exception)
 
+    # GH15723, validate encoding
     def test_invalid_encoding(self):
         original = self.read_csv(self.csv3)
         with tm.assertRaises(ValueError):
