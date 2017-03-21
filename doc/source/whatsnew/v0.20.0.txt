@@ -826,7 +826,7 @@ Bug Fixes
 
 
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
-- Bug in ``.replace()`` may result in incorrect dtypes. (:issue:`12747`)
+- Bug in ``.replace()`` may result in incorrect dtypes. (:issue:`12747`, :issue:`15765`)
 
 - Bug in ``.asfreq()``, where frequency was not set for empty ``Series`` (:issue:`14320`)
 

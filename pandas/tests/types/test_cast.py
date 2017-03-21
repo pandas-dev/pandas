@@ -238,6 +238,20 @@ class TestCommonTypes(tm.TestCase):
             ((np.object, np.float32), np.object),
             ((np.object, np.int16), np.object),
 
+            # bool with int
+            ((np.dtype('bool'), np.int64), np.object),
+            ((np.dtype('bool'), np.int32), np.object),
+            ((np.dtype('bool'), np.int16), np.object),
+            ((np.dtype('bool'), np.int8), np.object),
+            ((np.dtype('bool'), np.uint64), np.object),
+            ((np.dtype('bool'), np.uint32), np.object),
+            ((np.dtype('bool'), np.uint16), np.object),
+            ((np.dtype('bool'), np.uint8), np.object),
+
+            # bool with float
+            ((np.dtype('bool'), np.float64), np.object),
+            ((np.dtype('bool'), np.float32), np.object),
+
             ((np.dtype('datetime64[ns]'), np.dtype('datetime64[ns]')),
              np.dtype('datetime64[ns]')),
             ((np.dtype('timedelta64[ns]'), np.dtype('timedelta64[ns]')),

@@ -152,8 +152,8 @@ class TestSeriesReplace(TestData, tm.TestCase):
         tr, v = [3, 4], [3.5, pd.Timestamp('20130101')]
         check_replace(tr, v, e)
 
-        # casts to float
-        e = pd.Series([0, 1, 2, 3.5, 1])
+        # casts to object
+        e = pd.Series([0, 1, 2, 3.5, True], dtype='object')
         tr, v = [3, 4], [3.5, True]
         check_replace(tr, v, e)
 
