@@ -3078,8 +3078,7 @@ class NDFrame(PandasObject):
         int32. By numpy.find_common_type convention, mixing int64 and uint64
         will result in a float64 dtype.
 
-        Unlike ``Series.values``, Timezone aware datetime data are
-        converted to ``pandas.Timestamp`` objects and not to UTC datetime64.
+        Unlike ``Series.values``, tz-aware dtypes will be upcasted to object.
         """
         return self.as_matrix()
 
