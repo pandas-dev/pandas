@@ -1585,7 +1585,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         except TypeError:
             return False
 
-    _index_shared_docs['_is_contained_in'] = """
+    _index_shared_docs['contains'] = """
         return a boolean if this key is IN the index
 
         Parameters
@@ -1597,8 +1597,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         boolean
         """
 
-    @Appender(_index_shared_docs['_is_contained_in'] % _index_doc_kwargs)
-    def _is_contained_in(self, key):
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
+    def contains(self, key):
         hash(key)
         try:
             return key in self._engine

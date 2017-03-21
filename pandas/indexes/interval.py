@@ -263,7 +263,7 @@ class IntervalIndex(IntervalMixin, Index):
         except KeyError:
             return False
 
-    def _is_contained_in(self, key):
+    def contains(self, key):
         """
         return a boolean if this key is IN the index
 
@@ -566,8 +566,11 @@ class IntervalIndex(IntervalMixin, Index):
         indexer for matching intervals.
         """
         locs = self.get_indexer_for(keyarr)
-        check = locs == -1
-        locs = locs[~check]
+
+        # we have missing values
+        if (locs == -1).any():
+            raise KeyError
+
         return locs
 
     def _maybe_cast_indexed(self, key):
@@ -575,11 +578,19 @@ class IntervalIndex(IntervalMixin, Index):
         we need to cast the key, which could be a scalar
         or an array-like to the type of our subtype
         """
-        if is_float_dtype(self.dtype.subtype):
+        if isinstance(key, IntervalIndex):
+            return key
+
+        subtype = self.dtype.subtype
+        if is_float_dtype(subtype):
             if is_integer(key):
                 key = float(key)
             elif isinstance(key, (np.ndarray, Index)):
                 key = key.astype('float64')
+        elif is_integer_dtype(subtype):
+            if is_integer(key):
+                key = int(key)
+
         return key
 
     def _check_method(self, method):
@@ -616,6 +627,11 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _get_loc_only_exact_matches(self, key):
         if isinstance(key, Interval):
+
+            if not self.is_unique:
+                raise ValueError("cannot index with a slice Interval"
+                                 " and a non-unique index")
+
             # TODO: this expands to a tuple index, see if we can
             # do better
             return Index(self._multiindex.values).get_loc(key)
@@ -685,12 +701,28 @@ class IntervalIndex(IntervalMixin, Index):
             loc = key
         elif is_list_like(key):
             loc = self.get_indexer(key)
+        elif isinstance(key, slice):
+
+            if not (key.step is None or key.step == 1):
+                raise ValueError("cannot support not-default "
+                                 "step in a slice")
+
+            try:
+                loc = self.get_loc(key)
+            except TypeError:
+
+                # we didn't find exact intervals
+                # or are non-unique
+                raise ValueError("unable to slice with "
+                                 "this key: {}".format(key))
+
         else:
             loc = self.get_loc(key)
         return series.iloc[loc]
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
+
         self._check_method(method)
         target = _ensure_index(target)
         target = self._maybe_cast_indexed(target)
@@ -706,7 +738,22 @@ class IntervalIndex(IntervalMixin, Index):
                 return np.where(start_plus_one == stop, start, -1)
 
         if not self.is_unique:
-            raise ValueError("get_indexer cannot handle non-unique indices")
+            raise ValueError("cannot handle non-unique indices")
+
+        # IntervalIndex
+        if isinstance(target, IntervalIndex):
+            indexer = self._get_reindexer(target)
+
+        # non IntervalIndex
+        else:
+            indexer = np.concatenate([self.get_loc(i) for i in target])
+
+        return _ensure_platform_int(indexer)
+
+    def _get_reindexer(self, target):
+        """
+        Return an indexer for a target IntervalIndex with self
+        """
 
         # find the left and right indexers
         lindexer = self._engine.get_indexer(target.left.values)
@@ -720,27 +767,59 @@ class IntervalIndex(IntervalMixin, Index):
         indexer = []
         n = len(self)
 
-        for l, r in zip(lindexer, rindexer):
+        for i, (l, r) in enumerate(zip(lindexer, rindexer)):
+
+            target_value = target[i]
+
+            # matching on the lhs bound
+            if (l != -1 and
+                    self.closed == 'right' and
+                    target_value.left == self[l].right):
+                l += 1
+
+            # matching on the lhs bound
+            if (r != -1 and
+                    self.closed == 'left' and
+                    target_value.right == self[r].left):
+                r -= 1
 
             # not found
             if l == -1 and r == -1:
                 indexer.append(np.array([-1]))
 
             elif r == -1:
+
                 indexer.append(np.arange(l, n))
 
             elif l == -1:
-                if r == 0:
-                    indexer.append(np.array([-1]))
-                else:
-                    indexer.append(np.arange(0, r + 1))
+
+                # care about left/right closed here
+                value = self[i]
+
+                # target.closed same as self.closed
+                if self.closed == target.closed:
+                    if target_value.left < value.left:
+                        indexer.append(np.array([-1]))
+                        continue
+
+                # target.closed == 'left'
+                elif self.closed == 'right':
+                    if target_value.left <= value.left:
+                        indexer.append(np.array([-1]))
+                        continue
+
+                # target.closed == 'right'
+                elif self.closed == 'left':
+                    if target_value.left <= value.left:
+                        indexer.append(np.array([-1]))
+                        continue
+
+                indexer.append(np.arange(0, r + 1))
 
             else:
-                indexer.append(np.arange(l, r))
+                indexer.append(np.arange(l, r + 1))
 
-        indexer = np.concatenate(indexer)
-
-        return _ensure_platform_int(indexer)
+        return np.concatenate(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):

@@ -1429,7 +1429,7 @@ class _LocIndexer(_LocationIndexer):
 
             try:
                 key = self._convert_scalar_indexer(key, axis)
-                if not ax._is_contained_in(key):
+                if not ax.contains(key):
                     error()
             except TypeError as e:
 
@@ -1897,7 +1897,7 @@ def convert_to_index_sliceable(obj, key):
     elif isinstance(key, compat.string_types):
 
         # we are an actual column
-        if obj._data.items._is_contained_in(key):
+        if obj._data.items.contains(key):
             return None
 
         # We might have a datetimelike string that we can translate to a

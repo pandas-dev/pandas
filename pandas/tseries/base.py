@@ -253,7 +253,7 @@ class DatetimeIndexOpsMixin(object):
         except (KeyError, TypeError, ValueError):
             return False
 
-    _is_contained_in = __contains__
+    contains = __contains__
 
     def __getitem__(self, key):
         """

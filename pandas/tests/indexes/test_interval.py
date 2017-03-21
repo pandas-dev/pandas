@@ -430,13 +430,12 @@ class TestIntervalIndex(Base, tm.TestCase):
         self.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(index)
-        expected = np.array([-1, 0], dtype='int64')
+        expected = np.array([-1, 1], dtype='int64')
         self.assert_numpy_array_equal(actual, expected)
 
-    @pytest.mark.xfail(reason="what to return for overlaps")
     def test_get_indexer_subintervals(self):
-        # TODO
 
+        # TODO: is this right?
         # return indexers for wholly contained subintervals
         target = IntervalIndex.from_breaks(np.linspace(0, 2, 5))
         actual = self.index.get_indexer(target)
@@ -445,7 +444,7 @@ class TestIntervalIndex(Base, tm.TestCase):
 
         target = IntervalIndex.from_breaks([0, 0.67, 1.33, 2])
         actual = self.index.get_indexer(target)
-        expected = np.array([-1, 0, 1], dtype='int64')
+        expected = np.array([0, 0, 1, 1], dtype='int64')
         self.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(target[[0, -1]])
@@ -473,22 +472,22 @@ class TestIntervalIndex(Base, tm.TestCase):
         self.assertNotIn(Interval(3, 5), i)
         self.assertNotIn(Interval(-1, 0, closed='left'), i)
 
-    def test_is_contained_in(self):
+    def testcontains(self):
         # can select values that are IN the range of a value
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
 
-        assert i._is_contained_in(0.1)
-        assert i._is_contained_in(0.5)
-        assert i._is_contained_in(1)
-        assert i._is_contained_in(Interval(0, 1))
-        assert i._is_contained_in(Interval(0, 2))
+        assert i.contains(0.1)
+        assert i.contains(0.5)
+        assert i.contains(1)
+        assert i.contains(Interval(0, 1))
+        assert i.contains(Interval(0, 2))
 
         # these overlaps completely
-        assert i._is_contained_in(Interval(0, 3))
-        assert i._is_contained_in(Interval(1, 3))
+        assert i.contains(Interval(0, 3))
+        assert i.contains(Interval(1, 3))
 
-        assert not i._is_contained_in(20)
-        assert not i._is_contained_in(-20)
+        assert not i.contains(20)
+        assert not i.contains(-20)
 
     def test_dropna(self):
 

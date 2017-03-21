@@ -271,12 +271,12 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
         return key in self.values
 
-    @Appender(_index_shared_docs['_is_contained_in'] % _index_doc_kwargs)
-    def _is_contained_in(self, key):
+    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
+    def contains(self, key):
         hash(key)
 
         if self.categories._defer_to_indexing:
-            return self.categories._is_contained_in(key)
+            return self.categories.contains(key)
 
         return key in self.values
 

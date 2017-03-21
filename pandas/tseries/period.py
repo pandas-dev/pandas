@@ -362,7 +362,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 return False
             return False
 
-    _is_contained_in = __contains__
+    contains = __contains__
 
     @property
     def asi8(self):
