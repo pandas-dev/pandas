@@ -40,7 +40,7 @@ from pandas.core.internals import (BlockManager, make_block,
                                    _factor_indexer, _block_shape)
 from pandas.core.index import _ensure_index
 from pandas import compat
-from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
+from pandas.compat import u_safe as u, PY3, range, lrange, string_types, text_type, filter
 from pandas.core.config import get_option
 from pandas.computation.pytables import Expr, maybe_expression
 
@@ -482,6 +482,9 @@ class HDFStore(StringMixin):
             if name == key or name[1:] == key:
                 return True
         return False
+
+    def __fspath__(self):
+        return text_type(self._path)
 
     def __len__(self):
         return len(self.groups())
