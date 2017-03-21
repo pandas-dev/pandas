@@ -1363,14 +1363,17 @@ class TestIndex(Base, tm.TestCase):
                                     np.array([False, False]))
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([pd.NaT]),
                                     np.array([False, False]))
+
         # Float64Index overrides isin, so must be checked separately
         tm.assert_numpy_array_equal(Float64Index([1.0, np.nan]).isin([np.nan]),
                                     np.array([False, True]))
         tm.assert_numpy_array_equal(
             Float64Index([1.0, np.nan]).isin([float('nan')]),
             np.array([False, True]))
+
+        # we cannot compare NaT with NaN
         tm.assert_numpy_array_equal(Float64Index([1.0, np.nan]).isin([pd.NaT]),
-                                    np.array([False, True]))
+                                    np.array([False, False]))
 
     def test_isin_level_kwarg(self):
         def check_idx(idx):

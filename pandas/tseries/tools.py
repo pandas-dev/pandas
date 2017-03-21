@@ -13,6 +13,7 @@ from pandas.types.common import (_ensure_object,
 from pandas.types.generic import (ABCIndexClass, ABCSeries,
                                   ABCDataFrame)
 from pandas.types.missing import notnull
+from pandas.core import algorithms
 
 import pandas.compat as compat
 
@@ -577,7 +578,7 @@ def _attempt_YYYYMMDD(arg, errors):
 
     # string with NaN-like
     try:
-        mask = ~lib.ismember(arg, tslib._nat_strings)
+        mask = ~algorithms.isin(arg, list(tslib._nat_strings))
         return calc_with_mask(arg, mask)
     except:
         pass

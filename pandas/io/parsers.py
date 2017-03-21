@@ -26,6 +26,7 @@ from pandas.core.index import Index, MultiIndex, RangeIndex
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.categorical import Categorical
+from pandas.core import algorithms
 from pandas.core.common import AbstractMethodError
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
@@ -1388,7 +1389,8 @@ class ParserBase(object):
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    mask = lib.ismember(values, na_values).view(np.uint8)
+                    mask = algorithms.isin(
+                        values, list(na_values)).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
@@ -1436,7 +1438,7 @@ class ParserBase(object):
 
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
-            mask = lib.ismember(values, na_values)
+            mask = algorithms.isin(values, list(na_values))
             na_count = mask.sum()
             if na_count > 0:
                 if is_integer_dtype(values):
