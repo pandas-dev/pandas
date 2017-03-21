@@ -4853,7 +4853,7 @@ class NDFrame(PandasObject):
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
-        if not isinstance(cond, (pd.DataFrame, pd.Panel)):
+        if not isinstance(cond, pd.DataFrame):
             # This is a single-dimensional object.
             if not is_bool_dtype(cond):
                 raise ValueError(msg.format(dtype=cond.dtype))
@@ -5787,7 +5787,7 @@ class NDFrame(PandasObject):
                                   **kwargs)) - 1)
         if freq is None:
             mask = isnull(_values_from_object(self))
-            rs.mask(mask, np.nan, inplace=True)
+            rs.iloc[mask] = np.nan
         return rs
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
