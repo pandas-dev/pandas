@@ -4,6 +4,8 @@ import numpy as np
 from pandas import (offsets, Series, notnull,
                     isnull, date_range, Timestamp)
 
+from pandas.util.testing import assert_frame_equal, assert_series_equal
+
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -148,3 +150,11 @@ class TestSeriesAsof(TestData, tm.TestCase):
         s = Series(np.random.randn(N), index=rng)
         with self.assertRaises(ValueError):
             s.asof(s.index[0], subset='foo')
+
+        # series is all nans
+        result = Series([np.nan]).asof([0])
+
+        expected = Series([np.nan])
+
+        assert_series_equal(result, expected)
+
