@@ -13,6 +13,7 @@ cdef extern from "numpy/arrayobject.h":
     cdef enum NPY_TYPES:
         NPY_intp "NPY_INTP"
 
+from libc.stdlib cimport malloc, free
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyDict_Contains, PyDict_Keys,
@@ -109,77 +110,6 @@ cpdef map_indices_list(list index):
         result[index[i]] = i
 
     return result
-
-
-from libc.stdlib cimport malloc, free
-
-
-def ismember_nans(float64_t[:] arr, set values, bint hasnans):
-    cdef:
-        Py_ssize_t i, n
-        ndarray[uint8_t] result
-        float64_t val
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i in range(n):
-        val = arr[i]
-        result[i] = val in values or hasnans and isnan(val)
-
-    return result.view(np.bool_)
-
-
-def ismember(ndarray arr, set values):
-    """
-    Checks whether
-
-    Parameters
-    ----------
-    arr : ndarray
-    values : set
-
-    Returns
-    -------
-    ismember : ndarray (boolean dtype)
-    """
-    cdef:
-        Py_ssize_t i, n
-        ndarray[uint8_t] result
-        object val
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i in range(n):
-        val = util.get_value_at(arr, i)
-        result[i] = val in values
-
-    return result.view(np.bool_)
-
-
-def ismember_int64(ndarray[int64_t] arr, set values):
-    """
-    Checks whether
-
-    Parameters
-    ----------
-    arr : ndarray of int64
-    values : set
-
-    Returns
-    -------
-    ismember : ndarray (boolean dtype)
-    """
-    cdef:
-        Py_ssize_t i, n
-        ndarray[uint8_t] result
-        int64_t v
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i in range(n):
-        result[i] = arr[i] in values
-
-    return result.view(np.bool_)
 
 
 @cython.wraparound(False)
