@@ -33,6 +33,9 @@ from pandas.io.common import get_filepath_or_buffer, BaseIterator
 from pandas._libs.lib import max_len_string_array, infer_dtype
 from pandas._libs.tslib import NaT, Timestamp
 
+VALID_ENCODINGS = ('ascii', 'us-ascii', 'latin-1', 'latin_1', 'iso-8859-1',
+                   'iso8859-1', '8859', 'cp819', 'latin', 'latin1', 'L1')
+
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
                   "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
                   "115 (Stata 12), 117 (Stata 13), or 118 (Stata 14)")
@@ -45,7 +48,7 @@ convert_categoricals : boolean, defaults to True
 
 _encoding_params = """\
 encoding : string, None or encoding
-    Encoding used to parse the files. None defaults to iso-8859-1."""
+    Encoding used to parse the files. None defaults to latin-1."""
 
 _statafile_processing_params2 = """\
 index : identifier of index column
@@ -153,7 +156,7 @@ path_or_buf : string or file-like object
 
 @Appender(_read_stata_doc)
 def read_stata(filepath_or_buffer, convert_dates=True,
-               convert_categoricals=True, encoding=None, index=None,
+               convert_categoricals=True, encoding='latin-1', index=None,
                convert_missing=False, preserve_dtypes=True, columns=None,
                order_categoricals=True, chunksize=None, iterator=False):
 
@@ -816,9 +819,14 @@ class StataMissingValue(StringMixin):
 
 
 class StataParser(object):
-    _default_encoding = 'iso-8859-1'
+    _default_encoding = 'latin-1'
 
-    def __init__(self, encoding):
+    def __init__(self, encoding='latin-1'):
+
+        if encoding not in VALID_ENCODINGS:
+            raise ValueError('Unknown encoding. Only latin-1 and  ascii '
+                             'supported.')
+
         self._encoding = encoding
 
         # type          code.
@@ -936,7 +944,7 @@ class StataReader(StataParser, BaseIterator):
                  convert_categoricals=True, index=None,
                  convert_missing=False, preserve_dtypes=True,
                  columns=None, order_categoricals=True,
-                 encoding='iso-8859-1', chunksize=None):
+                 encoding='latin-1', chunksize=None):
         super(StataReader, self).__init__(encoding)
         self.col_sizes = ()
 
@@ -949,6 +957,9 @@ class StataReader(StataParser, BaseIterator):
         self._preserve_dtypes = preserve_dtypes
         self._columns = columns
         self._order_categoricals = order_categoricals
+        if encoding not in VALID_ENCODINGS:
+            raise ValueError('Unknown encoding. Only latin-1 and  ascii '
+                             'supported.')
         self._encoding = encoding
         self._chunksize = chunksize
 
@@ -1855,7 +1866,7 @@ class StataWriter(StataParser):
     write_index : bool
         Write the index to Stata dataset.
     encoding : str
-        Default is latin-1. Unicode is not supported
+        Default is latin-1. Only latin-1 and ascii are supported.
     byteorder : str
         Can be ">", "<", "little", or "big". default is `sys.byteorder`
     time_stamp : datetime

@@ -917,6 +917,8 @@ Bug Fixes
 - Avoid use of ``np.finfo()`` during ``import pandas`` removed to mitigate deadlock on Python GIL misuse (:issue:`14641`)
 
 - Bug in ``DataFrame.to_stata()`` and ``StataWriter`` which produces incorrectly formatted files to be produced for some locales (:issue:`13856`)
+- Bug in ``StataReader`` and ``StataWriter`` which allows invalid encodings (:issue:`15723`)
+
 - Bug in ``pd.concat()`` in which concatting with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 - Bug in ``groupby.agg()`` incorrectly localizing timezone on ``datetime`` (:issue:`15426`, :issue:`10668`, :issue:`13046`)
 
@@ -931,3 +933,4 @@ Bug Fixes
 - Bug in ``pd.melt()`` where passing a tuple value for ``value_vars`` caused a ``TypeError`` (:issue:`15348`)
 - Bug in ``.eval()`` which caused multiline evals to fail with local variables not on the first line (:issue:`15342`)
 - Bug in ``pd.read_msgpack`` which did not allow to load dataframe with an index of type ``CategoricalIndex`` (:issue:`15487`)
+
