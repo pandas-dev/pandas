@@ -402,6 +402,30 @@ bar,foo"""
         tm.assert_frame_equal(chunks[1], df[2:4])
         tm.assert_frame_equal(chunks[2], df[4:])
 
+        # With nrows
+        reader = self.read_csv(StringIO(self.data1), index_col=0,
+                               chunksize=2, nrows=5)
+        df = self.read_csv(StringIO(self.data1), index_col=0, nrows=5)
+
+        tm.assert_frame_equal(pd.concat(reader), df)
+
+        # chunksize > nrows
+        reader = self.read_csv(StringIO(self.data1), index_col=0,
+                               chunksize=8, nrows=5)
+        df = self.read_csv(StringIO(self.data1), index_col=0, nrows=5)
+
+        tm.assert_frame_equal(pd.concat(reader), df)
+
+        # with changing "size":
+        reader = self.read_csv(StringIO(self.data1), index_col=0,
+                               chunksize=8, nrows=5)
+        df = self.read_csv(StringIO(self.data1), index_col=0, nrows=5)
+
+        tm.assert_frame_equal(reader.get_chunk(size=2), df.iloc[:2])
+        tm.assert_frame_equal(reader.get_chunk(size=4), df.iloc[2:5])
+        with tm.assertRaises(StopIteration):
+            reader.get_chunk(size=3)
+
     def test_read_chunksize_named(self):
         reader = self.read_csv(
             StringIO(self.data1), index_col='index', chunksize=2)
