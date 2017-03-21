@@ -384,13 +384,16 @@ bar,foo"""
         df = self.read_csv(StringIO(self.data1), nrows=3.0)
         tm.assert_frame_equal(df, expected)
 
-        msg = "must be an integer"
+        msg = r"'nrows' must be an integer >=0"
 
         with tm.assertRaisesRegexp(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows=1.2)
 
         with tm.assertRaisesRegexp(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows='foo')
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), nrows=-1)
 
     def test_read_chunksize(self):
         reader = self.read_csv(StringIO(self.data1), index_col=0, chunksize=2)
@@ -401,6 +404,18 @@ bar,foo"""
         tm.assert_frame_equal(chunks[0], df[:2])
         tm.assert_frame_equal(chunks[1], df[2:4])
         tm.assert_frame_equal(chunks[2], df[4:])
+
+        # with invalid chunksize value:
+        msg = r"'chunksize' must be an integer >=1"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), chunksize=1.3)
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), chunksize='foo')
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), chunksize=0)
 
     def test_read_chunksize_and_nrows(self):
 

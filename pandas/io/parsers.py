@@ -344,24 +344,34 @@ fields if it is not spaces (e.g., '~').
 """ % (_parser_params % (_fwf_widths, ''))
 
 
-def _validate_nrows(nrows):
+def _validate_integer(name, val, min_val=0):
     """
-    Checks whether the 'nrows' parameter for parsing is either
+    Checks whether the 'name' parameter for parsing is either
     an integer OR float that can SAFELY be cast to an integer
     without losing accuracy. Raises a ValueError if that is
     not the case.
-    """
-    msg = "'nrows' must be an integer"
 
-    if nrows is not None:
-        if is_float(nrows):
-            if int(nrows) != nrows:
+    Parameters
+    ----------
+    name : string
+        Parameter name (used for error reporting)
+    val : int or float
+        The value to check
+    min_val : int
+        Minimum allowed value (val < min_val will result in a ValueError)
+    """
+    msg = "'{name:s}' must be an integer >={min_val:d}".format(name=name,
+                                                               min_val=min_val)
+
+    if val is not None:
+        if is_float(val):
+            if int(val) != val:
                 raise ValueError(msg)
-            nrows = int(nrows)
-        elif not is_integer(nrows):
+            val = int(val)
+        elif not (is_integer(val) and val >= min_val):
             raise ValueError(msg)
 
-    return nrows
+    return val
 
 
 def _read(filepath_or_buffer, kwds):
@@ -383,8 +393,8 @@ def _read(filepath_or_buffer, kwds):
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get('iterator', False)
-    chunksize = kwds.get('chunksize', None)
-    nrows = _validate_nrows(kwds.get('nrows', None))
+    chunksize = _validate_integer('chunksize', kwds.get('chunksize', None), 1)
+    nrows = _validate_integer('nrows', kwds.get('nrows', None))
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
