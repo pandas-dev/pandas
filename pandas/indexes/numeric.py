@@ -1,13 +1,13 @@
 import numpy as np
-from pandas._libs import (lib, index as libindex,
+from pandas._libs import (index as libindex,
                           algos as libalgos, join as libjoin)
 from pandas.types.common import (is_dtype_equal, pandas_dtype,
                                  is_float_dtype, is_object_dtype,
                                  is_integer_dtype, is_scalar)
-from pandas.types.missing import isnull
 from pandas.core.common import _asarray_tuplesafe, _values_from_object
 
 from pandas import compat
+from pandas.core import algorithms
 from pandas.indexes.base import Index, InvalidIndexError, _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.indexes.base as ibase
@@ -379,11 +379,9 @@ class Float64Index(NumericIndex):
 
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
-        value_set = set(values)
         if level is not None:
             self._validate_index_level(level)
-        return lib.ismember_nans(np.array(self), value_set,
-                                 isnull(list(value_set)).any())
+        return algorithms.isin(np.array(self), values)
 
 
 Float64Index._add_numeric_methods()

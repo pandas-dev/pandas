@@ -5358,8 +5358,8 @@ it is assumed to be aliases for the column names.')
                                 "you passed a "
                                 "{0!r}".format(type(values).__name__))
             return DataFrame(
-                lib.ismember(self.values.ravel(),
-                             set(values)).reshape(self.shape), self.index,
+                algorithms.isin(self.values.ravel(),
+                                values).reshape(self.shape), self.index,
                 self.columns)
 
     # ----------------------------------------------------------------------

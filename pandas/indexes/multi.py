@@ -1392,7 +1392,7 @@ class MultiIndex(Index):
         index = self.levels[i]
         values = index.get_indexer(labels)
 
-        mask = ~lib.ismember(self.labels[i], set(values))
+        mask = ~algos.isin(self.labels[i], values)
 
         return self[mask]
 
@@ -2463,7 +2463,8 @@ class MultiIndex(Index):
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is None:
-            return lib.ismember(np.array(self), set(values))
+            return algos.isin(self.values,
+                              MultiIndex.from_tuples(values).values)
         else:
             num = self._get_level_number(level)
             levs = self.levels[num]
