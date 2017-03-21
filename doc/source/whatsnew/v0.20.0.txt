@@ -797,6 +797,7 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in ``DataFrame.values`` now returns object dtyped numpy array of ``Timestamp`` for tz-aware columns; previously this returned ``DateTimeIndex`` (:issue:`14052`)
 - Bug in ``Timestamp.replace`` now raises ``TypeError`` when incorrect argument names are given; previously this raised ``ValueError`` (:issue:`15240`)
 - Bug in ``Timestamp`` returning UTC based time/date attributes when a timezone was provided (:issue:`13303`)
 - Bug in ``Index`` power operations with reversed operands (:issue:`14973`)

@@ -3076,7 +3076,9 @@ class NDFrame(PandasObject):
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32.  If dtypes are int32 and uint8, dtype will be upcast to
         int32. By numpy.find_common_type convention, mixing int64 and uint64
-        will result in a flot64 dtype.
+        will result in a float64 dtype.
+
+        Unlike ``Series.values``, tz-aware dtypes will be upcasted to object.
         """
         return self.as_matrix()
 
@@ -5098,6 +5100,7 @@ class NDFrame(PandasObject):
               try_cast=False, raise_on_error=True):
 
         other = com._apply_if_callable(other, self)
+
         return self._where(cond, other, inplace, axis, level, try_cast,
                            raise_on_error)
 
@@ -5783,7 +5786,7 @@ class NDFrame(PandasObject):
                                   **kwargs)) - 1)
         if freq is None:
             mask = isnull(_values_from_object(self))
-            np.putmask(rs.values, mask, np.nan)
+            rs.iloc[mask] = np.nan
         return rs
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):

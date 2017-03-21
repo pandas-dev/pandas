@@ -938,6 +938,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                  '"1":"2013-01-02T05:00:00.000Z"}}')
 
         tz_range = pd.date_range('2013-01-01 05:00:00Z', periods=2)
+
         self.assertEqual(exp, dumps(tz_range, iso_dates=True))
         dti = pd.DatetimeIndex(tz_range)
         self.assertEqual(exp, dumps(dti, iso_dates=True))
