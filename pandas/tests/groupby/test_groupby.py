@@ -1853,6 +1853,147 @@ class TestGroupBy(MixIn, tm.TestCase):
         result = aa.groupby('nn').min(numeric_only=False)
         self.assertTrue('ss' in result)
 
+
+    def test_skipna_numeric_ops(self):
+        # check if the skipna catches the nulls in the numeric ops
+
+        df = pd.DataFrame(
+            {'group': [1, 1, 2, 2],
+             'int': [1, np.nan, 3, 1],
+             'float': [4., 5., 6., 4],
+             'category_int': [7, 8, np.nan, 3],
+             'datetime': [pd.Timestamp('2013-01-01 05:00:00'),
+                          np.nan,
+                          pd.Timestamp('2013-01-03 00:00:00'),
+                          pd.Timestamp('2013-01-04 12:00:00')],
+             'datetimetz': [
+                 pd.Timestamp('2013-01-01 12:00:00', tz='US/Eastern'),
+                 np.nan,
+                 pd.Timestamp('2013-01-01 12:00:00', tz='US/Eastern'),
+                 pd.Timestamp('2013-01-03 00:00:00', tz='US/Eastern')],
+             'timedelta': [pd.Timedelta('1.0s'),
+                           pd.Timedelta('3s'),
+                           pd.Timedelta('1s'),
+                           np.nan]},
+            columns=['group', 'int', 'float', 'category_int', 'datetime',
+                     'datetimetz','timedelta'])
+
+        # mean/median
+
+        expected = pd.DataFrame(
+            {'int': [np.nan, 2],
+             'float': [4.5, 5.],
+             'category_int': [7.5, np.nan],
+             'datetime': [pd.NaT,
+                          pd.Timestamp('2013-01-03 18:00:00')],
+             'datetimetz': [pd.NaT,
+                            pd.Timestamp('2013-01-02 06:00:00', tz='US/Eastern')],
+             'timedelta': [pd.Timedelta('2s'),
+                           pd.NaT]},
+            index=Index([1, 2], name='group'),
+            columns=['int', 'float', 'category_int','datetime',
+                     'datetimetz','timedelta'])
+
+        for attr in ['mean', 'median']:
+            f = getattr(df.groupby('group'), attr)
+            result = f(numeric_only=False, skipna=False)
+
+            assert_frame_equal(result.reindex_like(expected), expected, check_dtype=False)
+
+        # min
+        expected = pd.DataFrame(
+            {'int': [np.nan, 1],
+             'float': [4., 4.],
+             'category_int': [7., np.nan],
+             'datetime': [pd.NaT,
+                          pd.Timestamp('2013-01-03 00:00:00')],
+             'datetimetz': [pd.NaT,
+                            pd.Timestamp('2013-01-01 12:00:00', tz='US/Eastern')],
+             'timedelta': [pd.Timedelta('1s'),
+                           pd.NaT]},
+            index=Index([1, 2], name='group'),
+            columns=['int', 'float', 'category_int','datetime',
+                     'datetimetz','timedelta'])
+
+        for attr in ['min']:
+            f = getattr(df.groupby('group'), attr)
+            result = f(numeric_only=False, skipna=False)
+
+            assert_frame_equal(result.reindex_like(expected), expected, check_dtype=False)
+
+        # max
+        expected = pd.DataFrame(
+            {'int': [np.nan, 3],
+             'float': [5., 6.],
+             'category_int': [8., np.nan],
+             'datetime': [pd.NaT,
+                          pd.Timestamp('2013-01-04 12:00:00')],
+             'datetimetz': [pd.NaT,
+                            pd.Timestamp('2013-01-03 00:00:00', tz='US/Eastern')],
+             'timedelta': [pd.Timedelta('3s'),
+                           pd.NaT]},
+            index=Index([1, 2], name='group'),
+            columns=['int', 'float', 'category_int','datetime',
+                     'datetimetz','timedelta'])
+
+        for attr in ['max']:
+            f = getattr(df.groupby('group'), attr)
+            result = f(numeric_only=False, skipna=False)
+
+            assert_frame_equal(result.reindex_like(expected), expected)
+
+
+        # sum
+        expected = pd.DataFrame(
+            {'int': [np.nan, 4],
+             'float': [9., 10.],
+             'category_int': [15., np.nan],
+             'timedelta': [pd.Timedelta('4s'),
+                           pd.NaT]},
+            index=Index([1, 2], name='group'),
+            columns=['int', 'float', 'category_int','timedelta'])
+
+        for attr in ['sum']:
+            f = getattr(df.groupby('group'), attr)
+            result = f(numeric_only=False, skipna=False)
+
+            assert_frame_equal(result.reindex_like(expected), expected)
+
+        df = pd.DataFrame(
+            {'group': [1, 1, 2, 2],
+             'int': [1, np.nan, 3, 1],
+             'float': [4., 5., 6., 4],
+             'category_int': [7, 8, np.nan, 3]},
+            columns=['group', 'int', 'float', 'category_int'])
+
+        # var
+        expected = pd.DataFrame(
+            {'int': [np.nan, 2],
+             'float': [0.5, 2.],
+             'category_int': [0.5, np.nan]},
+            index=Index([1, 2], name='group'),
+            columns=['int', 'float', 'category_int'])
+
+        for attr in ['var']:
+            f = getattr(df.groupby('group'), attr)
+            result = f(skipna=False)
+
+            assert_frame_equal(result.reindex_like(expected), expected)
+
+        # std
+        expected = pd.DataFrame(
+            {'int': [np.nan, 1.414214],
+             'float': [0.707107, 1.414214],
+             'category_int': [0.707107, np.nan]},
+            index=Index([1, 2], name='group'),
+            columns=['int', 'float', 'category_int'])
+
+        for attr in ['std']:
+            f = getattr(df.groupby('group'), attr)
+            result = f(skipna=False)
+
+            assert_frame_equal(result.reindex_like(expected), expected)
+
     def test_arg_passthru(self):
         # make sure that we are passing thru kwargs
         # to our agg functions
@@ -1898,7 +2039,7 @@ class TestGroupBy(MixIn, tm.TestCase):
             result = f()
             tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-            result = f(numeric_only=False)
+            result = f(numeric_only=False, skipna=False)
             assert_frame_equal(result.reindex_like(expected), expected)
 
         # TODO: min, max *should* handle
@@ -1912,7 +2053,7 @@ class TestGroupBy(MixIn, tm.TestCase):
             result = f()
             tm.assert_index_equal(result.columns, expected_columns)
 
-            result = f(numeric_only=False)
+            result = f(numeric_only=False, skipna=False)
             tm.assert_index_equal(result.columns, expected_columns)
 
         expected_columns = Index(['int', 'float', 'string',
@@ -1934,7 +2075,7 @@ class TestGroupBy(MixIn, tm.TestCase):
             result = f()
             tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-            result = f(numeric_only=False)
+            result = f(numeric_only=False, skipna=False)
             tm.assert_index_equal(result.columns, expected_columns)
 
         expected_columns = Index(['int', 'float', 'category_int'])
