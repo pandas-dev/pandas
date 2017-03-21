@@ -32,11 +32,6 @@ edit_init
 home_dir=$(pwd)
 echo "[home_dir: $home_dir]"
 
-if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    echo "[install ccache]"
-    time brew install ccache
-fi
-
 # install miniconda
 MINICONDA_DIR="$HOME/miniconda3"
 
@@ -86,6 +81,14 @@ if [ "$USE_CACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
     ccache=$(which ccache)
     echo "[ccache: $ccache]"
     export CC='ccache gcc'
+elif [ "$USE_CACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+    echo "[Using ccache]"
+    time brew install ccache
+    export PATH=/usr/local/opt/ccache/libexec:$PATH
+    gcc=$(which gcc)
+    echo "[gcc: $gcc]"
+    ccache=$(which ccache)
+    echo "[ccache: $ccache]"
 else
     echo "[Not using ccache]"
 fi
