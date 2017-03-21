@@ -824,6 +824,7 @@ Bug Fixes
 - Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
 - Compat with SciPy 0.19.0 for testing on ``.interpolate()`` (:issue:`15662`)
 
+- Compat for 32-bit platforms for ``.qcut/cut``; bins will now be ``in64`` dtype (:issue:`14866`)
 
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 - Bug in ``.replace()`` may result in incorrect dtypes. (:issue:`12747`, :issue:`15765`)
