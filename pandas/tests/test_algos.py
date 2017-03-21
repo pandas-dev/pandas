@@ -10,7 +10,8 @@ from pandas import Series, Categorical, CategoricalIndex, Index
 import pandas as pd
 
 from pandas import compat
-from pandas._libs import algos as libalgos, hashtable
+from pandas._libs import (groupby as libgroupby, algos as libalgos,
+                          hashtable)
 from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange
 import pandas.core.algorithms as algos
@@ -889,7 +890,7 @@ class GroupVarTestMixin(object):
 class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
     __test__ = True
 
-    algo = algos.algos.group_var_float64
+    algo = libgroupby.group_var_float64
     dtype = np.float64
     rtol = 1e-5
 
@@ -912,7 +913,7 @@ class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
 class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
     __test__ = True
 
-    algo = algos.algos.group_var_float32
+    algo = libgroupby.group_var_float32
     dtype = np.float32
     rtol = 1e-2
 

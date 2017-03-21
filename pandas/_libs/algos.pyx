@@ -96,7 +96,6 @@ class NegInfinity(object):
     __ge__ = lambda self, other: self is other
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def is_lexsorted(list list_of_arrays):
@@ -105,28 +104,31 @@ def is_lexsorted(list list_of_arrays):
         Py_ssize_t n, nlevels
         int64_t k, cur, pre
         ndarray arr
+        bint result = True
 
     nlevels = len(list_of_arrays)
     n = len(list_of_arrays[0])
 
     cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
-    for i from 0 <= i < nlevels:
+    for i in range(nlevels):
         arr = list_of_arrays[i]
         vecs[i] = <int64_t*> arr.data
 
     # Assume uniqueness??
-    for i from 1 <= i < n:
-        for k from 0 <= k < nlevels:
-            cur = vecs[k][i]
-            pre = vecs[k][i -1]
-            if cur == pre:
-                continue
-            elif cur > pre:
-                break
-            else:
-                return False
+    with nogil:
+        for i in range(n):
+            for k in range(nlevels):
+                cur = vecs[k][i]
+                pre = vecs[k][i -1]
+                if cur == pre:
+                    continue
+                elif cur > pre:
+                    break
+                else:
+                    result = False
+                    break
     free(vecs)
-    return True
+    return result
 
 
 @cython.boundscheck(False)
@@ -159,15 +161,15 @@ def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
     with nogil:
 
         # count group sizes, location 0 for NA
-        for i from 0 <= i < n:
+        for i in range(n):
             counts[index[i] + 1] += 1
 
         # mark the start of each contiguous group of like-indexed data
-        for i from 1 <= i < ngroups + 1:
+        for i in range(1, ngroups + 1):
             where[i] = where[i - 1] + counts[i - 1]
 
         # this is our indexer
-        for i from 0 <= i < n:
+        for i in range(n):
             label = index[i] + 1
             result[where[label]] = i
             where[label] += 1
@@ -177,10 +179,11 @@ def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k):
+cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k) nogil:
     cdef:
-        Py_ssize_t i, j, l, m, n = a.size
+        Py_ssize_t i, j, l, m, n = a.shape[0]
         numeric x
+
     with nogil:
         l = 0
         m = n - 1
@@ -201,7 +204,7 @@ cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k):
 
             if j < k: l = i
             if k < i: m = j
-        return a[k]
+    return a[k]
 
 
 cpdef numeric median(numeric[:] arr):
@@ -224,6 +227,8 @@ cpdef numeric median(numeric[:] arr):
 
 # -------------- Min, Max subsequence
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def max_subseq(ndarray[double_t] arr):
     cdef:
         Py_ssize_t i=0, s=0, e=0, T, n
@@ -238,21 +243,24 @@ def max_subseq(ndarray[double_t] arr):
     S = m
     T = 0
 
-    for i in range(1, n):
-        # S = max { S + A[i], A[i] )
-        if (S > 0):
-            S = S + arr[i]
-        else:
-            S = arr[i]
-            T = i
-        if S > m:
-            s = T
-            e = i
-            m = S
+    with nogil:
+        for i in range(1, n):
+            # S = max { S + A[i], A[i] )
+            if (S > 0):
+                S = S + arr[i]
+            else:
+                S = arr[i]
+                T = i
+            if S > m:
+                s = T
+                e = i
+                m = S
 
     return (s, e, m)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def min_subseq(ndarray[double_t] arr):
     cdef:
         Py_ssize_t s, e
@@ -268,9 +276,10 @@ def min_subseq(ndarray[double_t] arr):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(ndarray[float64_t, ndim=2] mat, cov=False, minp=None):
+def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
+        bint minpv
         ndarray[float64_t, ndim=2] result
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
@@ -279,46 +288,49 @@ def nancorr(ndarray[float64_t, ndim=2] mat, cov=False, minp=None):
     N, K = (<object> mat).shape
 
     if minp is None:
-        minp = 1
+        minpv = 1
+    else:
+        minpv = <int>minp
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
 
-    for xi in range(K):
-        for yi in range(xi + 1):
-            nobs = sumxx = sumyy = sumx = sumy = 0
-            for i in range(N):
-                if mask[i, xi] and mask[i, yi]:
-                    vx = mat[i, xi]
-                    vy = mat[i, yi]
-                    nobs += 1
-                    sumx += vx
-                    sumy += vy
-
-            if nobs < minp:
-                result[xi, yi] = result[yi, xi] = np.NaN
-            else:
-                meanx = sumx / nobs
-                meany = sumy / nobs
-
-                # now the cov numerator
-                sumx = 0
-
+    with nogil:
+        for xi in range(K):
+            for yi in range(xi + 1):
+                nobs = sumxx = sumyy = sumx = sumy = 0
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
-                        vx = mat[i, xi] - meanx
-                        vy = mat[i, yi] - meany
+                        vx = mat[i, xi]
+                        vy = mat[i, yi]
+                        nobs += 1
+                        sumx += vx
+                        sumy += vy
 
-                        sumx += vx * vy
-                        sumxx += vx * vx
-                        sumyy += vy * vy
-
-                divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
-
-                if divisor != 0:
-                    result[xi, yi] = result[yi, xi] = sumx / divisor
+                if nobs < minpv:
+                    result[xi, yi] = result[yi, xi] = NaN
                 else:
-                    result[xi, yi] = result[yi, xi] = np.NaN
+                    meanx = sumx / nobs
+                    meany = sumy / nobs
+
+                    # now the cov numerator
+                    sumx = 0
+
+                    for i in range(N):
+                        if mask[i, xi] and mask[i, yi]:
+                            vx = mat[i, xi] - meanx
+                            vy = mat[i, yi] - meany
+
+                            sumx += vx * vy
+                            sumxx += vx * vx
+                            sumyy += vy * vy
+
+                    divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
+
+                    if divisor != 0:
+                        result[xi, yi] = result[yi, xi] = sumx / divisor
+                    else:
+                        result[xi, yi] = result[yi, xi] = NaN
 
     return result
 
@@ -351,7 +363,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
                     nobs += 1
 
             if nobs < minp:
-                result[xi, yi] = result[yi, xi] = np.NaN
+                result[xi, yi] = result[yi, xi] = NaN
             else:
                 maskedx = np.empty(nobs, dtype=np.float64)
                 maskedy = np.empty(nobs, dtype=np.float64)
@@ -382,7 +394,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
                 if divisor != 0:
                     result[xi, yi] = result[yi, xi] = sumx / divisor
                 else:
-                    result[xi, yi] = result[yi, xi] = np.NaN
+                    result[xi, yi] = result[yi, xi] = NaN
 
     return result
 

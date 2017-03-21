@@ -16,7 +16,7 @@ from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
 from libc.stdlib cimport malloc, free
 
 from util cimport numeric, get_nat
-from algos cimport kth_smallest, kth_smallest_c
+from algos cimport swap
 from algos import take_2d_axis1_float64_float64, groupsort_indexer
 
 cdef int64_t iNaT = get_nat()
@@ -219,7 +219,7 @@ def group_last_bin_object(ndarray[object, ndim=2] out,
                 out[i, j] = resx[i, j]
 
 
-cdef inline float64_t _median_linear(float64_t* a, int n):
+cdef inline float64_t _median_linear(float64_t* a, int n) nogil:
     cdef int i, j, na_count = 0
     cdef float64_t result
     cdef float64_t* tmp
@@ -257,6 +257,34 @@ cdef inline float64_t _median_linear(float64_t* a, int n):
         free(a)
 
     return result
+
+
+cdef inline float64_t kth_smallest_c(float64_t* a,
+                                     Py_ssize_t k,
+                                     Py_ssize_t n) nogil:
+    cdef:
+        Py_ssize_t i, j, l, m
+        double_t x, t
+
+    l = 0
+    m = n -1
+    while (l<m):
+        x = a[k]
+        i = l
+        j = m
+
+        while 1:
+            while a[i] < x: i += 1
+            while x < a[j]: j -= 1
+            if i <= j:
+                swap(&a[i], &a[j])
+                i += 1; j -= 1
+
+            if i > j: break
+
+        if j < k: l = i
+        if k < i: m = j
+    return a[k]
 
 
 # generated from template
