@@ -14,18 +14,18 @@ function edit_init()
     fi
 }
 
-echo .
+echo
 echo "[install_travis]"
 edit_init
 
 home_dir=$(pwd)
-echo .
+echo
 echo "[home_dir]: $home_dir"
 
 # install miniconda
 MINICONDA_DIR="$HOME/miniconda3"
 
-echo .
+echo
 echo "[Using clean Miniconda install]"
 
 if [ -d "$MINICONDA_DIR" ]; then
@@ -40,17 +40,17 @@ else
 fi
 time bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
-echo .
+echo
 echo "[show conda]"
 which conda
 
-echo .
+echo
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
 conda config --set always_yes true --set changeps1 false || exit 1
 conda update -q conda
 
-echo .
+echo
 echo "[add channels]"
 # add the pandas channel to take priority
 # to add extra packages
@@ -67,7 +67,7 @@ fi
 conda info -a || exit 1
 
 # set the compiler cache to work
-echo .
+echo
 if [ "$USE_CACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
     echo "[Using ccache]"
     export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
@@ -88,7 +88,7 @@ else
     echo "[Not using ccache]"
 fi
 
-echo .
+echo
 echo "[create env]"
 
 # may have installation instructions for this build
@@ -102,7 +102,7 @@ else
 fi
 
 # build deps
-echo .
+echo
 echo "[build installs]"
 REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.build"
 if [ -e ${REQ} ]; then
@@ -110,7 +110,7 @@ if [ -e ${REQ} ]; then
 fi
 
 # may have addtl installation instructions for this build
-echo .
+echo
 echo "[build addtl installs]"
 REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.build.sh"
 if [ -e ${REQ} ]; then
@@ -130,7 +130,7 @@ if [ "$COVERAGE" ]; then
     pip install coverage pytest-cov
 fi
 
-echo .
+echo
 if [ "$BUILD_TEST" ]; then
 
     # build & install testing
@@ -150,7 +150,7 @@ else
 fi
 
 # we may have run installations
-echo .
+echo
 echo "[conda installs]"
 REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.run"
 if [ -e ${REQ} ]; then
@@ -158,7 +158,7 @@ if [ -e ${REQ} ]; then
 fi
 
 # we may have additional pip installs
-echo .
+echo
 echo "[pip installs]"
 REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.pip"
 if [ -e ${REQ} ]; then
@@ -166,7 +166,7 @@ if [ -e ${REQ} ]; then
 fi
 
 # may have addtl installation instructions for this build
-echo .
+echo
 echo "[addtl installs]"
 REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.sh"
 if [ -e ${REQ} ]; then
@@ -178,17 +178,17 @@ if [ -z "$BUILD_TEST" ]; then
 
     # remove any installed pandas package
     # w/o removing anything else
-    echo .
+    echo
     echo "[removing installed pandas]"
     conda remove pandas --force
 
     # install our pandas
-    echo .
+    echo
     echo "[running setup.py develop]"
     python setup.py develop  || exit 1
 
 fi
 
-echo .
+echo
 echo "[done]"
 exit 0
