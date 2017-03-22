@@ -105,6 +105,8 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
         elif not is_list_like(result):
             return result
 
+        result = np.asarray(result)
+
         # blow up if we operate on categories
         if self.orig is not None:
             result = take_1d(result, self.orig.cat.codes)

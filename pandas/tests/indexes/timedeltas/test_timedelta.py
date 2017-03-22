@@ -424,7 +424,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
                               freq='s')
         expt = [1 * 86400 + 10 * 3600 + 11 * 60 + 12 + 100123456. / 1e9,
                 1 * 86400 + 10 * 3600 + 11 * 60 + 13 + 100123456. / 1e9]
-        tm.assert_almost_equal(rng.total_seconds(), np.array(expt))
+        tm.assert_almost_equal(rng.total_seconds(), Index(expt))
 
         # test Series
         s = Series(rng)
@@ -486,16 +486,16 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     def test_fields(self):
         rng = timedelta_range('1 days, 10:11:12.100123456', periods=2,
                               freq='s')
-        self.assert_numpy_array_equal(rng.days, np.array(
-            [1, 1], dtype='int64'))
-        self.assert_numpy_array_equal(
+        self.assert_index_equal(rng.days, Index([1, 1], dtype='int64'))
+        self.assert_index_equal(
             rng.seconds,
-            np.array([10 * 3600 + 11 * 60 + 12, 10 * 3600 + 11 * 60 + 13],
-                     dtype='int64'))
-        self.assert_numpy_array_equal(rng.microseconds, np.array(
-            [100 * 1000 + 123, 100 * 1000 + 123], dtype='int64'))
-        self.assert_numpy_array_equal(rng.nanoseconds, np.array(
-            [456, 456], dtype='int64'))
+            Index([10 * 3600 + 11 * 60 + 12, 10 * 3600 + 11 * 60 + 13],
+                  dtype='int64'))
+        self.assert_index_equal(
+            rng.microseconds,
+            Index([100 * 1000 + 123, 100 * 1000 + 123], dtype='int64'))
+        self.assert_index_equal(rng.nanoseconds,
+                                Index([456, 456], dtype='int64'))
 
         self.assertRaises(AttributeError, lambda: rng.hours)
         self.assertRaises(AttributeError, lambda: rng.minutes)
@@ -508,6 +508,10 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         tm.assert_series_equal(s.dt.days, Series([1, np.nan], index=[0, 1]))
         tm.assert_series_equal(s.dt.seconds, Series(
             [10 * 3600 + 11 * 60 + 12, np.nan], index=[0, 1]))
+
+        # preserve name (GH15589)
+        rng.name = 'name'
+        assert rng.days.name == 'name'
 
     def test_freq_conversion(self):
 

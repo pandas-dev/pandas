@@ -172,6 +172,7 @@ class TestTimeSeries(tm.TestCase):
 class TestDatetime64(tm.TestCase):
 
     def test_datetimeindex_accessors(self):
+
         dti_naive = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
                                   periods=365)
         # GH 13303
@@ -255,6 +256,34 @@ class TestDatetime64(tm.TestCase):
             self.assertEqual(len(dti.is_year_end), 365)
             self.assertEqual(len(dti.weekday_name), 365)
 
+            dti.name = 'name'
+
+            # non boolean accessors -> return Index
+            for accessor in ['year', 'month', 'day', 'hour', 'minute',
+                             'second', 'microsecond', 'nanosecond',
+                             'dayofweek', 'dayofyear', 'weekofyear',
+                             'quarter', 'weekday_name']:
+                res = getattr(dti, accessor)
+                assert len(res) == 365
+                assert isinstance(res, Index)
+                assert res.name == 'name'
+
+            # boolean accessors -> return array
+            for accessor in ['is_month_start', 'is_month_end',
+                             'is_quarter_start', 'is_quarter_end',
+                             'is_year_start', 'is_year_end']:
+                res = getattr(dti, accessor)
+                assert len(res) == 365
+                assert isinstance(res, np.ndarray)
+
+            # test boolean indexing
+            res = dti[dti.is_quarter_start]
+            exp = dti[[0, 90, 181, 273]]
+            tm.assert_index_equal(res, exp)
+            res = dti[dti.is_leap_year]
+            exp = DatetimeIndex([], freq='D', tz=dti.tz, name='name')
+            tm.assert_index_equal(res, exp)
+
         dti = DatetimeIndex(freq='BQ-FEB', start=datetime(1998, 1, 1),
                             periods=4)
 
@@ -313,5 +342,5 @@ class TestDatetime64(tm.TestCase):
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
 
-        self.assert_numpy_array_equal(dti.nanosecond,
-                                      np.arange(10, dtype=np.int32))
+        self.assert_index_equal(dti.nanosecond,
+                                pd.Index(np.arange(10, dtype=np.int64)))
