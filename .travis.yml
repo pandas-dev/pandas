@@ -177,8 +177,6 @@ matrix:
         - USE_CACHE=true
 
 before_install:
-  - echo "Checking to see if this build is outdated"
-  - ci/travis_fast_finish.py || { echo "Failing outdated build to end it."; exit 1; }
   - echo "before_install"
   - source ci/travis_process_gbq_encryption.sh
   - export PATH="$HOME/miniconda3/bin:$PATH"
