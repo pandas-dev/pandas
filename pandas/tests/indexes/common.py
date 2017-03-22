@@ -121,7 +121,6 @@ class Base(object):
             idx.get_indexer(idx, method='invalid')
 
     def test_ndarray_compat_properties(self):
-
         idx = self.create_index()
         self.assertTrue(idx.T.equals(idx))
         self.assertTrue(idx.transpose().equals(idx))
