@@ -10,7 +10,7 @@ import numpy as np
 from pandas.types.common import (_ensure_platform_int,
                                  is_list_like, is_bool_dtype,
                                  needs_i8_conversion)
-from pandas.types.cast import _maybe_promote
+from pandas.types.cast import maybe_promote
 from pandas.types.missing import notnull
 import pandas.types.concat as _concat
 
@@ -202,7 +202,7 @@ class _Unstacker(object):
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
         else:
-            dtype, fill_value = _maybe_promote(values.dtype, self.fill_value)
+            dtype, fill_value = maybe_promote(values.dtype, self.fill_value)
             new_values = np.empty(result_shape, dtype=dtype)
             new_values.fill(fill_value)
 

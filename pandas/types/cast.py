@@ -32,7 +32,7 @@ _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
 
 
-def _possibly_convert_platform(values):
+def maybe_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
 
     if isinstance(values, (list, tuple)):
@@ -45,7 +45,7 @@ def _possibly_convert_platform(values):
     return values
 
 
-def _possibly_downcast_to_dtype(result, dtype):
+def maybe_downcast_to_dtype(result, dtype):
     """ try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
@@ -142,7 +142,7 @@ def _possibly_downcast_to_dtype(result, dtype):
     return result
 
 
-def _maybe_upcast_putmask(result, mask, other):
+def maybe_upcast_putmask(result, mask, other):
     """
     A safe version of putmask that potentially upcasts the result
 
@@ -193,7 +193,7 @@ def _maybe_upcast_putmask(result, mask, other):
 
             # we are forced to change the dtype of the result as the input
             # isn't compatible
-            r, _ = _maybe_upcast(result, fill_value=other, copy=True)
+            r, _ = maybe_upcast(result, fill_value=other, copy=True)
             np.place(r, mask, other)
 
             return r, True
@@ -203,7 +203,7 @@ def _maybe_upcast_putmask(result, mask, other):
         # upcast (possibly), otherwise we DON't want to upcast (e.g. if we
         # have values, say integers, in the success portion then it's ok to not
         # upcast)
-        new_dtype, _ = _maybe_promote(result.dtype, other)
+        new_dtype, _ = maybe_promote(result.dtype, other)
         if new_dtype != result.dtype:
 
             # we have a scalar or len 0 ndarray
@@ -227,7 +227,7 @@ def _maybe_upcast_putmask(result, mask, other):
     return result, False
 
 
-def _maybe_promote(dtype, fill_value=np.nan):
+def maybe_promote(dtype, fill_value=np.nan):
 
     # if we passed an array here, determine the fill value by dtype
     if isinstance(fill_value, np.ndarray):
@@ -312,7 +312,7 @@ def _maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def _infer_dtype_from_scalar(val, pandas_dtype=False):
+def infer_dtype_from_scalar(val, pandas_dtype=False):
     """
     interpret the dtype from a scalar
 
@@ -387,7 +387,7 @@ def _infer_dtype_from_scalar(val, pandas_dtype=False):
     return dtype, val
 
 
-def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
+def maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     """ provide explict type promotion and coercion
 
     Parameters
@@ -404,7 +404,7 @@ def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     else:
         if dtype is None:
             dtype = values.dtype
-        new_dtype, fill_value = _maybe_promote(dtype, fill_value)
+        new_dtype, fill_value = maybe_promote(dtype, fill_value)
         if new_dtype != values.dtype:
             values = values.astype(new_dtype)
         elif copy:
@@ -413,7 +413,7 @@ def _maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     return values, fill_value
 
 
-def _possibly_cast_item(obj, item, dtype):
+def maybe_cast_item(obj, item, dtype):
     chunk = obj[item]
 
     if chunk.values.dtype != dtype:
@@ -423,7 +423,7 @@ def _possibly_cast_item(obj, item, dtype):
             raise ValueError("Unexpected dtype encountered: %s" % dtype)
 
 
-def _invalidate_string_dtypes(dtype_set):
+def invalidate_string_dtypes(dtype_set):
     """Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
     """
@@ -432,7 +432,7 @@ def _invalidate_string_dtypes(dtype_set):
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 
 
-def _maybe_convert_string_to_object(values):
+def maybe_convert_string_to_object(values):
     """
 
     Convert string-like and string-like array to convert object dtype.
@@ -446,13 +446,13 @@ def _maybe_convert_string_to_object(values):
     return values
 
 
-def _maybe_convert_scalar(values):
+def maybe_convert_scalar(values):
     """
     Convert a python scalar to the appropriate numpy dtype if possible
     This avoids numpy directly converting according to platform preferences
     """
     if is_scalar(values):
-        dtype, values = _infer_dtype_from_scalar(values)
+        dtype, values = infer_dtype_from_scalar(values)
         try:
             values = dtype(values)
         except TypeError:
@@ -460,7 +460,7 @@ def _maybe_convert_scalar(values):
     return values
 
 
-def _coerce_indexer_dtype(indexer, categories):
+def coerce_indexer_dtype(indexer, categories):
     """ coerce the indexer input array to the smallest dtype possible """
     l = len(categories)
     if l < _int8_max:
@@ -472,7 +472,7 @@ def _coerce_indexer_dtype(indexer, categories):
     return _ensure_int64(indexer)
 
 
-def _coerce_to_dtypes(result, dtypes):
+def coerce_to_dtypes(result, dtypes):
     """
     given a dtypes and a result set, coerce the result elements to the
     dtypes
@@ -507,7 +507,7 @@ def _coerce_to_dtypes(result, dtypes):
     return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
 
 
-def _astype_nansafe(arr, dtype, copy=True):
+def astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
         need to be very careful as the result shape could change! """
     if not isinstance(dtype, np.dtype):
@@ -564,8 +564,8 @@ def _astype_nansafe(arr, dtype, copy=True):
     return arr.view(dtype)
 
 
-def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True,
-                              convert_timedeltas=True, copy=True):
+def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
+                          convert_timedeltas=True, copy=True):
     """ if we have an object dtype, try to coerce dates and/or numbers """
 
     # if we have passed in a list or scalar
@@ -579,8 +579,8 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True,
 
         # we take an aggressive stance and convert to datetime64[ns]
         if convert_dates == 'coerce':
-            new_values = _possibly_cast_to_datetime(values, 'M8[ns]',
-                                                    errors='coerce')
+            new_values = maybe_cast_to_datetime(
+                values, 'M8[ns]', errors='coerce')
 
             # if we are all nans then leave me alone
             if not isnull(new_values).all():
@@ -627,8 +627,8 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True,
     return values
 
 
-def _soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
-                          coerce=False, copy=True):
+def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
+                         coerce=False, copy=True):
     """ if we have an object dtype, try to coerce dates and/or numbers """
 
     conversion_count = sum((datetime, numeric, timedelta))
@@ -683,7 +683,7 @@ def _soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
     return values
 
 
-def _possibly_castable(arr):
+def maybe_castable(arr):
     # return False to force a non-fastpath
 
     # check datetime64[ns]/timedelta64[ns] are valid
@@ -695,7 +695,7 @@ def _possibly_castable(arr):
     return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
 
 
-def _possibly_infer_to_datetimelike(value, convert_dates=False):
+def maybe_infer_to_datetimelike(value, convert_dates=False):
     """
     we might have a array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
@@ -788,7 +788,7 @@ def _possibly_infer_to_datetimelike(value, convert_dates=False):
     return value
 
 
-def _possibly_cast_to_datetime(value, dtype, errors='raise'):
+def maybe_cast_to_datetime(value, dtype, errors='raise'):
     """ try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
@@ -886,12 +886,12 @@ def _possibly_cast_to_datetime(value, dtype, errors='raise'):
         # conversion
         elif not (is_array and not (issubclass(value.dtype.type, np.integer) or
                                     value.dtype == np.object_)):
-            value = _possibly_infer_to_datetimelike(value)
+            value = maybe_infer_to_datetimelike(value)
 
     return value
 
 
-def _find_common_type(types):
+def find_common_type(types):
     """
     Find a common data type among the given dtypes.
 

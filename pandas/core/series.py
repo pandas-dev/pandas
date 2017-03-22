@@ -29,9 +29,9 @@ from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
                                  _is_unorderable_exception,
                                  _ensure_platform_int)
 from pandas.types.generic import ABCSparseArray, ABCDataFrame
-from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
-                               _possibly_convert_platform,
-                               _possibly_cast_to_datetime, _possibly_castable)
+from pandas.types.cast import (maybe_upcast, infer_dtype_from_scalar,
+                               maybe_convert_platform,
+                               maybe_cast_to_datetime, maybe_castable)
 from pandas.types.missing import isnull, notnull
 
 from pandas.core.common import (is_bool_indexer,
@@ -2794,7 +2794,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
         if mask.any():
-            data, fill_value = _maybe_upcast(data, copy=True)
+            data, fill_value = maybe_upcast(data, copy=True)
             data[mask] = fill_value
         else:
             data = data.copy()
@@ -2803,11 +2803,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         # perf shortcut as this is the most common case
         if take_fast_path:
-            if _possibly_castable(arr) and not copy and dtype is None:
+            if maybe_castable(arr) and not copy and dtype is None:
                 return arr
 
         try:
-            subarr = _possibly_cast_to_datetime(arr, dtype)
+            subarr = maybe_cast_to_datetime(arr, dtype)
             if not is_extension_type(subarr):
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
@@ -2863,9 +2863,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = lib.maybe_convert_objects(subarr)
 
         else:
-            subarr = _possibly_convert_platform(data)
+            subarr = maybe_convert_platform(data)
 
-        subarr = _possibly_cast_to_datetime(subarr, dtype)
+        subarr = maybe_cast_to_datetime(subarr, dtype)
 
     else:
         subarr = _try_cast(data, False)
@@ -2894,10 +2894,10 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
             # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-                dtype, value = _infer_dtype_from_scalar(value)
+                dtype, value = infer_dtype_from_scalar(value)
             else:
                 # need to possibly convert the value here
-                value = _possibly_cast_to_datetime(value, dtype)
+                value = maybe_cast_to_datetime(value, dtype)
 
             subarr = create_from_value(value, index, dtype)
 

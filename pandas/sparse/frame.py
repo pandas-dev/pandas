@@ -11,7 +11,7 @@ from pandas import compat
 import numpy as np
 
 from pandas.types.missing import isnull, notnull
-from pandas.types.cast import _maybe_upcast, _find_common_type
+from pandas.types.cast import maybe_upcast, find_common_type
 from pandas.types.common import _ensure_platform_int, is_scipy_sparse
 
 from pandas.core.common import _try_sort
@@ -250,7 +250,7 @@ class SparseDataFrame(DataFrame):
         except ImportError:
             raise ImportError('Scipy is not installed')
 
-        dtype = _find_common_type(self.dtypes)
+        dtype = find_common_type(self.dtypes)
         cols, rows, datas = [], [], []
         for col, name in enumerate(self):
             s = self[name]
@@ -635,7 +635,7 @@ class SparseDataFrame(DataFrame):
                 new = new.values
                 # convert integer to float if necessary. need to do a lot
                 # more than that, handle boolean etc also
-                new, fill_value = _maybe_upcast(new, fill_value=fill_value)
+                new, fill_value = maybe_upcast(new, fill_value=fill_value)
                 np.putmask(new, mask, fill_value)
 
             new_series[col] = new

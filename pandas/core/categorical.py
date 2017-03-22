@@ -10,8 +10,8 @@ from pandas._libs import lib, algos as libalgos
 
 from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
 from pandas.types.missing import isnull, notnull
-from pandas.types.cast import (_possibly_infer_to_datetimelike,
-                               _coerce_indexer_dtype)
+from pandas.types.cast import (maybe_infer_to_datetimelike,
+                               coerce_indexer_dtype)
 from pandas.types.dtypes import CategoricalDtype
 from pandas.types.common import (_ensure_int64,
                                  _ensure_object,
@@ -237,7 +237,7 @@ class Categorical(PandasObject):
 
         if fastpath:
             # fast path
-            self._codes = _coerce_indexer_dtype(values, categories)
+            self._codes = coerce_indexer_dtype(values, categories)
             self._categories = self._validate_categories(
                 categories, fastpath=isinstance(categories, ABCIndexClass))
             self._ordered = ordered
@@ -266,8 +266,7 @@ class Categorical(PandasObject):
             # correctly no need here this is an issue because _sanitize_array
             # also coerces np.nan to a string under certain versions of numpy
             # as well
-            values = _possibly_infer_to_datetimelike(values,
-                                                     convert_dates=True)
+            values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
                 from pandas.core.series import _sanitize_array
@@ -324,7 +323,7 @@ class Categorical(PandasObject):
 
         self.set_ordered(ordered or False, inplace=True)
         self._categories = categories
-        self._codes = _coerce_indexer_dtype(codes, categories)
+        self._codes = coerce_indexer_dtype(codes, categories)
 
     @property
     def _constructor(self):
@@ -877,7 +876,7 @@ class Categorical(PandasObject):
         new_categories = list(self._categories) + list(new_categories)
         cat = self if inplace else self.copy()
         cat._categories = self._validate_categories(new_categories)
-        cat._codes = _coerce_indexer_dtype(cat._codes, new_categories)
+        cat._codes = coerce_indexer_dtype(cat._codes, new_categories)
         if not inplace:
             return cat
 
@@ -961,7 +960,7 @@ class Categorical(PandasObject):
             idx, inv = idx[1:], inv - 1
 
         cat._categories = cat.categories.take(idx)
-        cat._codes = _coerce_indexer_dtype(inv, self._categories)
+        cat._codes = coerce_indexer_dtype(inv, self._categories)
 
         if not inplace:
             return cat
@@ -1065,8 +1064,8 @@ class Categorical(PandasObject):
             state['_categories'] = self._validate_categories(state.pop(
                 '_levels'))
         if '_codes' not in state and 'labels' in state:
-            state['_codes'] = _coerce_indexer_dtype(state.pop('labels'),
-                                                    state['_categories'])
+            state['_codes'] = coerce_indexer_dtype(
+                state.pop('labels'), state['_categories'])
 
         # 0.16.0 ordered change
         if '_ordered' not in state:
@@ -2062,7 +2061,7 @@ def _get_codes_for_values(values, categories):
     (_, _), cats = _get_data_algo(categories, _hashtables)
     t = hash_klass(len(cats))
     t.map_locations(cats)
-    return _coerce_indexer_dtype(t.lookup(vals), cats)
+    return coerce_indexer_dtype(t.lookup(vals), cats)
 
 
 def _convert_to_list_like(list_like):

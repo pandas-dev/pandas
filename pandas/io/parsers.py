@@ -21,7 +21,7 @@ from pandas.types.common import (is_integer, _ensure_object,
                                  is_object_dtype, is_string_dtype,
                                  is_scalar, is_categorical_dtype)
 from pandas.types.missing import isnull
-from pandas.types.cast import _astype_nansafe
+from pandas.types.cast import astype_nansafe
 from pandas.core.index import Index, MultiIndex, RangeIndex
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
@@ -1498,11 +1498,11 @@ class ParserBase(object):
             # c-parser which parses all categories
             # as strings
             if not is_object_dtype(values):
-                values = _astype_nansafe(values, str)
+                values = astype_nansafe(values, str)
             values = Categorical(values)
         else:
             try:
-                values = _astype_nansafe(values, cast_type, copy=True)
+                values = astype_nansafe(values, cast_type, copy=True)
             except ValueError:
                 raise ValueError("Unable to convert column %s to "
                                  "type %s" % (column, cast_type))

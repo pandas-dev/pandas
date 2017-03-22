@@ -2445,7 +2445,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance)
 
-        pself, ptarget = self._possibly_promote(target)
+        pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer(ptarget, method=method, limit=limit,
                                      tolerance=tolerance)
@@ -2572,7 +2572,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = _ensure_index(target)
-        pself, ptarget = self._possibly_promote(target)
+        pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
@@ -2595,7 +2595,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
-    def _possibly_promote(self, other):
+    def _maybe_promote(self, other):
         # A hack, but it works
         from pandas.tseries.index import DatetimeIndex
         if self.inferred_type == 'date' and isinstance(other, DatetimeIndex):

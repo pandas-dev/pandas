@@ -33,7 +33,7 @@ from pandas.types.common import (needs_i8_conversion,
                                  is_list_like,
                                  is_scalar,
                                  _ensure_object)
-from pandas.types.cast import _maybe_upcast_putmask, _find_common_type
+from pandas.types.cast import maybe_upcast_putmask, find_common_type
 from pandas.types.generic import ABCSeries, ABCIndex, ABCPeriodIndex
 
 # -----------------------------------------------------------------------------
@@ -657,7 +657,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                           raise_on_error=True, **eval_kwargs)
         except TypeError:
             if isinstance(y, (np.ndarray, ABCSeries, pd.Index)):
-                dtype = _find_common_type([x.dtype, y.dtype])
+                dtype = find_common_type([x.dtype, y.dtype])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notnull(x) & notnull(y)
                 result[mask] = op(x[mask], _values_from_object(y[mask]))
@@ -670,7 +670,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                 "{op}".format(typ=type(x).__name__,
                                               op=str_rep))
 
-            result, changed = _maybe_upcast_putmask(result, ~mask, np.nan)
+            result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
 
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
@@ -1204,7 +1204,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                                 "objects of type {x} and {y}".format(
                                     op=name, x=type(x), y=type(y)))
 
-            result, changed = _maybe_upcast_putmask(result, ~mask, np.nan)
+            result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
             result = result.reshape(x.shape)
 
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
@@ -1329,7 +1329,7 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
             result = np.empty(len(x), dtype=x.dtype)
             mask = notnull(x)
             result[mask] = op(x[mask], y)
-            result, changed = _maybe_upcast_putmask(result, ~mask, np.nan)
+            result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
 
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
