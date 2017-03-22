@@ -471,6 +471,38 @@ New Behavior:
 
    s.map(lambda x: x.hour)
 
+
+.. _whatsnew_0200.api_breaking.index_dt_field:
+
+Accessing datetime fields of Index now return Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The datetime-related attributes (see :ref:`here <timeseries.components>`
+for an overview) of ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex`` previously
+returned numpy arrays. They will now return a new ``Index`` object, except
+in the case of a boolean field, where the result will stil be a boolean ndarray. (:issue:`15022`)
+
+Previous behaviour:
+
+.. code-block:: ipython
+
+    In [1]: idx = pd.date_range("2015-01-01", periods=5, freq='10H')
+
+    In [2]: idx.hour
+    Out[2]: array([ 0, 10, 20,  6, 16], dtype=int32)
+
+New Behavior:
+
+.. ipython:: python
+
+    idx = pd.date_range("2015-01-01", periods=5, freq='10H')
+    idx.hour
+
+This has the advantage that specific ``Index`` methods are still available on the
+result. On the other hand, this might have backward incompatibilities: e.g.
+compared to numpy arrays, ``Index`` objects are not mutable. To get the original
+ndarray, you can always convert explicitly using ``np.asarray(idx.hour)``.
+
 .. _whatsnew_0200.api_breaking.s3:
 
 S3 File Handling
@@ -936,4 +968,3 @@ Bug Fixes
 - Bug in ``pd.melt()`` where passing a tuple value for ``value_vars`` caused a ``TypeError`` (:issue:`15348`)
 - Bug in ``.eval()`` which caused multiline evals to fail with local variables not on the first line (:issue:`15342`)
 - Bug in ``pd.read_msgpack`` which did not allow to load dataframe with an index of type ``CategoricalIndex`` (:issue:`15487`)
-
