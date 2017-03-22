@@ -815,6 +815,7 @@ Bug Fixes
 - Bug in ``pd.read_fwf`` where the skiprows parameter was not being respected during column width inference (:issue:`11256`)
 - Bug in ``pd.read_csv()`` in which missing data was being improperly handled with ``usecols`` (:issue:`6710`)
 - Bug in ``pd.read_csv()`` in which a file containing a row with many columns followed by rows with fewer columns would cause a crash (:issue:`14125`)
+- Added checks in ``pd.read_csv()`` ensuring that values for ``nrows`` and ``chunksize`` are valid (:issue:`15767`)
 - Bug in ``pd.tools.hashing.hash_pandas_object()`` in which hashing of categoricals depended on the ordering of categories, instead of just their values. (:issue:`15143`)
 - Bug in ``.groupby(..).resample()`` when passed the ``on=`` kwarg. (:issue:`15021`)
 - Bug in using ``__deepcopy__`` on empty NDFrame objects (:issue:`15370`)
