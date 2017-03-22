@@ -21,28 +21,27 @@ class UnsupportedFunctionCall(ValueError):
 
 
 class UnsortedIndexError(KeyError):
-    """ Error raised when attempting to get a slice of a MultiIndex
+    """
+    Error raised when attempting to get a slice of a MultiIndex
     and the index has not been lexsorted. Subclass of `KeyError`.
 
     .. versionadded:: 0.20.0
 
     """
-    pass
 
 
 class ParserError(ValueError):
     """
     Exception that is thrown by an error is encountered in `pd.read_csv`
     """
-    pass
 
 
 class DtypeWarning(Warning):
     """
-    Warning that is raised whenever `pd.read_csv` encounters non-
+    Warning that is raised for a dtype incompatiblity. This is
+    can happen whenever `pd.read_csv` encounters non-
     uniform dtypes in a column(s) of a given CSV file
     """
-    pass
 
 
 class EmptyDataError(ValueError):
@@ -50,7 +49,6 @@ class EmptyDataError(ValueError):
     Exception that is thrown in `pd.read_csv` (by both the C and
     Python engines) when empty data or header is encountered
     """
-    pass
 
 
 class ParserWarning(Warning):
@@ -60,4 +58,3 @@ class ParserWarning(Warning):
     one specified by the user due to lack of support or functionality for
     parsing particular attributes of a CSV file with the requsted engine
     """
-    pass
