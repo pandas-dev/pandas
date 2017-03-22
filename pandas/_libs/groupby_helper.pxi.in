@@ -681,6 +681,8 @@ def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 #----------------------------------------------------------------------
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def group_median_float64(ndarray[float64_t, ndim=2] out,
                          ndarray[int64_t] counts,
                          ndarray[float64_t, ndim=2] values,
@@ -704,13 +706,15 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 
     take_2d_axis1_float64_float64(values.T, indexer, out=data)
 
-    for i in range(K):
-        # exclude NA group
-        ptr += _counts[0]
-        for j in range(ngroups):
-            size = _counts[j + 1]
-            out[j, i] = _median_linear(ptr, size)
-            ptr += size
+    with nogil:
+
+        for i in range(K):
+            # exclude NA group
+            ptr += _counts[0]
+            for j in range(ngroups):
+                size = _counts[j + 1]
+                out[j, i] = _median_linear(ptr, size)
+                ptr += size
 
 
 @cython.boundscheck(False)

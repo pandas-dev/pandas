@@ -7,8 +7,7 @@ from pandas.types.common import _ensure_int64
 from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
-import pandas._libs.lib as lib
-import pandas._libs.algos as algos
+from pandas._libs import lib, groupby
 
 
 def test_series_grouper():
@@ -92,7 +91,7 @@ def test_group_ohlc():
         labels = _ensure_int64(np.repeat(np.arange(3),
                                          np.diff(np.r_[0, bins])))
 
-        func = getattr(algos, 'group_ohlc_%s' % dtype)
+        func = getattr(groupby, 'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], labels)
 
         def _ohlc(group):
