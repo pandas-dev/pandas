@@ -3385,6 +3385,34 @@ class TestRollingTS(tm.TestCase):
         result = df.rolling('2s', min_periods=1).sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_closed(self):
+        df = DataFrame({'A': [1]*5},
+                        index = [pd.Timestamp('20130101 09:00:01'),
+                                 pd.Timestamp('20130101 09:00:02'),
+                                 pd.Timestamp('20130101 09:00:03'),
+                                 pd.Timestamp('20130101 09:00:04'),
+                                 pd.Timestamp('20130101 09:00:06')])
+
+        expected = df.copy()
+        expected["A"] = [1.0, 2, 2, 2, 1]
+        result = df.rolling('2s', closed='right').sum()
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.copy()
+        expected["A"] = [1.0, 2, 3, 3, 2]
+        result = df.rolling('2s', closed='both').sum()
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.copy()
+        expected["A"] = [np.nan, 1.0, 2, 2, 1]
+        result = df.rolling('2s', closed='left').sum()
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.copy()
+        expected["A"] = [np.nan, 1.0, 1, 1, np.nan]
+        result = df.rolling('2s', closed='left').sum()
+        tm.assert_frame_equal(result, expected)
+
     def test_ragged_sum(self):
 
         df = self.ragged

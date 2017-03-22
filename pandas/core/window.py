@@ -56,11 +56,12 @@ pandas.DataFrame.%(name)s
 
 class _Window(PandasObject, SelectionMixin):
     _attributes = ['window', 'min_periods', 'freq', 'center', 'win_type',
-                   'axis', 'on']
+                   'axis', 'on', 'closed']
     exclusions = set()
 
     def __init__(self, obj, window=None, min_periods=None, freq=None,
-                 center=False, win_type=None, axis=0, on=None, **kwargs):
+                 center=False, win_type=None, axis=0, on=None, closed='right',
+                 **kwargs):
 
         if freq is not None:
             warnings.warn("The freq kw is deprecated and will be removed in a "
@@ -71,6 +72,7 @@ class _Window(PandasObject, SelectionMixin):
         self.blocks = []
         self.obj = obj
         self.on = on
+        self.closed = closed
         self.window = window
         self.min_periods = min_periods
         self.freq = freq
@@ -101,6 +103,9 @@ class _Window(PandasObject, SelectionMixin):
         if self.min_periods is not None and not \
            is_integer(self.min_periods):
             raise ValueError("min_periods must be an integer")
+        if self.closed not in ['right', 'both', 'left', 'neither']:
+            raise ValueError("closed must be 'right', 'left', 'both' or "
+                             "'neither'")
 
     def _convert_freq(self, how=None):
         """ resample according to the how, return a new object """
@@ -374,8 +379,12 @@ class Window(_Window):
     on : string, optional
         For a DataFrame, column on which to calculate
         the rolling window, rather than the index
+    closed : 'right', 'left', 'both', 'neither'
+        For offset-based windows, make the interval closed on the right, left,
+        or on both endpoints. Can also make the interval open on both endpoints
+        (neither).
 
-        .. versionadded:: 0.19.0
+        .. versionadded:: 0.20.0
 
     axis : int or string, default 0
 
@@ -717,12 +726,12 @@ class _Rolling(_Window):
                     raise ValueError("we do not support this function "
                                      "in _window.{0}".format(func))
 
-                def func(arg, window, min_periods=None):
+                def func(arg, window, min_periods=None, closed=None):
                     minp = check_minp(min_periods, window)
                     # ensure we are only rolling on floats
                     arg = _ensure_float64(arg)
                     return cfunc(arg,
-                                 window, minp, indexi, **kwargs)
+                                 window, minp, indexi, closed, **kwargs)
 
             # calculation function
             if center:
@@ -731,11 +740,13 @@ class _Rolling(_Window):
 
                 def calc(x):
                     return func(np.concatenate((x, additional_nans)),
-                                window, min_periods=self.min_periods)
+                                window, min_periods=self.min_periods,
+                                closed=self.closed)
             else:
 
                 def calc(x):
-                    return func(x, window, min_periods=self.min_periods)
+                    return func(x, window, min_periods=self.min_periods,
+                                closed=self.closed)
 
             with np.errstate(all='ignore'):
                 if values.ndim > 1:
@@ -788,12 +799,13 @@ class _Rolling_and_Expanding(_Rolling):
         window = self._get_window()
         offset = _offset(window, self.center)
         index, indexi = self._get_index()
+        closed = self.closed
 
         def f(arg, window, min_periods):
             minp = _use_window(min_periods, window)
             return _window.roll_generic(arg, window, minp, indexi,
                                         offset, func, args,
-                                        kwargs)
+                                        kwargs, closed)
 
         return self._apply(f, func, args=args, kwargs=kwargs,
                            center=False)

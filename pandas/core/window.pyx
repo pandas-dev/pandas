@@ -161,7 +161,7 @@ cdef class MockFixedWindowIndexer(WindowIndexer):
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 object index=None, object floor=None):
+                 object index=None, object floor=None, closed='right'):
 
         assert index is None
         self.is_variable = 0
@@ -194,7 +194,7 @@ cdef class FixedWindowIndexer(WindowIndexer):
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 object index=None, object floor=None):
+                 object index=None, object floor=None, closed='right'):
         cdef ndarray start_s, start_e, end_s, end_e
 
         assert index is None
@@ -244,15 +244,27 @@ cdef class VariableWindowIndexer(WindowIndexer):
         self.end = np.empty(self.N, dtype='int64')
         self.end.fill(-1)
 
-        self.build(index, win)
-
-        # max window size
-        self.win = (self.end - self.start).max()
+        cdef:
+            bint leftIsClosed = False
+            bint rightIsClosed = False
 
         if closed not in ['right', 'left', 'both', 'neither']:
             closed = 'right'
 
-    def build(self, ndarray[int64_t] index, int64_t win):
+        if closed in ['right', 'both']:
+            rightIsClosed = True
+
+        if closed in ['left', 'both']:
+            leftIsClosed = True
+
+        self.build(index, win, leftIsClosed, rightIsClosed)
+
+        # max window size
+        self.win = (self.end - self.start).max()
+
+
+    def build(self, ndarray[int64_t] index, int64_t win, bint leftIsClosed,
+                    bint rightIsClosed):
 
         cdef:
             ndarray[int64_t] start, end
@@ -264,7 +276,8 @@ cdef class VariableWindowIndexer(WindowIndexer):
         N = self.N
 
         start[0] = 0
-        if closed in ['right', 'both']:
+        #if closed in ['right', 'both']:
+        if rightIsClosed:
             end[0] = 1
         else:
             end[0] = 0
@@ -277,7 +290,8 @@ cdef class VariableWindowIndexer(WindowIndexer):
                 end_bound = index[i]
                 start_bound = index[i] - win
 
-                if closed in ['left', 'both']:
+                #if closed in ['left', 'both']:
+                if leftIsClosed:
                     start_bound -= 1
 
                 # advance the start bound until we are
@@ -295,12 +309,13 @@ cdef class VariableWindowIndexer(WindowIndexer):
                 else:
                     end[i] = end[i - 1]
 
-                if closed in ['left', 'neither']:
-                end[i] -= 1
+                #if closed in ['left', 'neither']:
+                if not rightIsClosed:
+                    end[i] -= 1
 
 
 def get_window_indexer(input, win, minp, index, floor=None,
-                       use_mock=True):
+                       use_mock=True, closed='right'):
     """
     return the correct window indexer for the computation
 
@@ -319,6 +334,7 @@ def get_window_indexer(input, win, minp, index, floor=None,
         compat Indexer that allows us to use a standard
         code path with all of the indexers.
 
+
     Returns
     -------
     tuple of 1d int64 ndarrays of the offsets & data about the window
@@ -326,11 +342,11 @@ def get_window_indexer(input, win, minp, index, floor=None,
     """
 
     if index is not None:
-        indexer = VariableWindowIndexer(input, win, minp, index)
+        indexer = VariableWindowIndexer(input, win, minp, index, closed)
     elif use_mock:
-        indexer = MockFixedWindowIndexer(input, win, minp, index, floor)
+        indexer = MockFixedWindowIndexer(input, win, minp, index, floor, closed)
     else:
-        indexer = FixedWindowIndexer(input, win, minp, index, floor)
+        indexer = FixedWindowIndexer(input, win, minp, index, floor, closed)
     return indexer.get_data()
 
 # ----------------------------------------------------------------------
@@ -339,7 +355,7 @@ def get_window_indexer(input, win, minp, index, floor=None,
 
 
 def roll_count(ndarray[double_t] input, int64_t win, int64_t minp,
-               object index):
+               object index, closed='right'):
     cdef:
         double val, count_x = 0.0
         int64_t s, e, nobs, N
@@ -348,7 +364,7 @@ def roll_count(ndarray[double_t] input, int64_t win, int64_t minp,
         ndarray[double_t] output
 
     start, end, N, win, minp, _ = get_window_indexer(input, win,
-                                                     minp, index)
+                                                     minp, index, closed)
     output = np.empty(N, dtype=float)
 
     with nogil:
@@ -420,7 +436,7 @@ cdef inline void remove_sum(double val, int64_t *nobs, double *sum_x) nogil:
 
 
 def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
-             object index):
+             object index, closed='right'):
     cdef:
         double val, prev_x, sum_x = 0
         int64_t s, e
@@ -430,7 +446,8 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
         ndarray[double_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
-                                                               minp, index)
+                                                               minp, index,
+                                                               closed)
     output = np.empty(N, dtype=float)
 
     # for performance we are going to iterate
@@ -535,7 +552,7 @@ cdef inline void remove_mean(double val, Py_ssize_t *nobs, double *sum_x,
 
 
 def roll_mean(ndarray[double_t] input, int64_t win, int64_t minp,
-              object index):
+              object index, closed='right'):
     cdef:
         double val, prev_x, result, sum_x = 0
         int64_t s, e
@@ -545,7 +562,8 @@ def roll_mean(ndarray[double_t] input, int64_t win, int64_t minp,
         ndarray[double_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
-                                                               minp, index)
+                                                               minp, index,
+                                                               closed)
     output = np.empty(N, dtype=float)
 
     # for performance we are going to iterate
@@ -659,7 +677,7 @@ cdef inline void remove_var(double val, double *nobs, double *mean_x,
 
 
 def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
-             object index, int ddof=1):
+             object index, closed='right', int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
@@ -672,7 +690,8 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
         ndarray[double_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
-                                                               minp, index)
+                                                               minp, index,
+                                                               closed)
     output = np.empty(N, dtype=float)
 
     # Check for windows larger than array, addresses #7297
@@ -801,7 +820,7 @@ cdef inline void remove_skew(double val, int64_t *nobs, double *x, double *xx,
 
 
 def roll_skew(ndarray[double_t] input, int64_t win, int64_t minp,
-              object index):
+              object index, closed='right'):
     cdef:
         double val, prev
         double x = 0, xx = 0, xxx = 0
@@ -812,7 +831,8 @@ def roll_skew(ndarray[double_t] input, int64_t win, int64_t minp,
         ndarray[double_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
-                                                               minp, index)
+                                                               minp, index,
+                                                               closed)
     output = np.empty(N, dtype=float)
 
     if is_variable:
@@ -928,7 +948,7 @@ cdef inline void remove_kurt(double val, int64_t *nobs, double *x, double *xx,
 
 
 def roll_kurt(ndarray[double_t] input, int64_t win, int64_t minp,
-              object index):
+              object index, closed='right'):
     cdef:
         double val, prev
         double x = 0, xx = 0, xxx = 0, xxxx = 0
@@ -939,7 +959,8 @@ def roll_kurt(ndarray[double_t] input, int64_t win, int64_t minp,
         ndarray[double_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
-                                                               minp, index)
+                                                               minp, index,
+                                                               closed)
     output = np.empty(N, dtype=float)
 
     if is_variable:
@@ -997,7 +1018,7 @@ def roll_kurt(ndarray[double_t] input, int64_t win, int64_t minp,
 
 
 def roll_median_c(ndarray[float64_t] input, int64_t win, int64_t minp,
-                  object index):
+                  object index, closed='right'):
     cdef:
         double val, res, prev
         bint err=0, is_variable
@@ -1014,7 +1035,7 @@ def roll_median_c(ndarray[float64_t] input, int64_t win, int64_t minp,
     start, end, N, win, minp, is_variable = get_window_indexer(
         input, win,
         minp, index,
-        use_mock=False)
+        use_mock=False, closed=closed)
     output = np.empty(N, dtype=float)
 
     sl = skiplist_init(<int>win)
@@ -1123,7 +1144,7 @@ cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
 
 
 def roll_max(ndarray[numeric] input, int64_t win, int64_t minp,
-             object index):
+             object index, closed='right'):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1135,12 +1156,15 @@ def roll_max(ndarray[numeric] input, int64_t win, int64_t minp,
           is below this, output a NaN
     index: ndarray, optional
        index for window computation
+    closed: 'right', 'left', 'both', 'neither'
+            make the interval closed on the right, left,
+            both or neither endpoints
     """
-    return _roll_min_max(input, win, minp, index, is_max=1)
+    return _roll_min_max(input, win, minp, index, is_max=1, closed=closed)
 
 
 def roll_min(ndarray[numeric] input, int64_t win, int64_t minp,
-             object index):
+             object index, closed='right'):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1153,11 +1177,11 @@ def roll_min(ndarray[numeric] input, int64_t win, int64_t minp,
     index: ndarray, optional
        index for window computation
     """
-    return _roll_min_max(input, win, minp, index, is_max=0)
+    return _roll_min_max(input, win, minp, index, is_max=0, closed=closed)
 
 
 cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
-                   object index, bint is_max):
+                   object index, bint is_max, closed='right'):
     """
     Moving min/max of 1d array of any numeric type along axis=0
     ignoring NaNs.
@@ -1182,7 +1206,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
     starti, endi, N, win, minp, is_variable = get_window_indexer(
         input, win,
-        minp, index)
+        minp, index, closed=closed)
 
     output = np.empty(N, dtype=input.dtype)
 
@@ -1284,7 +1308,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
 
 def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
-                  int64_t minp, object index, double quantile):
+                  int64_t minp, object index, double quantile, closed='right'):
     """
     O(N log(window)) implementation using skip list
     """
@@ -1305,7 +1329,7 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
     start, end, N, win, minp, is_variable = get_window_indexer(
         input, win,
         minp, index,
-        use_mock=False)
+        use_mock=False, closed=closed)
     output = np.empty(N, dtype=float)
     skiplist = IndexableSkiplist(win)
 
@@ -1349,7 +1373,7 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
 def roll_generic(ndarray[float64_t, cast=True] input,
                  int64_t win, int64_t minp, object index,
                  int offset, object func,
-                 object args, object kwargs):
+                 object args, object kwargs, closed='right'):
     cdef:
         ndarray[double_t] output, counts, bufarr
         float64_t *buf
@@ -1367,12 +1391,13 @@ def roll_generic(ndarray[float64_t, cast=True] input,
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
                                                                minp, index,
-                                                               floor=0)
+                                                               floor=0,
+                                                               closed=closed)
     output = np.empty(N, dtype=float)
 
     counts = roll_sum(np.concatenate([np.isfinite(input).astype(float),
                                       np.array([0.] * offset)]),
-                      win, minp, index)[offset:]
+                      win, minp, index, closed)[offset:]
 
     if is_variable:
 
