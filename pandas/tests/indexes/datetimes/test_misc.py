@@ -260,7 +260,7 @@ class TestDatetime64(tm.TestCase):
 
             # non boolean accessors -> return Index
             for accessor in ['year', 'month', 'day', 'hour', 'minute',
-                             'second',  'microsecond', 'nanosecond',
+                             'second', 'microsecond', 'nanosecond',
                              'dayofweek', 'dayofyear', 'weekofyear',
                              'quarter', 'weekday_name']:
                 res = getattr(dti, accessor)

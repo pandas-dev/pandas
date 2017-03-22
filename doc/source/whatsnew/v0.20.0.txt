@@ -472,14 +472,16 @@ New Behavior:
    s.map(lambda x: x.hour)
 
 
+.. _whatsnew_0200.api_breaking.index_dt_field:
+
 Accessing datetime fields of Index now return Index
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The several datetime-related attributes (see :ref:`here <timeseries.components>`
-for an overview) of DatetimeIndex, PeriodIndex and TimedeltaIndex previously
+for an overview) of ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex`` previously
 returned numpy arrays, now they will return a new Index object (:issue:`15022`).
-Only in case of a boolean field, still a boolean array is returned to support
-boolean indexing.
+Only in the case of a boolean field, a the return value is still a boolean array
+instead of an Index (to support boolean indexing).
 
 Previous behaviour:
 
