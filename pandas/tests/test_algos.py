@@ -648,7 +648,9 @@ class TestValueCounts(tm.TestCase):
         expected = Series([1, 1], index=[-1, 2**63])
         result = algos.value_counts(arr)
 
-        tm.assert_series_equal(result, expected)
+        # 32-bit linux has a different ordering
+        if not compat.is_platform_32bit():
+            tm.assert_series_equal(result, expected)
 
 
 class TestDuplicated(tm.TestCase):
