@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 from numpy.random import randn
 from datetime import timedelta
@@ -6,7 +8,7 @@ import pandas as pd
 from pandas.util import testing as tm
 from pandas import (PeriodIndex, period_range, notnull, DatetimeIndex, NaT,
                     Index, Period, Int64Index, Series, DataFrame, date_range,
-                    offsets)
+                    offsets, compat)
 
 from ..datetimelike import DatetimeLike
 
@@ -625,6 +627,11 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
                                 '2011-05'], freq='M', name='idx')
         tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
+
+    def test_ndarray_compat_properties(self):
+        if compat.is_platform_32bit():
+            pytest.skip("skipping on 32bit")
+        super(TestPeriodIndex, self).test_ndarray_compat_properties()
 
     def test_shift_ndarray(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
