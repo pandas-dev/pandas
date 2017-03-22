@@ -136,7 +136,7 @@ can find yourself working with hierarchically-indexed data without creating a
 may wish to generate your own ``MultiIndex`` when preparing the data set.
 
 Note that how the index is displayed by be controlled using the
-``multi_sparse`` option in ``pandas.set_printoptions``:
+``multi_sparse`` option in ``pandas.set_options()``:
 
 .. ipython:: python
 
@@ -288,7 +288,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....),:]
+      df.loc[(slice('A1','A3'),.....), :]
 
    rather than this:
 
@@ -317,43 +317,43 @@ Basic multi-index slicing using slices, lists, and labels.
 
 .. ipython:: python
 
-   dfmi.loc[(slice('A1','A3'),slice(None), ['C1','C3']),:]
+   dfmi.loc[(slice('A1','A3'), slice(None), ['C1', 'C3']), :]
 
 You can use a ``pd.IndexSlice`` to have a more natural syntax using ``:`` rather than using ``slice(None)``
 
 .. ipython:: python
 
    idx = pd.IndexSlice
-   dfmi.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+   dfmi.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
 
 It is possible to perform quite complicated selections using this method on multiple
 axes at the same time.
 
 .. ipython:: python
 
-   dfmi.loc['A1',(slice(None),'foo')]
-   dfmi.loc[idx[:,:,['C1','C3']],idx[:,'foo']]
+   dfmi.loc['A1', (slice(None), 'foo')]
+   dfmi.loc[idx[:, :, ['C1', 'C3']], idx[:, 'foo']]
 
 Using a boolean indexer you can provide selection related to the *values*.
 
 .. ipython:: python
 
-   mask = dfmi[('a','foo')]>200
-   dfmi.loc[idx[mask,:,['C1','C3']],idx[:,'foo']]
+   mask = dfmi[('a', 'foo')] > 200
+   dfmi.loc[idx[mask, :, ['C1', 'C3']], idx[:, 'foo']]
 
 You can also specify the ``axis`` argument to ``.loc`` to interpret the passed
 slicers on a single axis.
 
 .. ipython:: python
 
-   dfmi.loc(axis=0)[:,:,['C1','C3']]
+   dfmi.loc(axis=0)[:, :, ['C1', 'C3']]
 
 Furthermore you can *set* the values using these methods
 
 .. ipython:: python
 
    df2 = dfmi.copy()
-   df2.loc(axis=0)[:,:,['C1','C3']] = -10
+   df2.loc(axis=0)[:, :, ['C1', 'C3']] = -10
    df2
 
 You can use a right-hand-side of an alignable object as well.
@@ -361,7 +361,7 @@ You can use a right-hand-side of an alignable object as well.
 .. ipython:: python
 
    df2 = dfmi.copy()
-   df2.loc[idx[:,:,['C1','C3']],:] = df2*1000
+   df2.loc[idx[:, :, ['C1', 'C3']], :] = df2 * 1000
    df2
 
 .. _advanced.xs:

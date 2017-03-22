@@ -1175,10 +1175,14 @@ class MultiIndex(Index):
 
     def _reconstruct(self, sort=False, remove_unused=False):
         """
-        reconstruct the MultiIndex
+        create a new MultiIndex from the current to provide either:
+          - monotonically sorted items IN the levels
+          - removing unused levels (meaning that they are not expressed
+            in the labels)
 
-        The MultiIndex will have the same outward appearance (e.g. values)
-        and will also .equals()
+        The resulting MultiIndex will have the same outward
+        appearance, meaning the same .values and ordering. It will also
+        be .equals() to the original.
 
         Parameters
         ----------
@@ -1189,7 +1193,7 @@ class MultiIndex(Index):
 
         Returns
         -------
-        MultiIndex
+        new MultiIndex
 
         """
 
