@@ -464,11 +464,9 @@ def str_repeat(arr, repeats):
         return result
 
 
-def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
+def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     """
-    Deprecated: Find groups in each string in the Series/Index
-    using passed regular expression.
-    If as_indexer=True, determine if each string matches a regular expression.
+    Determine if each string matches a regular expression.
 
     Parameters
     ----------
@@ -479,60 +477,37 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer : False, by default, gives deprecated behavior better achieved
-        using str_extract. True return boolean indexer.
+    as_indexer : ignored and deprecated
 
     Returns
     -------
     Series/array of boolean values
-        if as_indexer=True
-    Series/Index of tuples
-        if as_indexer=False, default but deprecated
 
     See Also
     --------
     contains : analogous, but less strict, relying on re.search instead of
         re.match
-    extract : now preferred to the deprecated usage of match (as_indexer=False)
+    extract : extract matched groups
 
-    Notes
-    -----
-    To extract matched groups, which is the deprecated behavior of match, use
-    str.extract.
     """
-
     if not case:
         flags |= re.IGNORECASE
 
     regex = re.compile(pat, flags=flags)
 
-    if (not as_indexer) and regex.groups > 0:
-        # Do this first, to make sure it happens even if the re.compile
-        # raises below.
-        warnings.warn("In future versions of pandas, match will change to"
-                      " always return a bool indexer.", FutureWarning,
-                      stacklevel=3)
+    if (as_indexer is False) and (regex.groups > 0):
+        raise ValueError("as_indexer=False with a pattern with groups is no "
+                         "longer supported. Use '.str.extract(pat)' instead")
+    elif as_indexer is not None:
+        # Previously, this keyword was used for changing the default but
+        # deprecated behaviour. This keyword is now no longer needed.
+        warnings.warn("'as_indexer' keyword was specified but is ignored "
+                      "(match now returns a boolean indexer by default), "
+                      "and will be removed in a future version.",
+                      FutureWarning, stacklevel=3)
 
-    if as_indexer and regex.groups > 0:
-        warnings.warn("This pattern has match groups. To actually get the"
-                      " groups, use str.extract.", UserWarning, stacklevel=3)
-
-    # If not as_indexer and regex.groups == 0, this returns empty lists
-    # and is basically useless, so we will not warn.
-
-    if (not as_indexer) and regex.groups > 0:
-        dtype = object
-
-        def f(x):
-            m = regex.match(x)
-            if m:
-                return m.groups()
-            else:
-                return []
-    else:
-        # This is the new behavior of str_match.
-        dtype = bool
-        f = lambda x: bool(regex.match(x))
+    dtype = bool
+    f = lambda x: bool(regex.match(x))
 
     return _na_map(f, arr, na, dtype=dtype)
 
@@ -1587,7 +1562,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_match)
-    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=False):
+    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
         result = str_match(self._data, pat, case=case, flags=flags, na=na,
                            as_indexer=as_indexer)
         return self._wrap_result(result)
