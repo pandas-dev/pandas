@@ -1,18 +1,6 @@
 #!/bin/bash
 
-# There are 2 distinct pieces that get zipped and cached
-# - The venv site-packages dir including the installed dependencies
-# - The pandas build artifacts, using the build cache support via
-#   scripts/use_build_cache.py
-#
-# if the user opted in to use the cache and we're on a whitelisted fork
-# - if the server doesn't hold a cached version of venv/pandas build,
-#   do things the slow way, and put the results on the cache server
-#   for the next time.
-# -  if the cache files are available, instal some necessaries via apt
-#    (no compiling needed), then directly goto script and collect 200$.
-#
-
+# edit the locale file if needed
 function edit_init()
 {
     if [ -n "$LOCALE_OVERRIDE" ]; then
