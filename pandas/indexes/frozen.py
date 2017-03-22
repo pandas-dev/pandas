@@ -10,7 +10,7 @@ These are used for:
 
 import numpy as np
 from pandas.core.base import PandasObject
-from pandas.types.cast import _coerce_indexer_dtype
+from pandas.types.cast import coerce_indexer_dtype
 from pandas.formats.printing import pprint_thing
 
 
@@ -119,7 +119,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
 
 def _ensure_frozen(array_like, categories, copy=False):
-    array_like = _coerce_indexer_dtype(array_like, categories)
+    array_like = coerce_indexer_dtype(array_like, categories)
     array_like = array_like.view(FrozenNDArray)
     if copy:
         array_like = array_like.copy()

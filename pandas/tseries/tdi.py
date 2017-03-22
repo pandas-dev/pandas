@@ -623,7 +623,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             left_chunk = left.values[lslice]
             return self._shallow_copy(left_chunk)
 
-    def _possibly_promote(self, other):
+    def _maybe_promote(self, other):
         if other.inferred_type == 'timedelta':
             other = TimedeltaIndex(other)
         return self, other

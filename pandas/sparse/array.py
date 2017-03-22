@@ -22,8 +22,8 @@ from pandas.types.common import (_ensure_platform_int,
                                  is_list_like,
                                  is_string_dtype,
                                  is_scalar, is_dtype_equal)
-from pandas.types.cast import (_possibly_convert_platform, _maybe_promote,
-                               _astype_nansafe, _find_common_type)
+from pandas.types.cast import (maybe_convert_platform, maybe_promote,
+                               astype_nansafe, find_common_type)
 from pandas.types.missing import isnull, notnull, na_value_for_dtype
 
 from pandas.sparse import libsparse as splib
@@ -93,7 +93,7 @@ def _sparse_array_op(left, right, op, name, series=False):
 
     # dtype used to find corresponding sparse method
     if not is_dtype_equal(left.dtype, right.dtype):
-        dtype = _find_common_type([left.dtype, right.dtype])
+        dtype = find_common_type([left.dtype, right.dtype])
         left = left.astype(dtype)
         right = right.astype(dtype)
     else:
@@ -370,7 +370,7 @@ class SparseArray(PandasObject, np.ndarray):
         if not is_scalar(value):
             raise ValueError('fill_value must be a scalar')
         # if the specified value triggers type promotion, raise ValueError
-        new_dtype, fill_value = _maybe_promote(self.dtype, value)
+        new_dtype, fill_value = maybe_promote(self.dtype, value)
         if is_dtype_equal(self.dtype, new_dtype):
             self._fill_value = fill_value
         else:
@@ -532,7 +532,7 @@ class SparseArray(PandasObject, np.ndarray):
 
     def astype(self, dtype=None, copy=True):
         dtype = np.dtype(dtype)
-        sp_values = _astype_nansafe(self.sp_values, dtype, copy=copy)
+        sp_values = astype_nansafe(self.sp_values, dtype, copy=copy)
         try:
             if is_bool_dtype(dtype):
                 # to avoid np.bool_ dtype
@@ -736,7 +736,7 @@ def _sanitize_values(arr):
             pass
 
         elif is_list_like(arr) and len(arr) > 0:
-            arr = _possibly_convert_platform(arr)
+            arr = maybe_convert_platform(arr)
 
         else:
             arr = np.asarray(arr)

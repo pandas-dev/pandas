@@ -7,7 +7,7 @@ from warnings import warn
 import numpy as np
 
 from pandas import compat, _np_version_under1p8
-from pandas.types.cast import _maybe_promote
+from pandas.types.cast import maybe_promote
 from pandas.types.generic import ABCSeries, ABCIndex
 from pandas.types.common import (is_unsigned_integer_dtype,
                                  is_signed_integer_dtype,
@@ -1297,7 +1297,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         else:
             # check for promotion based on types only (do this first because
             # it's faster than computing a mask)
-            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
+            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 if mask_info is not None:
@@ -1380,7 +1380,7 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
         else:
             # check for promotion based on types only (do this first because
             # it's faster than computing a mask)
-            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
+            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 if mask_info is not None:
