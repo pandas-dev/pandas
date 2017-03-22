@@ -1151,7 +1151,7 @@ def assert_series_equal(left, right, check_dtype=True,
         Whether to compare number exactly.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
-    check_dateteimelike_compat : bool, default False
+    check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
@@ -1264,7 +1264,7 @@ def assert_frame_equal(left, right, check_dtype=True,
         If True, compare by blocks.
     check_exact : bool, default False
         Whether to compare number exactly.
-    check_dateteimelike_compat : bool, default False
+    check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
