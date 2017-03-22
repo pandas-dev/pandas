@@ -477,6 +477,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
+    as_indexer : ignored and deprecated
 
     Returns
     -------
@@ -500,9 +501,10 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     elif as_indexer is not None:
         # Previously, this keyword was used for changing the default but
         # deprecated behaviour. This keyword is now no longer needed.
-        warnings.warn("'as_indexer' keyword was specified but will be ignored;"
-                      " match now returns a boolean indexer by default.",
-                      UserWarning, stacklevel=3)
+        warnings.warn("'as_indexer' keyword was specified but is ignored "
+                      "(match now returns a boolean indexer by default), "
+                      "and will be removed in a future version.",
+                      FutureWarning, stacklevel=3)
 
     dtype = bool
     f = lambda x: bool(regex.match(x))

@@ -574,13 +574,13 @@ class TestStringMethods(tm.TestCase):
         # test passing as_indexer still works but is ignored
         values = Series(['fooBAD__barBAD', NA, 'foo'])
         exp = Series([True, NA, False])
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             result = values.str.match('.*BAD[_]+.*BAD', as_indexer=True)
         tm.assert_series_equal(result, exp)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             result = values.str.match('.*BAD[_]+.*BAD', as_indexer=False)
         tm.assert_series_equal(result, exp)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
         tm.assert_series_equal(result, exp)
         self.assertRaises(ValueError, values.str.match, '.*(BAD[_]+).*(BAD)',
