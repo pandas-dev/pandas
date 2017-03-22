@@ -5141,7 +5141,8 @@ class JoinUnit(object):
         if not self.needs_filling:
             return self.block.dtype
         else:
-            return _get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])
+            return _get_dtype(maybe_promote(self.block.dtype,
+                                            self.block.fill_value)[0])
 
         return self._dtype
 

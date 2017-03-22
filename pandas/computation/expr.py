@@ -383,7 +383,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     def _maybe_evaluate_binop(self, op, op_class, lhs, rhs,
                               eval_in_python=('in', 'not in'),
                               maybe_eval_in_python=('==', '!=', '<', '>',
-                                                       '<=', '>=')):
+                                                    '<=', '>=')):
         res = op(lhs, rhs)
 
         if res.has_invalid_return_type:
