@@ -761,6 +761,12 @@ Other API Changes
 - ``Series.sort_values()`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values()`` (:issue:`15604`)
 - ``.merge()`` and ``.join()`` on ``category`` dtype columns will now preserve the category dtype when possible (:issue:`10409`)
 - ``SparseDataFrame.default_fill_value`` will be 0, previously was ``nan`` in the return from ``pd.get_dummies(..., sparse=True)`` (:issue:`15594`)
+- The default behaviour of ``Series.str.match`` has changed from extracting
+  groups to matching the pattern. The extracting behaviour was deprecated
+  since pandas version 0.13.0 and can be done with the ``Series.str.extract``
+  method (:issue:`5224`). As a consequence, the ``as_indexer`` keyword is
+  ignored (no longer needed to specify the new behaviour) and is deprecated.
+
 
 .. _whatsnew_0200.deprecations:
 
@@ -777,6 +783,7 @@ Deprecations
 - ``Series.sortlevel`` and ``DataFrame.sortlevel`` have been deprecated in favor of ``Series.sort_index`` and ``DataFrame.sort_index`` (:issue:`15099`)
 - importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
+- The ``as_indexer`` keyword of ``Series.str.match()`` has been deprecated (ignored keyword) (:issue:`15257`).
 - The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`)
   * ``pd.pnow()``, replaced by ``Period.now()``
   * ``pd.Term``, is removed, as it is not applicable to user code. Instead use in-line string expressions in the where clause when searching in HDFStore
