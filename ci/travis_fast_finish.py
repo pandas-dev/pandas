@@ -66,6 +66,7 @@ def main():
     pr = os.environ["TRAVIS_PULL_REQUEST"]
     pr = None if pr == "false" else int(pr)
     build_num = int(os.environ["TRAVIS_BUILD_NUMBER"])
+
     print("checking for fast_finish: {}-{}-{}".format(repo, pr, build_num))
 
     return int(check_latest_pr_build(repo, pr, build_num) is False)
