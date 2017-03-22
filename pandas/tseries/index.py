@@ -64,6 +64,7 @@ def _field_accessor(name, field, docstring=None):
             if self.tz is not utc:
                 values = self._local_timestamps()
 
+        # boolean accessors -> return array
         if field in ['is_month_start', 'is_month_end',
                      'is_quarter_start', 'is_quarter_end',
                      'is_year_start', 'is_year_end']:
@@ -73,14 +74,15 @@ def _field_accessor(name, field, docstring=None):
 
             result = libts.get_start_end_field(values, field, self.freqstr,
                                                month_kw)
-            result = self._maybe_mask_results(result, convert='float64')
+            return self._maybe_mask_results(result, convert='float64')
+        elif field in ['is_leap_year']:
+            # no need to mask NaT
+            return libts.get_date_field(values, field)
 
+        # non-boolean accessors -> return Index
         elif field in ['weekday_name']:
             result = libts.get_date_name_field(values, field)
             result = self._maybe_mask_results(result)
-        elif field in ['is_leap_year']:
-            # no need to mask NaT
-            result = libts.get_date_field(values, field)
         else:
             result = libts.get_date_field(values, field)
             result = self._maybe_mask_results(result, convert='float64')

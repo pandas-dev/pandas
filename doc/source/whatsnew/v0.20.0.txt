@@ -478,6 +478,8 @@ Accessing datetime fields of Index now return Index
 The several datetime-related attributes (see :ref:`here <timeseries.components>`
 for an overview) of DatetimeIndex, PeriodIndex and TimedeltaIndex previously
 returned numpy arrays, now they will return a new Index object (:issue:`15022`).
+Only in case of a boolean field, still a boolean array is returned to support
+boolean indexing.
 
 Previous behaviour:
 
@@ -498,7 +500,7 @@ New Behavior:
 This has the advantage that specific Index methods are still available on the
 result. On the other hand, this might have backward incompatibilities: e.g.
 compared to numpy arrays, Index objects are not mutable (values cannot be set
-by indexing). To get the original result, you can convert to a nunpy array
+by indexing). To get the original result, you can convert to a numpy array
 explicitly using ``np.asarray(idx.hour)``.
 
 .. _whatsnew_0200.api_breaking.s3:

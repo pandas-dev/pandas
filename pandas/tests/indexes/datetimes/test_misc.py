@@ -172,7 +172,7 @@ class TestTimeSeries(tm.TestCase):
 class TestDatetime64(tm.TestCase):
 
     def test_datetimeindex_accessors(self):
-<<<<<<< f2831e2a2074e27e5cd3cfc0728d989742ee4680
+
         dti_naive = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
                                   periods=365)
         # GH 13303
@@ -258,16 +258,31 @@ class TestDatetime64(tm.TestCase):
 
             dti.name = 'name'
 
-            for accessor in ['year', 'month', 'day', 'hour', 'minute', 'second',
-                             'microsecond', 'nanosecond', 'dayofweek', 'dayofyear',
-                             'weekofyear', 'quarter',
-                             'is_month_start', 'is_month_end',
-                             'is_quarter_start', 'is_quarter_end',
-                             'is_year_start', 'is_year_end', 'weekday_name']:
+            # non boolean accessors -> return Index
+            for accessor in ['year', 'month', 'day', 'hour', 'minute',
+                             'second',  'microsecond', 'nanosecond',
+                             'dayofweek', 'dayofyear', 'weekofyear',
+                             'quarter', 'weekday_name']:
                 res = getattr(dti, accessor)
-                self.assertEqual(len(res), 365)
-                self.assertIsInstance(res, Index)
-                self.assertEqual(res.name, 'name')
+                assert len(res) == 365
+                assert isinstance(res, Index)
+                assert res.name == 'name'
+
+            # boolean accessors -> return array
+            for accessor in ['is_month_start', 'is_month_end',
+                             'is_quarter_start', 'is_quarter_end',
+                             'is_year_start', 'is_year_end']:
+                res = getattr(dti, accessor)
+                assert len(res) == 365
+                assert isinstance(res, np.ndarray)
+
+            # test boolean indexing
+            res = dti[dti.is_quarter_start]
+            exp = dti[[0, 90, 181, 273]]
+            tm.assert_index_equal(res, exp)
+            res = dti[dti.is_leap_year]
+            exp = DatetimeIndex([], freq='D', tz=dti.tz, name='name')
+            tm.assert_index_equal(res, exp)
 
         dti = DatetimeIndex(freq='BQ-FEB', start=datetime(1998, 1, 1),
                             periods=4)

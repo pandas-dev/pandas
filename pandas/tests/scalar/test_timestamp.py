@@ -597,14 +597,25 @@ class TestTimestamp(tm.TestCase):
     def test_nat_vector_field_access(self):
         idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
 
+        # non boolean fields
         fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
                   'second', 'microsecond', 'nanosecond', 'week', 'dayofyear',
-                  'days_in_month', 'is_leap_year']
+                  'days_in_month']
 
         for field in fields:
             result = getattr(idx, field)
             expected = [getattr(x, field) for x in idx]
             self.assert_index_equal(result, pd.Index(expected))
+
+        # boolean fields
+        fields = ['is_leap_year']
+        # other boolean fields like 'is_month_start' and 'is_month_end'
+        # not yet supported by NaT
+
+        for field in fields:
+            result = getattr(idx, field)
+            expected = [getattr(x, field) for x in idx]
+            self.assert_numpy_array_equal(result, np.array(expected))
 
         s = pd.Series(idx)
 
