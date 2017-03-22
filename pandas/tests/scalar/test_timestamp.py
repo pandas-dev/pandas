@@ -7,22 +7,18 @@ import numpy as np
 from datetime import datetime, timedelta
 from distutils.version import LooseVersion
 
-import pandas as pd
 import pandas.util.testing as tm
-
 from pandas.tseries import offsets, frequencies
 from pandas._libs import tslib, period
-from pandas._libs.tslib import get_timezone, iNaT
+from pandas._libs.tslib import get_timezone
 
 from pandas.compat import lrange, long
 from pandas.util.testing import assert_series_equal
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (Timestamp, date_range, Period, Timedelta, compat,
-                    Series, NaT, isnull, DataFrame, DatetimeIndex)
+                    Series, NaT, DataFrame, DatetimeIndex)
 from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
                                         RESO_MS, RESO_SEC)
-
-randn = np.random.randn
 
 
 class TestTimestamp(tm.TestCase):
@@ -202,8 +198,6 @@ class TestTimestamp(tm.TestCase):
             repr(Timestamp(2015, 11, 12, 1, 2, 3, 999999)),
             repr(Timestamp('2015-11-12 01:02:03.999999')))
 
-        self.assertIs(Timestamp(None), pd.NaT)
-
     def test_constructor_keyword(self):
         # GH 10758
         with tm.assertRaises(TypeError):
@@ -235,7 +229,7 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(base.toordinal(), ts.toordinal())
 
         ts = Timestamp.fromordinal(base.toordinal(), tz='US/Eastern')
-        self.assertEqual(pd.Timestamp('2000-01-01', tz='US/Eastern'), ts)
+        self.assertEqual(Timestamp('2000-01-01', tz='US/Eastern'), ts)
         self.assertEqual(base.toordinal(), ts.toordinal())
 
     def test_constructor_offset_depr(self):
@@ -260,7 +254,7 @@ class TestTimestamp(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             ts = Timestamp.fromordinal(base.toordinal(), offset='D')
-        self.assertEqual(pd.Timestamp('2000-01-01'), ts)
+        self.assertEqual(Timestamp('2000-01-01'), ts)
         self.assertEqual(ts.freq, 'D')
         self.assertEqual(base.toordinal(), ts.toordinal())
 
@@ -422,12 +416,12 @@ class TestTimestamp(tm.TestCase):
             self.assertRaises(NonExistentTimeError, ts.tz_localize,
                               tz, errors='raise')
             self.assertIs(ts.tz_localize(tz, errors='coerce'),
-                          pd.NaT)
+                          NaT)
 
     def test_tz_localize_errors_ambiguous(self):
         # See issue 13057
         from pytz.exceptions import AmbiguousTimeError
-        ts = pd.Timestamp('2015-11-1 01:00')
+        ts = Timestamp('2015-11-1 01:00')
         self.assertRaises(AmbiguousTimeError,
                           ts.tz_localize, 'US/Pacific', errors='coerce')
 
@@ -576,94 +570,6 @@ class TestTimestamp(tm.TestCase):
         for end in ends:
             self.assertTrue(getattr(ts, end))
 
-    def test_nat_fields(self):
-        # GH 10050
-        ts = Timestamp('NaT')
-        self.assertTrue(np.isnan(ts.year))
-        self.assertTrue(np.isnan(ts.month))
-        self.assertTrue(np.isnan(ts.day))
-        self.assertTrue(np.isnan(ts.hour))
-        self.assertTrue(np.isnan(ts.minute))
-        self.assertTrue(np.isnan(ts.second))
-        self.assertTrue(np.isnan(ts.microsecond))
-        self.assertTrue(np.isnan(ts.nanosecond))
-        self.assertTrue(np.isnan(ts.dayofweek))
-        self.assertTrue(np.isnan(ts.quarter))
-        self.assertTrue(np.isnan(ts.dayofyear))
-        self.assertTrue(np.isnan(ts.week))
-        self.assertTrue(np.isnan(ts.daysinmonth))
-        self.assertTrue(np.isnan(ts.days_in_month))
-
-    def test_nat_vector_field_access(self):
-        idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
-
-        # non boolean fields
-        fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
-                  'second', 'microsecond', 'nanosecond', 'week', 'dayofyear',
-                  'days_in_month']
-
-        for field in fields:
-            result = getattr(idx, field)
-            expected = [getattr(x, field) for x in idx]
-            self.assert_index_equal(result, pd.Index(expected))
-
-        # boolean fields
-        fields = ['is_leap_year']
-        # other boolean fields like 'is_month_start' and 'is_month_end'
-        # not yet supported by NaT
-
-        for field in fields:
-            result = getattr(idx, field)
-            expected = [getattr(x, field) for x in idx]
-            self.assert_numpy_array_equal(result, np.array(expected))
-
-        s = pd.Series(idx)
-
-        for field in fields:
-            result = getattr(s.dt, field)
-            expected = [getattr(x, field) for x in idx]
-            self.assert_series_equal(result, pd.Series(expected))
-
-    def test_nat_scalar_field_access(self):
-        fields = ['year', 'quarter', 'month', 'day', 'hour', 'minute',
-                  'second', 'microsecond', 'nanosecond', 'week', 'dayofyear',
-                  'days_in_month', 'daysinmonth', 'dayofweek', 'weekday_name']
-        for field in fields:
-            result = getattr(NaT, field)
-            self.assertTrue(np.isnan(result))
-
-    def test_NaT_methods(self):
-        # GH 9513
-        raise_methods = ['astimezone', 'combine', 'ctime', 'dst',
-                         'fromordinal', 'fromtimestamp', 'isocalendar',
-                         'strftime', 'strptime', 'time', 'timestamp',
-                         'timetuple', 'timetz', 'toordinal', 'tzname',
-                         'utcfromtimestamp', 'utcnow', 'utcoffset',
-                         'utctimetuple']
-        nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
-        nan_methods = ['weekday', 'isoweekday']
-
-        for method in raise_methods:
-            if hasattr(NaT, method):
-                self.assertRaises(ValueError, getattr(NaT, method))
-
-        for method in nan_methods:
-            if hasattr(NaT, method):
-                self.assertTrue(np.isnan(getattr(NaT, method)()))
-
-        for method in nat_methods:
-            if hasattr(NaT, method):
-                # see gh-8254
-                exp_warning = None
-                if method == 'to_datetime':
-                    exp_warning = FutureWarning
-                with tm.assert_produces_warning(
-                        exp_warning, check_stacklevel=False):
-                    self.assertIs(getattr(NaT, method)(), NaT)
-
-        # GH 12300
-        self.assertEqual(NaT.isoformat(), 'NaT')
-
     def test_pprint(self):
         # GH12622
         import pprint
@@ -772,24 +678,40 @@ class TestTimestamp(tm.TestCase):
             self.assertRaises(ValueError, lambda: dti.round(freq))
 
         # GH 14440 & 15578
-        result = pd.Timestamp('2016-10-17 12:00:00.0015').round('ms')
-        expected = pd.Timestamp('2016-10-17 12:00:00.002000')
+        result = Timestamp('2016-10-17 12:00:00.0015').round('ms')
+        expected = Timestamp('2016-10-17 12:00:00.002000')
         self.assertEqual(result, expected)
 
-        result = pd.Timestamp('2016-10-17 12:00:00.00149').round('ms')
-        expected = pd.Timestamp('2016-10-17 12:00:00.001000')
+        result = Timestamp('2016-10-17 12:00:00.00149').round('ms')
+        expected = Timestamp('2016-10-17 12:00:00.001000')
         self.assertEqual(result, expected)
 
-        ts = pd.Timestamp('2016-10-17 12:00:00.0015')
+        ts = Timestamp('2016-10-17 12:00:00.0015')
         for freq in ['us', 'ns']:
             self.assertEqual(ts, ts.round(freq))
 
-        result = pd.Timestamp('2016-10-17 12:00:00.001501031').round('10ns')
-        expected = pd.Timestamp('2016-10-17 12:00:00.001501030')
+        result = Timestamp('2016-10-17 12:00:00.001501031').round('10ns')
+        expected = Timestamp('2016-10-17 12:00:00.001501030')
         self.assertEqual(result, expected)
 
         with tm.assert_produces_warning():
-            pd.Timestamp('2016-10-17 12:00:00.001501031').round('1010ns')
+            Timestamp('2016-10-17 12:00:00.001501031').round('1010ns')
+
+    def test_round_misc(self):
+        stamp = Timestamp('2000-01-05 05:09:15.13')
+
+        def _check_round(freq, expected):
+            result = stamp.round(freq=freq)
+            self.assertEqual(result, expected)
+
+        for freq, expected in [('D', Timestamp('2000-01-05 00:00:00')),
+                               ('H', Timestamp('2000-01-05 05:00:00')),
+                               ('S', Timestamp('2000-01-05 05:09:15'))]:
+            _check_round(freq, expected)
+
+        msg = frequencies._INVALID_FREQ_ERROR
+        with self.assertRaisesRegexp(ValueError, msg):
+            stamp.round('foo')
 
     def test_class_ops_pytz(self):
         tm._skip_if_no_pytz()
@@ -906,48 +828,30 @@ class TestTimestamp(tm.TestCase):
         check(val / 1000000000.0 + 0.5, unit='s', us=500000)
         check(days + 0.5, unit='D', h=12)
 
-        # nan
-        result = Timestamp(np.nan)
-        self.assertIs(result, NaT)
-
-        result = Timestamp(None)
-        self.assertIs(result, NaT)
-
-        result = Timestamp(iNaT)
-        self.assertIs(result, NaT)
-
-        result = Timestamp(NaT)
-        self.assertIs(result, NaT)
-
-        result = Timestamp('NaT')
-        self.assertIs(result, NaT)
-
-        self.assertTrue(isnull(Timestamp('nat')))
-
     def test_roundtrip(self):
 
         # test value to string and back conversions
         # further test accessors
         base = Timestamp('20140101 00:00:00')
 
-        result = Timestamp(base.value + pd.Timedelta('5ms').value)
+        result = Timestamp(base.value + Timedelta('5ms').value)
         self.assertEqual(result, Timestamp(str(base) + ".005000"))
         self.assertEqual(result.microsecond, 5000)
 
-        result = Timestamp(base.value + pd.Timedelta('5us').value)
+        result = Timestamp(base.value + Timedelta('5us').value)
         self.assertEqual(result, Timestamp(str(base) + ".000005"))
         self.assertEqual(result.microsecond, 5)
 
-        result = Timestamp(base.value + pd.Timedelta('5ns').value)
+        result = Timestamp(base.value + Timedelta('5ns').value)
         self.assertEqual(result, Timestamp(str(base) + ".000000005"))
         self.assertEqual(result.nanosecond, 5)
         self.assertEqual(result.microsecond, 0)
 
-        result = Timestamp(base.value + pd.Timedelta('6ms 5us').value)
+        result = Timestamp(base.value + Timedelta('6ms 5us').value)
         self.assertEqual(result, Timestamp(str(base) + ".006005"))
         self.assertEqual(result.microsecond, 5 + 6 * 1000)
 
-        result = Timestamp(base.value + pd.Timedelta('200ms 5us').value)
+        result = Timestamp(base.value + Timedelta('200ms 5us').value)
         self.assertEqual(result, Timestamp(str(base) + ".200005"))
         self.assertEqual(result.microsecond, 5 + 200 * 1000)
 
@@ -1004,9 +908,9 @@ class TestTimestamp(tm.TestCase):
         self.assertTrue(val != np.int64(1))
 
         # ops testing
-        df = DataFrame(randn(5, 2))
+        df = DataFrame(np.random.randn(5, 2))
         a = df[0]
-        b = Series(randn(5))
+        b = Series(np.random.randn(5))
         b.name = Timestamp('2000-01-01')
         tm.assert_series_equal(a / b, 1 / (b / a))
 
@@ -1149,8 +1053,8 @@ class TestTimestamp(tm.TestCase):
         s = Series(date_range('20010101', periods=10), name='dates')
         s_nat = s.copy(deep=True)
 
-        s[0] = pd.Timestamp('nat')
-        s[3] = pd.Timestamp('nat')
+        s[0] = Timestamp('nat')
+        s[3] = Timestamp('nat')
 
         ops = {'lt': 'gt', 'le': 'ge', 'eq': 'eq', 'ne': 'ne'}
 
@@ -1193,18 +1097,6 @@ class TestTimestamp(tm.TestCase):
 
             dt = Timestamp('2100-01-01 00:00:00', tz=tz)
             self.assertFalse(dt.is_leap_year)
-
-        self.assertFalse(pd.NaT.is_leap_year)
-        self.assertIsInstance(pd.NaT.is_leap_year, bool)
-
-    def test_round_nat(self):
-        # GH14940
-        ts = Timestamp('nat')
-        print(dir(ts))
-        for method in ["round", "floor", "ceil"]:
-            round_method = getattr(ts, method)
-            for freq in ["s", "5s", "min", "5min", "h", "5h"]:
-                self.assertIs(round_method(freq), ts)
 
 
 class TestTimestampNsOperations(tm.TestCase):
@@ -1292,95 +1184,6 @@ class TestTimestampNsOperations(tm.TestCase):
         self.assertEqual(repr(t), "Timestamp('2011-01-01 00:00:00.000000010')")
         self.assertEqual(t.value, expected)
         self.assertEqual(t.nanosecond, 10)
-
-    def test_nat_arithmetic(self):
-        # GH 6873
-        i = 2
-        f = 1.5
-
-        for (left, right) in [(pd.NaT, i), (pd.NaT, f), (pd.NaT, np.nan)]:
-            self.assertIs(left / right, pd.NaT)
-            self.assertIs(left * right, pd.NaT)
-            self.assertIs(right * left, pd.NaT)
-            with tm.assertRaises(TypeError):
-                right / left
-
-        # Timestamp / datetime
-        t = Timestamp('2014-01-01')
-        dt = datetime(2014, 1, 1)
-        for (left, right) in [(pd.NaT, pd.NaT), (pd.NaT, t), (pd.NaT, dt)]:
-            # NaT __add__ or __sub__ Timestamp-like (or inverse) returns NaT
-            self.assertIs(right + left, pd.NaT)
-            self.assertIs(left + right, pd.NaT)
-            self.assertIs(left - right, pd.NaT)
-            self.assertIs(right - left, pd.NaT)
-
-        # timedelta-like
-        # offsets are tested in test_offsets.py
-
-        delta = timedelta(3600)
-        td = Timedelta('5s')
-
-        for (left, right) in [(pd.NaT, delta), (pd.NaT, td)]:
-            # NaT + timedelta-like returns NaT
-            self.assertIs(right + left, pd.NaT)
-            self.assertIs(left + right, pd.NaT)
-            self.assertIs(right - left, pd.NaT)
-            self.assertIs(left - right, pd.NaT)
-
-        # GH 11718
-        tm._skip_if_no_pytz()
-        import pytz
-
-        t_utc = Timestamp('2014-01-01', tz='UTC')
-        t_tz = Timestamp('2014-01-01', tz='US/Eastern')
-        dt_tz = pytz.timezone('Asia/Tokyo').localize(dt)
-
-        for (left, right) in [(pd.NaT, t_utc), (pd.NaT, t_tz),
-                              (pd.NaT, dt_tz)]:
-            # NaT __add__ or __sub__ Timestamp-like (or inverse) returns NaT
-            self.assertIs(right + left, pd.NaT)
-            self.assertIs(left + right, pd.NaT)
-            self.assertIs(left - right, pd.NaT)
-            self.assertIs(right - left, pd.NaT)
-
-        # int addition / subtraction
-        for (left, right) in [(pd.NaT, 2), (pd.NaT, 0), (pd.NaT, -3)]:
-            self.assertIs(right + left, pd.NaT)
-            self.assertIs(left + right, pd.NaT)
-            self.assertIs(left - right, pd.NaT)
-            self.assertIs(right - left, pd.NaT)
-
-    def test_nat_arithmetic_index(self):
-        # GH 11718
-
-        # datetime
-        tm._skip_if_no_pytz()
-
-        dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], name='x')
-        exp = pd.DatetimeIndex([pd.NaT, pd.NaT], name='x')
-        self.assert_index_equal(dti + pd.NaT, exp)
-        self.assert_index_equal(pd.NaT + dti, exp)
-
-        dti_tz = pd.DatetimeIndex(['2011-01-01', '2011-01-02'],
-                                  tz='US/Eastern', name='x')
-        exp = pd.DatetimeIndex([pd.NaT, pd.NaT], name='x', tz='US/Eastern')
-        self.assert_index_equal(dti_tz + pd.NaT, exp)
-        self.assert_index_equal(pd.NaT + dti_tz, exp)
-
-        exp = pd.TimedeltaIndex([pd.NaT, pd.NaT], name='x')
-        for (left, right) in [(pd.NaT, dti), (pd.NaT, dti_tz)]:
-            self.assert_index_equal(left - right, exp)
-            self.assert_index_equal(right - left, exp)
-
-        # timedelta
-        tdi = pd.TimedeltaIndex(['1 day', '2 day'], name='x')
-        exp = pd.DatetimeIndex([pd.NaT, pd.NaT], name='x')
-        for (left, right) in [(pd.NaT, tdi)]:
-            self.assert_index_equal(left + right, exp)
-            self.assert_index_equal(right + left, exp)
-            self.assert_index_equal(left - right, exp)
-            self.assert_index_equal(right - left, exp)
 
 
 class TestTimestampOps(tm.TestCase):
@@ -1722,22 +1525,3 @@ class TestTsUtil(tm.TestCase):
             self.assertEqual(
                 Timestamp(Timestamp.min.to_pydatetime()).value / 1000,
                 Timestamp.min.value / 1000)
-
-
-class TestTslib(tm.TestCase):
-
-    def test_round(self):
-        stamp = Timestamp('2000-01-05 05:09:15.13')
-
-        def _check_round(freq, expected):
-            result = stamp.round(freq=freq)
-            self.assertEqual(result, expected)
-
-        for freq, expected in [('D', Timestamp('2000-01-05 00:00:00')),
-                               ('H', Timestamp('2000-01-05 05:00:00')),
-                               ('S', Timestamp('2000-01-05 05:09:15'))]:
-            _check_round(freq, expected)
-
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
-            stamp.round('foo')

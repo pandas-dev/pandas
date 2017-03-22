@@ -17,9 +17,11 @@ from pandas.types.common import (is_categorical_dtype,
 import pandas as pd
 import pandas.compat as compat
 import pandas.util.testing as tm
-from pandas import (Categorical, Index, Series, DataFrame, PeriodIndex,
-                    Timestamp, CategoricalIndex, DatetimeIndex,
-                    isnull, NaT)
+from pandas import (Categorical, Index, Series, DataFrame,
+                    Timestamp, CategoricalIndex, isnull,
+                    date_range, DatetimeIndex,
+                    period_range, PeriodIndex,
+                    timedelta_range, TimedeltaIndex, NaT)
 from pandas.compat import range, lrange, u, PY3
 from pandas.core.config import option_context
 
@@ -4299,9 +4301,6 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
     def test_dt_accessor_api_for_categorical(self):
         # https://github.com/pandas-dev/pandas/issues/10661
         from pandas.tseries.common import Properties
-        from pandas.tseries.index import date_range, DatetimeIndex
-        from pandas.tseries.period import period_range, PeriodIndex
-        from pandas.tseries.tdi import timedelta_range, TimedeltaIndex
 
         s_dr = Series(date_range('1/1/2015', periods=5, tz="MET"))
         c_dr = s_dr.astype("category")
@@ -4312,10 +4311,14 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         s_tdr = Series(timedelta_range('1 days', '10 days'))
         c_tdr = s_tdr.astype("category")
 
+        # only testing field (like .day)
+        # and bool (is_month_start)
+        get_ops = lambda x: x._datetimelike_ops
+
         test_data = [
-            ("Datetime", DatetimeIndex._datetimelike_ops, s_dr, c_dr),
-            ("Period", PeriodIndex._datetimelike_ops, s_pr, c_pr),
-            ("Timedelta", TimedeltaIndex._datetimelike_ops, s_tdr, c_tdr)]
+            ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
+            ("Period", get_ops(PeriodIndex), s_pr, c_pr),
+            ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
 
         self.assertIsInstance(c_dr.dt, Properties)
 
@@ -4325,12 +4328,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             ('round', ("D",), {}),
             ('floor', ("D",), {}),
             ('ceil', ("D",), {}),
+            ('asfreq', ("D",), {}),
             # ('tz_localize', ("UTC",), {}),
         ]
         _special_func_names = [f[0] for f in special_func_defs]
 
         # the series is already localized
-        _ignore_names = ['tz_localize']
+        _ignore_names = ['tz_localize', 'components']
 
         for name, attr_names, s, c in test_data:
             func_names = [f
@@ -4352,7 +4356,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                 elif isinstance(res, pd.Series):
                     tm.assert_series_equal(res, exp)
                 else:
-                    tm.assert_numpy_array_equal(res, exp)
+                    tm.assert_almost_equal(res, exp)
 
             for attr in attr_names:
                 try:
@@ -4367,7 +4371,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             elif isinstance(res, pd.Series):
                 tm.assert_series_equal(res, exp)
             else:
-                tm.assert_numpy_array_equal(res, exp)
+                tm.assert_almost_equal(res, exp)
 
         invalid = Series([1, 2, 3]).astype('category')
         with tm.assertRaisesRegexp(

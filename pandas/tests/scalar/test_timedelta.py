@@ -6,7 +6,7 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
-                    to_timedelta, compat, isnull)
+                    to_timedelta, compat)
 from pandas._libs.tslib import iNaT, NaTType
 
 
@@ -150,14 +150,6 @@ class TestTimedeltas(tm.TestCase):
             10, 's').astype('m8[ns]').view('i8') + np.timedelta64(
                 500, 'ms').astype('m8[ns]').view('i8')
         self.assertEqual(Timedelta(10.5, unit='s').value, expected)
-
-        # nat
-        self.assertEqual(Timedelta('').value, iNaT)
-        self.assertEqual(Timedelta('nat').value, iNaT)
-        self.assertEqual(Timedelta('NAT').value, iNaT)
-        self.assertEqual(Timedelta(None).value, iNaT)
-        self.assertEqual(Timedelta(np.nan).value, iNaT)
-        self.assertTrue(isnull(Timedelta('nat')))
 
         # offset
         self.assertEqual(to_timedelta(pd.offsets.Hour(2)),
@@ -684,11 +676,6 @@ class TestTimedeltas(tm.TestCase):
         td = Timedelta(milliseconds=1)
         result = td.isoformat()
         expected = 'P0DT0H0M0.001S'
-        self.assertEqual(result, expected)
-
-        # NaT
-        result = Timedelta('NaT').isoformat()
-        expected = 'NaT'
         self.assertEqual(result, expected)
 
         # don't strip every 0

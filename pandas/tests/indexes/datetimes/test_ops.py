@@ -31,15 +31,10 @@ class TestDatetimeIndexOps(Ops):
         self.not_valid_objs = [o for o in self.objs if not mask(o)]
 
     def test_ops_properties(self):
-        self.check_ops_properties(
-            ['year', 'month', 'day', 'hour', 'minute', 'second', 'weekofyear',
-             'week', 'dayofweek', 'dayofyear', 'quarter'])
-        self.check_ops_properties(['date', 'time', 'microsecond', 'nanosecond',
-                                   'is_month_start', 'is_month_end',
-                                   'is_quarter_start',
-                                   'is_quarter_end', 'is_year_start',
-                                   'is_year_end', 'weekday_name'],
-                                  lambda x: isinstance(x, DatetimeIndex))
+        f = lambda x: isinstance(x, DatetimeIndex)
+        self.check_ops_properties(DatetimeIndex._field_ops, f)
+        self.check_ops_properties(DatetimeIndex._object_ops, f)
+        self.check_ops_properties(DatetimeIndex._bool_ops, f)
 
     def test_ops_properties_basic(self):
 
