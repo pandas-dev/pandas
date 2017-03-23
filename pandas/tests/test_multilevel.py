@@ -11,6 +11,7 @@ import numpy as np
 from pandas.core.index import Index, MultiIndex
 from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
 
+from pandas.core.common import UnsortedIndexError
 from pandas.types.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -2612,3 +2613,23 @@ class TestSorted(Base, tm.TestCase):
             names=['letter', 'size', None])
 
         tm.assert_index_equal(result.index, expected)
+
+    def test_sort_non_lexsorted(self):
+        # degenerate case where we sort but don't
+        # have a satisfying result :<
+
+        idx = MultiIndex([['A', 'B', 'C'],
+                          ['c', 'b', 'a']],
+                         [[0, 1, 2, 0, 1, 2],
+                          [0, 2, 1, 1, 0, 2]])
+
+        df = DataFrame({'col': range(len(idx))}, index=idx)
+        assert df.index.is_lexsorted() is False
+        assert df.index.is_monotonic is False
+
+        result = df.sort_index()
+        assert result.index.is_lexsorted() is False
+        assert result.index.is_monotonic is True
+
+        with pytest.raises(UnsortedIndexError):
+            result.loc[pd.IndexSlice['B':'C', 'a':'c'], :]
