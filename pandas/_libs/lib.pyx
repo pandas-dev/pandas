@@ -3,6 +3,7 @@ cimport numpy as np
 cimport cython
 import numpy as np
 import sys
+
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
 from numpy cimport *
@@ -26,7 +27,8 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyObject_SetAttrString,
                       PyObject_RichCompareBool,
                       PyBytes_GET_SIZE,
-                      PyUnicode_GET_SIZE)
+                      PyUnicode_GET_SIZE,
+                      PyObject)
 
 try:
     from cpython cimport PyString_GET_SIZE
@@ -36,11 +38,10 @@ except ImportError:
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
-    ctypedef struct PySliceObject:
-        pass
+cdef extern from "compat_helper.h":
 
-    cdef int PySlice_GetIndicesEx(
-        PySliceObject* s, Py_ssize_t length,
+    cdef int slice_get_indices(
+        PyObject* s, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength) except -1
 
@@ -1658,8 +1659,8 @@ cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     if slc is None:
         raise TypeError("slc should be a slice")
 
-    PySlice_GetIndicesEx(<PySliceObject *>slc, objlen,
-                         &start, &stop, &step, &length)
+    slice_get_indices(<PyObject *>slc, objlen,
+                      &start, &stop, &step, &length)
 
     return start, stop, step, length
 
@@ -1683,8 +1684,8 @@ cpdef Py_ssize_t slice_len(
     if slc is None:
         raise TypeError("slc must be slice")
 
-    PySlice_GetIndicesEx(<PySliceObject *>slc, objlen,
-                         &start, &stop, &step, &length)
+    slice_get_indices(<PyObject *>slc, objlen,
+                      &start, &stop, &step, &length)
 
     return length
 
