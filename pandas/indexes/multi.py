@@ -1173,9 +1173,100 @@ class MultiIndex(Index):
 
         labels, levels = _factorize_from_iterables(iterables)
         labels = cartesian_product(labels)
+        return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
-        return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
-                          names=names)
+    def _reconstruct(self, sort=False, remove_unused=False):
+        """
+        reconstruct the MultiIndex
+
+        The MultiIndex will have the same outward appearance (e.g. values)
+        and will also .equals()
+
+        Parameters
+        ----------
+        sort: boolean, default False
+            monotonically sort the levels
+        remove_unused: boolean, default False
+            remove unsued levels
+
+        Returns
+        -------
+        MultiIndex
+
+        """
+
+        if sort and remove_unused:
+            raise ValueError("only support one of sort / remove_unused")
+
+        if not (sort or remove_unused):
+            raise ValueError("must supply one of sort / remove_unsued")
+
+        levels = self.levels
+        labels = self.labels
+
+        new_levels = []
+        new_labels = []
+
+        if sort:
+
+            if self.is_lexsorted() and self.is_monotonic:
+                return self
+
+            for lev, lab in zip(levels, labels):
+
+                if lev.is_monotonic:
+                    new_levels.append(lev)
+                    new_labels.append(lab)
+                    continue
+
+                # indexer to reorder the levels
+                indexer = lev.argsort()
+                lev = lev.take(indexer)
+
+                # indexer to reorder the labels
+                ri = lib.get_reverse_indexer(indexer, len(indexer))
+                lab = algos.take_1d(ri, lab)
+
+                new_levels.append(lev)
+                new_labels.append(lab)
+
+        elif remove_unused:
+
+            changed = np.zeros(self.nlevels, dtype=bool)
+            for i, (lev, lab) in enumerate(zip(levels, labels)):
+
+                uniques = np.sort(algos.unique(lab))
+
+                # nothing unused
+                if len(uniques) == len(lev):
+                    new_levels.append(lev)
+                    new_labels.append(lab)
+                    changed[i] = True
+                    continue
+
+                unused = list(reversed(sorted(set(
+                    np.arange(len(lev))) - set(uniques))))
+
+                # new levels are simple
+                lev = lev.take(uniques)
+
+                # new labels, we remove the unsued
+                # by decrementing the labels for that value
+                # prob a better way
+                for u in unused:
+
+                    lab = np.where(lab > u, lab - 1, lab)
+
+                new_levels.append(lev)
+                new_labels.append(lab)
+
+            # nothing changed
+            if not changed.any():
+                return self
+
+        return MultiIndex(new_levels, new_labels,
+                          names=self.names, sortorder=self.sortorder,
+                          verify_integrity=False)
 
     @property
     def nlevels(self):
@@ -1746,9 +1837,10 @@ class MultiIndex(Index):
 
     def _partial_tup_index(self, tup, side='left'):
         if len(tup) > self.lexsort_depth:
-            raise KeyError('Key length (%d) was greater than MultiIndex'
-                           ' lexsort depth (%d)' %
-                           (len(tup), self.lexsort_depth))
+            raise UnsortedIndexError(
+                'Key length (%d) was greater than MultiIndex'
+                ' lexsort depth (%d)' %
+                (len(tup), self.lexsort_depth))
 
         n = len(tup)
         start, end = 0, len(self)

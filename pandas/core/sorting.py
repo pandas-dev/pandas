@@ -93,6 +93,11 @@ def get_group_index(labels, shape, sort, xnull):
     return loop(list(labels), list(shape))
 
 
+def get_compressed_ids(labels, sizes):
+    ids = get_group_index(labels, sizes, sort=True, xnull=False)
+    return compress_group_index(ids, sort=True)
+
+
 def is_int64_overflow_possible(shape):
     the_prod = long(1)
     for x in shape:

@@ -2438,6 +2438,30 @@ class TestSorted(Base, tm.TestCase):
         expected = df.reindex(columns=df.columns[:3])
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_getitem_not_sorted2(self):
+        # 13431
+        df = DataFrame({'col1': ['b', 'd', 'b', 'a'],
+                        'col2': [3, 1, 1, 2],
+                        'data': ['one', 'two', 'three', 'four']})
+
+        df2 = df.set_index(['col1', 'col2'])
+        df2_original = df2.copy()
+
+        df2.index.set_levels(['b', 'd', 'a'], level='col1', inplace=True)
+        df2.index.set_labels([0, 1, 0, 2], level='col1', inplace=True)
+        assert not df2.index.is_lexsorted()
+        assert not df2.index.is_monotonic
+
+        assert df2_original.index.equals(df2.index)
+        expected = df2.sort_index()
+        assert not expected.index.is_lexsorted()
+        assert expected.index.is_monotonic
+
+        result = df2.sort_index(level=0)
+        assert not result.index.is_lexsorted()
+        assert result.index.is_monotonic
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_getitem_not_sorted(self):
         df = self.frame.T
         df['foo', 'four'] = 'foo'
@@ -2474,3 +2498,117 @@ class TestSorted(Base, tm.TestCase):
         expected.index = expected.index.droplevel(0)
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
+
+    def test_sort_index_and_reconstruction(self):
+
+        # 15622
+        # lexsortedness should be identical
+        # across MultiIndex consruction methods
+
+        df = DataFrame([[1, 1], [2, 2]], index=list('ab'))
+        expected = DataFrame([[1, 1], [2, 2], [1, 1], [2, 2]],
+                             index=MultiIndex.from_tuples([(0.5, 'a'),
+                                                           (0.5, 'b'),
+                                                           (0.8, 'a'),
+                                                           (0.8, 'b')]))
+        assert expected.index.is_lexsorted()
+
+        result = DataFrame(
+            [[1, 1], [2, 2], [1, 1], [2, 2]],
+            index=MultiIndex.from_product([[0.5, 0.8], list('ab')]))
+        result = result.sort_index()
+        assert result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
+        tm.assert_frame_equal(result, expected)
+
+        result = DataFrame(
+            [[1, 1], [2, 2], [1, 1], [2, 2]],
+            index=MultiIndex(levels=[[0.5, 0.8], ['a', 'b']],
+                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+        result = result.sort_index()
+        assert result.index.is_lexsorted()
+
+        tm.assert_frame_equal(result, expected)
+
+        concatted = pd.concat([df, df], keys=[0.8, 0.5])
+        result = concatted.sort_index()
+
+        # this will be monotonic, but not lexsorted!
+        assert not result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
+        tm.assert_frame_equal(result, expected)
+
+        # 14015
+        df = DataFrame([[1, 2], [6, 7]],
+                       columns=MultiIndex.from_tuples(
+                           [(0, '20160811 12:00:00'),
+                            (0, '20160809 12:00:00')],
+                           names=['l1', 'Date']))
+
+        df.columns.set_levels(pd.to_datetime(df.columns.levels[1]),
+                              level=1,
+                              inplace=True)
+        assert not df.columns.is_lexsorted()
+        assert not df.columns.is_monotonic
+        result = df.sort_index(axis=1)
+        assert result.columns.is_lexsorted()
+        assert result.columns.is_monotonic
+        result = df.sort_index(axis=1, level=1)
+        assert result.columns.is_lexsorted()
+        assert result.columns.is_monotonic
+
+    def test_sort_index_and_reconstruction_doc_example(self):
+        # doc example
+        df = DataFrame({'value': [1, 2, 3, 4]},
+                       index=MultiIndex(
+                           levels=[['a', 'b'], ['bb', 'aa']],
+                           labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+        assert df.index.is_lexsorted()
+        assert not df.index.is_monotonic
+
+        # sort it
+        expected = DataFrame({'value': [2, 1, 4, 3]},
+                             index=MultiIndex(
+                                 levels=[['a', 'b'], ['aa', 'bb']],
+                                 labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+        result = df.sort_index()
+        assert not result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
+        tm.assert_frame_equal(result, expected)
+
+        # reconstruct
+        result = df.sort_index().copy()
+        result.index = result.index._reconstruct(sort=True)
+        assert result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_reorder_on_ops(self):
+        # 15687
+        df = pd.DataFrame(
+            np.random.randn(8, 2),
+            index=MultiIndex.from_product(
+                [['a', 'b'],
+                 ['big', 'small'],
+                 ['red', 'blu']],
+                names=['letter', 'size', 'color']),
+            columns=['near', 'far'])
+        df = df.sort_index()
+
+        def my_func(group):
+            group.index = ['newz', 'newa']
+            return group
+
+        result = df.groupby(level=['letter', 'size']).apply(
+            my_func).sort_index()
+        expected = MultiIndex.from_product(
+            [['a', 'b'],
+             ['big', 'small'],
+             ['newa', 'newz']],
+            names=['letter', 'size', None])
+
+        tm.assert_index_equal(result.index, expected)
