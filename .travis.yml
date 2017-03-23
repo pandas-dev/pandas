@@ -39,7 +39,6 @@ matrix:
         - TEST_ARGS="--skip-slow --skip-network"
         - JOB_TAG=_OSX
         - TRAVIS_PYTHON_VERSION=3.5
-        - CACHE_NAME="35_osx"
         - USE_CACHE=true
     - python: 2.7
       env:
@@ -47,9 +46,7 @@ matrix:
         - JOB_NAME: "27_slow_nnet_LOCALE"
         - TEST_ARGS="--only-slow --skip-network"
         - LOCALE_OVERRIDE="zh_CN.UTF-8"
-        - FULL_DEPS=true
         - JOB_TAG=_LOCALE
-        - CACHE_NAME="27_slow_nnet_LOCALE"
         - USE_CACHE=true
       addons:
         apt:
@@ -60,10 +57,8 @@ matrix:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_nslow"
         - TEST_ARGS="--skip-slow"
-        - FULL_DEPS=true
         - CLIPBOARD_GUI=gtk2
         - LINT=true
-        - CACHE_NAME="27_nslow"
         - USE_CACHE=true
       addons:
         apt:
@@ -74,10 +69,8 @@ matrix:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "35_nslow"
         - TEST_ARGS="--skip-slow --skip-network"
-        - FULL_DEPS=true
         - CLIPBOARD=xsel
         - COVERAGE=true
-        - CACHE_NAME="35_nslow"
         - USE_CACHE=true
       addons:
         apt:
@@ -96,28 +89,24 @@ matrix:
           packages:
           - libatlas-base-dev
           - gfortran
-#    In allow_failures
+    # In allow_failures
     - python: 2.7
       env:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
         - TEST_ARGS="--only-slow --skip-network"
-        - FULL_DEPS=true
-        - CACHE_NAME="27_slow"
         - USE_CACHE=true
-#    In allow_failures
+    # In allow_failures
     - python: 2.7
       env:
         - PYTHON_VERSION=2.7
         - JOB_NAME: "27_build_test"
         - JOB_TAG=_BUILD_TEST
         - TEST_ARGS="--skip-slow"
-        - FULL_DEPS=true
         - BUILD_TEST=true
-        - CACHE_NAME="27_build_test"
         - USE_CACHE=true
-#    In allow_failures
+    # In allow_failures
     - python: 3.5
       env:
         - PYTHON_VERSION=3.5
@@ -125,17 +114,14 @@ matrix:
         - JOB_TAG=_NUMPY_DEV
         - TEST_ARGS="--skip-slow --skip-network"
         - PANDAS_TESTING_MODE="deprecate"
-        - CACHE_NAME="35_numpy_dev"
         - USE_CACHE=true
-#    In allow_failures
+    # In allow_failures
     - python: 3.5
       env:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "doc_build"
-        - FULL_DEPS=true
         - DOC_BUILD=true
         - JOB_TAG=_DOC_BUILD
-        - CACHE_NAME="doc_build"
         - USE_CACHE=true
     allow_failures:
       - python: 2.7
@@ -144,8 +130,6 @@ matrix:
         - JOB_NAME: "27_slow"
         - JOB_TAG=_SLOW
         - TEST_ARGS="--only-slow --skip-network"
-        - FULL_DEPS=true
-        - CACHE_NAME="27_slow"
         - USE_CACHE=true
       - python: 2.7
         env:
@@ -153,9 +137,7 @@ matrix:
         - JOB_NAME: "27_build_test"
         - JOB_TAG=_BUILD_TEST
         - TEST_ARGS="--skip-slow"
-        - FULL_DEPS=true
         - BUILD_TEST=true
-        - CACHE_NAME="27_build_test"
         - USE_CACHE=true
       - python: 3.5
         env:
@@ -164,16 +146,13 @@ matrix:
         - JOB_TAG=_NUMPY_DEV
         - TEST_ARGS="--skip-slow --skip-network"
         - PANDAS_TESTING_MODE="deprecate"
-        - CACHE_NAME="35_numpy_dev"
         - USE_CACHE=true
       - python: 3.5
         env:
         - PYTHON_VERSION=3.5
         - JOB_NAME: "doc_build"
-        - FULL_DEPS=true
         - DOC_BUILD=true
         - JOB_TAG=_DOC_BUILD
-        - CACHE_NAME="doc_build"
         - USE_CACHE=true
 
 before_install:
@@ -209,7 +188,9 @@ script:
   - echo "script done"
 
 after_success:
-  - source activate pandas && codecov
+  - if [ "$COVERAGE" ]; then
+        source activate pandas && codecov --file /tmp/cov-single.xml /tmp/cov-multiple.xml;
+    fi
 
 after_script:
   - echo "after_script start"
