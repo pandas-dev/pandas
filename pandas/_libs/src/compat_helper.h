@@ -19,13 +19,18 @@ but 3.6.1 in particular changes the behavior of this function slightly
 https://bugs.python.org/issue27867
 */
 
-PANDAS_INLINE int slice_get_indices(PyObject *s, Py_ssize_t length,
-                                    Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
+PANDAS_INLINE int slice_get_indices(PyObject *s,
+                                    Py_ssize_t length,
+                                    Py_ssize_t *start,
+                                    Py_ssize_t *stop,
+                                    Py_ssize_t *step,
                                     Py_ssize_t *slicelength) {
-#if PY_VERSION_HEX >= 0x03060000
-  return PySlice_GetIndicesEx(s, length, start, stop, step, slicelength);
+#if PY_VERSION_HEX >= 0x03000000
+  return PySlice_GetIndicesEx(s, length, start, stop,
+                              step, slicelength);
 #else
-  return PySlice_GetIndicesEx(<PySliceObject *>s, length, start, stop, step, slicelength);
+  return PySlice_GetIndicesEx((PySliceObject *)s, length, start,
+                              stop, step, slicelength);
 #endif
 }
 
