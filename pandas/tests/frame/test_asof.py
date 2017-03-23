@@ -13,9 +13,9 @@ class TestFrameAsof(TestData, tm.TestCase):
 
     def setUp(self):
         self.N = N = 50
-        rng = date_range('1/1/1990', periods=N, freq='53s')
+        self.rng = date_range('1/1/1990', periods=N, freq='53s')
         self.df = DataFrame({'A': np.arange(N), 'B': np.arange(N)},
-                            index=rng)
+                            index=self.rng)
 
     def test_basic(self):
 
@@ -85,4 +85,22 @@ class TestFrameAsof(TestData, tm.TestCase):
         # series is all nans
         result = DataFrame([np.nan]).asof([0])
         expected = DataFrame([np.nan])
+        tm.assert_frame_equal(result, expected)
+
+        # testing non-default indexes, multiple inputs
+        dates = date_range('1/1/1990', periods=self.N * 3, freq='25s')
+        result = DataFrame(np.nan, index=self.rng, columns=['A']).asof(dates)
+        expected = DataFrame(np.nan, index=dates, columns=['A'])
+        tm.assert_frame_equal(result, expected)
+
+        # testing multiple columns
+        dates = date_range('1/1/1990', periods=self.N * 3, freq='25s')
+        result = DataFrame(np.nan, index=self.rng, columns=['A', 'B', 'C']).asof(dates)
+        expected = DataFrame(np.nan, index=dates, columns=['A', 'B', 'C'])
+        tm.assert_frame_equal(result, expected)
+
+        # testing scalar input
+        date = date_range('1/1/1990', periods=self.N * 3, freq='25s')[0]
+        result = DataFrame(np.nan, index=self.rng, columns=['A']).asof(date)
+        expected = DataFrame(np.nan, index=[date], columns=['A'])
         tm.assert_frame_equal(result, expected)

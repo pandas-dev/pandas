@@ -154,3 +154,17 @@ class TestSeriesAsof(TestData, tm.TestCase):
         result = Series([np.nan]).asof([0])
         expected = Series([np.nan])
         tm.assert_series_equal(result, expected)
+
+        # testing non-default indexes
+        N = 50
+        rng = date_range('1/1/1990', periods=N, freq='53s')
+
+        dates = date_range('1/1/1990', periods=N * 3, freq='25s')
+        result = Series(np.nan, index=rng).asof(dates)
+        expected = Series(np.nan, index=dates)
+        tm.assert_series_equal(result, expected)
+
+        # testing scalar input
+        date = date_range('1/1/1990', periods=N * 3, freq='25s')[0]
+        result = Series(np.nan, index=rng).asof(date)
+        self.assertTrue(result != result)
