@@ -779,7 +779,8 @@ class _Rolling_and_Expanding(_Rolling):
         for b in blocks:
             result = b.notnull().astype(int)
             result = self._constructor(result, window=window, min_periods=0,
-                                       center=self.center).sum()
+                                       center=self.center,
+                                       closed=self.closed).sum()
             results.append(result)
 
         return self._wrap_results(results, blocks, obj)
@@ -801,11 +802,10 @@ class _Rolling_and_Expanding(_Rolling):
         index, indexi = self._get_index()
         closed = self.closed
 
-        def f(arg, window, min_periods):
+        def f(arg, window, min_periods, closed):
             minp = _use_window(min_periods, window)
-            return _window.roll_generic(arg, window, minp, indexi,
-                                        offset, func, args,
-                                        kwargs, closed)
+            return _window.roll_generic(arg, window, minp, indexi, closed,
+                                        offset, func, args, kwargs)
 
         return self._apply(f, func, args=args, kwargs=kwargs,
                            center=False)
@@ -876,7 +876,7 @@ class _Rolling_and_Expanding(_Rolling):
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
             return _zsqrt(_window.roll_var(arg, window, minp, indexi,
-                                           ddof))
+                                           self.closed, ddof))
 
         return self._apply(f, 'std', check_minp=_require_min_periods(1),
                            ddof=ddof, **kwargs)
@@ -923,7 +923,7 @@ class _Rolling_and_Expanding(_Rolling):
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
             return _window.roll_quantile(arg, window, minp, indexi,
-                                         quantile)
+                                         self.closed, quantile)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)

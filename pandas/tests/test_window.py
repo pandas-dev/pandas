@@ -3410,7 +3410,7 @@ class TestRollingTS(tm.TestCase):
 
         expected = df.copy()
         expected["A"] = [np.nan, 1.0, 1, 1, np.nan]
-        result = df.rolling('2s', closed='left').sum()
+        result = df.rolling('2s', closed='neither').sum()
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_sum(self):
