@@ -82,7 +82,8 @@ class TestFrameAsof(TestData, tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_all_nans(self):
-        # series is all nans
+        # GH 15713
+        # DataFrame is all nans
         result = DataFrame([np.nan]).asof([0])
         expected = DataFrame([np.nan])
         tm.assert_frame_equal(result, expected)

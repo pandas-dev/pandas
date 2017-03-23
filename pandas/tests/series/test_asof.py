@@ -150,6 +150,7 @@ class TestSeriesAsof(TestData, tm.TestCase):
             s.asof(s.index[0], subset='foo')
 
     def test_all_nans(self):
+        # GH 15713
         # series is all nans
         result = Series([np.nan]).asof([0])
         expected = Series([np.nan])
@@ -167,4 +168,4 @@ class TestSeriesAsof(TestData, tm.TestCase):
         # testing scalar input
         date = date_range('1/1/1990', periods=N * 3, freq='25s')[0]
         result = Series(np.nan, index=rng).asof(date)
-        self.assertTrue(result != result)
+        assert isnull(result)
