@@ -460,7 +460,8 @@ else:
     extra_compile_args=['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
-                             'pandas/_libs/src/parse_helper.h']
+                             'pandas/_libs/src/parse_helper.h',
+                             'pandas/_libs/src/compat_helper.h']
 
 
 tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
