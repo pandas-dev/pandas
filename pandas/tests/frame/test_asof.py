@@ -10,7 +10,6 @@ from .common import TestData
 
 
 class TestFrameAsof(TestData, tm.TestCase):
-
     def setUp(self):
         self.N = N = 50
         self.rng = date_range('1/1/1990', periods=N, freq='53s')
@@ -18,7 +17,6 @@ class TestFrameAsof(TestData, tm.TestCase):
                             index=self.rng)
 
     def test_basic(self):
-
         df = self.df.copy()
         df.loc[15:30, 'A'] = np.nan
         dates = date_range('1/1/1990', periods=self.N * 3,
@@ -38,7 +36,6 @@ class TestFrameAsof(TestData, tm.TestCase):
         self.assertTrue((rs == 14).all(1).all())
 
     def test_subset(self):
-
         N = 10
         rng = date_range('1/1/1990', periods=N, freq='53s')
         df = DataFrame({'A': np.arange(N), 'B': np.arange(N)},
@@ -96,7 +93,8 @@ class TestFrameAsof(TestData, tm.TestCase):
 
         # testing multiple columns
         dates = date_range('1/1/1990', periods=self.N * 3, freq='25s')
-        result = DataFrame(np.nan, index=self.rng, columns=['A', 'B', 'C']).asof(dates)
+        result = DataFrame(np.nan, index=self.rng,
+                           columns=['A', 'B', 'C']).asof(dates)
         expected = DataFrame(np.nan, index=dates, columns=['A', 'B', 'C'])
         tm.assert_frame_equal(result, expected)
 
