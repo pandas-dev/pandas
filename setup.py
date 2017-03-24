@@ -110,8 +110,9 @@ from os.path import join as pjoin
 
 
 _pxi_dep_template = {
-    'algos': ['_libs/algos_common_helper.pxi.in', '_libs/algos_groupby_helper.pxi.in',
+    'algos': ['_libs/algos_common_helper.pxi.in',
               '_libs/algos_take_helper.pxi.in', '_libs/algos_rank_helper.pxi.in'],
+    'groupby': ['_libs/groupby_helper.pxi.in'],
     'join': ['_libs/join_helper.pxi.in', '_libs/join_func_helper.pxi.in'],
     'reshape': ['_libs/reshape_helper.pxi.in'],
     'hashtable': ['_libs/hashtable_class_helper.pxi.in',
@@ -459,7 +460,8 @@ else:
     extra_compile_args=['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
-                             'pandas/_libs/src/parse_helper.h']
+                             'pandas/_libs/src/parse_helper.h',
+                             'pandas/_libs/src/compat_helper.h']
 
 
 tseries_depends = ['pandas/_libs/src/datetime/np_datetime.h',
@@ -496,8 +498,11 @@ ext_data = {
                     'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
                     'depends': _pxi_dep['index']},
     '_libs.algos': {'pyxfile': '_libs/algos',
-                    'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
+                    'pxdfiles': ['_libs/src/util', '_libs/algos', '_libs/hashtable'],
                     'depends': _pxi_dep['algos']},
+    '_libs.groupby': {'pyxfile': '_libs/groupby',
+                    'pxdfiles': ['_libs/src/util', '_libs/algos'],
+                    'depends': _pxi_dep['groupby']},
     '_libs.join': {'pyxfile': '_libs/join',
                    'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
                    'depends': _pxi_dep['join']},

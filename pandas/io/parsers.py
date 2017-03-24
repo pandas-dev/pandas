@@ -21,11 +21,12 @@ from pandas.types.common import (is_integer, _ensure_object,
                                  is_object_dtype, is_string_dtype,
                                  is_scalar, is_categorical_dtype)
 from pandas.types.missing import isnull
-from pandas.types.cast import _astype_nansafe
+from pandas.types.cast import astype_nansafe
 from pandas.core.index import Index, MultiIndex, RangeIndex
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.categorical import Categorical
+from pandas.core import algorithms
 from pandas.core.common import AbstractMethodError
 from pandas.io.date_converters import generic_parser
 from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
@@ -344,24 +345,34 @@ fields if it is not spaces (e.g., '~').
 """ % (_parser_params % (_fwf_widths, ''))
 
 
-def _validate_nrows(nrows):
+def _validate_integer(name, val, min_val=0):
     """
-    Checks whether the 'nrows' parameter for parsing is either
+    Checks whether the 'name' parameter for parsing is either
     an integer OR float that can SAFELY be cast to an integer
     without losing accuracy. Raises a ValueError if that is
     not the case.
-    """
-    msg = "'nrows' must be an integer"
 
-    if nrows is not None:
-        if is_float(nrows):
-            if int(nrows) != nrows:
+    Parameters
+    ----------
+    name : string
+        Parameter name (used for error reporting)
+    val : int or float
+        The value to check
+    min_val : int
+        Minimum allowed value (val < min_val will result in a ValueError)
+    """
+    msg = "'{name:s}' must be an integer >={min_val:d}".format(name=name,
+                                                               min_val=min_val)
+
+    if val is not None:
+        if is_float(val):
+            if int(val) != val:
                 raise ValueError(msg)
-            nrows = int(nrows)
-        elif not is_integer(nrows):
+            val = int(val)
+        elif not (is_integer(val) and val >= min_val):
             raise ValueError(msg)
 
-    return nrows
+    return val
 
 
 def _read(filepath_or_buffer, kwds):
@@ -383,30 +394,19 @@ def _read(filepath_or_buffer, kwds):
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get('iterator', False)
-    chunksize = kwds.get('chunksize', None)
-    nrows = _validate_nrows(kwds.pop('nrows', None))
+    chunksize = _validate_integer('chunksize', kwds.get('chunksize', None), 1)
+    nrows = _validate_integer('nrows', kwds.get('nrows', None))
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
-    if (nrows is not None) and (chunksize is not None):
-        raise NotImplementedError("'nrows' and 'chunksize' cannot be used"
-                                  " together yet.")
-    elif nrows is not None:
-        try:
-            data = parser.read(nrows)
-        finally:
-            parser.close()
-        return data
-
-    elif chunksize or iterator:
+    if chunksize or iterator:
         return parser
 
     try:
-        data = parser.read()
+        data = parser.read(nrows)
     finally:
         parser.close()
-
     return data
 
 
@@ -445,7 +445,7 @@ _parser_defaults = {
 
     'usecols': None,
 
-    # 'nrows': None,
+    'nrows': None,
     # 'iterator': False,
     'chunksize': None,
     'verbose': False,
@@ -749,6 +749,7 @@ class TextFileReader(BaseIterator):
         options = self._get_options_with_defaults(engine)
 
         self.chunksize = options.pop('chunksize', None)
+        self.nrows = options.pop('nrows', None)
         self.squeeze = options.pop('squeeze', False)
 
         # might mutate self.engine
@@ -1009,6 +1010,10 @@ class TextFileReader(BaseIterator):
     def get_chunk(self, size=None):
         if size is None:
             size = self.chunksize
+        if self.nrows is not None:
+            if self._currow >= self.nrows:
+                raise StopIteration
+            size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
 
@@ -1394,7 +1399,8 @@ class ParserBase(object):
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    mask = lib.ismember(values, na_values).view(np.uint8)
+                    mask = algorithms.isin(
+                        values, list(na_values)).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
@@ -1442,7 +1448,7 @@ class ParserBase(object):
 
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
-            mask = lib.ismember(values, na_values)
+            mask = algorithms.isin(values, list(na_values))
             na_count = mask.sum()
             if na_count > 0:
                 if is_integer_dtype(values):
@@ -1492,11 +1498,11 @@ class ParserBase(object):
             # c-parser which parses all categories
             # as strings
             if not is_object_dtype(values):
-                values = _astype_nansafe(values, str)
+                values = astype_nansafe(values, str)
             values = Categorical(values)
         else:
             try:
-                values = _astype_nansafe(values, cast_type, copy=True)
+                values = astype_nansafe(values, cast_type, copy=True)
             except ValueError:
                 raise ValueError("Unable to convert column %s to "
                                  "type %s" % (column, cast_type))

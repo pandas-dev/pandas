@@ -291,6 +291,7 @@ Other enhancements
 - ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)
 - The ``usecols`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`14154`)
 - The ``skiprows`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`10882`)
+- The ``nrows`` and ``chunksize`` arguments in ``pd.read_csv()`` are supported if both are passed (:issue:`6774`, :issue:`15755`)
 - ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
 - ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
 - ``Timedelta.isoformat`` method added for formatting Timedeltas as an `ISO 8601 duration`_. See the :ref:`Timedelta docs <timedeltas.isoformat>` (:issue:`15136`)
@@ -469,6 +470,38 @@ New Behavior:
 .. ipython:: python
 
    s.map(lambda x: x.hour)
+
+
+.. _whatsnew_0200.api_breaking.index_dt_field:
+
+Accessing datetime fields of Index now return Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The datetime-related attributes (see :ref:`here <timeseries.components>`
+for an overview) of ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex`` previously
+returned numpy arrays. They will now return a new ``Index`` object, except
+in the case of a boolean field, where the result will stil be a boolean ndarray. (:issue:`15022`)
+
+Previous behaviour:
+
+.. code-block:: ipython
+
+    In [1]: idx = pd.date_range("2015-01-01", periods=5, freq='10H')
+
+    In [2]: idx.hour
+    Out[2]: array([ 0, 10, 20,  6, 16], dtype=int32)
+
+New Behavior:
+
+.. ipython:: python
+
+    idx = pd.date_range("2015-01-01", periods=5, freq='10H')
+    idx.hour
+
+This has the advantage that specific ``Index`` methods are still available on the
+result. On the other hand, this might have backward incompatibilities: e.g.
+compared to numpy arrays, ``Index`` objects are not mutable. To get the original
+ndarray, you can always convert explicitly using ``np.asarray(idx.hour)``.
 
 .. _whatsnew_0200.api_breaking.s3:
 
@@ -728,6 +761,12 @@ Other API Changes
 - ``Series.sort_values()`` accepts a one element list of bool for consistency with the behavior of ``DataFrame.sort_values()`` (:issue:`15604`)
 - ``.merge()`` and ``.join()`` on ``category`` dtype columns will now preserve the category dtype when possible (:issue:`10409`)
 - ``SparseDataFrame.default_fill_value`` will be 0, previously was ``nan`` in the return from ``pd.get_dummies(..., sparse=True)`` (:issue:`15594`)
+- The default behaviour of ``Series.str.match`` has changed from extracting
+  groups to matching the pattern. The extracting behaviour was deprecated
+  since pandas version 0.13.0 and can be done with the ``Series.str.extract``
+  method (:issue:`5224`). As a consequence, the ``as_indexer`` keyword is
+  ignored (no longer needed to specify the new behaviour) and is deprecated.
+
 
 .. _whatsnew_0200.deprecations:
 
@@ -744,6 +783,7 @@ Deprecations
 - ``Series.sortlevel`` and ``DataFrame.sortlevel`` have been deprecated in favor of ``Series.sort_index`` and ``DataFrame.sort_index`` (:issue:`15099`)
 - importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
+- The ``as_indexer`` keyword of ``Series.str.match()`` has been deprecated (ignored keyword) (:issue:`15257`).
 - The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`)
   * ``pd.pnow()``, replaced by ``Period.now()``
   * ``pd.Term``, is removed, as it is not applicable to user code. Instead use in-line string expressions in the where clause when searching in HDFStore
@@ -789,6 +829,7 @@ Performance Improvements
 - Improved performance of ``.rank()`` for categorical data (:issue:`15498`)
 - Improved performance when using ``.unstack()`` (:issue:`15503`)
 - Improved performance of merge/join on ``category`` columns (:issue:`10409`)
+- Improved performance of ``drop_duplicates()`` on ``bool`` columns (:issue:`12963`)
 
 
 .. _whatsnew_0200.bug_fixes:
@@ -813,6 +854,7 @@ Bug Fixes
 - Bug in ``pd.read_fwf`` where the skiprows parameter was not being respected during column width inference (:issue:`11256`)
 - Bug in ``pd.read_csv()`` in which missing data was being improperly handled with ``usecols`` (:issue:`6710`)
 - Bug in ``pd.read_csv()`` in which a file containing a row with many columns followed by rows with fewer columns would cause a crash (:issue:`14125`)
+- Added checks in ``pd.read_csv()`` ensuring that values for ``nrows`` and ``chunksize`` are valid (:issue:`15767`)
 - Bug in ``pd.tools.hashing.hash_pandas_object()`` in which hashing of categoricals depended on the ordering of categories, instead of just their values. (:issue:`15143`)
 - Bug in ``.groupby(..).resample()`` when passed the ``on=`` kwarg. (:issue:`15021`)
 - Bug in using ``__deepcopy__`` on empty NDFrame objects (:issue:`15370`)
@@ -823,9 +865,10 @@ Bug Fixes
 - Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
 - Compat with SciPy 0.19.0 for testing on ``.interpolate()`` (:issue:`15662`)
 
+- Compat for 32-bit platforms for ``.qcut/cut``; bins will now be ``int64`` dtype (:issue:`14866`)
 
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
-- Bug in ``.replace()`` may result in incorrect dtypes. (:issue:`12747`)
+- Bug in ``.replace()`` may result in incorrect dtypes. (:issue:`12747`, :issue:`15765`)
 
 - Bug in ``.asfreq()``, where frequency was not set for empty ``Series`` (:issue:`14320`)
 
@@ -916,6 +959,8 @@ Bug Fixes
 - Avoid use of ``np.finfo()`` during ``import pandas`` removed to mitigate deadlock on Python GIL misuse (:issue:`14641`)
 
 - Bug in ``DataFrame.to_stata()`` and ``StataWriter`` which produces incorrectly formatted files to be produced for some locales (:issue:`13856`)
+- Bug in ``StataReader`` and ``StataWriter`` which allows invalid encodings (:issue:`15723`)
+
 - Bug in ``pd.concat()`` in which concatting with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 - Bug in ``groupby.agg()`` incorrectly localizing timezone on ``datetime`` (:issue:`15426`, :issue:`10668`, :issue:`13046`)
 

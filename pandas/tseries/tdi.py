@@ -374,7 +374,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         else:
             result = np.array([getattr(Timedelta(val), m)
                                for val in values], dtype='int64')
-        return result
+        return Index(result, name=self.name)
 
     @property
     def days(self):
@@ -437,7 +437,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
         .. versionadded:: 0.17.0
         """
-        return self._maybe_mask_results(1e-9 * self.asi8)
+        return Index(self._maybe_mask_results(1e-9 * self.asi8),
+                     name=self.name)
 
     def to_pytimedelta(self):
         """
@@ -623,7 +624,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             left_chunk = left.values[lslice]
             return self._shallow_copy(left_chunk)
 
-    def _possibly_promote(self, other):
+    def _maybe_promote(self, other):
         if other.inferred_type == 'timedelta':
             other = TimedeltaIndex(other)
         return self, other

@@ -1,3 +1,6 @@
+codecov:
+  branch: master
+
 coverage:
   status:
     project:
@@ -6,4 +9,3 @@ coverage:
     patch:
       default:
         target: '50'
-        branches: null

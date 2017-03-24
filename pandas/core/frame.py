@@ -23,15 +23,15 @@ from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
-from pandas.types.cast import (_maybe_upcast, _infer_dtype_from_scalar,
-                               _possibly_cast_to_datetime,
-                               _possibly_infer_to_datetimelike,
-                               _possibly_convert_platform,
-                               _possibly_downcast_to_dtype,
-                               _invalidate_string_dtypes,
-                               _coerce_to_dtypes,
-                               _maybe_upcast_putmask,
-                               _find_common_type)
+from pandas.types.cast import (maybe_upcast, infer_dtype_from_scalar,
+                               maybe_cast_to_datetime,
+                               maybe_infer_to_datetimelike,
+                               maybe_convert_platform,
+                               maybe_downcast_to_dtype,
+                               invalidate_string_dtypes,
+                               coerce_to_dtypes,
+                               maybe_upcast_putmask,
+                               find_common_type)
 from pandas.types.common import (is_categorical_dtype,
                                  is_object_dtype,
                                  is_extension_type,
@@ -275,7 +275,7 @@ class DataFrame(NDFrame):
             else:
                 mask = ma.getmaskarray(data)
                 if mask.any():
-                    data, fill_value = _maybe_upcast(data, copy=True)
+                    data, fill_value = maybe_upcast(data, copy=True)
                     data[mask] = fill_value
                 else:
                     data = data.copy()
@@ -335,7 +335,7 @@ class DataFrame(NDFrame):
                 if isinstance(data, compat.string_types) and dtype is None:
                     dtype = np.object_
                 if dtype is None:
-                    dtype, data = _infer_dtype_from_scalar(data)
+                    dtype, data = infer_dtype_from_scalar(data)
 
                 values = np.empty((len(index), len(columns)), dtype=dtype)
                 values.fill(data)
@@ -469,7 +469,7 @@ class DataFrame(NDFrame):
         # on the entire block; this is to convert if we have datetimelike's
         # embedded in an object type
         if dtype is None and is_object_dtype(values):
-            values = _possibly_infer_to_datetimelike(values)
+            values = maybe_infer_to_datetimelike(values)
 
         return create_block_manager_from_blocks([values], [columns, index])
 
@@ -2359,7 +2359,7 @@ it is assumed to be aliases for the column names.')
         include, exclude = map(
             lambda x: frozenset(map(_get_dtype_from_object, x)), selection)
         for dtypes in (include, exclude):
-            _invalidate_string_dtypes(dtypes)
+            invalidate_string_dtypes(dtypes)
 
         # can't both include AND exclude!
         if not include.isdisjoint(exclude):
@@ -2659,7 +2659,7 @@ it is assumed to be aliases for the column names.')
             value = _sanitize_index(value, self.index, copy=False)
             if not isinstance(value, (np.ndarray, Index)):
                 if isinstance(value, list) and len(value) > 0:
-                    value = _possibly_convert_platform(value)
+                    value = maybe_convert_platform(value)
                 else:
                     value = com._asarray_tuplesafe(value)
             elif value.ndim == 2:
@@ -2671,13 +2671,13 @@ it is assumed to be aliases for the column names.')
 
             # possibly infer to datetimelike
             if is_object_dtype(value.dtype):
-                value = _possibly_infer_to_datetimelike(value)
+                value = maybe_infer_to_datetimelike(value)
 
         else:
             # upcast the scalar
-            dtype, value = _infer_dtype_from_scalar(value)
+            dtype, value = infer_dtype_from_scalar(value)
             value = np.repeat(value, len(self.index)).astype(dtype)
-            value = _possibly_cast_to_datetime(value, dtype)
+            value = maybe_cast_to_datetime(value, dtype)
 
         # return internal types directly
         if is_extension_type(value):
@@ -3000,8 +3000,8 @@ it is assumed to be aliases for the column names.')
                 else:
                     values = values.take(labels)
                     if mask.any():
-                        values, changed = _maybe_upcast_putmask(values, mask,
-                                                                np.nan)
+                        values, changed = maybe_upcast_putmask(
+                            values, mask, np.nan)
             return values
 
         new_index = _default_index(len(new_obj))
@@ -3722,7 +3722,7 @@ it is assumed to be aliases for the column names.')
             # if we have different dtypes, possibily promote
             new_dtype = this_dtype
             if not is_dtype_equal(this_dtype, other_dtype):
-                new_dtype = _find_common_type([this_dtype, other_dtype])
+                new_dtype = find_common_type([this_dtype, other_dtype])
                 if not is_dtype_equal(this_dtype, new_dtype):
                     series = series.astype(new_dtype)
                 if not is_dtype_equal(other_dtype, new_dtype):
@@ -3743,13 +3743,13 @@ it is assumed to be aliases for the column names.')
             # try to downcast back to the original dtype
             if needs_i8_conversion_i:
                 # ToDo: This conversion should be handled in
-                # _possibly_cast_to_datetime but the change affects lot...
+                # _maybe_cast_to_datetime but the change affects lot...
                 if is_datetime64tz_dtype(new_dtype):
                     arr = DatetimeIndex._simple_new(arr, tz=new_dtype.tz)
                 else:
-                    arr = _possibly_cast_to_datetime(arr, new_dtype)
+                    arr = maybe_cast_to_datetime(arr, new_dtype)
             else:
-                arr = _possibly_downcast_to_dtype(arr, this_dtype)
+                arr = maybe_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
@@ -5003,7 +5003,7 @@ it is assumed to be aliases for the column names.')
 
                 # try to coerce to the original dtypes item by item if we can
                 if axis == 0:
-                    result = _coerce_to_dtypes(result, self.dtypes)
+                    result = coerce_to_dtypes(result, self.dtypes)
 
         return Series(result, index=labels)
 
@@ -5358,8 +5358,8 @@ it is assumed to be aliases for the column names.')
                                 "you passed a "
                                 "{0!r}".format(type(values).__name__))
             return DataFrame(
-                lib.ismember(self.values.ravel(),
-                             set(values)).reshape(self.shape), self.index,
+                algorithms.isin(self.values.ravel(),
+                                values).reshape(self.shape), self.index,
                 self.columns)
 
     # ----------------------------------------------------------------------
@@ -5505,7 +5505,7 @@ def _prep_ndarray(values, copy=True):
             return np.empty((0, 0), dtype=object)
 
         def convert(v):
-            return _possibly_convert_platform(v)
+            return maybe_convert_platform(v)
 
         # we could have a 1-dim or 2-dim list here
         # this is equiv of np.asarray, but does object conversion
@@ -5601,7 +5601,7 @@ def _masked_rec_array_to_mgr(data, index, columns, dtype, copy):
     for fv, arr, col in zip(fill_value, arrays, arr_columns):
         mask = ma.getmaskarray(data[col])
         if mask.any():
-            arr, fv = _maybe_upcast(arr, fill_value=fv, copy=True)
+            arr, fv = maybe_upcast(arr, fill_value=fv, copy=True)
             arr[mask] = fv
         new_arrays.append(arr)
 
@@ -5699,7 +5699,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     def convert(arr):
         if dtype != object and dtype != np.object:
             arr = lib.maybe_convert_objects(arr, try_float=coerce_float)
-            arr = _possibly_cast_to_datetime(arr, dtype)
+            arr = maybe_cast_to_datetime(arr, dtype)
         return arr
 
     arrays = [convert(arr) for arr in content]

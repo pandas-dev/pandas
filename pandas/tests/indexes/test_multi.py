@@ -1359,7 +1359,7 @@ class TestMultiIndex(Base, tm.TestCase):
                                         names=['one', 'two'])
         result = index.get_indexer(index.values)
         self.assert_numpy_array_equal(result,
-                                      np.arange(len(index), dtype='int64'))
+                                      np.arange(len(index), dtype='intp'))
 
         for i in [0, 1, len(index) - 2, len(index) - 1]:
             result = index.get_loc(index[i])

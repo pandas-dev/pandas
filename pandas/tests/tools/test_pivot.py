@@ -1367,7 +1367,7 @@ class TestPivotAnnual(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             annual = pivot_annual(ts, 'D')
 
-        doy = ts.index.dayofyear
+        doy = np.asarray(ts.index.dayofyear)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1

@@ -32,7 +32,7 @@ from pandas.types.common import (is_numeric_dtype,
                                  _ensure_object,
                                  _ensure_categorical,
                                  _ensure_float)
-from pandas.types.cast import _possibly_downcast_to_dtype
+from pandas.types.cast import maybe_downcast_to_dtype
 from pandas.types.missing import isnull, notnull, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
@@ -60,7 +60,7 @@ import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 from pandas.core.config import option_context
 
-from pandas._libs import lib, algos as libalgos, Timestamp, NaT, iNaT
+from pandas._libs import lib, groupby as libgroupby, Timestamp, NaT, iNaT
 from pandas._libs.lib import count_level_2d
 
 _doc_template = """
@@ -783,7 +783,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         if not is_scalar(result):
             if numeric_only and is_numeric_dtype(dtype) or not numeric_only:
-                result = _possibly_downcast_to_dtype(result, dtype)
+                result = maybe_downcast_to_dtype(result, dtype)
 
         return result
 
@@ -1474,7 +1474,7 @@ class GroupBy(_GroupBy):
 
         # filled in by Cython
         indexer = np.zeros_like(labels)
-        libalgos.group_shift_indexer(indexer, labels, ngroups, periods)
+        libgroupby.group_shift_indexer(indexer, labels, ngroups, periods)
 
         output = {}
         for name, obj in self._iterate_slices():
@@ -1815,13 +1815,13 @@ class BaseGrouper(object):
         def get_func(fname):
             # see if there is a fused-type version of function
             # only valid for numeric
-            f = getattr(libalgos, fname, None)
+            f = getattr(libgroupby, fname, None)
             if f is not None and is_numeric:
                 return f
 
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, 'object']:
-                f = getattr(libalgos, "%s_%s" % (fname, dtype_str), None)
+                f = getattr(libgroupby, "%s_%s" % (fname, dtype_str), None)
                 if f is not None:
                     return f
 
@@ -2914,7 +2914,7 @@ class SeriesGroupBy(GroupBy):
         # the cython take a different path (and casting)
         dtype = self._selected_obj.dtype
         if is_numeric_dtype(dtype):
-            result = _possibly_downcast_to_dtype(result, dtype)
+            result = maybe_downcast_to_dtype(result, dtype)
 
         result.name = self._selected_obj.name
         result.index = self._selected_obj.index
@@ -3118,7 +3118,7 @@ class SeriesGroupBy(GroupBy):
                 out = _ensure_int64(out)
             return Series(out, index=mi, name=self.name)
 
-        # for compat. with libalgos.value_counts need to ensure every
+        # for compat. with libgroupby.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
         diff = np.zeros(len(out), dtype='bool')
         for lab in labels[:-1]:

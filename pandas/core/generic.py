@@ -23,7 +23,7 @@ from pandas.types.common import (_coerce_to_dtype,
                                  is_list_like,
                                  is_dict_like,
                                  is_re_compilable)
-from pandas.types.cast import _maybe_promote, _maybe_upcast_putmask
+from pandas.types.cast import maybe_promote, maybe_upcast_putmask
 from pandas.types.missing import isnull, notnull
 from pandas.types.generic import ABCSeries, ABCPanel
 
@@ -4129,11 +4129,14 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        by : mapping function / list of functions, dict, Series, or tuple /
-            list of column names or index level names.
+        by : mapping function / list of functions, dict, Series, ndarray,
+                or tuple / list of column names or index level names or
+                Series or ndarrays
             Called on each element of the object index to determine the groups.
             If a dict or Series is passed, the Series or dict VALUES will be
-            used to determine the groups
+            used to determine the groups (the Series' values are first
+            aligned; see ``.align()`` method). If ndarray is passed, the
+            values as-is determine the groups.
         axis : int, default 0
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
@@ -4956,10 +4959,10 @@ class NDFrame(PandasObject):
                         # or not try_quick
                         if not try_quick:
 
-                            dtype, fill_value = _maybe_promote(other.dtype)
+                            dtype, fill_value = maybe_promote(other.dtype)
                             new_other = np.empty(len(icond), dtype=dtype)
                             new_other.fill(fill_value)
-                            _maybe_upcast_putmask(new_other, icond, other)
+                            maybe_upcast_putmask(new_other, icond, other)
                             other = new_other
 
                     else:

@@ -2,11 +2,12 @@
 # pylint: disable=W0102
 
 from datetime import datetime, date
-
+import sys
 import pytest
 import numpy as np
 
 import re
+from distutils.version import LooseVersion
 import itertools
 from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
                     Series, Categorical)
@@ -21,6 +22,9 @@ from pandas._libs import lib
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  randn, assert_series_equal)
 from pandas.compat import zip, u
+
+# in 3.6.1 a c-api slicing function changed, see src/compat_helper.h
+PY361 = sys.version >= LooseVersion('3.6.1')
 
 
 @pytest.fixture
@@ -1128,8 +1132,10 @@ class TestBlockPlacement(tm.TestCase):
         assert_as_slice_equals([0, 100], slice(0, 200, 100))
 
         assert_as_slice_equals([2, 1], slice(2, 0, -1))
-        assert_as_slice_equals([2, 1, 0], slice(2, None, -1))
-        assert_as_slice_equals([100, 0], slice(100, None, -100))
+
+        if not PY361:
+            assert_as_slice_equals([2, 1, 0], slice(2, None, -1))
+            assert_as_slice_equals([100, 0], slice(100, None, -100))
 
     def test_not_slice_like_arrays(self):
         def assert_not_slice_like(arr):
@@ -1150,8 +1156,9 @@ class TestBlockPlacement(tm.TestCase):
         assert list(BlockPlacement(slice(0, 0))) == []
         assert list(BlockPlacement(slice(3, 0))) == []
 
-        assert list(BlockPlacement(slice(3, 0, -1))) == [3, 2, 1]
-        assert list(BlockPlacement(slice(3, None, -1))) == [3, 2, 1, 0]
+        if not PY361:
+            assert list(BlockPlacement(slice(3, 0, -1))) == [3, 2, 1]
+            assert list(BlockPlacement(slice(3, None, -1))) == [3, 2, 1, 0]
 
     def test_slice_to_array_conversion(self):
         def assert_as_array_equals(slc, asarray):
@@ -1164,8 +1171,10 @@ class TestBlockPlacement(tm.TestCase):
         assert_as_array_equals(slice(3, 0), [])
 
         assert_as_array_equals(slice(3, 0, -1), [3, 2, 1])
-        assert_as_array_equals(slice(3, None, -1), [3, 2, 1, 0])
-        assert_as_array_equals(slice(31, None, -10), [31, 21, 11, 1])
+
+        if not PY361:
+            assert_as_array_equals(slice(3, None, -1), [3, 2, 1, 0])
+            assert_as_array_equals(slice(31, None, -10), [31, 21, 11, 1])
 
     def test_blockplacement_add(self):
         bpl = BlockPlacement(slice(0, 5))
@@ -1180,23 +1189,26 @@ class TestBlockPlacement(tm.TestCase):
         assert_add_equals(slice(0, 0), 0, [])
         assert_add_equals(slice(1, 4), 0, [1, 2, 3])
         assert_add_equals(slice(3, 0, -1), 0, [3, 2, 1])
-        assert_add_equals(slice(2, None, -1), 0, [2, 1, 0])
         assert_add_equals([1, 2, 4], 0, [1, 2, 4])
 
         assert_add_equals(slice(0, 0), 10, [])
         assert_add_equals(slice(1, 4), 10, [11, 12, 13])
         assert_add_equals(slice(3, 0, -1), 10, [13, 12, 11])
-        assert_add_equals(slice(2, None, -1), 10, [12, 11, 10])
         assert_add_equals([1, 2, 4], 10, [11, 12, 14])
 
         assert_add_equals(slice(0, 0), -1, [])
         assert_add_equals(slice(1, 4), -1, [0, 1, 2])
-        assert_add_equals(slice(3, 0, -1), -1, [2, 1, 0])
         assert_add_equals([1, 2, 4], -1, [0, 1, 3])
 
         with pytest.raises(ValueError):
             BlockPlacement(slice(1, 4)).add(-10)
         with pytest.raises(ValueError):
             BlockPlacement([1, 2, 4]).add(-10)
-        with pytest.raises(ValueError):
-            BlockPlacement(slice(2, None, -1)).add(-1)
+
+        if not PY361:
+            assert_add_equals(slice(3, 0, -1), -1, [2, 1, 0])
+            assert_add_equals(slice(2, None, -1), 0, [2, 1, 0])
+            assert_add_equals(slice(2, None, -1), 10, [12, 11, 10])
+
+            with pytest.raises(ValueError):
+                BlockPlacement(slice(2, None, -1)).add(-1)

@@ -64,6 +64,7 @@ def _field_accessor(name, field, docstring=None):
             if self.tz is not utc:
                 values = self._local_timestamps()
 
+        # boolean accessors -> return array
         if field in ['is_month_start', 'is_month_end',
                      'is_quarter_start', 'is_quarter_end',
                      'is_year_start', 'is_year_end']:
@@ -73,16 +74,20 @@ def _field_accessor(name, field, docstring=None):
 
             result = libts.get_start_end_field(values, field, self.freqstr,
                                                month_kw)
-        elif field in ['weekday_name']:
-            result = libts.get_date_name_field(values, field)
-            return self._maybe_mask_results(result)
+            return self._maybe_mask_results(result, convert='float64')
         elif field in ['is_leap_year']:
             # no need to mask NaT
             return libts.get_date_field(values, field)
+
+        # non-boolean accessors -> return Index
+        elif field in ['weekday_name']:
+            result = libts.get_date_name_field(values, field)
+            result = self._maybe_mask_results(result)
         else:
             result = libts.get_date_field(values, field)
+            result = self._maybe_mask_results(result, convert='float64')
 
-        return self._maybe_mask_results(result, convert='float64')
+        return Index(result, name=self.name)
 
     f.__name__ = name
     f.__doc__ = docstring
@@ -1329,7 +1334,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # try to find a the dates
         return (lhs_mask & rhs_mask).nonzero()[0]
 
-    def _possibly_promote(self, other):
+    def _maybe_promote(self, other):
         if other.inferred_type == 'date':
             other = DatetimeIndex(other)
         return self, other
@@ -1909,9 +1914,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
-        year = self.year
-        month = self.month
-        day = self.day
+        year = np.asarray(self.year)
+        month = np.asarray(self.month)
+        day = np.asarray(self.day)
         testarr = month < 3
         year[testarr] -= 1
         month[testarr] += 12
