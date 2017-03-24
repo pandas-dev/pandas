@@ -1256,12 +1256,6 @@ class TestMode(tm.TestCase):
         exp = Series([], dtype=np.float64)
         tm.assert_series_equal(algos.mode([]), exp)
 
-        exp = Series([], dtype=np.int)
-        tm.assert_series_equal(algos.mode([1]), exp)
-
-        exp = Series([], dtype=np.object)
-        tm.assert_series_equal(algos.mode(['a', 'b', 'c']), exp)
-
     def test_mode_single(self):
         exp_single = [1]
         data_single = [1]
@@ -1270,6 +1264,12 @@ class TestMode(tm.TestCase):
             s = Series(data_single, dtype=dt)
             exp = Series(exp_single, dtype=dt)
             tm.assert_series_equal(algos.mode(s), exp)
+
+        exp = Series([1], dtype=np.int)
+        tm.assert_series_equal(algos.mode([1]), exp)
+
+        exp = Series(['a', 'b', 'c'], dtype=np.object)
+        tm.assert_series_equal(algos.mode(['a', 'b', 'c']), exp)
 
     def test_number_mode(self):
         exp_single = [1]
@@ -1304,7 +1304,8 @@ class TestMode(tm.TestCase):
             tm.assert_series_equal(algos.mode(s), exp)
 
     def test_datelike_mode(self):
-        exp = Series([], dtype="M8[ns]")
+        exp = Series(['1900-05-03', '2011-01-03',
+                      '2013-01-02'], dtype="M8[ns]")
         s = Series(['2011-01-03', '2013-01-02',
                     '1900-05-03'], dtype='M8[ns]')
         tm.assert_series_equal(algos.mode(s), exp)
@@ -1315,7 +1316,8 @@ class TestMode(tm.TestCase):
         tm.assert_series_equal(algos.mode(s), exp)
 
     def test_timedelta_mode(self):
-        exp = Series([], dtype='timedelta64[ns]')
+        exp = Series(['-1 days', '0 days', '1 days'],
+                     dtype='timedelta64[ns]')
         s = Series(['1 days', '-1 days', '0 days'],
                    dtype='timedelta64[ns]')
         tm.assert_series_equal(algos.mode(s), exp)
@@ -1335,13 +1337,13 @@ class TestMode(tm.TestCase):
         s = Series([1, 2**63, 2**63], dtype=np.uint64)
         tm.assert_series_equal(algos.mode(s), exp)
 
-        exp = Series([], dtype=np.uint64)
+        exp = Series([1, 2**63], dtype=np.uint64)
         s = Series([1, 2**63], dtype=np.uint64)
         tm.assert_series_equal(algos.mode(s), exp)
 
     def test_categorical(self):
         c = Categorical([1, 2])
-        exp = Series([], dtype=np.int64)
+        exp = Series([1, 2], dtype=np.int64)
         tm.assert_series_equal(algos.mode(c), exp)
 
         c = Categorical([1, 'a', 'a'])
@@ -1354,7 +1356,7 @@ class TestMode(tm.TestCase):
 
     def test_index(self):
         idx = Index([1, 2, 3])
-        exp = Series([], dtype=np.int64)
+        exp = Series([1, 2, 3], dtype=np.int64)
         tm.assert_series_equal(algos.mode(idx), exp)
 
         idx = Index([1, 'a', 'a'])

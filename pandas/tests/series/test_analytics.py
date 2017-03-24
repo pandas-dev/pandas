@@ -130,10 +130,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         exp = Series([], dtype=np.float64)
         tm.assert_series_equal(Series([]).mode(), exp)
 
-        exp = Series([], dtype=np.int64)
+        exp = Series([1], dtype=np.int64)
         tm.assert_series_equal(Series([1]).mode(), exp)
 
-        exp = Series([], dtype=np.object)
+        exp = Series(['a','b','c'], dtype=np.object)
         tm.assert_series_equal(Series(['a', 'b', 'c']).mode(), exp)
 
         # Test numerical data types.
@@ -169,7 +169,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             tm.assert_series_equal(s.mode(), exp)
 
         # Test datetime types.
-        exp = Series([], dtype="M8[ns]")
+        exp = Series(['1900-05-03', '2011-01-03',
+                    '2013-01-02'], dtype='M8[ns]')
         s = Series(['2011-01-03', '2013-01-02',
                     '1900-05-03'], dtype='M8[ns]')
         tm.assert_series_equal(s.mode(), exp)
@@ -180,7 +181,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         tm.assert_series_equal(s.mode(), exp)
 
         # gh-5986: Test timedelta types.
-        exp = Series([], dtype='timedelta64[ns]')
+        exp = Series(['-1 days', '0 days', '1 days'], dtype='timedelta64[ns]')
         s = Series(['1 days', '-1 days', '0 days'],
                    dtype='timedelta64[ns]')
         tm.assert_series_equal(s.mode(), exp)
@@ -200,13 +201,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series([1, 2**63, 2**63], dtype=np.uint64)
         tm.assert_series_equal(s.mode(), exp)
 
-        exp = Series([], dtype=np.uint64)
+        exp = Series([1, 2**63], dtype=np.uint64)
         s = Series([1, 2**63], dtype=np.uint64)
         tm.assert_series_equal(s.mode(), exp)
 
         # Test category dtype.
         c = Categorical([1, 2])
-        exp = Categorical([], categories=[1, 2])
+        exp = Categorical([1, 2], categories=[1, 2])
         exp = Series(exp, dtype='category')
         tm.assert_series_equal(Series(c).mode(), exp)
 
