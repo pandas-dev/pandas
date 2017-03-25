@@ -580,9 +580,21 @@ Transformation
 --------------
 
 The ``transform`` method returns an object that is indexed the same (same size)
-as the one being grouped. Thus, the passed transform function should return a
-result that is the same size as the group chunk. For example, suppose we wished
-to standardize the data within each group:
+as the one being grouped. The transform function must:
+
+* Return a result that is either the same size as the group chunk or
+  broadcastable to the size of the group chunk (e.g., a scalar,
+  ``grouped.transform(lambda x: x.iloc[-1])``).
+* Operate column-by-column on the group chunk.  The transform is applied to
+  the first group chunk using chunk.apply.
+* Not perform in-place operations on the group chunk. Group chunks should
+  be treated as immutable, and changes to a group chunk may produce unexpected
+  results. For example, when using ``fillna``, ``inplace`` must be ``False``
+  (``grouped.transform(lambda x: x.fillna(inplace=False))``).
+* (Optionally) operates on the entire group chunk. If this is supported, a
+  fast path is used starting from the *second* chunk.
+
+For example, suppose we wished to standardize the data within each group:
 
 .. ipython:: python
 
@@ -619,6 +631,21 @@ We can also visually compare the original and transformed data sets.
 
    @savefig groupby_transform_plot.png
    compare.plot()
+
+Transformation functions that have lower dimension outputs are broadcast to
+match the shape of the input array.
+
+.. ipython:: python
+
+   data_range = lambda x: x.max() - x.min()
+   ts.groupby(key).transform(data_range)
+
+Alternatively the built-in methods can be could be used to produce the same
+outputs
+
+.. ipython:: python
+
+   ts.groupby(key).transform('max') - ts.groupby(key).transform('min')
 
 Another common data transform is to replace missing data with the group mean.
 
@@ -664,8 +691,9 @@ and that the transformed data contains no NAs.
 
 .. note::
 
-   Some functions when applied to a groupby object will automatically transform the input, returning
-   an object of the same shape as the original. Passing ``as_index=False`` will not affect these transformation methods.
+   Some functions when applied to a groupby object will automatically transform
+   the input, returning an object of the same shape as the original. Passing
+   ``as_index=False`` will not affect these transformation methods.
 
    For example: ``fillna, ffill, bfill, shift``.
 
