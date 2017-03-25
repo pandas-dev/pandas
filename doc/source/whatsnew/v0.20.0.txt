@@ -812,6 +812,7 @@ Removal of prior version deprecations/changes
 - The ``Categorical`` constructor has dropped the ``name`` parameter (:issue:`10632`)
 - The ``take_last`` parameter has been dropped from ``duplicated()``, ``drop_duplicates()``, ``nlargest()``, and ``nsmallest()`` methods (:issue:`10236`, :issue:`10792`, :issue:`10920`)
 - ``Series``, ``Index``, and ``DataFrame`` have dropped the ``sort`` and ``order`` methods (:issue:`10726`)
+- Where clauses in ``pytables`` are only accepted as strings and expressions types and not other data-types (:issue:`12027`)
 - The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
 
 .. _whatsnew_0200.performance:
