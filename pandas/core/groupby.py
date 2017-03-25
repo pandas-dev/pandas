@@ -72,6 +72,55 @@ _doc_template = """
         pandas.Panel.%(name)s
 """
 
+_transform_template = """
+Call function producing a like-indexed %(klass)s on each group and
+return a %(klass)s having the same indexes as the original object
+filled with the transformed values
+
+Parameters
+----------
+f : function
+    Function to apply to each group
+
+Notes
+-----
+Each group is endowed the attribute 'name' in case you need to know
+which group you are working on.
+
+The current implementation imposes three requirements on f:
+
+* f must return a value that either has the same shape as the input
+  subframe or can be broadcast to the shape of the input subframe.
+  For example, f returns a scalar it will be broadcast to have the
+  same shape as the input subframe.
+* if this is a DataFrame, f must support application column-by-column
+  in the subframe. If f also supports application to the entire subframe,
+  then a fast path is used starting from the second chunk.
+* f must not mutate groups. Mutation is not supported and may
+  produce unexpected results.
+
+Returns
+-------
+%(klass)s
+
+See also
+--------
+aggregate, transform
+
+Examples
+--------
+>>> df = pd.DataFrame(np.repeat(np.arange(10), 3).reshape(-1, 3),
+                      columns=list('ABC'))
+>>> grouped = df.groupby(df.index // 3)
+
+# Same shape
+>>> grouped.%(selected)stransform(lambda x: (x - x.mean()) / x.std())
+
+# Broadcastable
+>>> grouped.%(selected)stransform(lambda x: x.max() - x.min())
+
+"""
+
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
 _plotting_methods = frozenset(['plot', 'boxplot', 'hist'])
@@ -2860,25 +2909,9 @@ class SeriesGroupBy(GroupBy):
 
         return result
 
+    @Substitution(klass='Series', selected='A.')
+    @Appender(_transform_template)
     def transform(self, func, *args, **kwargs):
-        """
-        Call function producing a like-indexed Series on each group and return
-        a Series with the transformed values
-
-        Parameters
-        ----------
-        func : function
-            To apply to each group. Should return a Series with the same index
-
-        Examples
-        --------
-        >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-
-        Returns
-        -------
-        transformed : Series
-        """
-
         func = self._is_cython_func(func) or func
 
         # if string function
@@ -3633,42 +3666,9 @@ class NDFrameGroupBy(GroupBy):
                               axis=self.axis, verify_integrity=False)
         return self._set_result_index_ordered(concatenated)
 
+    @Substitution(klass='DataFrame', selected='')
+    @Appender(_transform_template)
     def transform(self, func, *args, **kwargs):
-        """
-        Call function producing a like-indexed DataFrame on each group and
-        return a DataFrame having the same indexes as the original object
-        filled with the transformed values
-
-        Parameters
-        ----------
-        f : function
-            Function to apply to each subframe
-
-        Notes
-        -----
-        Each subframe is endowed the attribute 'name' in case you need to know
-        which group you are working on.
-
-        The current implementation imposes three requirements on f:
-
-        * f must return a value that either has the same shape as the input
-          subframe or can be broadcast to the shape of the input subframe.
-          For example, f returns a scalar it will be broadcast to have the
-          same shape as the input subframe.
-        * f must support application column-by-column in the subframe. If f 
-          also supports application to the entire subframe, then a fast path 
-          is used starting from the second chunk.
-        * f must not mutate subframes. Mutation is not supported and may
-          produce unexpected results.
-
-        Examples
-        --------
-        >>> grouped = df.groupby(lambda x: mapping[x])
-        # Same shape
-        >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-        # Broadcastable
-        >>> grouped.transform(lambda x: x.max() - x.min())
-        """
 
         # optimized transforms
         func = self._is_cython_func(func) or func
@@ -3784,7 +3784,8 @@ class NDFrameGroupBy(GroupBy):
 
         Examples
         --------
-        >>> grouped = df.groupby(lambda x: mapping[x])
+        >>> df = pd.DataFrame(np.random.randn(10, 3), columns=list('ABC'))
+        >>> grouped = df.groupby(df.index % 3)
         >>> grouped.filter(lambda x: x['A'].sum() + x['B'].sum() > 0)
         """
 
