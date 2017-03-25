@@ -196,6 +196,10 @@ after_script:
   - echo "after_script start"
   - ci/install_test.sh
   - source activate pandas && python -c "import pandas; pandas.show_versions();"
-  - ci/print_skipped.py /tmp/single.xml
-  - ci/print_skipped.py /tmp/multiple.xml
+  - if [ "$DOC_BUILD"]; then
+    ci/print_skipped.py /tmp/single.xml;
+    fi
+  - if [ "$DOC_BUILD"]; then
+    ci/print_skipped.py /tmp/multiple.xml;
+    fi
   - echo "after_script done"
