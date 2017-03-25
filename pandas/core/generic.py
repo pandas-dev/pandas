@@ -3976,7 +3976,11 @@ class NDFrame(PandasObject):
             if is_series:
                 return pd.Series(np.nan, index=where)
             else:
-                return pd.DataFrame(np.nan, index=where, columns=self.columns)
+                if is_list:
+                    return pd.DataFrame(np.nan, index=where,
+                                        columns=self.columns)
+                else:
+                    return pd.Series(np.nan, index=[where])
 
         locs = self.index.asof_locs(where, ~(nulls.values))
 

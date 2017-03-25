@@ -101,5 +101,5 @@ class TestFrameAsof(TestData, tm.TestCase):
         # testing scalar input
         date = date_range('1/1/1990', periods=self.N * 3, freq='25s')[0]
         result = DataFrame(np.nan, index=self.rng, columns=['A']).asof(date)
-        expected = DataFrame(np.nan, index=[date], columns=['A'])
-        tm.assert_frame_equal(result, expected)
+        expected = Series(np.nan, index=[date])
+        tm.assert_series_equal(result, expected)
