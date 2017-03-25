@@ -2872,7 +2872,22 @@ class SeriesGroupBy(GroupBy):
 
         Examples
         --------
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+        ...                           'foo', 'bar'],
+        ...                    'B' : ['one', 'one', 'two', 'three',
+        ...                          'two', 'two'],
+        ...                    'C' : [1, 5, 5, 2, 5, 5],
+        ...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
+        >>> grouped = df.groupby('A')
         >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+                  C         D
+        0 -1.154701 -0.577350
+        1  0.577350  0.000000
+        2  0.577350  1.154701
+        3 -1.154701 -1.000000
+        4  0.577350 -0.577350
+        5  0.577350  1.000000
 
         Returns
         -------
@@ -2949,7 +2964,17 @@ class SeriesGroupBy(GroupBy):
 
         Examples
         --------
-        >>> grouped.filter(lambda x: x.mean() > 0)
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+        ...                           'foo', 'bar'],
+        ...                    'B' : [1, 2, 3, 4, 5, 6],
+        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
+        >>> grouped = df.groupby('A')
+        >>> grouped.filter(lambda x: x['B'].mean() > 3.)
+             A  B    C
+        1  bar  2  5.0
+        3  bar  4  1.0
+        5  bar  6  9.0
 
         Returns
         -------
