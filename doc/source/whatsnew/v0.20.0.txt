@@ -785,6 +785,7 @@ Deprecations
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
 - The ``as_indexer`` keyword of ``Series.str.match()`` has been deprecated (ignored keyword) (:issue:`15257`).
 - The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`)
+
   * ``pd.pnow()``, replaced by ``Period.now()``
   * ``pd.Term``, is removed, as it is not applicable to user code. Instead use in-line string expressions in the where clause when searching in HDFStore
   * ``pd.Expr``, is removed, as it is not applicable to user code.
