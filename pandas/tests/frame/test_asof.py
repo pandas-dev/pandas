@@ -99,7 +99,16 @@ class TestFrameAsof(TestData, tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # testing scalar input
-        date = date_range('1/1/1990', periods=self.N * 3, freq='25s')[0]
-        result = DataFrame(np.nan, index=self.rng, columns=['A']).asof(date)
-        expected = Series(np.nan, index=[date])
+        result = DataFrame(np.nan, index=[1, 2], columns=['A', 'B']).asof([3])
+        expected = DataFrame(np.nan, index=[3], columns=['A', 'B'])
+        tm.assert_frame_equal(result, expected)
+
+        result = DataFrame(np.nan, index=[1, 2], columns=['A', 'B']).asof(3)
+        expected = Series(np.nan, index=['A', 'B'])
         tm.assert_series_equal(result, expected)
+
+
+
+
+
+
