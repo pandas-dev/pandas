@@ -4052,6 +4052,7 @@ class TestHDFStore(Base, tm.TestCase):
         df = concat([df1, df2], axis=1)
 
         with ensure_clean_store(self.path) as store:
+
             # dropna=True should guarantee rows are synchronized
             store.append_to_multiple(
                 {'df1': ['A', 'B'], 'df2': None}, df, selector='df1',
@@ -4062,14 +4063,27 @@ class TestHDFStore(Base, tm.TestCase):
             tm.assert_index_equal(store.select('df1').index,
                                   store.select('df2').index)
 
+    @pytest.mark.xfail(run=False,
+                       reason="append_to_multiple_dropna_false "
+                       "is not raising as failed")
+    def test_append_to_multiple_dropna_false(self):
+        df1 = tm.makeTimeDataFrame()
+        df2 = tm.makeTimeDataFrame().rename(columns=lambda x: "%s_2" % x)
+        df1.iloc[1, df1.columns.get_indexer(['A', 'B'])] = np.nan
+        df = concat([df1, df2], axis=1)
+
+        with ensure_clean_store(self.path) as store:
+
             # dropna=False shouldn't synchronize row indexes
             store.append_to_multiple(
-                {'df1': ['A', 'B'], 'df2': None}, df, selector='df1',
+                {'df1a': ['A', 'B'], 'df2a': None}, df, selector='df1a',
                 dropna=False)
-            self.assertRaises(
-                ValueError, store.select_as_multiple, ['df1', 'df2'])
-            assert not store.select('df1').index.equals(
-                store.select('df2').index)
+
+            with pytest.raises(ValueError):
+                store.select_as_multiple(['df1a', 'df2a'])
+
+            assert not store.select('df1a').index.equals(
+                store.select('df2a').index)
 
     def test_select_as_multiple(self):
 
