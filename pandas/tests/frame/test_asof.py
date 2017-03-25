@@ -106,9 +106,3 @@ class TestFrameAsof(TestData, tm.TestCase):
         result = DataFrame(np.nan, index=[1, 2], columns=['A', 'B']).asof(3)
         expected = Series(np.nan, index=['A', 'B'])
         tm.assert_series_equal(result, expected)
-
-
-
-
-
-
