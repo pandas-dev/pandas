@@ -497,7 +497,7 @@ def apply_frame_axis0(object frame, object f, object names,
     # Need to infer if our low-level mucking is going to cause a segfault
     if n > 0:
         chunk = frame.iloc[starts[0]:ends[0]]
-        shape_before = chunk.shape
+        object.__setattr__(chunk, 'name', names[0])
         try:
             result = f(chunk)
             if result is chunk:
