@@ -45,8 +45,8 @@ def create_panels_append(cls, panels):
         return p
 
 
-# Does the job but inefficient. It is better to handle
-# this like you read a table in pytables.
+# does the job but inefficient (better to handle like you read a table in
+# pytables...e.g create a LongPanel then convert to Wide)
 def create_panels_join(cls, panels):
         """ given an array of panels's, create a single panel """
         panels = [a for a in panels if a is not None]
