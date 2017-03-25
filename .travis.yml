@@ -27,63 +27,37 @@ matrix:
     - language: objective-c
       os: osx
       compiler: clang
-      osx_image: xcode6.4
       cache:
         ccache: true
         directories:
           - $HOME/.cache # cython cache
           - $HOME/.ccache # compiler cache
       env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_osx"
-        - TEST_ARGS="--skip-slow --skip-network"
-        - JOB_TAG=_OSX
-        - TRAVIS_PYTHON_VERSION=3.5
-        - USE_CACHE=true
+        - PYTHON_VERSION=3.5 JOB_NAME="35_osx" TEST_ARGS="--skip-slow --skip-network" JOB_TAG="_OSX" TRAVIS_PYTHON_VERSION=3.5 USE_CACHE=true
     - python: 2.7
       env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_slow_nnet_LOCALE"
-        - TEST_ARGS="--only-slow --skip-network"
-        - LOCALE_OVERRIDE="zh_CN.UTF-8"
-        - JOB_TAG=_LOCALE
-        - USE_CACHE=true
+        - PYTHON_VERSION=2.7 JOB_NAME="27_slow_nnet_LOCALE" TEST_ARGS="--only-slow --skip-network" LOCALE_OVERRIDE="zh_CN.UTF-8" JOB_TAG="_LOCALE" USE_CACHE=true
       addons:
         apt:
           packages:
           - language-pack-zh-hans
     - python: 2.7
       env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_nslow"
-        - TEST_ARGS="--skip-slow"
-        - CLIPBOARD_GUI=gtk2
-        - LINT=true
-        - USE_CACHE=true
+        - PYTHON_VERSION=2.7 JOB_NAME="27_nslow" TEST_ARGS="--skip-slow" LINT=true USE_CACHE=true
       addons:
         apt:
           packages:
           - python-gtk2
     - python: 3.5
       env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_nslow"
-        - TEST_ARGS="--skip-slow --skip-network"
-        - CLIPBOARD=xsel
-        - COVERAGE=true
-        - USE_CACHE=true
+        - PYTHON_VERSION=3.5 JOB_NAME="35_nslow" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true USE_CACHE=true
       addons:
         apt:
           packages:
           - xsel
     - python: 3.6
       env:
-        - PYTHON_VERSION=3.6
-        - JOB_NAME: "36"
-        - TEST_ARGS="--skip-slow --skip-network"
-        - PANDAS_TESTING_MODE="deprecate"
-        - CONDA_FORGE=true
-        - USE_CACHE=true
+        - PYTHON_VERSION=3.6 JOB_NAME="36" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true USE_CACHE=true
       addons:
         apt:
           packages:
@@ -92,68 +66,32 @@ matrix:
     # In allow_failures
     - python: 2.7
       env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_slow"
-        - JOB_TAG=_SLOW
-        - TEST_ARGS="--only-slow --skip-network"
-        - USE_CACHE=true
+        - PYTHON_VERSION=2.7 JOB_NAME="27_slow" JOB_TAG="_SLOW" TEST_ARGS="--only-slow --skip-network" USE_CACHE=true
     # In allow_failures
     - python: 2.7
       env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_build_test"
-        - JOB_TAG=_BUILD_TEST
-        - TEST_ARGS="--skip-slow"
-        - BUILD_TEST=true
-        - USE_CACHE=true
+        - PYTHON_VERSION=2.7 JOB_NAME="27_build_test" JOB_TAG="_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true USE_CACHE=true
     # In allow_failures
     - python: 3.5
       env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_numpy_dev"
-        - JOB_TAG=_NUMPY_DEV
-        - TEST_ARGS="--skip-slow --skip-network"
-        - PANDAS_TESTING_MODE="deprecate"
-        - USE_CACHE=true
+        - PYTHON_VERSION=3.5 JOB_NAME="35_numpy_dev" JOB_TAG="_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" USE_CACHE=true
     # In allow_failures
     - python: 3.5
       env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "doc_build"
-        - DOC_BUILD=true
-        - JOB_TAG=_DOC_BUILD
-        - USE_CACHE=true
+        - PYTHON_VERSION=3.5 JOB_NAME="doc_build" DOC_BUILD=true JOB_TAG="_DOC_BUILD" USE_CACHE=true
     allow_failures:
       - python: 2.7
         env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_slow"
-        - JOB_TAG=_SLOW
-        - TEST_ARGS="--only-slow --skip-network"
-        - USE_CACHE=true
+          - PYTHON_VERSION=2.7 JOB_NAME="27_slow" JOB_TAG="_SLOW" TEST_ARGS="--only-slow --skip-network" USE_CACHE=true
       - python: 2.7
         env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_build_test"
-        - JOB_TAG=_BUILD_TEST
-        - TEST_ARGS="--skip-slow"
-        - BUILD_TEST=true
-        - USE_CACHE=true
+          - PYTHON_VERSION=2.7 JOB_NAME="27_build_test" JOB_TAG="_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true USE_CACHE=true
       - python: 3.5
         env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_numpy_dev"
-        - JOB_TAG=_NUMPY_DEV
-        - TEST_ARGS="--skip-slow --skip-network"
-        - PANDAS_TESTING_MODE="deprecate"
-        - USE_CACHE=true
+          - PYTHON_VERSION=3.5 JOB_NAME="35_numpy_dev" JOB_TAG="_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" USE_CACHE=true
       - python: 3.5
         env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "doc_build"
-        - DOC_BUILD=true
-        - JOB_TAG=_DOC_BUILD
-        - USE_CACHE=true
+          - PYTHON_VERSION=3.5 JOB_NAME="doc_build" DOC_BUILD=true JOB_TAG="_DOC_BUILD" USE_CACHE=true
 
 before_install:
   - echo "before_install"
@@ -165,7 +103,7 @@ before_install:
   - git --version
   - git tag
   - ci/before_install_travis.sh
-  - export DISPLAY=:99.0
+  - export DISPLAY=":99.0"
 
 install:
   - echo "install start"
@@ -196,10 +134,10 @@ after_script:
   - echo "after_script start"
   - ci/install_test.sh
   - source activate pandas && python -c "import pandas; pandas.show_versions();"
-  - if [ "$DOC_BUILD"]; then
+  - if [ -z "$DOC_BUILD" ]; then
     ci/print_skipped.py /tmp/single.xml;
     fi
-  - if [ "$DOC_BUILD"]; then
+  - if [ -z "$DOC_BUILD" ]; then
     ci/print_skipped.py /tmp/multiple.xml;
     fi
   - echo "after_script done"
