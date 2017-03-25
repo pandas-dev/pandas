@@ -104,5 +104,5 @@ class TestFrameAsof(TestData, tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         result = DataFrame(np.nan, index=[1, 2], columns=['A', 'B']).asof(3)
-        expected = Series(np.nan, index=['A', 'B'])
+        expected = Series(np.nan, index=['A', 'B'], name=3)
         tm.assert_series_equal(result, expected)

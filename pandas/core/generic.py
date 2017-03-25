@@ -3980,7 +3980,7 @@ class NDFrame(PandasObject):
                     return pd.DataFrame(np.nan, index=where,
                                         columns=self.columns)
                 else:
-                    return pd.Series(np.nan, index=self.columns)
+                    return pd.Series(np.nan, index=self.columns, name=where[0])
 
         locs = self.index.asof_locs(where, ~(nulls.values))
 
