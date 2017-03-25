@@ -3974,7 +3974,7 @@ class NDFrame(PandasObject):
         nulls = self.isnull() if is_series else self[subset].isnull().any(1)
         if nulls.all():
             if is_series:
-                return pd.Series(np.nan, index=where)
+                return pd.Series(np.nan, index=where, name=self.name)
             else:
                 if is_list:
                     return pd.DataFrame(np.nan, index=where,

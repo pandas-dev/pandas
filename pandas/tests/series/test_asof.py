@@ -169,3 +169,7 @@ class TestSeriesAsof(TestData, tm.TestCase):
         date = date_range('1/1/1990', periods=N * 3, freq='25s')[0]
         result = Series(np.nan, index=rng).asof(date)
         assert isnull(result)
+
+        # test name is propagated
+        result = Series(np.nan, index=[1, 2, 3, 4], name='test').asof([4, 5])
+        self.assertEqual(result.name, 'test')
