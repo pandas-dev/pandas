@@ -1,171 +1,140 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
+import pytest
 import numpy as np
 
-import pandas as pd
-
+from pandas import DataFrame, Index
 from pandas.tests.frame.common import TestData
-
 import pandas.util.testing as tm
 
 
-class TestDataFrameJoin(TestData):
+@pytest.fixture
+def frame():
+    return TestData().frame
 
-    def test_join(self):
-        df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
-        df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
 
-        # default how='left'
-        result = df1.join(df2)
-        expected = pd.DataFrame({'a': [20, 10, 0], 'b': [200, 100, np.nan]},
-                                index=[2, 1, 0])
-        tm.assert_frame_equal(result, expected)
+@pytest.fixture
+def df1():
+    return DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
 
-        # how='left'
-        result = df1.join(df2, how='left')
-        expected = pd.DataFrame({'a': [20, 10, 0], 'b': [200, 100, np.nan]},
-                                index=[2, 1, 0])
-        tm.assert_frame_equal(result, expected)
 
-        # how='right'
-        result = df1.join(df2, how='right')
-        expected = pd.DataFrame({'a': [10, 20, np.nan], 'b': [100, 200, 300]},
-                                index=[1, 2, 3])
-        tm.assert_frame_equal(result, expected)
+@pytest.fixture
+def df2():
+    return DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
 
-        # how='inner'
-        result = df1.join(df2, how='inner')
-        expected = pd.DataFrame({'a': [20, 10], 'b': [200, 100]},
-                                index=[2, 1])
-        tm.assert_frame_equal(result, expected)
 
-        # how='outer'
-        result = df1.join(df2, how='outer')
-        expected = pd.DataFrame({'a': [0, 10, 20, np.nan],
+@pytest.mark.parametrize(
+    "how, sort, expected",
+    [('inner', False, DataFrame({'a': [20, 10],
+                                 'b': [200, 100]},
+                                index=[2, 1])),
+     ('inner', True, DataFrame({'a': [10, 20],
+                                'b': [100, 200]},
+                               index=[1, 2])),
+     ('left', False, DataFrame({'a': [20, 10, 0],
+                                'b': [200, 100, np.nan]},
+                               index=[2, 1, 0])),
+     ('left', True, DataFrame({'a': [0, 10, 20],
+                               'b': [np.nan, 100, 200]},
+                              index=[0, 1, 2])),
+     ('right', False, DataFrame({'a': [10, 20, np.nan],
+                                 'b': [100, 200, 300]},
+                                index=[1, 2, 3])),
+     ('right', True, DataFrame({'a': [10, 20, np.nan],
+                                'b': [100, 200, 300]},
+                               index=[1, 2, 3])),
+     ('outer', False, DataFrame({'a': [0, 10, 20, np.nan],
                                  'b': [np.nan, 100, 200, 300]},
-                                index=[0, 1, 2, 3])
-        tm.assert_frame_equal(result, expected)
+                                index=[0, 1, 2, 3])),
+     ('outer', True, DataFrame({'a': [0, 10, 20, np.nan],
+                                'b': [np.nan, 100, 200, 300]},
+                               index=[0, 1, 2, 3]))])
+def test_join(df1, df2, how, sort, expected):
 
-    def test_join_sort(self):
-        df1 = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
-        df2 = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+    result = df1.join(df2, how=how, sort=sort)
+    tm.assert_frame_equal(result, expected)
 
-        # default how='left'
-        result = df1.join(df2, sort=True)
-        expected = pd.DataFrame({'a': [0, 10, 20], 'b': [np.nan, 100, 200]},
-                                index=[0, 1, 2])
-        tm.assert_frame_equal(result, expected)
 
-        # how='left'
-        result = df1.join(df2, how='left', sort=True)
-        expected = pd.DataFrame({'a': [0, 10, 20], 'b': [np.nan, 100, 200]},
-                                index=[0, 1, 2])
-        tm.assert_frame_equal(result, expected)
+def test_join_index(frame):
+    # left / right
 
-        # how='right' (already sorted)
-        result = df1.join(df2, how='right', sort=True)
-        expected = pd.DataFrame({'a': [10, 20, np.nan], 'b': [100, 200, 300]},
-                                index=[1, 2, 3])
-        tm.assert_frame_equal(result, expected)
+    f = frame.loc[frame.index[:10], ['A', 'B']]
+    f2 = frame.loc[frame.index[5:], ['C', 'D']].iloc[::-1]
 
-        # how='right'
-        result = df2.join(df1, how='right', sort=True)
-        expected = pd.DataFrame([[np.nan, 0], [100, 10], [200, 20]],
-                                columns=['b', 'a'], index=[0, 1, 2])
-        tm.assert_frame_equal(result, expected)
+    joined = f.join(f2)
+    tm.assert_index_equal(f.index, joined.index)
+    expected_columns = Index(['A', 'B', 'C', 'D'])
+    tm.assert_index_equal(joined.columns, expected_columns)
 
-        # how='inner'
-        result = df1.join(df2, how='inner', sort=True)
-        expected = pd.DataFrame({'a': [10, 20], 'b': [100, 200]},
-                                index=[1, 2])
-        tm.assert_frame_equal(result, expected)
+    joined = f.join(f2, how='left')
+    tm.assert_index_equal(joined.index, f.index)
+    tm.assert_index_equal(joined.columns, expected_columns)
 
-        # how='outer'
-        result = df1.join(df2, how='outer', sort=True)
-        expected = pd.DataFrame({'a': [0, 10, 20, np.nan],
-                                 'b': [np.nan, 100, 200, 300]},
-                                index=[0, 1, 2, 3])
-        tm.assert_frame_equal(result, expected)
+    joined = f.join(f2, how='right')
+    tm.assert_index_equal(joined.index, f2.index)
+    tm.assert_index_equal(joined.columns, expected_columns)
 
-    def test_join_index(self):
-        # left / right
+    # inner
 
-        f = self.frame.loc[self.frame.index[:10], ['A', 'B']]
-        f2 = self.frame.loc[self.frame.index[5:], ['C', 'D']].iloc[::-1]
+    joined = f.join(f2, how='inner')
+    tm.assert_index_equal(joined.index, f.index[5:10])
+    tm.assert_index_equal(joined.columns, expected_columns)
 
-        joined = f.join(f2)
-        tm.assert_index_equal(f.index, joined.index)
-        expected_columns = pd.Index(['A', 'B', 'C', 'D'])
-        tm.assert_index_equal(joined.columns, expected_columns)
+    # outer
 
-        joined = f.join(f2, how='left')
-        tm.assert_index_equal(joined.index, f.index)
-        tm.assert_index_equal(joined.columns, expected_columns)
+    joined = f.join(f2, how='outer')
+    tm.assert_index_equal(joined.index, frame.index.sort_values())
+    tm.assert_index_equal(joined.columns, expected_columns)
 
-        joined = f.join(f2, how='right')
-        tm.assert_index_equal(joined.index, f2.index)
-        tm.assert_index_equal(joined.columns, expected_columns)
+    tm.assertRaisesRegexp(ValueError, 'join method', f.join, f2, how='foo')
 
-        # inner
+    # corner case - overlapping columns
+    for how in ('outer', 'left', 'inner'):
+        with tm.assertRaisesRegexp(ValueError, 'columns overlap but '
+                                   'no suffix'):
+            frame.join(frame, how=how)
 
-        joined = f.join(f2, how='inner')
-        tm.assert_index_equal(joined.index, f.index[5:10])
-        tm.assert_index_equal(joined.columns, expected_columns)
 
-        # outer
+def test_join_index_more(frame):
+    af = frame.loc[:, ['A', 'B']]
+    bf = frame.loc[::2, ['C', 'D']]
 
-        joined = f.join(f2, how='outer')
-        tm.assert_index_equal(joined.index, self.frame.index.sort_values())
-        tm.assert_index_equal(joined.columns, expected_columns)
+    expected = af.copy()
+    expected['C'] = frame['C'][::2]
+    expected['D'] = frame['D'][::2]
 
-        tm.assertRaisesRegexp(ValueError, 'join method', f.join, f2, how='foo')
+    result = af.join(bf)
+    tm.assert_frame_equal(result, expected)
 
-        # corner case - overlapping columns
-        for how in ('outer', 'left', 'inner'):
-            with tm.assertRaisesRegexp(ValueError, 'columns overlap but '
-                                       'no suffix'):
-                self.frame.join(self.frame, how=how)
+    result = af.join(bf, how='right')
+    tm.assert_frame_equal(result, expected[::2])
 
-    def test_join_index_more(self):
-        af = self.frame.loc[:, ['A', 'B']]
-        bf = self.frame.loc[::2, ['C', 'D']]
+    result = bf.join(af, how='right')
+    tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
-        expected = af.copy()
-        expected['C'] = self.frame['C'][::2]
-        expected['D'] = self.frame['D'][::2]
 
-        result = af.join(bf)
-        tm.assert_frame_equal(result, expected)
+def test_join_index_series(frame):
+    df = frame.copy()
+    s = df.pop(frame.columns[-1])
+    joined = df.join(s)
 
-        result = af.join(bf, how='right')
-        tm.assert_frame_equal(result, expected[::2])
+    # TODO should this check_names ?
+    tm.assert_frame_equal(joined, frame, check_names=False)
 
-        result = bf.join(af, how='right')
-        tm.assert_frame_equal(result, expected.loc[:, result.columns])
+    s.name = None
+    tm.assertRaisesRegexp(ValueError, 'must have a name', df.join, s)
 
-    def test_join_index_series(self):
-        df = self.frame.copy()
-        s = df.pop(self.frame.columns[-1])
-        joined = df.join(s)
 
-        # TODO should this check_names ?
-        tm.assert_frame_equal(joined, self.frame, check_names=False)
+def test_join_overlap(frame):
+    df1 = frame.loc[:, ['A', 'B', 'C']]
+    df2 = frame.loc[:, ['B', 'C', 'D']]
 
-        s.name = None
-        tm.assertRaisesRegexp(ValueError, 'must have a name', df.join, s)
+    joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
+    df1_suf = df1.loc[:, ['B', 'C']].add_suffix('_df1')
+    df2_suf = df2.loc[:, ['B', 'C']].add_suffix('_df2')
 
-    def test_join_overlap(self):
-        df1 = self.frame.loc[:, ['A', 'B', 'C']]
-        df2 = self.frame.loc[:, ['B', 'C', 'D']]
+    no_overlap = frame.loc[:, ['A', 'D']]
+    expected = df1_suf.join(df2_suf).join(no_overlap)
 
-        joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
-        df1_suf = df1.loc[:, ['B', 'C']].add_suffix('_df1')
-        df2_suf = df2.loc[:, ['B', 'C']].add_suffix('_df2')
-
-        no_overlap = self.frame.loc[:, ['A', 'D']]
-        expected = df1_suf.join(df2_suf).join(no_overlap)
-
-        # column order not necessarily sorted
-        tm.assert_frame_equal(joined, expected.loc[:, joined.columns])
+    # column order not necessarily sorted
+    tm.assert_frame_equal(joined, expected.loc[:, joined.columns])
