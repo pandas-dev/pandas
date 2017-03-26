@@ -146,8 +146,8 @@ following code will cause trouble because of the regular expression meaning of
    # We need to escape the special character (for >1 len patterns)
    dollars.str.replace(r'-\$', '-')
 
-The ``replace`` method can also take a callable as replacement. It is called 
-on every ``pat`` using :func:`re.sub`. The callable should expect one 
+The ``replace`` method can also take a callable as replacement. It is called
+on every ``pat`` using :func:`re.sub`. The callable should expect one
 positional argument (a regex object) and return a string.
 
 .. versionadded:: 0.20.0
@@ -380,7 +380,7 @@ or match a pattern:
 
 .. ipython:: python
 
-   pd.Series(['1', '2', '3a', '3b', '03c']).str.match(pattern, as_indexer=True)
+   pd.Series(['1', '2', '3a', '3b', '03c']).str.match(pattern)
 
 The distinction between ``match`` and ``contains`` is strictness: ``match``
 relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
