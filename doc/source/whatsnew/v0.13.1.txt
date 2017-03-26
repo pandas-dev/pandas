@@ -125,7 +125,7 @@ API changes
       df = DataFrame({'col':['foo', 0, np.nan]})
       df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
       df.equals(df2)
-      df.equals(df2.sort())
+      df.equals(df2.sort_index())
 
       import pandas.core.common as com
       com.array_equivalent(np.array([0, np.nan]), np.array([0, np.nan]))
