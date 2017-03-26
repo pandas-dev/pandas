@@ -431,6 +431,8 @@ class TestIsin(tm.TestCase):
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_i8(self):
+
         arr = pd.date_range('20130101', periods=3).values
         result = algos.isin(arr, [arr[0]])
         expected = np.array([True, False, False])

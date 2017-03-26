@@ -174,7 +174,7 @@ def isin(comps, values):
                         " to isin(), you passed a "
                         "[{0}]".format(type(values).__name__))
 
-    from pandas import DatetimeIndex, PeriodIndex
+    from pandas import DatetimeIndex, TimedeltaIndex, PeriodIndex
 
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = np.array(list(values), dtype='object')
@@ -183,6 +183,9 @@ def isin(comps, values):
         if is_period_dtype(values):
             comps = PeriodIndex(comps)
             values = PeriodIndex(values)
+        elif is_timedelta64_dtype(comps):
+            comps = TimedeltaIndex(comps)
+            values = TimedeltaIndex(values)
         else:
             comps = DatetimeIndex(comps)
             values = DatetimeIndex(values)
