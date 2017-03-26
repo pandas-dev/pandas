@@ -26,7 +26,6 @@ matrix:
     include:
     - language: objective-c
       os: osx
-      compiler: clang
       cache:
         ccache: true
         directories:
@@ -58,11 +57,6 @@ matrix:
     - python: 3.6
       env:
         - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true
-      addons:
-        apt:
-          packages:
-          - libatlas-base-dev
-          - gfortran
     # In allow_failures
     - python: 2.7
       env:
