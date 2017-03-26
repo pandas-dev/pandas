@@ -389,9 +389,10 @@ class TestnanopsDataFrame(tm.TestCase):
     def test_nansem(self):
         tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import sem
-        self.check_funs_ddof(nanops.nansem, sem, allow_complex=False,
-                             allow_str=False, allow_date=False,
-                             allow_tdelta=True, allow_obj='convert')
+        with np.errstate(invalid='ignore'):
+            self.check_funs_ddof(nanops.nansem, sem, allow_complex=False,
+                                 allow_str=False, allow_date=False,
+                                 allow_tdelta=False, allow_obj='convert')
 
     def _minmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -449,16 +450,20 @@ class TestnanopsDataFrame(tm.TestCase):
         tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
-        self.check_funs(nanops.nanskew, func, allow_complex=False,
-                        allow_str=False, allow_date=False, allow_tdelta=False)
+        with np.errstate(invalid='ignore'):
+            self.check_funs(nanops.nanskew, func, allow_complex=False,
+                            allow_str=False, allow_date=False,
+                            allow_tdelta=False)
 
     def test_nankurt(self):
         tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
-        self.check_funs(nanops.nankurt, func, allow_complex=False,
-                        allow_str=False, allow_date=False, allow_tdelta=False)
+        with np.errstate(invalid='ignore'):
+            self.check_funs(nanops.nankurt, func, allow_complex=False,
+                            allow_str=False, allow_date=False,
+                            allow_tdelta=False)
 
     def test_nanprod(self):
         self.check_funs(nanops.nanprod, np.prod, allow_str=False,

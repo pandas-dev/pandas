@@ -2913,10 +2913,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df['category'] = Series(np.array(list('abcdefghij')).take(
             np.random.randint(0, 10, size=n))).astype('category')
         df.isnull()
-        df.info()
+        buf = compat.StringIO()
+        df.info(buf=buf)
 
         df2 = df[df['category'] == 'd']
-        df2.info()
+        buf = compat.StringIO()
+        df2.info(buf=buf)
 
     def test_groupby_sort(self):
 
