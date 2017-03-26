@@ -68,7 +68,7 @@ conda info -a || exit 1
 
 # set the compiler cache to work
 echo
-if [ "$USE_CACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
     echo "[Using ccache]"
     export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
     gcc=$(which gcc)
@@ -76,7 +76,7 @@ if [ "$USE_CACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
     ccache=$(which ccache)
     echo "[ccache]: $ccache"
     export CC='ccache gcc'
-elif [ "$USE_CACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     echo "[Using ccache]"
     time brew install ccache
     export PATH=/usr/local/opt/ccache/libexec:$PATH
@@ -91,35 +91,22 @@ fi
 echo
 echo "[create env]"
 
-# may have installation instructions for this build
-INSTALL="ci/install-${PYTHON_VERSION}${JOB_TAG}.sh"
-if [ -e ${INSTALL} ]; then
-    time bash $INSTALL || exit 1
-else
-    # create new env
-    # this may already exists, in which case our caching worked
-    time conda create -n pandas python=$PYTHON_VERSION pytest nomkl
-fi
+# create our environment
+REQ="ci/requirements-${JOB}.build"
+time conda create -n pandas --file=${REQ} || exit 1
 
-# build deps
-echo
-echo "[build installs]"
-REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.build"
-if [ -e ${REQ} ]; then
-    time conda install -n pandas --file=${REQ} || exit 1
-fi
+source activate pandas
 
 # may have addtl installation instructions for this build
 echo
 echo "[build addtl installs]"
-REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.build.sh"
+REQ="ci/requirements-${JOB}.build.sh"
 if [ -e ${REQ} ]; then
     time bash $REQ || exit 1
 fi
 
-source activate pandas
-
-pip install pytest-xdist
+time conda install -n pandas pytest
+time pip install pytest-xdist
 
 if [ "$LINT" ]; then
    conda install flake8
@@ -152,7 +139,7 @@ fi
 # we may have run installations
 echo
 echo "[conda installs]"
-REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.run"
+REQ="ci/requirements-${JOB}.run"
 if [ -e ${REQ} ]; then
     time conda install -n pandas --file=${REQ} || exit 1
 fi
@@ -160,7 +147,7 @@ fi
 # we may have additional pip installs
 echo
 echo "[pip installs]"
-REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.pip"
+REQ="ci/requirements-${JOB}.pip"
 if [ -e ${REQ} ]; then
    pip install -r $REQ
 fi
@@ -168,7 +155,7 @@ fi
 # may have addtl installation instructions for this build
 echo
 echo "[addtl installs]"
-REQ="ci/requirements-${PYTHON_VERSION}${JOB_TAG}.sh"
+REQ="ci/requirements-${JOB}.sh"
 if [ -e ${REQ} ]; then
     time bash $REQ || exit 1
 fi

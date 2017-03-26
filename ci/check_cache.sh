@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# currently not used
+# script to make sure that cache is clean
+# Travis CI now handles this
+
 if [ "$TRAVIS_PULL_REQUEST" == "false" ]
 then
     echo "Not a PR: checking for changes in ci/ from last 2 commits"
