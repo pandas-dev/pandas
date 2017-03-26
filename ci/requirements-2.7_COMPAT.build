@@ -1,3 +1,4 @@
+python=2.7*
 numpy=1.7.1
 cython=0.23
 dateutil=1.5

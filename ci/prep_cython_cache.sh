@@ -22,7 +22,7 @@ fi
 
 home_dir=$(pwd)
 
-if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ] && [ -d "$PYX_CACHE_DIR" ]; then
+if [ -f "$CACHE_File" ] && [ -z "$NOCACHE" ] && [ -d "$PYX_CACHE_DIR" ]; then
 
     echo "Cache available - checking pyx diff"
 
@@ -57,16 +57,16 @@ if [ -f "$CACHE_File" ] && [ "$USE_CACHE" ] && [ -d "$PYX_CACHE_DIR" ]; then
 
 fi
 
-if [ $clear_cache -eq 0 ] && [ "$USE_CACHE" ]
+if [ $clear_cache -eq 0 ] && [ -z "$NOCACHE" ]
 then
-    # No and use_cache is set
+    # No and nocache is not set
     echo "Will reuse cached cython file"
     cd /
     tar xvmf $CACHE_File
     cd $home_dir
 else
     echo "Rebuilding cythonized files"
-    echo "Use cache (Blank if not set) = $USE_CACHE"
+    echo "No cache = $NOCACHE"
     echo "Clear cache (1=YES) = $clear_cache"
 fi
 
