@@ -785,6 +785,7 @@ Deprecations
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
 - The ``as_indexer`` keyword of ``Series.str.match()`` has been deprecated (ignored keyword) (:issue:`15257`).
 - The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`)
+
   * ``pd.pnow()``, replaced by ``Period.now()``
   * ``pd.Term``, is removed, as it is not applicable to user code. Instead use in-line string expressions in the where clause when searching in HDFStore
   * ``pd.Expr``, is removed, as it is not applicable to user code.
@@ -812,7 +813,7 @@ Removal of prior version deprecations/changes
 - The ``Categorical`` constructor has dropped the ``name`` parameter (:issue:`10632`)
 - The ``take_last`` parameter has been dropped from ``duplicated()``, ``drop_duplicates()``, ``nlargest()``, and ``nsmallest()`` methods (:issue:`10236`, :issue:`10792`, :issue:`10920`)
 - ``Series``, ``Index``, and ``DataFrame`` have dropped the ``sort`` and ``order`` methods (:issue:`10726`)
-- The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
+- Where clauses in ``pytables`` are only accepted as strings and expressions types and not other data-types (:issue:`12027`)
 
 .. _whatsnew_0200.performance:
 
@@ -830,6 +831,9 @@ Performance Improvements
 - Improved performance when using ``.unstack()`` (:issue:`15503`)
 - Improved performance of merge/join on ``category`` columns (:issue:`10409`)
 - Improved performance of ``drop_duplicates()`` on ``bool`` columns (:issue:`12963`)
+- Improve performance of ``pd.core.groupby.GroupBy.apply`` when the applied
+  function used the ``.name`` attribute of the group DataFrame (:issue:`15062`).
+
 
 
 .. _whatsnew_0200.bug_fixes:
@@ -864,6 +868,7 @@ Bug Fixes
 - Bug in ``pd.cut()`` with a single bin on an all 0s array (:issue:`15428`)
 - Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
 - Compat with SciPy 0.19.0 for testing on ``.interpolate()`` (:issue:`15662`)
+- Bug in ``Series.asof`` which raised if the series contained all ``np.nan`` (:issue:`15713`)
 
 - Compat for 32-bit platforms for ``.qcut/cut``; bins will now be ``int64`` dtype (:issue:`14866`)
 

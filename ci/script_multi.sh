@@ -27,8 +27,8 @@ if [ "$BUILD_TEST" ]; then
     cd /tmp
     python -c "import pandas; pandas.test(['-n 2'])"
 elif [ "$COVERAGE" ]; then
-    echo pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/cov.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
-    pytest -s -n 2 -m "not single" --cov=pandas --cov-append --cov-report xml:/tmp/cov.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    echo pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
 else
     echo pytest -n 2 -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
     pytest -n 2 -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas # TODO: doctest

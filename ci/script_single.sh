@@ -20,8 +20,8 @@ fi
 if [ "$BUILD_TEST" ]; then
     echo "We are not running pytest as this is simply a build test."
 elif [ "$COVERAGE" ]; then
-    echo pytest -s -m "single" --cov=pandas --cov-report xml:/tmp/cov.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
-    pytest -s -m "single" --cov=pandas --cov-report xml:/tmp/cov.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
+    echo pytest -s -m "single" --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
+    pytest -s -m "single" --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
 else
     echo pytest -m "single" --junitxml=/tmp/single.xml $TEST_ARGS pandas
     pytest -m "single" --junitxml=/tmp/single.xml $TEST_ARGS pandas # TODO: doctest
