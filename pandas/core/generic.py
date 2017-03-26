@@ -3972,6 +3972,16 @@ class NDFrame(PandasObject):
             where = Index(where) if is_list else Index([where])
 
         nulls = self.isnull() if is_series else self[subset].isnull().any(1)
+        if nulls.all():
+            if is_series:
+                return self._constructor(np.nan, index=where, name=self.name)
+            elif is_list:
+                from pandas import DataFrame
+                return DataFrame(np.nan, index=where, columns=self.columns)
+            else:
+                from pandas import Series
+                return Series(np.nan, index=self.columns, name=where[0])
+
         locs = self.index.asof_locs(where, ~(nulls.values))
 
         # mask the missing
