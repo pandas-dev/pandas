@@ -1,9 +1,9 @@
 sudo: false
 language: python
 
-# To turn off cached miniconda, cython files and compiler cache comment out the
-# USE_CACHE=true line for the build in the matrix below. To delete caches go to
-# https://travis-ci.org/OWNER/REPOSITORY/caches or run
+# To turn off cached cython files and compiler cache
+# set NOCACHE-true
+# To delete caches go to https://travis-ci.org/OWNER/REPOSITORY/caches or run
 # travis cache --delete inside the project directory from the travis command line client
 # The cash directories will be deleted if anything in ci/ changes in a commit
 cache:
@@ -33,31 +33,31 @@ matrix:
           - $HOME/.cache # cython cache
           - $HOME/.ccache # compiler cache
       env:
-        - PYTHON_VERSION=3.5 JOB_NAME="35_osx" TEST_ARGS="--skip-slow --skip-network" JOB_TAG="_OSX" TRAVIS_PYTHON_VERSION=3.5 USE_CACHE=true
+        - JOB="3.5_OSX" TEST_ARGS="--skip-slow --skip-network" TRAVIS_PYTHON_VERSION=3.5
     - python: 2.7
       env:
-        - PYTHON_VERSION=2.7 JOB_NAME="27_slow_nnet_LOCALE" TEST_ARGS="--only-slow --skip-network" LOCALE_OVERRIDE="zh_CN.UTF-8" JOB_TAG="_LOCALE" USE_CACHE=true
+        - JOB="2.7_LOCALE" TEST_ARGS="--only-slow --skip-network" LOCALE_OVERRIDE="zh_CN.UTF-8"
       addons:
         apt:
           packages:
           - language-pack-zh-hans
     - python: 2.7
       env:
-        - PYTHON_VERSION=2.7 JOB_NAME="27_nslow" TEST_ARGS="--skip-slow" LINT=true USE_CACHE=true
+        - JOB="2.7" TEST_ARGS="--skip-slow" LINT=true
       addons:
         apt:
           packages:
           - python-gtk2
     - python: 3.5
       env:
-        - PYTHON_VERSION=3.5 JOB_NAME="35_nslow" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true USE_CACHE=true
+        - JOB="3.5" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true
       addons:
         apt:
           packages:
           - xsel
     - python: 3.6
       env:
-        - PYTHON_VERSION=3.6 JOB_NAME="36" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true USE_CACHE=true
+        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true
       addons:
         apt:
           packages:
@@ -66,32 +66,32 @@ matrix:
     # In allow_failures
     - python: 2.7
       env:
-        - PYTHON_VERSION=2.7 JOB_NAME="27_slow" JOB_TAG="_SLOW" TEST_ARGS="--only-slow --skip-network" USE_CACHE=true
+        - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
     # In allow_failures
     - python: 2.7
       env:
-        - PYTHON_VERSION=2.7 JOB_NAME="27_build_test" JOB_TAG="_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true USE_CACHE=true
+        - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
+    # In allow_failures
+    - python: 3.6
+      env:
+        - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
     # In allow_failures
     - python: 3.5
       env:
-        - PYTHON_VERSION=3.5 JOB_NAME="35_numpy_dev" JOB_TAG="_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" USE_CACHE=true
-    # In allow_failures
-    - python: 3.5
-      env:
-        - PYTHON_VERSION=3.5 JOB_NAME="doc_build" DOC_BUILD=true JOB_TAG="_DOC_BUILD" USE_CACHE=true
+        - JOB="3.5_DOC_BUILD" DOC_BUILD=true
     allow_failures:
       - python: 2.7
         env:
-          - PYTHON_VERSION=2.7 JOB_NAME="27_slow" JOB_TAG="_SLOW" TEST_ARGS="--only-slow --skip-network" USE_CACHE=true
+          - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
       - python: 2.7
         env:
-          - PYTHON_VERSION=2.7 JOB_NAME="27_build_test" JOB_TAG="_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true USE_CACHE=true
+          - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
+      - python: 3.6
+        env:
+          - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
       - python: 3.5
         env:
-          - PYTHON_VERSION=3.5 JOB_NAME="35_numpy_dev" JOB_TAG="_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" USE_CACHE=true
-      - python: 3.5
-        env:
-          - PYTHON_VERSION=3.5 JOB_NAME="doc_build" DOC_BUILD=true JOB_TAG="_DOC_BUILD" USE_CACHE=true
+          - JOB="3.5_DOC_BUILD" DOC_BUILD=true
 
 before_install:
   - echo "before_install"
@@ -107,7 +107,6 @@ before_install:
 
 install:
   - echo "install start"
-  - ci/check_cache.sh
   - ci/prep_cython_cache.sh
   - ci/install_travis.sh
   - ci/submit_cython_cache.sh
