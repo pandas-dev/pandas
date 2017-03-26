@@ -15,7 +15,7 @@ from pandas.core.index import (Index, CategoricalIndex, Int64Index,
 
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-from pandas.core.panel import Panel
+from pandas.core.panel import Panel, WidePanel
 from pandas.core.panel4d import Panel4D
 from pandas.core.reshape import (pivot_simple as pivot, get_dummies,
                                  lreshape, wide_to_long)
