@@ -814,6 +814,7 @@ Removal of prior version deprecations/changes
 - The ``take_last`` parameter has been dropped from ``duplicated()``, ``drop_duplicates()``, ``nlargest()``, and ``nsmallest()`` methods (:issue:`10236`, :issue:`10792`, :issue:`10920`)
 - ``Series``, ``Index``, and ``DataFrame`` have dropped the ``sort`` and ``order`` methods (:issue:`10726`)
 - Where clauses in ``pytables`` are only accepted as strings and expressions types and not other data-types (:issue:`12027`)
+- ``DataFrame`` has dropped the ``combineAdd`` and ``combineMult`` methods in favor of ``add`` and ``mul`` respectively (:issue:`10735`)
 
 .. _whatsnew_0200.performance:
 
