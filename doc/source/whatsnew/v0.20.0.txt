@@ -868,6 +868,7 @@ Bug Fixes
 - Bug in ``pd.cut()`` with a single bin on an all 0s array (:issue:`15428`)
 - Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
 - Compat with SciPy 0.19.0 for testing on ``.interpolate()`` (:issue:`15662`)
+- Bug in ``Series.asof`` which raised if the series contained all ``np.nan`` (:issue:`15713`)
 
 - Compat for 32-bit platforms for ``.qcut/cut``; bins will now be ``int64`` dtype (:issue:`14866`)
 
