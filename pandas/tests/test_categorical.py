@@ -160,12 +160,6 @@ class TestCategorical(tm.TestCase):
 
         self.assertRaises(ValueError, f)
 
-        def f():
-            with tm.assert_produces_warning(FutureWarning):
-                Categorical([1, 2], [1, 2, np.nan, np.nan])
-
-        self.assertRaises(ValueError, f)
-
         # The default should be unordered
         c1 = Categorical(["a", "b", "c", "a"])
         self.assertFalse(c1.ordered)
@@ -222,29 +216,21 @@ class TestCategorical(tm.TestCase):
         cat = pd.Categorical([np.nan, 1., 2., 3.])
         self.assertTrue(is_float_dtype(cat.categories))
 
-        # Deprecating NaNs in categoires (GH #10748)
-        # preserve int as far as possible by converting to object if NaN is in
-        # categories
-        with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical([np.nan, 1, 2, 3],
-                                 categories=[np.nan, 1, 2, 3])
-        self.assertTrue(is_object_dtype(cat.categories))
-
         # This doesn't work -> this would probably need some kind of "remember
         # the original type" feature to try to cast the array interface result
         # to...
 
         # vals = np.asarray(cat[cat.notnull()])
         # self.assertTrue(is_integer_dtype(vals))
-        with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical([np.nan, "a", "b", "c"],
-                                 categories=[np.nan, "a", "b", "c"])
-        self.assertTrue(is_object_dtype(cat.categories))
-        # but don't do it for floats
-        with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical([np.nan, 1., 2., 3.],
-                                 categories=[np.nan, 1., 2., 3.])
-        self.assertTrue(is_float_dtype(cat.categories))
+
+        # Cannot have NaN in categories
+        def f(null_value):
+            pd.Categorical([null_value, "a", "b", "c"],
+                           categories=[null_value, "a", "b", "c"])
+
+        self.assertRaises(ValueError, f, np.nan)
+        self.assertRaises(ValueError, f, pd.NaT)
+        self.assertRaises(ValueError, f, None)
 
         # corner cases
         cat = pd.Categorical([1])
@@ -415,6 +401,12 @@ class TestCategorical(tm.TestCase):
         # no unique categories
         def f():
             Categorical.from_codes([0, 1, 2], ["a", "a", "b"])
+
+        self.assertRaises(ValueError, f)
+
+        # NaN categories included
+        def f():
+            Categorical.from_codes([0, 1, 2], ["a", "b", np.nan])
 
         self.assertRaises(ValueError, f)
 
@@ -648,30 +640,6 @@ class TestCategorical(tm.TestCase):
                                                        categories=[1, 2],
                                                        name='categories'))
         tm.assert_frame_equal(desc, expected)
-
-        # NA as a category
-        with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical(["a", "c", "c", np.nan],
-                                 categories=["b", "a", "c", np.nan])
-            result = cat.describe()
-
-        expected = DataFrame([[0, 0], [1, 0.25], [2, 0.5], [1, 0.25]],
-                             columns=['counts', 'freqs'],
-                             index=pd.CategoricalIndex(['b', 'a', 'c', np.nan],
-                                                       name='categories'))
-        tm.assert_frame_equal(result, expected, check_categorical=False)
-
-        # NA as an unused category
-        with tm.assert_produces_warning(FutureWarning):
-            cat = pd.Categorical(["a", "c", "c"],
-                                 categories=["b", "a", "c", np.nan])
-            result = cat.describe()
-
-        exp_idx = pd.CategoricalIndex(
-            ['b', 'a', 'c', np.nan], name='categories')
-        expected = DataFrame([[0, 0], [1, 1 / 3.], [2, 2 / 3.], [0, 0]],
-                             columns=['counts', 'freqs'], index=exp_idx)
-        tm.assert_frame_equal(result, expected, check_categorical=False)
 
     def test_print(self):
         expected = ["[a, b, b, a, a, c, c, c]",
@@ -1119,90 +1087,18 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         self.assert_numpy_array_equal(c._codes,
                                       np.array([0, -1, -1, 0], dtype=np.int8))
 
-        # If categories have nan included, the code should point to that
-        # instead
-        with tm.assert_produces_warning(FutureWarning):
-            c = Categorical(["a", "b", np.nan, "a"],
-                            categories=["a", "b", np.nan])
-        self.assert_index_equal(c.categories, Index(["a", "b", np.nan]))
-        self.assert_numpy_array_equal(c._codes,
-                                      np.array([0, 1, 2, 0], dtype=np.int8))
-        c[1] = np.nan
-        self.assert_index_equal(c.categories, Index(["a", "b", np.nan]))
-        self.assert_numpy_array_equal(c._codes,
-                                      np.array([0, 2, 2, 0], dtype=np.int8))
-
-        # Changing categories should also make the replaced category np.nan
-        c = Categorical(["a", "b", "c", "a"])
-        with tm.assert_produces_warning(FutureWarning):
-            c.categories = ["a", "b", np.nan]  # noqa
-
-        self.assert_index_equal(c.categories, Index(["a", "b", np.nan]))
-        self.assert_numpy_array_equal(c._codes,
-                                      np.array([0, 1, 2, 0], dtype=np.int8))
-
         # Adding nan to categories should make assigned nan point to the
         # category!
         c = Categorical(["a", "b", np.nan, "a"])
         self.assert_index_equal(c.categories, Index(["a", "b"]))
         self.assert_numpy_array_equal(c._codes,
                                       np.array([0, 1, -1, 0], dtype=np.int8))
-        with tm.assert_produces_warning(FutureWarning):
-            c.set_categories(["a", "b", np.nan], rename=True, inplace=True)
-
-        self.assert_index_equal(c.categories, Index(["a", "b", np.nan]))
-        self.assert_numpy_array_equal(c._codes,
-                                      np.array([0, 1, -1, 0], dtype=np.int8))
-        c[1] = np.nan
-        self.assert_index_equal(c.categories, Index(["a", "b", np.nan]))
-        self.assert_numpy_array_equal(c._codes,
-                                      np.array([0, 2, -1, 0], dtype=np.int8))
-
-        # Remove null categories (GH 10156)
-        cases = [([1.0, 2.0, np.nan], [1.0, 2.0]),
-                 (['a', 'b', None], ['a', 'b']),
-                 ([pd.Timestamp('2012-05-01'), pd.NaT],
-                  [pd.Timestamp('2012-05-01')])]
-
-        null_values = [np.nan, None, pd.NaT]
-
-        for with_null, without in cases:
-            with tm.assert_produces_warning(FutureWarning):
-                base = Categorical([], with_null)
-            expected = Categorical([], without)
-
-            for nullval in null_values:
-                result = base.remove_categories(nullval)
-            self.assert_categorical_equal(result, expected)
-
-        # Different null values are indistinguishable
-        for i, j in [(0, 1), (0, 2), (1, 2)]:
-            nulls = [null_values[i], null_values[j]]
-
-            def f():
-                with tm.assert_produces_warning(FutureWarning):
-                    Categorical([], categories=nulls)
-
-            self.assertRaises(ValueError, f)
 
     def test_isnull(self):
         exp = np.array([False, False, True])
         c = Categorical(["a", "b", np.nan])
         res = c.isnull()
-        self.assert_numpy_array_equal(res, exp)
 
-        with tm.assert_produces_warning(FutureWarning):
-            c = Categorical(["a", "b", np.nan], categories=["a", "b", np.nan])
-        res = c.isnull()
-        self.assert_numpy_array_equal(res, exp)
-
-        # test both nan in categories and as -1
-        exp = np.array([True, False, True])
-        c = Categorical(["a", "b", np.nan])
-        with tm.assert_produces_warning(FutureWarning):
-            c.set_categories(["a", "b", np.nan], rename=True, inplace=True)
-        c[0] = np.nan
-        res = c.isnull()
         self.assert_numpy_array_equal(res, exp)
 
     def test_codes_immutable(self):
@@ -1487,45 +1383,10 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
     def test_set_item_nan(self):
         cat = pd.Categorical([1, 2, 3])
+        cat[1] = np.nan
+
         exp = pd.Categorical([1, np.nan, 3], categories=[1, 2, 3])
-        cat[1] = np.nan
         tm.assert_categorical_equal(cat, exp)
-
-        # if nan in categories, the proper code should be set!
-        cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
-        cat[1] = np.nan
-        exp = np.array([0, 3, 2, -1], dtype=np.int8)
-        self.assert_numpy_array_equal(cat.codes, exp)
-
-        cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
-        cat[1:3] = np.nan
-        exp = np.array([0, 3, 3, -1], dtype=np.int8)
-        self.assert_numpy_array_equal(cat.codes, exp)
-
-        cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
-        cat[1:3] = [np.nan, 1]
-        exp = np.array([0, 3, 0, -1], dtype=np.int8)
-        self.assert_numpy_array_equal(cat.codes, exp)
-
-        cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
-        cat[1:3] = [np.nan, np.nan]
-        exp = np.array([0, 3, 3, -1], dtype=np.int8)
-        self.assert_numpy_array_equal(cat.codes, exp)
-
-        cat = pd.Categorical([1, 2, np.nan, 3], categories=[1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            cat.set_categories([1, 2, 3, np.nan], rename=True, inplace=True)
-        cat[pd.isnull(cat)] = np.nan
-        exp = np.array([0, 1, 3, 2], dtype=np.int8)
-        self.assert_numpy_array_equal(cat.codes, exp)
 
     def test_shift(self):
         # GH 9416
@@ -2026,32 +1887,11 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_nan_handling(self):
 
-        # Nans are represented as -1 in labels
+        # NaNs are represented as -1 in labels
         s = Series(Categorical(["a", "b", np.nan, "a"]))
         self.assert_index_equal(s.cat.categories, Index(["a", "b"]))
         self.assert_numpy_array_equal(s.values.codes,
                                       np.array([0, 1, -1, 0], dtype=np.int8))
-
-        # If categories have nan included, the label should point to that
-        # instead
-        with tm.assert_produces_warning(FutureWarning):
-            s2 = Series(Categorical(["a", "b", np.nan, "a"],
-                                    categories=["a", "b", np.nan]))
-
-        exp_cat = Index(["a", "b", np.nan])
-        self.assert_index_equal(s2.cat.categories, exp_cat)
-        self.assert_numpy_array_equal(s2.values.codes,
-                                      np.array([0, 1, 2, 0], dtype=np.int8))
-
-        # Changing categories should also make the replaced category np.nan
-        s3 = Series(Categorical(["a", "b", "c", "a"]))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            s3.cat.categories = ["a", "b", np.nan]
-
-        exp_cat = Index(["a", "b", np.nan])
-        self.assert_index_equal(s3.cat.categories, exp_cat)
-        self.assert_numpy_array_equal(s3.values.codes,
-                                      np.array([0, 1, 2, 0], dtype=np.int8))
 
     def test_cat_accessor(self):
         s = Series(Categorical(["a", "b", np.nan, "a"]))
