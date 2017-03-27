@@ -766,10 +766,7 @@ Panel
 .. warning::
 
     In 0.20.0, ``Panel`` is deprecated and will be removed in
-    a future version. The recommended way to represent 3-D data are
-    with a ``MultiIndex``on a ``DataFrame`` via the :meth:`~Panel.to_frame` or
-    with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
-    provides a :meth:`~Panel.to_xarray` method to automate this conversion.
+    a future version. See the section :ref:`Deprecate Panel <dsintro.deprecate_panel>`.
 
 Panel is a somewhat less-used, but still important container for 3-dimensional
 data. The term `panel data <http://en.wikipedia.org/wiki/Panel_data>`__ is
@@ -936,6 +933,46 @@ method:
                     major_axis=pd.date_range('1/1/2000', periods=5),
                     minor_axis=['a', 'b', 'c', 'd'])
    panel.to_frame()
+
+
+.. _dsintro.deprecate_panel:
+
+Deprecate Panel
+---------------
+
+Over the last few years, pandas has increased in both breadth and depth, with new features,
+datatype support, and manipulation routines. As a result, supporting efficient indexing and functional
+routines for ``Series``, ``DataFrame`` and ``Panel`` has contributed to an increasingly fragmented and
+difficult-to-understand codebase.
+
+The 3-d structure of a ``Panel`` is much less common for many types of data analysis,
+than the 1-d of the ``Series`` or the 2-D of the ``DataFrame``. Going forward it makes sense for
+pandas to focus on these areas exclusively.
+
+Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working with higher dimensional data.
+
+In additon, the ``xarray`` package was built from the ground up, specifically in order to
+support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
+
+.. ipython:: python
+   :okwarning:
+
+   p = tm.makePanel()
+   p
+
+Convert to a MultiIndex DataFrame
+
+.. ipython:: python
+
+   p.to_frame()
+
+Alternatively, one can convert to an xarray ``DataArray``.
+
+.. ipython:: python
+
+   p.to_xarray()
+
+You can see the full-documentation for the `xarray package <http://xarray.pydata.org/en/stable/>`__.
 
 .. _dsintro.panelnd:
 .. _dsintro.panel4d:

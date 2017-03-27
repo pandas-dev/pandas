@@ -136,8 +136,8 @@ class Panel(NDFrame):
                       "these types of 3-dimensional data are with a "
                       "MultiIndex on a DataFrame, via the "
                       "Panel.to_frame() method\n"
-                      "alternatively, you can use the `xarray package "
-                      "<http://xarray.pydata.org/en/stable/>`__.\n"
+                      "Alternatively, you can use the xarray package "
+                      "http://xarray.pydata.org/en/stable/.\n"
                       "Pandas provides a `.to_xarray()` method to help "
                       "automate this conversion.\n",
                       DeprecationWarning, stacklevel=3)
