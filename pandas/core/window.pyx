@@ -333,8 +333,7 @@ def get_window_indexer(input, win, minp, index, closed,
         bint l_closed = False
         bint r_closed = False
 
-    if closed not in ['right', 'left', 'both', 'neither']:
-        closed = 'right'
+    assert closed in ['right', 'left', 'both', 'neither']
 
     if closed in ['right', 'both']:
         r_closed = True
@@ -359,7 +358,7 @@ def get_window_indexer(input, win, minp, index, closed,
 
 
 def roll_count(ndarray[double_t] input, int64_t win, int64_t minp,
-               object index, closed='right'):
+               object index, object closed):
     cdef:
         double val, count_x = 0.0
         int64_t s, e, nobs, N
@@ -440,7 +439,7 @@ cdef inline void remove_sum(double val, int64_t *nobs, double *sum_x) nogil:
 
 
 def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
-             object index, str closed):
+             object index, object closed):
     cdef:
         double val, prev_x, sum_x = 0
         int64_t s, e
@@ -556,7 +555,7 @@ cdef inline void remove_mean(double val, Py_ssize_t *nobs, double *sum_x,
 
 
 def roll_mean(ndarray[double_t] input, int64_t win, int64_t minp,
-              object index, str closed):
+              object index, object closed):
     cdef:
         double val, prev_x, result, sum_x = 0
         int64_t s, e
@@ -681,7 +680,7 @@ cdef inline void remove_var(double val, double *nobs, double *mean_x,
 
 
 def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
-             object index, str closed, int ddof=1):
+             object index, object closed, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
@@ -824,7 +823,7 @@ cdef inline void remove_skew(double val, int64_t *nobs, double *x, double *xx,
 
 
 def roll_skew(ndarray[double_t] input, int64_t win, int64_t minp,
-              object index, str closed):
+              object index, object closed):
     cdef:
         double val, prev
         double x = 0, xx = 0, xxx = 0
@@ -952,7 +951,7 @@ cdef inline void remove_kurt(double val, int64_t *nobs, double *x, double *xx,
 
 
 def roll_kurt(ndarray[double_t] input, int64_t win, int64_t minp,
-              object index, str closed):
+              object index, object closed):
     cdef:
         double val, prev
         double x = 0, xx = 0, xxx = 0, xxxx = 0
@@ -1022,7 +1021,7 @@ def roll_kurt(ndarray[double_t] input, int64_t win, int64_t minp,
 
 
 def roll_median_c(ndarray[float64_t] input, int64_t win, int64_t minp,
-                  object index, str closed):
+                  object index, object closed):
     cdef:
         double val, res, prev
         bint err=0, is_variable
@@ -1148,7 +1147,7 @@ cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
 
 
 def roll_max(ndarray[numeric] input, int64_t win, int64_t minp,
-             object index, str closed):
+             object index, object closed):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1168,7 +1167,7 @@ def roll_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
 
 def roll_min(ndarray[numeric] input, int64_t win, int64_t minp,
-             object index, str closed):
+             object index, object closed):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1185,7 +1184,7 @@ def roll_min(ndarray[numeric] input, int64_t win, int64_t minp,
 
 
 cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
-                   object index, str closed, bint is_max):
+                   object index, object closed, bint is_max):
     """
     Moving min/max of 1d array of any numeric type along axis=0
     ignoring NaNs.
@@ -1312,7 +1311,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
 
 def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
-                  int64_t minp, object index, str closed,
+                  int64_t minp, object index, object closed,
                   double quantile):
     """
     O(N log(window)) implementation using skip list
@@ -1376,7 +1375,7 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
 
 
 def roll_generic(ndarray[float64_t, cast=True] input,
-                 int64_t win, int64_t minp, object index, str closed,
+                 int64_t win, int64_t minp, object index, object closed,
                  int offset, object func,
                  object args, object kwargs):
     cdef:

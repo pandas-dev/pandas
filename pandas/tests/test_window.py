@@ -3393,6 +3393,10 @@ class TestRollingTS(tm.TestCase):
                                  pd.Timestamp('20130101 09:00:04'),
                                  pd.Timestamp('20130101 09:00:06')])
 
+        # closed must be 'right', 'left', 'both', 'neither'
+        with self.assertRaises(ValueError):
+            self.regular.rolling(window='2s', closed="blabla")
+
         expected = df.copy()
         expected["A"] = [1.0, 2, 2, 2, 1]
         result = df.rolling('2s', closed='right').sum()
