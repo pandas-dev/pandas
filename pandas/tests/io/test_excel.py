@@ -935,9 +935,13 @@ class XlrdTests(ReadingTestsBase):
         with ensure_clean(self.ext) as pth:
             df2.to_excel(pth)
 
-            # no index_col specified
             res = read_excel(pth)
             tm.assert_frame_equal(df2, res)
+
+            # no index_col specified when parse_dates is True
+            with tm.assert_produces_warning():
+                res = read_excel(pth, parse_dates=True)
+                tm.assert_frame_equal(df2, res)
 
             res = read_excel(pth, parse_dates=['date_strings'], index_col=0)
             tm.assert_frame_equal(df, res)
