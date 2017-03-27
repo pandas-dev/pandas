@@ -1130,8 +1130,8 @@ class GroupBy(_GroupBy):
     def _add_numeric_operations(cls):
         """ add numeric operations to the GroupBy generically """
 
-        def _groupby_function(name, alias, npfunc,
-                              numeric_only=True, _convert=False):
+        def groupby_function(name, alias, npfunc,
+                             numeric_only=True, _convert=False):
 
             _local_template = "Compute %(f)s of group values"
 
@@ -1143,11 +1143,13 @@ class GroupBy(_GroupBy):
                     kwargs['numeric_only'] = numeric_only
                 self._set_group_selection()
                 try:
-                    return self._cython_agg_general(alias, alt=npfunc, **kwargs)
+                    return self._cython_agg_general(
+                        alias, alt=npfunc, **kwargs)
                 except AssertionError as e:
                     raise SpecificationError(str(e))
                 except Exception:
-                    result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+                    result = self.aggregate(
+                        lambda x: npfunc(x, axis=self.axis))
                     if _convert:
                         result = result._convert(datetime=True)
                     return result
@@ -1156,9 +1158,9 @@ class GroupBy(_GroupBy):
 
             return f
 
-        def _first_compat(x, axis=0):
+        def first_compat(x, axis=0):
 
-            def _first(x):
+            def first(x):
 
                 x = np.asarray(x)
                 x = x[notnull(x)]
@@ -1167,13 +1169,13 @@ class GroupBy(_GroupBy):
                 return x[0]
 
             if isinstance(x, DataFrame):
-                return x.apply(_first, axis=axis)
+                return x.apply(first, axis=axis)
             else:
-                return _first(x)
+                return first(x)
 
+        def last_compat(x, axis=0):
 
-        def _last_compat(x, axis=0):
-            def _last(x):
+            def last(x):
 
                 x = np.asarray(x)
                 x = x[notnull(x)]
@@ -1182,18 +1184,18 @@ class GroupBy(_GroupBy):
                 return x[-1]
 
             if isinstance(x, DataFrame):
-                return x.apply(_last, axis=axis)
+                return x.apply(last, axis=axis)
             else:
-                return _last(x)
+                return last(x)
 
-        cls.sum = _groupby_function('sum', 'add', np.sum)
-        cls.prod = _groupby_function('prod', 'prod', np.prod)
-        cls.min = _groupby_function('min', 'min', np.min, numeric_only=False)
-        cls.max = _groupby_function('max', 'max', np.max, numeric_only=False)
-        cls.first = _groupby_function('first', 'first', _first_compat,
-                                      numeric_only=False, _convert=True)
-        cls.last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
-                                     _convert=True)
+        cls.sum = groupby_function('sum', 'add', np.sum)
+        cls.prod = groupby_function('prod', 'prod', np.prod)
+        cls.min = groupby_function('min', 'min', np.min, numeric_only=False)
+        cls.max = groupby_function('max', 'max', np.max, numeric_only=False)
+        cls.first = groupby_function('first', 'first', first_compat,
+                                     numeric_only=False, _convert=True)
+        cls.last = groupby_function('last', 'last', last_compat,
+                                    numeric_only=False, _convert=True)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1604,6 +1606,7 @@ class GroupBy(_GroupBy):
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
+
 
 GroupBy._add_numeric_operations()
 
