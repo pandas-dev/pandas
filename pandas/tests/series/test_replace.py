@@ -100,7 +100,7 @@ class TestSeriesReplace(TestData, tm.TestCase):
         expected = ser.copy()
         expected.loc[2] = pd.Timestamp('20120101')
         result = ser.replace({pd.Timestamp('20130103'):
-                                  pd.Timestamp('20120101')})
+                              pd.Timestamp('20120101')})
         tm.assert_series_equal(result, expected)
         result = ser.replace(pd.Timestamp('20130103'),
                              pd.Timestamp('20120101'))
