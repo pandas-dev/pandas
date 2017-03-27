@@ -1,5 +1,7 @@
 sudo: false
 language: python
+# Default Python version is usually 2.7
+python: 3.5
 
 # To turn off cached cython files and compiler cache
 # set NOCACHE-true
@@ -7,6 +9,7 @@ language: python
 # travis cache --delete inside the project directory from the travis command line client
 # The cash directories will be deleted if anything in ci/ changes in a commit
 cache:
+ ccache: true
  directories:
   - $HOME/.cache # cython cache
   - $HOME/.ccache # compiler cache
@@ -23,69 +26,67 @@ git:
 
 matrix:
     fast_finish: true
+    exclude:
+      # Exclude the default Python 3.5 build
+      - python: 3.5
     include:
-    - language: objective-c
-      os: osx
-      cache:
-        ccache: true
-        directories:
-          - $HOME/.cache # cython cache
-          - $HOME/.ccache # compiler cache
+    - os: osx
+      language: generic
       env:
-        - JOB="3.5_OSX" TEST_ARGS="--skip-slow --skip-network" TRAVIS_PYTHON_VERSION=3.5
-    - python: 2.7
+        - JOB="3.5_OSX" TEST_ARGS="--skip-slow --skip-network"
+    - os: linux
       env:
         - JOB="2.7_LOCALE" TEST_ARGS="--only-slow --skip-network" LOCALE_OVERRIDE="zh_CN.UTF-8"
       addons:
         apt:
           packages:
           - language-pack-zh-hans
-    - python: 2.7
+    - os: linux
       env:
         - JOB="2.7" TEST_ARGS="--skip-slow" LINT=true
       addons:
         apt:
           packages:
           - python-gtk2
-    - python: 3.5
+    - os: linux
       env:
         - JOB="3.5" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true
       addons:
         apt:
           packages:
           - xsel
-    - python: 3.6
+    - os: linux
       env:
         - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true
     # In allow_failures
-    - python: 2.7
+    - os: linux
       env:
         - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
     # In allow_failures
-    - python: 2.7
+    - os: linux
       env:
         - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
     # In allow_failures
-    - python: 3.6
+    - os: linux
       env:
         - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
     # In allow_failures
-    - python: 3.5
+    - os: linux
       env:
-        - JOB="3.5_DOC_BUILD" DOC_BUILD=true
+        - JOB="3.5_DOC" DOC=true
     allow_failures:
-      - python: 2.7
+      - os: linux
         env:
           - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
-      - python: 2.7
+      - os: linux
         env:
           - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
-      - python: 3.6
+      - os: linux
         env:
           - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
-      - python: 3.5
+      - os: linux
         env:
-          - JOB="3.5_DOC_BUILD" DOC_BUILD=true
+          - JOB="3.5_DOC" DOC=true
 
 before_install:
   - echo "before_install"

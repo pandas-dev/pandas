@@ -17,7 +17,7 @@ if [ "$?" != "0" ]; then
 fi
 
 
-if [ x"$DOC_BUILD" != x"" ]; then
+if [ "$DOC" ]; then
 
     echo "Will build docs"
 
