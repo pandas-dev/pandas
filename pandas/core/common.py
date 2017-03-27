@@ -22,8 +22,7 @@ from pandas.types import common
 
 # compat
 from pandas.errors import (  # noqa
-    PerformanceWarning,
-    AmbiguousIndexError, UnsupportedFunctionCall, UnsortedIndexError)
+    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError)
 
 # back-compat of public API
 # deprecate these functions

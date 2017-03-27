@@ -6,11 +6,10 @@ from pandas._libs.tslib import OutOfBoundsDatetime
 
 
 class PerformanceWarning(Warning):
-    pass
-
-class AmbiguousIndexError(KeyError):
-    pass
-
+    """
+    Warnings shown when there is a possible performance
+    impact.
+    """
 
 class UnsupportedFunctionCall(ValueError):
     pass
