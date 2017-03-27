@@ -517,7 +517,6 @@ Other enhancements
 - The ``pd.read_json`` and ``DataFrame.to_json`` has gained support for reading and writing json lines with ``lines`` option see :ref:`Line delimited json <io.jsonl>` (:issue:`9180`)
 - :func:`read_excel` now supports the true_values and false_values keyword arguments (:issue:`13347`)
 - ``groupby()`` will now accept a scalar and a single-element list for specifying ``level`` on a non-``MultiIndex`` grouper. (:issue:`13907`)
-<<<<<<< HEAD
 - Non-convertible dates in an excel date column will be returned without conversion and the column will be ``object`` dtype, rather than raising an exception (:issue:`10001`).
 - ``pd.Timedelta(None)`` is now accepted and will return ``NaT``, mirroring ``pd.Timestamp`` (:issue:`13687`)
 - ``pd.read_stata()`` can now handle some format 111 files, which are produced by SAS when generating Stata dta files (:issue:`11526`)
@@ -525,9 +524,6 @@ Other enhancements
   series or indices. This behaves like a standard binary operator with regards
   to broadcasting rules (:issue:`14208`).
 
-=======
-- Re-enable the ``parse_dates`` keyword of ``read_excel`` to parse string columns as dates (:issue:`14326`)
->>>>>>> PR_TOOL_MERGE_PR_14326
 
 .. _whatsnew_0190.api:
 

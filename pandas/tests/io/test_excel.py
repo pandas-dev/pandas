@@ -938,12 +938,17 @@ class XlrdTests(ReadingTestsBase):
             res = read_excel(pth)
             tm.assert_frame_equal(df2, res)
 
-            res = read_excel(pth, parse_dates=['date_strings'])
+            # no index_col specified when parse_dates is True
+            with tm.assert_produces_warning():
+                res = read_excel(pth, parse_dates=True)
+                tm.assert_frame_equal(df2, res)
+
+            res = read_excel(pth, parse_dates=['date_strings'], index_col=0)
             tm.assert_frame_equal(df, res)
 
             dateparser = lambda x: pd.datetime.strptime(x, '%m/%d/%Y')
             res = read_excel(pth, parse_dates=['date_strings'],
-                             date_parser=dateparser)
+                             date_parser=dateparser, index_col=0)
             tm.assert_frame_equal(df, res)
 
     def test_read_excel_skiprows_list(self):

@@ -270,7 +270,7 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 
 .. _whatsnew_0200.enhancements.other:
 
-Other enhancements
+Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
@@ -314,6 +314,7 @@ Other enhancements
 - ``pd.types.concat.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pd.DataFrame.to_latex`` and ``pd.DataFrame.to_string`` now allow optional header aliases. (:issue:`15536`)
+- Re-enable the ``parse_dates`` keyword of ``read_excel`` to parse string columns as dates (:issue:`14326`)
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
