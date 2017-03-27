@@ -254,6 +254,54 @@ def infer_dtype(object value):
     ------
     TypeError if ndarray-like but cannot infer the dtype
 
+    Notes
+    -----
+    - 'mixed' is the catchall for anything that is not otherwise
+      specialized
+    - 'mixed-integer-float' are floats and integers
+    - 'mixed-integer' are integers mixed with non-integers
+
+    Examples
+    --------
+    >>> infer_dtype(['foo', 'bar'])
+    'string'
+
+    >>> infer_dtype([b'foo', b'bar'])
+    'bytes'
+
+    >>> infer_dtype([1, 2, 3])
+    'integer'
+
+    >>> infer_dtype([1, 2, 3.5])
+    'mixed-integer-float'
+
+    >>> infer_dtype([1.0, 2.0, 3.5])
+    'floating'
+
+    >>> infer_dtype(['a', 1])
+    'mixed-integer'
+
+    >>> infer_dtype([True, False])
+    'boolean'
+
+    >>> infer_dtype([True, False, np.nan])
+    'mixed'
+
+    >>> infer_dtype([pd.Timestamp('20130101')])
+    'datetime'
+
+    >>> infer_dtype([datetime.date(2013, 1, 1)])
+    'date'
+
+    >>> infer_dtype([np.datetime64('2013-01-01')])
+    'datetime64'
+
+    >>> infer_dtype([datetime.timedelta(0, 1, 1)])
+    'timedelta'
+
+    >>> infer_dtype(pd.Series(list('aabc')).astype('category'))
+    'categorical'
+
     """
 
     cdef:
