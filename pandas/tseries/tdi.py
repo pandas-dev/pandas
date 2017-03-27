@@ -127,8 +127,15 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
     _arrmap = None
-    _datetimelike_ops = ['days', 'seconds', 'microseconds', 'nanoseconds',
-                         'freq', 'components']
+
+    # define my properties & methods for delegation
+    _other_ops = []
+    _bool_ops = []
+    _object_ops = ['freq']
+    _field_ops = ['days', 'seconds', 'microseconds', 'nanoseconds']
+    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
+    _datetimelike_methods = ["to_pytimedelta", "total_seconds",
+                             "round", "floor", "ceil"]
 
     __eq__ = _td_index_cmp('__eq__')
     __ne__ = _td_index_cmp('__ne__', nat_result=True)

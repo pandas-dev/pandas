@@ -219,7 +219,7 @@ class Ops(tm.TestCase):
                     self.assertEqual(result, expected)
 
             # freq raises AttributeError on an Int64Index because its not
-            # defined we mostly care about Series hwere anyhow
+            # defined we mostly care about Series here anyhow
             if not ignore_failures:
                 for o in self.not_valid_objs:
 

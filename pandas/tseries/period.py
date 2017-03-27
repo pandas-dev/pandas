@@ -174,12 +174,18 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     _box_scalars = True
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
-    _datetimelike_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                         'weekofyear', 'week', 'dayofweek', 'weekday',
-                         'dayofyear', 'quarter', 'qyear', 'freq',
-                         'days_in_month', 'daysinmonth',
-                         'to_timestamp', 'asfreq', 'start_time', 'end_time',
-                         'is_leap_year']
+
+    # define my properties & methods for delegation
+    _other_ops = []
+    _bool_ops = ['is_leap_year']
+    _object_ops = ['start_time', 'end_time', 'freq']
+    _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
+                  'weekofyear', 'weekday', 'week', 'dayofweek',
+                  'dayofyear', 'quarter', 'qyear',
+                  'days_in_month', 'daysinmonth']
+    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
+    _datetimelike_methods = ['strftime', 'to_timestamp', 'asfreq']
+
     _is_numeric_dtype = False
     _infer_as_myclass = True
 

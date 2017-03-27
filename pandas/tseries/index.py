@@ -64,25 +64,26 @@ def _field_accessor(name, field, docstring=None):
             if self.tz is not utc:
                 values = self._local_timestamps()
 
-        # boolean accessors -> return array
-        if field in ['is_month_start', 'is_month_end',
-                     'is_quarter_start', 'is_quarter_end',
-                     'is_year_start', 'is_year_end']:
-            month_kw = (self.freq.kwds.get('startingMonth',
-                                           self.freq.kwds.get('month', 12))
-                        if self.freq else 12)
+        if field in self._bool_ops:
+            if field in ['is_month_start', 'is_month_end',
+                         'is_quarter_start', 'is_quarter_end',
+                         'is_year_start', 'is_year_end']:
+                month_kw = (self.freq.kwds.get('startingMonth',
+                                               self.freq.kwds.get('month', 12))
+                            if self.freq else 12)
 
-            result = libts.get_start_end_field(values, field, self.freqstr,
-                                               month_kw)
-            return self._maybe_mask_results(result, convert='float64')
-        elif field in ['is_leap_year']:
-            # no need to mask NaT
-            return libts.get_date_field(values, field)
+                result = libts.get_start_end_field(values, field, self.freqstr,
+                                                   month_kw)
+            else:
+                result = libts.get_date_field(values, field)
 
-        # non-boolean accessors -> return Index
-        elif field in ['weekday_name']:
+            # these return a boolean by-definition
+            return result
+
+        if field in self._object_ops:
             result = libts.get_date_name_field(values, field)
             result = self._maybe_mask_results(result)
+
         else:
             result = libts.get_date_field(values, field)
             result = self._maybe_mask_results(result, convert='float64')
@@ -232,14 +233,24 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     offset = None
     _comparables = ['name', 'freqstr', 'tz']
     _attributes = ['name', 'freq', 'tz']
-    _datetimelike_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                         'weekofyear', 'week', 'dayofweek', 'weekday',
-                         'dayofyear', 'quarter', 'days_in_month',
-                         'daysinmonth', 'date', 'time', 'microsecond',
-                         'nanosecond', 'is_month_start', 'is_month_end',
-                         'is_quarter_start', 'is_quarter_end', 'is_year_start',
-                         'is_year_end', 'tz', 'freq', 'weekday_name',
-                         'is_leap_year']
+
+    # define my properties & methods for delegation
+    _bool_ops = ['is_month_start', 'is_month_end',
+                 'is_quarter_start', 'is_quarter_end', 'is_year_start',
+                 'is_year_end', 'is_leap_year']
+    _object_ops = ['weekday_name', 'freq', 'tz']
+    _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
+                  'weekofyear', 'week', 'weekday', 'dayofweek',
+                  'dayofyear', 'quarter', 'days_in_month',
+                  'daysinmonth', 'microsecond',
+                  'nanosecond']
+    _other_ops = ['date', 'time']
+    _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
+    _datetimelike_methods = ['to_period', 'tz_localize',
+                             'tz_convert',
+                             'normalize', 'strftime', 'round', 'floor',
+                             'ceil']
+
     _is_numeric_dtype = False
     _infer_as_myclass = True
 

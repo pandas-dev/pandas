@@ -168,8 +168,7 @@ DatetimeProperties._add_delegate_accessors(
     typ='property')
 DatetimeProperties._add_delegate_accessors(
     delegate=DatetimeIndex,
-    accessors=["to_period", "tz_localize", "tz_convert",
-               "normalize", "strftime", "round", "floor", "ceil"],
+    accessors=DatetimeIndex._datetimelike_methods,
     typ='method')
 
 
@@ -208,7 +207,7 @@ TimedeltaProperties._add_delegate_accessors(
     typ='property')
 TimedeltaProperties._add_delegate_accessors(
     delegate=TimedeltaIndex,
-    accessors=["to_pytimedelta", "total_seconds", "round", "floor", "ceil"],
+    accessors=TimedeltaIndex._datetimelike_methods,
     typ='method')
 
 
@@ -230,9 +229,10 @@ PeriodProperties._add_delegate_accessors(
     delegate=PeriodIndex,
     accessors=PeriodIndex._datetimelike_ops,
     typ='property')
-PeriodProperties._add_delegate_accessors(delegate=PeriodIndex,
-                                         accessors=["strftime"],
-                                         typ='method')
+PeriodProperties._add_delegate_accessors(
+    delegate=PeriodIndex,
+    accessors=PeriodIndex._datetimelike_methods,
+    typ='method')
 
 
 class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):

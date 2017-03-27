@@ -394,8 +394,8 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
     def _check_all_fields(self, periodindex):
         fields = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                  'weekofyear', 'week', 'dayofweek', 'weekday', 'dayofyear',
-                  'quarter', 'qyear', 'days_in_month', 'is_leap_year']
+                  'weekofyear', 'week', 'dayofweek', 'dayofyear',
+                  'quarter', 'qyear', 'days_in_month']
 
         periods = list(periodindex)
         s = pd.Series(periodindex)

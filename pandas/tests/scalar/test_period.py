@@ -110,20 +110,6 @@ class TestPeriodProperties(tm.TestCase):
         p = Period(tslib.iNaT)
         self.assertIs(p, pd.NaT)
 
-    def test_cons_null_like(self):
-        # check Timestamp compat
-        self.assertIs(Timestamp('NaT'), pd.NaT)
-        self.assertIs(Period('NaT'), pd.NaT)
-
-        self.assertIs(Timestamp(None), pd.NaT)
-        self.assertIs(Period(None), pd.NaT)
-
-        self.assertIs(Timestamp(float('nan')), pd.NaT)
-        self.assertIs(Period(float('nan')), pd.NaT)
-
-        self.assertIs(Timestamp(np.nan), pd.NaT)
-        self.assertIs(Period(np.nan), pd.NaT)
-
     def test_period_cons_mult(self):
         p1 = Period('2011-01', freq='3M')
         p2 = Period('2011-01', freq='M')
@@ -853,17 +839,6 @@ class TestPeriodProperties(tm.TestCase):
         self.assertEqual(s_date.days_in_month, 31)
         self.assertEqual(Period(freq='Min', year=2012, month=2, day=1, hour=0,
                                 minute=0, second=0).days_in_month, 29)
-
-    def test_properties_nat(self):
-        p_nat = Period('NaT', freq='M')
-        t_nat = pd.Timestamp('NaT')
-        self.assertIs(p_nat, t_nat)
-
-        # confirm Period('NaT') work identical with Timestamp('NaT')
-        for f in ['year', 'month', 'day', 'hour', 'minute', 'second', 'week',
-                  'dayofyear', 'quarter', 'days_in_month']:
-            self.assertTrue(np.isnan(getattr(p_nat, f)))
-            self.assertTrue(np.isnan(getattr(t_nat, f)))
 
     def test_pnow(self):
 

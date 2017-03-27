@@ -849,6 +849,30 @@ class NaTType(_NaT):
     def is_leap_year(self):
         return False
 
+    @property
+    def is_month_start(self):
+        return False
+
+    @property
+    def is_quarter_start(self):
+        return False
+
+    @property
+    def is_year_start(self):
+        return False
+
+    @property
+    def is_month_end(self):
+        return False
+
+    @property
+    def is_quarter_end(self):
+        return False
+
+    @property
+    def is_year_end(self):
+        return False
+
     def __rdiv__(self, other):
         return _nat_rdivide_op(self, other)
 
@@ -3799,8 +3823,9 @@ def array_strptime(ndarray[object] values, object fmt,
 # these by definition return np.nan
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek',
-          'weekday_name']
+          'week', 'dayofyear', 'weekofyear', 'days_in_month', 'daysinmonth',
+          'dayofweek', 'weekday_name', 'days', 'seconds', 'microseconds',
+          'nanoseconds', 'qyear', 'quarter']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
@@ -4810,7 +4835,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     if field == 'is_month_start':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4823,7 +4848,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4836,7 +4861,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_month_end':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4854,7 +4879,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4871,7 +4896,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_quarter_start':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4885,7 +4910,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4898,7 +4923,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_quarter_end':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4917,7 +4942,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4934,7 +4959,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_year_start':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4948,7 +4973,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4961,7 +4986,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_year_end':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4980,7 +5005,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
