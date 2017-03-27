@@ -771,7 +771,8 @@ Other API Changes
   since pandas version 0.13.0 and can be done with the ``Series.str.extract``
   method (:issue:`5224`). As a consequence, the ``as_indexer`` keyword is
   ignored (no longer needed to specify the new behaviour) and is deprecated.
-
+- ``NaT`` will now correctly report ``False`` for datetimelike boolean operations such as ``is_month_start`` (:issue:`15781`)
+- ``NaT`` will now correctly return ``np.nan`` for ``Timedelta`` and ``Period`` accessors such as ``days`` and ``quarter`` (:issue:`15782`)
 
 .. _whatsnew_0200.deprecations:
 

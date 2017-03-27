@@ -259,19 +259,14 @@ class TestDatetime64(tm.TestCase):
             dti.name = 'name'
 
             # non boolean accessors -> return Index
-            for accessor in ['year', 'month', 'day', 'hour', 'minute',
-                             'second', 'microsecond', 'nanosecond',
-                             'dayofweek', 'dayofyear', 'weekofyear',
-                             'quarter', 'weekday_name']:
+            for accessor in DatetimeIndex._field_ops:
                 res = getattr(dti, accessor)
                 assert len(res) == 365
                 assert isinstance(res, Index)
                 assert res.name == 'name'
 
             # boolean accessors -> return array
-            for accessor in ['is_month_start', 'is_month_end',
-                             'is_quarter_start', 'is_quarter_end',
-                             'is_year_start', 'is_year_end']:
+            for accessor in DatetimeIndex._bool_ops:
                 res = getattr(dti, accessor)
                 assert len(res) == 365
                 assert isinstance(res, np.ndarray)
