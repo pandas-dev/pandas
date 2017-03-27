@@ -4,8 +4,6 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable=E1103,W0231,W0212,W0621
 from __future__ import division
 
-import warnings
-
 import numpy as np
 import warnings
 from pandas.types.cast import (infer_dtype_from_scalar,
