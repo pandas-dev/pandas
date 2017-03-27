@@ -924,17 +924,27 @@ class XlrdTests(ReadingTestsBase):
                           chunksize=100)
 
     def test_read_excel_parse_dates(self):
-        # GH 11544
-        with tm.assertRaises(NotImplementedError):
-            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
-                          parse_dates=True)
+        # GH 11544, 12051
 
-    def test_read_excel_date_parser(self):
-        # GH 11544
-        with tm.assertRaises(NotImplementedError):
-            dateparse = lambda x: pd.datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
-            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
-                          date_parser=dateparse)
+        df = DataFrame(
+            {'col': [1, 2, 3],
+             'date_strings': pd.date_range('2012-01-01', periods=3)})
+        df2 = df.copy()
+        df2['date_strings'] = df2['date_strings'].dt.strftime('%m/%d/%Y')
+
+        with ensure_clean(self.ext) as pth:
+            df2.to_excel(pth)
+
+            res = read_excel(pth)
+            tm.assert_frame_equal(df2, res)
+
+            res = read_excel(pth, parse_dates=['date_strings'])
+            tm.assert_frame_equal(df, res)
+
+            dateparser = lambda x: pd.datetime.strptime(x, '%m/%d/%Y')
+            res = read_excel(pth, parse_dates=['date_strings'],
+                             date_parser=dateparser)
+            tm.assert_frame_equal(df, res)
 
     def test_read_excel_skiprows_list(self):
         # GH 4903
@@ -1382,8 +1392,7 @@ class ExcelWriterBase(SharedItems):
             # round trip
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            df = read_excel(reader, 'test1', index_col=[0, 1],
-                            parse_dates=False)
+            df = read_excel(reader, 'test1', index_col=[0, 1])
             tm.assert_frame_equal(frame, df)
 
     # GH13511
@@ -1424,8 +1433,7 @@ class ExcelWriterBase(SharedItems):
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
             df = read_excel(reader, 'test1', header=header,
-                            index_col=[0, 1],
-                            parse_dates=False)
+                            index_col=[0, 1])
             if not self.merge_cells:
                 fm = frame.columns.format(sparsify=False,
                                           adjoin=False, names=False)
