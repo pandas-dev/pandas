@@ -230,6 +230,15 @@ Categories must be unique or a `ValueError` is raised:
     except ValueError as e:
         print("ValueError: " + str(e))
 
+Categories must also not be ``NaN`` or a `ValueError` is raised:
+
+.. ipython:: python
+
+    try:
+        s.cat.categories = [1,2,np.nan]
+    except ValueError as e:
+        print("ValueError: " + str(e))
+
 Appending new categories
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
