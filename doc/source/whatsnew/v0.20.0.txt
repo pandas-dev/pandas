@@ -86,12 +86,17 @@ will be removed from the ``*.common`` locations in a future release. (:issue:`15
 
 The following are now part of this API:
 
-.. ipython:: python
+.. code-block:: python
 
-   import pprint
-   from pandas import errors
-   excs = [ e for e in dir(errors) if not e.startswith('_') ]
-   pprint.pprint(excs)
+   ['AmbiguousIndexError',
+    'DtypeWarning',
+    'EmptyDataError',
+    'OutOfBoundsDatetime',
+    'ParserError',
+    'ParserWarning',
+    'PerformanceWarning',
+    'UnsortedIndexError',
+    'UnsupportedFunctionCall']
 
 .. _whatsnew_0200.enhancements.groupby_access:
 
