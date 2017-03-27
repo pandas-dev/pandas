@@ -12,8 +12,10 @@ class PerformanceWarning(Warning):
     """
 
 class UnsupportedFunctionCall(ValueError):
-    pass
-
+    """
+    If attempting to call a numpy function on a pandas
+    object. For example using ``np.cumsum(groupby_object)``.
+    """
 
 class UnsortedIndexError(KeyError):
     """
