@@ -935,15 +935,16 @@ class XlrdTests(ReadingTestsBase):
         with ensure_clean(self.ext) as pth:
             df2.to_excel(pth)
 
+            # no index_col specified
             res = read_excel(pth)
             tm.assert_frame_equal(df2, res)
 
-            res = read_excel(pth, parse_dates=['date_strings'])
+            res = read_excel(pth, parse_dates=['date_strings'], index_col=0)
             tm.assert_frame_equal(df, res)
 
             dateparser = lambda x: pd.datetime.strptime(x, '%m/%d/%Y')
             res = read_excel(pth, parse_dates=['date_strings'],
-                             date_parser=dateparser)
+                             date_parser=dateparser, index_col=0)
             tm.assert_frame_equal(df, res)
 
     def test_read_excel_skiprows_list(self):

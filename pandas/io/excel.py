@@ -344,7 +344,7 @@ class ExcelFile(object):
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")
 
-        if parse_dates is True and not index_col:
+        if parse_dates is True and index_col is None:
             warn("The 'parse_dates=True' keyword of read_excel was provided"
                  " without an 'index_col' keyword value.")
 
