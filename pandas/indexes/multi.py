@@ -2203,20 +2203,14 @@ class MultiIndex(Index):
         else:
 
             loc = level_index.get_loc(key)
-            if level > 0 or self.lexsort_depth == 0:
+            if isinstance(loc, slice):
+                return loc
+            elif level > 0 or self.lexsort_depth == 0:
                 return np.array(labels == loc, dtype=bool)
-            else:
-                # sorted, so can return slice object -> view
-                try:
-                    loc = labels.dtype.type(loc)
-                except TypeError:
-                    # this occurs when loc is a slice (partial string indexing)
-                    # but the TypeError raised by searchsorted in this case
-                    # is catched in Index._has_valid_type()
-                    pass
-                i = labels.searchsorted(loc, side='left')
-                j = labels.searchsorted(loc, side='right')
-                return slice(i, j)
+
+            i = labels.searchsorted(loc, side='left')
+            j = labels.searchsorted(loc, side='right')
+            return slice(i, j)
 
     def get_locs(self, tup):
         """
