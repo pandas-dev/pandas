@@ -884,6 +884,8 @@ Other API Changes
   methods (:issue:`15830`)
 - ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``PandasError``, if called with scalar inputs and not axes (:issue:`15541`)
 
+- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandas.core.common.PandasError``, if called with scalar inputs and not axes; The exception ``PandasError`` is removed as well. (:issue:`15541`)
+- The exception ``pandas.core.common.AmbiguousIndexError`` is removed as it is not referenced (:issue:`15541`)
 
 .. _whatsnew_0200.deprecations:
 
