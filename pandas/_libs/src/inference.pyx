@@ -231,24 +231,25 @@ def infer_dtype(object value):
     -------
     string describing the common type of the input data.
     Results can include:
-       - floating
-       - integer
-       - mixed-integer
-       - mixed-integer-float
-       - complex
-       - categorical
-       - boolean
-       - datetime64
-       - datetime
-       - date
-       - timedelta64
-       - timedelta
-       - time
-       - period
-       - string
-       - unicode
-       - bytes
-       - mixed
+
+    - string
+    - unicode
+    - bytes
+    - floating
+    - integer
+    - mixed-integer
+    - mixed-integer-float
+    - complex
+    - categorical
+    - boolean
+    - datetime64
+    - datetime
+    - date
+    - timedelta64
+    - timedelta
+    - time
+    - period
+    - mixed
 
     Raises
     ------
