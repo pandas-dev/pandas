@@ -989,3 +989,5 @@ Bug Fixes
 - Bug in ``pd.melt()`` where passing a tuple value for ``value_vars`` caused a ``TypeError`` (:issue:`15348`)
 - Bug in ``.eval()`` which caused multiline evals to fail with local variables not on the first line (:issue:`15342`)
 - Bug in ``pd.read_msgpack`` which did not allow to load dataframe with an index of type ``CategoricalIndex`` (:issue:`15487`)
+
+- Bug in ``Series.replace`` which replaced a numeric by string (:issue:`15743`)
