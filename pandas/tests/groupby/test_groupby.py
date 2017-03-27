@@ -3849,19 +3849,36 @@ class TestGroupBy(MixIn, tm.TestCase):
             'nsmallest',
         ])
 
-        names_dont_match_pair = (self.DF_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE,
-                                 self.S_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE)
-        for obj, whitelist, names_dont_match in zip((df, s), (df_whitelist, s_whitelist), names_dont_match_pair):
+        names_dont_match_pair = (
+            self.DF_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE,
+            self.S_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE)
+        for obj, whitelist, names_dont_match in (
+                zip((df, s),
+                    (df_whitelist, s_whitelist),
+                    names_dont_match_pair)):
+
             gb = obj.groupby(df.letters)
-            self.assertEqual(whitelist, gb._apply_whitelist)
+
+            assert whitelist == gb._apply_whitelist
             for m in whitelist:
                 f = getattr(type(gb), m)
+
+                # name
                 try:
                     n = f.__name__
                 except AttributeError:
                     continue
                 if m not in names_dont_match:
-                    self.assertEqual(n, m)
+                    assert n == m
+
+                # qualname
+                if compat.PY3:
+                    try:
+                        n = f.__qualname__
+                    except AttributeError:
+                        continue
+                    if m not in names_dont_match:
+                        assert n.endswith(m)
 
     def test_groupby_method_names_that_dont_match_attribute(self):
         from string import ascii_lowercase
@@ -3873,9 +3890,10 @@ class TestGroupBy(MixIn, tm.TestCase):
         gb = df.groupby(df.letters)
         s = df.floats
 
-        names_dont_match_pair = (self.DF_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE,
-                                 self.S_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE)
-        for obj, names_dont_match in zip((df, s),  names_dont_match_pair):
+        names_dont_match_pair = (
+            self.DF_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE,
+            self.S_METHOD_NAMES_THAT_DONT_MATCH_ATTRIBUTE)
+        for obj, names_dont_match in zip((df, s), names_dont_match_pair):
             gb = obj.groupby(df.letters)
             for m in names_dont_match:
                 f = getattr(gb, m)
