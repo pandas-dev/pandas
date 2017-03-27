@@ -183,11 +183,6 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(0 in ci)
         self.assertFalse(1 in ci)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            ci = CategoricalIndex(
-                list('aabbca'), categories=list('cabdef') + [np.nan])
-        self.assertFalse(np.nan in ci)
-
         ci = CategoricalIndex(
             list('aabbca') + [np.nan], categories=list('cabdef'))
         self.assertTrue(np.nan in ci)
@@ -541,7 +536,6 @@ class TestCategoricalIndex(Base, tm.TestCase):
             self.assertIs(_base(index.values), _base(result.values))
 
     def test_equals_categorical(self):
-
         ci1 = CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=True)
         ci2 = CategoricalIndex(['a', 'b'], categories=['a', 'b', 'c'],
                                ordered=True)
@@ -578,14 +572,6 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(ci.equals(list('aabca')))
         self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
         self.assertTrue(ci.equals(ci.copy()))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            ci = CategoricalIndex(list('aabca'),
-                                  categories=['c', 'a', 'b', np.nan])
-        self.assertFalse(ci.equals(list('aabca')))
-        self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertTrue(ci.equals(ci.copy()))
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])

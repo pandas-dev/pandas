@@ -816,6 +816,7 @@ Removal of prior version deprecations/changes
   in favor of ``iloc`` and ``iat`` as explained :ref:`here <whatsnew_0170.deprecations>` (:issue:`10711`).
 - The deprecated ``DataFrame.iterkv()`` has been removed in favor of ``DataFrame.iteritems()`` (:issue:`10711`)
 - The ``Categorical`` constructor has dropped the ``name`` parameter (:issue:`10632`)
+- ``Categorical`` has dropped support for ``NaN`` categories (:issue:`10748`)
 - The ``take_last`` parameter has been dropped from ``duplicated()``, ``drop_duplicates()``, ``nlargest()``, and ``nsmallest()`` methods (:issue:`10236`, :issue:`10792`, :issue:`10920`)
 - ``Series``, ``Index``, and ``DataFrame`` have dropped the ``sort`` and ``order`` methods (:issue:`10726`)
 - Where clauses in ``pytables`` are only accepted as strings and expressions types and not other data-types (:issue:`12027`)
