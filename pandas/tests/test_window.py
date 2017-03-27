@@ -3386,12 +3386,12 @@ class TestRollingTS(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_closed(self):
-        df = DataFrame({'A': [1]*5},
-                        index = [pd.Timestamp('20130101 09:00:01'),
-                                 pd.Timestamp('20130101 09:00:02'),
-                                 pd.Timestamp('20130101 09:00:03'),
-                                 pd.Timestamp('20130101 09:00:04'),
-                                 pd.Timestamp('20130101 09:00:06')])
+        df = DataFrame({'A': [1] * 5},
+                       index=[pd.Timestamp('20130101 09:00:01'),
+                              pd.Timestamp('20130101 09:00:02'),
+                              pd.Timestamp('20130101 09:00:03'),
+                              pd.Timestamp('20130101 09:00:04'),
+                              pd.Timestamp('20130101 09:00:06')])
 
         # closed must be 'right', 'left', 'both', 'neither'
         with self.assertRaises(ValueError):

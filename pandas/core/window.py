@@ -800,7 +800,6 @@ class _Rolling_and_Expanding(_Rolling):
         window = self._get_window()
         offset = _offset(window, self.center)
         index, indexi = self._get_index()
-        closed = self.closed
 
         def f(arg, window, min_periods, closed):
             minp = _use_window(min_periods, window)

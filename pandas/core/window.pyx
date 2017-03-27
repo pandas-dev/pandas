@@ -158,6 +158,10 @@ cdef class MockFixedWindowIndexer(WindowIndexer):
         index of the input
     floor: optional
         unit for flooring
+    l_closed: bint
+        left endpoint closedness
+    r_closed: bint
+        right endpoint closedness
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
@@ -192,6 +196,10 @@ cdef class FixedWindowIndexer(WindowIndexer):
         index of the input
     floor: optional
         unit for flooring the unit
+    l_closed: bint
+        left endpoint closedness
+    r_closed: bint
+        right endpoint closedness
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
@@ -231,10 +239,14 @@ cdef class VariableWindowIndexer(WindowIndexer):
         min number of obs in a window to consider non-NaN
     index: ndarray
         index of the input
+    l_closed: bint
+        left endpoint closedness
+    r_closed: bint
+        right endpoint closedness
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 ndarray index, bint l_closed=False, bint r_closed=True):
+                 ndarray index, bint l_closed, bint r_closed):
 
         self.is_variable = 1
         self.N = len(index)
@@ -251,9 +263,8 @@ cdef class VariableWindowIndexer(WindowIndexer):
         # max window size
         self.win = (self.end - self.start).max()
 
-
     def build(self, ndarray[int64_t] index, int64_t win, bint l_closed,
-                    bint r_closed):
+              bint r_closed):
 
         cdef:
             ndarray[int64_t] start, end
@@ -266,9 +277,9 @@ cdef class VariableWindowIndexer(WindowIndexer):
 
         start[0] = 0
 
-        if r_closed: # right endpoint is closed
+        if r_closed:  # right endpoint is closed
             end[0] = 1
-        else:        # right endpoint is open
+        else:         # right endpoint is open
             end[0] = 0
 
         with nogil:
@@ -279,7 +290,7 @@ cdef class VariableWindowIndexer(WindowIndexer):
                 end_bound = index[i]
                 start_bound = index[i] - win
 
-                if l_closed: # left endpoint is closed
+                if l_closed:  # left endpoint is closed
                     start_bound -= 1
 
                 # advance the start bound until we are
@@ -314,6 +325,8 @@ def get_window_indexer(input, win, minp, index, closed,
     minp: integer, minimum periods
     index: 1d ndarray, optional
         index to the input array
+    closed: 'right', 'left', 'both', 'neither'
+        window endpoint closedness
     floor: optional
         unit for flooring the unit
     use_mock: boolean, default True
@@ -1024,8 +1037,8 @@ def roll_median_c(ndarray[float64_t] input, int64_t win, int64_t minp,
                   object index, object closed):
     cdef:
         double val, res, prev
-        bint err=0, is_variable
-        int ret=0
+        bint err = 0, is_variable
+        int ret = 0
         skiplist_t *sl
         Py_ssize_t i, j
         int64_t nobs = 0, N, s, e
