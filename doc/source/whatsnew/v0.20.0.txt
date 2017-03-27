@@ -88,8 +88,7 @@ The following are now part of this API:
 
 .. code-block:: python
 
-   ['AmbiguousIndexError',
-    'DtypeWarning',
+   ['DtypeWarning',
     'EmptyDataError',
     'OutOfBoundsDatetime',
     'ParserError',
