@@ -133,7 +133,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         exp = Series([1], dtype=np.int64)
         tm.assert_series_equal(Series([1]).mode(), exp)
 
-        exp = Series(['a','b','c'], dtype=np.object)
+        exp = Series(['a', 'b', 'c'], dtype=np.object)
         tm.assert_series_equal(Series(['a', 'b', 'c']).mode(), exp)
 
         # Test numerical data types.
@@ -170,7 +170,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         # Test datetime types.
         exp = Series(['1900-05-03', '2011-01-03',
-                    '2013-01-02'], dtype='M8[ns]')
+                      '2013-01-02'], dtype='M8[ns]')
         s = Series(['2011-01-03', '2013-01-02',
                     '1900-05-03'], dtype='M8[ns]')
         tm.assert_series_equal(s.mode(), exp)
