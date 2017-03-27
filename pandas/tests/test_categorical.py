@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101,E1103,W0232
 
+import pytest
 import sys
 from datetime import datetime
 from distutils.version import LooseVersion
@@ -17,7 +18,8 @@ import pandas as pd
 import pandas.compat as compat
 import pandas.util.testing as tm
 from pandas import (Categorical, Index, Series, DataFrame, PeriodIndex,
-                    Timestamp, CategoricalIndex, isnull)
+                    Timestamp, CategoricalIndex, DatetimeIndex,
+                    isnull, NaT)
 from pandas.compat import range, lrange, u, PY3
 from pandas.core.config import option_context
 
@@ -223,15 +225,6 @@ class TestCategorical(tm.TestCase):
         # vals = np.asarray(cat[cat.notnull()])
         # self.assertTrue(is_integer_dtype(vals))
 
-        # Cannot have NaN in categories
-        def f(null_value):
-            pd.Categorical([null_value, "a", "b", "c"],
-                           categories=[null_value, "a", "b", "c"])
-
-        self.assertRaises(ValueError, f, np.nan)
-        self.assertRaises(ValueError, f, pd.NaT)
-        self.assertRaises(ValueError, f, None)
-
         # corner cases
         cat = pd.Categorical([1])
         self.assertTrue(len(cat.categories) == 1)
@@ -280,6 +273,22 @@ class TestCategorical(tm.TestCase):
         with tm.assert_produces_warning(None):
             c = Categorical(np.array([], dtype='int64'),  # noqa
                             categories=[3, 2, 1], ordered=True)
+
+    def test_constructor_with_null(self):
+
+        # Cannot have NaN in categories
+        with pytest.raises(ValueError):
+            pd.Categorical([np.nan, "a", "b", "c"],
+                           categories=[np.nan, "a", "b", "c"])
+
+        with pytest.raises(ValueError):
+            pd.Categorical([None, "a", "b", "c"],
+                           categories=[None, "a", "b", "c"])
+
+        with pytest.raises(ValueError):
+            pd.Categorical(DatetimeIndex(['nat', '20160101']),
+                           categories=[NaT, Timestamp('20160101')])
+
 
     def test_constructor_with_index(self):
         ci = CategoricalIndex(list('aabbca'), categories=list('cab'))

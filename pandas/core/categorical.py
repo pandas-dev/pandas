@@ -547,7 +547,7 @@ class Categorical(PandasObject):
 
             # Categories cannot contain NaN.
             if categories.hasnans:
-                raise ValueError('Categorial categories cannot be NaN')
+                raise ValueError('Categorial categories cannot be null')
 
             # Categories must be unique.
             if not categories.is_unique:
