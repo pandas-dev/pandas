@@ -6,7 +6,7 @@ import pandas as pd
 
 
 @pytest.mark.parametrize(
-    "exc", ['PandasError', 'AmbiguousIndexError',
+    "exc", ['AmbiguousIndexError',
             'UnsupportedFunctionCall', 'UnsortedIndexError',
             'OutOfBoundsDatetime',
             'ParserError', 'PerformanceWarning', 'DtypeWarning',

@@ -56,7 +56,6 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_named_tuple)
 from pandas.types.missing import isnull, notnull
 
-from pandas.errors import PandasError
 from pandas.core.common import (_try_sort,
                                 _default_index,
                                 _values_from_object,
@@ -348,7 +347,7 @@ class DataFrame(NDFrame):
                 mgr = self._init_ndarray(values, index, columns, dtype=dtype,
                                          copy=False)
             else:
-                raise PandasError('DataFrame constructor not properly called!')
+                raise ValueError('DataFrame constructor not properly called!')
 
         NDFrame.__init__(self, mgr, fastpath=True)
 

@@ -5,14 +5,10 @@
 from pandas._libs.tslib import OutOfBoundsDatetime
 
 
-class PandasError(Exception):
-    pass
-
-
 class PerformanceWarning(Warning):
     pass
 
-class AmbiguousIndexError(PandasError, KeyError):
+class AmbiguousIndexError(KeyError):
     pass
 
 

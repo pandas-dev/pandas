@@ -21,7 +21,6 @@ import pandas.core.missing as missing
 from pandas import compat
 from pandas.compat import (map, zip, range, u, OrderedDict, OrderedDefaultdict)
 from pandas.compat.numpy import function as nv
-from pandas.errors import PandasError
 from pandas.core.common import _try_sort, _default_index
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
@@ -175,7 +174,7 @@ class Panel(NDFrame):
                                     copy=False)
             copy = False
         else:  # pragma: no cover
-            raise PandasError('Panel constructor not properly called!')
+            raise ValueError('Panel constructor not properly called!')
 
         NDFrame.__init__(self, mgr, axes=axes, copy=copy, dtype=dtype)
 
@@ -1151,8 +1150,8 @@ class Panel(NDFrame):
             return self._constructor_sliced(
                 result, **self._extract_axes_for_slice(self, axes))
 
-        raise PandasError('invalid _construct_return_type [self->%s] '
-                          '[result->%s]' % (self, result))
+        raise ValueError('invalid _construct_return_type [self->%s] '
+                         '[result->%s]' % (self, result))
 
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)

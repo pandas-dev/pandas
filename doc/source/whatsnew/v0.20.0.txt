@@ -877,6 +877,8 @@ Other API Changes
 - ``NaT`` will now correctly return ``np.nan`` for ``Timedelta`` and ``Period`` accessors such as ``days`` and ``quarter`` (:issue:`15782`)
 - ``NaT`` will now returns ``NaT`` for ``tz_localize`` and ``tz_convert``
   methods (:issue:`15830`)
+- ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``PandasError``, if called with scalar inputs and not axes (:issue:`15541`)
+
 
 .. _whatsnew_0200.deprecations:
 

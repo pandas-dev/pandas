@@ -20,7 +20,6 @@ from pandas import compat
 from pandas import (DataFrame, Index, Series, isnull,
                     MultiIndex, Timedelta, Timestamp,
                     date_range)
-from pandas.errors import PandasError
 import pandas as pd
 import pandas._libs.lib as lib
 import pandas.util.testing as tm
@@ -773,7 +772,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # corner, silly
         # TODO: Fix this Exception to be better...
-        with tm.assertRaisesRegexp(PandasError, 'constructor not '
+        with tm.assertRaisesRegexp(ValueError, 'constructor not '
                                    'properly called'):
             DataFrame((1, 2, 3))
 
@@ -1241,8 +1240,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                                                      dtype=object),
                                             index=[1, 2], columns=['a', 'c']))
 
-        self.assertRaises(PandasError, DataFrame, 'a', [1, 2])
-        self.assertRaises(PandasError, DataFrame, 'a', columns=['a', 'c'])
+        self.assertRaises(ValueError, DataFrame, 'a', [1, 2])
+        self.assertRaises(ValueError, DataFrame, 'a', columns=['a', 'c'])
         with tm.assertRaisesRegexp(TypeError, 'incompatible data and dtype'):
             DataFrame('a', [1, 2], ['a', 'c'], float)
 

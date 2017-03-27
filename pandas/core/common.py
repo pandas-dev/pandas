@@ -22,7 +22,7 @@ from pandas.types import common
 
 # compat
 from pandas.errors import (  # noqa
-    PandasError, PerformanceWarning,
+    PerformanceWarning,
     AmbiguousIndexError, UnsupportedFunctionCall, UnsortedIndexError)
 
 # back-compat of public API
