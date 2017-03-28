@@ -176,8 +176,8 @@ def _guess_datetime_format_for_array(arr, **kwargs):
 
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
-                utc=None, box=True, format=None, exact=True,
-                unit=None, infer_datetime_format=False):
+                utc=None, box=True, format=None, exact=True, coerce=None,
+                unit=None, infer_datetime_format=False, origin='epoch'):
     """
     Convert argument to datetime.
 
@@ -236,6 +236,19 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
+    origin : scalar convertible to Timestamp / string ('julian', 'epoch'),
+        default 'epoch'.
+        Define reference date. The numeric values would be parsed as number
+        of units (defined by `unit`) since this reference date.
+
+        - If 'epoch', origin is set to 1970-01-01.
+        - If 'julian', unit must be 'D', and origin is set to beginning of
+          Julian Calendar. Julian day number 0 is assigned to the day starting
+          at noon on January 1, 4713 BC.
+        - If Timestamp convertible, origin is set to Timestamp identified by
+          origin.
+
+        .. versionadded: 0.19.0
 
     Returns
     -------
@@ -297,8 +310,14 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
     1 loop, best of 3: 471 ms per loop
 
-    """
+    Using non-epoch origins to parse date
 
+    >>> pd.to_datetime([1,2,3], unit='D', origin=pd.Timestamp('1960-01-01'))
+    0    1960-01-02
+    1    1960-01-03
+    2    1960-01-04
+
+    """
     from pandas.tseries.index import DatetimeIndex
 
     tz = 'utc' if utc else None
@@ -409,22 +428,43 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             except (ValueError, TypeError):
                 raise e
 
-    if arg is None:
-        return arg
-    elif isinstance(arg, tslib.Timestamp):
-        return arg
-    elif isinstance(arg, ABCSeries):
-        from pandas import Series
-        values = _convert_listlike(arg._values, False, format)
-        return Series(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, (ABCDataFrame, MutableMapping)):
-        return _assemble_from_unit_mappings(arg, errors=errors)
-    elif isinstance(arg, ABCIndexClass):
-        return _convert_listlike(arg, box, format, name=arg.name)
-    elif is_list_like(arg):
-        return _convert_listlike(arg, box, format)
+    def intermediate_result(arg):
+        if origin == 'julian':
+            if unit != 'D':
+                raise ValueError("unit must be 'D' for origin='julian'")
+            try:
+                arg = arg - tslib.Timestamp(0).to_julian_date()
+            except:
+                raise ValueError("incompatible 'arg' type for given "
+                                 "'origin'='julian'")
+        if arg is None:
+            return arg
+        elif isinstance(arg, tslib.Timestamp):
+            return arg
+        elif isinstance(arg, ABCSeries):
+            from pandas import Series
+            values = _convert_listlike(arg._values, False, format)
+            return Series(values, index=arg.index, name=arg.name)
+        elif isinstance(arg, (ABCDataFrame, MutableMapping)):
+            return _assemble_from_unit_mappings(arg, errors=errors)
+        elif isinstance(arg, ABCIndexClass):
+            return _convert_listlike(arg, box, format, name=arg.name)
+        elif is_list_like(arg):
+            return _convert_listlike(arg, box, format)
+        return _convert_listlike(np.array([arg]), box, format)[0]
 
-    return _convert_listlike(np.array([arg]), box, format)[0]
+    result = intermediate_result(arg)
+
+    offset = None
+    if origin not in ['epoch', 'julian']:
+        try:
+            offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+        except ValueError:
+            raise ValueError("Invalid 'origin' or 'origin' Out of Bound")
+
+    if offset is not None:
+        result = result + offset
+    return result
 
 
 # mappings for assembling units

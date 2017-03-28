@@ -27,7 +27,6 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
-
 .. _whatsnew_0200.enhancements.dataio_dtype:
 
 ``dtype`` keyword for data IO
@@ -54,6 +53,19 @@ fixed-width text files, and :func:`read_excel` for parsing Excel files.
    data = "a  b\n1  2\n3  4"
    pd.read_fwf(StringIO(data)).dtypes
    pd.read_fwf(StringIO(data), dtype={'a':'float64', 'b':'object'}).dtypes
+
+.. _whatsnew_0120.enhancements.datetime_origin:
+
+to_datetime can be used with Offset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``pd.to_datetime`` has gained a new parameter, ``origin``, to define an offset
+from where to compute the resulting ``DatetimeIndex``. (:issue:`11276`, :issue:`11745`)
+
+.. ipython:: python
+
+   to_datetime([1,2,3], unit='D', origin=pd.Timestamp('1960-01-01'))
+
+The above code would return days with offset from origin as defined by timestamp set by origin.
 
 .. _whatsnew_0200.enhancements.groupby_access:
 
