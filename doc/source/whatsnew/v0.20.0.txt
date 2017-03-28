@@ -887,6 +887,7 @@ Bug Fixes
 
 - Compat for 32-bit platforms for ``.qcut/cut``; bins will now be ``int64`` dtype (:issue:`14866`)
 
+- Properly set ``__name__`` and ``__qualname__`` for ``Groupby.*`` functions (:issue:`14620`)
 - Bug in ``.at`` when selecting from a tz-aware column (:issue:`15822`)
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 - Bug in ``.replace()`` may result in incorrect dtypes. (:issue:`12747`, :issue:`15765`)
