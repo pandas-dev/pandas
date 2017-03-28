@@ -1277,6 +1277,7 @@ Attributes
    Index.nbytes
    Index.ndim
    Index.size
+   Index.empty
    Index.strides
    Index.itemsize
    Index.base

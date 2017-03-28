@@ -21,9 +21,9 @@ class TestTimedeltaIndexOps(Ops):
         self.not_valid_objs = []
 
     def test_ops_properties(self):
-        self.check_ops_properties(['days', 'hours', 'minutes', 'seconds',
-                                   'milliseconds'])
-        self.check_ops_properties(['microseconds', 'nanoseconds'])
+        f = lambda x: isinstance(x, TimedeltaIndex)
+        self.check_ops_properties(TimedeltaIndex._field_ops, f)
+        self.check_ops_properties(TimedeltaIndex._object_ops, f)
 
     def test_asobject_tolist(self):
         idx = timedelta_range(start='1 days', periods=4, freq='D', name='idx')

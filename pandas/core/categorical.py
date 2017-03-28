@@ -545,18 +545,11 @@ class Categorical(PandasObject):
 
         if not fastpath:
 
-            # check properties of the categories
-            # we don't allow NaNs in the categories themselves
-
+            # Categories cannot contain NaN.
             if categories.hasnans:
-                # NaNs in cats deprecated in 0.17
-                # GH 10748
-                msg = ('\nSetting NaNs in `categories` is deprecated and '
-                       'will be removed in a future version of pandas.')
-                warn(msg, FutureWarning, stacklevel=3)
+                raise ValueError('Categorial categories cannot be null')
 
-            # categories must be unique
-
+            # Categories must be unique.
             if not categories.is_unique:
                 raise ValueError('Categorical categories must be unique')
 
