@@ -1557,6 +1557,21 @@ class TestOrigin(object):
             julian_dates - pd.Timestamp(0).to_julian_date(), unit='D'))
         assert_series_equal(result, expected)
 
+        result = Series(pd.to_datetime(
+            [0, 1, 2], unit='D', origin='unix'))
+        expected = Series([Timestamp('1970-01-01'),
+                           Timestamp('1970-01-02'),
+                           Timestamp('1970-01-03')])
+        assert_series_equal(result, expected)
+
+        # default
+        result = Series(pd.to_datetime(
+            [0, 1, 2], unit='D'))
+        expected = Series([Timestamp('1970-01-01'),
+                           Timestamp('1970-01-02'),
+                           Timestamp('1970-01-03')])
+        assert_series_equal(result, expected)
+
     def test_invalid_unit(self, units, julian_dates):
 
         # checking for invalid combination of origin='julian' and unit != D
@@ -1575,6 +1590,7 @@ class TestOrigin(object):
 
     @pytest.mark.parametrize("origin, exc",
                              [('random_string', 'cannot be converted'),
+                              ('epoch', 'cannot be converted'),
                               ('13-24-1990', 'cannot be converted'),
                               ('0001-01-01', 'Out of Bounds')])
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):

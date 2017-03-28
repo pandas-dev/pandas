@@ -177,7 +177,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
-                unit=None, infer_datetime_format=False, origin='epoch'):
+                unit=None, infer_datetime_format=False, origin='unix'):
     """
     Convert argument to datetime.
 
@@ -229,19 +229,21 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If False, allow the format to match anywhere in the target string.
 
     unit : string, default 'ns'
-        unit of the arg (D,s,ms,us,ns) denote the unit in epoch
-        (e.g. a unix timestamp), which is an integer/float number.
+        unit of the arg (D,s,ms,us,ns) denote the unit, which is an
+        integer or float number. This will be based off the origin.
+        Example, with unit='ms' and origin='unix' (the default), this
+        would calculate the number of milliseconds to the unix epoch start.
     infer_datetime_format : boolean, default False
         If True and no `format` is given, attempt to infer the format of the
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
-    origin : scalar convertible to Timestamp / string ('julian', 'epoch'),
-        default 'epoch'.
+    origin : scalar convertible to Timestamp / string ('julian', 'unix'),
+        default 'unix'.
         Define reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
 
-        - If 'epoch', origin is set to 1970-01-01.
+        - If 'unix' (or POSIX) time; origin is set to 1970-01-01.
         - If 'julian', unit must be 'D', and origin is set to beginning of
           Julian Calendar. Julian day number 0 is assigned to the day starting
           at noon on January 1, 4713 BC.
@@ -454,7 +456,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         result = _convert_listlike(np.array([arg]), box, format)[0]
 
     # handle origin
-    if origin not in ['epoch', 'julian']:
+    if origin not in ['unix', 'julian']:
         try:
             offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
         except tslib.OutOfBoundsDatetime:

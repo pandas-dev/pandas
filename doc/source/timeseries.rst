@@ -252,7 +252,8 @@ Epoch Timestamps
 
 It's also possible to convert integer or float epoch times. The default unit
 for these is nanoseconds (since these are how ``Timestamp`` s are stored). However,
-often epochs are stored in another ``unit`` which can be specified:
+often epochs are stored in another ``unit`` which can be specified. These are computed
+from the starting point specified by the :ref:`Origin Parameter <timeseries.origin>`.
 
 Typical epoch stored units
 
@@ -276,6 +277,8 @@ These *work*, but the results may be unexpected.
 
    Epoch times will be rounded to the nearest nanosecond.
 
+.. _timeseries.origin:
+
 Using the Origin Parameter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -284,11 +287,14 @@ Using the Origin Parameter
 Using the ``origin`` parameter, one can specify an alternative starting point for creation
 of a ``DatetimeIndex``.
 
+Start with 1960-01-01 as the starting date
+
 .. ipython:: python
 
    pd.to_datetime([1, 2, 3], unit='D', origin=pd.Timestamp('1960-01-01'))
 
-The default is set at ``origin='epoch'``, which defaults to ``1970-01-01 00:00:00``.
+The default is set at ``origin='unix'``, which defaults to ``1970-01-01 00:00:00``.
+Commonly called 'unix epoch' or POSIX time.
 
 .. ipython:: python
 
