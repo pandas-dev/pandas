@@ -108,8 +108,9 @@ class TestJSONNormalize(object):
         result = json_normalize(deep_nested, ['states', 'cities'],
                                 meta=['country', ['states', 'name']],
                                 sep='_')
-        assert result.columns.equals(
-            Index(['name', 'pop', 'country', 'states_name']))
+        expected = Index(['name', 'pop',
+                          'country', 'states_name']).sort_values()
+        assert result.columns.sort_values().equals(expected)
 
     def test_more_deeply_nested(self, deep_nested):
 
