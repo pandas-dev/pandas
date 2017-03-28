@@ -176,7 +176,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
 
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
-                utc=None, box=True, format=None, exact=True, coerce=None,
+                utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='epoch'):
     """
     Convert argument to datetime.
@@ -248,7 +248,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If Timestamp convertible, origin is set to Timestamp identified by
           origin.
 
-        .. versionadded: 0.19.0
+        .. versionadded: 0.20.0
 
     Returns
     -------
@@ -311,7 +311,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1 loop, best of 3: 471 ms per loop
 
     Using non-epoch origins to parse date
-
     >>> pd.to_datetime([1,2,3], unit='D', origin=pd.Timestamp('1960-01-01'))
     0    1960-01-02
     1    1960-01-03
@@ -428,42 +427,46 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             except (ValueError, TypeError):
                 raise e
 
-    def intermediate_result(arg):
-        if origin == 'julian':
-            if unit != 'D':
-                raise ValueError("unit must be 'D' for origin='julian'")
-            try:
-                arg = arg - tslib.Timestamp(0).to_julian_date()
-            except:
-                raise ValueError("incompatible 'arg' type for given "
-                                 "'origin'='julian'")
-        if arg is None:
-            return arg
-        elif isinstance(arg, tslib.Timestamp):
-            return arg
-        elif isinstance(arg, ABCSeries):
-            from pandas import Series
-            values = _convert_listlike(arg._values, False, format)
-            return Series(values, index=arg.index, name=arg.name)
-        elif isinstance(arg, (ABCDataFrame, MutableMapping)):
-            return _assemble_from_unit_mappings(arg, errors=errors)
-        elif isinstance(arg, ABCIndexClass):
-            return _convert_listlike(arg, box, format, name=arg.name)
-        elif is_list_like(arg):
-            return _convert_listlike(arg, box, format)
-        return _convert_listlike(np.array([arg]), box, format)[0]
+    # perform the conversion
+    if origin == 'julian':
+        if unit != 'D':
+            raise ValueError("unit must be 'D' for origin='julian'")
+        try:
+            arg = arg - tslib.Timestamp(0).to_julian_date()
+        except:
+            raise ValueError("incompatible 'arg' type for given "
+                             "'origin'='julian'")
+    if arg is None:
+        result = arg
+    elif isinstance(arg, tslib.Timestamp):
+        result = arg
+    elif isinstance(arg, ABCSeries):
+        from pandas import Series
+        values = _convert_listlike(arg._values, False, format)
+        result = Series(values, index=arg.index, name=arg.name)
+    elif isinstance(arg, (ABCDataFrame, MutableMapping)):
+        result = _assemble_from_unit_mappings(arg, errors=errors)
+    elif isinstance(arg, ABCIndexClass):
+        result = _convert_listlike(arg, box, format, name=arg.name)
+    elif is_list_like(arg):
+        result = _convert_listlike(arg, box, format)
+    else:
+        result = _convert_listlike(np.array([arg]), box, format)[0]
 
-    result = intermediate_result(arg)
-
-    offset = None
+    # handle origin
     if origin not in ['epoch', 'julian']:
         try:
             offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+        except tslib.OutOfBoundsDatetime:
+            raise ValueError(
+                "origin {} is Out of Bounds".format(origin))
         except ValueError:
-            raise ValueError("Invalid 'origin' or 'origin' Out of Bound")
+            raise ValueError("origin {} cannot be converted "
+                             "to a Timestamp".format(origin))
 
-    if offset is not None:
-        result = result + offset
+        if offset is not None:
+            result = result + offset
+
     return result
 
 

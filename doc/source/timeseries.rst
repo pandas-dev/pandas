@@ -276,6 +276,24 @@ These *work*, but the results may be unexpected.
 
    Epoch times will be rounded to the nearest nanosecond.
 
+Using the Origin Parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+Using the ``origin`` parameter, one can specify an alternative starting point for creation
+of a ``DatetimeIndex``.
+
+.. ipython:: python
+
+   pd.to_datetime([1, 2, 3], unit='D', origin=pd.Timestamp('1960-01-01'))
+
+The default is set at ``origin='epoch'``, which defaults to ``1970-01-01 00:00:00``.
+
+.. ipython:: python
+
+   pd.to_datetime([1, 2, 3], unit='D')
+
 .. _timeseries.daterange:
 
 Generating Ranges of Timestamps

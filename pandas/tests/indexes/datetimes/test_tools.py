@@ -1517,45 +1517,68 @@ def test_normalize_date():
     assert (result == datetime(2012, 9, 7))
 
 
-def test_to_datetime_origin():
-    units = ['D', 's', 'ms', 'us', 'ns']
-    # gh-11276, gh-11745
-    # for origin as julian
+@pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
+def units(request):
+    return request.param
 
-    julian_dates = pd.date_range(
-        '2014-1-1', periods=10).to_julian_date().values
-    result = Series(pd.to_datetime(
-        julian_dates, unit='D', origin='julian'))
-    expected = Series(pd.to_datetime(
-        julian_dates - pd.Timestamp(0).to_julian_date(), unit='D'))
-    assert_series_equal(result, expected)
 
-    # checking for invalid combination of origin='julian' and unit != D
-    for unit in units:
-        if unit == 'D':
-            continue
-        with pytest.raises(ValueError):
-            pd.to_datetime(julian_dates, unit=unit, origin='julian')
-
+@pytest.fixture
+def epoch_1960():
     # for origin as 1960-01-01
-    epoch_1960 = pd.Timestamp('1960-01-01')
-    epoch_timestamp_convertible = [epoch_1960, epoch_1960.to_datetime(),
-                                   epoch_1960.to_datetime64(),
-                                   str(epoch_1960)]
-    invalid_origins = ['random_string', '13-24-1990', '0001-01-01']
-    units_from_epoch = [0, 1, 2, 3, 4]
+    return Timestamp('1960-01-01')
 
-    for unit in units:
-        for epoch in epoch_timestamp_convertible:
-            expected = Series(
-                [pd.Timedelta(x, unit=unit) +
-                 epoch_1960 for x in units_from_epoch])
-            result = Series(pd.to_datetime(
-                units_from_epoch, unit=unit, origin=epoch))
-            assert_series_equal(result, expected)
 
-        # check for invalid origins
-        for origin in invalid_origins:
+@pytest.fixture
+def units_from_epochs():
+    return list(range(5))
+
+
+@pytest.fixture(params=[epoch_1960(), epoch_1960().to_datetime(),
+                        epoch_1960().to_datetime64(),
+                        str(epoch_1960())])
+def epochs(request):
+    return request.param
+
+
+@pytest.fixture
+def julian_dates():
+    return pd.date_range('2014-1-1', periods=10).to_julian_date().values
+
+
+class TestOrigin(object):
+
+    def test_to_basic(self, julian_dates):
+        # gh-11276, gh-11745
+        # for origin as julian
+
+        result = Series(pd.to_datetime(
+            julian_dates, unit='D', origin='julian'))
+        expected = Series(pd.to_datetime(
+            julian_dates - pd.Timestamp(0).to_julian_date(), unit='D'))
+        assert_series_equal(result, expected)
+
+    def test_invalid_unit(self, units, julian_dates):
+
+        # checking for invalid combination of origin='julian' and unit != D
+        if units != 'D':
             with pytest.raises(ValueError):
-                pd.to_datetime(units_from_epoch, unit=unit,
-                               origin=origin)
+                pd.to_datetime(julian_dates, unit=units, origin='julian')
+
+    def test_epoch(self, units, epochs, epoch_1960, units_from_epochs):
+
+        expected = Series(
+            [pd.Timedelta(x, unit=units) +
+             epoch_1960 for x in units_from_epochs])
+        result = Series(pd.to_datetime(
+            units_from_epochs, unit=units, origin=epochs))
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("origin, exc",
+                             [('random_string', 'cannot be converted'),
+                              ('13-24-1990', 'cannot be converted'),
+                              ('0001-01-01', 'Out of Bounds')])
+    def test_invalid_origins(self, origin, exc, units, units_from_epochs):
+
+        with tm.assertRaisesRegexp(ValueError, exc):
+            pd.to_datetime(units_from_epochs, unit=units,
+                           origin=origin)
