@@ -39,7 +39,7 @@ def right():
                               index=[0, 1, 2])),
      ('right', False, DataFrame({'a': [np.nan, 10, 20],
                                  'b': [300, 100, 200]},
-                                index=[1, 2, 3])),
+                                index=[3, 1, 2])),
      ('right', True, DataFrame({'a': [10, 20, np.nan],
                                 'b': [100, 200, 300]},
                                index=[1, 2, 3])),
