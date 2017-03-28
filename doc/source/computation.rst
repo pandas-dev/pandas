@@ -549,12 +549,12 @@ can even be omitted:
 .. ipython:: python
 
    covs = df[['B','C','D']].rolling(window=50).cov(df[['A','B','C']], pairwise=True)
-   covs.iloc[-50].unstack()
+   covs.unstack(-1).iloc[-50]
 
 .. ipython:: python
 
    correls = df.rolling(window=50).corr()
-   correls.iloc[-50].unstack()
+   correls.unstack(-1).iloc[-50]
 
 You can efficiently retrieve the time series of correlations between two
 columns using ``.loc`` indexing:
@@ -567,7 +567,7 @@ columns using ``.loc`` indexing:
 .. ipython:: python
 
    @savefig rolling_corr_pairwise_ex.png
-   correls[('A', 'C')].plot()
+   correls.unstack(-1).[('A', 'C')].plot()
 
 .. _stats.aggregate:
 

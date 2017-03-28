@@ -2660,11 +2660,13 @@ class TestMomentsConsistency(Base):
     def test_rolling_functions_window_non_shrinkage_binary(self):
 
         # corr/cov return a MI DataFrame
-        df = DataFrame([[1, 5], [3, 2], [3, 9], [-1, 0]], columns=['A', 'B'])
+        df = DataFrame([[1, 5], [3, 2], [3, 9], [-1, 0]],
+                       columns=Index(['A', 'B'], name='foo'),
+                       index=Index(range(4), name='bar'))
         df_expected = DataFrame(
-            columns=df.columns,
+            columns=Index(['A', 'B']),
             index=pd.MultiIndex.from_product([df.index, df.columns],
-                                             names=['major', 'minor']),
+                                             names=['bar', 'foo']),
             dtype='float64')
         functions = [lambda x: (x.rolling(window=10, min_periods=5)
                                 .cov(x, pairwise=True)),
@@ -2739,17 +2741,17 @@ class TestMomentsConsistency(Base):
 
         df1 = DataFrame()
         df1_expected = df1
-        df2 = DataFrame(columns=['a'])
+        df2 = DataFrame(columns=Index(['a'], name='foo'),
+                        index=Index([], name='bar'))
         df2['a'] = df2['a'].astype('float64')
 
         df1_expected = DataFrame(
-            index=pd.MultiIndex.from_product([df1.columns, df1.index],
-                                             names=['major', 'minor']),
-            columns=df1.columns)
+            index=pd.MultiIndex.from_product([df1.index, df1.columns]),
+            columns=Index([]))
         df2_expected = DataFrame(
-            index=pd.MultiIndex.from_product([df2.columns, df2.index],
-                                             names=['major', 'minor']),
-            columns=df2.columns,
+            index=pd.MultiIndex.from_product([df2.index, df2.columns],
+                                             names=['bar', 'foo']),
+            columns=Index(['a']),
             dtype='float64')
 
         functions = [lambda x: (x.expanding(min_periods=5)
@@ -2770,17 +2772,25 @@ class TestMomentsConsistency(Base):
 
     def test_expanding_cov_pairwise_diff_length(self):
         # GH 7512
-        df1 = DataFrame([[1, 5], [3, 2], [3, 9]], columns=['A', 'B'])
-        df1a = DataFrame([[1, 5], [3, 9]], index=[0, 2], columns=['A', 'B'])
-        df2 = DataFrame([[5, 6], [None, None], [2, 1]], columns=['X', 'Y'])
-        df2a = DataFrame([[5, 6], [2, 1]], index=[0, 2], columns=['X', 'Y'])
+        df1 = DataFrame([[1, 5], [3, 2], [3, 9]],
+                        columns=Index(['A', 'B'], name='foo'))
+        df1a = DataFrame([[1, 5], [3, 9]],
+                         index=[0, 2],
+                         columns=Index(['A', 'B'], name='foo'))
+        df2 = DataFrame([[5, 6], [None, None], [2, 1]],
+                        columns=Index(['X', 'Y'], name='foo'))
+        df2a = DataFrame([[5, 6], [2, 1]],
+                         index=[0, 2],
+                         columns=Index(['X', 'Y'], name='foo'))
+        # TODO: xref gh-15826
+        # .loc is not preserving the names
         result1 = df1.expanding().cov(df2a, pairwise=True).loc[2]
         result2 = df1.expanding().cov(df2a, pairwise=True).loc[2]
         result3 = df1a.expanding().cov(df2, pairwise=True).loc[2]
         result4 = df1a.expanding().cov(df2a, pairwise=True).loc[2]
         expected = DataFrame([[-3.0, -6.0], [-5.0, -10.0]],
                              columns=['A', 'B'],
-                             index=Index(['X', 'Y'], name='minor'))
+                             index=Index(['X', 'Y'], name='foo'))
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
         tm.assert_frame_equal(result3, expected)
@@ -2788,17 +2798,25 @@ class TestMomentsConsistency(Base):
 
     def test_expanding_corr_pairwise_diff_length(self):
         # GH 7512
-        df1 = DataFrame([[1, 2], [3, 2], [3, 4]], columns=['A', 'B'])
-        df1a = DataFrame([[1, 2], [3, 4]], index=[0, 2], columns=['A', 'B'])
-        df2 = DataFrame([[5, 6], [None, None], [2, 1]], columns=['X', 'Y'])
-        df2a = DataFrame([[5, 6], [2, 1]], index=[0, 2], columns=['X', 'Y'])
+        df1 = DataFrame([[1, 2], [3, 2], [3, 4]],
+                        columns=['A', 'B'],
+                        index=Index(range(3), name='bar'))
+        df1a = DataFrame([[1, 2], [3, 4]],
+                         index=Index([0, 2], name='bar'),
+                         columns=['A', 'B'])
+        df2 = DataFrame([[5, 6], [None, None], [2, 1]],
+                        columns=['X', 'Y'],
+                        index=Index(range(3), name='bar'))
+        df2a = DataFrame([[5, 6], [2, 1]],
+                         index=Index([0, 2], name='bar'),
+                         columns=['X', 'Y'])
         result1 = df1.expanding().corr(df2, pairwise=True).loc[2]
         result2 = df1.expanding().corr(df2a, pairwise=True).loc[2]
         result3 = df1a.expanding().corr(df2, pairwise=True).loc[2]
         result4 = df1a.expanding().corr(df2a, pairwise=True).loc[2]
         expected = DataFrame([[-1.0, -1.0], [-1.0, -1.0]],
                              columns=['A', 'B'],
-                             index=Index(['X', 'Y'], name='minor'))
+                             index=Index(['X', 'Y']))
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
         tm.assert_frame_equal(result3, expected)
