@@ -87,7 +87,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         check(df, expected)
 
         # consolidate
-        df = df.consolidate()
+        df = df._consolidate()
         expected = DataFrame([[1, 1, 'bah', 3], [1, 2, 'bah', 3],
                               [2, 3, 'bah', 3]],
                              columns=['foo', 'foo', 'string', 'foo2'])
@@ -429,7 +429,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         self.assertEqual(len(df._data._blknos), len(df.columns))
         self.assertEqual(len(df._data._blklocs), len(df.columns))
 
-        # testing iget
+        # testing iloc
         for i in range(len(df.columns)):
             df.iloc[:, i]
 

@@ -1954,7 +1954,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         for attr in ['cummin', 'cummax']:
             f = getattr(df.groupby('group'), attr)
             result = f()
-            tm.assert_index_equal(result.columns, expected_columns_numeric)
+            # GH 15561: numeric_only=False set by default like min/max
+            tm.assert_index_equal(result.columns, expected_columns)
 
             result = f(numeric_only=False)
             tm.assert_index_equal(result.columns, expected_columns)
@@ -3243,6 +3244,22 @@ class TestGroupBy(MixIn, tm.TestCase):
         _check_all(self.df.groupby('A'))
         _check_all(self.df.groupby(['A', 'B']))
 
+    def test_group_name_available_in_inference_pass(self):
+        # gh-15062
+        df = pd.DataFrame({'a': [0, 0, 1, 1, 2, 2], 'b': np.arange(6)})
+
+        names = []
+
+        def f(group):
+            names.append(group.name)
+            return group.copy()
+
+        df.groupby('a', sort=False, group_keys=False).apply(f)
+        # we expect 2 zeros because we call ``f`` once to see if a faster route
+        # can be used.
+        expected_names = [0, 0, 1, 2]
+        tm.assert_equal(names, expected_names)
+
     def test_no_dummy_key_names(self):
         # GH #1291
 
@@ -3815,7 +3832,8 @@ class TestGroupBy(MixIn, tm.TestCase):
             'cov',
             'diff',
             'unique',
-            # 'nlargest', 'nsmallest',
+            'nlargest',
+            'nsmallest',
         ])
 
         for obj, whitelist in zip((df, s), (df_whitelist, s_whitelist)):
@@ -3827,20 +3845,6 @@ class TestGroupBy(MixIn, tm.TestCase):
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var', 'sem']
     AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
-
-    def test_groupby_whitelist_deprecations(self):
-        from string import ascii_lowercase
-        letters = np.array(list(ascii_lowercase))
-        N = 10
-        random_letters = letters.take(np.random.randint(0, 26, N))
-        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
-                        'letters': Series(random_letters)})
-
-        # 10711 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            df.groupby('letters').irow(0)
-        with tm.assert_produces_warning(FutureWarning):
-            df.groupby('letters').floats.irow(0)
 
     def test_regression_whitelist_methods(self):
 
@@ -3917,7 +3921,7 @@ class TestGroupBy(MixIn, tm.TestCase):
              'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
              'mean', 'median', 'min', 'name', 'ngroups', 'nth', 'ohlc', 'plot',
              'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
-             'nunique', 'head', 'irow', 'describe', 'cummax', 'quantile',
+             'nunique', 'head', 'describe', 'cummax', 'quantile',
              'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
              'cumsum', 'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill',
              'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
@@ -4038,8 +4042,6 @@ class TestGroupBy(MixIn, tm.TestCase):
             3, 2, 1, 3, 3, 2
         ], index=MultiIndex.from_arrays([list('aaabbb'), [2, 3, 1, 6, 5, 7]]))
         assert_series_equal(gb.nlargest(3, keep='last'), e)
-        with tm.assert_produces_warning(FutureWarning):
-            assert_series_equal(gb.nlargest(3, take_last=True), e)
 
     def test_nsmallest(self):
         a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
@@ -4057,8 +4059,6 @@ class TestGroupBy(MixIn, tm.TestCase):
             0, 1, 1, 0, 1, 2
         ], index=MultiIndex.from_arrays([list('aaabbb'), [4, 1, 0, 9, 8, 7]]))
         assert_series_equal(gb.nsmallest(3, keep='last'), e)
-        with tm.assert_produces_warning(FutureWarning):
-            assert_series_equal(gb.nsmallest(3, take_last=True), e)
 
     def test_transform_doesnt_clobber_ints(self):
         # GH 7972
@@ -4308,6 +4308,72 @@ class TestGroupBy(MixIn, tm.TestCase):
         tm.assert_frame_equal(expected, result)
         result = base_df.groupby('A').B.apply(lambda x: x.cummax()).to_frame()
         tm.assert_frame_equal(expected, result)
+
+        # GH 15561
+        df = pd.DataFrame(dict(a=[1], b=pd.to_datetime(['2001'])))
+        expected = pd.Series(pd.to_datetime('2001'), index=[0], name='b')
+        for method in ['cummax', 'cummin']:
+            result = getattr(df.groupby('a')['b'], method)()
+            tm.assert_series_equal(expected, result)
+
+        # GH 15635
+        df = pd.DataFrame(dict(a=[1, 2, 1], b=[2, 1, 1]))
+        result = df.groupby('a').b.cummax()
+        expected = pd.Series([2, 1, 2], name='b')
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
+        result = df.groupby('a').b.cummin()
+        expected = pd.Series([1, 2, 1], name='b')
+        tm.assert_series_equal(result, expected)
+
+    def test_apply_numeric_coercion_when_datetime(self):
+        # In the past, group-by/apply operations have been over-eager
+        # in converting dtypes to numeric, in the presence of datetime
+        # columns.  Various GH issues were filed, the reproductions
+        # for which are here.
+
+        # GH 15670
+        df = pd.DataFrame({'Number': [1, 2],
+                           'Date': ["2017-03-02"] * 2,
+                           'Str': ["foo", "inf"]})
+        expected = df.groupby(['Number']).apply(lambda x: x.iloc[0])
+        df.Date = pd.to_datetime(df.Date)
+        result = df.groupby(['Number']).apply(lambda x: x.iloc[0])
+        tm.assert_series_equal(result['Str'], expected['Str'])
+
+        # GH 15421
+        df = pd.DataFrame({'A': [10, 20, 30],
+                           'B': ['foo', '3', '4'],
+                           'T': [pd.Timestamp("12:31:22")] * 3})
+
+        def get_B(g):
+            return g.iloc[0][['B']]
+        result = df.groupby('A').apply(get_B)['B']
+        expected = df.B
+        expected.index = df.A
+        tm.assert_series_equal(result, expected)
+
+        # GH 14423
+        def predictions(tool):
+            out = pd.Series(index=['p1', 'p2', 'useTime'], dtype=object)
+            if 'step1' in list(tool.State):
+                out['p1'] = str(tool[tool.State == 'step1'].Machine.values[0])
+            if 'step2' in list(tool.State):
+                out['p2'] = str(tool[tool.State == 'step2'].Machine.values[0])
+                out['useTime'] = str(
+                    tool[tool.State == 'step2'].oTime.values[0])
+            return out
+        df1 = pd.DataFrame({'Key': ['B', 'B', 'A', 'A'],
+                            'State': ['step1', 'step2', 'step1', 'step2'],
+                            'oTime': ['', '2016-09-19 05:24:33',
+                                      '', '2016-09-19 23:59:04'],
+                            'Machine': ['23', '36L', '36R', '36R']})
+        df2 = df1.copy()
+        df2.oTime = pd.to_datetime(df2.oTime)
+        expected = df1.groupby('Key').apply(predictions).p1
+        result = df2.groupby('Key').apply(predictions).p1
+        tm.assert_series_equal(expected, result)
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):

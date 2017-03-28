@@ -4,13 +4,12 @@ import warnings
 import operator
 import weakref
 import gc
+import json
 
 import numpy as np
-import pandas.lib as lib
-
 import pandas as pd
 
-
+from pandas._libs import tslib, lib
 from pandas.types.common import (_coerce_to_dtype,
                                  _ensure_int64,
                                  needs_i8_conversion,
@@ -24,7 +23,7 @@ from pandas.types.common import (_coerce_to_dtype,
                                  is_list_like,
                                  is_dict_like,
                                  is_re_compilable)
-from pandas.types.cast import _maybe_promote, _maybe_upcast_putmask
+from pandas.types.cast import maybe_promote, maybe_upcast_putmask
 from pandas.types.missing import isnull, notnull
 from pandas.types.generic import ABCSeries, ABCPanel
 
@@ -128,6 +127,37 @@ class NDFrame(PandasObject):
         object.__setattr__(self, 'is_copy', None)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
+
+    def _ipython_display_(self):
+        try:
+            from IPython.display import display
+        except ImportError:
+            return None
+
+        # Series doesn't define _repr_html_ or _repr_latex_
+        latex = self._repr_latex_() if hasattr(self, '_repr_latex_') else None
+        html = self._repr_html_() if hasattr(self, '_repr_html_') else None
+        table_schema = self._repr_table_schema_()
+        # We need the inital newline since we aren't going through the
+        # usual __repr__. See
+        # https://github.com/pandas-dev/pandas/pull/14904#issuecomment-277829277
+        text = "\n" + repr(self)
+
+        reprs = {"text/plain": text, "text/html": html, "text/latex": latex,
+                 "application/vnd.dataresource+json": table_schema}
+        reprs = {k: v for k, v in reprs.items() if v}
+        display(reprs, raw=True)
+
+    def _repr_table_schema_(self):
+        """
+        Not a real Jupyter special repr method, but we use the same
+        naming convention.
+        """
+        if config.get_option("display.html.table_schema"):
+            data = self.head(config.get_option('display.max_rows'))
+            payload = json.loads(data.to_json(orient='table'),
+                                 object_pairs_hook=collections.OrderedDict)
+            return payload
 
     def _validate_dtype(self, dtype):
         """ validate the passed dtype """
@@ -638,6 +668,7 @@ class NDFrame(PandasObject):
         dtype: int64
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename(2)
+        Traceback (most recent call last):
         ...
         TypeError: 'int' object is not callable
         >>> df.rename(index=str, columns={"A": "a", "B": "c"})
@@ -868,16 +899,6 @@ class NDFrame(PandasObject):
         for h in self._info_axis:
             yield h, self[h]
 
-    # originally used to get around 2to3's changes to iteritems.
-    # Now unnecessary. Sidenote: don't want to deprecate this for a while,
-    # otherwise libraries that use 2to3 will have issues.
-    def iterkv(self, *args, **kwargs):
-        "iteritems alias used to get around 2to3. Deprecated"
-        warnings.warn("iterkv is deprecated and will be removed in a future "
-                      "release, use ``iteritems`` instead.", FutureWarning,
-                      stacklevel=2)
-        return self.iteritems(*args, **kwargs)
-
     def __len__(self):
         """Returns length of info axis"""
         return len(self._info_axis)
@@ -1035,6 +1056,7 @@ class NDFrame(PandasObject):
     _shared_docs['to_excel'] = """
     Write %(klass)s to an excel sheet
     %(versionadded_to_excel)s
+
     Parameters
     ----------
     excel_writer : string or ExcelWriter object
@@ -1084,7 +1106,7 @@ class NDFrame(PandasObject):
     to the existing workbook.  This can be used to save different
     DataFrames to one workbook:
 
-    >>> writer = ExcelWriter('output.xlsx')
+    >>> writer = pd.ExcelWriter('output.xlsx')
     >>> df1.to_excel(writer,'Sheet1')
     >>> df2.to_excel(writer,'Sheet2')
     >>> writer.save()
@@ -1093,7 +1115,7 @@ class NDFrame(PandasObject):
     strings before writing.
     """
 
-    def to_json(self, path_or_buf=None, orient=None, date_format='epoch',
+    def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
                 default_handler=None, lines=False):
         """
@@ -1128,10 +1150,17 @@ class NDFrame(PandasObject):
               - index : dict like {index -> {column -> value}}
               - columns : dict like {column -> {index -> value}}
               - values : just the values array
+              - table : dict like {'schema': {schema}, 'data': {data}}
+                describing the data, and the data component is
+                like ``orient='records'``.
 
-        date_format : {'epoch', 'iso'}
+                .. versionchanged:: 0.20.0
+
+        date_format : {None, 'epoch', 'iso'}
             Type of date conversion. `epoch` = epoch milliseconds,
-            `iso`` = ISO8601, default is epoch.
+            `iso` = ISO8601. The default depends on the `orient`. For
+            `orient='table'`, the default is `'iso'`. For all other orients,
+            the default is `'epoch'`.
         double_precision : The number of decimal places to use when encoding
             floating point values, default 10.
         force_ascii : force encoded string to be ASCII, default True.
@@ -1150,14 +1179,53 @@ class NDFrame(PandasObject):
 
             .. versionadded:: 0.19.0
 
-
         Returns
         -------
         same type as input object with filtered info axis
 
+        See Also
+        --------
+        pd.read_json
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
+        ...                   index=['row 1', 'row 2'],
+        ...                   columns=['col 1', 'col 2'])
+        >>> df.to_json(orient='split')
+        '{"columns":["col 1","col 2"],
+          "index":["row 1","row 2"],
+          "data":[["a","b"],["c","d"]]}'
+
+        Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
+
+        >>> df.to_json(orient='index')
+        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
+
+        Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
+        Note that index labels are not preserved with this encoding.
+
+        >>> df.to_json(orient='records')
+        '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+
+        Encoding with Table Schema
+
+        >>> df.to_json(orient='table')
+        '{"schema": {"fields": [{"name": "index", "type": "string"},
+                                {"name": "col 1", "type": "string"},
+                                {"name": "col 2", "type": "string"}],
+                     "primaryKey": "index",
+                     "pandas_version": "0.20.0"},
+          "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
+                   {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
         """
 
         from pandas.io import json
+        if date_format is None and orient == 'table':
+            date_format = 'iso'
+        elif date_format is None:
+            date_format = 'epoch'
         return json.to_json(path_or_buf=path_or_buf, obj=self, orient=orient,
                             date_format=date_format,
                             double_precision=double_precision,
@@ -1277,7 +1345,7 @@ class NDFrame(PandasObject):
                    if_exists=if_exists, index=index, index_label=index_label,
                    chunksize=chunksize, dtype=dtype)
 
-    def to_pickle(self, path):
+    def to_pickle(self, path, compression='infer'):
         """
         Pickle (serialize) object to input file path.
 
@@ -1285,9 +1353,13 @@ class NDFrame(PandasObject):
         ----------
         path : string
             File path
+        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+            a string representing the compression to use in the output file
+
+            .. versionadded:: 0.20.0
         """
         from pandas.io.pickle import to_pickle
-        return to_pickle(self, path)
+        return to_pickle(self, path, compression=compression)
 
     def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
@@ -2183,7 +2255,7 @@ class NDFrame(PandasObject):
         ...      'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]},
         ...       index=index)
         >>> df
-                    http_status  response_time
+                   http_status  response_time
         Firefox            200           0.04
         Chrome             200           0.02
         Safari             404           0.07
@@ -2198,11 +2270,11 @@ class NDFrame(PandasObject):
         ...             'Chrome']
         >>> df.reindex(new_index)
                        http_status  response_time
-        Safari                 404           0.07
+        Safari               404.0           0.07
         Iceweasel              NaN            NaN
         Comodo Dragon          NaN            NaN
-        IE10                   404           0.08
-        Chrome                 200           0.02
+        IE10                 404.0           0.08
+        Chrome               200.0           0.02
 
         We can fill in the missing values by passing a value to
         the keyword ``fill_value``. Because the index is not monotonically
@@ -2874,11 +2946,10 @@ class NDFrame(PandasObject):
 
         self._protect_consolidate(f)
 
-    def consolidate(self, inplace=False):
+    def _consolidate(self, inplace=False):
         """
         Compute NDFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray). Mainly an internal API function,
-        but available here to the savvy user
+        grouped together in a single ndarray).
 
         Parameters
         ----------
@@ -2896,6 +2967,15 @@ class NDFrame(PandasObject):
             f = lambda: self._data.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
+
+    def consolidate(self, inplace=False):
+        """
+        DEPRECATED: consolidate will be an internal implementation only.
+        """
+        # 15483
+        warnings.warn("consolidate is deprecated and will be removed in a "
+                      "future release.", FutureWarning, stacklevel=2)
+        return self._consolidate(inplace)
 
     @property
     def _is_mixed_type(self):
@@ -3892,6 +3972,16 @@ class NDFrame(PandasObject):
             where = Index(where) if is_list else Index([where])
 
         nulls = self.isnull() if is_series else self[subset].isnull().any(1)
+        if nulls.all():
+            if is_series:
+                return self._constructor(np.nan, index=where, name=self.name)
+            elif is_list:
+                from pandas import DataFrame
+                return DataFrame(np.nan, index=where, columns=self.columns)
+            else:
+                from pandas import Series
+                return Series(np.nan, index=self.columns, name=where[0])
+
         locs = self.index.asof_locs(where, ~(nulls.values))
 
         # mask the missing
@@ -4049,11 +4139,14 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        by : mapping function / list of functions, dict, Series, or tuple /
-            list of column names or index level names.
+        by : mapping function / list of functions, dict, Series, ndarray,
+                or tuple / list of column names or index level names or
+                Series or ndarrays
             Called on each element of the object index to determine the groups.
             If a dict or Series is passed, the Series or dict VALUES will be
-            used to determine the groups
+            used to determine the groups (the Series' values are first
+            aligned; see ``.align()`` method). If ndarray is passed, the
+            values as-is determine the groups.
         axis : int, default 0
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
@@ -4275,6 +4368,8 @@ class NDFrame(PandasObject):
 
             .. versionadded:: 0.19.0
 
+        Notes
+        -----
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
@@ -4375,6 +4470,30 @@ class NDFrame(PandasObject):
         2000-01-01 00:06:00    26
         Freq: 3T, dtype: int64
 
+        For DataFrame objects, the keyword ``on`` can be used to specify the
+        column instead of the index for resampling.
+
+        >>> df = pd.DataFrame(data=9*[range(4)], columns=['a', 'b', 'c', 'd'])
+        >>> df['time'] = pd.date_range('1/1/2000', periods=9, freq='T')
+        >>> df.resample('3T', on='time').sum()
+                             a  b  c  d
+        time
+        2000-01-01 00:00:00  0  3  6  9
+        2000-01-01 00:03:00  0  3  6  9
+        2000-01-01 00:06:00  0  3  6  9
+
+        For a DataFrame with MultiIndex, the keyword ``level`` can be used to
+        specify on level the resampling needs to take place.
+
+        >>> time = pd.date_range('1/1/2000', periods=5, freq='T')
+        >>> df2 = pd.DataFrame(data=10*[range(4)],
+                               columns=['a', 'b', 'c', 'd'],
+                               index=pd.MultiIndex.from_product([time, [1, 2]])
+                               )
+        >>> df2.resample('3T', level=0).sum()
+                             a  b   c   d
+        2000-01-01 00:00:00  0  6  12  18
+        2000-01-01 00:03:00  0  4   8  12
         """
         from pandas.tseries.resample import (resample,
                                              _maybe_process_deprecations)
@@ -4726,25 +4845,37 @@ class NDFrame(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
+        # align the cond to same shape as myself
         cond = com._apply_if_callable(cond, self)
-
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join='right', broadcast_axis=1)
         else:
             if not hasattr(cond, 'shape'):
-                raise ValueError('where requires an ndarray like object for '
-                                 'its condition')
+                cond = np.asanyarray(cond)
             if cond.shape != self.shape:
                 raise ValueError('Array conditional must be same shape as '
                                  'self')
             cond = self._constructor(cond, **self._construct_axes_dict())
 
-        if inplace:
-            cond = -(cond.fillna(True).astype(bool))
-        else:
-            cond = cond.fillna(False).astype(bool)
+        # make sure we are boolean
+        fill_value = True if inplace else False
+        cond = cond.fillna(fill_value)
 
-        # try to align
+        msg = "Boolean array expected for the condition, not {dtype}"
+
+        if not isinstance(cond, pd.DataFrame):
+            # This is a single-dimensional object.
+            if not is_bool_dtype(cond):
+                raise ValueError(msg.format(dtype=cond.dtype))
+        else:
+            for dt in cond.dtypes:
+                if not is_bool_dtype(dt):
+                    raise ValueError(msg.format(dtype=dt))
+
+        cond = cond.astype(bool, copy=False)
+        cond = -cond if inplace else cond
+
+        # try to align with other
         try_quick = True
         if hasattr(other, 'align'):
 
@@ -4838,10 +4969,10 @@ class NDFrame(PandasObject):
                         # or not try_quick
                         if not try_quick:
 
-                            dtype, fill_value = _maybe_promote(other.dtype)
+                            dtype, fill_value = maybe_promote(other.dtype)
                             new_other = np.empty(len(icond), dtype=dtype)
                             new_other.fill(fill_value)
-                            _maybe_upcast_putmask(new_other, icond, other)
+                            maybe_upcast_putmask(new_other, icond, other)
                             other = new_other
 
                     else:
@@ -4891,25 +5022,21 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        cond : boolean %(klass)s, array or callable
+        cond : boolean %(klass)s, array-like, or callable
             If cond is callable, it is computed on the %(klass)s and
-            should return boolean %(klass)s or array.
-            The callable must not change input %(klass)s
-            (though pandas doesn't check it).
+            should return boolean %(klass)s or array. The callable must
+            not change input %(klass)s (though pandas doesn't check it).
 
             .. versionadded:: 0.18.1
-
-            A callable can be used as cond.
+                A callable can be used as cond.
 
         other : scalar, %(klass)s, or callable
             If other is callable, it is computed on the %(klass)s and
-            should return scalar or %(klass)s.
-            The callable must not change input %(klass)s
-            (though pandas doesn't check it).
+            should return scalar or %(klass)s. The callable must not
+            change input %(klass)s (though pandas doesn't check it).
 
             .. versionadded:: 0.18.1
-
-            A callable can be used as other.
+                A callable can be used as other.
 
         inplace : boolean, default False
             Whether to perform the operation in place on the data
@@ -6020,7 +6147,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):
             result = accum_func(y, axis)
             mask = isnull(self)
-            np.putmask(result, mask, pd.tslib.iNaT)
+            np.putmask(result, mask, tslib.iNaT)
         elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
             mask = isnull(self)
             np.putmask(y, mask, mask_a)

@@ -172,82 +172,112 @@ class TestTimeSeries(tm.TestCase):
 class TestDatetime64(tm.TestCase):
 
     def test_datetimeindex_accessors(self):
-        dti = DatetimeIndex(freq='D', start=datetime(1998, 1, 1), periods=365)
 
-        self.assertEqual(dti.year[0], 1998)
-        self.assertEqual(dti.month[0], 1)
-        self.assertEqual(dti.day[0], 1)
-        self.assertEqual(dti.hour[0], 0)
-        self.assertEqual(dti.minute[0], 0)
-        self.assertEqual(dti.second[0], 0)
-        self.assertEqual(dti.microsecond[0], 0)
-        self.assertEqual(dti.dayofweek[0], 3)
+        dti_naive = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
+                                  periods=365)
+        # GH 13303
+        dti_tz = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
+                               periods=365, tz='US/Eastern')
+        for dti in [dti_naive, dti_tz]:
 
-        self.assertEqual(dti.dayofyear[0], 1)
-        self.assertEqual(dti.dayofyear[120], 121)
+            self.assertEqual(dti.year[0], 1998)
+            self.assertEqual(dti.month[0], 1)
+            self.assertEqual(dti.day[0], 1)
+            self.assertEqual(dti.hour[0], 0)
+            self.assertEqual(dti.minute[0], 0)
+            self.assertEqual(dti.second[0], 0)
+            self.assertEqual(dti.microsecond[0], 0)
+            self.assertEqual(dti.dayofweek[0], 3)
 
-        self.assertEqual(dti.weekofyear[0], 1)
-        self.assertEqual(dti.weekofyear[120], 18)
+            self.assertEqual(dti.dayofyear[0], 1)
+            self.assertEqual(dti.dayofyear[120], 121)
 
-        self.assertEqual(dti.quarter[0], 1)
-        self.assertEqual(dti.quarter[120], 2)
+            self.assertEqual(dti.weekofyear[0], 1)
+            self.assertEqual(dti.weekofyear[120], 18)
 
-        self.assertEqual(dti.days_in_month[0], 31)
-        self.assertEqual(dti.days_in_month[90], 30)
+            self.assertEqual(dti.quarter[0], 1)
+            self.assertEqual(dti.quarter[120], 2)
 
-        self.assertEqual(dti.is_month_start[0], True)
-        self.assertEqual(dti.is_month_start[1], False)
-        self.assertEqual(dti.is_month_start[31], True)
-        self.assertEqual(dti.is_quarter_start[0], True)
-        self.assertEqual(dti.is_quarter_start[90], True)
-        self.assertEqual(dti.is_year_start[0], True)
-        self.assertEqual(dti.is_year_start[364], False)
-        self.assertEqual(dti.is_month_end[0], False)
-        self.assertEqual(dti.is_month_end[30], True)
-        self.assertEqual(dti.is_month_end[31], False)
-        self.assertEqual(dti.is_month_end[364], True)
-        self.assertEqual(dti.is_quarter_end[0], False)
-        self.assertEqual(dti.is_quarter_end[30], False)
-        self.assertEqual(dti.is_quarter_end[89], True)
-        self.assertEqual(dti.is_quarter_end[364], True)
-        self.assertEqual(dti.is_year_end[0], False)
-        self.assertEqual(dti.is_year_end[364], True)
+            self.assertEqual(dti.days_in_month[0], 31)
+            self.assertEqual(dti.days_in_month[90], 30)
 
-        # GH 11128
-        self.assertEqual(dti.weekday_name[4], u'Monday')
-        self.assertEqual(dti.weekday_name[5], u'Tuesday')
-        self.assertEqual(dti.weekday_name[6], u'Wednesday')
-        self.assertEqual(dti.weekday_name[7], u'Thursday')
-        self.assertEqual(dti.weekday_name[8], u'Friday')
-        self.assertEqual(dti.weekday_name[9], u'Saturday')
-        self.assertEqual(dti.weekday_name[10], u'Sunday')
+            self.assertEqual(dti.is_month_start[0], True)
+            self.assertEqual(dti.is_month_start[1], False)
+            self.assertEqual(dti.is_month_start[31], True)
+            self.assertEqual(dti.is_quarter_start[0], True)
+            self.assertEqual(dti.is_quarter_start[90], True)
+            self.assertEqual(dti.is_year_start[0], True)
+            self.assertEqual(dti.is_year_start[364], False)
+            self.assertEqual(dti.is_month_end[0], False)
+            self.assertEqual(dti.is_month_end[30], True)
+            self.assertEqual(dti.is_month_end[31], False)
+            self.assertEqual(dti.is_month_end[364], True)
+            self.assertEqual(dti.is_quarter_end[0], False)
+            self.assertEqual(dti.is_quarter_end[30], False)
+            self.assertEqual(dti.is_quarter_end[89], True)
+            self.assertEqual(dti.is_quarter_end[364], True)
+            self.assertEqual(dti.is_year_end[0], False)
+            self.assertEqual(dti.is_year_end[364], True)
 
-        self.assertEqual(Timestamp('2016-04-04').weekday_name, u'Monday')
-        self.assertEqual(Timestamp('2016-04-05').weekday_name, u'Tuesday')
-        self.assertEqual(Timestamp('2016-04-06').weekday_name, u'Wednesday')
-        self.assertEqual(Timestamp('2016-04-07').weekday_name, u'Thursday')
-        self.assertEqual(Timestamp('2016-04-08').weekday_name, u'Friday')
-        self.assertEqual(Timestamp('2016-04-09').weekday_name, u'Saturday')
-        self.assertEqual(Timestamp('2016-04-10').weekday_name, u'Sunday')
+            # GH 11128
+            self.assertEqual(dti.weekday_name[4], u'Monday')
+            self.assertEqual(dti.weekday_name[5], u'Tuesday')
+            self.assertEqual(dti.weekday_name[6], u'Wednesday')
+            self.assertEqual(dti.weekday_name[7], u'Thursday')
+            self.assertEqual(dti.weekday_name[8], u'Friday')
+            self.assertEqual(dti.weekday_name[9], u'Saturday')
+            self.assertEqual(dti.weekday_name[10], u'Sunday')
 
-        self.assertEqual(len(dti.year), 365)
-        self.assertEqual(len(dti.month), 365)
-        self.assertEqual(len(dti.day), 365)
-        self.assertEqual(len(dti.hour), 365)
-        self.assertEqual(len(dti.minute), 365)
-        self.assertEqual(len(dti.second), 365)
-        self.assertEqual(len(dti.microsecond), 365)
-        self.assertEqual(len(dti.dayofweek), 365)
-        self.assertEqual(len(dti.dayofyear), 365)
-        self.assertEqual(len(dti.weekofyear), 365)
-        self.assertEqual(len(dti.quarter), 365)
-        self.assertEqual(len(dti.is_month_start), 365)
-        self.assertEqual(len(dti.is_month_end), 365)
-        self.assertEqual(len(dti.is_quarter_start), 365)
-        self.assertEqual(len(dti.is_quarter_end), 365)
-        self.assertEqual(len(dti.is_year_start), 365)
-        self.assertEqual(len(dti.is_year_end), 365)
-        self.assertEqual(len(dti.weekday_name), 365)
+            self.assertEqual(Timestamp('2016-04-04').weekday_name, u'Monday')
+            self.assertEqual(Timestamp('2016-04-05').weekday_name, u'Tuesday')
+            self.assertEqual(Timestamp('2016-04-06').weekday_name,
+                             u'Wednesday')
+            self.assertEqual(Timestamp('2016-04-07').weekday_name, u'Thursday')
+            self.assertEqual(Timestamp('2016-04-08').weekday_name, u'Friday')
+            self.assertEqual(Timestamp('2016-04-09').weekday_name, u'Saturday')
+            self.assertEqual(Timestamp('2016-04-10').weekday_name, u'Sunday')
+
+            self.assertEqual(len(dti.year), 365)
+            self.assertEqual(len(dti.month), 365)
+            self.assertEqual(len(dti.day), 365)
+            self.assertEqual(len(dti.hour), 365)
+            self.assertEqual(len(dti.minute), 365)
+            self.assertEqual(len(dti.second), 365)
+            self.assertEqual(len(dti.microsecond), 365)
+            self.assertEqual(len(dti.dayofweek), 365)
+            self.assertEqual(len(dti.dayofyear), 365)
+            self.assertEqual(len(dti.weekofyear), 365)
+            self.assertEqual(len(dti.quarter), 365)
+            self.assertEqual(len(dti.is_month_start), 365)
+            self.assertEqual(len(dti.is_month_end), 365)
+            self.assertEqual(len(dti.is_quarter_start), 365)
+            self.assertEqual(len(dti.is_quarter_end), 365)
+            self.assertEqual(len(dti.is_year_start), 365)
+            self.assertEqual(len(dti.is_year_end), 365)
+            self.assertEqual(len(dti.weekday_name), 365)
+
+            dti.name = 'name'
+
+            # non boolean accessors -> return Index
+            for accessor in DatetimeIndex._field_ops:
+                res = getattr(dti, accessor)
+                assert len(res) == 365
+                assert isinstance(res, Index)
+                assert res.name == 'name'
+
+            # boolean accessors -> return array
+            for accessor in DatetimeIndex._bool_ops:
+                res = getattr(dti, accessor)
+                assert len(res) == 365
+                assert isinstance(res, np.ndarray)
+
+            # test boolean indexing
+            res = dti[dti.is_quarter_start]
+            exp = dti[[0, 90, 181, 273]]
+            tm.assert_index_equal(res, exp)
+            res = dti[dti.is_leap_year]
+            exp = DatetimeIndex([], freq='D', tz=dti.tz, name='name')
+            tm.assert_index_equal(res, exp)
 
         dti = DatetimeIndex(freq='BQ-FEB', start=datetime(1998, 1, 1),
                             periods=4)
@@ -307,5 +337,5 @@ class TestDatetime64(tm.TestCase):
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
 
-        self.assert_numpy_array_equal(dti.nanosecond,
-                                      np.arange(10, dtype=np.int32))
+        self.assert_index_equal(dti.nanosecond,
+                                pd.Index(np.arange(10, dtype=np.int64)))

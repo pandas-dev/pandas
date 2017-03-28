@@ -3,8 +3,10 @@
 import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
-from pandas import Series, DataFrame, Timestamp, MultiIndex, concat
-from pandas.types.common import _ensure_platform_int
+from pandas import Series, DataFrame, Timestamp, MultiIndex, concat, date_range
+from pandas.types.common import _ensure_platform_int, is_timedelta64_dtype
+from pandas.compat import StringIO
+from pandas._libs import groupby
 from .common import MixIn, assert_fp_equal
 
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -190,6 +192,69 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = Series(np.arange(5, 0, step=-1), name='B')
         assert_series_equal(result, expected)
 
+    def test_transform_datetime_to_timedelta(self):
+        # GH 15429
+        # transforming a datetime to timedelta
+        df = DataFrame(dict(A=Timestamp('20130101'), B=np.arange(5)))
+        expected = pd.Series([
+            Timestamp('20130101') - Timestamp('20130101')] * 5, name='A')
+
+        # this does date math without changing result type in transform
+        base_time = df['A'][0]
+        result = df.groupby('A')['A'].transform(
+            lambda x: x.max() - x.min() + base_time) - base_time
+        assert_series_equal(result, expected)
+
+        # this does date math and causes the transform to return timedelta
+        result = df.groupby('A')['A'].transform(lambda x: x.max() - x.min())
+        assert_series_equal(result, expected)
+
+    def test_transform_datetime_to_numeric(self):
+        # GH 10972
+        # convert dt to float
+        df = DataFrame({
+            'a': 1, 'b': date_range('2015-01-01', periods=2, freq='D')})
+        result = df.groupby('a').b.transform(
+            lambda x: x.dt.dayofweek - x.dt.dayofweek.mean())
+
+        expected = Series([-0.5, 0.5], name='b')
+        assert_series_equal(result, expected)
+
+        # convert dt to int
+        df = DataFrame({
+            'a': 1, 'b': date_range('2015-01-01', periods=2, freq='D')})
+        result = df.groupby('a').b.transform(
+            lambda x: x.dt.dayofweek - x.dt.dayofweek.min())
+
+        expected = Series([0, 1], name='b')
+        assert_series_equal(result, expected)
+
+    def test_transform_casting(self):
+        # 13046
+        data = """
+        idx     A         ID3              DATETIME
+        0   B-028  b76cd912ff "2014-10-08 13:43:27"
+        1   B-054  4a57ed0b02 "2014-10-08 14:26:19"
+        2   B-076  1a682034f8 "2014-10-08 14:29:01"
+        3   B-023  b76cd912ff "2014-10-08 18:39:34"
+        4   B-023  f88g8d7sds "2014-10-08 18:40:18"
+        5   B-033  b76cd912ff "2014-10-08 18:44:30"
+        6   B-032  b76cd912ff "2014-10-08 18:46:00"
+        7   B-037  b76cd912ff "2014-10-08 18:52:15"
+        8   B-046  db959faf02 "2014-10-08 18:59:59"
+        9   B-053  b76cd912ff "2014-10-08 19:17:48"
+        10  B-065  b76cd912ff "2014-10-08 19:21:38"
+        """
+        df = pd.read_csv(StringIO(data), sep='\s+',
+                         index_col=[0], parse_dates=['DATETIME'])
+
+        result = df.groupby('ID3')['DATETIME'].transform(lambda x: x.diff())
+        assert is_timedelta64_dtype(result.dtype)
+
+        result = df[['ID3', 'DATETIME']].groupby('ID3').transform(
+            lambda x: x.diff())
+        assert is_timedelta64_dtype(result.DATETIME.dtype)
+
     def test_transform_multiple(self):
         grouped = self.ts.groupby([lambda x: x.year, lambda x: x.month])
 
@@ -353,8 +418,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         dtypes = [np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint32,
                   np.uint64, np.float32, np.float64]
 
-        ops = [(pd.algos.group_cumprod_float64, np.cumproduct, [np.float64]),
-               (pd.algos.group_cumsum, np.cumsum, dtypes)]
+        ops = [(groupby.group_cumprod_float64, np.cumproduct, [np.float64]),
+               (groupby.group_cumsum, np.cumsum, dtypes)]
 
         is_datetimelike = False
         for pd_op, np_op, dtypes in ops:
@@ -372,13 +437,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         data = np.array([[1], [2], [3], [np.nan], [4]], dtype='float64')
         actual = np.zeros_like(data)
         actual.fill(np.nan)
-        pd.algos.group_cumprod_float64(actual, data, labels, is_datetimelike)
+        groupby.group_cumprod_float64(actual, data, labels, is_datetimelike)
         expected = np.array([1, 2, 6, np.nan, 24], dtype='float64')
         self.assert_numpy_array_equal(actual[:, 0], expected)
 
         actual = np.zeros_like(data)
         actual.fill(np.nan)
-        pd.algos.group_cumsum(actual, data, labels, is_datetimelike)
+        groupby.group_cumsum(actual, data, labels, is_datetimelike)
         expected = np.array([1, 3, 6, np.nan, 10], dtype='float64')
         self.assert_numpy_array_equal(actual[:, 0], expected)
 
@@ -386,8 +451,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         is_datetimelike = True
         data = np.array([np.timedelta64(1, 'ns')] * 5, dtype='m8[ns]')[:, None]
         actual = np.zeros_like(data, dtype='int64')
-        pd.algos.group_cumsum(actual, data.view('int64'), labels,
-                              is_datetimelike)
+        groupby.group_cumsum(actual, data.view('int64'), labels,
+                             is_datetimelike)
         expected = np.array([np.timedelta64(1, 'ns'), np.timedelta64(
             2, 'ns'), np.timedelta64(3, 'ns'), np.timedelta64(4, 'ns'),
             np.timedelta64(5, 'ns')])

@@ -965,6 +965,7 @@ The different indexing operation can potentially change the dtype of a ``Series`
    res
 
 .. ipython:: python
+
    series2 = pd.Series([True])
    series2.dtype
    res = series2.reindex_like(series1)

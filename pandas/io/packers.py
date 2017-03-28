@@ -54,8 +54,8 @@ from pandas.types.common import (is_categorical_dtype, is_object_dtype,
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
                     Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
-                    Categorical)
-from pandas.tslib import NaTType
+                    Categorical, CategoricalIndex)
+from pandas._libs.tslib import NaTType
 from pandas.sparse.api import SparseSeries, SparseDataFrame
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
@@ -64,7 +64,7 @@ from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block, _safe_reshape
 import pandas.core.internals as internals
 
-from pandas.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
+from pandas.io.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
 from pandas.util._move import (
     BadMove as _BadMove,
     move_into_mutable_buffer as _move_into_mutable_buffer,
@@ -573,7 +573,7 @@ def decode(obj):
     elif typ == u'period_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'])
-        return globals()[obj[u'klass']](data, **d)
+        return globals()[obj[u'klass']]._from_ordinals(data, **d)
     elif typ == u'datetime_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'], verify_integrity=False)
@@ -589,8 +589,7 @@ def decode(obj):
         from_codes = globals()[obj[u'klass']].from_codes
         return from_codes(codes=obj[u'codes'],
                           categories=obj[u'categories'],
-                          ordered=obj[u'ordered'],
-                          name=obj[u'name'])
+                          ordered=obj[u'ordered'])
 
     elif typ == u'series':
         dtype = dtype_for(obj[u'dtype'])

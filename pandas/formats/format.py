@@ -20,9 +20,9 @@ from pandas.types.common import (is_categorical_dtype,
                                  is_float,
                                  is_numeric_dtype,
                                  is_datetime64_dtype,
-                                 is_timedelta64_dtype)
+                                 is_timedelta64_dtype,
+                                 is_list_like)
 from pandas.types.generic import ABCSparseArray
-
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
@@ -33,8 +33,9 @@ from pandas.core.config import get_option, set_option
 from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
 from pandas.formats.printing import adjoin, justify, pprint_thing
 import pandas.core.common as com
-import pandas.lib as lib
-from pandas.tslib import iNaT, Timestamp, Timedelta, format_array_from_datetime
+import pandas._libs.lib as lib
+from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
+                                format_array_from_datetime)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 import pandas as pd
@@ -53,7 +54,7 @@ common_docstring = """
     col_space : int, optional
         the minimum width of each column
     header : bool, optional
-        whether to print column labels, default True
+        %(header)s
     index : bool, optional
         whether to print index (row) labels, default True
     na_rep : string, optional
@@ -487,32 +488,38 @@ class DataFrameFormatter(TableFormatter):
         # may include levels names also
 
         str_index = self._get_formatted_index(frame)
-        str_columns = self._get_formatted_column_labels(frame)
 
-        if self.header:
-            stringified = []
-            for i, c in enumerate(frame):
-                cheader = str_columns[i]
-                max_colwidth = max(self.col_space or 0, *(self.adj.len(x)
-                                                          for x in cheader))
-                fmt_values = self._format_col(i)
-                fmt_values = _make_fixed_width(fmt_values, self.justify,
-                                               minimum=max_colwidth,
-                                               adj=self.adj)
-
-                max_len = max(np.max([self.adj.len(x) for x in fmt_values]),
-                              max_colwidth)
-                cheader = self.adj.justify(cheader, max_len, mode=self.justify)
-                stringified.append(cheader + fmt_values)
-        else:
+        if not is_list_like(self.header) and not self.header:
             stringified = []
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(fmt_values, self.justify,
                                                minimum=(self.col_space or 0),
                                                adj=self.adj)
-
                 stringified.append(fmt_values)
+        else:
+            if is_list_like(self.header):
+                if len(self.header) != len(self.columns):
+                    raise ValueError(('Writing %d cols but got %d aliases'
+                                      % (len(self.columns), len(self.header))))
+                str_columns = [[label] for label in self.header]
+            else:
+                str_columns = self._get_formatted_column_labels(frame)
+
+            stringified = []
+            for i, c in enumerate(frame):
+                cheader = str_columns[i]
+                header_colwidth = max(self.col_space or 0,
+                                      *(self.adj.len(x) for x in cheader))
+                fmt_values = self._format_col(i)
+                fmt_values = _make_fixed_width(fmt_values, self.justify,
+                                               minimum=header_colwidth,
+                                               adj=self.adj)
+
+                max_len = max(np.max([self.adj.len(x) for x in fmt_values]),
+                              header_colwidth)
+                cheader = self.adj.justify(cheader, max_len, mode=self.justify)
+                stringified.append(cheader + fmt_values)
 
         strcols = stringified
         if self.index:
@@ -650,13 +657,18 @@ class DataFrameFormatter(TableFormatter):
             st = ed
         return '\n\n'.join(str_lst)
 
-    def to_latex(self, column_format=None, longtable=False, encoding=None):
+    def to_latex(self, column_format=None, longtable=False, encoding=None,
+                 multicolumn=False, multicolumn_format=None, multirow=False):
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
 
         latex_renderer = LatexFormatter(self, column_format=column_format,
-                                        longtable=longtable, sparsify=self.sparsify)
+                                        longtable=longtable,
+                                        multicolumn=multicolumn,
+                                        multicolumn_format=multicolumn_format,
+                                        multirow=multirow,
+                                        sparsify=self.sparsify)
 
         if encoding is None:
             encoding = 'ascii' if compat.PY2 else 'utf-8'
@@ -711,9 +723,6 @@ class DataFrameFormatter(TableFormatter):
 
     def _get_formatted_column_labels(self, frame):
         from pandas.core.index import _sparsify
-
-        def is_numeric_dtype(dtype):
-            return issubclass(dtype.type, np.number)
 
         columns = frame.columns
 
@@ -824,12 +833,16 @@ class LatexFormatter(TableFormatter):
     HTMLFormatter
     """
 
-    def __init__(self, formatter, column_format=None, longtable=False, sparsify=True):
+    def __init__(self, formatter, column_format=None, longtable=False,
+                 multicolumn=False, multicolumn_format=None, multirow=False, sparsify=True):
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.column_format = column_format
         self.longtable = longtable
         self.sparsify = sparsify
+        self.multicolumn = multicolumn
+        self.multicolumn_format = multicolumn_format
+        self.multirow = multirow
 
     def write_result(self, buf):
         """
@@ -851,15 +864,22 @@ class LatexFormatter(TableFormatter):
             else:
                 return 'l'
 
+        # reestablish the MultiIndex that has been joined by _to_str_column
         if self.fmt.index and isinstance(self.frame.index, MultiIndex):
             fmt_lev3 = self.frame.index.format(sparsify=self.sparsify, adjoin=False)
             clevels = self.frame.columns.nlevels
             strcols.pop(0)
             name = any(self.frame.index.names)
+            cname = any(self.frame.columns.names)
+            lastcol = self.frame.index.nlevels - 1
             for i, lev in enumerate(self.frame.index.levels):
                 lev2 = lev.format()
                 blank = ' ' * len(lev2[0])
-                lev3 = [blank] * clevels
+                # display column names in last index-column
+                if cname and i == lastcol:
+                    lev3 = [x if x else '{}' for x in self.frame.columns.names]
+                else:
+                    lev3 = [blank] * clevels
                 if name:
                     lev3.append(lev.name)
                 lev3.append(fmt_lev3[i])
@@ -884,10 +904,15 @@ class LatexFormatter(TableFormatter):
             buf.write('\\begin{longtable}{%s}\n' % column_format)
             buf.write('\\toprule\n')
 
-        nlevels = self.frame.columns.nlevels
+        ilevels = self.frame.index.nlevels
+        clevels = self.frame.columns.nlevels
+        nlevels = clevels
         if any(self.frame.index.names):
             nlevels += 1
-        for i, row in enumerate(zip(*strcols)):
+        strrows = list(zip(*strcols))
+        self.clinebuf = []
+
+        for i, row in enumerate(strrows):
             if i == nlevels and self.fmt.header:
                 buf.write('\\midrule\n')  # End of header
                 if self.longtable:
@@ -909,14 +934,97 @@ class LatexFormatter(TableFormatter):
                          if x else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
+            if i < clevels and self.fmt.header and self.multicolumn:
+                # sum up columns to multicolumns
+                crow = self._format_multicolumn(crow, ilevels)
+            if (i >= nlevels and self.fmt.index and self.multirow and
+                    ilevels > 1):
+                # sum up rows to multirows
+                crow = self._format_multirow(crow, ilevels, i, strrows)
             buf.write(' & '.join(crow))
             buf.write(' \\\\\n')
+            if self.multirow and i < len(strrows) - 1:
+                self._print_cline(buf, i, len(strcols))
 
         if not self.longtable:
             buf.write('\\bottomrule\n')
             buf.write('\\end{tabular}\n')
         else:
             buf.write('\\end{longtable}\n')
+
+    def _format_multicolumn(self, row, ilevels):
+        """
+        Combine columns belonging to a group to a single multicolumn entry
+        according to self.multicolumn_format
+
+        e.g.:
+        a &  &  & b & c &
+        will become
+        \multicolumn{3}{l}{a} & b & \multicolumn{2}{l}{c}
+        """
+        row2 = list(row[:ilevels])
+        ncol = 1
+        coltext = ''
+
+        def append_col():
+            # write multicolumn if needed
+            if ncol > 1:
+                row2.append('\\multicolumn{{{0:d}}}{{{1:s}}}{{{2:s}}}'
+                            .format(ncol, self.multicolumn_format,
+                                    coltext.strip()))
+            # don't modify where not needed
+            else:
+                row2.append(coltext)
+        for c in row[ilevels:]:
+            # if next col has text, write the previous
+            if c.strip():
+                if coltext:
+                    append_col()
+                coltext = c
+                ncol = 1
+            # if not, add it to the previous multicolumn
+            else:
+                ncol += 1
+        # write last column name
+        if coltext:
+            append_col()
+        return row2
+
+    def _format_multirow(self, row, ilevels, i, rows):
+        """
+        Check following rows, whether row should be a multirow
+
+        e.g.:     becomes:
+        a & 0 &   \multirow{2}{*}{a} & 0 &
+          & 1 &     & 1 &
+        b & 0 &   \cline{1-2}
+                  b & 0 &
+        """
+        for j in range(ilevels):
+            if row[j].strip():
+                nrow = 1
+                for r in rows[i + 1:]:
+                    if not r[j].strip():
+                        nrow += 1
+                    else:
+                        break
+                if nrow > 1:
+                    # overwrite non-multirow entry
+                    row[j] = '\\multirow{{{0:d}}}{{*}}{{{1:s}}}'.format(
+                        nrow, row[j].strip())
+                    # save when to end the current block with \cline
+                    self.clinebuf.append([i + nrow - 1, j + 1])
+        return row
+
+    def _print_cline(self, buf, i, icol):
+        """
+        Print clines after multirow-blocks are finished
+        """
+        for cl in self.clinebuf:
+            if cl[0] == i:
+                buf.write('\cline{{{0:d}-{1:d}}}\n'.format(cl[1], icol))
+        # remove entries that have been written to buffer
+        self.clinebuf = [x for x in self.clinebuf if x[0] != i]
 
 
 class HTMLFormatter(TableFormatter):
@@ -1565,7 +1673,7 @@ class CSVFormatter(object):
                     if isinstance(index_label, list) and len(index_label) > 1:
                         col_line.extend([''] * (len(index_label) - 1))
 
-                col_line.extend(columns.get_level_values(i))
+                col_line.extend(columns._get_level_values(i))
 
                 writer.writerow(col_line)
 

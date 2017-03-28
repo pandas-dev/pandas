@@ -469,6 +469,65 @@ class TestStringMethods(tm.TestCase):
         exp = Series(['bAR', NA])
         tm.assert_series_equal(result, exp)
 
+    def test_replace_compiled_regex(self):
+        # GH 15446
+        values = Series(['fooBAD__barBAD', NA])
+
+        # test with compiled regex
+        pat = re.compile(r'BAD[_]*')
+        result = values.str.replace(pat, '')
+        exp = Series(['foobar', NA])
+        tm.assert_series_equal(result, exp)
+
+        # mixed
+        mixed = Series(['aBAD', NA, 'bBAD', True, datetime.today(), 'fooBAD',
+                        None, 1, 2.])
+
+        rs = Series(mixed).str.replace(pat, '')
+        xp = Series(['a', NA, 'b', NA, NA, 'foo', NA, NA, NA])
+        tm.assertIsInstance(rs, Series)
+        tm.assert_almost_equal(rs, xp)
+
+        # unicode
+        values = Series([u('fooBAD__barBAD'), NA])
+
+        result = values.str.replace(pat, '')
+        exp = Series([u('foobar'), NA])
+        tm.assert_series_equal(result, exp)
+
+        result = values.str.replace(pat, '', n=1)
+        exp = Series([u('foobarBAD'), NA])
+        tm.assert_series_equal(result, exp)
+
+        # flags + unicode
+        values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
+        exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
+        pat = re.compile(r"(?<=\w),(?=\w)", flags=re.UNICODE)
+        result = values.str.replace(pat, ", ")
+        tm.assert_series_equal(result, exp)
+
+        # case and flags provided to str.replace will have no effect
+        # and will produce warnings
+        values = Series(['fooBAD__barBAD__bad', NA])
+        pat = re.compile(r'BAD[_]*')
+
+        with tm.assertRaisesRegexp(ValueError, "case and flags cannot be"):
+            result = values.str.replace(pat, '', flags=re.IGNORECASE)
+
+        with tm.assertRaisesRegexp(ValueError, "case and flags cannot be"):
+            result = values.str.replace(pat, '', case=False)
+
+        with tm.assertRaisesRegexp(ValueError, "case and flags cannot be"):
+            result = values.str.replace(pat, '', case=True)
+
+        # test with callable
+        values = Series(['fooBAD__barBAD', NA])
+        repl = lambda m: m.group(0).swapcase()
+        pat = re.compile('[a-z][A-Z]{2}')
+        result = values.str.replace(pat, repl, n=2)
+        exp = Series(['foObaD__baRbaD', NA])
+        tm.assert_series_equal(result, exp)
+
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
 
@@ -500,64 +559,44 @@ class TestStringMethods(tm.TestCase):
         exp = Series([u('a'), u('bb'), NA, u('cccc'), NA, u('dddddd')])
         tm.assert_series_equal(result, exp)
 
-    def test_deprecated_match(self):
-        # Old match behavior, deprecated (but still default) in 0.13
-        values = Series(['fooBAD__barBAD', NA, 'foo'])
-
-        with tm.assert_produces_warning():
-            result = values.str.match('.*(BAD[_]+).*(BAD)')
-        exp = Series([('BAD__', 'BAD'), NA, []])
-        tm.assert_series_equal(result, exp)
-
-        # mixed
-        mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
-                        'foo', None, 1, 2.])
-
-        with tm.assert_produces_warning():
-            rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)')
-        xp = Series([('BAD_', 'BAD'), NA, ('BAD_', 'BAD'),
-                     NA, NA, [], NA, NA, NA])
-        tm.assertIsInstance(rs, Series)
-        tm.assert_series_equal(rs, xp)
-
-        # unicode
-        values = Series([u('fooBAD__barBAD'), NA, u('foo')])
-
-        with tm.assert_produces_warning():
-            result = values.str.match('.*(BAD[_]+).*(BAD)')
-        exp = Series([(u('BAD__'), u('BAD')), NA, []])
-        tm.assert_series_equal(result, exp)
-
     def test_match(self):
         # New match behavior introduced in 0.13
         values = Series(['fooBAD__barBAD', NA, 'foo'])
-        with tm.assert_produces_warning():
-            result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        result = values.str.match('.*(BAD[_]+).*(BAD)')
         exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
 
-        # If no groups, use new behavior even when as_indexer is False.
-        # (Old behavior is pretty much useless in this case.)
         values = Series(['fooBAD__barBAD', NA, 'foo'])
-        result = values.str.match('.*BAD[_]+.*BAD', as_indexer=False)
+        result = values.str.match('.*BAD[_]+.*BAD')
         exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
+
+        # test passing as_indexer still works but is ignored
+        values = Series(['fooBAD__barBAD', NA, 'foo'])
+        exp = Series([True, NA, False])
+        with tm.assert_produces_warning(FutureWarning):
+            result = values.str.match('.*BAD[_]+.*BAD', as_indexer=True)
+        tm.assert_series_equal(result, exp)
+        with tm.assert_produces_warning(FutureWarning):
+            result = values.str.match('.*BAD[_]+.*BAD', as_indexer=False)
+        tm.assert_series_equal(result, exp)
+        with tm.assert_produces_warning(FutureWarning):
+            result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        tm.assert_series_equal(result, exp)
+        self.assertRaises(ValueError, values.str.match, '.*(BAD[_]+).*(BAD)',
+                          as_indexer=False)
 
         # mixed
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
                         'foo', None, 1, 2.])
-
-        with tm.assert_produces_warning():
-            rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        rs = Series(mixed).str.match('.*(BAD[_]+).*(BAD)')
         xp = Series([True, NA, True, NA, NA, False, NA, NA, NA])
         tm.assertIsInstance(rs, Series)
         tm.assert_series_equal(rs, xp)
 
         # unicode
         values = Series([u('fooBAD__barBAD'), NA, u('foo')])
-
-        with tm.assert_produces_warning():
-            result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
+        result = values.str.match('.*(BAD[_]+).*(BAD)')
         exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
 
@@ -2551,10 +2590,11 @@ class TestStringMethods(tm.TestCase):
 
         pat = r'([A-Z0-9._%+-]+)@([A-Z0-9.-]+)\.([A-Z]{2,4})'
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = data.str.match(pat, flags=re.IGNORECASE)
+        result = data.str.extract(pat, flags=re.IGNORECASE, expand=True)
+        self.assertEqual(result.iloc[0].tolist(), ['dave', 'google', 'com'])
 
-        self.assertEqual(result[0], ('dave', 'google', 'com'))
+        result = data.str.match(pat, flags=re.IGNORECASE)
+        self.assertEqual(result[0], True)
 
         result = data.str.findall(pat, flags=re.IGNORECASE)
         self.assertEqual(result[0][0], ('dave', 'google', 'com'))

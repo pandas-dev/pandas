@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-import pandas.lib as lib
+import pandas._libs.lib as lib
 import pandas.util.testing as tm
 
 

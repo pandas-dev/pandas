@@ -6,9 +6,7 @@ from functools import partial
 from sys import getsizeof
 
 import numpy as np
-import pandas.lib as lib
-import pandas.index as _index
-from pandas.lib import Timestamp
+from pandas._libs import index as libindex, lib, Timestamp
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
@@ -28,7 +26,6 @@ from pandas.core.common import (_values_from_object,
                                 UnsortedIndexError)
 
 
-from pandas.core.base import FrozenList
 import pandas.core.base as base
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate, deprecate_kwarg)
@@ -39,9 +36,10 @@ from pandas.formats.printing import pprint_thing
 
 from pandas.core.config import get_option
 
-from pandas.indexes.base import (Index, _ensure_index, _ensure_frozen,
+from pandas.indexes.base import (Index, _ensure_index,
                                  _get_na_value, InvalidIndexError,
                                  _index_shared_docs)
+from pandas.indexes.frozen import FrozenNDArray, FrozenList, _ensure_frozen
 import pandas.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -76,7 +74,7 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _labels = FrozenList()
     _comparables = ['names']
-    _engine_type = _index.MultiIndexEngine
+    _engine_type = libindex.MultiIndexEngine
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
@@ -684,7 +682,7 @@ class MultiIndex(Index):
         """
 
         # reversed() because lexsort() wants the most significant key last.
-        values = [self._get_level_values(i)
+        values = [self._get_level_values(i).values
                   for i in reversed(range(len(self.levels)))]
         try:
             sort_order = np.lexsort(values)
@@ -757,12 +755,10 @@ class MultiIndex(Index):
                      for k, stringify in zip(key, self._have_mixed_levels)])
         return hash_tuples(key)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.sorting import get_group_index
-        from pandas.hashtable import duplicated_int64
+        from pandas._libs.hashtable import duplicated_int64
 
         shape = map(len, self.levels)
         ids = get_group_index(self.labels, shape, sort=False, xnull=False)
@@ -813,7 +809,7 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return _index.get_value_at(s, k)
+                return libindex.get_value_at(s, k)
             except IndexError:
                 raise
             except TypeError:
@@ -866,7 +862,8 @@ class MultiIndex(Index):
         labels = self.labels[level]
         filled = algos.take_1d(unique._values, labels,
                                fill_value=unique._na_value)
-        return filled
+        values = unique._shallow_copy(filled)
+        return values
 
     def get_level_values(self, level):
         """
@@ -883,7 +880,7 @@ class MultiIndex(Index):
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
-        return self.levels[level]._shallow_copy(values)
+        return values
 
     def format(self, space=2, sparsify=None, adjoin=True, names=False,
                na_rep=None, formatter=None):
@@ -966,7 +963,8 @@ class MultiIndex(Index):
         """
 
         from pandas import DataFrame
-        result = DataFrame({(name or level): self.get_level_values(level)
+        result = DataFrame({(name or level):
+                            self._get_level_values(level)
                             for name, level in
                             zip(self.names, range(len(self.levels)))},
                            copy=False)
@@ -1276,7 +1274,7 @@ class MultiIndex(Index):
                 for new_label in taken:
                     label_values = new_label.values()
                     label_values[mask] = na_value
-                    masked.append(base.FrozenNDArray(label_values))
+                    masked.append(FrozenNDArray(label_values))
                 taken = masked
         else:
             taken = [lab.take(indices) for lab in self.labels]
@@ -1301,8 +1299,8 @@ class MultiIndex(Index):
                for o in other):
             arrays = []
             for i in range(self.nlevels):
-                label = self.get_level_values(i)
-                appended = [o.get_level_values(i) for o in other]
+                label = self._get_level_values(i)
+                appended = [o._get_level_values(i) for o in other]
                 arrays.append(label.append(appended))
             return MultiIndex.from_arrays(arrays, names=self.names)
 
@@ -1394,7 +1392,7 @@ class MultiIndex(Index):
         index = self.levels[i]
         values = index.get_indexer(labels)
 
-        mask = ~lib.ismember(self.labels[i], set(values))
+        mask = ~algos.isin(self.labels[i], values)
 
         return self[mask]
 
@@ -1567,6 +1565,39 @@ class MultiIndex(Index):
                                verify_integrity=False)
 
         return new_index, indexer
+
+    def _convert_listlike_indexer(self, keyarr, kind=None):
+        """
+        Parameters
+        ----------
+        keyarr : list-like
+            Indexer to convert.
+
+        Returns
+        -------
+        tuple (indexer, keyarr)
+            indexer is an ndarray or None if cannot convert
+            keyarr are tuple-safe keys
+        """
+        indexer, keyarr = super(MultiIndex, self)._convert_listlike_indexer(
+            keyarr, kind=kind)
+
+        # are we indexing a specific level
+        if indexer is None and len(keyarr) and not isinstance(keyarr[0],
+                                                              tuple):
+            level = 0
+            _, indexer = self.reindex(keyarr, level=level)
+
+            # take all
+            if indexer is None:
+                indexer = np.arange(len(self))
+
+            check = self.levels[0].get_indexer(keyarr)
+            mask = check == -1
+            if mask.any():
+                raise KeyError('%s not in index' % keyarr[mask])
+
+        return indexer, keyarr
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -2432,7 +2463,8 @@ class MultiIndex(Index):
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is None:
-            return lib.ismember(np.array(self), set(values))
+            return algos.isin(self.values,
+                              MultiIndex.from_tuples(values).values)
         else:
             num = self._get_level_number(level)
             levs = self.levels[num]

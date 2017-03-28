@@ -2,7 +2,7 @@ import numpy as np
 from datetime import timedelta
 
 import pandas as pd
-import pandas.tslib as tslib
+import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 import pandas.tseries.period as period
 from pandas import (DatetimeIndex, PeriodIndex, period_range, Series, Period,
@@ -21,11 +21,10 @@ class TestPeriodIndexOps(Ops):
         self.not_valid_objs = [o for o in self.objs if not mask(o)]
 
     def test_ops_properties(self):
-        self.check_ops_properties(
-            ['year', 'month', 'day', 'hour', 'minute', 'second', 'weekofyear',
-             'week', 'dayofweek', 'dayofyear', 'quarter'])
-        self.check_ops_properties(['qyear'],
-                                  lambda x: isinstance(x, PeriodIndex))
+        f = lambda x: isinstance(x, PeriodIndex)
+        self.check_ops_properties(PeriodIndex._field_ops, f)
+        self.check_ops_properties(PeriodIndex._object_ops, f)
+        self.check_ops_properties(PeriodIndex._bool_ops, f)
 
     def test_asobject_tolist(self):
         idx = pd.period_range(start='2013-01-01', periods=4, freq='M',

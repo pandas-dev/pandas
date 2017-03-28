@@ -8,8 +8,8 @@ import warnings
 
 import numpy as np
 
-from pandas.types.cast import (_infer_dtype_from_scalar,
-                               _possibly_cast_item)
+from pandas.types.cast import (infer_dtype_from_scalar,
+                               maybe_cast_item)
 from pandas.types.common import (is_integer, is_list_like,
                                  is_string_like, is_scalar)
 from pandas.types.missing import notnull
@@ -167,7 +167,7 @@ class Panel(NDFrame):
             dtype = None
         elif is_scalar(data) and all(x is not None for x in passed_axes):
             if dtype is None:
-                dtype, data = _infer_dtype_from_scalar(data)
+                dtype, data = infer_dtype_from_scalar(data)
             values = np.empty([len(x) for x in passed_axes], dtype=dtype)
             values.fill(data)
             mgr = self._init_matrix(values, passed_axes, dtype=dtype,
@@ -535,11 +535,11 @@ class Panel(NDFrame):
             d = self._construct_axes_dict_from(self, axes, copy=False)
             result = self.reindex(**d)
             args = list(args)
-            likely_dtype, args[-1] = _infer_dtype_from_scalar(args[-1])
+            likely_dtype, args[-1] = infer_dtype_from_scalar(args[-1])
             made_bigger = not np.array_equal(axes[0], self._info_axis)
             # how to make this logic simpler?
             if made_bigger:
-                _possibly_cast_item(result, args[0], likely_dtype)
+                maybe_cast_item(result, args[0], likely_dtype)
 
             return result.set_value(*args)
 
@@ -570,7 +570,7 @@ class Panel(NDFrame):
                                      shape[1:], tuple(map(int, value.shape))))
             mat = np.asarray(value)
         elif is_scalar(value):
-            dtype, value = _infer_dtype_from_scalar(value)
+            dtype, value = infer_dtype_from_scalar(value)
             mat = np.empty(shape[1:], dtype=dtype)
             mat.fill(value)
         else:

@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 import numpy as np
 
-from pandas.lib import convert_json_to_lines
+from pandas._libs.lib import convert_json_to_lines
 from pandas import compat, DataFrame
 
 
@@ -106,11 +106,10 @@ def json_normalize(data, record_path=None, meta=None,
         path to records is ['foo', 'bar']
     meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
-
-        * ignore : will ignore KeyError if keys listed in meta are not
-        always present
-        * raise : will raise KeyError if keys listed in meta are not
-        always present
+        * 'ignore' : will ignore KeyError if keys listed in meta are not
+          always present
+        * 'raise' : will raise KeyError if keys listed in meta are not
+          always present
 
         .. versionadded:: 0.20.0
 
@@ -157,6 +156,9 @@ def json_normalize(data, record_path=None, meta=None,
             result = result[spec]
 
         return result
+
+    if isinstance(data, list) and len(data) is 0:
+        return DataFrame()
 
     # A bit of a hackjob
     if isinstance(data, dict):

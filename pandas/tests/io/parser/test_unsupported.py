@@ -29,15 +29,6 @@ class TestUnsupportedFeatures(tm.TestCase):
                 read_csv(StringIO(data), engine=engine,
                          mangle_dupe_cols=False)
 
-    def test_nrows_and_chunksize(self):
-        data = 'a b c'
-        msg = "cannot be used together yet"
-
-        for engine in ('c', 'python'):
-            with tm.assertRaisesRegexp(NotImplementedError, msg):
-                read_csv(StringIO(data), engine=engine,
-                         nrows=10, chunksize=5)
-
     def test_c_engine(self):
         # see gh-6607
         data = 'a b c\n1 2 3'

@@ -4,11 +4,11 @@ import re
 
 def main():
     # classes whose members to check
-    classes = [pd.Series, pd.DataFrame, pd.Panel, pd.Panel4D]
+    classes = [pd.Series, pd.DataFrame, pd.Panel]
 
     def class_name_sort_key(x):
         if x.startswith('Series'):
-            # make sure Series precedes DataFrame, Panel, and Panel4D
+            # make sure Series precedes DataFrame, and Panel.
             return ' ' + x
         else:
             return x

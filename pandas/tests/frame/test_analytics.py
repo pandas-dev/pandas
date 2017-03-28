@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from datetime import timedelta, datetime
+from datetime import timedelta
 from distutils.version import LooseVersion
 import sys
 import pytest
@@ -117,6 +117,15 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                              'a', 'b'], columns=['a', 'b'])
         for meth in ['pearson', 'kendall', 'spearman']:
             tm.assert_frame_equal(df.corr(meth), expected)
+
+    def test_corr_cov_independent_index_column(self):
+        # GH 14617
+        df = pd.DataFrame(np.random.randn(4 * 10).reshape(10, 4),
+                          columns=list("abcd"))
+        for method in ['cov', 'corr']:
+            result = getattr(df, method)()
+            assert result.index is not result.columns
+            assert result.index.equals(result.columns)
 
     def test_cov(self):
         # min_periods no NAs (corner case)
@@ -633,173 +642,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df.cumprod(0)
         df.cumprod(1)
 
-    def test_rank(self):
-        tm._skip_if_no_scipy()
-        from scipy.stats import rankdata
-
-        self.frame['A'][::2] = np.nan
-        self.frame['B'][::3] = np.nan
-        self.frame['C'][::4] = np.nan
-        self.frame['D'][::5] = np.nan
-
-        ranks0 = self.frame.rank()
-        ranks1 = self.frame.rank(1)
-        mask = np.isnan(self.frame.values)
-
-        fvals = self.frame.fillna(np.inf).values
-
-        exp0 = np.apply_along_axis(rankdata, 0, fvals)
-        exp0[mask] = np.nan
-
-        exp1 = np.apply_along_axis(rankdata, 1, fvals)
-        exp1[mask] = np.nan
-
-        tm.assert_almost_equal(ranks0.values, exp0)
-        tm.assert_almost_equal(ranks1.values, exp1)
-
-        # integers
-        df = DataFrame(np.random.randint(0, 5, size=40).reshape((10, 4)))
-
-        result = df.rank()
-        exp = df.astype(float).rank()
-        tm.assert_frame_equal(result, exp)
-
-        result = df.rank(1)
-        exp = df.astype(float).rank(1)
-        tm.assert_frame_equal(result, exp)
-
-    def test_rank2(self):
-        df = DataFrame([[1, 3, 2], [1, 2, 3]])
-        expected = DataFrame([[1.0, 3.0, 2.0], [1, 2, 3]]) / 3.0
-        result = df.rank(1, pct=True)
-        tm.assert_frame_equal(result, expected)
-
-        df = DataFrame([[1, 3, 2], [1, 2, 3]])
-        expected = df.rank(0) / 2.0
-        result = df.rank(0, pct=True)
-        tm.assert_frame_equal(result, expected)
-
-        df = DataFrame([['b', 'c', 'a'], ['a', 'c', 'b']])
-        expected = DataFrame([[2.0, 3.0, 1.0], [1, 3, 2]])
-        result = df.rank(1, numeric_only=False)
-        tm.assert_frame_equal(result, expected)
-
-        expected = DataFrame([[2.0, 1.5, 1.0], [1, 1.5, 2]])
-        result = df.rank(0, numeric_only=False)
-        tm.assert_frame_equal(result, expected)
-
-        df = DataFrame([['b', np.nan, 'a'], ['a', 'c', 'b']])
-        expected = DataFrame([[2.0, nan, 1.0], [1.0, 3.0, 2.0]])
-        result = df.rank(1, numeric_only=False)
-        tm.assert_frame_equal(result, expected)
-
-        expected = DataFrame([[2.0, nan, 1.0], [1.0, 1.0, 2.0]])
-        result = df.rank(0, numeric_only=False)
-        tm.assert_frame_equal(result, expected)
-
-        # f7u12, this does not work without extensive workaround
-        data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
-                [datetime(2000, 1, 2), datetime(2000, 1, 3),
-                 datetime(2000, 1, 1)]]
-        df = DataFrame(data)
-
-        # check the rank
-        expected = DataFrame([[2., nan, 1.],
-                              [2., 3., 1.]])
-        result = df.rank(1, numeric_only=False, ascending=True)
-        tm.assert_frame_equal(result, expected)
-
-        expected = DataFrame([[1., nan, 2.],
-                              [2., 1., 3.]])
-        result = df.rank(1, numeric_only=False, ascending=False)
-        tm.assert_frame_equal(result, expected)
-
-        # mixed-type frames
-        self.mixed_frame['datetime'] = datetime.now()
-        self.mixed_frame['timedelta'] = timedelta(days=1, seconds=1)
-
-        result = self.mixed_frame.rank(1)
-        expected = self.mixed_frame.rank(1, numeric_only=True)
-        tm.assert_frame_equal(result, expected)
-
-        df = DataFrame({"a": [1e-20, -5, 1e-20 + 1e-40, 10,
-                              1e60, 1e80, 1e-30]})
-        exp = DataFrame({"a": [3.5, 1., 3.5, 5., 6., 7., 2.]})
-        tm.assert_frame_equal(df.rank(), exp)
-
-    def test_rank_na_option(self):
-        tm._skip_if_no_scipy()
-        from scipy.stats import rankdata
-
-        self.frame['A'][::2] = np.nan
-        self.frame['B'][::3] = np.nan
-        self.frame['C'][::4] = np.nan
-        self.frame['D'][::5] = np.nan
-
-        # bottom
-        ranks0 = self.frame.rank(na_option='bottom')
-        ranks1 = self.frame.rank(1, na_option='bottom')
-
-        fvals = self.frame.fillna(np.inf).values
-
-        exp0 = np.apply_along_axis(rankdata, 0, fvals)
-        exp1 = np.apply_along_axis(rankdata, 1, fvals)
-
-        tm.assert_almost_equal(ranks0.values, exp0)
-        tm.assert_almost_equal(ranks1.values, exp1)
-
-        # top
-        ranks0 = self.frame.rank(na_option='top')
-        ranks1 = self.frame.rank(1, na_option='top')
-
-        fval0 = self.frame.fillna((self.frame.min() - 1).to_dict()).values
-        fval1 = self.frame.T
-        fval1 = fval1.fillna((fval1.min() - 1).to_dict()).T
-        fval1 = fval1.fillna(np.inf).values
-
-        exp0 = np.apply_along_axis(rankdata, 0, fval0)
-        exp1 = np.apply_along_axis(rankdata, 1, fval1)
-
-        tm.assert_almost_equal(ranks0.values, exp0)
-        tm.assert_almost_equal(ranks1.values, exp1)
-
-        # descending
-
-        # bottom
-        ranks0 = self.frame.rank(na_option='top', ascending=False)
-        ranks1 = self.frame.rank(1, na_option='top', ascending=False)
-
-        fvals = self.frame.fillna(np.inf).values
-
-        exp0 = np.apply_along_axis(rankdata, 0, -fvals)
-        exp1 = np.apply_along_axis(rankdata, 1, -fvals)
-
-        tm.assert_almost_equal(ranks0.values, exp0)
-        tm.assert_almost_equal(ranks1.values, exp1)
-
-        # descending
-
-        # top
-        ranks0 = self.frame.rank(na_option='bottom', ascending=False)
-        ranks1 = self.frame.rank(1, na_option='bottom', ascending=False)
-
-        fval0 = self.frame.fillna((self.frame.min() - 1).to_dict()).values
-        fval1 = self.frame.T
-        fval1 = fval1.fillna((fval1.min() - 1).to_dict()).T
-        fval1 = fval1.fillna(np.inf).values
-
-        exp0 = np.apply_along_axis(rankdata, 0, -fval0)
-        exp1 = np.apply_along_axis(rankdata, 1, -fval1)
-
-        tm.assert_numpy_array_equal(ranks0.values, exp0)
-        tm.assert_numpy_array_equal(ranks1.values, exp1)
-
-    def test_rank_axis(self):
-        # check if using axes' names gives the same result
-        df = pd.DataFrame([[2, 1], [4, 3]])
-        tm.assert_frame_equal(df.rank(axis=0), df.rank(axis='index'))
-        tm.assert_frame_equal(df.rank(axis=1), df.rank(axis='columns'))
-
     def test_sem(self):
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
         self._check_stat_op('sem', alt)
@@ -817,26 +659,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             result = nanops.nansem(arr, axis=0)
             self.assertFalse((result < 0).any())
             nanops._USE_BOTTLENECK = True
-
-    def test_sort_invalid_kwargs(self):
-        df = DataFrame([1, 2, 3], columns=['a'])
-
-        msg = r"sort\(\) got an unexpected keyword argument 'foo'"
-        tm.assertRaisesRegexp(TypeError, msg, df.sort, foo=2)
-
-        # Neither of these should raise an error because they
-        # are explicit keyword arguments in the signature and
-        # hence should not be swallowed by the kwargs parameter
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            df.sort(axis=1)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            df.sort(kind='mergesort')
-
-        msg = "the 'order' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, df.sort, order=2)
 
     def test_skew(self):
         tm._skip_if_no_scipy()
@@ -1493,6 +1315,27 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         result = df1.isin(df2)
         tm.assert_frame_equal(result, expected)
 
+    def test_isin_empty_datetimelike(self):
+        # GH 15473
+        df1_ts = DataFrame({'date':
+                            pd.to_datetime(['2014-01-01', '2014-01-02'])})
+        df1_td = DataFrame({'date':
+                            [pd.Timedelta(1, 's'), pd.Timedelta(2, 's')]})
+        df2 = DataFrame({'date': []})
+        df3 = DataFrame()
+
+        expected = DataFrame({'date': [False, False]})
+
+        result = df1_ts.isin(df2)
+        tm.assert_frame_equal(result, expected)
+        result = df1_ts.isin(df3)
+        tm.assert_frame_equal(result, expected)
+
+        result = df1_td.isin(df2)
+        tm.assert_frame_equal(result, expected)
+        result = df1_td.isin(df3)
+        tm.assert_frame_equal(result, expected)
+
     # ----------------------------------------------------------------------
     # Row deduplication
 
@@ -1518,12 +1361,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
         self.assertEqual(len(result), 0)
 
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates('AAA', take_last=True)
-            expected = df.loc[[6, 7]]
-            tm.assert_frame_equal(result, expected)
-
         # multi column
         expected = df.loc[[0, 1, 2, 3]]
         result = df.drop_duplicates(np.array(['AAA', 'B']))
@@ -1537,12 +1374,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         result = df.drop_duplicates(('AAA', 'B'), keep=False)
         expected = df.loc[[0]]
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(('AAA', 'B'), take_last=True)
-        expected = df.loc[[0, 5, 6, 7]]
         tm.assert_frame_equal(result, expected)
 
         # consider everything
@@ -1559,13 +1390,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         result = df2.drop_duplicates(keep=False)
         expected = df2.drop_duplicates(['AAA', 'B'], keep=False)
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df2.drop_duplicates(take_last=True)
-        with tm.assert_produces_warning(FutureWarning):
-            expected = df2.drop_duplicates(['AAA', 'B'], take_last=True)
         tm.assert_frame_equal(result, expected)
 
         # integers
@@ -1666,12 +1490,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         self.assertEqual(len(result), 0)
         tm.assert_frame_equal(result, expected)
 
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(('AA', 'AB'), take_last=True)
-        expected = df.loc[[6, 7]]
-        tm.assert_frame_equal(result, expected)
-
         # multi column
         expected = df.loc[[0, 1, 2, 3]]
         result = df.drop_duplicates((('AA', 'AB'), 'B'))
@@ -1700,12 +1518,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
         self.assertEqual(len(result), 0)
 
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates('A', take_last=True)
-        expected = df.loc[[1, 6, 7]]
-        tm.assert_frame_equal(result, expected)
-
         # multi column
         result = df.drop_duplicates(['A', 'B'])
         expected = df.loc[[0, 2, 3, 6]]
@@ -1717,12 +1529,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         result = df.drop_duplicates(['A', 'B'], keep=False)
         expected = df.loc[[6]]
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(['A', 'B'], take_last=True)
-        expected = df.loc[[1, 5, 6, 7]]
         tm.assert_frame_equal(result, expected)
 
         # nan
@@ -1747,12 +1553,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
         self.assertEqual(len(result), 0)
 
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates('C', take_last=True)
-        expected = df.loc[[3, 7]]
-        tm.assert_frame_equal(result, expected)
-
         # multi column
         result = df.drop_duplicates(['C', 'B'])
         expected = df.loc[[0, 1, 2, 4]]
@@ -1764,12 +1564,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         result = df.drop_duplicates(['C', 'B'], keep=False)
         expected = df.loc[[1]]
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.drop_duplicates(['C', 'B'], take_last=True)
-        expected = df.loc[[1, 3, 6, 7]]
         tm.assert_frame_equal(result, expected)
 
     def test_drop_duplicates_NA_for_take_all(self):
@@ -1834,14 +1628,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
         self.assertEqual(len(df), 0)
 
-        # deprecate take_last
-        df = orig.copy()
-        with tm.assert_produces_warning(FutureWarning):
-            df.drop_duplicates('A', take_last=True, inplace=True)
-        expected = orig.loc[[6, 7]]
-        result = df
-        tm.assert_frame_equal(result, expected)
-
         # multi column
         df = orig.copy()
         df.drop_duplicates(['A', 'B'], inplace=True)
@@ -1858,14 +1644,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df = orig.copy()
         df.drop_duplicates(['A', 'B'], keep=False, inplace=True)
         expected = orig.loc[[0]]
-        result = df
-        tm.assert_frame_equal(result, expected)
-
-        # deprecate take_last
-        df = orig.copy()
-        with tm.assert_produces_warning(FutureWarning):
-            df.drop_duplicates(['A', 'B'], take_last=True, inplace=True)
-        expected = orig.loc[[0, 5, 6, 7]]
         result = df
         tm.assert_frame_equal(result, expected)
 
@@ -1891,17 +1669,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         result = df2
         tm.assert_frame_equal(result, expected)
 
-        # deprecate take_last
-        df2 = orig2.copy()
-        with tm.assert_produces_warning(FutureWarning):
-            df2.drop_duplicates(take_last=True, inplace=True)
-        with tm.assert_produces_warning(FutureWarning):
-            expected = orig2.drop_duplicates(['A', 'B'], take_last=True)
-        result = df2
-        tm.assert_frame_equal(result, expected)
-
     # Rounding
-
     def test_round(self):
         # GH 2665
 

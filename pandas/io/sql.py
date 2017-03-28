@@ -11,7 +11,7 @@ import warnings
 import re
 import numpy as np
 
-import pandas.lib as lib
+import pandas._libs.lib as lib
 from pandas.types.missing import isnull
 from pandas.types.dtypes import DatetimeTZDtype
 from pandas.types.common import (is_list_like, is_dict_like,
@@ -749,7 +749,7 @@ class SQLTable(PandasObject):
         if self.index is not None:
             for i, idx_label in enumerate(self.index):
                 idx_type = dtype_mapper(
-                    self.frame.index.get_level_values(i))
+                    self.frame.index._get_level_values(i))
                 column_names_and_types.append((text_type(idx_label),
                                               idx_type, True))
 

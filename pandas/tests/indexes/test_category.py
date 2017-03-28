@@ -183,11 +183,6 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(0 in ci)
         self.assertFalse(1 in ci)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            ci = CategoricalIndex(
-                list('aabbca'), categories=list('cabdef') + [np.nan])
-        self.assertFalse(np.nan in ci)
-
         ci = CategoricalIndex(
             list('aabbca') + [np.nan], categories=list('cabdef'))
         self.assertTrue(np.nan in ci)
@@ -240,12 +235,22 @@ class TestCategoricalIndex(Base, tm.TestCase):
         expected = i
         tm.assert_index_equal(result, expected)
 
-        i2 = i.copy()
         i2 = pd.CategoricalIndex([np.nan, np.nan] + i[2:].tolist(),
                                  categories=i.categories)
         result = i.where(notnull(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
+
+    def test_where_array_like(self):
+        i = self.create_index()
+        cond = [False] + [True] * (len(i) - 1)
+        klasses = [list, tuple, np.array, pd.Series]
+        expected = pd.CategoricalIndex([np.nan] + i[1:].tolist(),
+                                       categories=i.categories)
+
+        for klass in klasses:
+            result = i.where(klass(cond))
+            tm.assert_index_equal(result, expected)
 
     def test_append(self):
 
@@ -531,7 +536,6 @@ class TestCategoricalIndex(Base, tm.TestCase):
             self.assertIs(_base(index.values), _base(result.values))
 
     def test_equals_categorical(self):
-
         ci1 = CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=True)
         ci2 = CategoricalIndex(['a', 'b'], categories=['a', 'b', 'c'],
                                ordered=True)
@@ -568,14 +572,6 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(ci.equals(list('aabca')))
         self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
         self.assertTrue(ci.equals(ci.copy()))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            ci = CategoricalIndex(list('aabca'),
-                                  categories=['c', 'a', 'b', np.nan])
-        self.assertFalse(ci.equals(list('aabca')))
-        self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertTrue(ci.equals(ci.copy()))
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])
