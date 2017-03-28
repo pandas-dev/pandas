@@ -953,6 +953,7 @@ Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working wit
 
 In additon, the ``xarray`` package was built from the ground up, specifically in order to
 support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
+`Here is a link to the xarray panel-transition documentation <http://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
 
 .. ipython:: python
    :okwarning:
