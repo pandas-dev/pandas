@@ -795,7 +795,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         expected = DataFrame({'datetime64': Index([now] * 3)})
         assert_frame_equal(result, expected)
 
-    def test_replace_input_formats(self):
+    def test_replace_input_formats_listlike(self):
         # both dicts
         to_rep = {'A': np.nan, 'B': 0, 'C': ''}
         values = {'A': 0, 'B': -1, 'C': 'missing'}
@@ -811,15 +811,6 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         expected = DataFrame({'A': [np.nan, 5, np.inf], 'B': [5, 2, 0],
                               'C': ['', 'asdf', 'fd']})
         assert_frame_equal(result, expected)
-
-        # dict to scalar
-        filled = df.replace(to_rep, 0)
-        expected = {}
-        for k, v in compat.iteritems(df):
-            expected[k] = v.replace(to_rep[k], 0)
-        assert_frame_equal(filled, DataFrame(expected))
-
-        self.assertRaises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
 
         # scalar to dict
         values = {'A': 0, 'B': -1, 'C': 'missing'}
@@ -841,6 +832,20 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         self.assertRaises(ValueError, df.replace, to_rep, values[1:])
+
+    def test_replace_input_formats_scalar(self):
+        df = DataFrame({'A': [np.nan, 0, np.inf], 'B': [0, 2, 5],
+                        'C': ['', 'asdf', 'fd']})
+
+        # dict to scalar
+        to_rep = {'A': np.nan, 'B': 0, 'C': ''}
+        filled = df.replace(to_rep, 0)
+        expected = {}
+        for k, v in compat.iteritems(df):
+            expected[k] = v.replace(to_rep[k], 0)
+        assert_frame_equal(filled, DataFrame(expected))
+
+        self.assertRaises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
 
         # list to scalar
         to_rep = [np.nan, 0, '']

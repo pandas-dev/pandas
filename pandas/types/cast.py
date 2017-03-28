@@ -387,6 +387,50 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
     return dtype, val
 
 
+def infer_dtype_from_array(arr):
+    """
+    infer the dtype from a scalar or array
+
+    Parameters
+    ----------
+    arr : scalar or array
+
+    Returns
+    -------
+    tuple (numpy-compat dtype, array)
+
+    Notes
+    -----
+    These infer to numpy dtypes exactly
+    with the exception that mixed / object dtypes
+    are not coerced by stringifying or conversion
+
+    Examples
+    --------
+    >>> np.asarray([1, '1'])
+    array(['1', '1'], dtype='<U21')
+
+    >>> infer_dtype_from_array([1, '1'])
+    (numpy.object_, [1, '1'])
+
+    """
+
+    if isinstance(arr, np.ndarray):
+        return arr.dtype, arr
+
+    if not is_list_like(arr):
+        arr = [arr]
+
+    # don't force numpy coerce with nan's
+    inferred = lib.infer_dtype(arr)
+    if inferred in ['string', 'bytes', 'unicode',
+                    'mixed', 'mixed-integer']:
+        return (np.object_, arr)
+
+    arr = np.asarray(arr)
+    return arr.dtype, arr
+
+
 def maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
     """ provide explict type promotion and coercion
 

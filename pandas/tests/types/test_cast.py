@@ -5,13 +5,15 @@ These test the private routines in types/cast.py
 
 """
 
-from datetime import datetime
+import pytest
+from datetime import datetime, timedelta, date
 import numpy as np
 
 from pandas import Timedelta, Timestamp, DatetimeIndex
 from pandas.types.cast import (maybe_downcast_to_dtype,
                                maybe_convert_objects,
                                infer_dtype_from_scalar,
+                               infer_dtype_from_array,
                                maybe_convert_string_to_object,
                                maybe_convert_scalar,
                                find_common_type)
@@ -82,7 +84,7 @@ class TestMaybeDowncast(tm.TestCase):
         tm.assert_index_equal(res, exp)
 
 
-class TestInferDtype(tm.TestCase):
+class TestInferDtype(object):
 
     def test_infer_dtype_from_scalar(self):
         # Test that _infer_dtype_from_scalar is returning correct dtype for int
@@ -92,44 +94,62 @@ class TestInferDtype(tm.TestCase):
                        np.int32, np.uint64, np.int64]:
             data = dtypec(12)
             dtype, val = infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, type(data))
+            assert dtype == type(data)
 
         data = 12
         dtype, val = infer_dtype_from_scalar(data)
-        self.assertEqual(dtype, np.int64)
+        assert dtype == np.int64
 
         for dtypec in [np.float16, np.float32, np.float64]:
             data = dtypec(12)
             dtype, val = infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, dtypec)
+            assert dtype == dtypec
 
         data = np.float(12)
         dtype, val = infer_dtype_from_scalar(data)
-        self.assertEqual(dtype, np.float64)
+        assert dtype == np.float64
 
         for data in [True, False]:
             dtype, val = infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, np.bool_)
+            assert dtype == np.bool_
 
         for data in [np.complex64(1), np.complex128(1)]:
             dtype, val = infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, np.complex_)
+            assert dtype == np.complex_
 
-        import datetime
         for data in [np.datetime64(1, 'ns'), Timestamp(1),
-                     datetime.datetime(2000, 1, 1, 0, 0)]:
+                     datetime(2000, 1, 1, 0, 0)]:
             dtype, val = infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, 'M8[ns]')
+            assert dtype == 'M8[ns]'
 
         for data in [np.timedelta64(1, 'ns'), Timedelta(1),
-                     datetime.timedelta(1)]:
+                     timedelta(1)]:
             dtype, val = infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, 'm8[ns]')
+            assert dtype == 'm8[ns]'
 
-        for data in [datetime.date(2000, 1, 1),
+        for data in [date(2000, 1, 1),
                      Timestamp(1, tz='US/Eastern'), 'foo']:
             dtype, val = infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, np.object_)
+            assert dtype == np.object_
+
+    @pytest.mark.parametrize(
+        "arr, expected",
+        [('foo', np.object_),
+         (b'foo', np.object_),
+         (1, np.int_),
+         (1.5, np.float_),
+         ([1], np.int_),
+         (np.array([1]), np.int_),
+         ([np.nan, 1, ''], np.object_),
+         (np.array([[1.0, 2.0]]), np.float_),
+         (Timestamp('20160101'), np.object_),
+         (np.datetime64('2016-01-01'), np.dtype('<M8[D]')),
+         ])
+    def test_infer_dtype_from_array(self, arr, expected):
+
+        # these infer specifically to numpy dtypes
+        dtype, _ = infer_dtype_from_array(arr)
+        assert dtype == expected
 
 
 class TestMaybe(tm.TestCase):
