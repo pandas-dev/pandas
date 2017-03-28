@@ -740,8 +740,8 @@ New Behavior:
 
 .. _whatsnew_0200.api_breaking.index_order:
 
-Index order after inner join due to Index intersection
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Index.intersection and inner join now preserve the order of the left Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``Index.intersection`` now preserves the order of the calling Index (left)
 instead of the other Index (right) (:issue:`15582`). This affects the inner
@@ -788,18 +788,11 @@ joins (methods ``DataFrame.join`` and ``pd.merge``) and the .align methods.
      1  10  100
      2  20  200
 
-     In [5]: pd.merge(df1, df2, how='inner', left_index=True, right_index=True)
-     Out[5]:
-         a    b
-     1  10  100
-     2  20  200
-
   New Behavior:
 
   .. ipython:: python
 
      df1.join(df2, how='inner')
-     pd.merge(df1, df2, how='inner', left_index=True, right_index=True)
 
 
 .. _whatsnew_0200.api:

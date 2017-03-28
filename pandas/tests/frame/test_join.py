@@ -20,7 +20,7 @@ def df1():
 
 @pytest.fixture
 def df2():
-    return DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+    return DataFrame({'b': [300, 100, 200]}, index=[3, 1, 2])
 
 
 @pytest.mark.parametrize(
@@ -37,8 +37,8 @@ def df2():
      ('left', True, DataFrame({'a': [0, 10, 20],
                                'b': [np.nan, 100, 200]},
                               index=[0, 1, 2])),
-     ('right', False, DataFrame({'a': [10, 20, np.nan],
-                                 'b': [100, 200, 300]},
+     ('right', False, DataFrame({'a': [np.nan, 10, 20],
+                                 'b': [300, 100, 200]},
                                 index=[1, 2, 3])),
      ('right', True, DataFrame({'a': [10, 20, np.nan],
                                 'b': [100, 200, 300]},

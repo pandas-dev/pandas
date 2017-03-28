@@ -2844,6 +2844,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         level : int or level name, default None
         return_indexers : boolean, default False
         sort : boolean, default False
+            Sort the join keys lexicographically in the result Index. If False,
+            the order of the join keys depends on the join type (how keyword)
 
             .. versionadded:: 0.20.0
 
