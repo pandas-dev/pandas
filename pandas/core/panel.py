@@ -1160,22 +1160,25 @@ class Panel(NDFrame):
         return self._construct_return_type(result, axes)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, items=None, major_axis=None, minor_axis=None, **kwargs):
+    def reindex(self, items=None, major_axis=None, minor_axis=None, method=None,
+                level=None, copy=True, limit=None, tolerance=None, fill_value=np.nan):
         major_axis = (major_axis if major_axis is not None else
                       kwargs.pop('major', None))
         minor_axis = (minor_axis if minor_axis is not None else
                       kwargs.pop('minor', None))
         return super(Panel, self).reindex(items=items, major_axis=major_axis,
-                                          minor_axis=minor_axis, **kwargs)
+                                          minor_axis=minor_axis, method=None,
+                                          level=level, copy=copy, limit=limit,
+                                          tolerance=tolerance, fill_value=fill_value)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
-    def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
+    def rename(self, items=None, major_axis=None, minor_axis=None, copy=True, inplace=False):
         major_axis = (major_axis if major_axis is not None else
                       kwargs.pop('major', None))
         minor_axis = (minor_axis if minor_axis is not None else
                       kwargs.pop('minor', None))
         return super(Panel, self).rename(items=items, major_axis=major_axis,
-                                         minor_axis=minor_axis, **kwargs)
+                                         minor_axis=minor_axis, copy=copy, inplace=inplace)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,

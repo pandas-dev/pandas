@@ -2301,7 +2301,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                          broadcast_axis=broadcast_axis)
 
     @Appender(generic._shared_docs['rename'] % _shared_doc_kwargs)
-    def rename(self, index=None, **kwargs):
+    def rename(self, index=None, copy=True, inplace=False):
         kwargs['inplace'] = validate_bool_kwarg(kwargs.get('inplace', False),
                                                 'inplace')
 
@@ -2309,11 +2309,14 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                            not is_dict_like(index))
         if non_mapping:
             return self._set_name(index, inplace=kwargs.get('inplace'))
-        return super(Series, self).rename(index=index, **kwargs)
+        return super(Series, self).rename(index=index, copy=copy, inplace=inplace)
 
     @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, index=None, **kwargs):
-        return super(Series, self).reindex(index=index, **kwargs)
+    def reindex(self, index=None, method=None, level=None, copy=True,
+                limit=None, tolerance=None, fill_value=np.nan):
+        return super(Series, self).reindex(index=index, method=method, level=level,
+                                            copy=copy, limit=limit,
+                                            tolerance=tolerance, fill_value=fill_value)
 
     @Appender(generic._shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
@@ -2327,11 +2330,13 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def shift(self, periods=1, freq=None, axis=0):
         return super(Series, self).shift(periods=periods, freq=freq, axis=axis)
 
-    def reindex_axis(self, labels, axis=0, **kwargs):
+    def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True, limit=None, fill_value=np.nan):
         """ for compatibility with higher dims """
         if axis != 0:
             raise ValueError("cannot reindex series on non-zero axis!")
-        return self.reindex(index=labels, **kwargs)
+        return self.reindex(index=labels, axis=axis,
+                           method=method, level=level, copy=copy,
+                           limit=limit, fill_value=fill_value)
 
     def memory_usage(self, index=True, deep=False):
         """Memory usage of the Series

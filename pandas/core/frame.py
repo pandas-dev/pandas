@@ -2819,9 +2819,11 @@ it is assumed to be aliases for the column names.')
                                             broadcast_axis=broadcast_axis)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, index=None, columns=None, **kwargs):
+    def reindex(self, index=None, columns=None, method=None, level=None, copy=True,
+                limit=None, tolerance=None, fill_value=np.nan):
         return super(DataFrame, self).reindex(index=index, columns=columns,
-                                              **kwargs)
+                                              method=method, level=level, copy=copy,
+                                              limit=limit, tolerance=tolerance, fill_value=fill_value)
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
@@ -2832,9 +2834,9 @@ it is assumed to be aliases for the column names.')
                                         limit=limit, fill_value=fill_value)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
-    def rename(self, index=None, columns=None, **kwargs):
+    def rename(self, index=None, columns=None, copy=True, inplace=False):
         return super(DataFrame, self).rename(index=index, columns=columns,
-                                             **kwargs)
+                                             copy=copy, inplace=inplace)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
