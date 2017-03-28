@@ -1707,7 +1707,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
                 # TODO: not the most efficient (perf-wise)
                 # though not bad code-wise
-                from pandas import Panel, MultiIndex
+                from pandas import Panel, MultiIndex, Index
                 p = Panel.from_dict(results).swapaxes('items', 'major')
                 if len(p.major_axis) > 0:
                     p.major_axis = arg1.columns[p.major_axis]
@@ -1721,14 +1721,16 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 else:
 
                     result = DataFrame(
-                        index=MultiIndex(levels=[arg1.columns, arg2.index],
+                        index=MultiIndex(levels=[arg1.index, arg1.columns],
                                          labels=[[], []]),
-                        columns=arg1.columns,
+                        columns=arg2.columns,
                         dtype='float64')
 
-                # reset our names
-                result.columns.name = None
-                result.index.names = ['major', 'minor']
+                # reset our names to arg1 names
+                # careful not to mutate the original names
+                result.columns = Index(result.columns).set_names(None)
+                result.index = result.index.set_names(
+                    [arg1.index.name, arg1.columns.name])
 
                 return result
 

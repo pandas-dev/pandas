@@ -851,9 +851,10 @@ See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for 
 .. ipython:: python
 
    np.random.seed(1234)
-   df = DataFrame(np.random.rand(100, 2),
-                 columns=['A', 'B'],
-                 index=pd.date_range('20160101', periods=100, freq='D'))
+   df = pd.DataFrame(np.random.rand(100, 2),
+                     columns=pd.Index(['A', 'B'], name='bar'),
+                     index=pd.date_range('20160101',
+                                         periods=100, freq='D', name='foo'))
    df
 
 Old Behavior:
@@ -875,12 +876,11 @@ New Behavior:
    res = df.rolling(12).corr()
    res
 
-Retrieving a correlation matrix for a specified index
+Retrieving a correlation matrix for a cross-section
 
 .. ipython:: python
 
-   res.iloc[-1].unstack()
-
+   df.rolling(12).corr().loc['2016-04-07']
 
 .. _whatsnew_0200.api_breaking.hdfstore_where:
 
