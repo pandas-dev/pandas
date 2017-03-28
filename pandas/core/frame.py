@@ -1918,7 +1918,16 @@ it is assumed to be aliases for the column names.')
 
         series = self._get_item_cache(col)
         engine = self.index._engine
-        return engine.get_value(series.get_values(), index)
+
+        try:
+            return engine.get_value(series._values, index)
+        except TypeError:
+
+            # we cannot handle direct indexing
+            # use positional
+            col = self.columns.get_loc(col)
+            index = self.index.get_loc(index)
+            return self.get_value(index, col, takeable=True)
 
     def set_value(self, index, col, value, takeable=False):
         """
