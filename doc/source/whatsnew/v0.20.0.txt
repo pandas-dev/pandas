@@ -750,6 +750,62 @@ New Behavior:
    TypeError: Cannot compare 2014-01-01 00:00:00 of
    type <class 'pandas.tslib.Timestamp'> to string column
 
+.. _whatsnew_0200.api_breaking.index_order:
+
+Index.intersection and inner join now preserve the order of the left Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``Index.intersection`` now preserves the order of the calling Index (left)
+instead of the other Index (right) (:issue:`15582`). This affects the inner
+joins (methods ``DataFrame.join`` and ``pd.merge``) and the .align methods.
+
+- ``Index.intersection``
+
+  .. ipython:: python
+
+     left = pd.Index([2, 1, 0])
+     left
+     right = pd.Index([1, 2, 3])
+     right
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+     In [4]: left.intersection(right)
+     Out[4]: Int64Index([1, 2], dtype='int64')
+
+  New Behavior:
+
+  .. ipython:: python
+
+     left.intersection(right)
+
+- ``DataFrame.join`` and ``pd.merge``
+
+  .. ipython:: python
+
+     left = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+     left
+     right = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+     right
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+     In [4]: left.join(right, how='inner')
+     Out[4]:
+         a    b
+     1  10  100
+     2  20  200
+
+  New Behavior:
+
+  .. ipython:: python
+
+     left.join(right, how='inner')
+
 
 .. _whatsnew_0200.api:
 
@@ -984,6 +1040,7 @@ Bug Fixes
 
 - Bug in ``DataFrame.to_stata()`` and ``StataWriter`` which produces incorrectly formatted files to be produced for some locales (:issue:`13856`)
 - Bug in ``StataReader`` and ``StataWriter`` which allows invalid encodings (:issue:`15723`)
+- Bug with ``sort=True`` in ``DataFrame.join`` and ``pd.merge`` when joining on indexes (:issue:`15582`)
 
 - Bug in ``pd.concat()`` in which concatting with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 - Bug in ``groupby.agg()`` incorrectly localizing timezone on ``datetime`` (:issue:`15426`, :issue:`10668`, :issue:`13046`)
