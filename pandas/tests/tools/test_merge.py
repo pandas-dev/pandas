@@ -1358,13 +1358,13 @@ class TestMergeCategorical(object):
 
 
 @pytest.fixture
-def df1():
+def left():
     return DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
 
 
 @pytest.fixture
-def df2():
-    return DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+def right():
+    return DataFrame({'b': [300, 100, 200]}, index=[3, 1, 2])
 
 
 class TestMergeOnIndexes(object):
@@ -1383,8 +1383,8 @@ class TestMergeOnIndexes(object):
          ('left', True, DataFrame({'a': [0, 10, 20],
                                    'b': [np.nan, 100, 200]},
                                   index=[0, 1, 2])),
-         ('right', False, DataFrame({'a': [10, 20, np.nan],
-                                     'b': [100, 200, 300]},
+         ('right', False, DataFrame({'a': [np.nan, 10, 20],
+                                     'b': [300, 100, 200]},
                                     index=[1, 2, 3])),
          ('right', True, DataFrame({'a': [10, 20, np.nan],
                                     'b': [100, 200, 300]},
@@ -1395,9 +1395,9 @@ class TestMergeOnIndexes(object):
          ('outer', True, DataFrame({'a': [0, 10, 20, np.nan],
                                     'b': [np.nan, 100, 200, 300]},
                                    index=[0, 1, 2, 3]))])
-    def test_merge_on_indexes(self, df1, df2, how, sort, expected):
+    def test_merge_on_indexes(self, left, right, how, sort, expected):
 
-        result = pd.merge(df1, df2,
+        result = pd.merge(left, right,
                           left_index=True,
                           right_index=True,
                           how=how,

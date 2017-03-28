@@ -124,14 +124,14 @@ Parameters
 ----------%s
 right : DataFrame
 how : {'left', 'right', 'outer', 'inner'}, default 'inner'
-    * left: use only keys from left frame (SQL: left outer join), preserving
-      their order
-    * right: use only keys from right frame (SQL: right outer join), preserving
-      their order
-    * outer: use union of keys from both frames (SQL: full outer join), and
-      sort them lexicographically
-    * inner: use intersection of keys from both frames (SQL: inner join),
-      preserving the order of the left keys
+    * left: use only keys from left frame, similar to a SQL left outer join;
+      preserve key order
+    * right: use only keys from right frame, similar to a SQL right outer join;
+      preserve key order
+    * outer: use union of keys from both frames, similar to a SQL full outer
+      join; sort keys lexicographically
+    * inner: use intersection of keys from both frames, similar to a SQL inner
+      join; preserve the order of the left keys
 on : label or list
     Field names to join on. Must be found in both DataFrames. If on is
     None and not merging on indexes, then it merges on the intersection of

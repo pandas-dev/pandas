@@ -14,12 +14,12 @@ def frame():
 
 
 @pytest.fixture
-def df1():
+def left():
     return DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
 
 
 @pytest.fixture
-def df2():
+def right():
     return DataFrame({'b': [300, 100, 200]}, index=[3, 1, 2])
 
 
@@ -49,9 +49,9 @@ def df2():
      ('outer', True, DataFrame({'a': [0, 10, 20, np.nan],
                                 'b': [np.nan, 100, 200, 300]},
                                index=[0, 1, 2, 3]))])
-def test_join(df1, df2, how, sort, expected):
+def test_join(left, right, how, sort, expected):
 
-    result = df1.join(df2, how=how, sort=sort)
+    result = left.join(right, how=how, sort=sort)
     tm.assert_frame_equal(result, expected)
 
 
