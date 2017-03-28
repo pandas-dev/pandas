@@ -305,10 +305,12 @@ _engine_doc = """engine : {'c', 'python'}, optional
     currently more feature-complete."""
 
 _sep_doc = r"""sep : str, default {default}
-    Delimiter to use. If sep is None, will try to automatically determine
-    this. Separators longer than 1 character and different from ``'\s+'`` will
-    be interpreted as regular expressions, will force use of the python parsing
-    engine and will ignore quotes in the data. Regex example: ``'\r\t'``"""
+    Delimiter to use. If sep is None, the C engine cannot automatically detect
+    the separator, but the Python parsing engine can, meaning the latter will
+    be used automatically. In addition, separators longer than 1 character and
+    different from ``'\s+'`` will be interpreted as regular expressions and
+    will also force the use of the Python parsing engine. Note that regex
+    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``"""
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
@@ -1174,13 +1176,18 @@ class ParserBase(object):
         if isinstance(self.parse_dates, bool):
             return self.parse_dates
         else:
-            name = self.index_names[i]
+            if self.index_names is not None:
+                name = self.index_names[i]
+            else:
+                name = None
             j = self.index_col[i]
 
             if is_scalar(self.parse_dates):
-                return (j == self.parse_dates) or (name == self.parse_dates)
+                return ((j == self.parse_dates) or
+                        (name is not None and name == self.parse_dates))
             else:
-                return (j in self.parse_dates) or (name in self.parse_dates)
+                return ((j in self.parse_dates) or
+                        (name is not None and name in self.parse_dates))
 
     def _extract_multi_indexer_columns(self, header, index_names, col_names,
                                        passed_names=False):
@@ -1350,6 +1357,7 @@ class ParserBase(object):
 
     def _agg_index(self, index, try_parse_dates=True):
         arrays = []
+
         for i, arr in enumerate(index):
 
             if (try_parse_dates and self._should_parse_dates(i)):
@@ -1510,6 +1518,7 @@ class ParserBase(object):
 
     def _do_date_conversions(self, names, data):
         # returns data, columns
+
         if self.parse_dates is not None:
             data, names = _process_date_conversion(
                 data, self._date_conv, self.parse_dates, self.index_col,

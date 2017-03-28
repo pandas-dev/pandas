@@ -9,10 +9,16 @@ from pandas._libs import algos, lib
 
 from pandas.compat import range, string_types
 from pandas.types.common import (is_numeric_v_string_like,
-                                 is_float_dtype, is_datetime64_dtype,
-                                 is_datetime64tz_dtype, is_integer_dtype,
-                                 _ensure_float64, is_scalar,
-                                 needs_i8_conversion, is_integer)
+                                 is_float_dtype,
+                                 is_datetime64_dtype,
+                                 is_datetime64tz_dtype,
+                                 is_integer_dtype,
+                                 is_scalar,
+                                 is_integer,
+                                 needs_i8_conversion,
+                                 _ensure_float64)
+
+from pandas.types.cast import infer_dtype_from_array
 from pandas.types.missing import isnull
 
 
@@ -21,16 +27,11 @@ def mask_missing(arr, values_to_mask):
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
     """
-    if isinstance(values_to_mask, np.ndarray):
-        mask_type = values_to_mask.dtype.type
-    elif isinstance(values_to_mask, list):
-        mask_type = type(values_to_mask[0])
-    else:
-        mask_type = type(values_to_mask)
-        values_to_mask = [values_to_mask]
+    dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
 
     try:
-        values_to_mask = np.array(values_to_mask, dtype=mask_type)
+        values_to_mask = np.array(values_to_mask, dtype=dtype)
+
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
 
