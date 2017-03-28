@@ -1358,12 +1358,12 @@ class TestMergeCategorical(object):
 
 
 @pytest.fixture
-def left():
+def left_df():
     return DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
 
 
 @pytest.fixture
-def right():
+def right_df():
     return DataFrame({'b': [300, 100, 200]}, index=[3, 1, 2])
 
 
@@ -1395,9 +1395,9 @@ class TestMergeOnIndexes(object):
          ('outer', True, DataFrame({'a': [0, 10, 20, np.nan],
                                     'b': [np.nan, 100, 200, 300]},
                                    index=[0, 1, 2, 3]))])
-    def test_merge_on_indexes(self, left, right, how, sort, expected):
+    def test_merge_on_indexes(self, left_df, right_df, how, sort, expected):
 
-        result = pd.merge(left, right,
+        result = pd.merge(left_df, right_df,
                           left_index=True,
                           right_index=True,
                           how=how,
