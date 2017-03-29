@@ -59,7 +59,7 @@ fixed-width text files, and :func:`read_excel` for parsing Excel files.
 to_datetime has gained an origin parameter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``pd.to_datetime`` has gained a new parameter, ``origin``, to define an offset
+``pd.to_datetime`` has gained a new parameter, ``origin``, to define a reference date
 from where to compute the resulting ``DatetimeIndex``. (:issue:`11276`, :issue:`11745`)
 
 Start with 1960-01-01 as the starting date
@@ -337,7 +337,7 @@ Other Enhancements
 - ``pd.DataFrame.to_latex`` and ``pd.DataFrame.to_string`` now allow optional header aliases. (:issue:`15536`)
 - Re-enable the ``parse_dates`` keyword of ``read_excel`` to parse string columns as dates (:issue:`14326`)
 - Added ``.empty`` property to subclasses of ``Index``. (:issue:`15270`)
-
+- Enabled floor division for ``Timedelta`` and ``TimedeltaIndex`` (:issue:`15828`)
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pandas.io.json.json_normalize()`` has gained a ``sep`` option that accepts ``str`` to separate joined fields; the default is ".", which is backward compatible. (:issue:`14883`)

@@ -9,7 +9,11 @@ from pandas.types.common import (_ensure_object,
                                  is_datetime64_dtype,
                                  is_datetime64tz_dtype,
                                  is_integer_dtype,
-                                 is_list_like)
+                                 is_integer,
+                                 is_float,
+                                 is_list_like,
+                                 is_scalar,
+                                 is_numeric_dtype)
 from pandas.types.generic import (ABCIndexClass, ABCSeries,
                                   ABCDataFrame)
 from pandas.types.missing import notnull
@@ -238,10 +242,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
-    origin : scalar convertible to Timestamp / string ('julian', 'unix'),
-        default 'unix'.
-        Define reference date. The numeric values would be parsed as number
-        of units (defined by `unit`) since this reference date.
+    origin : scalar, default is 'unix'
+        convertible to Timestamp / string ('julian', 'unix')
 
         - If 'unix' (or POSIX) time; origin is set to 1970-01-01.
         - If 'julian', unit must be 'D', and origin is set to beginning of
@@ -312,8 +314,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
     1 loop, best of 3: 471 ms per loop
 
-    Using non-epoch origins to parse date
-    >>> pd.to_datetime([1,2,3], unit='D', origin=pd.Timestamp('1960-01-01'))
+    Using a non-unix epoch origin
+
+    >>> pd.to_datetime([1, 2, 3], unit='D',
+                       origin=pd.Timestamp('1960-01-01'))
     0    1960-01-02
     1    1960-01-03
     2    1960-01-04
@@ -429,18 +433,68 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             except (ValueError, TypeError):
                 raise e
 
-    # perform the conversion
+    if arg is None:
+        return None
+
+    # handle origin
     if origin == 'julian':
+
+        original = arg
+        j0 = tslib.Timestamp(0).to_julian_date()
         if unit != 'D':
             raise ValueError("unit must be 'D' for origin='julian'")
         try:
-            arg = arg - tslib.Timestamp(0).to_julian_date()
+            arg = arg - j0
         except:
             raise ValueError("incompatible 'arg' type for given "
                              "'origin'='julian'")
-    if arg is None:
-        result = arg
-    elif isinstance(arg, tslib.Timestamp):
+
+        # premptively check this for a nice range
+        j_max = tslib.Timestamp.max.to_julian_date() - j0
+        j_min = tslib.Timestamp.min.to_julian_date() - j0
+        if np.any(arg > j_max) or np.any(arg < j_min):
+            raise tslib.OutOfBoundsDatetime(
+                "{original} is Out of Bounds for "
+                "origin='julian'".format(original=original))
+
+    elif origin not in ['unix', 'julian']:
+
+        # arg must be a numeric
+        original = arg
+        if not ((is_scalar(arg) and (is_integer(arg) or is_float(arg))) or
+                is_numeric_dtype(np.asarray(arg))):
+            raise ValueError(
+                "'{arg}' is not compatible with origin='{origin}'; "
+                "it must be numeric with a unit specified ".format(
+                    arg=arg,
+                    origin=origin))
+
+        # we are going to offset back to unix / epoch time
+        try:
+            offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+        except tslib.OutOfBoundsDatetime:
+            raise tslib.OutOfBoundsDatetime(
+                "origin {} is Out of Bounds".format(origin))
+        except ValueError:
+            raise ValueError("origin {} cannot be converted "
+                             "to a Timestamp".format(origin))
+
+        # convert the offset to the unit of the arg
+        # this should be lossless in terms of precision
+        offset = offset // tslib.Timedelta(1, unit=unit)
+
+        arg = np.asarray(arg)
+        arg = arg + offset
+
+        # convert to the tenor of the original arg
+        if is_scalar(original):
+            arg = arg.item()
+        elif isinstance(original, ABCSeries):
+            arg = type(original)(arg, index=original.index, name=original.name)
+        elif isinstance(original, ABCIndexClass):
+            arg = type(original)(arg)
+
+    if isinstance(arg, tslib.Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):
         from pandas import Series
@@ -454,20 +508,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         result = _convert_listlike(arg, box, format)
     else:
         result = _convert_listlike(np.array([arg]), box, format)[0]
-
-    # handle origin
-    if origin not in ['unix', 'julian']:
-        try:
-            offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
-        except tslib.OutOfBoundsDatetime:
-            raise ValueError(
-                "origin {} is Out of Bounds".format(origin))
-        except ValueError:
-            raise ValueError("origin {} cannot be converted "
-                             "to a Timestamp".format(origin))
-
-        if offset is not None:
-            result = result + offset
 
     return result
 

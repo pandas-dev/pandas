@@ -284,6 +284,12 @@ Freq: D"""
             result = rng / offset
             tm.assert_index_equal(result, expected, exact=False)
 
+        # floor divide
+        expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
+        for offset in offsets:
+            result = rng // offset
+            tm.assert_index_equal(result, expected, exact=False)
+
         # divide with nats
         rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
         expected = Float64Index([12, np.nan, 24], name='foo')
@@ -867,19 +873,18 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(td * 2, Timedelta(20, unit='d'))
         self.assertTrue((td * pd.NaT) is pd.NaT)
         self.assertEqual(td / 2, Timedelta(5, unit='d'))
+        self.assertEqual(td // 2, Timedelta(5, unit='d'))
         self.assertEqual(abs(td), td)
         self.assertEqual(abs(-td), td)
         self.assertEqual(td / td, 1)
         self.assertTrue((td / pd.NaT) is np.nan)
+        self.assertTrue((td // pd.NaT) is np.nan)
 
         # invert
         self.assertEqual(-td, Timedelta('-10d'))
         self.assertEqual(td * -1, Timedelta('-10d'))
         self.assertEqual(-1 * td, Timedelta('-10d'))
         self.assertEqual(abs(-td), Timedelta('10d'))
-
-        # invalid
-        self.assertRaises(TypeError, lambda: Timedelta(11, unit='d') // 2)
 
         # invalid multiply with another timedelta
         self.assertRaises(TypeError, lambda: td * td)
@@ -991,7 +996,7 @@ class TestTimedeltas(tm.TestCase):
         self.assertTrue(td.__sub__(other) is NotImplemented)
         self.assertTrue(td.__truediv__(other) is NotImplemented)
         self.assertTrue(td.__mul__(other) is NotImplemented)
-        self.assertTrue(td.__floordiv__(td) is NotImplemented)
+        self.assertTrue(td.__floordiv__(other) is NotImplemented)
 
     def test_ops_error_str(self):
         # GH 13624
