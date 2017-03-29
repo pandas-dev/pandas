@@ -1279,13 +1279,13 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         s = Categorical([1, 2, 3, 4, 5], categories=[5, 4, 3, 2, 1],
                         ordered=True)
         res = s.mode()
-        exp = Categorical([], categories=[5, 4, 3, 2, 1], ordered=True)
+        exp = Categorical([5, 4, 3, 2, 1], categories=[5, 4, 3, 2, 1], ordered=True)
         tm.assert_categorical_equal(res, exp)
         # NaN should not become the mode!
         s = Categorical([np.nan, np.nan, np.nan, 4, 5],
                         categories=[5, 4, 3, 2, 1], ordered=True)
         res = s.mode()
-        exp = Categorical([], categories=[5, 4, 3, 2, 1], ordered=True)
+        exp = Categorical([5, 4], categories=[5, 4, 3, 2, 1], ordered=True)
         tm.assert_categorical_equal(res, exp)
         s = Categorical([np.nan, np.nan, np.nan, 4, 5, 4],
                         categories=[5, 4, 3, 2, 1], ordered=True)
@@ -2833,7 +2833,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         s = Series(Categorical([1, 2, 3, 4, 5], categories=[5, 4, 3, 2, 1],
                                ordered=True))
         res = s.mode()
-        exp = Series(Categorical([], categories=[5, 4, 3, 2, 1], ordered=True))
+        exp = Series(Categorical([5, 4, 3, 2, 1], categories=[5, 4, 3, 2, 1], ordered=True))
         tm.assert_series_equal(res, exp)
 
     def test_value_counts(self):

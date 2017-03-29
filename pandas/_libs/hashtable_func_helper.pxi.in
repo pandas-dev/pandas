@@ -309,7 +309,7 @@ def mode_{{dtype}}(ndarray[{{ctype}}] values):
 def mode_{{dtype}}({{ctype}}[:] values):
 {{endif}}
     cdef:
-        int count, max_count = 2
+        int count, max_count = 1
         int j = -1 # so you can do +=
         Py_ssize_t k
         kh_{{table_type}}_t *table

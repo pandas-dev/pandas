@@ -789,18 +789,23 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                            "E": [8, 8, 1, 1, 3, 3]})
         tm.assert_frame_equal(df[["A"]].mode(),
                               pd.DataFrame({"A": [12]}))
-        expected = pd.Series([], dtype='int64', name='D').to_frame()
+        expected = pd.Series([0, 1, 2, 3, 4, 5], dtype='int64', name='D').\
+            to_frame()
         tm.assert_frame_equal(df[["D"]].mode(), expected)
         expected = pd.Series([1, 3, 8], dtype='int64', name='E').to_frame()
         tm.assert_frame_equal(df[["E"]].mode(), expected)
         tm.assert_frame_equal(df[["A", "B"]].mode(),
                               pd.DataFrame({"A": [12], "B": [10.]}))
         tm.assert_frame_equal(df.mode(),
-                              pd.DataFrame({"A": [12, np.nan, np.nan],
-                                            "B": [10, np.nan, np.nan],
-                                            "C": [8, 9, np.nan],
-                                            "D": [np.nan, np.nan, np.nan],
-                                            "E": [1, 3, 8]}))
+                              pd.DataFrame({"A": [12, np.nan, np.nan, np.nan,
+                                                  np.nan, np.nan],
+                                            "B": [10, np.nan, np.nan, np.nan,
+                                                  np.nan, np.nan],
+                                            "C": [8, 9, np.nan, np.nan, np.nan,
+                                                  np.nan],
+                                            "D": [0, 1, 2, 3, 4, 5],
+                                            "E": [1, 3, 8, np.nan, np.nan,
+                                                  np.nan]}))
 
         # outputs in sorted order
         df["C"] = list(reversed(df["C"]))
@@ -817,20 +822,12 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df = pd.DataFrame({"A": np.arange(6, dtype='int64'),
                            "B": pd.date_range('2011', periods=6),
                            "C": list('abcdef')})
-        exp = pd.DataFrame({"A": pd.Series([], dtype=df["A"].dtype),
-                            "B": pd.Series([], dtype=df["B"].dtype),
-                            "C": pd.Series([], dtype=df["C"].dtype)})
-        tm.assert_frame_equal(df.mode(), exp)
-
-        # and also when not empty
-        df.loc[1, "A"] = 0
-        df.loc[4, "B"] = df.loc[3, "B"]
-        df.loc[5, "C"] = 'e'
-        exp = pd.DataFrame({"A": pd.Series([0], dtype=df["A"].dtype),
-                            "B": pd.Series([df.loc[3, "B"]],
+        exp = pd.DataFrame({"A": pd.Series(np.arange(6, dtype='int64'),
+                                           dtype=df["A"].dtype),
+                            "B": pd.Series(pd.date_range('2011', periods=6),
                                            dtype=df["B"].dtype),
-                            "C": pd.Series(['e'], dtype=df["C"].dtype)})
-
+                            "C": pd.Series(list('abcdef'),
+                                           dtype=df["C"].dtype)})
         tm.assert_frame_equal(df.mode(), exp)
 
     def test_operators_timedelta64(self):
