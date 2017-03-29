@@ -159,7 +159,7 @@ class SparseDataFrame(DataFrame):
                     v = [v.get(i, nan) for i in index]
 
                 v = sp_maker(v)
-            sdict[k] = v
+            sdict[k] = v.astype(np.dtype(dtype)) if dtype is not None else v
 
         # TODO: figure out how to handle this case, all nan's?
         # add in any other columns we want to have (completeness)

@@ -1045,7 +1045,7 @@ Bug Fixes
 - Bug in ``pd.concat()`` in which concatting with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 - Bug in ``groupby.agg()`` incorrectly localizing timezone on ``datetime`` (:issue:`15426`, :issue:`10668`, :issue:`13046`)
 
-
+- Bug in ``SparseDataFrame`` construction with lists not coercing to dtype (:issue:`15682`)
 
 - Bug in ``.read_csv()`` with ``parse_dates`` when multiline headers are specified (:issue:`15376`)
 - Bug in ``groupby.transform()`` that would coerce the resultant dtypes back to the original (:issue:`10972`, :issue:`11444`)
