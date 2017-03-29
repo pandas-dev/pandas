@@ -283,7 +283,7 @@ Other Enhancements
 - ``DataFrame`` has gained a ``nunique()`` method to count the distinct values over an axis (:issue:`14336`).
 - ``DataFrame.groupby()`` has gained a ``.nunique()`` method to count the distinct values for all columns within each group (:issue:`14336`, :issue:`15197`).
 
-- ``pd.read_excel`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
+- ``pd.read_excel()`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
 - Multiple offset aliases with decimal points are now supported (e.g. '0.5min' is parsed as '30s') (:issue:`8419`)
 - ``.isnull()`` and ``.notnull()`` have been added to ``Index`` object to make them more consistent with the ``Series`` API (:issue:`15300`)
 
@@ -294,8 +294,8 @@ Other Enhancements
 - ``pd.cut`` and ``pd.qcut`` now support datetime64 and timedelta64 dtypes (:issue:`14714`, :issue:`14798`)
 - ``pd.qcut`` has gained the ``duplicates='raise'|'drop'`` option to control whether to raise on duplicated edges (:issue:`7751`)
 - ``Series`` provides a ``to_excel`` method to output Excel files (:issue:`8825`)
-- The ``usecols`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`14154`)
-- The ``skiprows`` argument in ``pd.read_csv`` now accepts a callable function as a value  (:issue:`10882`)
+- The ``usecols`` argument in ``pd.read_csv()`` now accepts a callable function as a value  (:issue:`14154`)
+- The ``skiprows`` argument in ``pd.read_csv()`` now accepts a callable function as a value  (:issue:`10882`)
 - The ``nrows`` and ``chunksize`` arguments in ``pd.read_csv()`` are supported if both are passed (:issue:`6774`, :issue:`15755`)
 - ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
 - ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
@@ -309,6 +309,7 @@ Other Enhancements
 - ``pandas.tools.hashing`` has gained a ``hash_tuples`` routine, and ``hash_pandas_object`` has gained the ability to hash a ``MultiIndex`` (:issue:`15224`)
 - ``Series/DataFrame.squeeze()`` have gained the ``axis`` parameter. (:issue:`15339`)
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
+- ``pd.read_html()`` will parse multiple header rows, creating a multiindex header. (:issue:`13434`).
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
 
 - ``pd.TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
@@ -813,7 +814,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - ``numexpr`` version is now required to be >= 2.4.6 and it will not be used at all if this requisite is not fulfilled (:issue:`15213`).
-- ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv`` and will be removed in the future (:issue:`12665`)
+- ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv()`` and will be removed in the future (:issue:`12665`)
 - ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
 - ``DataFrame.applymap()`` with an empty ``DataFrame`` will return a copy of the empty ``DataFrame`` instead of a ``Series`` (:issue:`8222`)
 - ``.loc`` has compat with ``.ix`` for accepting iterators, and NamedTuples (:issue:`15120`)
@@ -926,7 +927,7 @@ Bug Fixes
 - Bug in ``pd.to_numeric()`` in which float and unsigned integer elements were being improperly casted (:issue:`14941`, :issue:`15005`)
 - Cleaned up ``PeriodIndex`` constructor, including raising on floats more consistently (:issue:`13277`)
 - Bug in ``pd.read_csv()`` in which the ``dialect`` parameter was not being verified before processing (:issue:`14898`)
-- Bug in ``pd.read_fwf`` where the skiprows parameter was not being respected during column width inference (:issue:`11256`)
+- Bug in ``pd.read_fwf()`` where the skiprows parameter was not being respected during column width inference (:issue:`11256`)
 - Bug in ``pd.read_csv()`` in which missing data was being improperly handled with ``usecols`` (:issue:`6710`)
 - Bug in ``pd.read_csv()`` in which a file containing a row with many columns followed by rows with fewer columns would cause a crash (:issue:`14125`)
 - Added checks in ``pd.read_csv()`` ensuring that values for ``nrows`` and ``chunksize`` are valid (:issue:`15767`)
@@ -1054,4 +1055,4 @@ Bug Fixes
 - Bug in ``DataFrame.boxplot`` where ``fontsize`` was not applied to the tick labels on both axes (:issue:`15108`)
 - Bug in ``pd.melt()`` where passing a tuple value for ``value_vars`` caused a ``TypeError`` (:issue:`15348`)
 - Bug in ``.eval()`` which caused multiline evals to fail with local variables not on the first line (:issue:`15342`)
-- Bug in ``pd.read_msgpack`` which did not allow to load dataframe with an index of type ``CategoricalIndex`` (:issue:`15487`)
+- Bug in ``pd.read_msgpack()`` which did not allow to load dataframe with an index of type ``CategoricalIndex`` (:issue:`15487`)

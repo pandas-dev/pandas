@@ -355,9 +355,12 @@ class _HtmlFrameParser(object):
         thead = self._parse_thead(table)
         res = []
         if thead:
-            res = lmap(self._text_getter, self._parse_th(thead[0]))
-        return np.atleast_1d(
-            np.array(res).squeeze()) if res and len(res) == 1 else res
+            trs = self._parse_tr(thead[0])
+            for tr in trs:
+                cols = lmap(self._text_getter, self._parse_td(tr))
+                if any([col != '' for col in cols]):
+                    res.append(cols)
+        return res
 
     def _parse_raw_tfoot(self, table):
         tfoot = self._parse_tfoot(table)
@@ -591,9 +594,17 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return table.xpath('.//tfoot')
 
     def _parse_raw_thead(self, table):
-        expr = './/thead//th'
-        return [_remove_whitespace(x.text_content()) for x in
-                table.xpath(expr)]
+        expr = './/thead'
+        thead = table.xpath(expr)
+        res = []
+        if thead:
+            trs = self._parse_tr(thead[0])
+            for tr in trs:
+                cols = [_remove_whitespace(x.text_content()) for x in
+                        self._parse_td(tr)]
+                if any([col != '' for col in cols]):
+                    res.append(cols)
+        return res
 
     def _parse_raw_tfoot(self, table):
         expr = './/tfoot//th|//tfoot//td'
@@ -615,19 +626,17 @@ def _data_to_frame(**kwargs):
     head, body, foot = kwargs.pop('data')
     header = kwargs.pop('header')
     kwargs['skiprows'] = _get_skiprows(kwargs['skiprows'])
-
     if head:
-        body = [head] + body
-
+        rows = lrange(len(head))
+        body = head + body
         if header is None:  # special case when a table has <th> elements
-            header = 0
+            header = 0 if rows == [0] else rows
 
     if foot:
         body += [foot]
 
     # fill out elements of body that are "ragged"
     _expand_elements(body)
-
     tp = TextParser(body, header=header, **kwargs)
     df = tp.read()
     return df
