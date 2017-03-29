@@ -1245,6 +1245,18 @@ in ``pandas.plot_params`` can be used in a `with statement`:
 
    plt.close('all')
 
+Automatic Date Tick Adjustment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+``TimedeltaIndex`` now uses the native matplotlib
+tick locator methods, it is useful to call the automatic
+date tick adjustment from matplotlib for figures whose ticklabels overlap.
+
+See the :meth:`autofmt_xdate <matplotlib.figure.autofmt_xdate>` method and the
+`matplotlib documentation <http://matplotlib.org/users/recipes.html#fixing-common-date-annoyances>`__ for more.
+
 Subplots
 ~~~~~~~~
 

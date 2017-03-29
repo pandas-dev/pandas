@@ -3,7 +3,7 @@ Utility functions related to concat
 """
 
 import numpy as np
-import pandas.tslib as tslib
+import pandas._libs.tslib as tslib
 from pandas import compat
 from pandas.core.algorithms import take_1d
 from .common import (is_categorical_dtype,
@@ -208,7 +208,7 @@ def _concat_categorical(to_concat, axis=0):
     return _concat_asobject(to_concat)
 
 
-def union_categoricals(to_union, sort_categories=False):
+def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     """
     Combine list-like of Categorical-like, unioning categories. All
     categories must have the same dtype.
@@ -222,6 +222,11 @@ def union_categoricals(to_union, sort_categories=False):
     sort_categories : boolean, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
+    ignore_order: boolean, default False
+        If true, the ordered attribute of the Categoricals will be ignored.
+        Results in an unordered categorical.
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -235,7 +240,7 @@ def union_categoricals(to_union, sort_categories=False):
         - all inputs are ordered and their categories are not identical
         - sort_categories=True and Categoricals are ordered
     ValueError
-        Emmpty list of categoricals passed
+        Empty list of categoricals passed
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
 
@@ -264,7 +269,7 @@ def union_categoricals(to_union, sort_categories=False):
         ordered = first.ordered
         new_codes = np.concatenate([c.codes for c in to_union])
 
-        if sort_categories and ordered:
+        if sort_categories and not ignore_order and ordered:
             raise TypeError("Cannot use sort_categories=True with "
                             "ordered Categoricals")
 
@@ -272,7 +277,7 @@ def union_categoricals(to_union, sort_categories=False):
             categories = categories.sort_values()
             indexer = categories.get_indexer(first.categories)
             new_codes = take_1d(indexer, new_codes, fill_value=-1)
-    elif all(not c.ordered for c in to_union):
+    elif ignore_order or all(not c.ordered for c in to_union):
         # different categories - union and recode
         cats = first.categories.append([c.categories for c in to_union[1:]])
         categories = Index(cats.unique())
@@ -296,6 +301,9 @@ def union_categoricals(to_union, sort_categories=False):
             raise TypeError(msg)
         else:
             raise TypeError('Categorical.ordered must be the same')
+
+    if ignore_order:
+        ordered = False
 
     return Categorical(new_codes, categories=categories, ordered=ordered,
                        fastpath=True)

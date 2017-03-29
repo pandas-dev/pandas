@@ -57,92 +57,6 @@ class SharedWithSparse(object):
                 expected = self.frame[col][idx]
                 tm.assert_almost_equal(result, expected)
 
-    def test_join_index(self):
-        # left / right
-
-        f = self.frame.reindex(columns=['A', 'B'])[:10]
-        f2 = self.frame.reindex(columns=['C', 'D'])
-
-        joined = f.join(f2)
-        self.assert_index_equal(f.index, joined.index)
-        self.assertEqual(len(joined.columns), 4)
-
-        joined = f.join(f2, how='left')
-        self.assert_index_equal(joined.index, f.index)
-        self.assertEqual(len(joined.columns), 4)
-
-        joined = f.join(f2, how='right')
-        self.assert_index_equal(joined.index, f2.index)
-        self.assertEqual(len(joined.columns), 4)
-
-        # inner
-
-        f = self.frame.reindex(columns=['A', 'B'])[:10]
-        f2 = self.frame.reindex(columns=['C', 'D'])
-
-        joined = f.join(f2, how='inner')
-        self.assert_index_equal(joined.index, f.index.intersection(f2.index))
-        self.assertEqual(len(joined.columns), 4)
-
-        # outer
-
-        f = self.frame.reindex(columns=['A', 'B'])[:10]
-        f2 = self.frame.reindex(columns=['C', 'D'])
-
-        joined = f.join(f2, how='outer')
-        self.assertTrue(tm.equalContents(self.frame.index, joined.index))
-        self.assertEqual(len(joined.columns), 4)
-
-        assertRaisesRegexp(ValueError, 'join method', f.join, f2, how='foo')
-
-        # corner case - overlapping columns
-        for how in ('outer', 'left', 'inner'):
-            with assertRaisesRegexp(ValueError, 'columns overlap but '
-                                    'no suffix'):
-                self.frame.join(self.frame, how=how)
-
-    def test_join_index_more(self):
-        af = self.frame.loc[:, ['A', 'B']]
-        bf = self.frame.loc[::2, ['C', 'D']]
-
-        expected = af.copy()
-        expected['C'] = self.frame['C'][::2]
-        expected['D'] = self.frame['D'][::2]
-
-        result = af.join(bf)
-        assert_frame_equal(result, expected)
-
-        result = af.join(bf, how='right')
-        assert_frame_equal(result, expected[::2])
-
-        result = bf.join(af, how='right')
-        assert_frame_equal(result, expected.loc[:, result.columns])
-
-    def test_join_index_series(self):
-        df = self.frame.copy()
-        s = df.pop(self.frame.columns[-1])
-        joined = df.join(s)
-
-        # TODO should this check_names ?
-        assert_frame_equal(joined, self.frame, check_names=False)
-
-        s.name = None
-        assertRaisesRegexp(ValueError, 'must have a name', df.join, s)
-
-    def test_join_overlap(self):
-        df1 = self.frame.loc[:, ['A', 'B', 'C']]
-        df2 = self.frame.loc[:, ['B', 'C', 'D']]
-
-        joined = df1.join(df2, lsuffix='_df1', rsuffix='_df2')
-        df1_suf = df1.loc[:, ['B', 'C']].add_suffix('_df1')
-        df2_suf = df2.loc[:, ['B', 'C']].add_suffix('_df2')
-
-        no_overlap = self.frame.loc[:, ['A', 'D']]
-        expected = df1_suf.join(df2_suf).join(no_overlap)
-
-        # column order not necessarily sorted
-        assert_frame_equal(joined, expected.loc[:, joined.columns])
-
     def test_add_prefix_suffix(self):
         with_prefix = self.frame.add_prefix('foo#')
         expected = pd.Index(['foo#%s' % c for c in self.frame.columns])
@@ -389,11 +303,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         exp = '              X\nNaT        a  1\n2013-01-01 b  2'
         self.assertEqual(res, exp)
 
-    def test_iterkv_deprecation(self):
-        with tm.assert_produces_warning(FutureWarning):
-            self.mixed_float.iterkv()
-
-    def test_iterkv_names(self):
+    def test_iteritems_names(self):
         for k, v in compat.iteritems(self.mixed_frame):
             self.assertEqual(v.name, k)
 

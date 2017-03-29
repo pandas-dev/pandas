@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, time
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.tslib import iNaT
+from pandas._libs.tslib import iNaT
 from pandas.compat import lrange, StringIO, product
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.index import DatetimeIndex
@@ -260,6 +260,14 @@ class TestTimeSeries(TestData, tm.TestCase):
                           index=[-1.0, 2.0, 1.0, 0.0]).sort_index()
         assert_series_equal(result, expected)
 
+    def test_asfreq_datetimeindex_empty_series(self):
+        # GH 14320
+        expected = Series(index=pd.DatetimeIndex(
+            ["2016-09-29 11:00"])).asfreq('H')
+        result = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]),
+                        data=[3]).asfreq('H')
+        self.assert_index_equal(expected.index, result.index)
+
     def test_diff(self):
         # Just run the function
         self.ts.diff()
@@ -383,8 +391,6 @@ class TestTimeSeries(TestData, tm.TestCase):
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        with tm.assert_produces_warning(FutureWarning):
-            self.assertTrue(ser.is_time_series)
         self.assertTrue(ser.index.is_all_dates)
         self.assertIsInstance(ser.index, DatetimeIndex)
 

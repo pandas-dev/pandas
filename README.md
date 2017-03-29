@@ -12,7 +12,7 @@
   <td><img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" /></td>
 </tr>
   <td></td>
-  <td><img src="https://anaconda.org/pandas/pandas/badges/version.svg" alt="latest release" /></td>
+  <td><img src="https://anaconda.org/conda-forge/pandas/badges/version.svg" alt="latest release" /></td>
 </tr>
 <tr>
   <td>Package Status</td>
@@ -30,10 +30,19 @@
     </a>
   </td>
 </tr>
+<tr>
   <td></td>
   <td>
-    <a href="https://ci.appveyor.com/project/jreback/pandas-465">
-    <img src="https://ci.appveyor.com/api/projects/status/iblk29s98quexwxi/branch/master?svg=true" alt="appveyor build status" />
+    <a href="https://circleci.com/gh/pandas-dev/pandas">
+    <img src="https://circleci.com/gh/circleci/mongofinil/tree/master.svg?style=shield&circle-token=223d8cafa7b02902c3e150242520af8944e34671" alt="circleci build status" />
+    </a>
+  </td>
+</tr>
+<tr>
+  <td></td>
+  <td>
+    <a href="https://ci.appveyor.com/project/pandas-dev/pandas">
+    <img src="https://ci.appveyor.com/api/projects/status/86vn83mxgnl4xf1s/branch/master?svg=true" alt="appveyor build status" />
     </a>
   </td>
 </tr>
@@ -45,7 +54,15 @@
   <td>Conda</td>
   <td>
     <a href="http://pandas.pydata.org">
-    <img src="http://pubbadges.s3-website-us-east-1.amazonaws.com/pkgs-downloads-pandas.png" alt="conda downloads" />
+    <img src="http://pubbadges.s3-website-us-east-1.amazonaws.com/pkgs-downloads-pandas.png" alt="conda default downloads" />
+    </a>
+  </td>
+</tr>
+<tr>
+  <td>Conda-forge</td>
+  <td>
+    <a href="http://pandas.pydata.org">
+    <img src="https://anaconda.org/conda-forge/pandas/badges/downloads.svg" alt="conda-forge downloads" />
     </a>
   </td>
 </tr>

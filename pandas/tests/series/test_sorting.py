@@ -13,23 +13,12 @@ from .common import TestData
 
 class TestSeriesSorting(TestData, tm.TestCase):
 
-    def test_sort(self):
-
+    def test_sortlevel_deprecated(self):
         ts = self.ts.copy()
 
-        # 9816 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            ts.sort()  # sorts inplace
-        self.assert_series_equal(ts, self.ts.sort_values())
+        # see gh-9816
         with tm.assert_produces_warning(FutureWarning):
             ts.sortlevel()
-
-    def test_order(self):
-
-        # 9816 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            result = self.ts.order()
-        self.assert_series_equal(result, self.ts.sort_values())
 
     def test_sort_values(self):
 
@@ -63,6 +52,25 @@ class TestSeriesSorting(TestData, tm.TestCase):
         assert_almost_equal(expected, ordered.valid().values)
         ordered = ts.sort_values(ascending=False, na_position='first')
         assert_almost_equal(expected, ordered.valid().values)
+
+        # ascending=[False] should behave the same as ascending=False
+        ordered = ts.sort_values(ascending=[False])
+        expected = ts.sort_values(ascending=False)
+        assert_series_equal(expected, ordered)
+        ordered = ts.sort_values(ascending=[False], na_position='first')
+        expected = ts.sort_values(ascending=False, na_position='first')
+        assert_series_equal(expected, ordered)
+
+        self.assertRaises(ValueError,
+                          lambda: ts.sort_values(ascending=None))
+        self.assertRaises(ValueError,
+                          lambda: ts.sort_values(ascending=[]))
+        self.assertRaises(ValueError,
+                          lambda: ts.sort_values(ascending=[1, 2, 3]))
+        self.assertRaises(ValueError,
+                          lambda: ts.sort_values(ascending=[False, False]))
+        self.assertRaises(ValueError,
+                          lambda: ts.sort_values(ascending='foobar'))
 
         # inplace=True
         ts = self.ts.copy()

@@ -80,7 +80,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
     # Reorder the categories and simultaneously add the missing categories
     df["grade"] = df["grade"].cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
     df["grade"]
-    df.sort("grade")
+    df.sort_values("grade")
     df.groupby("grade").size()
 
 - ``pandas.core.group_agg`` and ``pandas.core.factor_agg`` were removed. As an alternative, construct

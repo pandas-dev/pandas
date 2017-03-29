@@ -4,7 +4,7 @@ import sys
 import warnings
 from warnings import catch_warnings
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from numpy.random import randn
 import numpy as np
 from distutils.version import LooseVersion
@@ -401,6 +401,24 @@ class TestRolling(Base):
             with self.assertRaises(ValueError):
                 c(-1, win_type='boxcar')
 
+    def test_constructor_with_timedelta_window(self):
+        # GH 15440
+        n = 10
+        df = pd.DataFrame({'value': np.arange(n)},
+                          index=pd.date_range('2015-12-24',
+                                              periods=n,
+                                              freq="D"))
+        expected_data = np.append([0., 1.], np.arange(3., 27., 3))
+        for window in [timedelta(days=3), pd.Timedelta(days=3)]:
+            result = df.rolling(window=window).sum()
+            expected = pd.DataFrame({'value': expected_data},
+                                    index=pd.date_range('2015-12-24',
+                                                        periods=n,
+                                                        freq="D"))
+            tm.assert_frame_equal(result, expected)
+            expected = df.rolling('3D').sum()
+            tm.assert_frame_equal(result, expected)
+
     def test_numpy_compat(self):
         # see gh-12811
         r = rwindow.Rolling(Series([2, 4, 6]), window=2)
@@ -628,7 +646,7 @@ class Dtype(object):
             f = self.funcs[f_name]
             d = self.data[d_name]
             exp = self.expects[d_name][f_name]
-            yield self.check_dtypes, f, f_name, d, d_name, exp
+            self.check_dtypes(f, f_name, d, d_name, exp)
 
     def check_dtypes(self, f, f_name, d, d_name, exp):
         roll = d.rolling(window=self.window)
@@ -1045,7 +1063,7 @@ class TestMoments(Base):
                               window=3, min_periods=5)
 
     def test_rolling_quantile(self):
-        qs = [.1, .5, .9]
+        qs = [0.0, .1, .5, .9, 1.0]
 
         def scoreatpercentile(a, per):
             values = np.sort(a, axis=0)
@@ -1065,6 +1083,18 @@ class TestMoments(Base):
                 return scoreatpercentile(x, q)
 
             self._check_moment_func(f, alt, name='quantile', quantile=q)
+
+    def test_rolling_quantile_param(self):
+        ser = Series([0.0, .1, .5, .9, 1.0])
+
+        with self.assertRaises(ValueError):
+            ser.rolling(3).quantile(-0.1)
+
+        with self.assertRaises(ValueError):
+            ser.rolling(3).quantile(10.0)
+
+        with self.assertRaises(TypeError):
+            ser.rolling(3).quantile('foo')
 
     def test_rolling_apply(self):
         # suppress warnings about empty slices, as we are deliberately testing

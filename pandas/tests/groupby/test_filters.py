@@ -216,6 +216,7 @@ class TestGroupByFilter(tm.TestCase):
         grouper = s.apply(lambda x: np.round(x, -1))
         grouped = s.groupby(grouper)
         f = lambda x: x.mean() > 10
+
         old_way = s[grouped.transform(f).astype('bool')]
         new_way = grouped.filter(f)
         assert_series_equal(new_way.sort_values(), old_way.sort_values())

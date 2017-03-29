@@ -86,6 +86,39 @@ class TestPivotTable(tm.TestCase):
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
 
+    def test_pivot_table_dropna_categoricals(self):
+        # GH 15193
+        categories = ['a', 'b', 'c', 'd']
+
+        df = DataFrame({'A': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c'],
+                        'B': [1, 2, 3, 1, 2, 3, 1, 2, 3],
+                        'C': range(0, 9)})
+
+        df['A'] = df['A'].astype('category', ordered=False,
+                                 categories=categories)
+        result_true = df.pivot_table(index='B', columns='A', values='C',
+                                     dropna=True)
+        expected_columns = Series(['a', 'b', 'c'], name='A')
+        expected_columns = expected_columns.astype('category', ordered=False,
+                                                   categories=categories)
+        expected_index = Series([1, 2, 3], name='B')
+        expected_true = DataFrame([[0.0, 3.0, 6.0],
+                                   [1.0, 4.0, 7.0],
+                                   [2.0, 5.0, 8.0]],
+                                  index=expected_index,
+                                  columns=expected_columns,)
+        tm.assert_frame_equal(expected_true, result_true)
+
+        result_false = df.pivot_table(index='B', columns='A', values='C',
+                                      dropna=False)
+        expected_columns = Series(['a', 'b', 'c', 'd'], name='A')
+        expected_false = DataFrame([[0.0, 3.0, 6.0, np.NaN],
+                                    [1.0, 4.0, 7.0, np.NaN],
+                                    [2.0, 5.0, 8.0, np.NaN]],
+                                   index=expected_index,
+                                   columns=expected_columns,)
+        tm.assert_frame_equal(expected_false, result_false)
+
     def test_pass_array(self):
         result = self.data.pivot_table(
             'D', index=self.data.A, columns=self.data.C)
@@ -1334,7 +1367,7 @@ class TestPivotAnnual(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             annual = pivot_annual(ts, 'D')
 
-        doy = ts.index.dayofyear
+        doy = np.asarray(ts.index.dayofyear)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1

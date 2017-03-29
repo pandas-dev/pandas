@@ -7,7 +7,6 @@ import pandas.compat as compat
 from pandas.types.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.types.common import (is_integer_dtype,
                                  is_integer, is_float,
-                                 is_categorical_dtype,
                                  is_list_like,
                                  is_sequence,
                                  is_iterator,
@@ -43,6 +42,36 @@ _NS = slice(None, None)
 
 # the public IndexSlicerMaker
 class _IndexSlice(object):
+    """
+    Create an object to more easily perform multi-index slicing
+
+    Examples
+    --------
+
+    >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
+    >>> columns = ['foo', 'bar']
+    >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
+                            index=midx, columns=columns)
+
+    Using the default slice command:
+
+    >>> dfmi.loc[(slice(None), slice('B0', 'B1')), :]
+               foo  bar
+        A0 B0    0    1
+           B1    2    3
+        A1 B0    8    9
+           B1   10   11
+
+    Using the IndexSlice class for a more intuitive command:
+
+    >>> idx = pd.IndexSlice
+    >>> dfmi.loc[idx[:, 'B0':'B1'], :]
+               foo  bar
+        A0 B0    0    1
+           B1    2    3
+        A1 B0    8    9
+           B1   10   11
+    """
 
     def __getitem__(self, arg):
         return arg
@@ -1057,51 +1086,24 @@ class _NDFrameIndexer(object):
             inds, = key.nonzero()
             return self.obj.take(inds, axis=axis, convert=False)
         else:
-            if isinstance(key, Index):
-                keyarr = labels._convert_index_indexer(key)
-            else:
-                keyarr = _asarray_tuplesafe(key)
-                keyarr = labels._convert_arr_indexer(keyarr)
-
-            if is_categorical_dtype(labels):
-                keyarr = labels._shallow_copy(keyarr)
-
-            # have the index handle the indexer and possibly return
-            # an indexer or raising
-            indexer = labels._convert_list_indexer(keyarr, kind=self.name)
+            # Have the index compute an indexer or return None
+            # if it cannot handle
+            indexer, keyarr = labels._convert_listlike_indexer(
+                key, kind=self.name)
             if indexer is not None:
                 return self.obj.take(indexer, axis=axis)
-
-            # this is not the most robust, but...
-            if (isinstance(labels, MultiIndex) and len(keyarr) and
-                    not isinstance(keyarr[0], tuple)):
-                level = 0
-            else:
-                level = None
 
             # existing labels are unique and indexer are unique
             if labels.is_unique and Index(keyarr).is_unique:
 
                 try:
-                    result = self.obj.reindex_axis(keyarr, axis=axis,
-                                                   level=level)
-
-                    # this is an error as we are trying to find
-                    # keys in a multi-index that don't exist
-                    if isinstance(labels, MultiIndex) and level is not None:
-                        if (hasattr(result, 'ndim') and
-                                not np.prod(result.shape) and len(keyarr)):
-                            raise KeyError("cannot index a multi-index axis "
-                                           "with these keys")
-
-                    return result
-
+                    return self.obj.reindex_axis(keyarr, axis=axis)
                 except AttributeError:
 
                     # Series
                     if axis != 0:
                         raise AssertionError('axis must be 0')
-                    return self.obj.reindex(keyarr, level=level)
+                    return self.obj.reindex(keyarr)
 
             # existing labels are non-unique
             else:
@@ -1195,49 +1197,33 @@ class _NDFrameIndexer(object):
 
         if is_nested_tuple(obj, labels):
             return labels.get_locs(obj)
+
         elif is_list_like_indexer(obj):
+
             if is_bool_indexer(obj):
                 obj = check_bool_indexer(labels, obj)
                 inds, = obj.nonzero()
                 return inds
             else:
-                if isinstance(obj, Index):
-                    # want Index objects to pass through untouched
-                    objarr = obj
-                else:
-                    objarr = _asarray_tuplesafe(obj)
 
-                # The index may want to handle a list indexer differently
-                # by returning an indexer or raising
-                indexer = labels._convert_list_indexer(objarr, kind=self.name)
+                # Have the index compute an indexer or return None
+                # if it cannot handle
+                indexer, objarr = labels._convert_listlike_indexer(
+                    obj, kind=self.name)
                 if indexer is not None:
                     return indexer
 
-                # this is not the most robust, but...
-                if (isinstance(labels, MultiIndex) and
-                        not isinstance(objarr[0], tuple)):
-                    level = 0
-                    _, indexer = labels.reindex(objarr, level=level)
+                # unique index
+                if labels.is_unique:
+                    indexer = check = labels.get_indexer(objarr)
 
-                    # take all
-                    if indexer is None:
-                        indexer = np.arange(len(labels))
-
-                    check = labels.levels[0].get_indexer(objarr)
+                # non-unique (dups)
                 else:
-                    level = None
-
-                    # unique index
-                    if labels.is_unique:
-                        indexer = check = labels.get_indexer(objarr)
-
-                    # non-unique (dups)
-                    else:
-                        (indexer,
-                         missing) = labels.get_indexer_non_unique(objarr)
-                        # 'indexer' has dupes, create 'check' using 'missing'
-                        check = np.zeros_like(objarr)
-                        check[missing] = -1
+                    (indexer,
+                     missing) = labels.get_indexer_non_unique(objarr)
+                    # 'indexer' has dupes, create 'check' using 'missing'
+                    check = np.zeros_like(objarr)
+                    check[missing] = -1
 
                 mask = check == -1
                 if mask.any():
@@ -1521,15 +1507,28 @@ class _LocIndexer(_LocationIndexer):
             return self._getbool_axis(key, axis=axis)
         elif is_list_like_indexer(key):
 
-            # GH 7349
-            # possibly convert a list-like into a nested tuple
-            # but don't convert a list-like of tuples
+            # convert various list-like indexers
+            # to a list of keys
+            # we will use the *values* of the object
+            # and NOT the index if its a PandasObject
             if isinstance(labels, MultiIndex):
+
+                if isinstance(key, (ABCSeries, np.ndarray)) and key.ndim <= 1:
+                    # Series, or 0,1 ndim ndarray
+                    # GH 14730
+                    key = list(key)
+                elif isinstance(key, ABCDataFrame):
+                    # GH 15438
+                    raise NotImplementedError("Indexing a MultiIndex with a "
+                                              "DataFrame key is not "
+                                              "implemented")
+                elif hasattr(key, 'ndim') and key.ndim > 1:
+                    raise NotImplementedError("Indexing a MultiIndex with a "
+                                              "multidimensional key is not "
+                                              "implemented")
+
                 if (not isinstance(key, tuple) and len(key) > 1 and
                         not isinstance(key[0], tuple)):
-                    if isinstance(key, ABCSeries):
-                        # GH 14730
-                        key = list(key)
                     key = tuple([key])
 
             # an iterable multi-selection
@@ -1853,7 +1852,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
 
 # 32-bit floating point machine epsilon
-_eps = np.finfo('f4').eps
+_eps = 1.1920929e-07
 
 
 def length_of_indexer(indexer, target=None):

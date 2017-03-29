@@ -20,14 +20,15 @@ from pandas.types.common import (_ensure_platform_int,
                                  is_integer_dtype,
                                  is_bool_dtype,
                                  is_list_like,
+                                 is_string_dtype,
                                  is_scalar, is_dtype_equal)
-from pandas.types.cast import (_possibly_convert_platform, _maybe_promote,
-                               _astype_nansafe, _find_common_type)
+from pandas.types.cast import (maybe_convert_platform, maybe_promote,
+                               astype_nansafe, find_common_type)
 from pandas.types.missing import isnull, notnull, na_value_for_dtype
 
-from pandas._sparse import SparseIndex, BlockIndex, IntIndex
-import pandas._sparse as splib
-import pandas.index as _index
+from pandas.sparse import libsparse as splib
+from pandas.sparse.libsparse import SparseIndex, BlockIndex, IntIndex
+from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
 import pandas.core.ops as ops
 import pandas.formats.printing as printing
@@ -92,7 +93,7 @@ def _sparse_array_op(left, right, op, name, series=False):
 
     # dtype used to find corresponding sparse method
     if not is_dtype_equal(left.dtype, right.dtype):
-        dtype = _find_common_type([left.dtype, right.dtype])
+        dtype = find_common_type([left.dtype, right.dtype])
         left = left.astype(dtype)
         right = right.astype(dtype)
     else:
@@ -369,7 +370,7 @@ class SparseArray(PandasObject, np.ndarray):
         if not is_scalar(value):
             raise ValueError('fill_value must be a scalar')
         # if the specified value triggers type promotion, raise ValueError
-        new_dtype, fill_value = _maybe_promote(self.dtype, value)
+        new_dtype, fill_value = maybe_promote(self.dtype, value)
         if is_dtype_equal(self.dtype, new_dtype):
             self._fill_value = fill_value
         else:
@@ -447,7 +448,7 @@ class SparseArray(PandasObject, np.ndarray):
         if sp_loc == -1:
             return self.fill_value
         else:
-            return _index.get_value_at(self, sp_loc)
+            return libindex.get_value_at(self, sp_loc)
 
     @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
@@ -531,7 +532,7 @@ class SparseArray(PandasObject, np.ndarray):
 
     def astype(self, dtype=None, copy=True):
         dtype = np.dtype(dtype)
-        sp_values = _astype_nansafe(self.sp_values, dtype, copy=copy)
+        sp_values = astype_nansafe(self.sp_values, dtype, copy=copy)
         try:
             if is_bool_dtype(dtype):
                 # to avoid np.bool_ dtype
@@ -735,7 +736,7 @@ def _sanitize_values(arr):
             pass
 
         elif is_list_like(arr) and len(arr) > 0:
-            arr = _possibly_convert_platform(arr)
+            arr = maybe_convert_platform(arr)
 
         else:
             arr = np.asarray(arr)
@@ -769,6 +770,12 @@ def make_sparse(arr, kind='block', fill_value=None):
     if isnull(fill_value):
         mask = notnull(arr)
     else:
+        # For str arrays in NumPy 1.12.0, operator!= below isn't
+        # element-wise but just returns False if fill_value is not str,
+        # so cast to object comparison to be safe
+        if is_string_dtype(arr):
+            arr = arr.astype(object)
+
         mask = arr != fill_value
 
     length = len(arr)
@@ -776,7 +783,7 @@ def make_sparse(arr, kind='block', fill_value=None):
         # the arr is a SparseArray
         indices = mask.sp_index.indices
     else:
-        indices = np.arange(length, dtype=np.int32)[mask]
+        indices = mask.nonzero()[0].astype(np.int32)
 
     index = _make_index(length, indices, kind)
     sparsified_values = arr[mask]

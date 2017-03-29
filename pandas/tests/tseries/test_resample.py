@@ -26,7 +26,7 @@ from pandas.tseries.resample import (DatetimeIndex, TimeGrouper,
 from pandas.tseries.tdi import timedelta_range, TimedeltaIndex
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
-from pandas._period import IncompatibleFrequency
+from pandas._libs.period import IncompatibleFrequency
 
 bday = BDay()
 
@@ -757,10 +757,8 @@ class Base(object):
                         freq in ['M', 'D']):
                     # GH12871 - TODO: name should propagate, but currently
                     # doesn't on lower / same frequency with PeriodIndex
-                    assert_series_equal(result, expected, check_dtype=False,
-                                        check_names=False)
-                    # this assert will break when fixed
-                    self.assertTrue(result.name is None)
+                    assert_series_equal(result, expected, check_dtype=False)
+
                 else:
                     assert_series_equal(result, expected, check_dtype=False)
 
@@ -1944,7 +1942,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         index = pd.date_range('1-1-2000', '2-15-2000', freq='h')
         index2 = pd.date_range('4-15-2000', '5-15-2000', freq='h')
         index3 = index.append(index2)
-        s = pd.Series(range(len(index3)), index=index3)
+        s = pd.Series(range(len(index3)), index=index3, dtype='int64')
         r = s.resample('M')
 
         # Since all elements are unique, these should all be the same

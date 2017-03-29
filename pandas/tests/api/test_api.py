@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from warnings import catch_warnings
 import numpy as np
 
 import pandas as pd
@@ -33,16 +34,12 @@ class TestPDApi(Base, tm.TestCase):
     # top-level sub-packages
     lib = ['api', 'compat', 'computation', 'core',
            'indexes', 'formats', 'pandas',
-           'test', 'tools', 'tseries',
+           'test', 'tools', 'tseries', 'sparse',
            'types', 'util', 'options', 'io']
 
-    # top-level packages that are c-imports, should rename to _*
-    # to avoid naming conflicts
-    lib_to_rename = ['algos', 'hashtable', 'tslib', 'msgpack', 'sparse',
-                     'json', 'lib', 'index', 'parser']
-
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['stats', 'datetools']
+    deprecated_modules = ['stats', 'datetools', 'parser',
+                          'json', 'lib', 'tslib']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -57,15 +54,11 @@ class TestPDApi(Base, tm.TestCase):
                'TimedeltaIndex', 'Timestamp']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['TimeSeries', 'WidePanel',
-                          'SparseTimeSeries', 'Panel4D',
-                          'SparseList']
+    deprecated_classes = ['WidePanel', 'Panel4D',
+                          'SparseList', 'Expr', 'Term']
 
     # these should be deprecated in the future
-    deprecated_classes_in_future = ['Term', 'Panel']
-
-    # these should be removed from top-level namespace
-    remove_classes_from_top_level_namespace = ['Expr']
+    deprecated_classes_in_future = ['Panel']
 
     # external modules exposed in pandas namespace
     modules = ['np', 'datetime']
@@ -75,7 +68,7 @@ class TestPDApi(Base, tm.TestCase):
              'date_range', 'eval',
              'factorize', 'get_dummies', 'get_store',
              'infer_freq', 'isnull', 'lreshape',
-             'match', 'melt', 'notnull', 'offsets',
+             'melt', 'notnull', 'offsets',
              'merge', 'merge_ordered', 'merge_asof',
              'period_range',
              'pivot', 'pivot_table', 'plot_params', 'qcut',
@@ -99,9 +92,6 @@ class TestPDApi(Base, tm.TestCase):
     funcs_to = ['to_datetime', 'to_msgpack',
                 'to_numeric', 'to_pickle', 'to_timedelta']
 
-    # these should be deprecated in the future
-    deprecated_funcs_in_future = ['pnow', 'groupby', 'info']
-
     # these are already deprecated; awaiting removal
     deprecated_funcs = ['ewma', 'ewmcorr', 'ewmcov', 'ewmstd', 'ewmvar',
                         'ewmvol', 'expanding_apply', 'expanding_corr',
@@ -114,20 +104,19 @@ class TestPDApi(Base, tm.TestCase):
                         'rolling_kurt', 'rolling_max', 'rolling_mean',
                         'rolling_median', 'rolling_min', 'rolling_quantile',
                         'rolling_skew', 'rolling_std', 'rolling_sum',
-                        'rolling_var', 'rolling_window', 'ordered_merge']
+                        'rolling_var', 'rolling_window', 'ordered_merge',
+                        'pnow', 'match', 'groupby']
 
     def test_api(self):
 
         self.check(pd,
-                   self.lib + self.lib_to_rename + self.misc +
+                   self.lib + self.misc +
                    self.modules + self.deprecated_modules +
                    self.classes + self.deprecated_classes +
                    self.deprecated_classes_in_future +
-                   self.remove_classes_from_top_level_namespace +
                    self.funcs + self.funcs_option +
                    self.funcs_read + self.funcs_to +
-                   self.deprecated_funcs +
-                   self.deprecated_funcs_in_future,
+                   self.deprecated_funcs,
                    self.ignored)
 
 
@@ -214,7 +203,7 @@ class TestTypes(Base, tm.TestCase):
             self.assertRaises(AttributeError, lambda: getattr(com, t))
 
 
-class TestDatetools(tm.TestCase):
+class TestDatetoolsDeprecation(tm.TestCase):
 
     def test_deprecation_access_func(self):
         with tm.assert_produces_warning(FutureWarning,
@@ -225,3 +214,61 @@ class TestDatetools(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.datetools.monthEnd
+
+
+class TestTopLevelDeprecations(tm.TestCase):
+    # top-level API deprecations
+    # GH 13790
+
+    def test_pnow(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.pnow(freq='M')
+
+    def test_term(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.Term('index>=date')
+
+    def test_expr(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.Expr('2>1')
+
+    def test_match(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.match([1, 2, 3], [1])
+
+    def test_groupby(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.groupby(pd.Series([1, 2, 3]), [1, 1, 1])
+
+
+class TestJson(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with catch_warnings(record=True):
+            pd.json.dumps([])
+
+
+class TestParser(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with catch_warnings(record=True):
+            pd.parser.na_values
+
+
+class TestLib(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with catch_warnings(record=True):
+            pd.lib.infer_dtype
+
+
+class TestTSLib(tm.TestCase):
+
+    def test_deprecation_access_func(self):
+        with catch_warnings(record=True):
+            pd.tslib.Timestamp

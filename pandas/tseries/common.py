@@ -13,10 +13,9 @@ from pandas.types.common import (_NS_DTYPE, _TD_DTYPE,
 
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.tseries.index import DatetimeIndex
-from pandas._period import IncompatibleFrequency    # flake8: noqa
+from pandas._libs.period import IncompatibleFrequency    # flake8: noqa
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.tdi import TimedeltaIndex
-from pandas import tslib
 from pandas.core.algorithms import take_1d
 
 
@@ -106,6 +105,8 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
         elif not is_list_like(result):
             return result
 
+        result = np.asarray(result)
+
         # blow up if we operate on categories
         if self.orig is not None:
             result = take_1d(result, self.orig.cat.codes)
@@ -167,8 +168,7 @@ DatetimeProperties._add_delegate_accessors(
     typ='property')
 DatetimeProperties._add_delegate_accessors(
     delegate=DatetimeIndex,
-    accessors=["to_period", "tz_localize", "tz_convert",
-               "normalize", "strftime", "round", "floor", "ceil"],
+    accessors=DatetimeIndex._datetimelike_methods,
     typ='method')
 
 
@@ -207,7 +207,7 @@ TimedeltaProperties._add_delegate_accessors(
     typ='property')
 TimedeltaProperties._add_delegate_accessors(
     delegate=TimedeltaIndex,
-    accessors=["to_pytimedelta", "total_seconds", "round", "floor", "ceil"],
+    accessors=TimedeltaIndex._datetimelike_methods,
     typ='method')
 
 
@@ -229,9 +229,10 @@ PeriodProperties._add_delegate_accessors(
     delegate=PeriodIndex,
     accessors=PeriodIndex._datetimelike_ops,
     typ='property')
-PeriodProperties._add_delegate_accessors(delegate=PeriodIndex,
-                                         accessors=["strftime"],
-                                         typ='method')
+PeriodProperties._add_delegate_accessors(
+    delegate=PeriodIndex,
+    accessors=PeriodIndex._datetimelike_methods,
+    typ='method')
 
 
 class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):

@@ -108,16 +108,34 @@ class groupby_frame_apply(object):
         self.N = 10000
         self.labels = np.random.randint(0, 2000, size=self.N)
         self.labels2 = np.random.randint(0, 3, size=self.N)
-        self.df = DataFrame({'key': self.labels, 'key2': self.labels2, 'value1': randn(self.N), 'value2': (['foo', 'bar', 'baz', 'qux'] * (self.N / 4)), })
+        self.df = DataFrame({
+            'key': self.labels,
+            'key2': self.labels2,
+            'value1': np.random.randn(self.N),
+            'value2': (['foo', 'bar', 'baz', 'qux'] * (self.N // 4)),
+        })
 
-    def f(self, g):
+    @staticmethod
+    def scalar_function(g):
         return 1
 
-    def time_groupby_frame_apply(self):
-        self.df.groupby(['key', 'key2']).apply(self.f)
+    def time_groupby_frame_apply_scalar_function(self):
+        self.df.groupby(['key', 'key2']).apply(self.scalar_function)
 
-    def time_groupby_frame_apply_overhead(self):
-        self.df.groupby('key').apply(self.f)
+    def time_groupby_frame_apply_scalar_function_overhead(self):
+        self.df.groupby('key').apply(self.scalar_function)
+
+    @staticmethod
+    def df_copy_function(g):
+        # ensure that the group name is available (see GH #15062)
+        g.name
+        return g.copy()
+
+    def time_groupby_frame_df_copy_function(self):
+        self.df.groupby(['key', 'key2']).apply(self.df_copy_function)
+
+    def time_groupby_frame_apply_df_copy_overhead(self):
+        self.df.groupby('key').apply(self.df_copy_function)
 
 
 #----------------------------------------------------------------------
@@ -490,6 +508,43 @@ class groupby_float32(object):
 
     def time_groupby_sum(self):
         self.df.groupby(['a'])['b'].sum()
+
+
+class groupby_categorical(object):
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        arr = np.random.random(N)
+
+        self.df = DataFrame(dict(
+            a=Categorical(np.random.randint(10000, size=N)),
+            b=arr))
+        self.df_ordered = DataFrame(dict(
+            a=Categorical(np.random.randint(10000, size=N), ordered=True),
+            b=arr))
+        self.df_extra_cat = DataFrame(dict(
+            a=Categorical(np.random.randint(100, size=N),
+                          categories=np.arange(10000)),
+            b=arr))
+
+    def time_groupby_sort(self):
+        self.df.groupby('a')['b'].count()
+
+    def time_groupby_nosort(self):
+        self.df.groupby('a', sort=False)['b'].count()
+
+    def time_groupby_ordered_sort(self):
+        self.df_ordered.groupby('a')['b'].count()
+
+    def time_groupby_ordered_nosort(self):
+        self.df_ordered.groupby('a', sort=False)['b'].count()
+
+    def time_groupby_extra_cat_sort(self):
+        self.df_extra_cat.groupby('a')['b'].count()
+
+    def time_groupby_extra_cat_nosort(self):
+        self.df_extra_cat.groupby('a', sort=False)['b'].count()
 
 
 class groupby_period(object):

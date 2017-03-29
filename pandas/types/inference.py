@@ -6,7 +6,7 @@ import numpy as np
 from numbers import Number
 from pandas.compat import (string_types, text_type,
                            string_and_binary_types)
-from pandas import lib
+from pandas._libs import lib
 
 is_bool = lib.is_bool
 

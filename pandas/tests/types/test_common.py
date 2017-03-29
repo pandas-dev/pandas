@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import pytest
 import numpy as np
 
 from pandas.types.dtypes import DatetimeTZDtype, PeriodDtype, CategoricalDtype
@@ -38,17 +39,44 @@ class TestPandasDtype(tm.TestCase):
             self.assertEqual(pandas_dtype(dtype), dtype)
 
 
-def test_dtype_equal():
-    assert is_dtype_equal(np.int64, np.int64)
-    assert not is_dtype_equal(np.int64, np.float64)
+dtypes = dict(datetime_tz=pandas_dtype('datetime64[ns, US/Eastern]'),
+              datetime=pandas_dtype('datetime64[ns]'),
+              timedelta=pandas_dtype('timedelta64[ns]'),
+              period=PeriodDtype('D'),
+              integer=np.dtype(np.int64),
+              float=np.dtype(np.float64),
+              object=np.dtype(np.object),
+              category=pandas_dtype('category'))
 
-    p1 = PeriodDtype('D')
-    p2 = PeriodDtype('D')
-    assert is_dtype_equal(p1, p2)
-    assert not is_dtype_equal(np.int64, p1)
 
-    p3 = PeriodDtype('2D')
-    assert not is_dtype_equal(p1, p3)
+@pytest.mark.parametrize('name1,dtype1',
+                         list(dtypes.items()),
+                         ids=lambda x: str(x))
+@pytest.mark.parametrize('name2,dtype2',
+                         list(dtypes.items()),
+                         ids=lambda x: str(x))
+def test_dtype_equal(name1, dtype1, name2, dtype2):
 
-    assert not DatetimeTZDtype.is_dtype(np.int64)
-    assert not PeriodDtype.is_dtype(np.int64)
+    # match equal to self, but not equal to other
+    assert is_dtype_equal(dtype1, dtype1)
+    if name1 != name2:
+        assert not is_dtype_equal(dtype1, dtype2)
+
+
+def test_dtype_equal_strict():
+
+    # we are strict on kind equality
+    for dtype in [np.int8, np.int16, np.int32]:
+        assert not is_dtype_equal(np.int64, dtype)
+
+    for dtype in [np.float32]:
+        assert not is_dtype_equal(np.float64, dtype)
+
+    # strict w.r.t. PeriodDtype
+    assert not is_dtype_equal(PeriodDtype('D'),
+                              PeriodDtype('2D'))
+
+    # strict w.r.t. datetime64
+    assert not is_dtype_equal(
+        pandas_dtype('datetime64[ns, US/Eastern]'),
+        pandas_dtype('datetime64[ns, CET]'))

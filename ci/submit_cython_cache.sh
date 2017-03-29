@@ -9,7 +9,7 @@ rm -rf $PYX_CACHE_DIR
 
 home_dir=$(pwd)
 
-mkdir $PYX_CACHE_DIR
+mkdir -p $PYX_CACHE_DIR
 rsync -Rv $pyx_file_list $PYX_CACHE_DIR
 
 echo "pyx files:"

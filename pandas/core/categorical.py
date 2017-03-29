@@ -4,14 +4,14 @@ import numpy as np
 from warnings import warn
 import types
 
-from pandas import compat, lib
+from pandas import compat
 from pandas.compat import u, lzip
-import pandas.algos as _algos
+from pandas._libs import lib, algos as libalgos
 
 from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
 from pandas.types.missing import isnull, notnull
-from pandas.types.cast import (_possibly_infer_to_datetimelike,
-                               _coerce_indexer_dtype)
+from pandas.types.cast import (maybe_infer_to_datetimelike,
+                               coerce_indexer_dtype)
 from pandas.types.dtypes import CategoricalDtype
 from pandas.types.common import (_ensure_int64,
                                  _ensure_object,
@@ -231,24 +231,17 @@ class Categorical(PandasObject):
     __array_priority__ = 1000
     _typ = 'categorical'
 
-    def __init__(self, values, categories=None, ordered=False,
-                 name=None, fastpath=False):
+    def __init__(self, values, categories=None, ordered=False, fastpath=False):
 
         self._validate_ordered(ordered)
 
         if fastpath:
             # fast path
-            self._codes = _coerce_indexer_dtype(values, categories)
+            self._codes = coerce_indexer_dtype(values, categories)
             self._categories = self._validate_categories(
                 categories, fastpath=isinstance(categories, ABCIndexClass))
             self._ordered = ordered
             return
-
-        if name is not None:
-            msg = ("the 'name' keyword is removed, use 'name' with consumers "
-                   "of the categorical instead (e.g. 'Series(cat, "
-                   "name=\"something\")'")
-            warn(msg, UserWarning, stacklevel=2)
 
         # sanitize input
         if is_categorical_dtype(values):
@@ -273,8 +266,7 @@ class Categorical(PandasObject):
             # correctly no need here this is an issue because _sanitize_array
             # also coerces np.nan to a string under certain versions of numpy
             # as well
-            values = _possibly_infer_to_datetimelike(values,
-                                                     convert_dates=True)
+            values = maybe_infer_to_datetimelike(values, convert_dates=True)
             if not isinstance(values, np.ndarray):
                 values = _convert_to_list_like(values)
                 from pandas.core.series import _sanitize_array
@@ -331,7 +323,7 @@ class Categorical(PandasObject):
 
         self.set_ordered(ordered or False, inplace=True)
         self._categories = categories
-        self._codes = _coerce_indexer_dtype(codes, categories)
+        self._codes = coerce_indexer_dtype(codes, categories)
 
     @property
     def _constructor(self):
@@ -431,7 +423,7 @@ class Categorical(PandasObject):
         return cls(data, **kwargs)
 
     @classmethod
-    def from_codes(cls, codes, categories, ordered=False, name=None):
+    def from_codes(cls, codes, categories, ordered=False):
         """
         Make a Categorical type from codes and categories arrays.
 
@@ -454,12 +446,6 @@ class Categorical(PandasObject):
             categorical. If not given, the resulting categorical will be
             unordered.
         """
-        if name is not None:
-            msg = ("the 'name' keyword is removed, use 'name' with consumers "
-                   "of the categorical instead (e.g. 'Series(cat, "
-                   "name=\"something\")'")
-            warn(msg, UserWarning, stacklevel=2)
-
         try:
             codes = np.asarray(codes, np.int64)
         except:
@@ -559,18 +545,11 @@ class Categorical(PandasObject):
 
         if not fastpath:
 
-            # check properties of the categories
-            # we don't allow NaNs in the categories themselves
-
+            # Categories cannot contain NaN.
             if categories.hasnans:
-                # NaNs in cats deprecated in 0.17,
-                # remove in 0.18 or 0.19 GH 10748
-                msg = ('\nSetting NaNs in `categories` is deprecated and '
-                       'will be removed in a future version of pandas.')
-                warn(msg, FutureWarning, stacklevel=3)
+                raise ValueError('Categorial categories cannot be null')
 
-            # categories must be unique
-
+            # Categories must be unique.
             if not categories.is_unique:
                 raise ValueError('Categorical categories must be unique')
 
@@ -601,6 +580,46 @@ class Categorical(PandasObject):
 
     categories = property(fget=_get_categories, fset=_set_categories,
                           doc=_categories_doc)
+
+    def _codes_for_groupby(self, sort):
+        """
+        If sort=False, return a copy of self, coded with categories as
+        returned by .unique(), followed by any categories not appearing in
+        the data. If sort=True, return self.
+
+        This method is needed solely to ensure the categorical index of the
+        GroupBy result has categories in the order of appearance in the data
+        (GH-8868).
+
+        Parameters
+        ----------
+        sort : boolean
+            The value of the sort paramter groupby was called with.
+
+        Returns
+        -------
+        Categorical
+            If sort=False, the new categories are set to the order of
+            appearance in codes (unless ordered=True, in which case the
+            original order is preserved), followed by any unrepresented
+            categories in the original order.
+        """
+
+        # Already sorted according to self.categories; all is fine
+        if sort:
+            return self
+
+        # sort=False should order groups in as-encountered order (GH-8868)
+        cat = self.unique()
+
+        # But for groupby to work, all categories should be present,
+        # including those missing from the data (GH-13179), which .unique()
+        # above dropped
+        cat.add_categories(
+            self.categories[~self.categories.isin(cat.categories)],
+            inplace=True)
+
+        return self.reorder_categories(cat.categories)
 
     _ordered = None
 
@@ -850,7 +869,7 @@ class Categorical(PandasObject):
         new_categories = list(self._categories) + list(new_categories)
         cat = self if inplace else self.copy()
         cat._categories = self._validate_categories(new_categories)
-        cat._codes = _coerce_indexer_dtype(cat._codes, new_categories)
+        cat._codes = coerce_indexer_dtype(cat._codes, new_categories)
         if not inplace:
             return cat
 
@@ -934,7 +953,7 @@ class Categorical(PandasObject):
             idx, inv = idx[1:], inv - 1
 
         cat._categories = cat.categories.take(idx)
-        cat._codes = _coerce_indexer_dtype(inv, self._categories)
+        cat._codes = coerce_indexer_dtype(inv, self._categories)
 
         if not inplace:
             return cat
@@ -1038,8 +1057,8 @@ class Categorical(PandasObject):
             state['_categories'] = self._validate_categories(state.pop(
                 '_levels'))
         if '_codes' not in state and 'labels' in state:
-            state['_codes'] = _coerce_indexer_dtype(state.pop('labels'),
-                                                    state['_categories'])
+            state['_codes'] = coerce_indexer_dtype(
+                state.pop('labels'), state['_categories'])
 
         # 0.16.0 ordered change
         if '_ordered' not in state:
@@ -1363,6 +1382,35 @@ class Categorical(PandasObject):
         else:
             return self._constructor(values=codes, categories=self.categories,
                                      ordered=self.ordered, fastpath=True)
+
+    def _values_for_rank(self):
+        """
+        For correctly ranking ordered categorical data. See GH#15420
+
+        Ordered categorical data should be ranked on the basis of
+        codes with -1 translated to NaN.
+
+        Returns
+        -------
+        numpy array
+
+        """
+        from pandas import Series
+        if self.ordered:
+            values = self.codes
+            mask = values == -1
+            if mask.any():
+                values = values.astype('float64')
+                values[mask] = np.nan
+        elif self.categories.is_numeric():
+            values = np.array(self)
+        else:
+            #  reorder the categories (so rank can use the float codes)
+            #  instead of passing an object array to rank
+            values = np.array(
+                self.rename_categories(Series(self.categories).rank())
+            )
+        return values
 
     def order(self, inplace=False, ascending=True, na_position='last'):
         """
@@ -1748,8 +1796,8 @@ class Categorical(PandasObject):
 
         """
         categories = self.categories
-        r, counts = _algos.groupsort_indexer(self.codes.astype('int64'),
-                                             categories.size)
+        r, counts = libalgos.groupsort_indexer(self.codes.astype('int64'),
+                                               categories.size)
         counts = counts.cumsum()
         result = [r[counts[indexer]:counts[indexer + 1]]
                   for indexer in range(len(counts) - 1)]
@@ -1828,7 +1876,7 @@ class Categorical(PandasObject):
         modes : `Categorical` (sorted)
         """
 
-        import pandas.hashtable as htable
+        import pandas._libs.hashtable as htable
         good = self._codes != -1
         values = sorted(htable.mode_int64(_ensure_int64(self._codes[good])))
         result = self._constructor(values=values, categories=self.categories,
@@ -1853,8 +1901,10 @@ class Categorical(PandasObject):
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
         cat = self.copy()
+
         # keep nan in codes
         cat._codes = unique_codes
+
         # exclude nan from indexer for categories
         take_codes = unique_codes[unique_codes != -1]
         if self.ordered:
@@ -2004,7 +2054,7 @@ def _get_codes_for_values(values, categories):
     (_, _), cats = _get_data_algo(categories, _hashtables)
     t = hash_klass(len(cats))
     t.map_locations(cats)
-    return _coerce_indexer_dtype(t.lookup(vals), cats)
+    return coerce_indexer_dtype(t.lookup(vals), cats)
 
 
 def _convert_to_list_like(list_like):

@@ -22,7 +22,8 @@ from pandas.util.testing import (ensure_clean,
 from pandas.tests.test_panel import assert_panel_equal
 
 import pandas
-from pandas import Timestamp, NaT, tslib
+from pandas import Timestamp, NaT
+from pandas._libs.tslib import iNaT
 
 nan = np.nan
 
@@ -39,6 +40,22 @@ except ImportError:
     _ZLIB_INSTALLED = False
 else:
     _ZLIB_INSTALLED = True
+
+
+@pytest.fixture(scope='module')
+def current_packers_data():
+    # our current version packers data
+    from pandas.tests.io.generate_legacy_storage_files import (
+        create_msgpack_data)
+    return create_msgpack_data()
+
+
+@pytest.fixture(scope='module')
+def all_packers_data():
+    # our all of our current version packers data
+    from pandas.tests.io.generate_legacy_storage_files import (
+        create_data)
+    return create_data()
 
 
 def check_arbitrary(a, b):
@@ -295,6 +312,7 @@ class TestIndex(TestPackers):
             'period': Index(period_range('2012-1-1', freq='M', periods=3)),
             'date2': Index(date_range('2013-01-1', periods=10)),
             'bdate': Index(bdate_range('2013-01-02', periods=10)),
+            'cat': tm.makeCategoricalIndex(100)
         }
 
         self.mi = {
@@ -333,6 +351,13 @@ class TestIndex(TestPackers):
         i_rec = self.encode_decode(i)
         self.assert_index_equal(i, i_rec)
 
+    def categorical_index(self):
+        # GH15487
+        df = DataFrame(np.random.randn(10, 2))
+        df = df.astype({0: 'category'}).set_index(0)
+        result = self.encode_decode(df)
+        tm.assert_frame_equal(result, df)
+
 
 class TestSeries(TestPackers):
 
@@ -349,7 +374,7 @@ class TestSeries(TestPackers):
         s.name = 'object'
         self.d['object'] = s
 
-        s = Series(tslib.iNaT, dtype='M8[ns]', index=range(5))
+        s = Series(iNaT, dtype='M8[ns]', index=range(5))
         self.d['date'] = s
 
         data = {
@@ -778,7 +803,16 @@ class TestEncoding(TestPackers):
             assert_frame_equal(result, frame)
 
 
-class TestMsgpack():
+def legacy_packers_versions():
+    # yield the packers versions
+    path = tm.get_data_path('legacy_msgpack')
+    for v in os.listdir(path):
+        p = os.path.join(path, v)
+        if os.path.isdir(p):
+            yield v
+
+
+class TestMsgpack(object):
     """
     How to add msgpack tests:
 
@@ -788,48 +822,38 @@ TestPackers
     $ python generate_legacy_storage_files.py <output_dir> msgpack
 
     3. Move the created pickle to "data/legacy_msgpack/<version>" directory.
-
-    NOTE: TestMsgpack can't be a subclass of tm.Testcase to use test generator.
-    http://stackoverflow.com/questions/6689537/nose-test-generators-inside-class
     """
 
-    @classmethod
-    def setup_class(cls):
-        from pandas.tests.io.generate_legacy_storage_files import (
-            create_msgpack_data, create_data)
-        cls.data = create_msgpack_data()
-        cls.all_data = create_data()
-        cls.path = u('__%s__.msgpack' % tm.rands(10))
-        cls.minimum_structure = {'series': ['float', 'int', 'mixed',
-                                            'ts', 'mi', 'dup'],
-                                 'frame': ['float', 'int', 'mixed', 'mi'],
-                                 'panel': ['float'],
-                                 'index': ['int', 'date', 'period'],
-                                 'mi': ['reg2']}
+    minimum_structure = {'series': ['float', 'int', 'mixed',
+                                    'ts', 'mi', 'dup'],
+                         'frame': ['float', 'int', 'mixed', 'mi'],
+                         'panel': ['float'],
+                         'index': ['int', 'date', 'period'],
+                         'mi': ['reg2']}
 
-    def check_min_structure(self, data):
+    def check_min_structure(self, data, version):
         for typ, v in self.minimum_structure.items():
             assert typ in data, '"{0}" not found in unpacked data'.format(typ)
             for kind in v:
                 msg = '"{0}" not found in data["{1}"]'.format(kind, typ)
                 assert kind in data[typ], msg
 
-    def compare(self, vf, version):
+    def compare(self, current_data, all_data, vf, version):
         # GH12277 encoding default used to be latin-1, now utf-8
         if LooseVersion(version) < '0.18.0':
             data = read_msgpack(vf, encoding='latin-1')
         else:
             data = read_msgpack(vf)
-        self.check_min_structure(data)
+        self.check_min_structure(data, version)
         for typ, dv in data.items():
-            assert typ in self.all_data, ('unpacked data contains '
-                                          'extra key "{0}"'
-                                          .format(typ))
+            assert typ in all_data, ('unpacked data contains '
+                                     'extra key "{0}"'
+                                     .format(typ))
             for dt, result in dv.items():
-                assert dt in self.all_data[typ], ('data["{0}"] contains extra '
-                                                  'key "{1}"'.format(typ, dt))
+                assert dt in current_data[typ], ('data["{0}"] contains extra '
+                                                 'key "{1}"'.format(typ, dt))
                 try:
-                    expected = self.data[typ][dt]
+                    expected = current_data[typ][dt]
                 except KeyError:
                     continue
 
@@ -862,9 +886,11 @@ TestPackers
         else:
             tm.assert_frame_equal(result, expected)
 
-    def read_msgpacks(self, version):
+    @pytest.mark.parametrize('version', legacy_packers_versions())
+    def test_msgpacks_legacy(self, current_packers_data, all_packers_data,
+                             version):
 
-        pth = tm.get_data_path('legacy_msgpack/{0}'.format(str(version)))
+        pth = tm.get_data_path('legacy_msgpack/{0}'.format(version))
         n = 0
         for f in os.listdir(pth):
             # GH12142 0.17 files packed in P2 can't be read in P3
@@ -873,19 +899,10 @@ TestPackers
                 continue
             vf = os.path.join(pth, f)
             try:
-                self.compare(vf, version)
+                self.compare(current_packers_data, all_packers_data,
+                             vf, version)
             except ImportError:
                 # blosc not installed
                 continue
-            n += 1
-        assert n > 0, 'Msgpack files are not tested'
-
-    def test_msgpack(self):
-        msgpack_path = tm.get_data_path('legacy_msgpack')
-        n = 0
-        for v in os.listdir(msgpack_path):
-            pth = os.path.join(msgpack_path, v)
-            if os.path.isdir(pth):
-                yield self.read_msgpacks, v
             n += 1
         assert n > 0, 'Msgpack files are not tested'

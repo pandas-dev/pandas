@@ -2,11 +2,17 @@
 
 import operator
 
+import pytest
+
 from numpy import nan
 import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range, Panel
+from pandas.types.common import (is_bool_dtype,
+                                 is_float_dtype,
+                                 is_object_dtype,
+                                 is_float)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
@@ -14,9 +20,11 @@ from pandas.compat import lrange
 from pandas import compat
 import pandas.sparse.frame as spf
 
-from pandas._sparse import BlockIndex, IntIndex
+from pandas.sparse.libsparse import BlockIndex, IntIndex
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparseArray
 from pandas.tests.frame.test_misc_api import SharedWithSparse
+
+from pandas.tests.sparse.common import spmatrix  # noqa: F401
 
 
 class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
@@ -389,8 +397,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
         self.assertRaises(Exception, sdf.__getitem__, ['a', 'd'])
 
-    def test_icol(self):
-        # 10711 deprecated
+    def test_iloc(self):
 
         # 2227
         result = self.frame.iloc[:, 0]
@@ -1117,6 +1124,105 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         exp = pd.DataFrame({'A': [True, True, True, True, False],
                             'B': [True, False, True, True, False]})
         tm.assert_frame_equal(res.to_dense(), exp)
+
+
+@pytest.mark.parametrize('index', [None, list('ab')])    # noqa: F811
+@pytest.mark.parametrize('columns', [None, list('cd')])
+@pytest.mark.parametrize('fill_value', [None, 0, np.nan])
+@pytest.mark.parametrize('dtype', [bool, int, float, np.uint16])
+def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
+    # GH 4343
+    tm.skip_if_no_package('scipy')
+
+    # Make one ndarray and from it one sparse matrix, both to be used for
+    # constructing frames and comparing results
+    arr = np.eye(2, dtype=dtype)
+    try:
+        spm = spmatrix(arr)
+        assert spm.dtype == arr.dtype
+    except (TypeError, AssertionError):
+        # If conversion to sparse fails for this spmatrix type and arr.dtype,
+        # then the combination is not currently supported in NumPy, so we
+        # can just skip testing it thoroughly
+        return
+
+    sdf = pd.SparseDataFrame(spm, index=index, columns=columns,
+                             default_fill_value=fill_value)
+
+    # Expected result construction is kind of tricky for all
+    # dtype-fill_value combinations; easiest to cast to something generic
+    # and except later on
+    rarr = arr.astype(object)
+    rarr[arr == 0] = np.nan
+    expected = pd.SparseDataFrame(rarr, index=index, columns=columns).fillna(
+        fill_value if fill_value is not None else np.nan)
+
+    # Assert frame is as expected
+    sdf_obj = sdf.astype(object)
+    tm.assert_sp_frame_equal(sdf_obj, expected)
+    tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
+
+    # Assert spmatrices equal
+    tm.assert_equal(dict(sdf.to_coo().todok()), dict(spm.todok()))
+
+    # Ensure dtype is preserved if possible
+    was_upcast = ((fill_value is None or is_float(fill_value)) and
+                  not is_object_dtype(dtype) and
+                  not is_float_dtype(dtype))
+    res_dtype = (bool if is_bool_dtype(dtype) else
+                 float if was_upcast else
+                 dtype)
+    tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
+    tm.assert_equal(sdf.to_coo().dtype, res_dtype)
+
+    # However, adding a str column results in an upcast to object
+    sdf['strings'] = np.arange(len(sdf)).astype(str)
+    tm.assert_equal(sdf.to_coo().dtype, np.object_)
+
+
+@pytest.mark.parametrize('fill_value', [None, 0, np.nan])    # noqa: F811
+def test_from_to_scipy_object(spmatrix, fill_value):
+    # GH 4343
+    dtype = object
+    columns = list('cd')
+    index = list('ab')
+    tm.skip_if_no_package('scipy', max_version='0.19.0')
+
+    # Make one ndarray and from it one sparse matrix, both to be used for
+    # constructing frames and comparing results
+    arr = np.eye(2, dtype=dtype)
+    try:
+        spm = spmatrix(arr)
+        assert spm.dtype == arr.dtype
+    except (TypeError, AssertionError):
+        # If conversion to sparse fails for this spmatrix type and arr.dtype,
+        # then the combination is not currently supported in NumPy, so we
+        # can just skip testing it thoroughly
+        return
+
+    sdf = pd.SparseDataFrame(spm, index=index, columns=columns,
+                             default_fill_value=fill_value)
+
+    # Expected result construction is kind of tricky for all
+    # dtype-fill_value combinations; easiest to cast to something generic
+    # and except later on
+    rarr = arr.astype(object)
+    rarr[arr == 0] = np.nan
+    expected = pd.SparseDataFrame(rarr, index=index, columns=columns).fillna(
+        fill_value if fill_value is not None else np.nan)
+
+    # Assert frame is as expected
+    sdf_obj = sdf.astype(object)
+    tm.assert_sp_frame_equal(sdf_obj, expected)
+    tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
+
+    # Assert spmatrices equal
+    tm.assert_equal(dict(sdf.to_coo().todok()), dict(spm.todok()))
+
+    # Ensure dtype is preserved if possible
+    res_dtype = object
+    tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
+    tm.assert_equal(sdf.to_coo().dtype, res_dtype)
 
 
 class TestSparseDataFrameArithmetic(tm.TestCase):

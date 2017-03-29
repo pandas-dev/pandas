@@ -202,8 +202,8 @@ def html():
         raise SystemExit("Building HTML failed.")
     try:
         # remove stale file
-        os.system('rm source/html-styling.html')
-        os.system('cd build; rm -f html/pandas.zip;')
+        os.remove('source/html-styling.html')
+        os.remove('build/html/pandas.zip')
     except:
         pass
 
@@ -222,7 +222,7 @@ def latex():
     check_build()
     if sys.platform != 'win32':
         # LaTeX format.
-        if os.system('sphinx-build -b latex -d build/doctrees '
+        if os.system('sphinx-build -j 2 -b latex -d build/doctrees '
                      'source build/latex'):
             raise SystemExit("Building LaTeX failed.")
         # Produce pdf.
@@ -245,7 +245,7 @@ def latex_forced():
     check_build()
     if sys.platform != 'win32':
         # LaTeX format.
-        if os.system('sphinx-build -b latex -d build/doctrees '
+        if os.system('sphinx-build -j 2 -b latex -d build/doctrees '
                      'source build/latex'):
             raise SystemExit("Building LaTeX failed.")
         # Produce pdf.

@@ -251,21 +251,23 @@ class Styler(object):
                            "class": " ".join(cs),
                            "is_visible": True})
 
-            for c in range(len(clabels[0])):
+            for c, value in enumerate(clabels[r]):
                 cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
                 cs.extend(cell_context.get(
                     "col_headings", {}).get(r, {}).get(c, []))
-                value = clabels[r][c]
-                row_es.append({"type": "th",
-                               "value": value,
-                               "display_value": value,
-                               "class": " ".join(cs),
-                               "is_visible": _is_visible(c, r, col_lengths),
-                               "attributes": [
-                                   format_attr({"key": "colspan",
-                                                "value": col_lengths.get(
-                                                    (r, c), 1)})
-                               ]})
+                es = {
+                    "type": "th",
+                    "value": value,
+                    "display_value": value,
+                    "class": " ".join(cs),
+                    "is_visible": _is_visible(c, r, col_lengths),
+                }
+                colspan = col_lengths.get((r, c), 0)
+                if colspan > 1:
+                    es["attributes"] = [
+                        format_attr({"key": "colspan", "value": colspan})
+                    ]
+                row_es.append(es)
             head.append(row_es)
 
         if self.data.index.names and not all(x is None
@@ -289,19 +291,22 @@ class Styler(object):
 
         body = []
         for r, idx in enumerate(self.data.index):
-            #  cs.extend(
-            #    cell_context.get("row_headings", {}).get(r, {}).get(c, []))
-            row_es = [{"type": "th",
-                       "is_visible": _is_visible(r, c, idx_lengths),
-                       "attributes": [
-                           format_attr({"key": "rowspan",
-                                        "value": idx_lengths.get((c, r), 1)})
-                       ],
-                       "value": rlabels[r][c],
-                       "class": " ".join([ROW_HEADING_CLASS, "level%s" % c,
-                                          "row%s" % r]),
-                       "display_value": rlabels[r][c]}
-                      for c in range(len(rlabels[r]))]
+            row_es = []
+            for c, value in enumerate(rlabels[r]):
+                es = {
+                    "type": "th",
+                    "is_visible": _is_visible(r, c, idx_lengths),
+                    "value": value,
+                    "display_value": value,
+                    "class": " ".join([ROW_HEADING_CLASS, "level%s" % c,
+                                       "row%s" % r]),
+                }
+                rowspan = idx_lengths.get((c, r), 0)
+                if rowspan > 1:
+                    es["attributes"] = [
+                        format_attr({"key": "rowspan", "value": rowspan})
+                    ]
+                row_es.append(es)
 
             for c, col in enumerate(self.data.columns):
                 cs = [DATA_CLASS, "row%s" % r, "col%s" % c]
@@ -626,11 +631,17 @@ class Styler(object):
 
         Parameters
         ----------
-        precision: int
+        attributes : string
 
         Returns
         -------
         self : Styler
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.random.randn(10, 4))
+        >>> df.style.set_table_attributes('class="pure-table"')
+        # ... <table class="pure-table"> ...
         """
         self.table_attributes = attributes
         return self
