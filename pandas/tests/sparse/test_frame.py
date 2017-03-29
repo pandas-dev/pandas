@@ -236,6 +236,18 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                                       dtype=float)
         tm.assert_sp_frame_equal(result, expected)
 
+    def test_type_coercion_at_construction(self):
+        # GH 15682
+        result = pd.SparseDataFrame(
+            {'a': [1, 0, 0], 'b': [0, 1, 0], 'c': [0, 0, 1]}, dtype='uint8',
+            default_fill_value=0)
+        expected = pd.SparseDataFrame(
+            {'a': pd.SparseSeries([1, 0, 0], dtype='uint8'),
+             'b': pd.SparseSeries([0, 1, 0], dtype='uint8'),
+             'c': pd.SparseSeries([0, 0, 1], dtype='uint8')},
+            default_fill_value=0)
+        tm.assert_sp_frame_equal(result, expected)
+
     def test_dtypes(self):
         df = DataFrame(np.random.randn(10000, 4))
         df.loc[:9998] = np.nan
@@ -756,8 +768,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_rename(self):
         # just check this works
-        renamed = self.frame.rename(index=str)  # noqa
-        renamed = self.frame.rename(
+        rename = self.frame.rename(index=str)  # noqa
+        rename = self.frame.rename(
             columns=lambda x: '%s%d' % (x, len(x)))  # noqa
 
     def test_corr(self):
@@ -1225,6 +1237,7 @@ def test_from_to_scipy_object(spmatrix, fill_value):
 
 
 class TestSparseDataFrameArithmetic(tm.TestCase):
+
     def test_numeric_op_scalar(self):
         df = pd.DataFrame({'A': [nan, nan, 0, 1, ],
                            'B': [0, 1, 2, nan],
@@ -1297,11 +1310,3 @@ class TestSparseDataFrameAnalytics(tm.TestCase):
         for func in funcs:
             getattr(np, func)(self.frame)
 
-    def test_type_coercion_at_construction(self):
-        # GH 15682
-        df = pd.SparseDataFrame(
-            {'a': [1, 0, 0], 'b': [0, 1, 0], 'c': [0, 0, 1]}, dtype='uint8',
-            default_fill_value=0)
-        result = df.dtypes[0]
-        expected = np.dtype('uint8')
-        assert result == expected

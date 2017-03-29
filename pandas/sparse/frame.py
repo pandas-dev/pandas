@@ -142,7 +142,7 @@ class SparseDataFrame(DataFrame):
 
         sp_maker = lambda x: SparseArray(x, kind=self._default_kind,
                                          fill_value=self._default_fill_value,
-                                         copy=True)
+                                         copy=True, dtype=dtype)
         sdict = DataFrame()
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):
@@ -159,7 +159,7 @@ class SparseDataFrame(DataFrame):
                     v = [v.get(i, nan) for i in index]
 
                 v = sp_maker(v)
-            sdict[k] = v.astype(np.dtype(dtype)) if dtype is not None else v
+            sdict[k] = v
 
         # TODO: figure out how to handle this case, all nan's?
         # add in any other columns we want to have (completeness)
