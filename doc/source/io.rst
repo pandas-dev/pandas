@@ -2222,9 +2222,10 @@ Read a URL and match a table that contains specific text
    match = 'Metcalf Bank'
    df_list = pd.read_html(url, match=match)
 
-Specify a header row (by default ``<th>`` elements are used to form the column
-index); if specified, the header row is taken from the data minus the parsed
-header elements (``<th>`` elements).
+Specify a header row (by default ``<th>`` or ``<td>`` elements located within a 
+``<thead>`` are used to form the column index, if multiple rows are contained within
+``<thead>`` then a multiindex is created); if specified, the header row is taken
+from the data minus the parsed header elements (``<th>`` elements).
 
 .. code-block:: python
 
