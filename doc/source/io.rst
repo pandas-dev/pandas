@@ -29,36 +29,26 @@ IO Tools (Text, CSV, HDF5, ...)
 ===============================
 
 The pandas I/O API is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
-object.
+object. The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
 
-    * :ref:`read_csv<io.read_csv_table>`
-    * :ref:`read_excel<io.excel_reader>`
-    * :ref:`read_hdf<io.hdf5>`
-    * :ref:`read_feather<io.feather>`
-    * :ref:`read_sql<io.sql>`
-    * :ref:`read_json<io.json_reader>`
-    * :ref:`read_msgpack<io.msgpack>`
-    * :ref:`read_html<io.read_html>`
-    * :ref:`read_gbq<io.bigquery>`
-    * :ref:`read_stata<io.stata_reader>`
-    * :ref:`read_sas<io.sas_reader>`
-    * :ref:`read_clipboard<io.clipboard>`
-    * :ref:`read_pickle<io.pickle>`
+.. csv-table::
+    :header: "Format Type", "Data Description", "Reader", "Writer"
+    :widths: 30, 100, 60, 60
+    :delim: ;
 
-The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
-
-    * :ref:`to_csv<io.store_in_csv>`
-    * :ref:`to_excel<io.excel_writer>`
-    * :ref:`to_hdf<io.hdf5>`
-    * :ref:`to_feather<io.feather>`
-    * :ref:`to_sql<io.sql>`
-    * :ref:`to_json<io.json_writer>`
-    * :ref:`to_msgpack<io.msgpack>`
-    * :ref:`to_html<io.html>`
-    * :ref:`to_gbq<io.bigquery>`
-    * :ref:`to_stata<io.stata_writer>`
-    * :ref:`to_clipboard<io.clipboard>`
-    * :ref:`to_pickle<io.pickle>`
+    text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
+    text;`JSON <http://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
+    text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
+    text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
+    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
+    binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
+    binary;`Msgpack <http://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
+    binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
+    binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
+    binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
+    SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
+    SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
