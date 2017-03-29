@@ -115,7 +115,7 @@ if [ "$LINT" ]; then
 fi
 
 if [ "$COVERAGE" ]; then
-    pip install coverage pytest-cov codecov
+    pip install coverage pytest-cov
 fi
 
 echo
