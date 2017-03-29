@@ -334,7 +334,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                         "division by pd.NaT not implemented")
 
                 i8 = self.asi8
-                result = op(i8, other.value)
+                if opstr in ['__floordiv__']:
+                    result = i8 // other.value
+                else:
+                    result = op(i8, float(other.value))
                 result = self._maybe_mask_results(result, convert='float64')
                 return Index(result, name=self.name, copy=False)
 

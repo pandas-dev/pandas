@@ -1610,7 +1610,7 @@ class TestOrigin(object):
                              [('random_string', ValueError),
                               ('epoch', ValueError),
                               ('13-24-1990', ValueError),
-                              ('0001-01-01', tslib.OutOfBoundsDatetime)])
+                              (datetime(1, 1, 1), tslib.OutOfBoundsDatetime)])
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):
 
         with pytest.raises(exc):
