@@ -1,11 +1,12 @@
 #!/bin/bash
 
 if [ -z "$COVERAGE" ]; then
-   echo "no upload of coverage is needed"
+   echo "coverage is not selected for this build"
    exit 0
 fi
 
 source activate pandas
 
-codecov --file -c -F single /tmp/cov-single.xml
-codecov --file -c -F multiple /tmp/cov-multiple.xml
+echo "uploading coverage"
+bash <(curl -s https://codecov.io/bash) -Z -c -F single -f /tmp/cov-single.xml
+bash <(curl -s https://codecov.io/bash) -Z -c -F multiple -f /tmp/cov-multiple.xml
