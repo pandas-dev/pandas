@@ -733,7 +733,8 @@ class _MergeOperation(object):
 
         if self.left_index and self.right_index and self.how != 'asof':
             join_index, left_indexer, right_indexer = \
-                left_ax.join(right_ax, how=self.how, return_indexers=True)
+                left_ax.join(right_ax, how=self.how, return_indexers=True,
+                             sort=self.sort)
         elif self.right_index and self.how == 'left':
             join_index, left_indexer, right_indexer = \
                 _left_join_on_index(left_ax, right_ax, self.left_join_keys,

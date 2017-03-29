@@ -1048,7 +1048,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             this.offset = to_offset(this.inferred_freq)
         return this
 
-    def join(self, other, how='left', level=None, return_indexers=False):
+    def join(self, other, how='left', level=None, return_indexers=False,
+             sort=False):
         """
         See Index.join
         """
@@ -1062,7 +1063,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         this, other = self._maybe_utc_convert(other)
         return Index.join(this, other, how=how, level=level,
-                          return_indexers=return_indexers)
+                          return_indexers=return_indexers, sort=sort)
 
     def _maybe_utc_convert(self, other):
         this = self
@@ -1214,9 +1215,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
               not other.offset.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
             result = Index.intersection(self, other)
-            if isinstance(result, DatetimeIndex):
-                if result.freq is None:
-                    result.offset = to_offset(result.inferred_freq)
+            result = self._shallow_copy(result._values, name=result.name,
+                                        tz=result.tz, freq=None)
+            if result.freq is None:
+                result.offset = to_offset(result.inferred_freq)
             return result
 
         if len(self) == 0:
@@ -1539,7 +1541,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _set_freq(self, value):
         self.offset = value
     freq = property(fget=_get_freq, fset=_set_freq,
-                    doc="get/set the frequncy of the Index")
+                    doc="get/set the frequency of the Index")
 
     year = _field_accessor('year', 'Y', "The year of the datetime")
     month = _field_accessor('month', 'M',
