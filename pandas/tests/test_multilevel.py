@@ -83,9 +83,9 @@ class TestMultiLevel(Base, tm.TestCase):
         # GH 7112
         import pytz
         tz = pytz.timezone('Asia/Tokyo')
-        expected_tuples = [(1.1, datetime.datetime(2011, 1, 1, tzinfo=tz)),
-                           (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz)),
-                           (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz))]
+        expected_tuples = [(1.1, tz.localize(datetime.datetime(2011, 1, 1))),
+                           (1.2, tz.localize(datetime.datetime(2011, 1, 2))),
+                           (1.3, tz.localize(datetime.datetime(2011, 1, 3)))]
         expected = Index([1.1, 1.2, 1.3] + expected_tuples)
         tm.assert_index_equal(result, expected)
 
@@ -103,9 +103,9 @@ class TestMultiLevel(Base, tm.TestCase):
 
         result = midx_lv3.append(midx_lv2)
         expected = Index._simple_new(
-            np.array([(1.1, datetime.datetime(2011, 1, 1, tzinfo=tz), 'A'),
-                      (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz), 'B'),
-                      (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz), 'C')] +
+            np.array([(1.1, tz.localize(datetime.datetime(2011, 1, 1)), 'A'),
+                      (1.2, tz.localize(datetime.datetime(2011, 1, 2)), 'B'),
+                      (1.3, tz.localize(datetime.datetime(2011, 1, 3)), 'C')] +
                      expected_tuples), None)
         tm.assert_index_equal(result, expected)
 
