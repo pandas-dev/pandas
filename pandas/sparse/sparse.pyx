@@ -71,7 +71,7 @@ cdef class IntIndex(SparseIndex):
     def check_integrity(self):
         """
         Only need be strictly ascending and nothing less than 0 or greater than
-        totall ength
+        total length
         """
         pass
 
