@@ -207,7 +207,8 @@ def test_pickles(current_pickle_data, version):
         if data is None:
             continue
         n += 1
-    assert n > 0, 'Pickle files are not tested'
+    assert n > 0, ('Pickle files are not '
+                   'tested: {version}'.format(version=version))
 
 
 def test_round_trip_current(current_pickle_data):
