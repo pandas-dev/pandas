@@ -28,7 +28,6 @@ from pandas.tests.sparse.common import spmatrix  # noqa: F401
 
 
 class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
-
     klass = SparseDataFrame
 
     def setUp(self):
@@ -235,6 +234,18 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         result = df.to_sparse()
         expected = pd.SparseDataFrame(matrix, index=index, columns=trains,
                                       dtype=float)
+        tm.assert_sp_frame_equal(result, expected)
+
+    def test_type_coercion_at_construction(self):
+        # GH 15682
+        result = pd.SparseDataFrame(
+            {'a': [1, 0, 0], 'b': [0, 1, 0], 'c': [0, 0, 1]}, dtype='uint8',
+            default_fill_value=0)
+        expected = pd.SparseDataFrame(
+            {'a': pd.SparseSeries([1, 0, 0], dtype='uint8'),
+             'b': pd.SparseSeries([0, 1, 0], dtype='uint8'),
+             'c': pd.SparseSeries([0, 0, 1], dtype='uint8')},
+            default_fill_value=0)
         tm.assert_sp_frame_equal(result, expected)
 
     def test_dtypes(self):
@@ -756,9 +767,18 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_frame_equal(result, expected)
 
     def test_rename(self):
-        # just check this works
-        renamed = self.frame.rename(index=str)  # noqa
-        renamed = self.frame.rename(columns=lambda x: '%s%d' % (x, len(x)))  # noqa
+        result = self.frame.rename(index=str)
+        expected = SparseDataFrame(self.data, index=self.dates.strftime(
+            "%Y-%m-%d %H:%M:%S"))
+        tm.assert_sp_frame_equal(result, expected)
+
+        result = self.frame.rename(columns=lambda x: '%s%d' % (x, len(x)))
+        data = {'A1': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+                'B1': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+                'C1': np.arange(10, dtype=np.float64),
+                'D1': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
+        expected = SparseDataFrame(data, index=self.dates)
+        tm.assert_sp_frame_equal(result, expected)
 
     def test_corr(self):
         res = self.frame.corr()
@@ -967,7 +987,6 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
     def test_shift(self):
 
         def _check(frame, orig):
-
             shifted = frame.shift(0)
             exp = orig.shift(0)
             tm.assert_frame_equal(shifted.to_dense(), exp)
@@ -1060,7 +1079,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         df = SparseDataFrame({'A': [nan, 0, 1]})
 
         # note that 2 ** df works fine, also df ** 1
-        result = 1**df
+        result = 1 ** df
 
         r1 = result.take([0], 1)['A']
         r2 = result['A']
@@ -1126,7 +1145,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_frame_equal(res.to_dense(), exp)
 
 
-@pytest.mark.parametrize('index', [None, list('ab')])    # noqa: F811
+@pytest.mark.parametrize('index', [None, list('ab')])  # noqa: F811
 @pytest.mark.parametrize('columns', [None, list('cd')])
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])
 @pytest.mark.parametrize('dtype', [bool, int, float, np.uint16])
@@ -1180,7 +1199,7 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     tm.assert_equal(sdf.to_coo().dtype, np.object_)
 
 
-@pytest.mark.parametrize('fill_value', [None, 0, np.nan])    # noqa: F811
+@pytest.mark.parametrize('fill_value', [None, 0, np.nan])  # noqa: F811
 def test_from_to_scipy_object(spmatrix, fill_value):
     # GH 4343
     dtype = object
@@ -1255,7 +1274,6 @@ class TestSparseDataFrameArithmetic(tm.TestCase):
 
 
 class TestSparseDataFrameAnalytics(tm.TestCase):
-
     def setUp(self):
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
