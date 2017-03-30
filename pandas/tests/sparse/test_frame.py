@@ -767,10 +767,18 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_frame_equal(result, expected)
 
     def test_rename(self):
-        # just check this works
-        rename = self.frame.rename(index=str)  # noqa
-        rename = self.frame.rename(
-            columns=lambda x: '%s%d' % (x, len(x)))  # noqa
+        result = self.frame.rename(index=str)
+        expected = SparseDataFrame(self.data, index=self.dates.strftime(
+            "%Y-%m-%d %H:%M:%S"))
+        tm.assert_sp_frame_equal(result, expected)
+
+        result = self.frame.rename(columns=lambda x: '%s%d' % (x, len(x)))
+        data = {'A1': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
+                'B1': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
+                'C1': np.arange(10, dtype=np.float64),
+                'D1': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]}
+        expected = SparseDataFrame(data, index=self.dates)
+        tm.assert_sp_frame_equal(result, expected)
 
     def test_corr(self):
         res = self.frame.corr()
@@ -1309,4 +1317,3 @@ class TestSparseDataFrameAnalytics(tm.TestCase):
                  'std', 'min', 'max']
         for func in funcs:
             getattr(np, func)(self.frame)
-
