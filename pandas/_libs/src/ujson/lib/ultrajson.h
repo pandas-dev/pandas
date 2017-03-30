@@ -233,7 +233,7 @@ typedef struct __JSONObjectEncoder {
   int recursionMax;
 
   /*
-  Configuration for max decimals of double floating poiunt numbers to encode (0-9) */
+  Configuration for max decimals of double floating point numbers to encode (0-9) */
   int doublePrecision;
 
   /*
