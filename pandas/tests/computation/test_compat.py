@@ -1,8 +1,4 @@
-
-# flake8: noqa
-
 import pytest
-from itertools import product
 from distutils.version import LooseVersion
 
 import pandas as pd
@@ -32,7 +28,7 @@ def test_compat():
 @pytest.mark.parametrize('parser', expr._parsers)
 def test_invalid_numexpr_version(engine, parser):
     def testit():
-        a, b = 1, 2
+        a, b = 1, 2  # noqa
         res = pd.eval('a + b', engine=engine, parser=parser)
         tm.assert_equal(res, 3)
 
