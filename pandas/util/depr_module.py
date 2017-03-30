@@ -13,8 +13,9 @@ class _DeprecatedModule(object):
     Parameters
     ----------
     deprmod : name of module to be deprecated.
-    deprmodto : name of module as a replacement, optional
-        if not givent will __module__
+    deprmodto : name of module as a replacement, optional.
+                If not given, the __module__ attribute will
+                be used when needed.
     removals : objects or methods in module that will no longer be
                accessible once module is removed.
     """
