@@ -2378,7 +2378,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         --------
         numpy.ndarray.take
         """
-        #nv.validate_take(tuple(), kwargs)
+        if kwargs:
+            nv.validate_take(tuple(), kwargs)
 
         # check/convert indicies here
         if convert:
