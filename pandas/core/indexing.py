@@ -1699,11 +1699,11 @@ class _iLocIndexer(_LocationIndexer):
 
     def _get_list_axis(self, key, axis=0):
         """
-        Return Series values by array of integers
+        Return Series values by list or array of integers
 
         Parameters
         ----------
-        key : list-like positional indexer (already converted to array)
+        key : list-like positional indexer
         axis : int (can only be zero)
 
         Returns
@@ -1738,7 +1738,6 @@ class _iLocIndexer(_LocationIndexer):
 
         # a single integer
         else:
-
             key = self._convert_scalar_indexer(key, axis)
 
             if not is_integer(key):

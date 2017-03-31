@@ -2388,8 +2388,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         indices = _ensure_platform_int(indices)
         new_index = self.index.take(indices)
         new_values = self._values.take(indices)
-        return self._constructor(new_values,
-                                 index=new_index, fastpath=True).__finalize__(self)
+        return (self._constructor(new_values, index=new_index, fastpath=True)
+                    .__finalize__(self))
 
     def isin(self, values):
         """
