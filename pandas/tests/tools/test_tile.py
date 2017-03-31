@@ -59,6 +59,18 @@ class TestCut(tm.TestCase):
         tm.assert_almost_equal(bins, np.array([0.1905, 3.36666667,
                                                6.53333333, 9.7]))
 
+    def test_bins_from_intervalindex(self):
+        c = cut(range(5), 3)
+        expected = c
+        result = cut(range(5), bins=expected.categories)
+        tm.assert_categorical_equal(result, expected)
+
+        expected = Categorical.from_codes(np.append(c.codes, -1),
+                                          categories=c.categories,
+                                          ordered=True)
+        result = cut(range(6), bins=expected.categories)
+        tm.assert_categorical_equal(result, expected)
+
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         self.assertRaises(ValueError, cut, data, [0.1, 1.5, 1, 10])

@@ -29,7 +29,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     ----------
     x : array-like
         Input array to be binned. It has to be 1-dimensional.
-    bins : int or sequence of scalars
+    bins : int, sequence of scalars, or IntervalIndex
         If `bins` is an int, it defines the number of equal-width bins in the
         range of `x`. However, in this case, the range of `x` is extended
         by .1% on each side to include the min or max values of `x`. If
@@ -78,10 +78,12 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
       (6.533, 9.7], (0.191, 3.367]]
     Categories (3, object): [(0.191, 3.367] < (3.367, 6.533] < (6.533, 9.7]],
     array([ 0.1905    ,  3.36666667,  6.53333333,  9.7       ]))
+
     >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3,
                labels=["good","medium","bad"])
     [good, good, good, medium, bad, good]
     Categories (3, object): [good < medium < bad]
+
     >>> pd.cut(np.ones(5), 4, labels=False)
     array([1, 1, 1, 1, 1], dtype=int64)
     """
@@ -119,6 +121,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
             else:
                 bins[-1] += adj
 
+    elif isinstance(bins, IntervalIndex):
+        pass
     else:
         bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
@@ -179,9 +183,11 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     >>> pd.qcut(range(5), 4)
     [[0, 1], [0, 1], (1, 2], (2, 3], (3, 4]]
     Categories (4, object): [[0, 1] < (1, 2] < (2, 3] < (3, 4]]
+
     >>> pd.qcut(range(5), 3, labels=["good","medium","bad"])
     [good, good, medium, bad, bad]
     Categories (3, object): [good < medium < bad]
+
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3], dtype=int64)
     """
@@ -209,6 +215,13 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     if duplicates not in ['raise', 'drop']:
         raise ValueError("invalid value for 'duplicates' parameter, "
                          "valid options are: raise, drop")
+
+    if isinstance(bins, IntervalIndex):
+        # we have a fast-path here
+        ids = bins.get_indexer(x)
+        result = algos.take_nd(bins, ids)
+        result = Categorical(result, ordered=True)
+        return result, bins
 
     unique_bins = algos.unique(bins)
     if len(unique_bins) < len(bins) and len(bins) != 2:
