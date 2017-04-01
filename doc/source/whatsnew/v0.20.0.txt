@@ -905,7 +905,7 @@ Performance Improvements
 - Improved performance of ``drop_duplicates()`` on ``bool`` columns (:issue:`12963`)
 - Improve performance of ``pd.core.groupby.GroupBy.apply`` when the applied
   function used the ``.name`` attribute of the group DataFrame (:issue:`15062`).
-
+- Improved performance of ``iloc`` indexing with a list or array (:issue:`15504`).
 
 
 .. _whatsnew_0200.bug_fixes:

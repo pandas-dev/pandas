@@ -1870,7 +1870,7 @@ class TestNDFrame(tm.TestCase):
                   tm.makeObjectSeries()]:
             out = s.take(indices)
             expected = Series(data=s.values.take(indices),
-                              index=s.index.take(indices))
+                              index=s.index.take(indices), dtype=s.dtype)
             tm.assert_series_equal(out, expected)
         for df in [tm.makeTimeDataFrame()]:
             out = df.take(indices)
