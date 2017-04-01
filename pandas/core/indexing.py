@@ -1697,26 +1697,24 @@ class _iLocIndexer(_LocationIndexer):
         else:
             return self.obj.take(slice_obj, axis=axis, convert=False)
 
-    def _get_list_axis(self, key_list, axis=0):
+    def _get_list_axis(self, key, axis=0):
         """
         Return Series values by list or array of integers
 
         Parameters
         ----------
-        key_list : list-like positional indexer
+        key : list-like positional indexer
         axis : int (can only be zero)
 
         Returns
         -------
         Series object
         """
-
-        # validate list bounds
-        self._is_valid_list_like(key_list, axis)
-
-        # force an actual list
-        key_list = list(key_list)
-        return self.obj.take(key_list, axis=axis, convert=False)
+        try:
+            return self.obj.take(key, axis=axis, convert=False)
+        except IndexError:
+            # re-raise with different error message
+            raise IndexError("positional indexers are out-of-bounds")
 
     def _getitem_axis(self, key, axis=0):
 
@@ -1724,7 +1722,13 @@ class _iLocIndexer(_LocationIndexer):
             self._has_valid_type(key, axis)
             return self._get_slice_axis(key, axis=axis)
 
-        elif is_bool_indexer(key):
+        if isinstance(key, list):
+            try:
+                key = np.asarray(key)
+            except TypeError:  # pragma: no cover
+                pass
+
+        if is_bool_indexer(key):
             self._has_valid_type(key, axis)
             return self._getbool_axis(key, axis=axis)
 
