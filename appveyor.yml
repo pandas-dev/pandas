@@ -72,7 +72,7 @@ install:
   - cmd: conda info -a
 
   # create our env
-  - cmd: conda create -n pandas python=%PYTHON_VERSION% cython pytest
+  - cmd: conda create -n pandas python=%PYTHON_VERSION% cython pytest pytest-xdist
   - cmd: activate pandas
   - SET REQ=ci\requirements-%PYTHON_VERSION%_WIN.run
   - cmd: echo "installing requirements from %REQ%"
