@@ -142,7 +142,7 @@ class SparseDataFrame(DataFrame):
 
         sp_maker = lambda x: SparseArray(x, kind=self._default_kind,
                                          fill_value=self._default_fill_value,
-                                         copy=True)
+                                         copy=True, dtype=dtype)
         sdict = DataFrame()
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):

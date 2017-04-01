@@ -108,7 +108,6 @@ install:
   - echo "install done"
 
 before_script:
-  - source activate pandas && pip install codecov
   - ci/install_db_travis.sh
 
 script:
@@ -120,9 +119,7 @@ script:
   - echo "script done"
 
 after_success:
-  - if [ "$COVERAGE" ]; then
-        source activate pandas && codecov --file /tmp/cov-single.xml /tmp/cov-multiple.xml;
-    fi
+  -  ci/upload_coverage.sh
 
 after_script:
   - echo "after_script start"
