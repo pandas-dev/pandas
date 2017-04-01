@@ -3356,6 +3356,65 @@ class TestRollingTS(tm.TestCase):
         result = df.rolling('2s', min_periods=1).sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_closed(self):
+
+        # closed=both only valid for datetimelike
+        with self.assertRaises(ValueError):
+            self.regular.rolling(window=3, closed='both')
+
+        # closed must be 'right' or 'both'
+        with self.assertRaises(ValueError):
+            self.regular.rolling(window='1min', closed="'tis wrong")
+
+        df = DataFrame({'B': [1, 1, 2, np.nan, 4]},
+                       index=[Timestamp('20130101 09:00:00'),
+                              Timestamp('20130101 09:00:02'),
+                              Timestamp('20130101 09:00:03'),
+                              Timestamp('20130101 09:00:05'),
+                              Timestamp('20130101 09:00:06')])
+        expected = df.rolling('4s').count()
+        result = df.rolling('3s', closed='both').count()
+        tm.assert_frame_equal(result, expected)
+        expected = df.rolling('3s').count()
+        result = df.rolling('3s', closed='right').count()
+        tm.assert_frame_equal(result, expected)
+
+        df.index = df.index - Timestamp('20130101 09:00:00')
+        expected = df.rolling('4s').count()
+        result = df.rolling('3s', closed='both').count()
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame({'B': [1, 1, 2, np.nan, 4],
+                        'timestamp': [Timestamp('20130101 09:00:00'),
+                                      Timestamp('20130101 09:00:02'),
+                                      Timestamp('20130101 09:00:03'),
+                                      Timestamp('20130101 09:00:05'),
+                                      Timestamp('20130101 09:00:06')]})
+        expected = df.rolling('4s', on='timestamp').count()
+        result = df.rolling('3s', on='timestamp', closed='both').count()
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame({'B': [1, 1, 2, np.nan, 4]},
+                       index=[Timestamp('20130101'),
+                              Timestamp('20130103'),
+                              Timestamp('20130104'),
+                              Timestamp('20130106'),
+                              Timestamp('20130107')])
+        expected = df.rolling('4d').count()
+        result = df.rolling('3d', closed='both').count()
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame({'B': [1] * 3},
+                       index=[Timestamp('20130101 09:00:30'),
+                              Timestamp('20130101 09:01:00'),
+                              Timestamp('20130101 09:02:00')])
+        expected = DataFrame({'B': [1., 2., 2.]},
+                             index=[Timestamp('20130101 09:00:30'),
+                                    Timestamp('20130101 09:01:00'),
+                                    Timestamp('20130101 09:02:00')])
+        result = df.rolling('1min', closed='both').count()
+        tm.assert_frame_equal(result, expected)
+
     def test_ragged_sum(self):
 
         df = self.ragged
