@@ -9,7 +9,11 @@ from pandas.types.common import (_ensure_object,
                                  is_datetime64_dtype,
                                  is_datetime64tz_dtype,
                                  is_integer_dtype,
-                                 is_list_like)
+                                 is_integer,
+                                 is_float,
+                                 is_list_like,
+                                 is_scalar,
+                                 is_numeric_dtype)
 from pandas.types.generic import (ABCIndexClass, ABCSeries,
                                   ABCDataFrame)
 from pandas.types.missing import notnull
@@ -177,7 +181,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
-                unit=None, infer_datetime_format=False):
+                unit=None, infer_datetime_format=False, origin='unix'):
     """
     Convert argument to datetime.
 
@@ -229,13 +233,27 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If False, allow the format to match anywhere in the target string.
 
     unit : string, default 'ns'
-        unit of the arg (D,s,ms,us,ns) denote the unit in epoch
-        (e.g. a unix timestamp), which is an integer/float number.
+        unit of the arg (D,s,ms,us,ns) denote the unit, which is an
+        integer or float number. This will be based off the origin.
+        Example, with unit='ms' and origin='unix' (the default), this
+        would calculate the number of milliseconds to the unix epoch start.
     infer_datetime_format : boolean, default False
         If True and no `format` is given, attempt to infer the format of the
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
+    origin : scalar, default is 'unix'
+        Define the reference date. The numeric values would be parsed as number
+        of units (defined by `unit`) since this reference date.
+
+        - If 'unix' (or POSIX) time; origin is set to 1970-01-01.
+        - If 'julian', unit must be 'D', and origin is set to beginning of
+          Julian Calendar. Julian day number 0 is assigned to the day starting
+          at noon on January 1, 4713 BC.
+        - If Timestamp convertible, origin is set to Timestamp identified by
+          origin.
+
+        .. versionadded: 0.20.0
 
     Returns
     -------
@@ -297,8 +315,15 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
     1 loop, best of 3: 471 ms per loop
 
-    """
+    Using a non-unix epoch origin
 
+    >>> pd.to_datetime([1, 2, 3], unit='D',
+                       origin=pd.Timestamp('1960-01-01'))
+    0    1960-01-02
+    1    1960-01-03
+    2    1960-01-04
+
+    """
     from pandas.tseries.index import DatetimeIndex
 
     tz = 'utc' if utc else None
@@ -410,21 +435,77 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 raise e
 
     if arg is None:
-        return arg
-    elif isinstance(arg, tslib.Timestamp):
-        return arg
+        return None
+
+    # handle origin
+    if origin == 'julian':
+
+        original = arg
+        j0 = tslib.Timestamp(0).to_julian_date()
+        if unit != 'D':
+            raise ValueError("unit must be 'D' for origin='julian'")
+        try:
+            arg = arg - j0
+        except:
+            raise ValueError("incompatible 'arg' type for given "
+                             "'origin'='julian'")
+
+        # premptively check this for a nice range
+        j_max = tslib.Timestamp.max.to_julian_date() - j0
+        j_min = tslib.Timestamp.min.to_julian_date() - j0
+        if np.any(arg > j_max) or np.any(arg < j_min):
+            raise tslib.OutOfBoundsDatetime(
+                "{original} is Out of Bounds for "
+                "origin='julian'".format(original=original))
+
+    elif origin not in ['unix', 'julian']:
+
+        # arg must be a numeric
+        original = arg
+        if not ((is_scalar(arg) and (is_integer(arg) or is_float(arg))) or
+                is_numeric_dtype(np.asarray(arg))):
+            raise ValueError(
+                "'{arg}' is not compatible with origin='{origin}'; "
+                "it must be numeric with a unit specified ".format(
+                    arg=arg,
+                    origin=origin))
+
+        # we are going to offset back to unix / epoch time
+        try:
+            offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+        except tslib.OutOfBoundsDatetime:
+            raise tslib.OutOfBoundsDatetime(
+                "origin {} is Out of Bounds".format(origin))
+        except ValueError:
+            raise ValueError("origin {} cannot be converted "
+                             "to a Timestamp".format(origin))
+
+        # convert the offset to the unit of the arg
+        # this should be lossless in terms of precision
+        offset = offset // tslib.Timedelta(1, unit=unit)
+
+        # scalars & ndarray-like can handle the addition
+        if is_list_like(arg) and not isinstance(
+                arg, (ABCSeries, ABCIndexClass, np.ndarray)):
+            arg = np.asarray(arg)
+        arg = arg + offset
+
+    if isinstance(arg, tslib.Timestamp):
+        result = arg
     elif isinstance(arg, ABCSeries):
         from pandas import Series
         values = _convert_listlike(arg._values, False, format)
-        return Series(values, index=arg.index, name=arg.name)
+        result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
-        return _assemble_from_unit_mappings(arg, errors=errors)
+        result = _assemble_from_unit_mappings(arg, errors=errors)
     elif isinstance(arg, ABCIndexClass):
-        return _convert_listlike(arg, box, format, name=arg.name)
+        result = _convert_listlike(arg, box, format, name=arg.name)
     elif is_list_like(arg):
-        return _convert_listlike(arg, box, format)
+        result = _convert_listlike(arg, box, format)
+    else:
+        result = _convert_listlike(np.array([arg]), box, format)[0]
 
-    return _convert_listlike(np.array([arg]), box, format)[0]
+    return result
 
 
 # mappings for assembling units

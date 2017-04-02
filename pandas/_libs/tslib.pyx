@@ -3073,6 +3073,7 @@ class Timedelta(_Timedelta):
         return np.timedelta64(self.value, 'ns')
 
     def _validate_ops_compat(self, other):
+
         # return True if we are compat with operating
         if _checknull_with_nat(other):
             return True
@@ -3179,11 +3180,41 @@ class Timedelta(_Timedelta):
         __div__ = __truediv__
         __rdiv__ = __rtruediv__
 
-    def _not_implemented(self, *args, **kwargs):
-        return NotImplemented
+    def __floordiv__(self, other):
 
-    __floordiv__ = _not_implemented
-    __rfloordiv__ = _not_implemented
+        if hasattr(other, 'dtype'):
+
+            # work with i8
+            other = other.astype('m8[ns]').astype('i8')
+
+            return self.value // other
+
+        # integers only
+        if is_integer_object(other):
+            return Timedelta(self.value // other, unit='ns')
+
+        if not self._validate_ops_compat(other):
+            return NotImplemented
+
+        other = Timedelta(other)
+        if other is NaT:
+            return np.nan
+        return self.value // other.value
+
+    def __rfloordiv__(self, other):
+        if hasattr(other, 'dtype'):
+
+            # work with i8
+            other = other.astype('m8[ns]').astype('i8')
+            return other // self.value
+
+        if not self._validate_ops_compat(other):
+            return NotImplemented
+
+        other = Timedelta(other)
+        if other is NaT:
+            return NaT
+        return other.value // self.value
 
     def _op_unary_method(func, name):
 
