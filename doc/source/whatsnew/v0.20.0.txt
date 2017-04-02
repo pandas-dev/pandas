@@ -1020,6 +1020,7 @@ Sparse
 - Bug in ``SparseSeries.reindex`` on single level with list of length 1 (:issue:`15447`)
 - Bug in repr-formatting a ``SparseDataFrame`` after a value was set on (a copy of) one of its series (:issue:`15488`)
 - Bug in ``SparseDataFrame`` construction with lists not coercing to dtype (:issue:`15682`)
+- Bug in sparse array indexing in which indices were not being validated (:issue:`15863`)
 
 Reshaping
 ^^^^^^^^^
