@@ -216,12 +216,22 @@ class TestTimedeltas(tm.TestCase):
 
     def test_freq_conversion(self):
 
+        # truediv
         td = Timedelta('1 days 2 hours 3 ns')
         result = td / np.timedelta64(1, 'D')
         self.assertEqual(result, td.value / float(86400 * 1e9))
         result = td / np.timedelta64(1, 's')
         self.assertEqual(result, td.value / float(1e9))
         result = td / np.timedelta64(1, 'ns')
+        self.assertEqual(result, td.value)
+
+        # floordiv
+        td = Timedelta('1 days 2 hours 3 ns')
+        result = td // np.timedelta64(1, 'D')
+        self.assertEqual(result, 1)
+        result = td // np.timedelta64(1, 's')
+        self.assertEqual(result, 93600)
+        result = td // np.timedelta64(1, 'ns')
         self.assertEqual(result, td.value)
 
     def test_fields(self):
