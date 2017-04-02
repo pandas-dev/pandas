@@ -243,7 +243,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
     origin : scalar, default is 'unix'
-        convertible to Timestamp / string ('julian', 'unix')
+        Define the reference date. The numeric values would be parsed as number
+        of units (defined by `unit`) since this reference date.
 
         - If 'unix' (or POSIX) time; origin is set to 1970-01-01.
         - If 'julian', unit must be 'D', and origin is set to beginning of
@@ -483,16 +484,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         # this should be lossless in terms of precision
         offset = offset // tslib.Timedelta(1, unit=unit)
 
-        arg = np.asarray(arg)
+        # scalars & ndarray-like can handle the addition
+        if is_list_like(arg) and not isinstance(
+                arg, (ABCSeries, ABCIndexClass, np.ndarray)):
+            arg = np.asarray(arg)
         arg = arg + offset
-
-        # convert to the tenor of the original arg
-        if is_scalar(original):
-            arg = arg.item()
-        elif isinstance(original, ABCSeries):
-            arg = type(original)(arg, index=original.index, name=original.name)
-        elif isinstance(original, ABCIndexClass):
-            arg = type(original)(arg)
 
     if isinstance(arg, tslib.Timestamp):
         result = arg
