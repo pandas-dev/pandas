@@ -2,7 +2,10 @@ python-dateutil
 pytz
 numpy
 scipy
+# openpyxl >= 2.4.5 should be dependent on jdcal
+# but is not for some reason
 openpyxl
+jdcal
 xlsxwriter
 xlrd
 xlwt
