@@ -837,6 +837,8 @@ Other API Changes
   ignored (no longer needed to specify the new behaviour) and is deprecated.
 - ``NaT`` will now correctly report ``False`` for datetimelike boolean operations such as ``is_month_start`` (:issue:`15781`)
 - ``NaT`` will now correctly return ``np.nan`` for ``Timedelta`` and ``Period`` accessors such as ``days`` and ``quarter`` (:issue:`15782`)
+- ``NaT`` will now returns ``NaT`` for ``tz_localize`` and ``tz_convert``
+  methods (:issue:`15830`)
 
 .. _whatsnew_0200.deprecations:
 

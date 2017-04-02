@@ -3835,7 +3835,8 @@ for field in fields:
 # to the NaTType class; these can return NaT, np.nan
 # or raise respectively
 _nat_methods = ['date', 'now', 'replace', 'to_pydatetime',
-                'today', 'round', 'floor', 'ceil']
+                'today', 'round', 'floor', 'ceil', 'tz_convert',
+                'tz_localize']
 _nan_methods = ['weekday', 'isoweekday', 'total_seconds']
 _implemented_methods = ['to_datetime', 'to_datetime64', 'isoformat']
 _implemented_methods.extend(_nat_methods)
