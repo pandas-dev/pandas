@@ -321,7 +321,8 @@ IntervalIndex
 ^^^^^^^^^^^^^
 
 pandas has gain an ``IntervalIndex`` with its own dtype, ``interval`` as well as the ``Interval`` scalar type. These allow first-class support for interval
-notation, specifically as return type for ``pd.cut`` and ``pd.qcut``. (:issue:`7640`, :issue:`8625`)
+notation, specifically as return type for ``pd.cut`` and ``pd.qcut``. The ``IntervalIndex`` allows some unique indexing, see the
+:ref:`docs <indexing.intervallindex>`. (:issue:`7640`, :issue:`8625`)
 
 **Previous behavior**:
 
