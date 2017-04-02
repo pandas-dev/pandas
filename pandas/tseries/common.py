@@ -4,8 +4,7 @@ datetimelike delegation
 
 import numpy as np
 
-from pandas.types.common import (_NS_DTYPE, _TD_DTYPE,
-                                 is_period_arraylike,
+from pandas.types.common import (is_period_arraylike,
                                  is_datetime_arraylike, is_integer_dtype,
                                  is_datetime64_dtype, is_datetime64tz_dtype,
                                  is_timedelta64_dtype, is_categorical_dtype,
@@ -13,7 +12,7 @@ from pandas.types.common import (_NS_DTYPE, _TD_DTYPE,
 
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.tseries.index import DatetimeIndex
-from pandas._libs.period import IncompatibleFrequency    # flake8: noqa
+from pandas._libs.period import IncompatibleFrequency  # noqa
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.core.algorithms import take_1d
@@ -162,6 +161,7 @@ class DatetimeProperties(Properties):
     def to_pydatetime(self):
         return self.values.to_pydatetime()
 
+
 DatetimeProperties._add_delegate_accessors(
     delegate=DatetimeIndex,
     accessors=DatetimeIndex._datetimelike_ops,
@@ -201,6 +201,7 @@ class TimedeltaProperties(Properties):
         """
         return self.values.components.set_index(self.index)
 
+
 TimedeltaProperties._add_delegate_accessors(
     delegate=TimedeltaIndex,
     accessors=TimedeltaIndex._datetimelike_ops,
@@ -224,6 +225,7 @@ class PeriodProperties(Properties):
     Returns a Series indexed like the original Series.
     Raises TypeError if the Series does not contain datetimelike values.
     """
+
 
 PeriodProperties._add_delegate_accessors(
     delegate=PeriodIndex,

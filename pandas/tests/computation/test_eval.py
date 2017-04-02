@@ -1,10 +1,6 @@
-
-# flake8: noqa
-
 import warnings
 import operator
 from itertools import product
-from distutils.version import LooseVersion
 
 import pytest
 
@@ -28,12 +24,11 @@ from pandas.computation.ops import (_binary_ops_dict,
 
 import pandas.computation.expr as expr
 import pandas.util.testing as tm
-import pandas._libs.lib as lib
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp, assert_numpy_array_equal,
                                  assert_produces_warning, assert_series_equal,
                                  slow)
-from pandas.compat import PY3, u, reduce
+from pandas.compat import PY3, reduce
 
 _series_frame_incompatible = _bool_ops_syms
 _scalar_skip = 'in', 'not in'
@@ -43,9 +38,9 @@ _scalar_skip = 'in', 'not in'
     pytest.mark.skipif(engine == 'numexpr' and not _USE_NUMEXPR,
                        reason='numexpr enabled->{enabled}, '
                               'installed->{installed}'.format(
-                            enabled=_USE_NUMEXPR,
-                            installed=_NUMEXPR_INSTALLED))(engine)
-    for engine in _engines
+                                  enabled=_USE_NUMEXPR,
+                                  installed=_NUMEXPR_INSTALLED))(engine)
+                       for engine in _engines  # noqa
 ))
 def engine(request):
     return request.param
@@ -66,7 +61,8 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
         try:
             return c(lhs, rhs)
         except ValueError as e:
-            if str(e).startswith('negative number cannot be raised to a fractional power'):
+            if str(e).startswith('negative number cannot be '
+                                 'raised to a fractional power'):
                 return np.nan
             raise
     return c(lhs, rhs)
@@ -74,14 +70,14 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
 
 def _series_and_2d_ndarray(lhs, rhs):
     return ((isinstance(lhs, Series) and
-             isinstance(rhs, np.ndarray) and rhs.ndim > 1)
-            or (isinstance(rhs, Series) and
-                isinstance(lhs, np.ndarray) and lhs.ndim > 1))
+             isinstance(rhs, np.ndarray) and rhs.ndim > 1) or
+            (isinstance(rhs, Series) and
+             isinstance(lhs, np.ndarray) and lhs.ndim > 1))
 
 
 def _series_and_frame(lhs, rhs):
-    return ((isinstance(lhs, Series) and isinstance(rhs, DataFrame))
-            or (isinstance(rhs, Series) and isinstance(lhs, DataFrame)))
+    return ((isinstance(lhs, Series) and isinstance(rhs, DataFrame)) or
+            (isinstance(rhs, Series) and isinstance(lhs, DataFrame)))
 
 
 def _bool_and_frame(lhs, rhs):
@@ -228,19 +224,22 @@ class TestEvalNumexprPandas(tm.TestCase):
         else:
             lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
             rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
-            if (isinstance(lhs_new, Series) and isinstance(rhs_new, DataFrame)
-                    and binop in _series_frame_incompatible):
+            if (isinstance(lhs_new, Series) and
+                    isinstance(rhs_new, DataFrame) and
+                    binop in _series_frame_incompatible):
                 pass
                 # TODO: the code below should be added back when left and right
                 # hand side bool ops are fixed.
-
+                #
                 # try:
-                # self.assertRaises(Exception, pd.eval, ex,
-                #local_dict={'lhs': lhs, 'rhs': rhs},
-                # engine=self.engine, parser=self.parser)
+                #     self.assertRaises(Exception, pd.eval, ex,
+                #                       local_dict={'lhs': lhs, 'rhs': rhs},
+                #                       engine=self.engine, parser=self.parser)
                 # except AssertionError:
-                #import ipdb; ipdb.set_trace()
-                # raise
+                #     import ipdb
+                #
+                #     ipdb.set_trace()
+                #     raise
             else:
                 expected = _eval_single_bin(
                     lhs_new, binop, rhs_new, self.engine)
@@ -248,7 +247,6 @@ class TestEvalNumexprPandas(tm.TestCase):
                 self.check_equal(result, expected)
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
-        skip_these = _scalar_skip
 
         def check_operands(left, right, cmp_op):
             return _eval_single_bin(left, cmp_op, right, self.engine)
@@ -334,7 +332,8 @@ class TestEvalNumexprPandas(tm.TestCase):
         try:
             expected = _eval_single_bin(lhs, '**', rhs, self.engine)
         except ValueError as e:
-            if str(e).startswith('negative number cannot be raised to a fractional power'):
+            if str(e).startswith('negative number cannot be '
+                                 'raised to a fractional power'):
                 if self.engine == 'python':
                     pytest.skip(str(e))
                 else:
@@ -650,7 +649,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         exprs += '2 * x > 2 or 1 and 2',
         exprs += '2 * df > 3 and 1 or a',
 
-        x, a, b, df = np.random.randn(3), 1, 2, DataFrame(randn(3, 2))
+        x, a, b, df = np.random.randn(3), 1, 2, DataFrame(randn(3, 2))  # noqa
         for ex in exprs:
             with tm.assertRaises(NotImplementedError):
                 pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -682,7 +681,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         tm.assert_numpy_array_equal(result, np.array([1.5]))
         self.assertEqual(result.shape, (1, ))
 
-        x = np.array([False])
+        x = np.array([False])  # noqa
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         tm.assert_numpy_array_equal(result, np.array([False]))
         self.assertEqual(result.shape, (1, ))
@@ -792,9 +791,8 @@ class TestEvalPythonPandas(TestEvalPythonPython):
 f = lambda *args, **kwargs: np.random.randn()
 
 
-#-------------------------------------
-# typecasting rules consistency with python
-# issue #12388
+# -------------------------------------
+# gh-12388: Typecasting rules consistency with python
 
 
 class TestTypeCasting(object):
@@ -817,8 +815,8 @@ class TestTypeCasting(object):
         assert_frame_equal(res, eval(s))
 
 
-#-------------------------------------
-# basic and complex alignment
+# -------------------------------------
+# Basic and complex alignment
 
 def _is_datetime(x):
     return issubclass(x.dtype.type, np.datetime64)
@@ -1064,8 +1062,8 @@ class TestAlignment(object):
                 tm.assert_equal(msg, expected)
 
 
-#------------------------------------
-# slightly more complex ops
+# ------------------------------------
+# Slightly more complex ops
 
 class TestOperationsNumExprPandas(tm.TestCase):
 
@@ -1156,7 +1154,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
     def test_truediv(self):
         s = np.array([1])
         ex = 's / 1'
-        d = {'s': s}
+        d = {'s': s}  # noqa
 
         if PY3:
             res = self.eval(ex, truediv=False)
@@ -1204,7 +1202,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
             self.assertEqual(res, expec)
 
     def test_failing_subscript_with_name_error(self):
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.randn(5, 3))  # noqa
         with tm.assertRaises(NameError):
             self.eval('df[x > 2] > 2')
 
@@ -1501,7 +1499,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
                                cls.arith_ops)
 
     def test_check_many_exprs(self):
-        a = 1
+        a = 1  # noqa
         expr = ' * '.join('a' * 33)
         expected = 1
         res = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -1526,13 +1524,13 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
                           engine=self.engine)
 
     def test_fails_ampersand(self):
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.randn(5, 3))  # noqa
         ex = '(df + 2)[df > 1] > 0 & (df > 0)'
         with tm.assertRaises(NotImplementedError):
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_fails_pipe(self):
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.randn(5, 3))  # noqa
         ex = '(df + 2)[df > 1] > 0 | (df > 0)'
         with tm.assertRaises(NotImplementedError):
             pd.eval(ex, parser=self.parser, engine=self.engine)
@@ -1728,7 +1726,7 @@ class TestScope(object):
                                                         parser=parser))
 
     def test_no_new_locals(self, engine, parser):
-        x = 1
+        x = 1  # noqa
         lcls = locals().copy()
         pd.eval('x + 1', local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
@@ -1736,7 +1734,7 @@ class TestScope(object):
         tm.assert_equal(lcls, lcls2)
 
     def test_no_new_globals(self, engine, parser):
-        x = 1
+        x = 1  # noqa
         gbls = globals().copy()
         pd.eval('x + 1', engine=engine, parser=parser)
         gbls2 = globals().copy()
@@ -1787,15 +1785,16 @@ def test_name_error_exprs(engine, parser):
 
 
 def test_invalid_local_variable_reference(engine, parser):
-    a, b = 1, 2
+    a, b = 1, 2  # noqa
     exprs = 'a + @b', '@a + b', '@a + @b'
-    for expr in exprs:
+
+    for _expr in exprs:
         if parser != 'pandas':
             with tm.assertRaisesRegexp(SyntaxError, "The '@' prefix is only"):
-                pd.eval(exprs, engine=engine, parser=parser)
+                pd.eval(_expr, engine=engine, parser=parser)
         else:
             with tm.assertRaisesRegexp(SyntaxError, "The '@' prefix is not"):
-                pd.eval(exprs, engine=engine, parser=parser)
+                pd.eval(_expr, engine=engine, parser=parser)
 
 
 def test_numexpr_builtin_raises(engine, parser):
@@ -1834,9 +1833,9 @@ def test_more_than_one_expression_raises(engine, parser):
 def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
-    mid = gen[lhs]()
-    lhs = gen[lhs]()
-    rhs = gen[rhs]()
+    mid = gen[lhs]()  # noqa
+    lhs = gen[lhs]()  # noqa
+    rhs = gen[rhs]()  # noqa
 
     ex1 = 'lhs {0} mid {1} rhs'.format(cmp, cmp)
     ex2 = 'lhs {0} mid and mid {1} rhs'.format(cmp, cmp)
