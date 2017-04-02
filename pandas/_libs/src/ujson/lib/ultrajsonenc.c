@@ -829,11 +829,12 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
         ++frac;
     }
 
-	/* handle rollover, e.g. case 0.99 with prec 1 is 1.0 and case 0.95 with prec is 1.0 as well */
-	if (frac >= pow10) {
-		frac = 0;
-		++whole;
-	}
+    // handle rollover, e.g.
+    // case 0.99 with prec 1 is 1.0 and case 0.95 with prec is 1.0 as well
+    if (frac >= pow10) {
+        frac = 0;
+        ++whole;
+    }
 
     if (enc->doublePrecision == 0) {
         diff = value - whole;
