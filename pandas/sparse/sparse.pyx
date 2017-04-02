@@ -34,8 +34,9 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 cdef class SparseIndex:
     """
-    Abstract superclass for sparse index types
+    Abstract superclass for sparse index types.
     """
+
     def __init__(self):
         raise NotImplementedError
 
@@ -48,8 +49,9 @@ cdef class IntIndex(SparseIndex):
     ----------
     length : integer
     indices : array-like
-        Contains integers corresponding to
+        Contains integers corresponding to the indices.
     """
+
     cdef readonly:
         Py_ssize_t length, npoints
         ndarray indices
@@ -59,9 +61,11 @@ cdef class IntIndex(SparseIndex):
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
         self.npoints = len(self.indices)
 
+        self.check_integrity()
+
     def __reduce__(self):
         args = (self.length, self.indices)
-        return (IntIndex, args)
+        return IntIndex, args
 
     def __repr__(self):
         output = 'IntIndex\n'
@@ -70,10 +74,40 @@ cdef class IntIndex(SparseIndex):
 
     def check_integrity(self):
         """
-        Only need be strictly ascending and nothing less than 0 or greater than
-        total length
+        Checks the following:
+
+        - Indices are strictly ascending
+        - Number of indices is at most self.length
+        - Indices are at least 0 and at most the total length less one
+
+        A ValueError is raised if any of these conditions is violated.
         """
-        pass
+
+        cdef:
+            int32_t index, prev = -1
+
+        if self.npoints > self.length:
+            msg = ("Too many indices. Expected "
+                   "{exp} but found {act}").format(
+                exp=self.length, act=self.npoints)
+            raise ValueError(msg)
+
+        # Indices are vacuously ordered and non-negative
+        # if the sequence of indices is empty.
+        if self.npoints == 0:
+            return
+
+        if min(self.indices) < 0:
+            raise ValueError("No index can be less than zero")
+
+        if max(self.indices) >= self.length:
+            raise ValueError("All indices must be less than the length")
+
+        for index in self.indices:
+            if prev != -1 and index <= prev:
+                raise ValueError("Indices must be strictly increasing")
+
+            prev = index
 
     def equals(self, other):
         if not isinstance(other, IntIndex):
@@ -320,7 +354,7 @@ cdef class BlockIndex(SparseIndex):
 
     def __reduce__(self):
         args = (self.length, self.blocs, self.blengths)
-        return (BlockIndex, args)
+        return BlockIndex, args
 
     def __repr__(self):
         output = 'BlockIndex\n'
