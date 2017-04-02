@@ -61,7 +61,6 @@ class UltraJSONTests(TestCase):
         decoded = ujson.decode(encoded)
         self.assertEqual(decoded, 2.0)
 
-
         sut = decimal.Decimal("-1.95")
         encoded = ujson.encode(sut, double_precision=1)
         self.assertEqual(encoded, "-2.0")
