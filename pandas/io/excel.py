@@ -15,9 +15,9 @@ from pandas.types.common import (is_integer, is_float,
 
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
+from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              EmptyDataError, get_filepath_or_buffer,
-                              _NA_VALUES)
+                              get_filepath_or_buffer, _NA_VALUES)
 from pandas.tseries.period import Period
 from pandas.io.json import libjson
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,

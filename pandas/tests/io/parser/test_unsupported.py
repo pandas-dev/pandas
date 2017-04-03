@@ -13,7 +13,7 @@ import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
 from pandas.compat import StringIO
-from pandas.io.common import ParserError
+from pandas.errors import ParserError
 from pandas.io.parsers import read_csv, read_table
 
 

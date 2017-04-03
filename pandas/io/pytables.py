@@ -32,7 +32,8 @@ from pandas.io.common import _stringify_path
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.formats.printing import adjoin, pprint_thing
-from pandas.core.common import _asarray_tuplesafe, PerformanceWarning
+from pandas.errors import PerformanceWarning
+from pandas.core.common import _asarray_tuplesafe
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical, _factorize_from_iterables
 from pandas.core.internals import (BlockManager, make_block,

@@ -9,7 +9,7 @@ import csv
 
 from pandas import DataFrame
 from pandas.compat import StringIO
-from pandas.io.common import ParserWarning
+from pandas.errors import ParserWarning
 
 import pandas.util.testing as tm
 

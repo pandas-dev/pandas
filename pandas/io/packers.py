@@ -59,7 +59,7 @@ from pandas._libs.tslib import NaTType
 from pandas.sparse.api import SparseSeries, SparseDataFrame
 from pandas.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 from pandas.io.common import get_filepath_or_buffer
 from pandas.core.internals import BlockManager, make_block, _safe_reshape
 import pandas.core.internals as internals

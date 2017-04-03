@@ -7,7 +7,7 @@ from itertools import product
 import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 from pandas.tseries.index import cdate_range
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,

@@ -9,7 +9,8 @@ import numpy as np
 
 import pandas as pd
 from pandas import compat
-import pandas.core.common as com
+from pandas.errors import PerformanceWarning
+from pandas.core.common import flatten
 from pandas.computation.common import _result_type_many
 
 
@@ -101,7 +102,7 @@ def _align_core(terms):
                                   'than an order of magnitude on term {1!r}, '
                                   'by more than {2:.4g}; performance may '
                                   'suffer'.format(axis, terms[i].name, ordm),
-                                  category=pd.core.common.PerformanceWarning,
+                                  category=PerformanceWarning,
                                   stacklevel=6)
 
                 if transpose:
@@ -121,7 +122,7 @@ def _align(terms):
     """Align a set of terms"""
     try:
         # flatten the parse tree (a nested list, really)
-        terms = list(com.flatten(terms))
+        terms = list(flatten(terms))
     except TypeError:
         # can't iterate so it must just be a constant or single variable
         if isinstance(terms.value, pd.core.generic.NDFrame):

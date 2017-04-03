@@ -1140,7 +1140,7 @@ class _NDFrameIndexer(object):
         ix[['foo', 'bar', 'baz']] -> [i, j, k] (indices of foo, bar, baz)
 
         Going by Zen of Python?
-        "In the face of ambiguity, refuse the temptation to guess."
+        'In the face of ambiguity, refuse the temptation to guess.'
         raise AmbiguousIndexError with integer labels?
         - No, prefer label-based indexing
         """

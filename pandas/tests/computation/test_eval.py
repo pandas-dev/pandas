@@ -10,6 +10,7 @@ import numpy as np
 from pandas.types.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.core import common as com
+from pandas.errors import PerformanceWarning
 from pandas import DataFrame, Series, Panel, date_range
 from pandas.util.testing import makeCustomDataframe as mkdf
 
@@ -1023,7 +1024,7 @@ class TestAlignment(object):
         df = DataFrame(randn(1000, 10))
         s = Series(randn(10000))
         if engine == 'numexpr':
-            seen = pd.core.common.PerformanceWarning
+            seen = PerformanceWarning
         else:
             seen = False
 
@@ -1045,7 +1046,7 @@ class TestAlignment(object):
         is_python_engine = engine == 'python'
 
         if not is_python_engine:
-            wrn = pd.core.common.PerformanceWarning
+            wrn = PerformanceWarning
         else:
             wrn = False
 

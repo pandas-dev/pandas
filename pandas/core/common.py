@@ -20,6 +20,10 @@ from pandas.types.missing import isnull
 from pandas.api import types
 from pandas.types import common
 
+# compat
+from pandas.errors import (  # noqa
+    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError)
+
 # back-compat of public API
 # deprecate these functions
 m = sys.modules['pandas.core.common']
@@ -73,37 +77,11 @@ def array_equivalent(*args, **kwargs):
     return missing.array_equivalent(*args, **kwargs)
 
 
-class PandasError(Exception):
-    pass
-
-
-class PerformanceWarning(Warning):
-    pass
-
-
 class SettingWithCopyError(ValueError):
     pass
 
 
 class SettingWithCopyWarning(Warning):
-    pass
-
-
-class AmbiguousIndexError(PandasError, KeyError):
-    pass
-
-
-class UnsupportedFunctionCall(ValueError):
-    pass
-
-
-class UnsortedIndexError(KeyError):
-    """ Error raised when attempting to get a slice of a MultiIndex
-    and the index has not been lexsorted. Subclass of `KeyError`.
-
-    .. versionadded:: 0.20.0
-
-    """
     pass
 
 

@@ -12,6 +12,14 @@ from pandas.formats.printing import pprint_thing
 from pandas.core.common import AbstractMethodError
 from pandas.types.common import is_number
 
+# compat
+from pandas.errors import (ParserError, DtypeWarning,  # noqa
+                           EmptyDataError, ParserWarning)
+
+# gh-12665: Alias for now and remove later.
+CParserError = ParserError
+
+
 try:
     from s3fs import S3File
     need_text_wrapping = (BytesIO, S3File)
@@ -67,43 +75,6 @@ else:
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard('')
-
-
-class ParserError(ValueError):
-    """
-    Exception that is thrown by an error is encountered in `pd.read_csv`
-    """
-    pass
-
-
-# gh-12665: Alias for now and remove later.
-CParserError = ParserError
-
-
-class DtypeWarning(Warning):
-    """
-    Warning that is raised whenever `pd.read_csv` encounters non-
-    uniform dtypes in a column(s) of a given CSV file
-    """
-    pass
-
-
-class EmptyDataError(ValueError):
-    """
-    Exception that is thrown in `pd.read_csv` (by both the C and
-    Python engines) when empty data or header is encountered
-    """
-    pass
-
-
-class ParserWarning(Warning):
-    """
-    Warning that is raised in `pd.read_csv` whenever it is necessary
-    to change parsers (generally from 'c' to 'python') contrary to the
-    one specified by the user due to lack of support or functionality for
-    parsing particular attributes of a CSV file with the requsted engine
-    """
-    pass
 
 
 class BaseIterator(object):
