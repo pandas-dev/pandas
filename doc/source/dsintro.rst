@@ -153,7 +153,7 @@ Vectorized operations and label alignment with Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When doing data analysis, as with raw NumPy arrays looping through Series
-value-by-value is usually not necessary. Series can be also be passed into most
+value-by-value is usually not necessary. Series can also be passed into most
 NumPy methods expecting an ndarray.
 
 
