@@ -1072,6 +1072,7 @@ Groupby/Resample/Rolling
 - Bug in ``.rolling()`` where ``pd.Timedelta`` or ``datetime.timedelta`` was not accepted as a ``window`` argument (:issue:`15440`)
 - Bug in ``Rolling.quantile`` function that caused a segmentation fault when called with a quantile value outside of the range [0, 1] (:issue:`15463`)
 - Bug in ``DataFrame.resample().median()`` if duplicate column names are present (:issue:`14233`)
+- Bug in ``.groupby()`` when calling ``first()`` or ``last()`` on TZ-aware timestamps (:issue:`15884`)
 
 Sparse
 ^^^^^^

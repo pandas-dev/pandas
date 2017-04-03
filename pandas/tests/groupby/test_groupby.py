@@ -81,6 +81,15 @@ class TestGroupBy(MixIn, tm.TestCase):
             # will have to rethink regex if you change message!
             g[['A', 'C']]
 
+    def test_first_last_timestamp(self):
+        # GH15884
+        df = pd.DataFrame({'time': [pd.Timestamp('2012-01-01 13:00:00+00:00')],
+                           'A': [3]})
+        result = df.groupby('A', as_index=False).first()
+        assert_frame_equal(df, result)
+        result = df.groupby('A', as_index=False).last()
+        assert_frame_equal(df, result)
+
     def test_first_last_nth(self):
         # tests for first / last / nth
         grouped = self.df.groupby('A')
