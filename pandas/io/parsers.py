@@ -2890,7 +2890,7 @@ def _clean_na_values(na_values, keep_default_na=True):
         if keep_default_na:
             na_values = _NA_VALUES
         else:
-            na_values = []
+            na_values = set()
         na_fvalues = set()
     elif isinstance(na_values, dict):
         na_values = na_values.copy()  # Prevent aliasing.
