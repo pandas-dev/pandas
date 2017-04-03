@@ -10,7 +10,7 @@ from pandas import compat
 from pandas.compat import u, PY3
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, period_range, Index, Categorical)
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,

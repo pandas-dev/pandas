@@ -19,7 +19,8 @@ from pandas import DataFrame, Series, Index, MultiIndex
 from pandas import compat
 from pandas.compat import (StringIO, BytesIO, PY3,
                            range, lrange, u)
-from pandas.io.common import DtypeWarning, EmptyDataError, URLError
+from pandas.errors import DtypeWarning, EmptyDataError
+from pandas.io.common import URLError
 from pandas.io.parsers import TextFileReader, TextParser
 
 
