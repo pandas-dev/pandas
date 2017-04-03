@@ -426,7 +426,7 @@ Building master branch documentation
 When pull requests are merged into the *pandas* ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <http://pandas-docs.github.io/pandas-docs-travis>`__, see also
-the :ref:`Continuous Integration section <contributing.ci>`.
+the :ref:`Continuous Integration <contributing.ci>` section.
 
 Contributing to the code base
 =============================
@@ -438,8 +438,8 @@ Code standards
 --------------
 
 Writing good code is not just about what you write. It is also about *how* you
-write it. During testing for :ref:`Continuous Integration section <contributing.ci>`.
-Travis-CI, several tools will be run to check your code for stylistic errors.
+write it. During :ref:`Continuous Integration <contributing.ci>` testing, several
+tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to *pandas*.
 
@@ -462,7 +462,7 @@ Here are *some* of the more common ``cpplint`` issues:
   - we restrict line-length to 80 characters to promote readability
   - every header file must include a header guard to avoid name collisions if re-included
 
-:ref:`Continuous Integration section <contributing.ci>`. will run the
+:ref:`Continuous Integration <contributing.ci>`. will run the
 `cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
@@ -510,7 +510,7 @@ the more common ``PEP8`` issues:
   - we restrict line-length to 79 characters to promote readability
   - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
 
-:ref:`Continuous Integration section <contributing.ci>` will run
+:ref:`Continuous Integration <contributing.ci>` will run
 the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
@@ -557,6 +557,11 @@ this example.
 
 .. image:: _static/ci.png
 
+
+Note that pushing to *your* branch will cancel any non-currently-running tests for that
+same pull-request for Appveyor. For Travis CI, you can enable the auto-cancel feature
+`here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
+for CircleCI `here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
 
 .. _contributing.tdd:
 
@@ -894,7 +899,7 @@ updated.  Pushing them to GitHub again is done by::
     git push -f origin shiny-new-feature
 
 This will automatically update your pull request with the latest code and restart the
-:ref:`Continuous Integration section <contributing.ci>` tests.
+:ref:`Continuous Integration <contributing.ci>` tests.
 
 
 Delete your merged branch (optional)
