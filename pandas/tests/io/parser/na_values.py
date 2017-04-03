@@ -11,7 +11,7 @@ from numpy import nan
 import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, Index, MultiIndex
 from pandas.compat import StringIO, range
 
 
@@ -302,4 +302,13 @@ nan,B
         data = str(2**63) + ',1' + '\n,2'
         expected = DataFrame([[str(2**63), 1], ['', 2]])
         out = self.read_csv(StringIO(data), header=None)
+        tm.assert_frame_equal(out, expected)
+
+    def test_empty_na_values_no_default_with_index(self):
+        # see gh-15835
+        data = "a,1\nb,2"
+
+        expected = DataFrame({'1': [2]}, index=Index(["b"], name="a"))
+        out = self.read_csv(StringIO(data), keep_default_na=False, index_col=0)
+
         tm.assert_frame_equal(out, expected)
