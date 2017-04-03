@@ -187,7 +187,7 @@ class TestLib(tm.TestCase):
 
     def test_deprecation_access_func(self):
         with catch_warnings(record=True):
-            pd.lib.infer_dtype
+            pd.lib.infer_dtype('foo')
 
 
 class TestTSLib(tm.TestCase):

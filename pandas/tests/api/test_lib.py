@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import pytest
+from warnings import catch_warnings
 import pandas  # noqa
 
 
-@pytest.mark.parametrize('f', ['infer_dtype'])
-def test_importable(f):
-    from pandas.api import lib
-    e = getattr(lib, f)
-    assert e is not None
+def test_moved_infer_dtype():
+    with catch_warnings(record=True):
+        e = pandas.lib.infer_dtype('foo')
+        assert e is not None

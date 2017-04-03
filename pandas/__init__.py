@@ -62,7 +62,8 @@ from pandas.util.depr_module import _DeprecatedModule
 
 json = _DeprecatedModule(deprmod='pandas.json', deprmodto='pandas.io.json.libjson')
 parser = _DeprecatedModule(deprmod='pandas.parser', deprmodto='pandas.io.libparsers')
-lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto='pandas._libs.lib')
+lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto='pandas._libs.lib',
+                        moved={'infer_dtype': 'pandas.api.lib.infer_dtype'})
 tslib = _DeprecatedModule(deprmod='pandas.tslib', deprmodto='pandas._libs.tslib')
 
 # use the closest tagged version if possible
