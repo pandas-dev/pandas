@@ -25,8 +25,6 @@ and this module does not work with PyGObject yet.
 """
 __version__ = '1.5.27'
 
-# flake8: noqa
-
 import platform
 import os
 import subprocess
@@ -62,14 +60,16 @@ def determine_clipboard():
     if HAS_DISPLAY:
         # Determine which command/module is installed, if any.
         try:
-            import gtk  # check if gtk is installed
+            # Check if gtk is installed
+            import gtk  # noqa
         except ImportError:
             pass
         else:
             return init_gtk_clipboard()
 
         try:
-            import PyQt4  # check if PyQt4 is installed
+            # Check if PyQt4 is installed
+            import PyQt4  # noqa
         except ImportError:
             pass
         else:
