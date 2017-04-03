@@ -51,14 +51,9 @@ Bug reports must:
       ...
       ```
 
-#. Include the full version string of *pandas* and its dependencies. In versions
-   of *pandas* after 0.12 you can use a built in function::
+#. Include the full version string of *pandas* and its dependencies. You can use the built in function::
 
-      >>> from pandas.util.print_versions import show_versions
-      >>> show_versions()
-
-   and in *pandas* 0.13.1 onwards::
-
+      >>> import pandas as pd
       >>> pd.show_versions()
 
 #. Explain why the current behavior is wrong/not desired and what you expect instead.
@@ -209,7 +204,7 @@ At this point you can easily do an *in-place* install, as detailed in the next s
 Creating a Windows development environment
 ------------------------------------------
 
-To build on Windows, you need to have compilers installed to build the extensions. You will need to install the appropriate Visual Studio compilers, VS 2008 for Python 2.7, VS 2010 for 3.4, and VS 2015 for Python 3.5.
+To build on Windows, you need to have compilers installed to build the extensions. You will need to install the appropriate Visual Studio compilers, VS 2008 for Python 2.7, VS 2010 for 3.4, and VS 2015 for Python 3.5 and 3.6.
 
 For Python 2.7, you can install the ``mingw`` compiler which will work equivalently to VS 2008::
 
@@ -219,7 +214,7 @@ or use the `Microsoft Visual Studio VC++ compiler for Python <https://www.micros
 
 For Python 3.4, you can download and install the `Windows 7.1 SDK <https://www.microsoft.com/en-us/download/details.aspx?id=8279>`__. Read the references below as there may be various gotchas during the installation.
 
-For Python 3.5, you can download and install the `Visual Studio 2015 Community Edition <https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx>`__.
+For Python 3.5 and 3.6, you can download and install the `Visual Studio 2015 Community Edition <https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx>`__.
 
 Here are some references and blogs:
 
@@ -544,26 +539,26 @@ signatures and add deprecation warnings where needed.
 Testing Thru Continuous Integration
 -----------------------------------
 
-The pandas testing suite will run automatically on Travis-CI, Appveyor, and Circle CI
-continuous integration services, once your pull request is submitted.
+The *pandas* testing suite will run automatically on `Travis-CI <https://travis-ci.org/>`__,
+`Appveyor <https://www.appveyor.com/>`__, and `Circle CI <https://circleci.com/>`__ continuous integration
+services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
-then Travis-CI, Appveyor and/or CircleCI need to be hooked up to your GitHub repository.
-Instructions for doing so are `here <http://about.travis-ci.org/docs/user/getting-started/>`__ for
-Travis-CI, `here <https://www.appveyor.com/docs/>`__ for Appveyor, and
-`here <https://circleci.com/>`__ for CircleCI.
+then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
+for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__,
+`Appveyor <https://www.appveyor.com/docs/>`__ , and `CircleCI <https://circleci.com/>`__.
 
-A pull-request will be considered for merging when you have an all 'green' build. See
-this example.
+A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
+then you will get a red 'X', where you can click thru to see the individual failed tests.
+This is an example of a green build.
 
 .. image:: _static/ci.png
 
-
 .. note::
 
-   Pushing to *your* branch will cancel any non-currently-running tests for that
-   same pull-request for Appveyor. For Travis CI, you can enable the auto-cancel feature
-   `here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
-   for CircleCI `here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
+   Each time you push to *your* fork, a *new* run of the tests will trigger on the CI. Appveyor will auto-cancel
+   any non-currently-running tests for that same pull-request. You can enable the auto-cancel feature for
+   `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
+   for `CircleCI here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
 
 .. _contributing.tdd:
 
@@ -620,8 +615,96 @@ the expected correct result::
 
         assert_frame_equal(pivoted, expected)
 
+How to use ``parametrize``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`pytest <http://doc.pytest.org/en/latest/>`__ has a nice feature `parametrize <https://docs.pytest.org/en/latest/parametrize.html>`__ to allow
+testing of many cases in a concise way that enables an easy-to-read syntax.
+
+.. note::
+
+   .. code-block:: python
+
+      *pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class, inheriting from ``tm.TestCase``.
+
+      class TestReallyCoolFeature(tm.TestCase):
+         ....
+
+   Going forward we are moving to a more *functional* style, please see below.
+
+
+Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
+
+- functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
+- using ``parametrize``: allow testing of multiple cases
+- ``fixture``, code for object construction, on a per-test basis
+- using bare ``assert`` for scalars and truth-testing
+- ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
+- the typical pattern of constructing an ``expected`` and comparing versus the ``result``
+
+We would name this file ``test_cool_feature.py`` and put in an appropriate place in the ``pandas/tests/`` sturcture.
+
+.. code-block:: python
+
+   import pytest
+   import numpy as np
+   import pandas as pd
+   from pandas.util import testing as tm
+
+   @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
+   def test_dtypes(dtype):
+       assert str(np.dtype(dtype)) == dtype
+
+   @pytest.fixture
+   def series():
+       return pd.Series([1, 2, 3])
+
+   @pytest.fixture(params=['int8', 'int16', 'int32', 'int64'])
+   def dtype(request):
+       return request.param
+
+   def test_series(series, dtype):
+       result = series.astype(dtype)
+       assert result.dtype == dtype
+
+       expected = pd.Series([1, 2, 3], dtype=dtype)
+       tm.assert_series_equal(result, expected)
+
+
+A test run of this yields
+
+.. code-block:: shell
+
+   ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v
+   =========================== test session starts ===========================
+   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
+   collected 8 items
+
+   tester.py::test_dtypes[int8] PASSED
+   tester.py::test_dtypes[int16] PASSED
+   tester.py::test_dtypes[int32] PASSED
+   tester.py::test_dtypes[int64] PASSED
+   tester.py::test_series[int8] PASSED
+   tester.py::test_series[int16] PASSED
+   tester.py::test_series[int32] PASSED
+   tester.py::test_series[int64] PASSED
+
+Tests that we have ``parametrized`` are now accessible via the test name, for example we could run these with ``-k int8`` to sub-select *only* those tests which match ``int8``.
+
+
+.. code-block:: shell
+
+   ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v -k int8
+   =========================== test session starts ===========================
+   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
+   collected 8 items
+
+   test_cool_feature.py::test_dtypes[int8] PASSED
+   test_cool_feature.py::test_series[int8] PASSED
+
+
 Running the test suite
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 The tests can then be run directly inside your Git clone (without having to
 install *pandas*) by typing::
@@ -675,7 +758,8 @@ Furthermore one can run
 with an imported pandas to run tests similarly.
 
 Running the performance test suite
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------
+
 Performance matters and it is worth considering whether your code has introduced
 performance regressions.  *pandas* is in the process of migrating to
 `asv benchmarks <https://github.com/spacetelescope/asv>`__
