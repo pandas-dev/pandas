@@ -616,23 +616,23 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can 
+Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can
 speed up local testing on multicore machines. To use this feature, you will
 need to install `pytest-xdist` via::
 
     pip install pytest-xdist
-    
-Two scripts are provided to assist with this.  These scripts distribute 
+
+Two scripts are provided to assist with this.  These scripts distribute
 testing across 4 threads.
 
 On Unix variants, one can type::
 
     test_fast.sh
-    
+
 On Windows, one can type::
 
     test_fast.bat
-    
+
 This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.
 
@@ -656,12 +656,6 @@ performance regressions.  *pandas* is in the process of migrating to
 to enable easy monitoring of the performance of critical *pandas* operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory.  asv
 supports both python2 and python3.
-
-.. note::
-
-    The asv benchmark suite was translated from the previous framework, vbench,
-    so many stylistic issues are likely a result of automated transformation of the
-    code.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
@@ -721,73 +715,6 @@ This will display stderr from the benchmarks, and use your local
 
 Information on how to write a benchmark and how to use asv can be found in the
 `asv documentation <https://asv.readthedocs.io/en/latest/writing_benchmarks.html>`_.
-
-.. _contributing.gbq_integration_tests:
-
-Running Google BigQuery Integration Tests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You will need to create a Google BigQuery private key in JSON format in
-order to run Google BigQuery integration tests on your local machine and
-on Travis-CI. The first step is to create a `service account
-<https://console.developers.google.com/iam-admin/serviceaccounts/>`__.
-
-Integration tests for ``pandas.io.gbq`` are skipped in pull requests because
-the credentials that are required for running Google BigQuery integration
-tests are `encrypted <https://docs.travis-ci.com/user/encrypting-files/>`__
-on Travis-CI and are only accessible from the pandas-dev/pandas repository. The
-credentials won't be available on forks of pandas. Here are the steps to run
-gbq integration tests on a forked repository:
-
-#. Go to `Travis CI <https://travis-ci.org/>`__ and sign in with your GitHub
-   account.
-#. Click on the ``+`` icon next to the ``My Repositories`` list and enable
-   Travis builds for your fork.
-#. Click on the gear icon to edit your travis build, and add two environment
-   variables:
-
-   - ``GBQ_PROJECT_ID`` with the value being the ID of your BigQuery project.
-
-   - ``SERVICE_ACCOUNT_KEY`` with the value being the contents of the JSON key
-     that you downloaded for your service account. Use single quotes around
-     your JSON key to ensure that it is treated as a string.
-
-   For both environment variables, keep the "Display value in build log" option
-   DISABLED. These variables contain sensitive data and you do not want their
-   contents being exposed in build logs.
-#. Your branch should be tested automatically once it is pushed. You can check
-   the status by visiting your Travis branches page which exists at the
-   following location: https://travis-ci.org/your-user-name/pandas/branches .
-   Click on a build job for your branch. Expand the following line in the
-   build log: ``ci/print_skipped.py /tmp/pytest.xml`` . Search for the
-   term ``test_gbq`` and confirm that gbq integration tests are not skipped.
-
-Running the vbench performance test suite (phasing out)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Historically, *pandas* used `vbench library <https://github.com/pydata/vbench>`_
-to enable easy monitoring of the performance of critical *pandas* operations.
-These benchmarks are all found in the ``pandas/vb_suite`` directory.  vbench
-currently only works on python2.
-
-To install vbench::
-
-    pip install git+https://github.com/pydata/vbench
-
-Vbench also requires ``sqlalchemy``, ``gitpython``, and ``psutil``, which can all be installed
-using pip.  If you need to run a benchmark, change your directory to the *pandas* root and run::
-
-    ./test_perf.sh -b master -t HEAD
-
-This will check out the master revision and run the suite on both master and
-your commit.  Running the full test suite can take up to one hour and use up
-to 3GB of RAM.  Usually it is sufficient to paste a subset of the results into the Pull Request to show that the committed changes do not cause unexpected
-performance regressions.
-
-You can run specific benchmarks using the ``-r`` flag, which takes a regular expression.
-
-See the `performance testing wiki <https://github.com/pandas-dev/pandas/wiki/Performance-Testing>`_ for information
-on how to write a benchmark.
 
 Documenting your code
 ---------------------
