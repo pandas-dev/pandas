@@ -141,6 +141,12 @@ class TestDataFramePlots(TestPlotBase):
             result = ax.get_axes()  # deprecated
         self.assertIs(result, axes[0])
 
+    def test_mpl2_color_cycle_str(self):
+        colors = ['C' + str(x) for x in range(10)]
+        df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
+        for c in colors:
+            _check_plot_works(df.plot, color=c)
+
     def test_color_and_style_arguments(self):
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
         # passing both 'color' and 'style' arguments should be allowed
@@ -1598,6 +1604,10 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = df.plot(color='red')
         self._check_colors(ax.get_lines(), linecolors=['red'] * 5)
+        tm.close()
+
+        ax = df.plot(color='C0')
+        self._check_colors(ax.get_lines(), linecolors=['C0'])
         tm.close()
 
         # GH 10299

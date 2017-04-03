@@ -217,10 +217,13 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         # check whether each character can be convertable to colors
         maybe_color_cycle = _maybe_valid_colors(list(colors))
         if maybe_single_color and maybe_color_cycle and len(colors) > 1:
-            msg = ("'{0}' can be parsed as both single color and "
-                   "color cycle. Specify each color using a list "
-                   "like ['{0}'] or {1}")
-            raise ValueError(msg.format(colors, list(colors)))
+            if color[0] == 'C' and len(color) == 2:
+                colors = [colors]
+            else:
+                msg = ("'{0}' can be parsed as both single color and "
+                       "color cycle. Specify each color using a list "
+                       "like ['{0}'] or {1}")
+                raise ValueError(msg.format(colors, list(colors)))
         elif maybe_single_color:
             colors = [colors]
         else:
