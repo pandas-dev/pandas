@@ -3,3 +3,8 @@ To create the PDF version, within Powerpoint, simply do a "Save As"
 and pick "PDF' as the format.
 
 The original PDF source is located at: https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf
+
+This cheat sheet was inspired by RstudioData Wrangling Cheatsheet[1], written by Irv Lustig, Princeton Consultants[2].
+
+[1]: https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf
+[2]: http://www.princetonoptimization.com/
