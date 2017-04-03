@@ -380,6 +380,31 @@ class TestPandasContainer(tm.TestCase):
         unser = read_json(df.to_json(), dtype=False)
         self.assertTrue(np.isnan(unser[2][0]))
 
+    def test_frame_to_json_float_precision(self):
+        df = pd.DataFrame([dict(a_float=0.95)])
+        encoded = df.to_json(double_precision=1)
+        self.assertEqual(encoded, '{"a_float":{"0":1.0}}')
+
+        df = pd.DataFrame([dict(a_float=1.95)])
+        encoded = df.to_json(double_precision=1)
+        self.assertEqual(encoded, '{"a_float":{"0":2.0}}')
+
+        df = pd.DataFrame([dict(a_float=-1.95)])
+        encoded = df.to_json(double_precision=1)
+        self.assertEqual(encoded, '{"a_float":{"0":-2.0}}')
+
+        df = pd.DataFrame([dict(a_float=0.995)])
+        encoded = df.to_json(double_precision=2)
+        self.assertEqual(encoded, '{"a_float":{"0":1.0}}')
+
+        df = pd.DataFrame([dict(a_float=0.9995)])
+        encoded = df.to_json(double_precision=3)
+        self.assertEqual(encoded, '{"a_float":{"0":1.0}}')
+
+        df = pd.DataFrame([dict(a_float=0.99999999999999944)])
+        encoded = df.to_json(double_precision=15)
+        self.assertEqual(encoded, '{"a_float":{"0":1.0}}')
+
     def test_frame_to_json_except(self):
         df = DataFrame([1, 2, 3])
         self.assertRaises(ValueError, df.to_json, orient="garbage")
