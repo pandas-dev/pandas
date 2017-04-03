@@ -558,10 +558,12 @@ this example.
 .. image:: _static/ci.png
 
 
-Note that pushing to *your* branch will cancel any non-currently-running tests for that
-same pull-request for Appveyor. For Travis CI, you can enable the auto-cancel feature
-`here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
-for CircleCI `here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
+.. note::
+
+   Pushing to *your* branch will cancel any non-currently-running tests for that
+   same pull-request for Appveyor. For Travis CI, you can enable the auto-cancel feature
+   `here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
+   for CircleCI `here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
 
 .. _contributing.tdd:
 
