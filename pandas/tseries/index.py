@@ -25,8 +25,8 @@ from pandas.types.dtypes import DatetimeTZDtype
 from pandas.types.missing import isnull
 
 import pandas.types.concat as _concat
-from pandas.core.common import (_values_from_object, _maybe_box,
-                                PerformanceWarning)
+from pandas.errors import PerformanceWarning
+from pandas.core.common import _values_from_object, _maybe_box
 
 from pandas.core.index import Index, Int64Index, Float64Index
 from pandas.indexes.base import _index_shared_docs
@@ -618,8 +618,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _cached_range(cls, start=None, end=None, periods=None, offset=None,
                       name=None):
         if start is None and end is None:
-            # I somewhat believe this should never be raised externally and
-            # therefore should be a `PandasError` but whatever...
+            # I somewhat believe this should never be raised externally
             raise TypeError('Must specify either start or end.')
         if start is not None:
             start = Timestamp(start)
@@ -630,8 +629,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 'Must either specify period or provide both start and end.')
 
         if offset is None:
-            # This can't happen with external-facing code, therefore
-            # PandasError
+            # This can't happen with external-facing code
             raise TypeError('Must provide offset.')
 
         drc = _daterange_cache

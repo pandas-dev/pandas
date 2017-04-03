@@ -9,7 +9,7 @@ from pandas.types.common import is_scalar
 from pandas.compat import lrange
 from pandas import Series, DataFrame, option_context, MultiIndex
 from pandas.util import testing as tm
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 
 
 class TestIX(tm.TestCase):

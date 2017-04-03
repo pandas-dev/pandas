@@ -21,8 +21,8 @@ import pandas.computation.expressions as expressions
 from pandas.compat import bind_method
 import pandas.core.missing as missing
 
-from pandas.core.common import (_values_from_object, _maybe_match_name,
-                                PerformanceWarning)
+from pandas.errors import PerformanceWarning
+from pandas.core.common import _values_from_object, _maybe_match_name
 from pandas.types.missing import notnull, isnull
 from pandas.types.common import (needs_i8_conversion,
                                  is_datetimelike_v_numeric,

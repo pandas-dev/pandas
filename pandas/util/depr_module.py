@@ -18,14 +18,19 @@ class _DeprecatedModule(object):
                 be used when needed.
     removals : objects or methods in module that will no longer be
                accessible once module is removed.
+    moved : dict, optional
+            dictionary of function name -> new location for moved
+            objects
     """
 
-    def __init__(self, deprmod, deprmodto=None, removals=None):
+    def __init__(self, deprmod, deprmodto=None, removals=None,
+                 moved=None):
         self.deprmod = deprmod
         self.deprmodto = deprmodto
         self.removals = removals
         if self.removals is not None:
             self.removals = frozenset(self.removals)
+        self.moved = moved
 
         # For introspection purposes.
         self.self_dir = frozenset(dir(self.__class__))
@@ -59,6 +64,14 @@ class _DeprecatedModule(object):
             warnings.warn(
                 "{deprmod}.{name} is deprecated and will be removed in "
                 "a future version.".format(deprmod=self.deprmod, name=name),
+                FutureWarning, stacklevel=2)
+        elif self.moved is not None and name in self.moved:
+            warnings.warn(
+                "{deprmod} is deprecated and will be removed in "
+                "a future version.\nYou can access {name} in {moved}".format(
+                    deprmod=self.deprmod,
+                    name=name,
+                    moved=self.moved[name]),
                 FutureWarning, stacklevel=2)
         else:
             deprmodto = self.deprmodto
