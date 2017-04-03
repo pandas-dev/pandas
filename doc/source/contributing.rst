@@ -113,13 +113,6 @@ want to clone your fork to your machine::
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
 
-The testing suite will run automatically on Travis-CI and Appveyor once your
-pull request is submitted.  However, if you wish to run the test suite on a
-branch prior to submitting the pull request, then Travis-CI and/or AppVeyor
-need to be hooked up to your GitHub repository.  Instructions for doing so
-are `here <http://about.travis-ci.org/docs/user/getting-started/>`__ for
-Travis-CI and `here <https://www.appveyor.com/docs/>`__ for AppVeyor.
-
 Creating a branch
 -----------------
 
@@ -432,7 +425,8 @@ Building master branch documentation
 
 When pull requests are merged into the *pandas* ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
-<http://pandas-docs.github.io/pandas-docs-travis>`__.
+<http://pandas-docs.github.io/pandas-docs-travis>`__, see also
+the :ref:`Continuous Integration <contributing.ci>` section.
 
 Contributing to the code base
 =============================
@@ -444,8 +438,9 @@ Code standards
 --------------
 
 Writing good code is not just about what you write. It is also about *how* you
-write it. During testing on Travis-CI, several tools will be run to check your
-code for stylistic errors. Generating any warnings will cause the test to fail.
+write it. During :ref:`Continuous Integration <contributing.ci>` testing, several
+tools will be run to check your code for stylistic errors.
+Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to *pandas*.
 
 In addition, because a lot of people use our library, it is important that we
@@ -467,7 +462,8 @@ Here are *some* of the more common ``cpplint`` issues:
   - we restrict line-length to 80 characters to promote readability
   - every header file must include a header guard to avoid name collisions if re-included
 
-Travis-CI will run the `cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
+:ref:`Continuous Integration <contributing.ci>`. will run the
+`cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
 
@@ -514,7 +510,8 @@ the more common ``PEP8`` issues:
   - we restrict line-length to 79 characters to promote readability
   - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
 
-Travis-CI will run the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
+:ref:`Continuous Integration <contributing.ci>` will run
+the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
@@ -541,6 +538,35 @@ Please try to maintain backward compatibility. *pandas* has lots of users with l
 existing code, so don't break it if at all possible.  If you think breakage is required,
 clearly state why as part of the pull request.  Also, be careful when changing method
 signatures and add deprecation warnings where needed.
+
+.. _contributing.ci:
+
+Testing Thru Continuous Integration
+-----------------------------------
+
+The pandas testing suite will run automatically on Travis-CI, Appveyor, and Circle CI
+continuous integration services, once your pull request is submitted.
+However, if you wish to run the test suite on a branch prior to submitting the pull request,
+then Travis-CI, Appveyor and/or CircleCI need to be hooked up to your GitHub repository.
+Instructions for doing so are `here <http://about.travis-ci.org/docs/user/getting-started/>`__ for
+Travis-CI, `here <https://www.appveyor.com/docs/>`__ for Appveyor, and
+`here <https://circleci.com/>`__ for CircleCI.
+
+A pull-request will be considered for merging when you have an all 'green' build. See
+this example.
+
+.. image:: _static/ci.png
+
+
+.. note::
+
+   Pushing to *your* branch will cancel any non-currently-running tests for that
+   same pull-request for Appveyor. For Travis CI, you can enable the auto-cancel feature
+   `here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
+   for CircleCI `here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
+
+.. _contributing.tdd:
+
 
 Test-driven development/code writing
 ------------------------------------
@@ -875,12 +901,8 @@ updated.  Pushing them to GitHub again is done by::
     git push -f origin shiny-new-feature
 
 This will automatically update your pull request with the latest code and restart the
-Travis-CI tests.
+:ref:`Continuous Integration <contributing.ci>` tests.
 
-If your pull request is related to the ``pandas.io.gbq`` module, please see
-the section on :ref:`Running Google BigQuery Integration Tests
-<contributing.gbq_integration_tests>` to configure a Google BigQuery service
-account for your pull request on Travis-CI.
 
 Delete your merged branch (optional)
 ------------------------------------
