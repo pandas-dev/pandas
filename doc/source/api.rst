@@ -933,6 +933,7 @@ Reshaping, sorting, transposing
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
+   DataFrame.melt
    DataFrame.T
    DataFrame.to_panel
    DataFrame.to_xarray
