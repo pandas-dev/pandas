@@ -1240,20 +1240,21 @@ class MultiIndex(Index):
         new_levels = []
         new_labels = []
 
-        changed = np.zeros(self.nlevels, dtype=bool)
+        changed = np.ones(self.nlevels, dtype=bool)
         for i, (lev, lab) in enumerate(zip(self.levels, self.labels)):
 
-            uniques = np.sort(algos.unique(lab))
+            uniques = algos.unique(lab)
 
             # nothing unused
             if len(uniques) == len(lev):
                 new_levels.append(lev)
                 new_labels.append(lab)
-                changed[i] = True
+                changed[i] = False
                 continue
 
-            unused = list(reversed(sorted(set(
-                np.arange(len(lev))) - set(uniques))))
+            # set difference, then reverse sort
+            diff = Index(np.arange(len(lev))).difference(uniques)
+            unused = diff.sort_values(ascending=False)
 
             # new levels are simple
             lev = lev.take(uniques)
