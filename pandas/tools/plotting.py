@@ -2479,6 +2479,14 @@ def _plot(data, x=None, y=None, subplots=False,
                 if is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
                 label = kwds['label'] if 'label' in kwds else y
+                
+                if com.is_string_like(y) and y not in data.columns:
+                    data = data.assign(**{y:data.eval(y)})
+                elif com.is_list_like:
+                    for column in y:
+                        if column not in data.columns:
+                            data = data.assign(**{column:data.eval(column)})
+                            
                 series = data[y].copy()  # Don't modify
                 series.name = label
 
