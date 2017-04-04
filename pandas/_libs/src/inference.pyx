@@ -439,31 +439,86 @@ def infer_dtype(object value):
     return 'mixed'
 
 
-cpdef bint is_possible_datetimelike_array(object arr):
-    # determine if we have a possible datetimelike (or null-like) array
+cpdef object infer_datetimelike_array(object arr):
+    """
+    infer if we have a datetime or timedelta array
+    - date: we have *only* date and maybe strings, nulls
+    - datetime: we have *only* datetimes and maybe strings, nulls
+    - timedelta: we have *only* timedeltas and maybe strings, nulls
+    - nat: we do not have *any* date, datetimes or timedeltas, but do have
+      at least a NaT
+    - mixed: other objects (strings or actual objects)
+
+    Parameters
+    ----------
+    arr : object array
+
+    Returns
+    -------
+    string: {datetime, timedelta, date, nat, mixed}
+
+    """
+
     cdef:
         Py_ssize_t i, n = len(arr)
-        bint seen_timedelta = 0, seen_datetime = 0
+        bint seen_timedelta = 0, seen_date = 0, seen_datetime = 0
+        bint seen_nat = 0
+        list objs = []
         object v
 
     for i in range(n):
         v = arr[i]
         if util.is_string_object(v):
-            continue
+            objs.append(v)
+
+            if len(objs) == 3:
+                break
+
         elif util._checknull(v):
-            continue
-        elif is_datetime(v):
-            seen_datetime=1
-        elif is_timedelta(v):
-            seen_timedelta=1
+            # nan or None
+            pass
+        elif v is NaT:
+            seen_nat = 1
+        elif is_datetime(v) or util.is_datetime64_object(v):
+            # datetime, or np.datetime64
+            seen_datetime = 1
+        elif is_date(v):
+            seen_date = 1
+        elif is_timedelta(v) or util.is_timedelta64_object(v):
+            # timedelta, or timedelta64
+            seen_timedelta = 1
         else:
-            return False
-    return seen_datetime or seen_timedelta
+            return 'mixed'
+
+    if seen_date and not (seen_datetime or seen_timedelta):
+        return 'date'
+    elif seen_datetime and not seen_timedelta:
+        return 'datetime'
+    elif seen_timedelta and not seen_datetime:
+        return 'timedelta'
+    elif seen_nat:
+        return 'nat'
+
+    # short-circuit by trying to
+    # actually convert these strings
+    # this is for performance as we don't need to try
+    # convert *every* string array
+    if len(objs) == 3:
+        try:
+            tslib.array_to_datetime(objs, errors='raise')
+            return 'datetime'
+        except:
+            pass
+
+        # we are *not* going to infer from strings
+        # for timedelta as too much ambiguity
+
+    return 'mixed'
 
 
 cdef inline bint is_null_datetimelike(v):
     # determine if we have a null for a timedelta/datetime (or integer
-    # versions)x
+    # versions)
     if util._checknull(v):
         return True
     elif v is NaT:

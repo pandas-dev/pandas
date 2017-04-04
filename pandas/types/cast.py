@@ -774,6 +774,10 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     if not v.ndim == 1:
         v = v.ravel()
 
+    # we only care about object dtypes
+    if not is_object_dtype(v):
+        return value
+
     if len(v):
 
         def _try_datetime(v):
@@ -806,25 +810,25 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             except:
                 return v
 
-        # do a quick inference for perf
-        sample = v[:min(3, len(v))]
-        inferred_type = lib.infer_dtype(sample)
+        inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
 
-        if (inferred_type in ['datetime', 'datetime64'] or
-                (convert_dates and inferred_type in ['date'])):
+        if inferred_type == 'date' and convert_dates:
             value = _try_datetime(v)
-        elif inferred_type in ['timedelta', 'timedelta64']:
+        elif inferred_type == 'datetime':
+            value = _try_datetime(v)
+        elif inferred_type == 'timedelta':
             value = _try_timedelta(v)
+        elif inferred_type == 'nat':
 
-        # It's possible to have nulls intermixed within the datetime or
-        # timedelta.  These will in general have an inferred_type of 'mixed',
-        # so have to try both datetime and timedelta.
+            # if all NaT, return as datetime
+            if isnull(v).all():
+                value = _try_datetime(v)
+            else:
 
-        # try timedelta first to avoid spurious datetime conversions
-        # e.g. '00:00:01' is a timedelta but technically is also a datetime
-        elif inferred_type in ['mixed']:
-
-            if lib.is_possible_datetimelike_array(_ensure_object(v)):
+                # We have at least a NaT and a string
+                # try timedelta first to avoid spurious datetime conversions
+                # e.g. '00:00:01' is a timedelta but
+                # technically is also a datetime
                 value = _try_timedelta(v)
                 if lib.infer_dtype(value) in ['mixed']:
                     value = _try_datetime(v)
