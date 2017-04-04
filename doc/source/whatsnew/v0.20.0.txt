@@ -367,6 +367,7 @@ Other Enhancements
 - ``pandas.io.json.json_normalize()`` has gained a ``sep`` option that accepts ``str`` to separate joined fields; the default is ".", which is backward compatible. (:issue:`14883`)
 - ``pd.read_csv()`` will now raise a ``csv.Error`` error whenever an end-of-file character is encountered in the middle of a data row (:issue:`15913`)
 - A new function has been added to a ``MultiIndex`` to facilitate :ref:`Removing Unused Levels <advanced.shown_levels>`. (:issue:`15694`)
+- :func:`MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
 
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
@@ -746,12 +747,14 @@ Sorting works as expected
     df.sort_index().index.is_lexsorted()
     df.sort_index().index.is_monotonic
 
-However, this example, which has a monotonic level, doesn't behave as desired.
+However, this example, which has a non-monotonic 2nd level,
+doesn't behave as desired.
 
 .. ipython:: python
-   df = pd.DataFrame({'value': [1, 2, 3, 4]},
-                      index=pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-                                         labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+   df = pd.DataFrame(
+           {'value': [1, 2, 3, 4]},
+            index=pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
+                                labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
 
 Previous Behavior:
 

@@ -1235,6 +1235,23 @@ class MultiIndex(Index):
         -------
         MultiIndex
 
+        Examples
+        --------
+        >>> i = MultiIndex.from_product([range(2), list('ab')])
+        MultiIndex(levels=[[0, 1], ['a', 'b']],
+                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+
+
+        >>> i[2:]
+        MultiIndex(levels=[[0, 1], ['a', 'b']],
+                   labels=[[1, 1], [0, 1]])
+
+        # the 0 from the first level is not represented
+        # and can be removed
+        >>> i[2:].remove_unused_levels()
+        MultiIndex(levels=[[1], ['a', 'b']],
+                   labels=[[0, 0], [0, 1]])
+
         """
 
         new_levels = []
