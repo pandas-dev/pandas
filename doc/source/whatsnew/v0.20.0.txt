@@ -1564,6 +1564,7 @@ Indexing
 - Bug in the HTML display with with a ``MultiIndex`` and truncation (:issue:`14882`)
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 - Bug in ``pd.concat()`` where the names of ``MultiIndex`` of resulting ``DataFrame`` are not handled correctly when ``None`` is presented in the names of ``MultiIndex`` of input ``DataFrame`` (:issue:`15787`)
+- Bug in ``DataFrame.sort_index()`` and ``Series.sort_index()`` ``na_position`` doesn't work with ``MultiIndex``
 
 I/O
 ^^^
