@@ -22,19 +22,108 @@ is_decimal = lib.is_decimal
 
 
 def is_number(obj):
+    """
+    Check if the object is a number.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_number : bool
+        Whether `obj` is a number or not.
+
+    Examples
+    --------
+    >>> is_number(1)
+    True
+    >>> is_number("foo")
+    False
+    """
+
     return isinstance(obj, (Number, np.number))
 
 
 def is_string_like(obj):
+    """
+    Check if the object is a string.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Examples
+    --------
+    >>> is_string_like("foo")
+    True
+    >>> is_string_like(1)
+    False
+
+    Returns
+    -------
+    is_str_like : bool
+        Whether `obj` is a string or not.
+    """
+
     return isinstance(obj, (text_type, string_types))
 
 
-def _iterable_not_string(x):
-    return (isinstance(x, collections.Iterable) and
-            not isinstance(x, string_types))
+def _iterable_not_string(obj):
+    """
+    Check if the object is an iterable but not a string.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_iter_not_string : bool
+        Whether `obj` is a non-string iterable.
+
+    Examples
+    --------
+    >>> _iterable_not_string([1, 2, 3])
+    True
+    >>> _iterable_not_string("foo")
+    False
+    >>> _iterable_not_string(1)
+    False
+    """
+
+    return (isinstance(obj, collections.Iterable) and
+            not isinstance(obj, string_types))
 
 
 def is_iterator(obj):
+    """
+    Check if the object is an iterator.
+
+    For example, lists are considered iterators
+    but not strings or datetime objects.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_iter : bool
+        Whether `obj` is an iterator.
+
+    Examples
+    --------
+    >>> is_iterator([1, 2, 3])
+    True
+    >>> is_iterator(datetime(2017, 1, 1))
+    False
+    >>> is_iterator("foo")
+    False
+    >>> is_iterator(1)
+    False
+    """
+
     if not hasattr(obj, '__iter__'):
         return False
 
@@ -47,6 +136,40 @@ def is_iterator(obj):
 
 
 def is_file_like(obj):
+    """
+    Check if the object is a file-like object.
+
+    For objects to be considered file-like, they must
+    be an iterator AND have the following four methods:
+
+    1) read
+    2) write
+    3) seek
+    4) tell
+
+    Note: file-like objects must be iterable, but
+    iterable objects need not be file-like.
+
+    .. versionadded:: 0.20.0
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_file_like : bool
+        Whether `obj` has file-like properties.
+
+    Examples
+    --------
+    >>> buffer(StringIO("data"))
+    >>> is_file_like(buffer)
+    True
+    >>> is_file_like([1, 2, 3])
+    False
+    """
+
     file_attrs = ('read', 'write', 'seek', 'tell')
 
     for attr in file_attrs:
@@ -60,10 +183,50 @@ def is_file_like(obj):
 
 
 def is_re(obj):
+    """
+    Check if the object is a regex pattern instance.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_regex : bool
+        Whether `obj` is a regex pattern.
+
+    Examples
+    --------
+    >>> is_re(re.compile(".*"))
+    True
+    >>> is_re("foo")
+    False
+    """
+
     return isinstance(obj, re._pattern_type)
 
 
 def is_re_compilable(obj):
+    """
+    Check if the object can be compiled into a regex pattern instance.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_regex_compilable : bool
+        Whether `obj` can be compiled as a regex pattern.
+
+    Examples
+    --------
+    >>> is_re_compilable(".*")
+    True
+    >>> is_re_compilable(1)
+    False
+    """
+
     try:
         re.compile(obj)
     except TypeError:
@@ -72,21 +235,95 @@ def is_re_compilable(obj):
         return True
 
 
-def is_list_like(arg):
-    return (hasattr(arg, '__iter__') and
-            not isinstance(arg, string_and_binary_types))
+def is_list_like(obj):
+    """
+    Check if the object is list-like.
+
+    Objects that are considered list-like are for example Python
+    lists, tuples, sets, NumPy arrays, and Pandas Series.
+
+    Strings and datetime objects, however, are not considered list-like.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_list_like : bool
+        Whether `obj` has list-like properties.
+
+    Examples
+    --------
+    >>> is_list_like([1, 2, 3])
+    True
+    >>> is_list_like({1, 2, 3})
+    True
+    >>> is_list_like(datetime(2017, 1, 1))
+    False
+    >>> is_list_like("foo")
+    False
+    >>> is_list_like(1)
+    False
+    """
+
+    return (hasattr(obj, '__iter__') and
+            not isinstance(obj, string_and_binary_types))
 
 
-def is_dict_like(arg):
-    return hasattr(arg, '__getitem__') and hasattr(arg, 'keys')
+def is_dict_like(obj):
+    """
+    Check if the object is dict-like.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_dict_like : bool
+        Whether `obj` has dict-like properties.
+
+    Examples
+    --------
+    >>> is_dict_like({1: 2})
+    True
+    >>> is_dict_like([1, 2, 3])
+    False
+    """
+
+    return hasattr(obj, '__getitem__') and hasattr(obj, 'keys')
 
 
-def is_named_tuple(arg):
-    return isinstance(arg, tuple) and hasattr(arg, '_fields')
+def is_named_tuple(obj):
+    """
+    Check if the object is a named tuple.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_named_tuple : bool
+        Whether `obj` is a named tuple.
+
+    Examples
+    --------
+    >>> Point = namedtuple("Point", ["x", "y"])
+    >>> p = Point(1, 2)
+    >>>
+    >>> is_named_tuple(p)
+    True
+    >>> is_named_tuple((1, 2))
+    False
+    """
+
+    return isinstance(obj, tuple) and hasattr(obj, '_fields')
 
 
-def is_hashable(arg):
-    """Return True if hash(arg) will succeed, False otherwise.
+def is_hashable(obj):
+    """Return True if hash(obj) will succeed, False otherwise.
 
     Some types will pass a test against collections.Hashable but fail when they
     are actually hashed with hash().
@@ -102,25 +339,48 @@ def is_hashable(arg):
     >>> is_hashable(a)
     False
     """
-    # unfortunately, we can't use isinstance(arg, collections.Hashable), which
-    # can be faster than calling hash, because numpy scalars on Python 3 fail
-    # this test
+    # Unfortunately, we can't use isinstance(obj, collections.Hashable), which
+    # can be faster than calling hash. That is because numpy scalars on Python
+    # 3 fail this test.
 
-    # reconsider this decision once this numpy bug is fixed:
+    # Reconsider this decision once this numpy bug is fixed:
     # https://github.com/numpy/numpy/issues/5562
 
     try:
-        hash(arg)
+        hash(obj)
     except TypeError:
         return False
     else:
         return True
 
 
-def is_sequence(x):
+def is_sequence(obj):
+    """
+    Check if the object is a sequence of objects.
+    String types are not included as sequences here.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_sequence : bool
+        Whether `obj` is a sequence of objects.
+
+    Examples
+    --------
+    >>> l = [1, 2, 3]
+    >>>
+    >>> is_sequence(l)
+    True
+    >>> is_sequence(iter(l))
+    False
+    """
+
     try:
-        iter(x)
-        len(x)  # it has a length
-        return not isinstance(x, string_and_binary_types)
+        iter(obj)  # Can iterate over it.
+        len(obj)   # Has a length associated with it.
+        return not isinstance(obj, string_and_binary_types)
     except (TypeError, AttributeError):
         return False
