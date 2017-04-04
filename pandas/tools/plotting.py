@@ -217,9 +217,14 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         # check whether each character can be convertable to colors
         maybe_color_cycle = _maybe_valid_colors(list(colors))
         if maybe_single_color and maybe_color_cycle and len(colors) > 1:
-            if color[0] == 'C' and len(color) == 2:
-                colors = [colors]
+            # Special case for single str 'CN' match and convert to hex
+            # for supporting matplotlib < 2.0.0
+            if re.match(r'C[0-9]', colors) and len(colors) == 2:
+                prop_cycler = plt.rcParams['axes.prop_cycle']
+                hex_color = prop_cycler.by_key().get('color', ['k'])
+                colors = [hex_color[int(colors[1])]]
             else:
+                # non-default cycle may be parsed as single or many colors
                 msg = ("'{0}' can be parsed as both single color and "
                        "color cycle. Specify each color using a list "
                        "like ['{0}'] or {1}")
@@ -232,7 +237,10 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             pass
 
     if len(colors) != num_colors:
-        multiple = num_colors // len(colors) - 1
+        try:
+            multiple = num_colors // len(colors) - 1
+        except ZeroDivisionError:
+            raise ValueError("Invalid color argument: ''")
         mod = num_colors % len(colors)
 
         colors += multiple * colors
