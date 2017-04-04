@@ -327,6 +327,14 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         result = df.loc['216']
         self.assertTrue(result.dtype == object)
 
+    def test_constructor_datetimes_with_nulls(self):
+        # gh-15869
+        for arr in [np.array([None, None, None, None,
+                              datetime.now(), None]),
+                    np.array([None, None, datetime.now(), None])]:
+            result = Series(arr)
+            assert result.dtype == 'M8[ns]'
+
     def test_constructor_dtype_datetime64(self):
 
         s = Series(iNaT, dtype='M8[ns]', index=lrange(5))

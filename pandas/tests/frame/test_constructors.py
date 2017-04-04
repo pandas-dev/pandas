@@ -1366,6 +1366,15 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                               .reset_index(drop=True), 'b': i_no_tz})
         tm.assert_frame_equal(df, expected)
 
+    def test_constructor_datetimes_with_nulls(self):
+        # gh-15869
+        for arr in [np.array([None, None, None, None,
+                              datetime.now(), None]),
+                    np.array([None, None, datetime.now(), None])]:
+            result = DataFrame(arr).get_dtype_counts()
+            expected = Series({'datetime64[ns]': 1})
+            tm.assert_series_equal(result, expected)
+
     def test_constructor_for_list_with_dtypes(self):
         # TODO(wesm): unused
         intname = np.dtype(np.int_).name  # noqa
