@@ -348,7 +348,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
                                        right=[2, 4],
                                        closed='right')
 
-        ci = CategoricalIndex(Categorical.from_codes([0, 1, -1], categories=ii, ordered=True))
+        ci = CategoricalIndex(Categorical.from_codes(
+            [0, 1, -1], categories=ii, ordered=True))
 
         result = ci.astype('interval')
         expected = ii.take([0, 1, -1])
