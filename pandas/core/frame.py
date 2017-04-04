@@ -4062,7 +4062,6 @@ it is assumed to be aliases for the column names.')
     columns, considered measured variables (`value_vars`), are "unpivoted" to
     the row axis, leaving just two non-identifier columns, 'variable' and
     'value'.
-
     %(versionadded_melt)s
 
     Parameters
