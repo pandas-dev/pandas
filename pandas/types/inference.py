@@ -4,7 +4,7 @@ import collections
 import re
 import numpy as np
 from numbers import Number
-from pandas.compat import (string_types, text_type,
+from pandas.compat import (PY2, string_types, text_type,
                            string_and_binary_types)
 from pandas._libs import lib
 
@@ -35,8 +35,28 @@ def _iterable_not_string(x):
 
 
 def is_iterator(obj):
-    # python 3 generators have __next__ instead of next
-    return hasattr(obj, 'next') or hasattr(obj, '__next__')
+    if not hasattr(obj, '__iter__'):
+        return False
+
+    if PY2:
+        return hasattr(obj, 'next')
+    else:
+        # Python 3 generators have
+        # __next__ instead of next
+        return hasattr(obj, '__next__')
+
+
+def is_file_like(obj):
+    file_attrs = ('read', 'write', 'seek', 'tell')
+
+    for attr in file_attrs:
+        if not hasattr(obj, attr):
+            return False
+
+    if not is_iterator(obj):
+        return False
+
+    return True
 
 
 def is_re(obj):
