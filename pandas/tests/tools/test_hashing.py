@@ -91,7 +91,7 @@ class TestHashing(tm.TestCase):
         mi = MultiIndex(levels=[['b', 'd', 'a'], [1, 2, 3]],
                         labels=[[0, 1, 0, 2], [2, 0, 0, 1]],
                         names=['col1', 'col2'])
-        recons = mi.sort_monotonic()
+        recons = mi.sort_levels_monotonic()
 
         # these are equal
         assert mi.equals(recons)

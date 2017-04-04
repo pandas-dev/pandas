@@ -1173,14 +1173,15 @@ class MultiIndex(Index):
         labels = cartesian_product(labels)
         return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
-    def sort_monotonic(self):
+    def sort_levels_monotonic(self):
         """
         .. versionadded:: 0.20.0
 
         This is an *internal* function.
 
         create a new MultiIndex from the current to monotonically sorted
-        items IN the levels
+        items IN the levels. This does not actually make the entire MultiIndex
+        monotonic, JUST the levels.
 
         The resulting MultiIndex will have the same outward
         appearance, meaning the same .values and ordering. It will also
@@ -1189,6 +1190,19 @@ class MultiIndex(Index):
         Returns
         -------
         MultiIndex
+
+        Examples
+        --------
+
+        >>> i = pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
+                              labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        >>> i
+        MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
+                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+
+        >>> i.sort_monotonic()
+        MultiIndex(levels=[['a', 'b'], ['aa', 'bb']],
+                   labels=[[0, 0, 1, 1], [1, 0, 1, 0]])
 
         """
 
@@ -1237,7 +1251,7 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> i = MultiIndex.from_product([range(2), list('ab')])
+        >>> i = pd.MultiIndex.from_product([range(2), list('ab')])
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
 

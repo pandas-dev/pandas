@@ -2420,7 +2420,7 @@ class TestMultiIndex(Base, tm.TestCase):
         assert mi.is_lexsorted()
         assert mi.is_monotonic
 
-        recons = mi.sort_monotonic()
+        recons = mi.sort_levels_monotonic()
         assert recons.is_lexsorted()
         assert recons.is_monotonic
         assert mi is recons
@@ -2435,7 +2435,7 @@ class TestMultiIndex(Base, tm.TestCase):
         assert not mi.is_lexsorted()
         assert not mi.is_monotonic
 
-        recons = mi.sort_monotonic()
+        recons = mi.sort_levels_monotonic()
         assert not recons.is_lexsorted()
         assert not recons.is_monotonic
 
@@ -2449,7 +2449,7 @@ class TestMultiIndex(Base, tm.TestCase):
         assert not mi.is_lexsorted()
         assert not mi.is_monotonic
 
-        recons = mi.sort_monotonic()
+        recons = mi.sort_levels_monotonic()
         assert not recons.is_lexsorted()
         assert not recons.is_monotonic
 
