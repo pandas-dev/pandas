@@ -1175,6 +1175,10 @@ class MultiIndex(Index):
 
     def sort_monotonic(self):
         """
+        .. versionadded:: 0.20.0
+
+        This is an *internal* function.
+
         create a new MultiIndex from the current to monotonically sorted
         items IN the levels
 
@@ -1218,6 +1222,8 @@ class MultiIndex(Index):
 
     def remove_unused_levels(self):
         """
+        .. versionadded:: 0.20.0
+
         create a new MultiIndex from the current that removesing
         unused levels, meaning that they are not expressed in the labels
 
