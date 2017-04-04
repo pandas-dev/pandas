@@ -536,10 +536,10 @@ signatures and add deprecation warnings where needed.
 
 .. _contributing.ci:
 
-Testing Thru Continuous Integration
+Testing With Continuous Integration
 -----------------------------------
 
-The *pandas* testing suite will run automatically on `Travis-CI <https://travis-ci.org/>`__,
+The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__,
 `Appveyor <https://www.appveyor.com/>`__, and `Circle CI <https://circleci.com/>`__ continuous integration
 services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
@@ -548,14 +548,14 @@ for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__,
 `Appveyor <https://www.appveyor.com/docs/>`__ , and `CircleCI <https://circleci.com/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
-then you will get a red 'X', where you can click thru to see the individual failed tests.
+then you will get a red 'X', where you can click through to see the individual failed tests.
 This is an example of a green build.
 
 .. image:: _static/ci.png
 
 .. note::
 
-   Each time you push to *your* fork, a *new* run of the tests will trigger on the CI. Appveyor will auto-cancel
+   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI. Appveyor will auto-cancel
    any non-currently-running tests for that same pull-request. You can enable the auto-cancel feature for
    `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
    for `CircleCI here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
@@ -623,12 +623,12 @@ testing of many cases in a concise way that enables an easy-to-read syntax.
 
 .. note::
 
+   *pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class, inheriting from ``tm.TestCase``.
+
    .. code-block:: python
 
-      *pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class, inheriting from ``tm.TestCase``.
-
       class TestReallyCoolFeature(tm.TestCase):
-         ....
+          ....
 
    Going forward we are moving to a more *functional* style, please see below.
 

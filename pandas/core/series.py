@@ -80,7 +80,7 @@ _shared_doc_kwargs = dict(
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
     optional_by='',
-    versionadded_to_excel='\n.. versionadded:: 0.20.0\n')
+    versionadded_to_excel='\n    .. versionadded:: 0.20.0\n')
 
 
 def _coerce_method(converter):
