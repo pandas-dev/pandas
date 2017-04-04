@@ -175,35 +175,40 @@ completely analogous way to selecting a column in a regular DataFrame:
 See :ref:`Cross-section with hierarchical index <advanced.xs>` for how to select
 on a deeper level.
 
-.. note::
+.. _advanced.shown_levels:
 
-   The repr of a ``MultiIndex`` shows ALL the defined levels of an index, even
-   if the they are not actually used. When slicing an index, you may notice this.
-   For example:
+Defined Levels
+~~~~~~~~~~~~~~
 
-   .. ipython:: python
+The repr of a ``MultiIndex`` shows ALL the defined levels of an index, even
+if the they are not actually used. When slicing an index, you may notice this.
+For example:
 
-      # original multi-index
-      df.columns
+.. ipython:: python
 
-      # sliced
-      df[['foo','qux']].columns
+   # original multi-index
+   df.columns
 
-   This is done to avoid a recomputation of the levels in order to make slicing
-   highly performant. If you want to see the actual used levels.
+   # sliced
+   df[['foo','qux']].columns
 
-   .. ipython:: python
+This is done to avoid a recomputation of the levels in order to make slicing
+highly performant. If you want to see the actual used levels.
 
-      df[['foo','qux']].columns.values
+.. ipython:: python
 
-      # for a specific level
-      df[['foo','qux']].columns.get_level_values(0)
+   df[['foo','qux']].columns.values
 
-   To reconstruct the multiindex with only the used levels
+   # for a specific level
+   df[['foo','qux']].columns.get_level_values(0)
 
-   .. ipython:: python
+To reconstruct the multiindex with only the used levels
 
-      pd.MultiIndex.from_tuples(df[['foo','qux']].columns.values)
+.. versionadded:: 0.20.0
+
+.. ipython:: python
+
+   df[['foo','qux']].columns.remove_unused_levels()
 
 Data alignment and using ``reindex``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

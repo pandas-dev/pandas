@@ -3349,7 +3349,7 @@ it is assumed to be aliases for the column names.')
 
             # make sure that the axis is lexsorted to start
             # if not we need to reconstruct to get the correct indexer
-            labels = labels._reconstruct(sort=True)
+            labels = labels.sort_monotonic()
 
             indexer = lexsort_indexer(labels.labels, orders=ascending,
                                       na_position=na_position)

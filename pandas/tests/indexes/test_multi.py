@@ -2411,18 +2411,6 @@ class TestMultiIndex(Base, tm.TestCase):
 
         self.assertFalse(i.is_monotonic)
 
-    def test_reconstruct_api(self):
-
-        mi = MultiIndex.from_arrays([
-            ['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]
-        ])
-
-        with pytest.raises(ValueError):
-            mi._reconstruct()
-
-        with pytest.raises(ValueError):
-            mi._reconstruct(sort=True, remove_unused=True)
-
     def test_reconstruct_sort(self):
 
         # starts off lexsorted & monotonic
@@ -2432,7 +2420,7 @@ class TestMultiIndex(Base, tm.TestCase):
         assert mi.is_lexsorted()
         assert mi.is_monotonic
 
-        recons = mi._reconstruct(sort=True)
+        recons = mi.sort_monotonic()
         assert recons.is_lexsorted()
         assert recons.is_monotonic
         assert mi is recons
@@ -2447,7 +2435,7 @@ class TestMultiIndex(Base, tm.TestCase):
         assert not mi.is_lexsorted()
         assert not mi.is_monotonic
 
-        recons = mi._reconstruct(sort=True)
+        recons = mi.sort_monotonic()
         assert not recons.is_lexsorted()
         assert not recons.is_monotonic
 
@@ -2461,7 +2449,7 @@ class TestMultiIndex(Base, tm.TestCase):
         assert not mi.is_lexsorted()
         assert not mi.is_monotonic
 
-        recons = mi._reconstruct(sort=True)
+        recons = mi.sort_monotonic()
         assert not recons.is_lexsorted()
         assert not recons.is_monotonic
 
@@ -2489,11 +2477,11 @@ class TestMultiIndex(Base, tm.TestCase):
                                       [2, 3]],
                               labels=[[0, 1], [0, 1]],
                               names=['first', 'second'])
-        result = df2.index._reconstruct(remove_unused=True)
+        result = df2.index.remove_unused_levels()
         tm.assert_index_equal(result, expected)
 
         # idempotent
-        result2 = result._reconstruct(remove_unused=True)
+        result2 = result.remove_unused_levels()
         tm.assert_index_equal(result2, expected)
         assert result2 is result
 

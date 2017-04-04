@@ -1173,98 +1173,98 @@ class MultiIndex(Index):
         labels = cartesian_product(labels)
         return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
-    def _reconstruct(self, sort=False, remove_unused=False):
+    def sort_monotonic(self):
         """
-        create a new MultiIndex from the current to provide either:
-          - monotonically sorted items IN the levels
-          - removing unused levels (meaning that they are not expressed
-            in the labels)
+        create a new MultiIndex from the current to monotonically sorted
+        items IN the levels
 
         The resulting MultiIndex will have the same outward
         appearance, meaning the same .values and ordering. It will also
         be .equals() to the original.
 
-        Parameters
-        ----------
-        sort: boolean, default False
-            monotonically sort the levels
-        remove_unused: boolean, default False
-            remove unsued levels
-
         Returns
         -------
-        new MultiIndex
+        MultiIndex
 
         """
 
-        if sort and remove_unused:
-            raise ValueError("only support one of sort / remove_unused")
-
-        if not (sort or remove_unused):
-            raise ValueError("must supply one of sort / remove_unsued")
-
-        levels = self.levels
-        labels = self.labels
+        if self.is_lexsorted() and self.is_monotonic:
+            return self
 
         new_levels = []
         new_labels = []
 
-        if sort:
+        for lev, lab in zip(self.levels, self.labels):
 
-            if self.is_lexsorted() and self.is_monotonic:
-                return self
-
-            for lev, lab in zip(levels, labels):
-
-                if lev.is_monotonic:
-                    new_levels.append(lev)
-                    new_labels.append(lab)
-                    continue
-
-                # indexer to reorder the levels
-                indexer = lev.argsort()
-                lev = lev.take(indexer)
-
-                # indexer to reorder the labels
-                ri = lib.get_reverse_indexer(indexer, len(indexer))
-                lab = algos.take_1d(ri, lab)
-
+            if lev.is_monotonic:
                 new_levels.append(lev)
                 new_labels.append(lab)
+                continue
 
-        elif remove_unused:
+            # indexer to reorder the levels
+            indexer = lev.argsort()
+            lev = lev.take(indexer)
 
-            changed = np.zeros(self.nlevels, dtype=bool)
-            for i, (lev, lab) in enumerate(zip(levels, labels)):
+            # indexer to reorder the labels
+            ri = lib.get_reverse_indexer(indexer, len(indexer))
+            lab = algos.take_1d(ri, lab)
 
-                uniques = np.sort(algos.unique(lab))
+            new_levels.append(lev)
+            new_labels.append(lab)
 
-                # nothing unused
-                if len(uniques) == len(lev):
-                    new_levels.append(lev)
-                    new_labels.append(lab)
-                    changed[i] = True
-                    continue
+        return MultiIndex(new_levels, new_labels,
+                          names=self.names, sortorder=self.sortorder,
+                          verify_integrity=False)
 
-                unused = list(reversed(sorted(set(
-                    np.arange(len(lev))) - set(uniques))))
+    def remove_unused_levels(self):
+        """
+        create a new MultiIndex from the current that removesing
+        unused levels, meaning that they are not expressed in the labels
 
-                # new levels are simple
-                lev = lev.take(uniques)
+        The resulting MultiIndex will have the same outward
+        appearance, meaning the same .values and ordering. It will also
+        be .equals() to the original.
 
-                # new labels, we remove the unsued
-                # by decrementing the labels for that value
-                # prob a better way
-                for u in unused:
+        Returns
+        -------
+        MultiIndex
 
-                    lab = np.where(lab > u, lab - 1, lab)
+        """
 
+        new_levels = []
+        new_labels = []
+
+        changed = np.zeros(self.nlevels, dtype=bool)
+        for i, (lev, lab) in enumerate(zip(self.levels, self.labels)):
+
+            uniques = np.sort(algos.unique(lab))
+
+            # nothing unused
+            if len(uniques) == len(lev):
                 new_levels.append(lev)
                 new_labels.append(lab)
+                changed[i] = True
+                continue
 
-            # nothing changed
-            if not changed.any():
-                return self
+            unused = list(reversed(sorted(set(
+                np.arange(len(lev))) - set(uniques))))
+
+            # new levels are simple
+            lev = lev.take(uniques)
+
+            # new labels, we remove the unsued
+            # by decrementing the labels for that value
+            # prob a better way
+            for u in unused:
+
+                lab = np.where(lab > u, lab - 1, lab)
+
+            new_levels.append(lev)
+            new_labels.append(lab)
+
+        # nothing changed
+        if not changed.any():
+            return self
 
         return MultiIndex(new_levels, new_labels,
                           names=self.names, sortorder=self.sortorder,

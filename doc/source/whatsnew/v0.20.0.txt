@@ -366,6 +366,7 @@ Other Enhancements
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pandas.io.json.json_normalize()`` has gained a ``sep`` option that accepts ``str`` to separate joined fields; the default is ".", which is backward compatible. (:issue:`14883`)
 - ``pd.read_csv()`` will now raise a ``csv.Error`` error whenever an end-of-file character is encountered in the middle of a data row (:issue:`15913`)
+- A new function has been added to a ``MultiIndex`` to facilitate :ref:`Removing Unused Levels <advanced.shown_levels>`. (:issue:`15694`)
 
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
@@ -777,6 +778,7 @@ New Behavior:
    df.sort_index()
    df.sort_index().index.is_lexsorted()
    df.sort_index().index.is_monotonic
+
 
 .. _whatsnew_0200.api_breaking.groupby_describe:
 

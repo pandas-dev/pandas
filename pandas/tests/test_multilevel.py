@@ -2582,7 +2582,7 @@ class TestSorted(Base, tm.TestCase):
 
         # reconstruct
         result = df.sort_index().copy()
-        result.index = result.index._reconstruct(sort=True)
+        result.index = result.index.sort_monotonic()
         assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 

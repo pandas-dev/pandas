@@ -1762,7 +1762,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                                  sort_remaining=sort_remaining)
         elif isinstance(index, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
-            labels = index._reconstruct(sort=True)
+            labels = index.sort_monotonic()
             indexer = lexsort_indexer(labels.labels, orders=ascending)
         else:
             from pandas.core.sorting import nargsort
