@@ -12,7 +12,7 @@ from pandas import compat
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, date_range, timedelta_range
 import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
@@ -327,6 +327,16 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         for df in empty_frames:
             self.assertTrue(df.empty)
             self.assertTrue(df.T.empty)
+
+    def test_with_datetimelikes(self):
+
+        df = DataFrame({'A': date_range('20130101', periods=2),
+                        'B': timedelta_range('1 day', periods=2)})
+        t = df.T
+
+        result = t.get_dtype_counts()
+        expected = Series({'object': 2})
+        tm.assert_series_equal(result, expected)
 
     def test_inplace_return_self(self):
         # re #1893
