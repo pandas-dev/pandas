@@ -330,12 +330,12 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     def test_with_datetimelikes(self):
 
-        df = DataFrame({'A': date_range('20130101', periods=2),
-                        'B': timedelta_range('1 day', periods=2)})
+        df = DataFrame({'A': date_range('20130101', periods=10),
+                        'B': timedelta_range('1 day', periods=10)})
         t = df.T
 
         result = t.get_dtype_counts()
-        expected = Series({'object': 2})
+        expected = Series({'object': 10})
         tm.assert_series_equal(result, expected)
 
     def test_inplace_return_self(self):

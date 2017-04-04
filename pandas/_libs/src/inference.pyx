@@ -442,7 +442,7 @@ def infer_dtype(object value):
 cpdef object infer_datetimelike_array(object arr):
     """
     infer if we have a datetime or timedelta array
-    - date: we have *only* date and myabe strings, nulls
+    - date: we have *only* date and maybe strings, nulls
     - datetime: we have *only* datetimes and maybe strings, nulls
     - timedelta: we have *only* timedeltas and maybe strings, nulls
     - nat: we do not have *any* date, datetimes or timedeltas, but do have
@@ -476,7 +476,7 @@ cpdef object infer_datetimelike_array(object arr):
 
         elif util._checknull(v):
             # nan or None
-            seen_null = 1
+            pass
         elif v is NaT:
             seen_nat = 1
         elif is_datetime(v) or util.is_datetime64_object(v):
@@ -514,7 +514,6 @@ cpdef object infer_datetimelike_array(object arr):
         # for timedelta as too much ambiguity
 
     return 'mixed'
-
 
 
 cdef inline bint is_null_datetimelike(v):

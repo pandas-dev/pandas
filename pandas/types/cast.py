@@ -774,6 +774,10 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     if not v.ndim == 1:
         v = v.ravel()
 
+    # we only care about object dtypes
+    if not is_object_dtype(v):
+        return value
+
     if len(v):
 
         def _try_datetime(v):
