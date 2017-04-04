@@ -748,8 +748,6 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     this is pretty strict in that a datetime/timedelta is REQUIRED
     in addition to possible nulls/string likes
 
-    ONLY strings are NOT datetimelike
-
     Parameters
     ----------
     value : np.array / Series / Index / list-like
@@ -770,64 +768,70 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     if not is_list_like(v):
         v = [v]
     v = np.array(v, copy=False)
+
+    # we only care about object dtypes
+    if not is_object_dtype(v):
+        return value
+
     shape = v.shape
     if not v.ndim == 1:
         v = v.ravel()
 
-    if len(v):
+    if not len(v):
+        return value
 
-        def _try_datetime(v):
-            # safe coerce to datetime64
+    def try_datetime(v):
+        # safe coerce to datetime64
+        try:
+            v = tslib.array_to_datetime(v, errors='raise')
+        except ValueError:
+
+            # we might have a sequence of the same-datetimes with tz's
+            # if so coerce to a DatetimeIndex; if they are not the same,
+            # then these stay as object dtype
             try:
-                v = tslib.array_to_datetime(v, errors='raise')
-            except ValueError:
-
-                # we might have a sequence of the same-datetimes with tz's
-                # if so coerce to a DatetimeIndex; if they are not the same,
-                # then these stay as object dtype
-                try:
-                    from pandas import to_datetime
-                    return to_datetime(v)
-                except:
-                    pass
-
+                from pandas import to_datetime
+                return to_datetime(v)
             except:
                 pass
 
-            return v.reshape(shape)
+        except:
+            pass
 
-        def _try_timedelta(v):
-            # safe coerce to timedelta64
+        return v.reshape(shape)
 
-            # will try first with a string & object conversion
-            from pandas import to_timedelta
-            try:
-                return to_timedelta(v)._values.reshape(shape)
-            except:
-                return v
+    def try_timedelta(v):
+        # safe coerce to timedelta64
 
-        # do a quick inference for perf
-        sample = v[:min(3, len(v))]
-        inferred_type = lib.infer_dtype(sample)
+        # will try first with a string & object conversion
+        from pandas import to_timedelta
+        try:
+            return to_timedelta(v)._values.reshape(shape)
+        except:
+            return v
 
-        if (inferred_type in ['datetime', 'datetime64'] or
-                (convert_dates and inferred_type in ['date'])):
-            value = _try_datetime(v)
-        elif inferred_type in ['timedelta', 'timedelta64']:
-            value = _try_timedelta(v)
+    inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
 
-        # It's possible to have nulls intermixed within the datetime or
-        # timedelta.  These will in general have an inferred_type of 'mixed',
-        # so have to try both datetime and timedelta.
+    if inferred_type == 'date' and convert_dates:
+        value = try_datetime(v)
+    elif inferred_type == 'datetime':
+        value = try_datetime(v)
+    elif inferred_type == 'timedelta':
+        value = try_timedelta(v)
+    elif inferred_type == 'nat':
 
-        # try timedelta first to avoid spurious datetime conversions
-        # e.g. '00:00:01' is a timedelta but technically is also a datetime
-        elif inferred_type in ['mixed']:
+        # if all NaT, return as datetime
+        if isnull(v).all():
+            value = try_datetime(v)
+        else:
 
-            if lib.is_possible_datetimelike_array(_ensure_object(v)):
-                value = _try_timedelta(v)
-                if lib.infer_dtype(value) in ['mixed']:
-                    value = _try_datetime(v)
+            # We have at least a NaT and a string
+            # try timedelta first to avoid spurious datetime conversions
+            # e.g. '00:00:01' is a timedelta but
+            # technically is also a datetime
+            value = try_timedelta(v)
+            if lib.infer_dtype(value) in ['mixed']:
+                value = try_datetime(v)
 
     return value
 
