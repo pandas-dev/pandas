@@ -1826,7 +1826,7 @@ class CSSResolver(object):
 
             if val is None:
                 # we do not define a complete initial stylesheet
-                del props[val]
+                del props[prop]
             else:
                 props[prop] = val
 
@@ -1984,7 +1984,8 @@ class CSSToExcelConverter(object):
 
     def __init__(self, inherited=None):
         if inherited is not None:
-            inherited = self.compute_css(inherited, sefl.INITIAL_STYLE)
+            inherited = self.compute_css(inherited,
+                                         self.compute_css.INITIAL_STYLE)
 
         self.inherited = inherited
 

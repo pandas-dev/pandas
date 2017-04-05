@@ -176,3 +176,21 @@ def test_css_font_size_invalid():
 def test_css_to_excel(css, expected):
     convert = CSSToExcelConverter()
     assert expected == convert(css)
+
+
+@pytest.mark.parametrize('css,inherited,expected', [
+    ('font-weight: bold', '',
+     {'font': {'bold': True}}),
+    ('', 'font-weight: bold',
+     {'font': {'bold': True}}),
+    ('font-weight: bold', 'font-style: italic',
+     {'font': {'bold': True, 'italic': True}}),
+    ('font-style: normal', 'font-style: italic',
+     {'font': {'italic': False}}),
+    ('font-style: inherit', '', {}),
+    ('font-style: normal; font-style: inherit', 'font-style: italic',
+     {'font': {'italic': True}}),
+])
+def test_css_to_excel_inherited(css, inherited, expected):
+    convert = CSSToExcelConverter(inherited)
+    assert expected == convert(css)
