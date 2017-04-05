@@ -1787,7 +1787,6 @@ class CSSToExcelConverter(object):
         self.inherited = inherited
 
     INITIAL_STYLE = {
-        'font-size': '12pt'
     }
 
     def __call__(self, declarations_str):
@@ -2022,9 +2021,10 @@ class CSSToExcelConverter(object):
 
         # 2. resolve relative font size
         if props.get('font-size'):
-            em_pt = self.INITIAL_STYLE['font-size']
-            assert em_pt[-2:] == 'pt'
-            em_pt = float(em_pt[:-2])
+            if 'font-size' in inherited:
+                em_pt = inherited['font-size']
+                assert em_pt[-2:] == 'pt'
+                em_pt = float(em_pt[:-2])
             font_size = self.font_size_to_pt(props['font-size'], em_pt)
             props['font-size'] = '%fpt' % font_size
 
