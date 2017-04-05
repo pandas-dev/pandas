@@ -60,7 +60,9 @@ from pandas.util._tester import test
 # extension module deprecations
 from pandas.util.depr_module import _DeprecatedModule
 
-json = _DeprecatedModule(deprmod='pandas.json', deprmodto='pandas.io.json.libjson')
+json = _DeprecatedModule(deprmod='pandas.json', deprmodto='pandas.io.json.libjson',
+                         moved={'dumps': 'pandas.io.json.dumps',
+                                'loads': 'pandas.io.json.loads'})
 parser = _DeprecatedModule(deprmod='pandas.parser', deprmodto='pandas.io.libparsers')
 lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto='pandas._libs.lib',
                         moved={'infer_dtype': 'pandas.api.lib.infer_dtype'})
