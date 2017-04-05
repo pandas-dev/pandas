@@ -1839,7 +1839,7 @@ class CSSToExcelConverter(object):
     }
 
     def build_alignment(self, props):
-        # TODO: text-indent -> alignment.indent
+        # TODO: text-indent, margin-left -> alignment.indent
         return {'horizontal': props.get('text-align'),
                 'vertical': self.VERTICAL_MAP.get(props.get('vertical-align')),
                 'wrapText': (props['white-space'] not in (None, 'nowrap')
@@ -1971,7 +1971,7 @@ class CSSToExcelConverter(object):
         'q': ('mm', .25),
     }
 
-    FONT_SIZE_CONVERSIONS = unit_conversions.copy()
+    FONT_SIZE_CONVERSIONS = UNIT_CONVERSIONS.copy()
     FONT_SIZE_CONVERSIONS.update({
         '%': ('em', 1),
         'xx-small': ('rem', .5),
