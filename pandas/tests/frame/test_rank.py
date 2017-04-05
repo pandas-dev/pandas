@@ -217,7 +217,8 @@ class TestRank(TestData):
                         expected = expected.astype('float64')
                     tm.assert_frame_equal(result, expected)
 
-    def test_rank_dense_(self):
+    def test_rank_dense_method(self):
+        # GH15630, pct should be on 100% basis even when method='dense'
         df = DataFrame([['2012', 'B', 3], ['2012', 'A', 2], ['2012', 'A', 1]])
         result = df.rank(method='dense', pct=True)
         expected = DataFrame([[1., 1., 1.],
