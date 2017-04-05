@@ -10,7 +10,7 @@ from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
 from pandas.formats.printing import pprint_thing
 from pandas.core.common import AbstractMethodError
-from pandas.types.common import is_number
+from pandas.types.common import is_number, is_file_like
 
 # compat
 from pandas.errors import (ParserError, DtypeWarning,  # noqa
@@ -197,9 +197,19 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                                          encoding=encoding,
                                          compression=compression)
 
-    # It is a pathlib.Path/py.path.local or string
+    # Convert pathlib.Path/py.path.local or string
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
-    return _expand_user(filepath_or_buffer), None, compression
+
+    if isinstance(filepath_or_buffer, (compat.string_types,
+                                       compat.binary_type,
+                                       mmap.mmap)):
+        return _expand_user(filepath_or_buffer), None, compression
+
+    if not is_file_like(filepath_or_buffer):
+        msg = "Invalid file path or buffer object type: {_type}"
+        raise ValueError(msg.format(_type=type(filepath_or_buffer)))
+
+    return filepath_or_buffer, None, compression
 
 
 def file_path_to_url(path):
@@ -416,6 +426,9 @@ class MMapWrapper(BaseIterator):
     def __getattr__(self, name):
         return getattr(self.mmap, name)
 
+    def __iter__(self):
+        return self
+
     def __next__(self):
         newline = self.mmap.readline()
 
@@ -431,6 +444,10 @@ class MMapWrapper(BaseIterator):
         if newline == '':
             raise StopIteration
         return newline
+
+
+if not compat.PY3:
+    MMapWrapper.next = lambda self: self.__next__()
 
 
 class UTF8Recoder(BaseIterator):

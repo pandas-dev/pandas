@@ -1678,3 +1678,20 @@ j,-inF"""
                 if PY3:
                     self.assertFalse(m.closed)
                 m.close()
+
+    def test_invalid_file_buffer(self):
+        # see gh-15337
+
+        class InvalidBuffer(object):
+            pass
+
+        msg = "Invalid file path or buffer object type"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(InvalidBuffer())
+
+        if PY3:
+            from unittest import mock
+
+            with tm.assertRaisesRegexp(ValueError, msg):
+                self.read_csv(mock.Mock())

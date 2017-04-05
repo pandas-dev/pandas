@@ -17,7 +17,7 @@ from pandas._libs import tslib, lib
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical)
-from pandas.compat import u, PY2, lrange
+from pandas.compat import u, PY2, PY3, StringIO, lrange
 from pandas.types import inference
 from pandas.types.common import (is_timedelta64_dtype,
                                  is_timedelta64_ns_dtype,
@@ -76,6 +76,20 @@ def test_is_dict_like():
 
     for f in fails:
         assert not inference.is_dict_like(f)
+
+
+def test_is_file_like():
+    is_file = inference.is_file_like
+
+    data = StringIO("data")
+    assert is_file(data)
+
+    data = [1, 2, 3]
+    assert not is_file(data)
+
+    if PY3:
+        from unittest import mock
+        assert not is_file(mock.Mock())
 
 
 def test_is_named_tuple():
