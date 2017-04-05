@@ -1779,6 +1779,10 @@ class CSSToExcelConverter(object):
         CSS declarations understood to be the containing scope for the
         CSS processed by :meth:`__call__`.
     """
+    # NB: Most of the methods here could be classmethods, as only __init__
+    #     and __call__ make use of instance attributes.  We leave them as
+    #     instancemethods so that users can easily experiment with extensions
+    #     without monkey-patching.
 
     def __init__(self, inherited=None):
         if inherited is not None:
@@ -1799,7 +1803,7 @@ class CSSToExcelConverter(object):
             e.g. "font-weight: bold; background: blue"
         """
         # TODO: memoize?
-        properties = self.compute_css(declarations_str)
+        properties = self.compute_css(declarations_str, self.inherited)
         return self.build_xlstyle(properties)
 
     def build_xlstyle(self, props):
@@ -2000,9 +2004,8 @@ class CSSToExcelConverter(object):
             val *= mul
         return val
 
-    @classmethod
-    def compute_css(cls, declarations_str, inherited=None):
-        props = dict(cls.atomize(cls.parse(declarations_str)))
+    def compute_css(self, declarations_str, inherited=None):
+        props = dict(self.atomize(self.parse(declarations_str)))
         if inherited is None:
             inherited = {}
 
@@ -2032,12 +2035,11 @@ class CSSToExcelConverter(object):
         # 4. TODO: resolve other relative styles (e.g. ?)
         return props
 
-    @classmethod
-    def atomize(cls, declarations):
+    def atomize(self, declarations):
         for prop, value in declarations:
             attr = 'expand_' + prop.replace('-', '_')
             try:
-                expand = getattr(cls, attr)
+                expand = getattr(self, attr)
             except AttributeError:
                 yield prop, value
             else:
@@ -2053,16 +2055,15 @@ class CSSToExcelConverter(object):
     DIRECTIONS = ('top', 'right', 'bottom', 'left')
 
     def _direction_expander(prop_fmt):
-        @classmethod
-        def expand(cls, prop, value):
+        def expand(self, prop, value):
             tokens = value.split()
             try:
-                mapping = cls.DIRECTION_SHORTHANDS[len(tokens)]
+                mapping = self.DIRECTION_SHORTHANDS[len(tokens)]
             except KeyError:
                 warnings.warn('Could not expand "%s: %s"' % (prop, value),
                               CSSParseWarning)
                 return
-            for key, idx in zip(cls.DIRECTIONS, mapping):
+            for key, idx in zip(self.DIRECTIONS, mapping):
                 yield prop_fmt % key, tokens[idx]
 
         return expand
@@ -2073,8 +2074,7 @@ class CSSToExcelConverter(object):
     expand_margin = _direction_expander('margin-%s')
     expand_padding = _direction_expander('padding-%s')
 
-    @classmethod
-    def parse(cls, declarations_str):
+    def parse(self, declarations_str):
         """Generates (prop, value) pairs from declarations
 
         In a future version may generate parsed tokens from tinycss/tinycss2
