@@ -1,7 +1,7 @@
 """ ipc format compat """
 
 from pandas.types.generic import ABCIndexClass, ABCSeries, ABCDataFrame
-from pandas.compat import BytesIO, string_types
+from pandas.compat import string_types, cPickle
 from pandas._libs.lib import is_string_array, is_unicode_array
 from pandas.types.common import is_object_dtype
 
@@ -82,18 +82,18 @@ def to_ipc(obj, engine='infer'):
 def _to_pyarrow(df):
     """ helper routine to return via pyarrow """
     pyarrow = _try_import()
-    return pyarrow.write_ipc(df)
+    d = pyarrow.write_ipc(df)
+    d['engine'] = 'pyarrow'
+    return d
 
 
 def _to_pickle(obj):
     """ helper routine to return a pickle of an object """
-    from pandas import to_pickle
-    db = BytesIO()
-    to_pickle(obj, db)
-    return db.getvalue()
+    d = {'engine': 'pickle', 'data': cPickle.dumps(obj)}
+    return d
 
 
-def read_ipc(db, engine='infer'):
+def read_ipc(db):
     """
     Load a pyarrow ipc format object from the file dict-of-bytes
 
@@ -102,21 +102,20 @@ def read_ipc(db, engine='infer'):
     Parameters
     ----------
     dict-of-meta-and-bytes : a dictionary of meta data & bytes
-    engine : string, optional
-        string to indicate the engine {'infer', 'pickle', 'pyarrow'}
-        'infer' will pick an engine based upon performance considerations
 
     Returns
     -------
-    DataFrame
+    Pandas Object
 
     """
+    engine = db['engine']
+
     if engine == 'pickle':
-        return _read_pickle(db)
+        return _read_pickle(db['data'])
     try:
-        return _read_pyarrow(db)
+        return _read_pyarrow(db['data'])
     except:  # pragma
-        return _read_pickle(db)
+        return _read_pickle(db['data'])
 
 
 def _read_pyarrow(db):
@@ -127,7 +126,4 @@ def _read_pyarrow(db):
 
 def _read_pickle(db):
     """ helper to return via pickle """
-    from pandas import read_pickle
-
-    db = BytesIO(db)
-    return read_pickle(db)
+    return cPickle.loads(db)

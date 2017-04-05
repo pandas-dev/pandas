@@ -57,10 +57,14 @@ class TestIPC(object):
         if engine is None:
             writer = to_ipc
             reader = read_ipc
+            b = writer(df)
         else:
             _, writer, reader = engine
+            b = writer(df)
 
-        b = writer(df)
+            # we are calling a lower-level routine
+            b = b['data']
+
         result = reader(b)
         tm.assert_frame_equal(result, df)
 
