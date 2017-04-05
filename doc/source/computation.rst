@@ -459,6 +459,27 @@ default of the index) in a DataFrame.
    dft
    dft.rolling('2s', on='foo').sum()
 
+.. _stats.rolling_window.endpoints:
+
+Rolling window endpoint inclusion
+~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+New in version 0.19.0 are the ability to pass an offset (or convertible) to a ``.rolling()`` method and have it produce
+variable sized windows based on the passed time window. For each time point, this includes all preceding values occurring
+within the indicated time delta.
+
+This can be particularly useful for a non-regular time frequency index.
+
+.. ipython:: python
+
+   dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+                      index=pd.date_range('20130101 09:00:00', periods=5, freq='s'))
+   dft
+
+This is a regular frequency index. Using an integer window parameter works to roll along the window frequency.
+
 .. _stats.moments.ts-versus-resampling:
 
 Time-aware Rolling vs. Resampling

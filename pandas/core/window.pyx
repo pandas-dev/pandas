@@ -165,8 +165,8 @@ cdef class MockFixedWindowIndexer(WindowIndexer):
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 object index=None, object floor=None,
-                 bint left_closed=False, bint right_closed=True):
+                 bint left_closed, bint right_closed,
+                 object index=None, object floor=None):
 
         assert index is None
         self.is_variable = 0
@@ -203,8 +203,8 @@ cdef class FixedWindowIndexer(WindowIndexer):
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 object index=None, object floor=None,
-                 bint left_closed=False, bint right_closed=True):
+                 bint left_closed, bint right_closed,
+                 object index=None, object floor=None):
         cdef ndarray start_s, start_e, end_s, end_e
 
         assert index is None
@@ -352,7 +352,11 @@ def get_window_indexer(input, win, minp, index, closed,
         bint left_closed = False
         bint right_closed = False
 
-    assert closed in ['right', 'left', 'both', 'neither']
+    assert closed is None or closed in ['right', 'left', 'both', 'neither']
+
+    # if windows is variable, default is 'right', otherwise default is 'both'
+    if closed is None:
+        closed = 'right' if index is not None else 'both'
 
     if closed in ['right', 'both']:
         right_closed = True

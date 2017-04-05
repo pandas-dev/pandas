@@ -60,7 +60,7 @@ class _Window(PandasObject, SelectionMixin):
     exclusions = set()
 
     def __init__(self, obj, window=None, min_periods=None, freq=None,
-                 center=False, win_type=None, axis=0, on=None, closed='right',
+                 center=False, win_type=None, axis=0, on=None, closed=None,
                  **kwargs):
 
         if freq is not None:
@@ -379,10 +379,12 @@ class Window(_Window):
     on : string, optional
         For a DataFrame, column on which to calculate
         the rolling window, rather than the index
-    closed : 'right', 'left', 'both', 'neither'
-        For offset-based windows, make the interval closed on the right, left,
-        or on both endpoints. Can also make the interval open on both endpoints
-        (neither).
+    closed : string, default None
+        Make the interval closed on the 'right', 'left', 'both' or
+        'neither' endpoints.
+        For offset-based windows, it defaults to 'right'.
+        For fixed windows, defaults to 'both'. Remaining cases not implemented
+        for fixed windows.
 
         .. versionadded:: 0.20.0
 

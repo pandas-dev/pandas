@@ -3405,6 +3405,10 @@ class TestRollingTS(tm.TestCase):
         result = df.rolling('2s', closed='right').sum()
         tm.assert_frame_equal(result, expected)
 
+        # default should be 'right'
+        result = df.rolling('2s').sum()
+        tm.assert_frame_equal(result, expected)
+
         expected = df.copy()
         expected["A"] = [1.0, 2, 3, 3, 2]
         result = df.rolling('2s', closed='both').sum()
