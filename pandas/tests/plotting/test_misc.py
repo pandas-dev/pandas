@@ -76,6 +76,12 @@ class TestDataFramePlots(TestPlotBase):
             _check_plot_works(scat, diagonal='hist')
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(scat, range_padding=.1)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, color='rgb')
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, c='rgb')
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, facecolor='rgb')
 
         def scat2(x, y, by=None, ax=None, figsize=None):
             return plotting.scatter_plot(df, x, y, by, ax, figsize=None)
