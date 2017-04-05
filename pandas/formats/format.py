@@ -1758,15 +1758,213 @@ header_style = {"font": {"bold": True},
                               "vertical": "top"}}
 
 
-class CSSParseWarning(Warning):
+class CSSWarning(UserWarning):
     """This CSS syntax cannot currently be parsed"""
     pass
 
 
-class CSSToExcelConverter(object):
-    """Converts CSS declarations to ExcelWriter styles
+class CSSResolver(object):
+    """A callable for parsing and resolving CSS to atomic properties
 
-    Supports parts of CSS2, with minimal CSS3 support (e.g. text-shadow),
+    """
+
+    INITIAL_STYLE = {
+    }
+
+    def __call__(self, declarations_str, inherited=None):
+        """ the given declarations to atomic properties
+
+        Parameters
+        ----------
+        declarations_str : str
+            A list of CSS declarations
+        inherited : dict, optional
+            Atomic properties indicating the inherited style context in which
+            declarations_str is to be resolved. ``inherited`` should already
+            be resolved, i.e. valid output of this method.
+
+        Returns
+        -------
+        props : dict
+            Atomic CSS 2.2 properties
+
+        Examples
+        --------
+        >>> resolve = CSSResolver()
+        >>> inherited = {'font-family': 'serif', 'font-weight': 'bold'}
+        >>> out = resolve('''
+        ...               border-color: BLUE RED;
+        ...               font-size: 1em;
+        ...               font-size: 2em;
+        ...               font-weight: normal;
+        ...               font-weight: inherit;
+        ...               ''', inherited)
+        >>> sorted(out.items())  # doctest: +NORMALIZE_WHITESPACE
+        [('border-bottom-color', 'blue'),
+         ('border-left-color', 'red'),
+         ('border-right-color', 'red'),
+         ('border-top-color', 'blue'),
+         ('font-family', 'serif'),
+         ('font-size', '24pt'),
+         ('font-weight', 'bold')]
+        """
+
+        props = dict(self.atomize(self.parse(declarations_str)))
+        if inherited is None:
+            inherited = {}
+
+        # 1. resolve inherited, initial
+        for prop, val in inherited.items():
+            if prop not in props:
+                props[prop] = val
+
+        for prop, val in list(props.items()):
+            if val == 'inherit':
+                val = inherited.get(prop, 'initial')
+            if val == 'initial':
+                val = self.INITIAL_STYLE.get(prop)
+
+            if val is None:
+                # we do not define a complete initial stylesheet
+                del props[val]
+            else:
+                props[prop] = val
+
+        # 2. resolve relative font size
+        if props.get('font-size'):
+            if 'font-size' in inherited:
+                em_pt = inherited['font-size']
+                assert em_pt[-2:] == 'pt'
+                em_pt = float(em_pt[:-2])
+            else:
+                em_pt = None
+            font_size = self.font_size_to_pt(props['font-size'], em_pt)
+            if font_size == int(font_size):
+                size_fmt = '%d'
+            else:
+                size_fmt = '%f'
+            props['font-size'] = (size_fmt + 'pt') % font_size
+
+        # 3. TODO: resolve other font-relative units
+        # 4. TODO: resolve other relative styles (e.g. ?)
+        return props
+
+    UNIT_CONVERSIONS = {
+        'rem': ('pt', 12),
+        'ex': ('em', .5),
+        # 'ch':
+        'px': ('pt', .75),
+        'pc': ('pt', 12),
+        'in': ('pt', 72),
+        'cm': ('in', 1 / 2.54),
+        'mm': ('in', 1 / 25.4),
+        'q': ('mm', .25),
+    }
+
+    FONT_SIZE_CONVERSIONS = UNIT_CONVERSIONS.copy()
+    FONT_SIZE_CONVERSIONS.update({
+        '%': ('em', 1),
+        'xx-small': ('rem', .5),
+        'x-small': ('rem', .625),
+        'small': ('rem', .8),
+        'medium': ('rem', 1),
+        'large': ('rem', 1.125),
+        'x-large': ('rem', 1.5),
+        'xx-large': ('rem', 2),
+        'smaller': ('em', 1 / 1.2),
+        'larger': ('em', 1.2),
+    })
+
+    def font_size_to_pt(self, val, em_pt=None):
+        try:
+            val, unit = re.match('(.*?)([a-zA-Z%].*)', val).groups()
+        except AttributeError:
+            warnings.warn('Unhandled font size: %r' % val, CSSWarning)
+            return
+        if val == '':
+            # hack for 'large' etc.
+            val = 1
+        else:
+            try:
+                val = float(val)
+            except ValueError:
+                warnings.warn('Unhandled font size: %r' % val + unit,
+                              CSSWarning)
+
+        while unit != 'pt':
+            if unit == 'em':
+                if em_pt is None:
+                    unit = 'rem'
+                else:
+                    val *= em_pt
+                    unit = 'pt'
+                continue
+
+            unit, mul = self.FONT_SIZE_CONVERSIONS[unit]
+            val *= mul
+        return val
+
+    def atomize(self, declarations):
+        for prop, value in declarations:
+            attr = 'expand_' + prop.replace('-', '_')
+            try:
+                expand = getattr(self, attr)
+            except AttributeError:
+                yield prop, value
+            else:
+                for prop, value in expand(prop, value):
+                    yield prop, value
+
+    DIRECTION_SHORTHANDS = {
+        1: [0, 0, 0, 0],
+        2: [0, 1, 0, 1],
+        3: [0, 1, 2, 1],
+        4: [0, 1, 2, 3],
+    }
+    DIRECTIONS = ('top', 'right', 'bottom', 'left')
+
+    def _direction_expander(prop_fmt):
+        def expand(self, prop, value):
+            tokens = value.split()
+            try:
+                mapping = self.DIRECTION_SHORTHANDS[len(tokens)]
+            except KeyError:
+                warnings.warn('Could not expand "%s: %s"' % (prop, value),
+                              CSSWarning)
+                return
+            for key, idx in zip(self.DIRECTIONS, mapping):
+                yield prop_fmt % key, tokens[idx]
+
+        return expand
+
+    expand_border_color = _direction_expander('border-%s-color')
+    expand_border_style = _direction_expander('border-%s-style')
+    expand_border_width = _direction_expander('border-%s-width')
+    expand_margin = _direction_expander('margin-%s')
+    expand_padding = _direction_expander('padding-%s')
+
+    def parse(self, declarations_str):
+        """Generates (prop, value) pairs from declarations
+
+        In a future version may generate parsed tokens from tinycss/tinycss2
+        """
+        for decl in declarations_str.split(';'):
+            if not decl.strip():
+                continue
+            prop, sep, val = decl.partition(':')
+            prop = prop.strip().lower()
+            # TODO: don't lowercase case sensitive parts of values (strings)
+            val = val.strip().lower()
+            if not sep:
+                warnings.warn('Ill-formatted attribute: expected a colon '
+                              'in %r' % decl, CSSWarning)
+            yield prop, val
+
+
+class CSSToExcelConverter(object):
+    """A callable for converting CSS declarations to ExcelWriter styles
+
+    Supports parts of CSS 2.2, with minimal CSS 3.0 support (e.g. text-shadow),
     focusing on font styling, backgrounds, borders and alignment.
 
     Operates by first computing CSS styles in a fairly generic
@@ -1790,8 +1988,7 @@ class CSSToExcelConverter(object):
 
         self.inherited = inherited
 
-    INITIAL_STYLE = {
-    }
+    compute_css = CSSResolver()
 
     def __call__(self, declarations_str):
         """Convert CSS declarations to ExcelWriter style
@@ -1809,7 +2006,7 @@ class CSSToExcelConverter(object):
     def build_xlstyle(self, props):
         out = {
             'alignment': self.build_alignment(props),
-            'borders': self.build_borders(props),
+            'border': self.build_border(props),
             'fill': self.build_fill(props),
             'font': self.build_font(props),
         }
@@ -1839,14 +2036,14 @@ class CSSToExcelConverter(object):
     }
 
     def build_alignment(self, props):
-        # TODO: text-indent, margin-left -> alignment.indent
+        # TODO: text-indent, padding-left -> alignment.indent
         return {'horizontal': props.get('text-align'),
                 'vertical': self.VERTICAL_MAP.get(props.get('vertical-align')),
-                'wrapText': (props['white-space'] not in (None, 'nowrap')
-                             if 'white-space' in props else None),
+                'wrap_text': (props['white-space'] not in (None, 'nowrap')
+                              if 'white-space' in props else None),
                 }
 
-    def build_borders(self, props):
+    def build_border(self, props):
         return {side: {
             # TODO: convert styles and widths to openxml, one of:
             #       'dashDot'
@@ -1879,11 +2076,11 @@ class CSSToExcelConverter(object):
                 'patternType': 'solid',
             }
 
-    BOLD_MAP = {k: True for k in
-                ['bold', 'bolder', '600', '700', '800', '900']}
-    ITALIC_MAP = {'italic': True, 'oblique': True}
-    UNDERLINE_MAP = {'underline': True}
-    STRIKE_MAP = {'line-through': True}
+    BOLD_MAP = {'bold': True, 'bolder': True, '600': True, '700': True,
+                '800': True, '900': True,
+                'normal': False, 'lighter': False, '100': False, '200': False,
+                '300': False, '400': False, '500': False}
+    ITALIC_MAP = {'normal': False, 'italic': True, 'oblique': True}
 
     def build_font(self, props):
         size = props.get('font-size')
@@ -1907,14 +2104,20 @@ class CSSToExcelConverter(object):
                 family = 5  # decorative
                 break
 
+        decoration = props.get('text-decoration')
+        if decoration is not None:
+            decoration = decoration.split()
+
         return {
             'name': font_names[0] if font_names else None,
             'family': family,
             'size': size,
             'bold': self.BOLD_MAP.get(props.get('font-weight')),
             'italic': self.ITALIC_MAP.get(props.get('font-style')),
-            'underline': self.UNDERLINE_MAP.get(props.get('text-decoration')),
-            'strike': self.STRIKE_MAP.get(props.get('text-decoration')),
+            'underline': (None if decoration is None
+                          else 'underline' in decoration),
+            'strike': (None if decoration is None
+                       else 'line-through' in decoration),
             'color': self.color_to_excel(props.get('font-color')),
             # shadow if nonzero digit before shadow colour
             'shadow': (bool(re.search('^[^#(]*[1-9]',
@@ -1957,139 +2160,7 @@ class CSSToExcelConverter(object):
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
-            warnings.warn('Unhandled colour format: %r' % val, CSSParseWarning)
-
-    UNIT_CONVERSIONS = {
-        'rem': ('pt', 12),
-        'ex': ('em', .5),
-        # 'ch':
-        'px': ('pt', .75),
-        'pc': ('pt', 12),
-        'in': ('pt', 72),
-        'cm': ('in', 1 / 2.54),
-        'mm': ('in', 1 / 25.4),
-        'q': ('mm', .25),
-    }
-
-    FONT_SIZE_CONVERSIONS = UNIT_CONVERSIONS.copy()
-    FONT_SIZE_CONVERSIONS.update({
-        '%': ('em', 1),
-        'xx-small': ('rem', .5),
-        'x-small': ('rem', .625),
-        'small': ('rem', .8),
-        'medium': ('rem', 1),
-        'large': ('rem', 1.125),
-        'x-large': ('rem', 1.5),
-        'xx-large': ('rem', 2),
-        'smaller': ('em', 1 / 1.2),
-        'larger': ('em', 1.2),
-    })
-
-    def font_size_to_pt(self, val, em_pt=None):
-        val, unit = re.split('(?=[a-zA-Z%])', val, 1).groups()
-        if val == '':
-            # hack for 'large' etc.
-            val = 1
-
-        while unit != 'pt':
-            if unit == 'em':
-                if em_pt is None:
-                    unit = 'rem'
-                else:
-                    val *= em_pt
-                    unit = 'pt'
-                continue
-
-            unit, mul = self.FONT_SIZE_CONVERSIONS[unit]
-            val *= mul
-        return val
-
-    def compute_css(self, declarations_str, inherited=None):
-        props = dict(self.atomize(self.parse(declarations_str)))
-        if inherited is None:
-            inherited = {}
-
-        # 1. resolve inherited, initial
-        for prop, val in list(props.items()):
-            if val == 'inherited':
-                val = inherited.get(prop, 'initial')
-            if val == 'initial':
-                val = self.INITIAL_STYLE.get(prop)
-
-            if val is None:
-                # we do not define a complete initial stylesheet
-                del props[val]
-            else:
-                props[prop] = val
-
-        # 2. resolve relative font size
-        if props.get('font-size'):
-            if 'font-size' in inherited:
-                em_pt = inherited['font-size']
-                assert em_pt[-2:] == 'pt'
-                em_pt = float(em_pt[:-2])
-            font_size = self.font_size_to_pt(props['font-size'], em_pt)
-            props['font-size'] = '%fpt' % font_size
-
-        # 3. TODO: resolve other font-relative units
-        # 4. TODO: resolve other relative styles (e.g. ?)
-        return props
-
-    def atomize(self, declarations):
-        for prop, value in declarations:
-            attr = 'expand_' + prop.replace('-', '_')
-            try:
-                expand = getattr(self, attr)
-            except AttributeError:
-                yield prop, value
-            else:
-                for prop, value in expand(prop, value):
-                    yield prop, value
-
-    DIRECTION_SHORTHANDS = {
-        1: [0, 0, 0, 0],
-        2: [0, 1, 0, 1],
-        3: [0, 1, 2, 1],
-        4: [0, 1, 2, 3],
-    }
-    DIRECTIONS = ('top', 'right', 'bottom', 'left')
-
-    def _direction_expander(prop_fmt):
-        def expand(self, prop, value):
-            tokens = value.split()
-            try:
-                mapping = self.DIRECTION_SHORTHANDS[len(tokens)]
-            except KeyError:
-                warnings.warn('Could not expand "%s: %s"' % (prop, value),
-                              CSSParseWarning)
-                return
-            for key, idx in zip(self.DIRECTIONS, mapping):
-                yield prop_fmt % key, tokens[idx]
-
-        return expand
-
-    expand_border_color = _direction_expander('border-%s-color')
-    expand_border_style = _direction_expander('border-%s-style')
-    expand_border_width = _direction_expander('border-%s-width')
-    expand_margin = _direction_expander('margin-%s')
-    expand_padding = _direction_expander('padding-%s')
-
-    def parse(self, declarations_str):
-        """Generates (prop, value) pairs from declarations
-
-        In a future version may generate parsed tokens from tinycss/tinycss2
-        """
-        for decl in sum((l.split(';') for l in declarations_str), []):
-            if not decl.strip():
-                continue
-            prop, sep, val = decl.partition(':')
-            prop = prop.strip().lower()
-            # TODO: don't lowercase case sensitive parts of values (strings)
-            val = val.strip().lower()
-            if not sep:
-                raise ValueError('Ill-formatted attribute: expected a colon '
-                                 'in %r' % decl)
-            yield prop, val
+            warnings.warn('Unhandled colour format: %r' % val, CSSWarning)
 
 
 class ExcelFormatter(object):
@@ -2374,7 +2445,7 @@ class ExcelFormatter(object):
             series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
                 if styles is not None:
-                    xlstyle = self.style_converter(styles[i, colidx])
+                    xlstyle = self.style_converter(';'.join(styles[i, colidx]))
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val,
                                 xlstyle)
 

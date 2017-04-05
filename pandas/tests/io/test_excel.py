@@ -27,6 +27,10 @@ from pandas.core.config import set_option, get_option
 import pandas.util.testing as tm
 
 
+# FIXME: run all/some tests with plain Styler instead of DataFrame
+# FIXME: run some tests with styled Styler
+
+
 def _skip_if_no_xlrd():
     try:
         import xlrd
