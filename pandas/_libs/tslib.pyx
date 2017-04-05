@@ -1569,7 +1569,9 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                 ts = obj.value
                 if tz is not None:
                     # shift for _localize_tso
-                    ts = tz_convert_single(ts, tz, 'UTC')
+                    ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
+                                            ambiguous='raise', 
+                                            errors='raise')[0]
         except ValueError:
             try:
                 ts = parse_datetime_string(

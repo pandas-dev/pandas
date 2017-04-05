@@ -159,6 +159,26 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         self.assertEqual(result.hour, expected.hour)
         self.assertEqual(result, expected)
 
+    def test_timestamp_constructor_near_dst_boundary(self):
+        # GH 11481 & 15777
+        # Naive string timestamps were being localized incorrectly
+        # with tz_convert_single instead of tz_localize_to_utc
+
+        for tz in ['Europe/Brussels', 'Europe/Prague']:
+            result = Timestamp('2015-10-25 01:00', tz=tz)
+            expected = Timestamp('2015-10-25 01:00').tz_localize(tz)
+            self.assertEqual(result, expected)
+
+            with tm.assertRaises(pytz.AmbiguousTimeError):
+                Timestamp('2015-10-25 02:00', tz=tz)
+
+        result = Timestamp('2017-03-26 01:00', tz='Europe/Paris')
+        expected = Timestamp('2017-03-26 01:00').tz_localize('Europe/Paris')
+        self.assertEqual(result, expected)
+
+        with tm.assertRaises(pytz.NonExistentTimeError):
+            Timestamp('2017-03-26 02:00', tz='Europe/Paris')
+
     def test_timestamp_to_datetime_tzoffset(self):
         # tzoffset
         from dateutil.tz import tzoffset
@@ -517,8 +537,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
                                              freq="H"))
         if dateutil.__version__ != LooseVersion('2.6.0'):
             # GH 14621
-            self.assertEqual(times[-1], Timestamp('2013-10-27 01:00', tz=tz,
-                                                  freq="H"))
+            self.assertEqual(times[-1], Timestamp('2013-10-27 01:00:00+0000',
+                                                  tz=tz, freq="H"))
 
     def test_ambiguous_nat(self):
         tz = self.tz('US/Eastern')
