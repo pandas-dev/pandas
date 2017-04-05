@@ -365,6 +365,7 @@ Other Enhancements
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pandas.io.json.json_normalize()`` has gained a ``sep`` option that accepts ``str`` to separate joined fields; the default is ".", which is backward compatible. (:issue:`14883`)
+- ``pd.read_csv()`` will now raise a ``csv.Error`` error whenever an end-of-file character is encountered in the middle of a data row (:issue:`15913`)
 
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
@@ -1034,7 +1035,8 @@ I/O
 - Bug in ``pd.read_csv()`` with ``float_precision='round_trip'`` which caused a segfault when a text entry is parsed (:issue:`15140`)
 - Bug in ``pd.read_csv()`` when an index was specified and no values were specified as null values (:issue:`15835`)
 - Bug in ``pd.read_csv()`` in which certain invalid file objects caused the Python interpreter to crash (:issue:`15337`)
-- Added checks in ``pd.read_csv()`` ensuring that values for ``nrows`` and ``chunksize`` are valid (:issue:`15767`)
+- Bug in ``pd.read_csv()`` in which invalid values for ``nrows`` and ``chunksize`` were allowed (:issue:`15767`)
+- Bug in ``pd.read_csv()`` for the Python engine in which unhelpful error messages were being raised when parsing errors occurred (:issue:`15910`)
 - Bug in ``pd.tools.hashing.hash_pandas_object()`` in which hashing of categoricals depended on the ordering of categories, instead of just their values. (:issue:`15143`)
 - Bug in ``.to_json()`` where ``lines=True`` and contents (keys or values) contain escaped characters (:issue:`15096`)
 - Bug in ``.to_json()`` causing single byte ascii characters to be expanded to four byte unicode (:issue:`15344`)

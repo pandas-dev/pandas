@@ -408,3 +408,12 @@ No,No,No"""
         expected = DataFrame([row.split(',')[0] for row in rows])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_data_after_quote(self):
+        # see gh-15910
+
+        data = 'a\n1\n"b"a'
+        result = self.read_csv(StringIO(data))
+        expected = DataFrame({'a': ['1', 'ba']})
+
+        tm.assert_frame_equal(result, expected)
