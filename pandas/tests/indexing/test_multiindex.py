@@ -5,7 +5,7 @@ import pandas as pd
 from pandas import (Panel, Series, MultiIndex, DataFrame,
                     Timestamp, Index, date_range)
 from pandas.util import testing as tm
-from pandas.core.common import PerformanceWarning, UnsortedIndexError
+from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.tests.indexing.common import _mklbl
 
 
@@ -46,101 +46,103 @@ class TestMultiIndexBasic(tm.TestCase):
         tm.assert_frame_equal(rs, xp)
 
     def test_setitem_multiindex(self):
-        for index_fn in ('ix', 'loc'):
+        with catch_warnings(record=True):
 
-            def check(target, indexers, value, compare_fn, expected=None):
-                fn = getattr(target, index_fn)
-                fn.__setitem__(indexers, value)
-                result = fn.__getitem__(indexers)
-                if expected is None:
-                    expected = value
-                compare_fn(result, expected)
-            # GH7190
-            index = pd.MultiIndex.from_product([np.arange(0, 100),
-                                                np.arange(0, 80)],
-                                               names=['time', 'firm'])
-            t, n = 0, 2
-            df = DataFrame(np.nan, columns=['A', 'w', 'l', 'a', 'x',
-                                            'X', 'd', 'profit'],
-                           index=index)
-            check(target=df, indexers=((t, n), 'X'), value=0,
-                  compare_fn=self.assertEqual)
+            for index_fn in ('ix', 'loc'):
 
-            df = DataFrame(-999, columns=['A', 'w', 'l', 'a', 'x',
-                                          'X', 'd', 'profit'],
-                           index=index)
-            check(target=df, indexers=((t, n), 'X'), value=1,
-                  compare_fn=self.assertEqual)
+                def check(target, indexers, value, compare_fn, expected=None):
+                    fn = getattr(target, index_fn)
+                    fn.__setitem__(indexers, value)
+                    result = fn.__getitem__(indexers)
+                    if expected is None:
+                        expected = value
+                    compare_fn(result, expected)
+                # GH7190
+                index = pd.MultiIndex.from_product([np.arange(0, 100),
+                                                    np.arange(0, 80)],
+                                                   names=['time', 'firm'])
+                t, n = 0, 2
+                df = DataFrame(np.nan, columns=['A', 'w', 'l', 'a', 'x',
+                                                'X', 'd', 'profit'],
+                               index=index)
+                check(target=df, indexers=((t, n), 'X'), value=0,
+                      compare_fn=self.assertEqual)
 
-            df = DataFrame(columns=['A', 'w', 'l', 'a', 'x',
-                                    'X', 'd', 'profit'],
-                           index=index)
-            check(target=df, indexers=((t, n), 'X'), value=2,
-                  compare_fn=self.assertEqual)
+                df = DataFrame(-999, columns=['A', 'w', 'l', 'a', 'x',
+                                              'X', 'd', 'profit'],
+                               index=index)
+                check(target=df, indexers=((t, n), 'X'), value=1,
+                      compare_fn=self.assertEqual)
 
-            # GH 7218, assinging with 0-dim arrays
-            df = DataFrame(-999, columns=['A', 'w', 'l', 'a', 'x',
-                                          'X', 'd', 'profit'],
-                           index=index)
-            check(target=df,
-                  indexers=((t, n), 'X'),
-                  value=np.array(3),
-                  compare_fn=self.assertEqual,
-                  expected=3, )
+                df = DataFrame(columns=['A', 'w', 'l', 'a', 'x',
+                                        'X', 'd', 'profit'],
+                               index=index)
+                check(target=df, indexers=((t, n), 'X'), value=2,
+                      compare_fn=self.assertEqual)
 
-            # GH5206
-            df = pd.DataFrame(np.arange(25).reshape(5, 5),
-                              columns='A,B,C,D,E'.split(','), dtype=float)
-            df['F'] = 99
-            row_selection = df['A'] % 2 == 0
-            col_selection = ['B', 'C']
-            with catch_warnings(record=True):
-                df.ix[row_selection, col_selection] = df['F']
-            output = pd.DataFrame(99., index=[0, 2, 4], columns=['B', 'C'])
-            with catch_warnings(record=True):
-                tm.assert_frame_equal(df.ix[row_selection, col_selection],
-                                      output)
-            check(target=df,
-                  indexers=(row_selection, col_selection),
-                  value=df['F'],
-                  compare_fn=tm.assert_frame_equal,
-                  expected=output, )
+                # GH 7218, assinging with 0-dim arrays
+                df = DataFrame(-999, columns=['A', 'w', 'l', 'a', 'x',
+                                              'X', 'd', 'profit'],
+                               index=index)
+                check(target=df,
+                      indexers=((t, n), 'X'),
+                      value=np.array(3),
+                      compare_fn=self.assertEqual,
+                      expected=3, )
 
-            # GH11372
-            idx = pd.MultiIndex.from_product([
-                ['A', 'B', 'C'],
-                pd.date_range('2015-01-01', '2015-04-01', freq='MS')])
-            cols = pd.MultiIndex.from_product([
-                ['foo', 'bar'],
-                pd.date_range('2016-01-01', '2016-02-01', freq='MS')])
+                # GH5206
+                df = pd.DataFrame(np.arange(25).reshape(5, 5),
+                                  columns='A,B,C,D,E'.split(','), dtype=float)
+                df['F'] = 99
+                row_selection = df['A'] % 2 == 0
+                col_selection = ['B', 'C']
+                with catch_warnings(record=True):
+                    df.ix[row_selection, col_selection] = df['F']
+                output = pd.DataFrame(99., index=[0, 2, 4], columns=['B', 'C'])
+                with catch_warnings(record=True):
+                    tm.assert_frame_equal(df.ix[row_selection, col_selection],
+                                          output)
+                check(target=df,
+                      indexers=(row_selection, col_selection),
+                      value=df['F'],
+                      compare_fn=tm.assert_frame_equal,
+                      expected=output, )
 
-            df = pd.DataFrame(np.random.random((12, 4)),
-                              index=idx, columns=cols)
+                # GH11372
+                idx = pd.MultiIndex.from_product([
+                    ['A', 'B', 'C'],
+                    pd.date_range('2015-01-01', '2015-04-01', freq='MS')])
+                cols = pd.MultiIndex.from_product([
+                    ['foo', 'bar'],
+                    pd.date_range('2016-01-01', '2016-02-01', freq='MS')])
 
-            subidx = pd.MultiIndex.from_tuples(
-                [('A', pd.Timestamp('2015-01-01')),
-                 ('A', pd.Timestamp('2015-02-01'))])
-            subcols = pd.MultiIndex.from_tuples(
-                [('foo', pd.Timestamp('2016-01-01')),
-                 ('foo', pd.Timestamp('2016-02-01'))])
+                df = pd.DataFrame(np.random.random((12, 4)),
+                                  index=idx, columns=cols)
 
-            vals = pd.DataFrame(np.random.random((2, 2)),
-                                index=subidx, columns=subcols)
-            check(target=df,
-                  indexers=(subidx, subcols),
-                  value=vals,
-                  compare_fn=tm.assert_frame_equal, )
-            # set all columns
-            vals = pd.DataFrame(
-                np.random.random((2, 4)), index=subidx, columns=cols)
-            check(target=df,
-                  indexers=(subidx, slice(None, None, None)),
-                  value=vals,
-                  compare_fn=tm.assert_frame_equal, )
-            # identity
-            copy = df.copy()
-            check(target=df, indexers=(df.index, df.columns), value=df,
-                  compare_fn=tm.assert_frame_equal, expected=copy)
+                subidx = pd.MultiIndex.from_tuples(
+                    [('A', pd.Timestamp('2015-01-01')),
+                     ('A', pd.Timestamp('2015-02-01'))])
+                subcols = pd.MultiIndex.from_tuples(
+                    [('foo', pd.Timestamp('2016-01-01')),
+                     ('foo', pd.Timestamp('2016-02-01'))])
+
+                vals = pd.DataFrame(np.random.random((2, 2)),
+                                    index=subidx, columns=subcols)
+                check(target=df,
+                      indexers=(subidx, subcols),
+                      value=vals,
+                      compare_fn=tm.assert_frame_equal, )
+                # set all columns
+                vals = pd.DataFrame(
+                    np.random.random((2, 4)), index=subidx, columns=cols)
+                check(target=df,
+                      indexers=(subidx, slice(None, None, None)),
+                      value=vals,
+                      compare_fn=tm.assert_frame_equal, )
+                # identity
+                copy = df.copy()
+                check(target=df, indexers=(df.index, df.columns), value=df,
+                      compare_fn=tm.assert_frame_equal, expected=copy)
 
     def test_loc_getitem_series(self):
         # GH14730
@@ -559,32 +561,37 @@ class TestMultiIndexBasic(tm.TestCase):
         df['d'] = np.nan
         arr = np.array([0., 1.])
 
-        df.ix[4, 'd'] = arr
-        tm.assert_series_equal(df.ix[4, 'd'],
-                               Series(arr, index=[8, 10], name='d'))
+        with catch_warnings(record=True):
+            df.ix[4, 'd'] = arr
+            tm.assert_series_equal(df.ix[4, 'd'],
+                                   Series(arr, index=[8, 10], name='d'))
 
         # single dtype
         df = DataFrame(np.random.randint(5, 10, size=9).reshape(3, 3),
                        columns=list('abc'),
                        index=[[4, 4, 8], [8, 10, 12]])
 
-        df.ix[4, 'c'] = arr
-        exp = Series(arr, index=[8, 10], name='c', dtype='float64')
-        tm.assert_series_equal(df.ix[4, 'c'], exp)
+        with catch_warnings(record=True):
+            df.ix[4, 'c'] = arr
+            exp = Series(arr, index=[8, 10], name='c', dtype='float64')
+            tm.assert_series_equal(df.ix[4, 'c'], exp)
 
         # scalar ok
-        df.ix[4, 'c'] = 10
-        exp = Series(10, index=[8, 10], name='c', dtype='float64')
-        tm.assert_series_equal(df.ix[4, 'c'], exp)
+        with catch_warnings(record=True):
+            df.ix[4, 'c'] = 10
+            exp = Series(10, index=[8, 10], name='c', dtype='float64')
+            tm.assert_series_equal(df.ix[4, 'c'], exp)
 
         # invalid assignments
         def f():
-            df.ix[4, 'c'] = [0, 1, 2, 3]
+            with catch_warnings(record=True):
+                df.ix[4, 'c'] = [0, 1, 2, 3]
 
         self.assertRaises(ValueError, f)
 
         def f():
-            df.ix[4, 'c'] = [0]
+            with catch_warnings(record=True):
+                df.ix[4, 'c'] = [0]
 
         self.assertRaises(ValueError, f)
 
@@ -614,7 +621,8 @@ class TestMultiIndexBasic(tm.TestCase):
         # but in this case, that's ok
         for name, df2 in grp:
             new_vals = np.arange(df2.shape[0])
-            df.ix[name, 'new_col'] = new_vals
+            with catch_warnings(record=True):
+                df.ix[name, 'new_col'] = new_vals
 
     def test_multiindex_label_slicing_with_negative_step(self):
         s = Series(np.arange(20),
@@ -624,7 +632,8 @@ class TestMultiIndexBasic(tm.TestCase):
         def assert_slices_equivalent(l_slc, i_slc):
             tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
             tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
-            tm.assert_series_equal(s.ix[l_slc], s.iloc[i_slc])
+            with catch_warnings(record=True):
+                tm.assert_series_equal(s.ix[l_slc], s.iloc[i_slc])
 
         assert_slices_equivalent(SLC[::-1], SLC[::-1])
 

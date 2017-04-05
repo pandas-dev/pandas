@@ -656,11 +656,17 @@ class Styler(object):
 
         Parameters
         ----------
-        precision: int
+        attributes : string
 
         Returns
         -------
         self : Styler
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.random.randn(10, 4))
+        >>> df.style.set_table_attributes('class="pure-table"')
+        # ... <table class="pure-table"> ...
         """
         self.table_attributes = attributes
         return self

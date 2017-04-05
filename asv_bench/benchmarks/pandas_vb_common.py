@@ -8,16 +8,22 @@ import pandas.util.testing as tm
 import random
 import numpy as np
 import threading
+from importlib import import_module
+
 try:
     from pandas.compat import range
 except ImportError:
     pass
 
 np.random.seed(1234)
-try:
-    import pandas._tseries as lib
-except:
-    import pandas.lib as lib
+
+# try em until it works!
+for imp in ['pandas_tseries', 'pandas.lib', 'pandas._libs.lib']:
+    try:
+        lib = import_module(imp)
+        break
+    except:
+        pass
 
 try:
     Panel = Panel

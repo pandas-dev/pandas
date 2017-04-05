@@ -658,7 +658,7 @@ class Generic(object):
                 super(DataFrame, df).sort_index(inplace=value)
 
             with self.assertRaises(ValueError):
-                super(DataFrame, df).consolidate(inplace=value)
+                super(DataFrame, df)._consolidate(inplace=value)
 
             with self.assertRaises(ValueError):
                 super(DataFrame, df).fillna(value=0, inplace=value)
@@ -1870,7 +1870,7 @@ class TestNDFrame(tm.TestCase):
                   tm.makeObjectSeries()]:
             out = s.take(indices)
             expected = Series(data=s.values.take(indices),
-                              index=s.index.take(indices))
+                              index=s.index.take(indices), dtype=s.dtype)
             tm.assert_series_equal(out, expected)
         for df in [tm.makeTimeDataFrame()]:
             out = df.take(indices)

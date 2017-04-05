@@ -16,7 +16,7 @@ np.random.seed(1234)
 try:
     import pandas._tseries as lib
 except:
-    import pandas.lib as lib
+    import pandas._libs.lib as lib
 
 try:
     Panel = WidePanel

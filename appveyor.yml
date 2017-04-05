@@ -30,13 +30,6 @@ environment:
       CONDA_PY: "27"
       CONDA_NPY: "110"
 
-    - CONDA_ROOT: "C:\\Miniconda3_64"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "64"
-      CONDA_PY: "35"
-      CONDA_NPY: "111"
-
-
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
 platform:
@@ -79,11 +72,11 @@ install:
   - cmd: conda info -a
 
   # create our env
-  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% cython pytest
+  - cmd: conda create -n pandas python=%PYTHON_VERSION% cython pytest pytest-xdist
   - cmd: activate pandas
-  - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
+  - SET REQ=ci\requirements-%PYTHON_VERSION%_WIN.run
   - cmd: echo "installing requirements from %REQ%"
-  - cmd: conda install -n pandas -q --file=%REQ%
+  - cmd: conda install -n pandas --file=%REQ%
   - cmd: conda list -n pandas
   - cmd: echo "installing requirements from %REQ% - done"
 

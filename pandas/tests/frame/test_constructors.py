@@ -20,10 +20,8 @@ from pandas import compat
 from pandas import (DataFrame, Index, Series, isnull,
                     MultiIndex, Timedelta, Timestamp,
                     date_range)
-from pandas.core.common import PandasError
 import pandas as pd
-import pandas.core.common as com
-import pandas.lib as lib
+import pandas._libs.lib as lib
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
@@ -774,7 +772,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # corner, silly
         # TODO: Fix this Exception to be better...
-        with tm.assertRaisesRegexp(PandasError, 'constructor not '
+        with tm.assertRaisesRegexp(ValueError, 'constructor not '
                                    'properly called'):
             DataFrame((1, 2, 3))
 
@@ -1242,8 +1240,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                                                      dtype=object),
                                             index=[1, 2], columns=['a', 'c']))
 
-        self.assertRaises(com.PandasError, DataFrame, 'a', [1, 2])
-        self.assertRaises(com.PandasError, DataFrame, 'a', columns=['a', 'c'])
+        self.assertRaises(ValueError, DataFrame, 'a', [1, 2])
+        self.assertRaises(ValueError, DataFrame, 'a', columns=['a', 'c'])
         with tm.assertRaisesRegexp(TypeError, 'incompatible data and dtype'):
             DataFrame('a', [1, 2], ['a', 'c'], float)
 
@@ -1367,6 +1365,15 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         expected = DataFrame({'a': i.to_series(keep_tz=True)
                               .reset_index(drop=True), 'b': i_no_tz})
         tm.assert_frame_equal(df, expected)
+
+    def test_constructor_datetimes_with_nulls(self):
+        # gh-15869
+        for arr in [np.array([None, None, None, None,
+                              datetime.now(), None]),
+                    np.array([None, None, datetime.now(), None])]:
+            result = DataFrame(arr).get_dtype_counts()
+            expected = Series({'datetime64[ns]': 1})
+            tm.assert_series_equal(result, expected)
 
     def test_constructor_for_list_with_dtypes(self):
         # TODO(wesm): unused

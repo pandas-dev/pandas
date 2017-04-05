@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0612,E1101
 
+from warnings import catch_warnings
 from datetime import datetime
 
 import operator
@@ -688,7 +689,7 @@ class CheckIndexing(object):
     def test_ix_align(self):
         from pandas import Series
         b = Series(np.random.randn(10), name=0)
-        b.sort()
+        b.sort_values()
         df_orig = Panel(np.random.randn(3, 10, 2))
         df = df_orig.copy()
 
@@ -1001,7 +1002,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         self.panel['foo'] = 1.
         self.assertFalse(self.panel._data.is_consolidated())
 
-        panel = self.panel.consolidate()
+        panel = self.panel._consolidate()
         self.assertTrue(panel._data.is_consolidated())
 
     def test_ctor_dict(self):
@@ -1272,7 +1273,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         f = lambda x: ((x.T - x.mean(1)) / x.std(1)).T
 
         # make sure that we don't trigger any warnings
-        with tm.assert_produces_warning(False):
+        with catch_warnings(record=True):
             result = self.panel.apply(f, axis=['items', 'major_axis'])
             expected = Panel(dict([(ax, f(self.panel.loc[:, :, ax]))
                                    for ax in self.panel.minor_axis]))

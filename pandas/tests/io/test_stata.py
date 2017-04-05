@@ -19,7 +19,7 @@ from pandas.core.frame import DataFrame, Series
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
-from pandas.tslib import NaT
+from pandas._libs.tslib import NaT
 from pandas.types.common import is_categorical_dtype
 
 
@@ -1276,3 +1276,10 @@ class TestStata(tm.TestCase):
                 original.to_stata(path)
             tm.assertTrue('ColumnTooBig' in cm.exception)
             tm.assertTrue('infinity' in cm.exception)
+
+    def test_invalid_encoding(self):
+        # GH15723, validate encoding
+        original = self.read_csv(self.csv3)
+        with tm.assertRaises(ValueError):
+            with tm.ensure_clean() as path:
+                original.to_stata(path, encoding='utf-8')

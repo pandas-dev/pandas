@@ -6,19 +6,20 @@ from __future__ import division
 from warnings import warn
 import numpy as np
 
-from pandas import compat, lib, tslib, _np_version_under1p8
-from pandas.types.cast import _maybe_promote
+from pandas import compat, _np_version_under1p8
+from pandas.types.cast import maybe_promote
 from pandas.types.generic import ABCSeries, ABCIndex
 from pandas.types.common import (is_unsigned_integer_dtype,
                                  is_signed_integer_dtype,
                                  is_integer_dtype,
-                                 is_int64_dtype,
                                  is_categorical_dtype,
                                  is_extension_type,
                                  is_datetimetz,
                                  is_period_dtype,
                                  is_period_arraylike,
+                                 is_numeric_dtype,
                                  is_float_dtype,
+                                 is_bool_dtype,
                                  needs_i8_conversion,
                                  is_categorical,
                                  is_datetime64_dtype,
@@ -34,10 +35,9 @@ from pandas.compat.numpy import _np_version_under1p10
 from pandas.types.missing import isnull
 
 import pandas.core.common as com
-import pandas.algos as algos
-import pandas.hashtable as htable
 from pandas.compat import string_types
-from pandas.tslib import iNaT
+from pandas._libs import algos, lib, hashtable as htable
+from pandas._libs.tslib import iNaT
 
 
 # --------------- #
@@ -169,35 +169,68 @@ def isin(comps, values):
         raise TypeError("only list-like objects are allowed to be passed"
                         " to isin(), you passed a "
                         "[{0}]".format(type(comps).__name__))
-    comps = np.asarray(comps)
     if not is_list_like(values):
         raise TypeError("only list-like objects are allowed to be passed"
                         " to isin(), you passed a "
                         "[{0}]".format(type(values).__name__))
-    if not isinstance(values, np.ndarray):
-        values = list(values)
+
+    from pandas import DatetimeIndex, TimedeltaIndex, PeriodIndex
+
+    if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
+        values = np.array(list(values), dtype='object')
+
+    if needs_i8_conversion(comps):
+        if is_period_dtype(values):
+            comps = PeriodIndex(comps)
+            values = PeriodIndex(values)
+        elif is_timedelta64_dtype(comps):
+            comps = TimedeltaIndex(comps)
+            values = TimedeltaIndex(values)
+        else:
+            comps = DatetimeIndex(comps)
+            values = DatetimeIndex(values)
+
+        values = values.asi8
+        comps = comps.asi8
+    elif is_bool_dtype(comps):
+
+        try:
+            comps = np.asarray(comps).view('uint8')
+            values = np.asarray(values).view('uint8')
+        except TypeError:
+            # object array conversion will fail
+            pass
+    elif is_numeric_dtype(comps):
+        comps = np.asarray(comps)
+        values = np.asarray(values)
+    else:
+        comps = np.asarray(comps).astype(object)
+        values = np.asarray(values).astype(object)
 
     # GH11232
     # work-around for numpy < 1.8 and comparisions on py3
     # faster for larger cases to use np.in1d
+    f = lambda x, y: htable.ismember_object(x, values)
     if (_np_version_under1p8 and compat.PY3) or len(comps) > 1000000:
-        f = lambda x, y: np.in1d(x, np.asarray(list(y)))
-    else:
-        f = lambda x, y: lib.ismember_int64(x, set(y))
+        f = lambda x, y: np.in1d(x, y)
+    elif is_integer_dtype(comps):
+        try:
+            values = values.astype('int64', copy=False)
+            comps = comps.astype('int64', copy=False)
+            f = lambda x, y: htable.ismember_int64(x, y)
+        except (TypeError, ValueError):
+            values = values.astype(object)
+            comps = comps.astype(object)
 
-    # may need i8 conversion for proper membership testing
-    if is_datetime64_dtype(comps):
-        from pandas.tseries.tools import to_datetime
-        values = to_datetime(values)._values.view('i8')
-        comps = comps.view('i8')
-    elif is_timedelta64_dtype(comps):
-        from pandas.tseries.timedeltas import to_timedelta
-        values = to_timedelta(values)._values.view('i8')
-        comps = comps.view('i8')
-    elif is_int64_dtype(comps):
-        pass
-    else:
-        f = lambda x, y: lib.ismember(x, set(values))
+    elif is_float_dtype(comps):
+        try:
+            values = values.astype('float64', copy=False)
+            comps = comps.astype('float64', copy=False)
+            checknull = isnull(values).any()
+            f = lambda x, y: htable.ismember_float64(x, y, checknull)
+        except (TypeError, ValueError):
+            values = values.astype(object)
+            comps = comps.astype(object)
 
     return f(comps, values)
 
@@ -326,8 +359,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
     from pandas import Index, Series, DatetimeIndex, PeriodIndex
 
-    # handling two possibilities here
+    # handling possibilities here
     # - for a numpy datetimelike simply view as i8 then cast back
+    # - bool handled as uint8 then cast back
     # - for an extension datetimelike view as i8 then
     #   reconstruct from boxed values to transfer metadata
     dtype = None
@@ -342,6 +376,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
             # numpy dtype
             dtype = values.dtype
             vals = values.view(np.int64)
+    elif is_bool_dtype(values):
+        dtype = bool
+        vals = np.asarray(values).view('uint8')
     else:
         vals = np.asarray(values)
 
@@ -471,8 +508,8 @@ def _value_counts_arraylike(values, dropna=True):
         # dtype handling
         if is_datetimetz_type:
             keys = DatetimeIndex._simple_new(keys, tz=orig.dtype.tz)
-        if is_period_type:
-            keys = PeriodIndex._simple_new(keys, freq=freq)
+        elif is_period_type:
+            keys = PeriodIndex._from_ordinals(keys, freq=freq)
 
     elif is_signed_integer_dtype(dtype):
         values = _ensure_int64(values)
@@ -992,6 +1029,7 @@ def _get_data_algo(values, func_map):
     elif is_unsigned_integer_dtype(values):
         f = func_map['uint64']
         values = _ensure_uint64(values)
+
     else:
         values = _ensure_object(values)
 
@@ -1262,7 +1300,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         else:
             # check for promotion based on types only (do this first because
             # it's faster than computing a mask)
-            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
+            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 if mask_info is not None:
@@ -1345,7 +1383,7 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
         else:
             # check for promotion based on types only (do this first because
             # it's faster than computing a mask)
-            dtype, fill_value = _maybe_promote(arr.dtype, fill_value)
+            dtype, fill_value = maybe_promote(arr.dtype, fill_value)
             if dtype != arr.dtype and (out is None or out.dtype != dtype):
                 # check if promotion is actually required based on indexer
                 if mask_info is not None:
@@ -1411,7 +1449,7 @@ def diff(arr, n, axis=0):
     if needs_i8_conversion(arr):
         dtype = np.float64
         arr = arr.view('i8')
-        na = tslib.iNaT
+        na = iNaT
         is_timedelta = True
     elif issubclass(dtype.type, np.integer):
         dtype = np.float64

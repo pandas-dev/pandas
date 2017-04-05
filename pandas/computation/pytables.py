@@ -1,10 +1,7 @@
 """ manage PyTables query interface via Expressions """
 
 import ast
-import time
-import warnings
 from functools import partial
-from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
@@ -188,10 +185,6 @@ class BinOp(ops.BinOp):
             if v.tz is not None:
                 v = v.tz_convert('UTC')
             return TermValue(v, v.value, kind)
-        elif (isinstance(v, datetime) or hasattr(v, 'timetuple') or
-                kind == u('date')):
-            v = time.mktime(v.timetuple())
-            return TermValue(v, pd.Timestamp(v), kind)
         elif kind == u('timedelta64') or kind == u('timedelta'):
             v = _coerce_scalar_to_timedelta_type(v, unit='s').value
             return TermValue(int(v), v, kind)
@@ -218,12 +211,13 @@ class BinOp(ops.BinOp):
             else:
                 v = bool(v)
             return TermValue(v, v, kind)
-        elif not isinstance(v, string_types):
-            v = stringify(v)
+        elif isinstance(v, string_types):
+            # string quoting
             return TermValue(v, stringify(v), u('string'))
-
-        # string quoting
-        return TermValue(v, stringify(v), u('string'))
+        else:
+            raise TypeError(("Cannot compare {v} of type {typ}"
+                            " to {kind} column").format(v=v, typ=type(v),
+                                                        kind=kind))
 
     def convert_values(self):
         pass
@@ -456,6 +450,32 @@ class ExprVisitor(BaseExprVisitor):
         return self.visit(node.op), node.op, left, right
 
 
+def _validate_where(w):
+    """
+    Validate that the where statement is of the right type.
+
+    The type may either be String, Expr, or list-like of Exprs.
+
+    Parameters
+    ----------
+    w : String term expression, Expr, or list-like of Exprs.
+
+    Returns
+    -------
+    where : The original where clause if the check was successful.
+
+    Raises
+    ------
+    TypeError : An invalid data type was passed in for w (e.g. dict).
+    """
+
+    if not (isinstance(w, (Expr, string_types)) or is_list_like(w)):
+        raise TypeError("where must be passed as a string, Expr, "
+                        "or list-like of Exprs")
+
+    return w
+
+
 class Expr(expr.Expr):
 
     """ hold a pytables like expression, comprised of possibly multiple 'terms'
@@ -485,11 +505,9 @@ class Expr(expr.Expr):
     "major_axis>=20130101"
     """
 
-    def __init__(self, where, op=None, value=None, queryables=None,
-                 encoding=None, scope_level=0):
+    def __init__(self, where, queryables=None, encoding=None, scope_level=0):
 
-        # try to be back compat
-        where = self.parse_back_compat(where, op, value)
+        where = _validate_where(where)
 
         self.encoding = encoding
         self.condition = None
@@ -509,7 +527,7 @@ class Expr(expr.Expr):
                 if isinstance(w, Expr):
                     local_dict = w.env.scope
                 else:
-                    w = self.parse_back_compat(w)
+                    w = _validate_where(w)
                     where[idx] = w
             where = ' & ' .join(["(%s)" % w for w in where])  # noqa
 
@@ -522,60 +540,6 @@ class Expr(expr.Expr):
                                         parser='pytables', engine='pytables',
                                         encoding=encoding)
             self.terms = self.parse()
-
-    def parse_back_compat(self, w, op=None, value=None):
-        """ allow backward compatibility for passed arguments """
-
-        if isinstance(w, dict):
-            w, op, value = w.get('field'), w.get('op'), w.get('value')
-            if not isinstance(w, string_types):
-                raise TypeError(
-                    "where must be passed as a string if op/value are passed")
-            warnings.warn("passing a dict to Expr is deprecated, "
-                          "pass the where as a single string",
-                          FutureWarning, stacklevel=10)
-        if isinstance(w, tuple):
-            if len(w) == 2:
-                w, value = w
-                op = '=='
-            elif len(w) == 3:
-                w, op, value = w
-            warnings.warn("passing a tuple into Expr is deprecated, "
-                          "pass the where as a single string",
-                          FutureWarning, stacklevel=10)
-
-        if op is not None:
-            if not isinstance(w, string_types):
-                raise TypeError(
-                    "where must be passed as a string if op/value are passed")
-
-            if isinstance(op, Expr):
-                raise TypeError("invalid op passed, must be a string")
-            w = "{0}{1}".format(w, op)
-            if value is not None:
-                if isinstance(value, Expr):
-                    raise TypeError("invalid value passed, must be a string")
-
-                # stringify with quotes these values
-                def convert(v):
-                    if (isinstance(v, (datetime, np.datetime64,
-                                       timedelta, np.timedelta64)) or
-                            hasattr(v, 'timetuple')):
-                        return "'{0}'".format(v)
-                    return v
-
-                if isinstance(value, (list, tuple)):
-                    value = [convert(v) for v in value]
-                else:
-                    value = convert(value)
-
-                w = "{0}{1}".format(w, value)
-
-            warnings.warn("passing multiple values to Expr is deprecated, "
-                          "pass the where as a single string",
-                          FutureWarning, stacklevel=10)
-
-        return w
 
     def __unicode__(self):
         if self.terms is not None:

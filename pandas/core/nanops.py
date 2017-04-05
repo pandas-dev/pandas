@@ -9,7 +9,8 @@ try:
 except ImportError:  # pragma: no cover
     _USE_BOTTLENECK = False
 
-from pandas import compat, lib, algos, tslib
+from pandas import compat
+from pandas._libs import tslib, algos, lib
 from pandas.types.common import (_get_dtype,
                                  is_float, is_scalar,
                                  is_integer, is_complex, is_float_dtype,
@@ -19,7 +20,7 @@ from pandas.types.common import (_get_dtype,
                                  is_datetime64_dtype, is_timedelta64_dtype,
                                  is_datetime_or_timedelta_dtype,
                                  is_int_or_datetime_dtype, is_any_int_dtype)
-from pandas.types.cast import _int64_max, _maybe_upcast_putmask
+from pandas.types.cast import _int64_max, maybe_upcast_putmask
 from pandas.types.missing import isnull, notnull
 
 from pandas.core.common import _values_from_object
@@ -199,7 +200,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
 
         # promote if needed
         else:
-            values, changed = _maybe_upcast_putmask(values, mask, fill_value)
+            values, changed = maybe_upcast_putmask(values, mask, fill_value)
 
     elif copy:
         values = values.copy()

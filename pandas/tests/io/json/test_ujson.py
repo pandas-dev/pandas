@@ -17,7 +17,7 @@ import re
 import decimal
 from functools import partial
 from pandas.compat import range, zip, StringIO, u
-import pandas.json as ujson
+import pandas.io.json.libjson as ujson
 import pandas.compat as compat
 
 import numpy as np
@@ -42,6 +42,48 @@ class UltraJSONTests(TestCase):
         encoded = ujson.encode(sut, double_precision=15)
         decoded = ujson.decode(encoded)
         self.assertEqual(decoded, 1337.1337)
+
+        sut = decimal.Decimal("0.95")
+        encoded = ujson.encode(sut, double_precision=1)
+        self.assertEqual(encoded, "1.0")
+        decoded = ujson.decode(encoded)
+        self.assertEqual(decoded, 1.0)
+
+        sut = decimal.Decimal("0.94")
+        encoded = ujson.encode(sut, double_precision=1)
+        self.assertEqual(encoded, "0.9")
+        decoded = ujson.decode(encoded)
+        self.assertEqual(decoded, 0.9)
+
+        sut = decimal.Decimal("1.95")
+        encoded = ujson.encode(sut, double_precision=1)
+        self.assertEqual(encoded, "2.0")
+        decoded = ujson.decode(encoded)
+        self.assertEqual(decoded, 2.0)
+
+        sut = decimal.Decimal("-1.95")
+        encoded = ujson.encode(sut, double_precision=1)
+        self.assertEqual(encoded, "-2.0")
+        decoded = ujson.decode(encoded)
+        self.assertEqual(decoded, -2.0)
+
+        sut = decimal.Decimal("0.995")
+        encoded = ujson.encode(sut, double_precision=2)
+        self.assertEqual(encoded, "1.0")
+        decoded = ujson.decode(encoded)
+        self.assertEqual(decoded, 1.0)
+
+        sut = decimal.Decimal("0.9995")
+        encoded = ujson.encode(sut, double_precision=3)
+        self.assertEqual(encoded, "1.0")
+        decoded = ujson.decode(encoded)
+        self.assertEqual(decoded, 1.0)
+
+        sut = decimal.Decimal("0.99999999999999944")
+        encoded = ujson.encode(sut, double_precision=15)
+        self.assertEqual(encoded, "1.0")
+        decoded = ujson.decode(encoded)
+        self.assertEqual(decoded, 1.0)
 
     def test_encodeStringConversion(self):
         input = "A string \\ / \b \f \n \r \t </script> &"
@@ -400,7 +442,7 @@ class UltraJSONTests(TestCase):
         assert ujson.encode(input) == 'null', "Expected null"
 
     def test_datetime_units(self):
-        from pandas.lib import Timestamp
+        from pandas._libs.lib import Timestamp
 
         val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
         stamp = Timestamp(val)

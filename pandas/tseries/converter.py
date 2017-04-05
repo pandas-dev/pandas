@@ -20,7 +20,7 @@ from pandas.types.common import (is_float, is_integer,
 
 from pandas.compat import lrange
 import pandas.compat as compat
-import pandas.lib as lib
+import pandas._libs.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
 
@@ -261,7 +261,7 @@ class PandasAutoDateLocator(dates.AutoDateLocator):
         'Pick the best locator based on a distance.'
         delta = relativedelta(dmax, dmin)
 
-        num_days = ((delta.years * 12.0) + delta.months * 31.0) + delta.days
+        num_days = (delta.years * 12.0 + delta.months) * 31.0 + delta.days
         num_sec = (delta.hours * 60.0 + delta.minutes) * 60.0 + delta.seconds
         tot_sec = num_days * 86400. + num_sec
 
@@ -455,7 +455,7 @@ def period_break(dates, period):
     """
     current = getattr(dates, period)
     previous = getattr(dates - 1, period)
-    return (current - previous).nonzero()[0]
+    return np.nonzero(current - previous)[0]
 
 
 def has_level_label(label_flags, vmin):

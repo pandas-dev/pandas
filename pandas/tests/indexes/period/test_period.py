@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 from numpy.random import randn
 from datetime import timedelta
@@ -6,7 +8,7 @@ import pandas as pd
 from pandas.util import testing as tm
 from pandas import (PeriodIndex, period_range, notnull, DatetimeIndex, NaT,
                     Index, Period, Int64Index, Series, DataFrame, date_range,
-                    offsets)
+                    offsets, compat)
 
 from ..datetimelike import DatetimeLike
 
@@ -52,6 +54,12 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
     def test_pickle_compat_construction(self):
         pass
+
+    def test_pickle_round_trip(self):
+        for freq in ['D', 'M', 'Y']:
+            idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
+            result = self.round_trip_pickle(idx)
+            tm.assert_index_equal(result, idx)
 
     def test_get_loc(self):
         idx = pd.period_range('2000-01-01', periods=3)
@@ -386,8 +394,8 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
     def _check_all_fields(self, periodindex):
         fields = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                  'weekofyear', 'week', 'dayofweek', 'weekday', 'dayofyear',
-                  'quarter', 'qyear', 'days_in_month', 'is_leap_year']
+                  'weekofyear', 'week', 'dayofweek', 'dayofyear',
+                  'quarter', 'qyear', 'days_in_month']
 
         periods = list(periodindex)
         s = pd.Series(periodindex)
@@ -620,6 +628,11 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
 
+    def test_ndarray_compat_properties(self):
+        if compat.is_platform_32bit():
+            pytest.skip("skipping on 32bit")
+        super(TestPeriodIndex, self).test_ndarray_compat_properties()
+
     def test_shift_ndarray(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
                            '2011-04'], freq='M', name='idx')
@@ -645,12 +658,12 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
     def test_pindex_fieldaccessor_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
-                           '2012-03', '2012-04'], freq='D')
+                           '2012-03', '2012-04'], freq='D', name='name')
 
-        exp = np.array([2011, 2011, -1, 2012, 2012], dtype=np.int64)
-        self.assert_numpy_array_equal(idx.year, exp)
-        exp = np.array([1, 2, -1, 3, 4], dtype=np.int64)
-        self.assert_numpy_array_equal(idx.month, exp)
+        exp = Index([2011, 2011, -1, 2012, 2012], dtype=np.int64, name='name')
+        self.assert_index_equal(idx.year, exp)
+        exp = Index([1, 2, -1, 3, 4], dtype=np.int64, name='name')
+        self.assert_index_equal(idx.month, exp)
 
     def test_pindex_qaccess(self):
         pi = PeriodIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')

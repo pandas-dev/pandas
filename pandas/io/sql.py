@@ -11,7 +11,7 @@ import warnings
 import re
 import numpy as np
 
-import pandas.lib as lib
+import pandas._libs.lib as lib
 from pandas.types.missing import isnull
 from pandas.types.dtypes import DatetimeTZDtype
 from pandas.types.common import (is_list_like, is_dict_like,

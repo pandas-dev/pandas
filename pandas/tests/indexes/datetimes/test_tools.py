@@ -9,7 +9,7 @@ from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas import tslib
+from pandas._libs import tslib, lib
 from pandas.tseries import tools
 from pandas.tseries.tools import normalize_date
 from pandas.compat import lmap
@@ -19,7 +19,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 from pandas import (isnull, to_datetime, Timestamp, Series, DataFrame,
                     Index, DatetimeIndex, NaT, date_range, bdate_range,
-                    compat, lib)
+                    compat)
 
 
 class TimeConversionFormats(tm.TestCase):
@@ -1515,3 +1515,120 @@ def test_normalize_date():
 
     result = normalize_date(value)
     assert (result == datetime(2012, 9, 7))
+
+
+@pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
+def units(request):
+    return request.param
+
+
+@pytest.fixture
+def epoch_1960():
+    # for origin as 1960-01-01
+    return Timestamp('1960-01-01')
+
+
+@pytest.fixture
+def units_from_epochs():
+    return list(range(5))
+
+
+@pytest.fixture(params=[epoch_1960(), epoch_1960().to_datetime(),
+                        epoch_1960().to_datetime64(),
+                        str(epoch_1960())])
+def epochs(request):
+    return request.param
+
+
+@pytest.fixture
+def julian_dates():
+    return pd.date_range('2014-1-1', periods=10).to_julian_date().values
+
+
+class TestOrigin(object):
+
+    def test_to_basic(self, julian_dates):
+        # gh-11276, gh-11745
+        # for origin as julian
+
+        result = Series(pd.to_datetime(
+            julian_dates, unit='D', origin='julian'))
+        expected = Series(pd.to_datetime(
+            julian_dates - pd.Timestamp(0).to_julian_date(), unit='D'))
+        assert_series_equal(result, expected)
+
+        result = Series(pd.to_datetime(
+            [0, 1, 2], unit='D', origin='unix'))
+        expected = Series([Timestamp('1970-01-01'),
+                           Timestamp('1970-01-02'),
+                           Timestamp('1970-01-03')])
+        assert_series_equal(result, expected)
+
+        # default
+        result = Series(pd.to_datetime(
+            [0, 1, 2], unit='D'))
+        expected = Series([Timestamp('1970-01-01'),
+                           Timestamp('1970-01-02'),
+                           Timestamp('1970-01-03')])
+        assert_series_equal(result, expected)
+
+    def test_julian_round_trip(self):
+        result = pd.to_datetime(2456658, origin='julian', unit='D')
+        assert result.to_julian_date() == 2456658
+
+        # out-of-bounds
+        with pytest.raises(ValueError):
+            pd.to_datetime(1, origin="julian", unit='D')
+
+    def test_invalid_unit(self, units, julian_dates):
+
+        # checking for invalid combination of origin='julian' and unit != D
+        if units != 'D':
+            with pytest.raises(ValueError):
+                pd.to_datetime(julian_dates, unit=units, origin='julian')
+
+    def test_invalid_origin(self):
+
+        # need to have a numeric specified
+        with pytest.raises(ValueError):
+            pd.to_datetime("2005-01-01", origin="1960-01-01")
+
+        with pytest.raises(ValueError):
+            pd.to_datetime("2005-01-01", origin="1960-01-01", unit='D')
+
+    def test_epoch(self, units, epochs, epoch_1960, units_from_epochs):
+
+        expected = Series(
+            [pd.Timedelta(x, unit=units) +
+             epoch_1960 for x in units_from_epochs])
+
+        result = Series(pd.to_datetime(
+            units_from_epochs, unit=units, origin=epochs))
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("origin, exc",
+                             [('random_string', ValueError),
+                              ('epoch', ValueError),
+                              ('13-24-1990', ValueError),
+                              (datetime(1, 1, 1), tslib.OutOfBoundsDatetime)])
+    def test_invalid_origins(self, origin, exc, units, units_from_epochs):
+
+        with pytest.raises(exc):
+            pd.to_datetime(units_from_epochs, unit=units,
+                           origin=origin)
+
+    def test_processing_order(self):
+        # make sure we handle out-of-bounds *before*
+        # constructing the dates
+
+        result = pd.to_datetime(200 * 365, unit='D')
+        expected = Timestamp('2169-11-13 00:00:00')
+        assert result == expected
+
+        result = pd.to_datetime(200 * 365, unit='D', origin='1870-01-01')
+        expected = Timestamp('2069-11-13 00:00:00')
+        assert result == expected
+
+        result = pd.to_datetime(300 * 365, unit='D', origin='1870-01-01')
+        expected = Timestamp('2169-10-20 00:00:00')
+        assert result == expected

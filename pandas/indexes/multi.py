@@ -6,9 +6,7 @@ from functools import partial
 from sys import getsizeof
 
 import numpy as np
-import pandas.lib as lib
-import pandas.index as _index
-from pandas.lib import Timestamp
+from pandas._libs import index as libindex, lib, Timestamp
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
@@ -21,12 +19,10 @@ from pandas.types.common import (_ensure_int64,
                                  is_list_like,
                                  is_scalar)
 from pandas.types.missing import isnull, array_equivalent
+from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,
-                                is_null_slice,
-                                PerformanceWarning,
-                                UnsortedIndexError)
-
+                                is_null_slice)
 
 import pandas.core.base as base
 from pandas.util.decorators import (Appender, cache_readonly,
@@ -76,7 +72,7 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _labels = FrozenList()
     _comparables = ['names']
-    _engine_type = _index.MultiIndexEngine
+    _engine_type = libindex.MultiIndexEngine
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
@@ -757,12 +753,10 @@ class MultiIndex(Index):
                      for k, stringify in zip(key, self._have_mixed_levels)])
         return hash_tuples(key)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.sorting import get_group_index
-        from pandas.hashtable import duplicated_int64
+        from pandas._libs.hashtable import duplicated_int64
 
         shape = map(len, self.levels)
         ids = get_group_index(self.labels, shape, sort=False, xnull=False)
@@ -813,7 +807,7 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return _index.get_value_at(s, k)
+                return libindex.get_value_at(s, k)
             except IndexError:
                 raise
             except TypeError:
@@ -1396,7 +1390,7 @@ class MultiIndex(Index):
         index = self.levels[i]
         values = index.get_indexer(labels)
 
-        mask = ~lib.ismember(self.labels[i], set(values))
+        mask = ~algos.isin(self.labels[i], values)
 
         return self[mask]
 
@@ -1569,6 +1563,39 @@ class MultiIndex(Index):
                                verify_integrity=False)
 
         return new_index, indexer
+
+    def _convert_listlike_indexer(self, keyarr, kind=None):
+        """
+        Parameters
+        ----------
+        keyarr : list-like
+            Indexer to convert.
+
+        Returns
+        -------
+        tuple (indexer, keyarr)
+            indexer is an ndarray or None if cannot convert
+            keyarr are tuple-safe keys
+        """
+        indexer, keyarr = super(MultiIndex, self)._convert_listlike_indexer(
+            keyarr, kind=kind)
+
+        # are we indexing a specific level
+        if indexer is None and len(keyarr) and not isinstance(keyarr[0],
+                                                              tuple):
+            level = 0
+            _, indexer = self.reindex(keyarr, level=level)
+
+            # take all
+            if indexer is None:
+                indexer = np.arange(len(self))
+
+            check = self.levels[0].get_indexer(keyarr)
+            mask = check == -1
+            if mask.any():
+                raise KeyError('%s not in index' % keyarr[mask])
+
+        return indexer, keyarr
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -2434,7 +2461,8 @@ class MultiIndex(Index):
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is None:
-            return lib.ismember(np.array(self), set(values))
+            return algos.isin(self.values,
+                              MultiIndex.from_tuples(values).values)
         else:
             num = self._get_level_number(level)
             levs = self.levels[num]

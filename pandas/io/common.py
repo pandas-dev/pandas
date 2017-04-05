@@ -12,6 +12,14 @@ from pandas.formats.printing import pprint_thing
 from pandas.core.common import AbstractMethodError
 from pandas.types.common import is_number
 
+# compat
+from pandas.errors import (ParserError, DtypeWarning,  # noqa
+                           EmptyDataError, ParserWarning)
+
+# gh-12665: Alias for now and remove later.
+CParserError = ParserError
+
+
 try:
     from s3fs import S3File
     need_text_wrapping = (BytesIO, S3File)
@@ -67,43 +75,6 @@ else:
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard('')
-
-
-class ParserError(ValueError):
-    """
-    Exception that is thrown by an error is encountered in `pd.read_csv`
-    """
-    pass
-
-
-# gh-12665: Alias for now and remove later.
-CParserError = ParserError
-
-
-class DtypeWarning(Warning):
-    """
-    Warning that is raised whenever `pd.read_csv` encounters non-
-    uniform dtypes in a column(s) of a given CSV file
-    """
-    pass
-
-
-class EmptyDataError(ValueError):
-    """
-    Exception that is thrown in `pd.read_csv` (by both the C and
-    Python engines) when empty data or header is encountered
-    """
-    pass
-
-
-class ParserWarning(Warning):
-    """
-    Warning that is raised in `pd.read_csv` whenever it is necessary
-    to change parsers (generally from 'c' to 'python') contrary to the
-    one specified by the user due to lack of support or functionality for
-    parsing particular attributes of a CSV file with the requsted engine
-    """
-    pass
 
 
 class BaseIterator(object):
@@ -305,7 +276,7 @@ def _infer_compression(filepath_or_buffer, compression):
 
 
 def _get_handle(path_or_buf, mode, encoding=None, compression=None,
-                memory_map=False):
+                memory_map=False, is_text=True):
     """
     Get file handle for given path/buffer and mode.
 
@@ -320,7 +291,9 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         Supported compression protocols are gzip, bz2, zip, and xz
     memory_map : boolean, default False
         See parsers._parser_params for more information.
-
+    is_text : boolean, default True
+        whether file/buffer is in text format (csv, json, etc.), or in binary
+        mode (pickle, etc.)
     Returns
     -------
     f : file-like
@@ -394,13 +367,17 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         elif encoding:
             # Python 3 and encoding
             f = open(path_or_buf, mode, encoding=encoding)
-        else:
+        elif is_text:
             # Python 3 and no explicit encoding
             f = open(path_or_buf, mode, errors='replace')
+        else:
+            # Python 3 and binary mode
+            f = open(path_or_buf, mode)
         handles.append(f)
 
     # in Python 3, convert BytesIO or fileobjects passed with an encoding
-    if compat.PY3 and (compression or isinstance(f, need_text_wrapping)):
+    if compat.PY3 and is_text and\
+            (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
         f = TextIOWrapper(f, encoding=encoding)
         handles.append(f)

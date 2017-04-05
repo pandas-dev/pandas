@@ -8,7 +8,7 @@ from numpy import nan
 from pandas import (date_range, bdate_range, Timestamp,
                     isnull, Index, MultiIndex, DataFrame, Series,
                     concat, Panel)
-from pandas.core.common import UnsupportedFunctionCall
+from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
                                  assert_index_equal, assertRaisesRegexp)
@@ -1954,7 +1954,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         for attr in ['cummin', 'cummax']:
             f = getattr(df.groupby('group'), attr)
             result = f()
-            tm.assert_index_equal(result.columns, expected_columns_numeric)
+            # GH 15561: numeric_only=False set by default like min/max
+            tm.assert_index_equal(result.columns, expected_columns)
 
             result = f(numeric_only=False)
             tm.assert_index_equal(result.columns, expected_columns)
@@ -3243,6 +3244,22 @@ class TestGroupBy(MixIn, tm.TestCase):
         _check_all(self.df.groupby('A'))
         _check_all(self.df.groupby(['A', 'B']))
 
+    def test_group_name_available_in_inference_pass(self):
+        # gh-15062
+        df = pd.DataFrame({'a': [0, 0, 1, 1, 2, 2], 'b': np.arange(6)})
+
+        names = []
+
+        def f(group):
+            names.append(group.name)
+            return group.copy()
+
+        df.groupby('a', sort=False, group_keys=False).apply(f)
+        # we expect 2 zeros because we call ``f`` once to see if a faster route
+        # can be used.
+        expected_names = [0, 0, 1, 2]
+        tm.assert_equal(names, expected_names)
+
     def test_no_dummy_key_names(self):
         # GH #1291
 
@@ -3458,7 +3475,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
 
         expected = lexsorted_df.groupby('a').mean()
-        with tm.assert_produces_warning(com.PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = not_lexsorted_df.groupby('a').mean()
         tm.assert_frame_equal(expected, result)
 
@@ -3689,242 +3706,6 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = ser.take([1, 3, 4])
         assert_series_equal(actual, expected)
 
-    def test_groupby_selection_with_methods(self):
-        # some methods which require DatetimeIndex
-        rng = pd.date_range('2014', periods=len(self.df))
-        self.df.index = rng
-
-        g = self.df.groupby(['A'])[['C']]
-        g_exp = self.df[['C']].groupby(self.df['A'])
-        # TODO check groupby with > 1 col ?
-
-        # methods which are called as .foo()
-        methods = ['count',
-                   'corr',
-                   'cummax',
-                   'cummin',
-                   'cumprod',
-                   'describe',
-                   'rank',
-                   'quantile',
-                   'diff',
-                   'shift',
-                   'all',
-                   'any',
-                   'idxmin',
-                   'idxmax',
-                   'ffill',
-                   'bfill',
-                   'pct_change',
-                   'tshift']
-
-        for m in methods:
-            res = getattr(g, m)()
-            exp = getattr(g_exp, m)()
-            assert_frame_equal(res, exp)  # should always be frames!
-
-        # methods which aren't just .foo()
-        assert_frame_equal(g.fillna(0), g_exp.fillna(0))
-        assert_frame_equal(g.dtypes, g_exp.dtypes)
-        assert_frame_equal(g.apply(lambda x: x.sum()),
-                           g_exp.apply(lambda x: x.sum()))
-
-        assert_frame_equal(g.resample('D').mean(), g_exp.resample('D').mean())
-        assert_frame_equal(g.resample('D').ohlc(),
-                           g_exp.resample('D').ohlc())
-
-        assert_frame_equal(g.filter(lambda x: len(x) == 3),
-                           g_exp.filter(lambda x: len(x) == 3))
-
-    def test_groupby_whitelist(self):
-        from string import ascii_lowercase
-        letters = np.array(list(ascii_lowercase))
-        N = 10
-        random_letters = letters.take(np.random.randint(0, 26, N))
-        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
-                        'letters': Series(random_letters)})
-        s = df.floats
-
-        df_whitelist = frozenset([
-            'last',
-            'first',
-            'mean',
-            'sum',
-            'min',
-            'max',
-            'head',
-            'tail',
-            'cumcount',
-            'resample',
-            'rank',
-            'quantile',
-            'fillna',
-            'mad',
-            'any',
-            'all',
-            'take',
-            'idxmax',
-            'idxmin',
-            'shift',
-            'tshift',
-            'ffill',
-            'bfill',
-            'pct_change',
-            'skew',
-            'plot',
-            'boxplot',
-            'hist',
-            'median',
-            'dtypes',
-            'corrwith',
-            'corr',
-            'cov',
-            'diff',
-        ])
-        s_whitelist = frozenset([
-            'last',
-            'first',
-            'mean',
-            'sum',
-            'min',
-            'max',
-            'head',
-            'tail',
-            'cumcount',
-            'resample',
-            'rank',
-            'quantile',
-            'fillna',
-            'mad',
-            'any',
-            'all',
-            'take',
-            'idxmax',
-            'idxmin',
-            'shift',
-            'tshift',
-            'ffill',
-            'bfill',
-            'pct_change',
-            'skew',
-            'plot',
-            'hist',
-            'median',
-            'dtype',
-            'corr',
-            'cov',
-            'diff',
-            'unique',
-            # 'nlargest', 'nsmallest',
-        ])
-
-        for obj, whitelist in zip((df, s), (df_whitelist, s_whitelist)):
-            gb = obj.groupby(df.letters)
-            self.assertEqual(whitelist, gb._apply_whitelist)
-            for m in whitelist:
-                getattr(type(gb), m)
-
-    AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
-                     'mad', 'std', 'var', 'sem']
-    AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
-
-    def test_groupby_whitelist_deprecations(self):
-        from string import ascii_lowercase
-        letters = np.array(list(ascii_lowercase))
-        N = 10
-        random_letters = letters.take(np.random.randint(0, 26, N))
-        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
-                        'letters': Series(random_letters)})
-
-        # 10711 deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            df.groupby('letters').irow(0)
-        with tm.assert_produces_warning(FutureWarning):
-            df.groupby('letters').floats.irow(0)
-
-    def test_regression_whitelist_methods(self):
-
-        # GH6944
-        # explicity test the whitelest methods
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
-                                                                  'three']],
-                           labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                                   [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                           names=['first', 'second'])
-        raw_frame = DataFrame(np.random.randn(10, 3), index=index,
-                              columns=Index(['A', 'B', 'C'], name='exp'))
-        raw_frame.iloc[1, [1, 2]] = np.nan
-        raw_frame.iloc[7, [0, 1]] = np.nan
-
-        for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
-                                                    lrange(2), lrange(2),
-                                                    [True, False]):
-
-            if axis == 0:
-                frame = raw_frame
-            else:
-                frame = raw_frame.T
-
-            if op in self.AGG_FUNCTIONS_WITH_SKIPNA:
-                grouped = frame.groupby(level=level, axis=axis)
-                result = getattr(grouped, op)(skipna=skipna)
-                expected = getattr(frame, op)(level=level, axis=axis,
-                                              skipna=skipna)
-                assert_frame_equal(result, expected)
-            else:
-                grouped = frame.groupby(level=level, axis=axis)
-                result = getattr(grouped, op)()
-                expected = getattr(frame, op)(level=level, axis=axis)
-                assert_frame_equal(result, expected)
-
-    def test_groupby_blacklist(self):
-        from string import ascii_lowercase
-        letters = np.array(list(ascii_lowercase))
-        N = 10
-        random_letters = letters.take(np.random.randint(0, 26, N))
-        df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
-                        'letters': Series(random_letters)})
-        s = df.floats
-
-        blacklist = [
-            'eval', 'query', 'abs', 'where',
-            'mask', 'align', 'groupby', 'clip', 'astype',
-            'at', 'combine', 'consolidate', 'convert_objects',
-        ]
-        to_methods = [method for method in dir(df) if method.startswith('to_')]
-
-        blacklist.extend(to_methods)
-
-        # e.g., to_csv
-        defined_but_not_allowed = ("(?:^Cannot.+{0!r}.+{1!r}.+try using the "
-                                   "'apply' method$)")
-
-        # e.g., query, eval
-        not_defined = "(?:^{1!r} object has no attribute {0!r}$)"
-        fmt = defined_but_not_allowed + '|' + not_defined
-        for bl in blacklist:
-            for obj in (df, s):
-                gb = obj.groupby(df.letters)
-                msg = fmt.format(bl, type(gb).__name__)
-                with tm.assertRaisesRegexp(AttributeError, msg):
-                    getattr(gb, bl)
-
-    def test_tab_completion(self):
-        grp = self.mframe.groupby(level='second')
-        results = set([v for v in dir(grp) if not v.startswith('_')])
-        expected = set(
-            ['A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
-             'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
-             'mean', 'median', 'min', 'name', 'ngroups', 'nth', 'ohlc', 'plot',
-             'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
-             'nunique', 'head', 'irow', 'describe', 'cummax', 'quantile',
-             'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
-             'cumsum', 'cumcount', 'all', 'shift', 'skew', 'bfill', 'ffill',
-             'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
-             'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
-             'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding'])
-        self.assertEqual(results, expected)
-
     def test_lower_int_prec_count(self):
         df = DataFrame({'a': np.array(
             [0, 1, 2, 100], np.int8),
@@ -4038,8 +3819,6 @@ class TestGroupBy(MixIn, tm.TestCase):
             3, 2, 1, 3, 3, 2
         ], index=MultiIndex.from_arrays([list('aaabbb'), [2, 3, 1, 6, 5, 7]]))
         assert_series_equal(gb.nlargest(3, keep='last'), e)
-        with tm.assert_produces_warning(FutureWarning):
-            assert_series_equal(gb.nlargest(3, take_last=True), e)
 
     def test_nsmallest(self):
         a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
@@ -4057,8 +3836,6 @@ class TestGroupBy(MixIn, tm.TestCase):
             0, 1, 1, 0, 1, 2
         ], index=MultiIndex.from_arrays([list('aaabbb'), [4, 1, 0, 9, 8, 7]]))
         assert_series_equal(gb.nsmallest(3, keep='last'), e)
-        with tm.assert_produces_warning(FutureWarning):
-            assert_series_equal(gb.nsmallest(3, take_last=True), e)
 
     def test_transform_doesnt_clobber_ints(self):
         # GH 7972
@@ -4308,6 +4085,72 @@ class TestGroupBy(MixIn, tm.TestCase):
         tm.assert_frame_equal(expected, result)
         result = base_df.groupby('A').B.apply(lambda x: x.cummax()).to_frame()
         tm.assert_frame_equal(expected, result)
+
+        # GH 15561
+        df = pd.DataFrame(dict(a=[1], b=pd.to_datetime(['2001'])))
+        expected = pd.Series(pd.to_datetime('2001'), index=[0], name='b')
+        for method in ['cummax', 'cummin']:
+            result = getattr(df.groupby('a')['b'], method)()
+            tm.assert_series_equal(expected, result)
+
+        # GH 15635
+        df = pd.DataFrame(dict(a=[1, 2, 1], b=[2, 1, 1]))
+        result = df.groupby('a').b.cummax()
+        expected = pd.Series([2, 1, 2], name='b')
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
+        result = df.groupby('a').b.cummin()
+        expected = pd.Series([1, 2, 1], name='b')
+        tm.assert_series_equal(result, expected)
+
+    def test_apply_numeric_coercion_when_datetime(self):
+        # In the past, group-by/apply operations have been over-eager
+        # in converting dtypes to numeric, in the presence of datetime
+        # columns.  Various GH issues were filed, the reproductions
+        # for which are here.
+
+        # GH 15670
+        df = pd.DataFrame({'Number': [1, 2],
+                           'Date': ["2017-03-02"] * 2,
+                           'Str': ["foo", "inf"]})
+        expected = df.groupby(['Number']).apply(lambda x: x.iloc[0])
+        df.Date = pd.to_datetime(df.Date)
+        result = df.groupby(['Number']).apply(lambda x: x.iloc[0])
+        tm.assert_series_equal(result['Str'], expected['Str'])
+
+        # GH 15421
+        df = pd.DataFrame({'A': [10, 20, 30],
+                           'B': ['foo', '3', '4'],
+                           'T': [pd.Timestamp("12:31:22")] * 3})
+
+        def get_B(g):
+            return g.iloc[0][['B']]
+        result = df.groupby('A').apply(get_B)['B']
+        expected = df.B
+        expected.index = df.A
+        tm.assert_series_equal(result, expected)
+
+        # GH 14423
+        def predictions(tool):
+            out = pd.Series(index=['p1', 'p2', 'useTime'], dtype=object)
+            if 'step1' in list(tool.State):
+                out['p1'] = str(tool[tool.State == 'step1'].Machine.values[0])
+            if 'step2' in list(tool.State):
+                out['p2'] = str(tool[tool.State == 'step2'].Machine.values[0])
+                out['useTime'] = str(
+                    tool[tool.State == 'step2'].oTime.values[0])
+            return out
+        df1 = pd.DataFrame({'Key': ['B', 'B', 'A', 'A'],
+                            'State': ['step1', 'step2', 'step1', 'step2'],
+                            'oTime': ['', '2016-09-19 05:24:33',
+                                      '', '2016-09-19 23:59:04'],
+                            'Machine': ['23', '36L', '36R', '36R']})
+        df2 = df1.copy()
+        df2.oTime = pd.to_datetime(df2.oTime)
+        expected = df1.groupby('Key').apply(predictions).p1
+        result = df2.groupby('Key').apply(predictions).p1
+        tm.assert_series_equal(expected, result)
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):

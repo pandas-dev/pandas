@@ -6,7 +6,9 @@ import pandas.util.testing as tm
 import pandas.tseries.period as period
 from pandas.compat import text_type, iteritems
 from pandas.compat.numpy import np_datetime64_compat
-from pandas import Period, Timestamp, tslib, offsets, _period
+
+from pandas._libs import tslib, period as libperiod
+from pandas import Period, Timestamp, offsets
 from pandas.tseries.frequencies import DAYS, MONTHS
 
 
@@ -107,20 +109,6 @@ class TestPeriodProperties(tm.TestCase):
 
         p = Period(tslib.iNaT)
         self.assertIs(p, pd.NaT)
-
-    def test_cons_null_like(self):
-        # check Timestamp compat
-        self.assertIs(Timestamp('NaT'), pd.NaT)
-        self.assertIs(Period('NaT'), pd.NaT)
-
-        self.assertIs(Timestamp(None), pd.NaT)
-        self.assertIs(Period(None), pd.NaT)
-
-        self.assertIs(Timestamp(float('nan')), pd.NaT)
-        self.assertIs(Period(float('nan')), pd.NaT)
-
-        self.assertIs(Timestamp(np.nan), pd.NaT)
-        self.assertIs(Period(np.nan), pd.NaT)
 
     def test_period_cons_mult(self):
         p1 = Period('2011-01', freq='3M')
@@ -256,8 +244,8 @@ class TestPeriodProperties(tm.TestCase):
             self.assertEqual(p.tz, exp.tz)
 
     def test_timestamp_tz_arg_dateutil(self):
-        from pandas.tslib import _dateutil_gettz as gettz
-        from pandas.tslib import maybe_get_tz
+        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslib import maybe_get_tz
         for case in ['dateutil/Europe/Brussels', 'dateutil/Asia/Tokyo',
                      'dateutil/US/Pacific']:
             p = Period('1/1/2005', freq='M').to_timestamp(
@@ -275,7 +263,7 @@ class TestPeriodProperties(tm.TestCase):
             self.assertEqual(p.tz, exp.tz)
 
     def test_timestamp_tz_arg_dateutil_from_string(self):
-        from pandas.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslib import _dateutil_gettz as gettz
         p = Period('1/1/2005',
                    freq='M').to_timestamp(tz='dateutil/Europe/Brussels')
         self.assertEqual(p.tz, gettz('Europe/Brussels'))
@@ -852,29 +840,12 @@ class TestPeriodProperties(tm.TestCase):
         self.assertEqual(Period(freq='Min', year=2012, month=2, day=1, hour=0,
                                 minute=0, second=0).days_in_month, 29)
 
-    def test_properties_nat(self):
-        p_nat = Period('NaT', freq='M')
-        t_nat = pd.Timestamp('NaT')
-        self.assertIs(p_nat, t_nat)
-
-        # confirm Period('NaT') work identical with Timestamp('NaT')
-        for f in ['year', 'month', 'day', 'hour', 'minute', 'second', 'week',
-                  'dayofyear', 'quarter', 'days_in_month']:
-            self.assertTrue(np.isnan(getattr(p_nat, f)))
-            self.assertTrue(np.isnan(getattr(t_nat, f)))
-
     def test_pnow(self):
-        dt = datetime.now()
 
-        val = period.pnow('D')
-        exp = Period(dt, freq='D')
-        self.assertEqual(val, exp)
-
-        val2 = period.pnow('2D')
-        exp2 = Period(dt, freq='2D')
-        self.assertEqual(val2, exp2)
-        self.assertEqual(val.ordinal, val2.ordinal)
-        self.assertEqual(val.ordinal, exp2.ordinal)
+        # deprecation, xref #13790
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            period.pnow('D')
 
     def test_constructor_corner(self):
         expected = Period('2007-01', freq='2M')
@@ -945,10 +916,10 @@ class TestPeriodProperties(tm.TestCase):
 class TestPeriodField(tm.TestCase):
 
     def test_get_period_field_raises_on_out_of_range(self):
-        self.assertRaises(ValueError, _period.get_period_field, -1, 0, 0)
+        self.assertRaises(ValueError, libperiod.get_period_field, -1, 0, 0)
 
     def test_get_period_field_array_raises_on_out_of_range(self):
-        self.assertRaises(ValueError, _period.get_period_field_arr, -1,
+        self.assertRaises(ValueError, libperiod.get_period_field_arr, -1,
                           np.empty(1), 0)
 
 

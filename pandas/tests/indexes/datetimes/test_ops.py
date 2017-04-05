@@ -5,9 +5,9 @@ from datetime import timedelta
 
 from itertools import product
 import pandas as pd
-import pandas.tslib as tslib
+import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 from pandas.tseries.index import cdate_range
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
@@ -31,15 +31,10 @@ class TestDatetimeIndexOps(Ops):
         self.not_valid_objs = [o for o in self.objs if not mask(o)]
 
     def test_ops_properties(self):
-        self.check_ops_properties(
-            ['year', 'month', 'day', 'hour', 'minute', 'second', 'weekofyear',
-             'week', 'dayofweek', 'dayofyear', 'quarter'])
-        self.check_ops_properties(['date', 'time', 'microsecond', 'nanosecond',
-                                   'is_month_start', 'is_month_end',
-                                   'is_quarter_start',
-                                   'is_quarter_end', 'is_year_start',
-                                   'is_year_end', 'weekday_name'],
-                                  lambda x: isinstance(x, DatetimeIndex))
+        f = lambda x: isinstance(x, DatetimeIndex)
+        self.check_ops_properties(DatetimeIndex._field_ops, f)
+        self.check_ops_properties(DatetimeIndex._object_ops, f)
+        self.check_ops_properties(DatetimeIndex._bool_ops, f)
 
     def test_ops_properties_basic(self):
 
@@ -174,6 +169,29 @@ class TestDatetimeIndexOps(Ops):
             msg = "<MonthEnd> is a non-fixed frequency"
             tm.assertRaisesRegexp(ValueError, msg, rng.round, freq='M')
             tm.assertRaisesRegexp(ValueError, msg, elt.round, freq='M')
+
+            # GH 14440 & 15578
+            index = pd.DatetimeIndex(['2016-10-17 12:00:00.0015'], tz=tz)
+            result = index.round('ms')
+            expected = pd.DatetimeIndex(['2016-10-17 12:00:00.002000'], tz=tz)
+            tm.assert_index_equal(result, expected)
+
+            for freq in ['us', 'ns']:
+                tm.assert_index_equal(index, index.round(freq))
+
+            index = pd.DatetimeIndex(['2016-10-17 12:00:00.00149'], tz=tz)
+            result = index.round('ms')
+            expected = pd.DatetimeIndex(['2016-10-17 12:00:00.001000'], tz=tz)
+            tm.assert_index_equal(result, expected)
+
+            index = pd.DatetimeIndex(['2016-10-17 12:00:00.001501031'])
+            result = index.round('10ns')
+            expected = pd.DatetimeIndex(['2016-10-17 12:00:00.001501030'])
+            tm.assert_index_equal(result, expected)
+
+            with tm.assert_produces_warning():
+                ts = '2016-10-17 12:00:00.001501031'
+                pd.DatetimeIndex([ts]).round('1010ns')
 
     def test_repeat_range(self):
         rng = date_range('1/1/2000', '1/1/2001')

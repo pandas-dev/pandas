@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
-from numpy import nan
+import pytest
 import numpy as np
 
 from pandas import compat
@@ -10,7 +8,6 @@ from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range)
 
 import pandas.util.testing as tm
-
 from pandas.tests.frame.common import TestData
 
 
@@ -41,13 +38,13 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
 
         recons_data = DataFrame(test_data).to_dict("sp")
         expected_split = {'columns': ['A', 'B'], 'index': ['1', '2', '3'],
-                          'data': [[1.0, '1'], [2.0, '2'], [nan, '3']]}
+                          'data': [[1.0, '1'], [2.0, '2'], [np.nan, '3']]}
         tm.assert_dict_equal(recons_data, expected_split)
 
         recons_data = DataFrame(test_data).to_dict("r")
         expected_records = [{'A': 1.0, 'B': '1'},
                             {'A': 2.0, 'B': '2'},
-                            {'A': nan, 'B': '3'}]
+                            {'A': np.nan, 'B': '3'}]
         tm.assertIsInstance(recons_data, list)
         self.assertEqual(len(recons_data), 3)
         for l, r in zip(recons_data, expected_records):
@@ -192,3 +189,18 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
                    "formats": ['<i8', '<f8']}
         )
         tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize('tz', ['UTC', 'GMT', 'US/Eastern'])
+def test_to_records_datetimeindex_with_tz(tz):
+    # GH13937
+    dr = date_range('2016-01-01', periods=10,
+                    freq='S', tz=tz)
+
+    df = DataFrame({'datetime': dr}, index=dr)
+
+    expected = df.to_records()
+    result = df.tz_convert("UTC").to_records()
+
+    # both converted to UTC, so they are equal
+    tm.assert_numpy_array_equal(result, expected)

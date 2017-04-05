@@ -8,7 +8,7 @@ from pandas.indexes.numeric import (NumericIndex, Float64Index,  # noqa
 from pandas.indexes.range import RangeIndex  # noqa
 
 import pandas.core.common as com
-import pandas.lib as lib
+import pandas._libs.lib as lib
 
 # TODO: there are many places that rely on these private methods existing in
 # pandas.core.index

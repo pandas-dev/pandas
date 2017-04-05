@@ -1,5 +1,5 @@
 from pandas.compat import StringIO, callable, signature
-from pandas.lib import cache_readonly  # noqa
+from pandas._libs.lib import cache_readonly  # noqa
 import types
 import sys
 import warnings
@@ -261,6 +261,11 @@ class docstring_wrapper(object):
                          if hasattr(func, attr)])
 
     def __get__(self, instance, cls=None):
+
+        # we are called with a class
+        if instance is None:
+            return self
+
         # we want to return the actual passed instance
         return types.MethodType(self, instance)
 

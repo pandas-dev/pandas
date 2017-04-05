@@ -29,36 +29,26 @@ IO Tools (Text, CSV, HDF5, ...)
 ===============================
 
 The pandas I/O API is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
-object.
+object. The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
 
-    * :ref:`read_csv<io.read_csv_table>`
-    * :ref:`read_excel<io.excel_reader>`
-    * :ref:`read_hdf<io.hdf5>`
-    * :ref:`read_feather<io.feather>`
-    * :ref:`read_sql<io.sql>`
-    * :ref:`read_json<io.json_reader>`
-    * :ref:`read_msgpack<io.msgpack>`
-    * :ref:`read_html<io.read_html>`
-    * :ref:`read_gbq<io.bigquery>`
-    * :ref:`read_stata<io.stata_reader>`
-    * :ref:`read_sas<io.sas_reader>`
-    * :ref:`read_clipboard<io.clipboard>`
-    * :ref:`read_pickle<io.pickle>`
+.. csv-table::
+    :header: "Format Type", "Data Description", "Reader", "Writer"
+    :widths: 30, 100, 60, 60
+    :delim: ;
 
-The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
-
-    * :ref:`to_csv<io.store_in_csv>`
-    * :ref:`to_excel<io.excel_writer>`
-    * :ref:`to_hdf<io.hdf5>`
-    * :ref:`to_feather<io.feather>`
-    * :ref:`to_sql<io.sql>`
-    * :ref:`to_json<io.json_writer>`
-    * :ref:`to_msgpack<io.msgpack>`
-    * :ref:`to_html<io.html>`
-    * :ref:`to_gbq<io.bigquery>`
-    * :ref:`to_stata<io.stata_writer>`
-    * :ref:`to_clipboard<io.clipboard>`
-    * :ref:`to_pickle<io.pickle>`
+    text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
+    text;`JSON <http://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
+    text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
+    text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
+    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
+    binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
+    binary;`Msgpack <http://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
+    binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
+    binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
+    binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
+    SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
+    SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -91,11 +81,12 @@ filepath_or_buffer : various
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
-  Delimiter to use. If sep is ``None``,
-  will try to automatically determine this. Separators longer than 1 character
-  and different from ``'\s+'`` will be interpreted as regular expressions, will
-  force use of the python parsing engine and will ignore quotes in the data.
-  Regex example: ``'\\r\\t'``.
+  Delimiter to use. If sep is ``None``, the C engine cannot automatically detect
+  the separator, but the Python parsing engine can, meaning the latter will be
+  used automatically. In addition, separators longer than 1 character and
+  different from ``'\s+'`` will be interpreted as regular expressions and
+  will also force the use of the Python parsing engine. Note that regex
+  delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
 delim_whitespace : boolean, default False
@@ -2033,6 +2024,126 @@ using Hadoop or Spark.
   df
   df.to_json(orient='records', lines=True)
 
+
+.. _io.table_schema:
+
+Table Schema
+''''''''''''
+
+.. versionadded:: 0.20.0
+
+`Table Schema`_ is a spec for describing tabular datasets as a JSON
+object. The JSON includes information on the field names, types, and
+other attributes. You can use the orient ``table`` to build
+a JSON string with two fields, ``schema`` and ``data``.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {'A': [1, 2, 3],
+        'B': ['a', 'b', 'c'],
+        'C': pd.date_range('2016-01-01', freq='d', periods=3),
+       }, index=pd.Index(range(3), name='idx'))
+   df
+   df.to_json(orient='table', date_format="iso")
+
+The ``schema`` field contains the ``fields`` key, which itself contains
+a list of column name to type pairs, including the ``Index`` or ``MultiIndex``
+(see below for a list of types).
+The ``schema`` field also contains a ``primaryKey`` field if the (Multi)index
+is unique.
+
+The second field, ``data``, contains the serialized data with the ``records``
+orient.
+The index is included, and any datetimes are ISO 8601 formatted, as required
+by the Table Schema spec.
+
+The full list of types supported are described in the Table Schema
+spec. This table shows the mapping from pandas types:
+
+=============== =================
+Pandas type     Table Schema type
+=============== =================
+int64           integer
+float64         number
+bool            boolean
+datetime64[ns]  datetime
+timedelta64[ns] duration
+categorical     any
+object          str
+=============== =================
+
+A few notes on the generated table schema:
+
+- The ``schema`` object contains a ``pandas_version`` field. This contains
+  the version of pandas' dialect of the schema, and will be incremented
+  with each revision.
+- All dates are converted to UTC when serializing. Even timezone naïve values,
+  which are treated as UTC with an offset of 0.
+
+  .. ipython:: python
+
+     from pandas.io.json import build_table_schema
+     s = pd.Series(pd.date_range('2016', periods=4))
+     build_table_schema(s)
+
+- datetimes with a timezone (before serializing), include an additional field
+  ``tz`` with the time zone name (e.g. ``'US/Central'``).
+
+  .. ipython:: python
+
+     s_tz = pd.Series(pd.date_range('2016', periods=12,
+                                    tz='US/Central'))
+     build_table_schema(s_tz)
+
+- Periods are converted to timestamps before serialization, and so have the
+  same behavior of being converted to UTC. In addition, periods will contain
+  and additional field ``freq`` with the period's frequency, e.g. ``'A-DEC'``
+
+  .. ipython:: python
+
+     s_per = pd.Series(1, index=pd.period_range('2016', freq='A-DEC',
+                                                periods=4))
+     build_table_schema(s_per)
+
+- Categoricals use the ``any`` type and an ``enum`` constraint listing
+  the set of possible values. Additionally, an ``ordered`` field is included
+
+  .. ipython:: python
+
+     s_cat = pd.Series(pd.Categorical(['a', 'b', 'a']))
+     build_table_schema(s_cat)
+
+- A ``primaryKey`` field, containing an array of labels, is included
+  *if the index is unique*:
+
+  .. ipython:: python
+
+     s_dupe = pd.Series([1, 2], index=[1, 1])
+     build_table_schema(s_dupe)
+
+- The ``primaryKey`` behavior is the same with MultiIndexes, but in this
+  case the ``primaryKey`` is an array:
+
+  .. ipython:: python
+
+     s_multi = pd.Series(1, index=pd.MultiIndex.from_product([('a', 'b'),
+                                                              (0, 1)]))
+     build_table_schema(s_multi)
+
+- The default naming roughly follows these rules:
+
+  + For series, the ``object.name`` is used. If that's none, then the
+    name is ``values``
+  + For DataFrames, the stringified version of the column name is used
+  + For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
+    fallback to ``index`` if that is None.
+  + For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
+    then ``level_<i>`` is used.
+
+
+_Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+
 HTML
 ----
 
@@ -2111,9 +2222,10 @@ Read a URL and match a table that contains specific text
    match = 'Metcalf Bank'
    df_list = pd.read_html(url, match=match)
 
-Specify a header row (by default ``<th>`` elements are used to form the column
-index); if specified, the header row is taken from the data minus the parsed
-header elements (``<th>`` elements).
+Specify a header row (by default ``<th>`` or ``<td>`` elements located within a
+``<thead>`` are used to form the column index, if multiple rows are contained within
+``<thead>`` then a multiindex is created); if specified, the header row is taken
+from the data minus the parsed header elements (``<th>`` elements).
 
 .. code-block:: python
 
@@ -2646,6 +2758,20 @@ indices to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
 
+
+Parsing Dates
++++++++++++++
+
+Datetime-like values are normally automatically converted to the appropriate
+dtype when reading the excel file. But if you have a column of strings that
+*look* like dates (but are not actually formatted as dates in excel), you can
+use the `parse_dates` keyword to parse those strings to datetimes:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
+
+
 Cell Converters
 +++++++++++++++
 
@@ -2922,9 +3048,66 @@ any pickled pandas object (or any other pickled object) from file:
    See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
-.. note::
+.. _io.pickle.compression:
 
-    These methods were previously ``pd.save`` and ``pd.load``, prior to 0.12.0, and are now deprecated.
+Compressed pickle files
+'''''''''''''''''''''''
+
+.. versionadded:: 0.20.0
+
+:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
+and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
+`zip`` file supports read only and must contain only one data file
+to be read in.
+
+The compression type can be an explicit parameter or be inferred from the file extension.
+If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
+``'.xz'``, respectively.
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+       'A': np.random.randn(1000),
+       'B': 'foo',
+       'C': pd.date_range('20130101', periods=1000, freq='s')})
+   df
+
+Using an explicit compression type
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.compress", compression="gzip")
+   rt = pd.read_pickle("data.pkl.compress", compression="gzip")
+   rt
+
+Inferring compression type from the extension
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.xz", compression="infer")
+   rt = pd.read_pickle("data.pkl.xz", compression="infer")
+   rt
+
+The default is to 'infer
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.gz")
+   rt = pd.read_pickle("data.pkl.gz")
+   rt
+
+   df["A"].to_pickle("s1.pkl.bz2")
+   rt = pd.read_pickle("s1.pkl.bz2")
+   rt
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove("data.pkl.compress")
+   os.remove("data.pkl.xz")
+   os.remove("data.pkl.gz")
+   os.remove("s1.pkl.bz2")
 
 .. _io.msgpack:
 
@@ -3638,7 +3821,7 @@ be data_columns
 
    # on-disk operations
    store.append('df_dc', df_dc, data_columns = ['B', 'C', 'string', 'string2'])
-   store.select('df_dc', [ pd.Term('B>0') ])
+   store.select('df_dc', where='B>0')
 
    # getting creative
    store.select('df_dc', 'B > 0 & C > 0 & string == foo')
@@ -4232,6 +4415,9 @@ HDFStore supports ``Panel4D`` storage.
 .. ipython:: python
    :okwarning:
 
+   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+                 major_axis=pd.date_range('1/1/2000', periods=5),
+                 minor_axis=['A', 'B', 'C', 'D'])
    p4d = pd.Panel4D({ 'l1' : wp })
    p4d
    store.append('p4d', p4d)
@@ -4248,8 +4434,7 @@ object). This cannot be changed after table creation.
    :okwarning:
 
    store.append('p4d2', p4d, axes=['labels', 'major_axis', 'minor_axis'])
-   store
-   store.select('p4d2', [ pd.Term('labels=l1'), pd.Term('items=Item1'), pd.Term('minor_axis=A_big_strings') ])
+   store.select('p4d2', where='labels=l1 and items=Item1 and minor_axis=A')
 
 .. ipython:: python
    :suppress:

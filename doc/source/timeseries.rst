@@ -252,7 +252,8 @@ Epoch Timestamps
 
 It's also possible to convert integer or float epoch times. The default unit
 for these is nanoseconds (since these are how ``Timestamp`` s are stored). However,
-often epochs are stored in another ``unit`` which can be specified:
+often epochs are stored in another ``unit`` which can be specified. These are computed
+from the starting point specified by the :ref:`Origin Parameter <timeseries.origin>`.
 
 Typical epoch stored units
 
@@ -275,6 +276,29 @@ These *work*, but the results may be unexpected.
 .. note::
 
    Epoch times will be rounded to the nearest nanosecond.
+
+.. _timeseries.origin:
+
+Using the Origin Parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+Using the ``origin`` parameter, one can specify an alternative starting point for creation
+of a ``DatetimeIndex``.
+
+Start with 1960-01-01 as the starting date
+
+.. ipython:: python
+
+   pd.to_datetime([1, 2, 3], unit='D', origin=pd.Timestamp('1960-01-01'))
+
+The default is set at ``origin='unix'``, which defaults to ``1970-01-01 00:00:00``.
+Commonly called 'unix epoch' or POSIX time.
+
+.. ipython:: python
+
+   pd.to_datetime([1, 2, 3], unit='D')
 
 .. _timeseries.daterange:
 
@@ -607,10 +631,10 @@ There are several time/date properties that one can access from ``Timestamp`` or
     dayofyear,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
-    dayofweek,"The numer of the day of the week with Monday=0, Sunday=6"
+    dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
     weekday_name,"The name of the day in a week (ex: Friday)"
-    quarter,"Quarter of the date: Jan=Mar = 1, Apr-Jun = 2, etc."
+    quarter,"Quarter of the date: Jan-Mar = 1, Apr-Jun = 2, etc."
     days_in_month,"The number of days in the month of the datetime"
     is_month_start,"Logical indicating if first day of month (defined by frequency)"
     is_month_end,"Logical indicating if last day of month (defined by frequency)"

@@ -6,9 +6,8 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
-                    to_timedelta, tslib, compat, isnull)
-
-iNaT = tslib.iNaT
+                    to_timedelta, compat)
+from pandas._libs.tslib import iNaT, NaTType
 
 
 class TestTimedeltas(tm.TestCase):
@@ -152,14 +151,6 @@ class TestTimedeltas(tm.TestCase):
                 500, 'ms').astype('m8[ns]').view('i8')
         self.assertEqual(Timedelta(10.5, unit='s').value, expected)
 
-        # nat
-        self.assertEqual(Timedelta('').value, iNaT)
-        self.assertEqual(Timedelta('nat').value, iNaT)
-        self.assertEqual(Timedelta('NAT').value, iNaT)
-        self.assertEqual(Timedelta(None).value, iNaT)
-        self.assertEqual(Timedelta(np.nan).value, iNaT)
-        self.assertTrue(isnull(Timedelta('nat')))
-
         # offset
         self.assertEqual(to_timedelta(pd.offsets.Hour(2)),
                          Timedelta('0 days, 02:00:00'))
@@ -225,12 +216,22 @@ class TestTimedeltas(tm.TestCase):
 
     def test_freq_conversion(self):
 
+        # truediv
         td = Timedelta('1 days 2 hours 3 ns')
         result = td / np.timedelta64(1, 'D')
         self.assertEqual(result, td.value / float(86400 * 1e9))
         result = td / np.timedelta64(1, 's')
         self.assertEqual(result, td.value / float(1e9))
         result = td / np.timedelta64(1, 'ns')
+        self.assertEqual(result, td.value)
+
+        # floordiv
+        td = Timedelta('1 days 2 hours 3 ns')
+        result = td // np.timedelta64(1, 'D')
+        self.assertEqual(result, 1)
+        result = td // np.timedelta64(1, 's')
+        self.assertEqual(result, 93600)
+        result = td // np.timedelta64(1, 'ns')
         self.assertEqual(result, td.value)
 
     def test_fields(self):
@@ -301,9 +302,9 @@ class TestTimedeltas(tm.TestCase):
 
     def test_nat_converters(self):
         self.assertEqual(to_timedelta(
-            'nat', box=False).astype('int64'), tslib.iNaT)
+            'nat', box=False).astype('int64'), iNaT)
         self.assertEqual(to_timedelta(
-            'nan', box=False).astype('int64'), tslib.iNaT)
+            'nan', box=False).astype('int64'), iNaT)
 
         def testit(unit, transform):
 
@@ -589,7 +590,7 @@ class TestTimedeltas(tm.TestCase):
 
         # Beyond lower limit, a NAT before the Overflow
         self.assertIsInstance(min_td - Timedelta(1, 'ns'),
-                              pd.tslib.NaTType)
+                              NaTType)
 
         with tm.assertRaises(OverflowError):
             min_td - Timedelta(2, 'ns')
@@ -599,7 +600,7 @@ class TestTimedeltas(tm.TestCase):
 
         # Same tests using the internal nanosecond values
         td = Timedelta(min_td.value - 1, 'ns')
-        self.assertIsInstance(td, pd.tslib.NaTType)
+        self.assertIsInstance(td, NaTType)
 
         with tm.assertRaises(OverflowError):
             Timedelta(min_td.value - 2, 'ns')
@@ -685,11 +686,6 @@ class TestTimedeltas(tm.TestCase):
         td = Timedelta(milliseconds=1)
         result = td.isoformat()
         expected = 'P0DT0H0M0.001S'
-        self.assertEqual(result, expected)
-
-        # NaT
-        result = Timedelta('NaT').isoformat()
-        expected = 'NaT'
         self.assertEqual(result, expected)
 
         # don't strip every 0

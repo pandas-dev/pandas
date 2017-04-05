@@ -12,7 +12,7 @@ from pandas.util.validators import validate_bool_kwarg
 
 from pandas.core import common as com
 import pandas.core.nanops as nanops
-import pandas.lib as lib
+import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
@@ -774,6 +774,10 @@ class IndexOpsMixin(object):
         """ the internal implementation """
         return self.values
 
+    @property
+    def empty(self):
+        return not self.size
+
     def max(self):
         """ The maximum value of the object """
         return nanops.nanmax(self.values)
@@ -1065,7 +1069,6 @@ class IndexOpsMixin(object):
             - ``first`` : Drop duplicates except for the first occurrence.
             - ``last`` : Drop duplicates except for the last occurrence.
             - False : Drop all duplicates.
-        take_last : deprecated
         %(inplace)s
 
         Returns
@@ -1073,8 +1076,6 @@ class IndexOpsMixin(object):
         deduplicated : %(klass)s
         """)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -1100,15 +1101,12 @@ class IndexOpsMixin(object):
             - ``last`` : Mark duplicates as ``True`` except for the last
               occurrence.
             - False : Mark all duplicates as ``True``.
-        take_last : deprecated
 
         Returns
         -------
         duplicated : %(duplicated)s
         """)
 
-    @deprecate_kwarg('take_last', 'keep', mapping={True: 'last',
-                                                   False: 'first'})
     @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.algorithms import duplicated

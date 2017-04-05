@@ -1,5 +1,6 @@
 # pylint: disable=E1103
 
+import pytest
 from datetime import datetime
 from numpy.random import randn
 from numpy import nan
@@ -11,6 +12,8 @@ from pandas.compat import lrange, lzip
 from pandas.tools.concat import concat
 from pandas.tools.merge import merge, MergeError
 from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.types.dtypes import CategoricalDtype
+from pandas.types.common import is_categorical_dtype, is_object_dtype
 from pandas import DataFrame, Index, MultiIndex, Series, Categorical
 import pandas.util.testing as tm
 
@@ -1024,38 +1027,6 @@ class TestMergeMulti(tm.TestCase):
         expected.index = np.arange(len(expected))
         tm.assert_frame_equal(result, expected)
 
-    def test_join_multi_dtypes(self):
-
-        # test with multi dtypes in the join index
-        def _test(dtype1, dtype2):
-            left = DataFrame({'k1': np.array([0, 1, 2] * 8, dtype=dtype1),
-                              'k2': ['foo', 'bar'] * 12,
-                              'v': np.array(np.arange(24), dtype=np.int64)})
-
-            index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
-            right = DataFrame(
-                {'v2': np.array([5, 7], dtype=dtype2)}, index=index)
-
-            result = left.join(right, on=['k1', 'k2'])
-
-            expected = left.copy()
-
-            if dtype2.kind == 'i':
-                dtype2 = np.dtype('float64')
-            expected['v2'] = np.array(np.nan, dtype=dtype2)
-            expected.loc[(expected.k1 == 2) & (expected.k2 == 'bar'), 'v2'] = 5
-            expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'), 'v2'] = 7
-
-            tm.assert_frame_equal(result, expected)
-
-            result = left.join(right, on=['k1', 'k2'], sort=True)
-            expected.sort_values(['k1', 'k2'], kind='mergesort', inplace=True)
-            tm.assert_frame_equal(result, expected)
-
-        for d1 in [np.int64, np.int32, np.int16, np.int8, np.uint8]:
-            for d2 in [np.int64, np.float64, np.float32, np.float16]:
-                _test(np.dtype(d1), np.dtype(d2))
-
     def test_left_merge_na_buglet(self):
         left = DataFrame({'id': list('abcde'), 'v1': randn(5),
                           'v2': randn(5), 'dummy': list('abcde'),
@@ -1242,3 +1213,193 @@ class TestMergeMulti(tm.TestCase):
         def f():
             household.join(log_return, how='outer')
         self.assertRaises(NotImplementedError, f)
+
+
+@pytest.fixture
+def df():
+    return DataFrame(
+        {'A': ['foo', 'bar'],
+         'B': Series(['foo', 'bar']).astype('category'),
+         'C': [1, 2],
+         'D': [1.0, 2.0],
+         'E': Series([1, 2], dtype='uint64'),
+         'F': Series([1, 2], dtype='int32')})
+
+
+class TestMergeDtypes(object):
+
+    def test_different(self, df):
+
+        # we expect differences by kind
+        # to be ok, while other differences should return object
+
+        left = df
+        for col in df.columns:
+            right = DataFrame({'A': df[col]})
+            result = pd.merge(left, right, on='A')
+            assert is_object_dtype(result.A.dtype)
+
+    @pytest.mark.parametrize('d1', [np.int64, np.int32,
+                                    np.int16, np.int8, np.uint8])
+    @pytest.mark.parametrize('d2', [np.int64, np.float64,
+                                    np.float32, np.float16])
+    def test_join_multi_dtypes(self, d1, d2):
+
+        dtype1 = np.dtype(d1)
+        dtype2 = np.dtype(d2)
+
+        left = DataFrame({'k1': np.array([0, 1, 2] * 8, dtype=dtype1),
+                          'k2': ['foo', 'bar'] * 12,
+                          'v': np.array(np.arange(24), dtype=np.int64)})
+
+        index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
+        right = DataFrame({'v2': np.array([5, 7], dtype=dtype2)}, index=index)
+
+        result = left.join(right, on=['k1', 'k2'])
+
+        expected = left.copy()
+
+        if dtype2.kind == 'i':
+            dtype2 = np.dtype('float64')
+        expected['v2'] = np.array(np.nan, dtype=dtype2)
+        expected.loc[(expected.k1 == 2) & (expected.k2 == 'bar'), 'v2'] = 5
+        expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'), 'v2'] = 7
+
+        tm.assert_frame_equal(result, expected)
+
+        result = left.join(right, on=['k1', 'k2'], sort=True)
+        expected.sort_values(['k1', 'k2'], kind='mergesort', inplace=True)
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.fixture
+def left():
+    np.random.seed(1234)
+    return DataFrame(
+        {'X': Series(np.random.choice(
+            ['foo', 'bar'],
+            size=(10,))).astype('category', categories=['foo', 'bar']),
+         'Y': np.random.choice(['one', 'two', 'three'], size=(10,))})
+
+
+@pytest.fixture
+def right():
+    np.random.seed(1234)
+    return DataFrame(
+        {'X': Series(['foo', 'bar']).astype('category',
+                                            categories=['foo', 'bar']),
+         'Z': [1, 2]})
+
+
+class TestMergeCategorical(object):
+
+    def test_identical(self, left):
+        # merging on the same, should preserve dtypes
+        merged = pd.merge(left, left, on='X')
+        result = merged.dtypes.sort_index()
+        expected = Series([CategoricalDtype(),
+                           np.dtype('O'),
+                           np.dtype('O')],
+                          index=['X', 'Y_x', 'Y_y'])
+        assert_series_equal(result, expected)
+
+    def test_basic(self, left, right):
+        # we have matching Categorical dtypes in X
+        # so should preserve the merged column
+        merged = pd.merge(left, right, on='X')
+        result = merged.dtypes.sort_index()
+        expected = Series([CategoricalDtype(),
+                           np.dtype('O'),
+                           np.dtype('int64')],
+                          index=['X', 'Y', 'Z'])
+        assert_series_equal(result, expected)
+
+    def test_other_columns(self, left, right):
+        # non-merge columns should preserve if possible
+        right = right.assign(Z=right.Z.astype('category'))
+
+        merged = pd.merge(left, right, on='X')
+        result = merged.dtypes.sort_index()
+        expected = Series([CategoricalDtype(),
+                           np.dtype('O'),
+                           CategoricalDtype()],
+                          index=['X', 'Y', 'Z'])
+        assert_series_equal(result, expected)
+
+        # categories are preserved
+        assert left.X.values.is_dtype_equal(merged.X.values)
+        assert right.Z.values.is_dtype_equal(merged.Z.values)
+
+    @pytest.mark.parametrize(
+        'change', [lambda x: x,
+                   lambda x: x.astype('category',
+                                      categories=['bar', 'foo']),
+                   lambda x: x.astype('category',
+                                      categories=['foo', 'bar', 'bah']),
+                   lambda x: x.astype('category', ordered=True)])
+    @pytest.mark.parametrize('how', ['inner', 'outer', 'left', 'right'])
+    def test_dtype_on_merged_different(self, change, how, left, right):
+        # our merging columns, X now has 2 different dtypes
+        # so we must be object as a result
+
+        X = change(right.X.astype('object'))
+        right = right.assign(X=X)
+        assert is_categorical_dtype(left.X.values)
+        assert not left.X.values.is_dtype_equal(right.X.values)
+
+        merged = pd.merge(left, right, on='X', how=how)
+
+        result = merged.dtypes.sort_index()
+        expected = Series([np.dtype('O'),
+                           np.dtype('O'),
+                           np.dtype('int64')],
+                          index=['X', 'Y', 'Z'])
+        assert_series_equal(result, expected)
+
+
+@pytest.fixture
+def left_df():
+    return DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+
+
+@pytest.fixture
+def right_df():
+    return DataFrame({'b': [300, 100, 200]}, index=[3, 1, 2])
+
+
+class TestMergeOnIndexes(object):
+
+    @pytest.mark.parametrize(
+        "how, sort, expected",
+        [('inner', False, DataFrame({'a': [20, 10],
+                                     'b': [200, 100]},
+                                    index=[2, 1])),
+         ('inner', True, DataFrame({'a': [10, 20],
+                                    'b': [100, 200]},
+                                   index=[1, 2])),
+         ('left', False, DataFrame({'a': [20, 10, 0],
+                                    'b': [200, 100, np.nan]},
+                                   index=[2, 1, 0])),
+         ('left', True, DataFrame({'a': [0, 10, 20],
+                                   'b': [np.nan, 100, 200]},
+                                  index=[0, 1, 2])),
+         ('right', False, DataFrame({'a': [np.nan, 10, 20],
+                                     'b': [300, 100, 200]},
+                                    index=[3, 1, 2])),
+         ('right', True, DataFrame({'a': [10, 20, np.nan],
+                                    'b': [100, 200, 300]},
+                                   index=[1, 2, 3])),
+         ('outer', False, DataFrame({'a': [0, 10, 20, np.nan],
+                                     'b': [np.nan, 100, 200, 300]},
+                                    index=[0, 1, 2, 3])),
+         ('outer', True, DataFrame({'a': [0, 10, 20, np.nan],
+                                    'b': [np.nan, 100, 200, 300]},
+                                   index=[0, 1, 2, 3]))])
+    def test_merge_on_indexes(self, left_df, right_df, how, sort, expected):
+
+        result = pd.merge(left_df, right_df,
+                          left_index=True,
+                          right_index=True,
+                          how=how,
+                          sort=sort)
+        tm.assert_frame_equal(result, expected)
