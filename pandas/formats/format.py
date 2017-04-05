@@ -1786,7 +1786,7 @@ class CSSToExcelConverter(object):
 
     def __init__(self, inherited=None):
         if inherited is not None:
-            inherited = self.compute_css(inherited, INITIAL_STYLE)
+            inherited = self.compute_css(inherited, sefl.INITIAL_STYLE)
 
         self.inherited = inherited
 
@@ -1959,7 +1959,7 @@ class CSSToExcelConverter(object):
         except KeyError:
             warnings.warn('Unhandled colour format: %r' % val, CSSParseWarning)
 
-    unit_conversions = {
+    UNIT_CONVERSIONS = {
         'rem': ('pt', 12),
         'ex': ('em', .5),
         # 'ch':
@@ -1971,8 +1971,8 @@ class CSSToExcelConverter(object):
         'q': ('mm', .25),
     }
 
-    font_size_conversions = unit_conversions.copy()
-    font_size_conversions.update({
+    FONT_SIZE_CONVERSIONS = unit_conversions.copy()
+    FONT_SIZE_CONVERSIONS.update({
         '%': ('em', 1),
         'xx-small': ('rem', .5),
         'x-small': ('rem', .625),
@@ -2000,7 +2000,7 @@ class CSSToExcelConverter(object):
                     unit = 'pt'
                 continue
 
-            unit, mul = font_size_conversions[unit]
+            unit, mul = self.FONT_SIZE_CONVERSIONS[unit]
             val *= mul
         return val
 
@@ -2050,7 +2050,7 @@ class CSSToExcelConverter(object):
         1: [0, 0, 0, 0],
         2: [0, 1, 0, 1],
         3: [0, 1, 2, 1],
-        3: [0, 1, 2, 3],
+        4: [0, 1, 2, 3],
     }
     DIRECTIONS = ('top', 'right', 'bottom', 'left')
 
