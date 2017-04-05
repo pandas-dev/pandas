@@ -265,7 +265,7 @@ class TestStyler(TestCase):
                     {'props': [['', '']], 'selector': 'row1_col0'}]
         self.assertEqual(result, expected)
 
-    def test_bar(self):
+    def test_bar_align_left(self):
         df = pd.DataFrame({'A': [0, 1, 2]})
         result = df.style.bar()._compute().ctx
         expected = {
@@ -298,7 +298,7 @@ class TestStyler(TestCase):
         result = df.style.bar(color='red', width=50)._compute().ctx
         self.assertEqual(result, expected)
 
-    def test_bar_0points(self):
+    def test_bar_align_left_0points(self):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         result = df.style.bar()._compute().ctx
         expected = {(0, 0): ['width: 10em', ' height: 80%'],
@@ -347,6 +347,115 @@ class TestStyler(TestCase):
                              'background: linear-gradient(90deg,#d65f5f 100.0%'
                              ', transparent 0%)']}
         self.assertEqual(result, expected)
+
+    def test_bar_align_zero_pos_and_neg(self):
+        # See https://github.com/pandas-dev/pandas/pull/14757
+        df = pd.DataFrame({'A': [-10, 0, 20, 90]})
+
+        result = df.style.bar(align='zero', color=[
+                              '#d65f5f', '#5fba7d'], width=90)._compute().ctx
+
+        expected = {(0, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 45.0%, '
+                             '#d65f5f 45.0%, #d65f5f 50%, '
+                             'transparent 50%)'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 50%, '
+                             '#5fba7d 50%, #5fba7d 50.0%, '
+                             'transparent 50.0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 50%, #5fba7d 50%, '
+                             '#5fba7d 60.0%, transparent 60.0%)'],
+                    (3, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 50%, #5fba7d 50%, '
+                             '#5fba7d 95.0%, transparent 95.0%)']}
+        self.assertEqual(result, expected)
+
+    def test_bar_align_mid_pos_and_neg(self):
+        df = pd.DataFrame({'A': [-10, 0, 20, 90]})
+
+        result = df.style.bar(align='mid', color=[
+                              '#d65f5f', '#5fba7d'])._compute().ctx
+
+        expected = {(0, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #d65f5f 0.0%, '
+                             '#d65f5f 10.0%, transparent 10.0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 10.0%, '
+                             '#d65f5f 10.0%, #d65f5f 10.0%, '
+                             'transparent 10.0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 10.0%, #5fba7d 10.0%'
+                             ', #5fba7d 30.0%, transparent 30.0%)'],
+                    (3, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 10.0%, '
+                             '#5fba7d 10.0%, #5fba7d 100.0%, '
+                             'transparent 100.0%)']}
+
+        self.assertEqual(result, expected)
+
+    def test_bar_align_mid_all_pos(self):
+        df = pd.DataFrame({'A': [10, 20, 50, 100]})
+
+        result = df.style.bar(align='mid', color=[
+                              '#d65f5f', '#5fba7d'])._compute().ctx
+
+        expected = {(0, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             '#5fba7d 10.0%, transparent 10.0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             '#5fba7d 20.0%, transparent 20.0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             '#5fba7d 50.0%, transparent 50.0%)'],
+                    (3, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
+                             '#5fba7d 100.0%, transparent 100.0%)']}
+
+        self.assertEqual(result, expected)
+
+    def test_bar_align_mid_all_neg(self):
+        df = pd.DataFrame({'A': [-100, -60, -30, -20]})
+
+        result = df.style.bar(align='mid', color=[
+                              '#d65f5f', '#5fba7d'])._compute().ctx
+
+        expected = {(0, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 0.0%, '
+                             '#d65f5f 0.0%, #d65f5f 100.0%, transparent 100.0%)'],
+                    (1, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 40.0%, '
+                             '#d65f5f 40.0%, #d65f5f 100.0%, '
+                             'transparent 100.0%)'],
+                    (2, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 70.0%, '
+                             '#d65f5f 70.0%, #d65f5f 100.0%, transparent 100.0%)'],
+                    (3, 0): ['width: 10em', ' height: 80%',
+                             'background: linear-gradient(90deg, '
+                             'transparent 0%, transparent 80.0%, '
+                             '#d65f5f 80.0%, #d65f5f 100.0%, transparent 100.0%)']}
+        self.assertEqual(result, expected)
+
+    def test_bar_bad_align_raises(self):
+        df = pd.DataFrame({'A': [-100, -60, -30, -20]})
+        with tm.assertRaises(ValueError):
+            df.style.bar(align='poorly', color=['#d65f5f', '#5fba7d'])        
 
     def test_highlight_null(self, null_color='red'):
         df = pd.DataFrame({'A': [0, np.nan]})
