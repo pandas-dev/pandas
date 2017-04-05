@@ -3386,6 +3386,9 @@ class TestRollingTS(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
     def test_closed(self):
+
+        # xref GH13965
+
         df = DataFrame({'A': [1] * 5},
                        index=[pd.Timestamp('20130101 09:00:01'),
                               pd.Timestamp('20130101 09:00:02'),

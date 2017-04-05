@@ -158,15 +158,15 @@ cdef class MockFixedWindowIndexer(WindowIndexer):
         index of the input
     floor: optional
         unit for flooring
-    l_closed: bint
+    left_closed: bint
         left endpoint closedness
-    r_closed: bint
+    right_closed: bint
         right endpoint closedness
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
                  object index=None, object floor=None,
-                 bint l_closed=False, bint r_closed=True):
+                 bint left_closed=False, bint right_closed=True):
 
         assert index is None
         self.is_variable = 0
@@ -196,15 +196,15 @@ cdef class FixedWindowIndexer(WindowIndexer):
         index of the input
     floor: optional
         unit for flooring the unit
-    l_closed: bint
+    left_closed: bint
         left endpoint closedness
-    r_closed: bint
+    right_closed: bint
         right endpoint closedness
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
                  object index=None, object floor=None,
-                 bint l_closed=False, bint r_closed=True):
+                 bint left_closed=False, bint right_closed=True):
         cdef ndarray start_s, start_e, end_s, end_e
 
         assert index is None
@@ -239,14 +239,16 @@ cdef class VariableWindowIndexer(WindowIndexer):
         min number of obs in a window to consider non-NaN
     index: ndarray
         index of the input
-    l_closed: bint
+    left_closed: bint
         left endpoint closedness
-    r_closed: bint
+        True if the left endpoint is closed, False if open
+    right_closed: bint
         right endpoint closedness
+        True if the right endpoint is closed, False if open
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 ndarray index, bint l_closed, bint r_closed):
+                 ndarray index, bint left_closed, bint right_closed):
 
         self.is_variable = 1
         self.N = len(index)
@@ -258,13 +260,13 @@ cdef class VariableWindowIndexer(WindowIndexer):
         self.end = np.empty(self.N, dtype='int64')
         self.end.fill(-1)
 
-        self.build(index, win, l_closed, r_closed)
+        self.build(index, win, left_closed, right_closed)
 
         # max window size
         self.win = (self.end - self.start).max()
 
-    def build(self, ndarray[int64_t] index, int64_t win, bint l_closed,
-              bint r_closed):
+    def build(self, ndarray[int64_t] index, int64_t win, bint left_closed,
+              bint right_closed):
 
         cdef:
             ndarray[int64_t] start, end
@@ -277,9 +279,11 @@ cdef class VariableWindowIndexer(WindowIndexer):
 
         start[0] = 0
 
-        if r_closed:  # right endpoint is closed
+        # right endpoint is closed
+        if right_closed:
             end[0] = 1
-        else:         # right endpoint is open
+        # right endpoint is open
+        else:
             end[0] = 0
 
         with nogil:
@@ -290,7 +294,8 @@ cdef class VariableWindowIndexer(WindowIndexer):
                 end_bound = index[i]
                 start_bound = index[i] - win
 
-                if l_closed:  # left endpoint is closed
+                # left endpoint is closed
+                if left_closed:
                     start_bound -= 1
 
                 # advance the start bound until we are
@@ -309,7 +314,7 @@ cdef class VariableWindowIndexer(WindowIndexer):
                     end[i] = end[i - 1]
 
                 # right endpoint is open
-                if not r_closed:
+                if not right_closed:
                     end[i] -= 1
 
 
@@ -325,7 +330,8 @@ def get_window_indexer(input, win, minp, index, closed,
     minp: integer, minimum periods
     index: 1d ndarray, optional
         index to the input array
-    closed: 'right', 'left', 'both', 'neither'
+    closed: string, default 'right'
+        {'right', 'left', 'both', 'neither'}
         window endpoint closedness
     floor: optional
         unit for flooring the unit
@@ -343,26 +349,26 @@ def get_window_indexer(input, win, minp, index, closed,
     """
 
     cdef:
-        bint l_closed = False
-        bint r_closed = False
+        bint left_closed = False
+        bint right_closed = False
 
     assert closed in ['right', 'left', 'both', 'neither']
 
     if closed in ['right', 'both']:
-        r_closed = True
+        right_closed = True
 
     if closed in ['left', 'both']:
-        l_closed = True
+        left_closed = True
 
     if index is not None:
-        indexer = VariableWindowIndexer(input, win, minp, index, l_closed,
-                                        r_closed)
+        indexer = VariableWindowIndexer(input, win, minp, index, left_closed,
+                                        right_closed)
     elif use_mock:
         indexer = MockFixedWindowIndexer(input, win, minp, index, floor,
-                                         l_closed, r_closed)
+                                         left_closed, right_closed)
     else:
-        indexer = FixedWindowIndexer(input, win, minp, index, floor, l_closed,
-                                     r_closed)
+        indexer = FixedWindowIndexer(input, win, minp, index, floor, left_closed,
+                                     right_closed)
     return indexer.get_data()
 
 # ----------------------------------------------------------------------
