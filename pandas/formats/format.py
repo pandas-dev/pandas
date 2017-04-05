@@ -1838,18 +1838,29 @@ class CSSResolver(object):
                 em_pt = float(em_pt[:-2])
             else:
                 em_pt = None
-            font_size = self.font_size_to_pt(props['font-size'], em_pt)
-            if font_size == int(font_size):
-                size_fmt = '%d'
-            else:
-                size_fmt = '%f'
-            props['font-size'] = (size_fmt + 'pt') % font_size
+            props['font-size'] = self.size_to_pt(
+                props['font-size'], em_pt, conversions=self.FONT_SIZE_RATIOS)
+
+            font_size = float(props['font-size'][:-2])
+        else:
+            font_size = None
 
         # 3. TODO: resolve other font-relative units
-        # 4. TODO: resolve other relative styles (e.g. ?)
+        for side in self.SIDES:
+            prop = 'border-%s-width' % side
+            if prop in props:
+                props[prop] = self.size_to_pt(
+                    props[prop], em_pt=font_size, conversions=self.BORDER_WIDTH_RATIOS)
+            for prop in ['margin-%s' % side, 'padding-%s' % side]:
+                if prop in props:
+                    # TODO: support %
+                    props[prop] = self.size_to_pt(
+                        props[prop], em_pt=font_size,
+                        conversions=self.MARGIN_RATIOS)
+
         return props
 
-    UNIT_CONVERSIONS = {
+    UNIT_RATIOS = {
         'rem': ('pt', 12),
         'ex': ('em', .5),
         # 'ch':
@@ -1859,11 +1870,12 @@ class CSSResolver(object):
         'cm': ('in', 1 / 2.54),
         'mm': ('in', 1 / 25.4),
         'q': ('mm', .25),
+        '!!default': ('em', 0),
     }
 
-    FONT_SIZE_CONVERSIONS = UNIT_CONVERSIONS.copy()
-    FONT_SIZE_CONVERSIONS.update({
-        '%': ('em', 1),
+    FONT_SIZE_RATIOS = UNIT_RATIOS.copy()
+    FONT_SIZE_RATIOS.update({
+        '%': ('em', .01),
         'xx-small': ('rem', .5),
         'x-small': ('rem', .625),
         'small': ('rem', .8),
@@ -1873,11 +1885,26 @@ class CSSResolver(object):
         'xx-large': ('rem', 2),
         'smaller': ('em', 1 / 1.2),
         'larger': ('em', 1.2),
+        '!!default': ('em', 1),
     })
 
-    def font_size_to_pt(self, val, em_pt=None):
+    MARGIN_RATIOS = UNIT_RATIOS.copy()
+    MARGIN_RATIOS.update({
+        'none': ('pt', 0),
+    })
+
+    BORDER_WIDTH_RATIOS = UNIT_RATIOS.copy()
+    BORDER_WIDTH_RATIOS.update({
+        'none': ('pt', 0),
+        'thick': ('px', 4),
+        'medium': ('px', 2),
+        'thin': ('px', 1),
+        # Default: medium only if solid
+    })
+
+    def size_to_pt(self, val, em_pt=None, conversions=UNIT_RATIOS):
         try:
-            val, unit = re.match('(.*?)([a-zA-Z%].*)', val).groups()
+            val, unit = re.match('(.*?)([a-zA-Z%!].*)', val).groups()
         except AttributeError:
             warnings.warn('Unhandled font size: %r' % val, CSSWarning)
             return
@@ -1900,9 +1927,19 @@ class CSSResolver(object):
                     unit = 'pt'
                 continue
 
-            unit, mul = self.FONT_SIZE_CONVERSIONS[unit]
+            try:
+                unit, mul = conversions[unit]
+            except KeyError:
+                warnings.warn('Unknown size unit: %r' % unit, CSSWarning)
+                return self.size_to_pt('1!!default', conversions=conversions)
             val *= mul
-        return val
+
+        val = round(val, 5)
+        if int(val) == val:
+            size_fmt = '%d'
+        else:
+            size_fmt = '%f'
+        return (size_fmt + 'pt') % val
 
     def atomize(self, declarations):
         for prop, value in declarations:
@@ -1915,33 +1952,33 @@ class CSSResolver(object):
                 for prop, value in expand(prop, value):
                     yield prop, value
 
-    DIRECTION_SHORTHANDS = {
+    SIDE_SHORTHANDS = {
         1: [0, 0, 0, 0],
         2: [0, 1, 0, 1],
         3: [0, 1, 2, 1],
         4: [0, 1, 2, 3],
     }
-    DIRECTIONS = ('top', 'right', 'bottom', 'left')
+    SIDES = ('top', 'right', 'bottom', 'left')
 
-    def _direction_expander(prop_fmt):
+    def _side_expander(prop_fmt):
         def expand(self, prop, value):
             tokens = value.split()
             try:
-                mapping = self.DIRECTION_SHORTHANDS[len(tokens)]
+                mapping = self.SIDE_SHORTHANDS[len(tokens)]
             except KeyError:
                 warnings.warn('Could not expand "%s: %s"' % (prop, value),
                               CSSWarning)
                 return
-            for key, idx in zip(self.DIRECTIONS, mapping):
+            for key, idx in zip(self.SIDES, mapping):
                 yield prop_fmt % key, tokens[idx]
 
         return expand
 
-    expand_border_color = _direction_expander('border-%s-color')
-    expand_border_style = _direction_expander('border-%s-style')
-    expand_border_width = _direction_expander('border-%s-width')
-    expand_margin = _direction_expander('margin-%s')
-    expand_padding = _direction_expander('padding-%s')
+    expand_border_color = _side_expander('border-%s-color')
+    expand_border_style = _side_expander('border-%s-style')
+    expand_border_width = _side_expander('border-%s-width')
+    expand_margin = _side_expander('margin-%s')
+    expand_padding = _side_expander('padding-%s')
 
     def parse(self, declarations_str):
         """Generates (prop, value) pairs from declarations
@@ -1999,6 +2036,12 @@ class CSSToExcelConverter(object):
         declarations_str : str
             List of CSS declarations.
             e.g. "font-weight: bold; background: blue"
+
+        Returns
+        -------
+        xlstyle : dict
+            A style as interpreted by ExcelWriter when found in
+            ExcelCell.style.
         """
         # TODO: memoize?
         properties = self.compute_css(declarations_str, self.inherited)
@@ -2045,27 +2088,64 @@ class CSSToExcelConverter(object):
                 }
 
     def build_border(self, props):
+        print(props)
         return {side: {
-            # TODO: convert styles and widths to openxml, one of:
-            #       'dashDot'
-            #       'dashDotDot'
-            #       'dashed'
-            #       'dotted'
-            #       'double'
-            #       'hair'
-            #       'medium'
-            #       'mediumDashDot'
-            #       'mediumDashDotDot'
-            #       'mediumDashed'
-            #       'slantDashDot'
-            #       'thick'
-            #       'thin'
-            'style': ('medium'
-                      if props.get('border-%s-style' % side) == 'solid'
-                      else None),
+            'style': self._border_style(props.get('border-%s-style' % side),
+                                        props.get('border-%s-width' % side)),
             'color': self.color_to_excel(
                 props.get('border-%s-color' % side)),
         } for side in ['top', 'right', 'bottom', 'left']}
+
+    def _border_style(self, style, width):
+        # TODO: convert styles and widths to openxml, one of:
+        #       'dashDot'
+        #       'dashDotDot'
+        #       'dashed'
+        #       'dotted'
+        #       'double'
+        #       'hair'
+        #       'medium'
+        #       'mediumDashDot'
+        #       'mediumDashDotDot'
+        #       'mediumDashed'
+        #       'slantDashDot'
+        #       'thick'
+        #       'thin'
+        if width is None and style is None:
+            return None
+        if style == 'none' or style == 'hidden':
+            return None
+
+        if width is None:
+            width = '2pt'
+        width = float(width[:-2])
+        if width < 1e-5:
+            return None
+        if width < 1:
+            width_name = 'hair'
+        elif width < 2:
+            width_name = 'thin'
+        elif width < 3.5:
+            width_name = 'medium'
+        else:
+            width_name = 'thick'
+
+        if style in (None, 'groove', 'ridge', 'inset', 'outset'):
+            # not handled
+            style = 'solid'
+
+        if style == 'double':
+            return 'double'
+        if style == 'solid':
+            return width_name
+        if style == 'dotted':
+            if width_name in ('hair', 'thin'):
+                return 'dotted'
+            return 'mediumDashDotDot'
+        if style == 'dashed':
+            if width_name in ('hair', 'thin'):
+                return 'dashed'
+            return 'mediumDashed'
 
     def build_fill(self, props):
         # TODO: perhaps allow for special properties
@@ -2087,9 +2167,11 @@ class CSSToExcelConverter(object):
         size = props.get('font-size')
         if size is not None:
             assert size.endswith('pt')
-            size = int(round(size[:-2]))
+            size = float(size[:-2])
 
-        font_names = props.get('font-family', '').split()
+        font_names = [name.strip()
+                      for name in props.get('font-family', '').split(',')
+                      if name.strip()]
         family = None
         for name in font_names:
             if name == 'serif':
@@ -2155,9 +2237,9 @@ class CSSToExcelConverter(object):
         if val is None:
             return None
         if val.startswith('#') and len(val) == 7:
-            return val[1:]
+            return val[1:].upper()
         if val.startswith('#') and len(val) == 4:
-            return val[1] * 2 + val[2] * 2 + val[3] * 2
+            return (val[1] * 2 + val[2] * 2 + val[3] * 2).upper()
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
