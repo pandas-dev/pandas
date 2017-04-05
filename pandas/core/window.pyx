@@ -248,7 +248,7 @@ cdef class VariableWindowIndexer(WindowIndexer):
 
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 ndarray index, bint left_closed, bint right_closed):
+                 bint left_closed, bint right_closed, ndarray index):
 
         self.is_variable = 1
         self.N = len(index)
@@ -330,9 +330,10 @@ def get_window_indexer(input, win, minp, index, closed,
     minp: integer, minimum periods
     index: 1d ndarray, optional
         index to the input array
-    closed: string, default 'right'
+    closed: string, default None
         {'right', 'left', 'both', 'neither'}
-        window endpoint closedness
+        window endpoint closedness. Defaults to 'right' in
+        VariableWindowIndexer and to 'both' in FixedWindowIndexer
     floor: optional
         unit for flooring the unit
     use_mock: boolean, default True
@@ -365,14 +366,14 @@ def get_window_indexer(input, win, minp, index, closed,
         left_closed = True
 
     if index is not None:
-        indexer = VariableWindowIndexer(input, win, minp, index, left_closed,
-                                        right_closed)
+        indexer = VariableWindowIndexer(input, win, minp, left_closed,
+                                        right_closed, index)
     elif use_mock:
-        indexer = MockFixedWindowIndexer(input, win, minp, index, floor,
-                                         left_closed, right_closed)
+        indexer = MockFixedWindowIndexer(input, win, minp, left_closed,
+                                         right_closed, index, floor)
     else:
-        indexer = FixedWindowIndexer(input, win, minp, index, floor, left_closed,
-                                     right_closed)
+        indexer = FixedWindowIndexer(input, win, minp, left_closed,
+                                     right_closed, index, floor)
     return indexer.get_data()
 
 # ----------------------------------------------------------------------

@@ -103,7 +103,8 @@ class _Window(PandasObject, SelectionMixin):
         if self.min_periods is not None and not \
            is_integer(self.min_periods):
             raise ValueError("min_periods must be an integer")
-        if self.closed not in ['right', 'both', 'left', 'neither']:
+        if self.closed is not None and self.closed not in \
+           ['right', 'both', 'left', 'neither']:
             raise ValueError("closed must be 'right', 'left', 'both' or "
                              "'neither'")
 
@@ -1056,6 +1057,9 @@ class Rolling(_Rolling_and_Expanding):
             raise ValueError("window must be an integer")
         elif self.window < 0:
             raise ValueError("window must be non-negative")
+        elif self.closed is not None:
+            raise ValueError("closed only implemented for datetimelike "
+                                         "and offset based windows")
 
     def _validate_monotonic(self):
         """ validate on is monotonic """

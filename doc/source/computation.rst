@@ -466,19 +466,35 @@ Rolling window endpoint inclusion
 
 .. versionadded:: 0.20.0
 
-New in version 0.19.0 are the ability to pass an offset (or convertible) to a ``.rolling()`` method and have it produce
-variable sized windows based on the passed time window. For each time point, this includes all preceding values occurring
-within the indicated time delta.
+The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
+parameter:
 
-This can be particularly useful for a non-regular time frequency index.
+  - ``right`` : close right endpoint (default for time-based windows)
+  - ``left`` : close left endpoint
+  - ``both`` : close both endpoints (default for fixed windows)
+  - ``neither`` : open endpoints
+
+For example, having the right endpoint open is useful in many problems that require that there is no contamination
+from present information back to past information. This allows the rolling window to compute statistics
+"up to that point in time", but not including that point in time.
 
 .. ipython:: python
 
-   dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-                      index=pd.date_range('20130101 09:00:00', periods=5, freq='s'))
-   dft
+   df = pd.DataFrame({'x': [1]*5},
+                     index = [pd.Timestamp('20130101 09:00:01'),
+                              pd.Timestamp('20130101 09:00:02'),
+                              pd.Timestamp('20130101 09:00:03'),
+                              pd.Timestamp('20130101 09:00:04'),
+                              pd.Timestamp('20130101 09:00:06')])
 
-This is a regular frequency index. Using an integer window parameter works to roll along the window frequency.
+   df["right"] = df.rolling('2s', closed='right').x.sum() # default
+   df["both"] = df.rolling('2s', closed='both').x.sum()
+   df["left"] = df.rolling('2s', closed='left').x.sum()
+   df["open"] = df.rolling('2s', closed='neither').x.sum()
+
+   df
+
+Currently, this feature is only implemented for time-based windows.
 
 .. _stats.moments.ts-versus-resampling:
 

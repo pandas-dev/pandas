@@ -3396,6 +3396,10 @@ class TestRollingTS(tm.TestCase):
                               pd.Timestamp('20130101 09:00:04'),
                               pd.Timestamp('20130101 09:00:06')])
 
+        # closed only allowed for datetimelike
+        with self.assertRaises(ValueError):
+             self.regular.rolling(window=3, closed='both')
+
         # closed must be 'right', 'left', 'both', 'neither'
         with self.assertRaises(ValueError):
             self.regular.rolling(window='2s', closed="blabla")
