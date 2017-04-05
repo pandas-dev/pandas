@@ -23,8 +23,10 @@ import numpy as np
 import pandas as pd
 from pandas.compat import range
 from pandas.core.config import get_option
+from pandas.core.generic import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
+from pandas.util.decorators import Appender
 try:
     import matplotlib.pyplot as plt
     from matplotlib import colors
@@ -190,6 +192,29 @@ class Styler(object):
     def _repr_html_(self):
         """Hooks into Jupyter notebook rich display system."""
         return self.render()
+
+    @Appender(_shared_docs['to_excel'] % dict(
+        axes='index, columns', klass='Styler',
+        axes_single_arg="{0 or 'index', 1 or 'columns'}",
+        optional_by="""
+            by : str or list of str
+                Name or list of names which refer to the axis items.""",
+        versionadded_to_excel='\n    .. versionadded:: 0.20'))
+    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
+                 float_format=None, columns=None, header=True, index=True,
+                 index_label=None, startrow=0, startcol=0, engine=None,
+                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
+                 freeze_panes=None):
+
+        from pandas.core.frame import _to_excel
+        return _to_excel(self, excel_writer, sheet_name=sheet_name,
+                         na_rep=na_rep, float_format=float_format,
+                         columns=columns, header=header, index=index,
+                         index_label=index_label, startrow=startrow,
+                         startcol=startcol, engine=engine,
+                         merge_cells=merge_cells, encoding=encoding,
+                         inf_rep=inf_rep, verbose=verbose,
+                         freeze_panes=freeze_panes)
 
     def _translate(self):
         """

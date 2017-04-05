@@ -199,6 +199,43 @@ merge_asof
 
 """
 
+
+def _to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
+              float_format=None, columns=None, header=True, index=True,
+              index_label=None, startrow=0, startcol=0, engine=None,
+              merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
+              freeze_panes=None):
+    # This implementation is shared by Styler.to_excel
+    from pandas.io.excel import ExcelWriter
+    need_save = False
+    if encoding is None:
+        encoding = 'ascii'
+
+    if isinstance(excel_writer, compat.string_types):
+        excel_writer = ExcelWriter(excel_writer, engine=engine)
+        need_save = True
+
+    formatter = fmt.ExcelFormatter(self, na_rep=na_rep, cols=columns,
+                                   header=header,
+                                   float_format=float_format, index=index,
+                                   index_label=index_label,
+                                   merge_cells=merge_cells,
+                                   inf_rep=inf_rep)
+
+    formatted_cells = formatter.get_formatted_cells()
+
+    if freeze_panes is not None:
+        if len(freeze_panes) != 2 or any(not isinstance(item, int)
+                                         for item in freeze_panes):
+            raise ValueError("freeze_panes must be of form (row, column)"
+                             " where row and column are integers")
+
+    excel_writer.write_cells(formatted_cells, sheet_name,
+                             startrow=startrow, startcol=startcol,
+                             freeze_panes=freeze_panes)
+    if need_save:
+        excel_writer.save()
+
 # -----------------------------------------------------------------------
 # DataFrame class
 
@@ -1391,46 +1428,9 @@ class DataFrame(NDFrame):
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
 
-    @Appender(_shared_docs['to_excel'] % _shared_doc_kwargs)
-    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
-                 float_format=None, columns=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
-                 freeze_panes=None):
-        from pandas.io.excel import ExcelWriter
-        need_save = False
-        if encoding is None:
-            encoding = 'ascii'
+    to_excel = Appender(_shared_docs['to_excel']
+                        % _shared_doc_kwargs)(_to_excel)
 
-        if isinstance(excel_writer, compat.string_types):
-            excel_writer = ExcelWriter(excel_writer, engine=engine)
-            need_save = True
-
-        formatter = fmt.ExcelFormatter(self, na_rep=na_rep, cols=columns,
-                                       header=header,
-                                       float_format=float_format, index=index,
-                                       index_label=index_label,
-                                       merge_cells=merge_cells,
-                                       inf_rep=inf_rep)
-
-        formatted_cells = formatter.get_formatted_cells()
-        freeze_panes = self._validate_freeze_panes(freeze_panes)
-        excel_writer.write_cells(formatted_cells, sheet_name,
-                                 startrow=startrow, startcol=startcol,
-                                 freeze_panes=freeze_panes)
-        if need_save:
-            excel_writer.save()
-
-    def _validate_freeze_panes(self, freeze_panes):
-        if freeze_panes is not None:
-            if (
-                len(freeze_panes) == 2 and
-                all(isinstance(item, int) for item in freeze_panes)
-            ):
-                return freeze_panes
-
-                raise ValueError("freeze_panes must be of form (row, column)"
-                                 " where row and column are integers")
 
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,

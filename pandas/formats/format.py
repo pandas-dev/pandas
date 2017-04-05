@@ -9,6 +9,8 @@ from distutils.version import LooseVersion
 # pylint: disable=W0141
 
 import sys
+import re
+import warnings
 
 from pandas.types.missing import isnull, notnull
 from pandas.types.common import (is_categorical_dtype,
@@ -1649,13 +1651,347 @@ header_style = {"font": {"bold": True},
                               "vertical": "top"}}
 
 
+class CSSParseWarning(Warning):
+    """This CSS syntax cannot currently be parsed"""
+    pass
+
+
+class CSSToExcelConverter(object):
+    """Converts CSS declarations to ExcelWriter styles
+
+    Supports parts of CSS2, with minimal CSS3 support (e.g. text-shadow),
+    focusing on font styling, backgrounds, borders and alignment.
+
+    Operates by first computing CSS styles in a fairly generic
+    way (see :meth:`compute_css`) then determining Excel style
+    properties from CSS properties (see :meth:`build_xlstyle`).
+
+    Parameters
+    ----------
+    inherited : str, optional
+        CSS declarations understood to be the containing scope for the
+        CSS processed by :meth:`__call__`.
+    """
+
+    def __init__(self, inherited=None):
+        if inherited is not None:
+            inherited = self.compute_css(inherited, INITIAL_STYLE)
+
+        self.inherited = inherited
+
+    INITIAL_STYLE = {
+        'font-size': '12pt'
+    }
+
+    def __call__(self, declarations_str):
+        """Convert CSS declarations to ExcelWriter style
+
+        Parameters
+        ----------
+        declarations_str : str
+            List of CSS declarations.
+            e.g. "font-weight: bold; background: blue"
+        """
+        # TODO: memoize?
+        properties = self.compute_css(declarations_str)
+        return self.build_xlstyle(properties)
+
+    def build_xlstyle(self, props):
+        out = {
+            'alignment': self.build_alignment(props),
+            'borders': self.build_borders(props),
+            'fill': self.build_fill(props),
+            'font': self.build_font(props),
+        }
+        # TODO: handle cell width and height: needs support in pandas.io.excel
+
+        def remove_none(d):
+            """Remove key where value is None, through nested dicts"""
+            for k, v in list(d.items()):
+                if v is None:
+                    del d[k]
+                elif isinstance(v, dict):
+                    remove_none(v)
+                    if not v:
+                        del d[k]
+
+        remove_none(out)
+        return out
+
+    VERTICAL_MAP = {
+        'top': 'top',
+        'text-top': 'top',
+        'middle': 'center',
+        'baseline': 'bottom',
+        'bottom': 'bottom',
+        'text-bottom': 'bottom',
+        # OpenXML also has 'justify', 'distributed'
+    }
+
+    def build_alignment(self, props):
+        # TODO: text-indent -> alignment.indent
+        return {'horizontal': props.get('text-align'),
+                'vertical': self.VERTICAL_MAP.get(props.get('vertical-align')),
+                'wrapText': (props['white-space'] not in (None, 'nowrap')
+                             if 'white-space' in props else None),
+                }
+
+    def build_borders(self, props):
+        return {side: {
+            # TODO: convert styles and widths to openxml, one of:
+            #       'dashDot'
+            #       'dashDotDot'
+            #       'dashed'
+            #       'dotted'
+            #       'double'
+            #       'hair'
+            #       'medium'
+            #       'mediumDashDot'
+            #       'mediumDashDotDot'
+            #       'mediumDashed'
+            #       'slantDashDot'
+            #       'thick'
+            #       'thin'
+            'style': ('medium'
+                      if props.get('border-%s-style' % side) == 'solid'
+                      else None),
+            'color': self.color_to_excel(
+                props.get('border-%s-color' % side)),
+        } for side in ['top', 'right', 'bottom', 'left']}
+
+    def build_fill(self, props):
+        # TODO: perhaps allow for special properties
+        #       -excel-pattern-bgcolor and -excel-pattern-type
+        fill_color = props.get('background-color')
+        if fill_color not in (None, 'transparent', 'none'):
+            return {
+                'fgColor': self.color_to_excel(fill_color),
+                'patternType': 'solid',
+            }
+
+    BOLD_MAP = {k: True for k in
+                ['bold', 'bolder', '600', '700', '800', '900']}
+    ITALIC_MAP = {'italic': True, 'oblique': True}
+    UNDERLINE_MAP = {'underline': True}
+    STRIKE_MAP = {'line-through': True}
+
+    def build_font(self, props):
+        size = props.get('font-size')
+        if size is not None:
+            assert size.endswith('pt')
+            size = int(round(size[:-2]))
+
+        font_names = props.get('font-family', '').split()
+        family = None
+        for name in font_names:
+            if name == 'serif':
+                family = 1  # roman
+                break
+            elif name == 'sans-serif':
+                family = 2  # swiss
+                break
+            elif name == 'cursive':
+                family = 4  # script
+                break
+            elif name == 'fantasy':
+                family = 5  # decorative
+                break
+
+        return {
+            'name': font_names[0] if font_names else None,
+            'family': family,
+            'size': size,
+            'bold': self.BOLD_MAP.get(props.get('font-weight')),
+            'italic': self.ITALIC_MAP.get(props.get('font-style')),
+            'underline': self.UNDERLINE_MAP.get(props.get('text-decoration')),
+            'strike': self.STRIKE_MAP.get(props.get('text-decoration')),
+            'color': self.color_to_excel(props.get('font-color')),
+            # shadow if nonzero digit before shadow colour
+            'shadow': (bool(re.search('^[^#(]*[1-9]',
+                                      props['text-shadow']))
+                       if 'text-shadow' in props else None),
+            # 'vertAlign':,
+            # 'charset': ,
+            # 'scheme': ,
+            # 'outline': ,
+            # 'condense': ,
+        }
+
+    NAMED_COLORS = {
+        'maroon': '800000',
+        'red': 'FF0000',
+        'orange': 'FFA500',
+        'yellow': 'FFFF00',
+        'olive': '808000',
+        'green': '008000',
+        'purple': '800080',
+        'fuchsia': 'FF00FF',
+        'lime': '00FF00',
+        'teal': '008080',
+        'aqua': '00FFFF',
+        'blue': '0000FF',
+        'navy': '000080',
+        'black': '000000',
+        'gray': '808080',
+        'silver': 'C0C0C0',
+        'white': 'FFFFFF',
+    }
+
+    def color_to_excel(self, val):
+        if val is None:
+            return None
+        if val.startswith('#') and len(val) == 7:
+            return val[1:]
+        if val.startswith('#') and len(val) == 4:
+            return val[1] * 2 + val[2] * 2 + val[3] * 2
+        try:
+            return self.NAMED_COLORS[val]
+        except KeyError:
+            warnings.warn('Unhandled colour format: %r' % val, CSSParseWarning)
+
+    unit_conversions = {
+        'rem': ('pt', 12),
+        'ex': ('em', .5),
+        # 'ch':
+        'px': ('pt', .75),
+        'pc': ('pt', 12),
+        'in': ('pt', 72),
+        'cm': ('in', 1 / 2.54),
+        'mm': ('in', 1 / 25.4),
+        'q': ('mm', .25),
+    }
+
+    font_size_conversions = unit_conversions.copy()
+    font_size_conversions.update({
+        '%': ('em', 1),
+        'xx-small': ('rem', .5),
+        'x-small': ('rem', .625),
+        'small': ('rem', .8),
+        'medium': ('rem', 1),
+        'large': ('rem', 1.125),
+        'x-large': ('rem', 1.5),
+        'xx-large': ('rem', 2),
+        'smaller': ('em', 1 / 1.2),
+        'larger': ('em', 1.2),
+    })
+
+    def font_size_to_pt(self, val, em_pt=None):
+        val, unit = re.split('(?=[a-zA-Z%])', val, 1).groups()
+        if val == '':
+            # hack for 'large' etc.
+            val = 1
+
+        while unit != 'pt':
+            if unit == 'em':
+                if em_pt is None:
+                    unit = 'rem'
+                else:
+                    val *= em_pt
+                    unit = 'pt'
+                continue
+
+            unit, mul = font_size_conversions[unit]
+            val *= mul
+        return val
+
+    @classmethod
+    def compute_css(cls, declarations_str, inherited=None):
+        props = dict(cls.atomize(cls.parse(declarations_str)))
+        if inherited is None:
+            inherited = {}
+
+        # 1. resolve inherited, initial
+        for prop, val in list(props.items()):
+            if val == 'inherited':
+                val = inherited.get(prop, 'initial')
+            if val == 'initial':
+                val = self.INITIAL_STYLE.get(prop)
+
+            if val is None:
+                # we do not define a complete initial stylesheet
+                del props[val]
+            else:
+                props[prop] = val
+
+        # 2. resolve relative font size
+        if props.get('font-size'):
+            em_pt = self.INITIAL_STYLE['font-size']
+            assert em_pt[-2:] == 'pt'
+            em_pt = float(em_pt[:-2])
+            font_size = self.font_size_to_pt(props['font-size'], em_pt)
+            props['font-size'] = '%fpt' % font_size
+
+        # 3. TODO: resolve other font-relative units
+        # 4. TODO: resolve other relative styles (e.g. ?)
+        return props
+
+    @classmethod
+    def atomize(cls, declarations):
+        for prop, value in declarations:
+            attr = 'expand_' + prop.replace('-', '_')
+            try:
+                expand = getattr(cls, attr)
+            except AttributeError:
+                yield prop, value
+            else:
+                for prop, value in expand(prop, value):
+                    yield prop, value
+
+    DIRECTION_SHORTHANDS = {
+        1: [0, 0, 0, 0],
+        2: [0, 1, 0, 1],
+        3: [0, 1, 2, 1],
+        3: [0, 1, 2, 3],
+    }
+    DIRECTIONS = ('top', 'right', 'bottom', 'left')
+
+    def _direction_expander(prop_fmt):
+        @classmethod
+        def expand(cls, prop, value):
+            tokens = value.split()
+            try:
+                mapping = cls.DIRECTION_SHORTHANDS[len(tokens)]
+            except KeyError:
+                warnings.warn('Could not expand "%s: %s"' % (prop, value),
+                              CSSParseWarning)
+                return
+            for key, idx in zip(cls.DIRECTIONS, mapping):
+                yield prop_fmt % key, tokens[idx]
+
+        return expand
+
+    expand_border_color = _direction_expander('border-%s-color')
+    expand_border_style = _direction_expander('border-%s-style')
+    expand_border_width = _direction_expander('border-%s-width')
+    expand_margin = _direction_expander('margin-%s')
+    expand_padding = _direction_expander('padding-%s')
+
+    @classmethod
+    def parse(cls, declarations_str):
+        """Generates (prop, value) pairs from declarations
+
+        In a future version may generate parsed tokens from tinycss/tinycss2
+        """
+        for decl in sum((l.split(';') for l in declarations_str), []):
+            if not decl.strip():
+                continue
+            prop, sep, val = decl.partition(':')
+            prop = prop.strip().lower()
+            # TODO: don't lowercase case sensitive parts of values (strings)
+            val = val.strip().lower()
+            if not sep:
+                raise ValueError('Ill-formatted attribute: expected a colon '
+                                 'in %r' % decl)
+            yield prop, val
+
+
 class ExcelFormatter(object):
     """
     Class for formatting a DataFrame to a list of ExcelCells,
 
     Parameters
     ----------
-    df : dataframe or Styler
+    df : DataFrame or Styler
     na_rep: na representation
     float_format : string, default None
             Format string for floating point numbers
@@ -1677,7 +2013,8 @@ class ExcelFormatter(object):
         A `'-'` sign will be added in front of -inf.
     style_converter : callable, optional
         This translates Styler styles (CSS) into ExcelWriter styles.
-        It should have signature css_list -> dict or None.
+        Defaults to ``CSSToExcelConverter()``.
+        It should have signature css_declarations string -> excel style.
         This is only called for body cells.
     """
 
@@ -1689,6 +2026,9 @@ class ExcelFormatter(object):
         if hasattr(df, 'render'):
             self.styler = df
             df = df.data
+            if style_converter is None:
+                style_converter = CSSToExcelConverter()
+            self.style_converter = style_converter
         else:
             self.styler = None
         self.df = df
@@ -1701,7 +2041,6 @@ class ExcelFormatter(object):
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
-        self.style_converter = style_converter
 
     def _format_value(self, val):
         if lib.checknull(val):
@@ -1915,7 +2254,7 @@ class ExcelFormatter(object):
             yield cell
 
     def _generate_body(self, coloffset):
-        if self.style_converter is None or self.styler is None:
+        if self.styler is None:
             styles = None
         else:
             styles = self.styler._compute().ctx
