@@ -12,6 +12,7 @@ from pandas.types.generic import ABCSeries, ABCIndex
 from pandas.types.common import (is_unsigned_integer_dtype,
                                  is_signed_integer_dtype,
                                  is_integer_dtype,
+                                 is_complex_dtype,
                                  is_categorical_dtype,
                                  is_extension_type,
                                  is_datetimetz,
@@ -38,6 +39,44 @@ import pandas.core.common as com
 from pandas.compat import string_types
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
+
+
+# --------------- #
+# dtype access    #
+# --------------- #
+
+def _ensure_data_view(values):
+    """
+    helper routine to ensure that our data is of the correct
+    input dtype for lower-level routines
+
+    Parameters
+    ----------
+    values : array-like
+    """
+
+    if needs_i8_conversion(values):
+        values = values.view(np.int64)
+    elif is_period_arraylike(values):
+        from pandas.tseries.period import PeriodIndex
+        values = PeriodIndex(values).asi8
+    elif is_categorical_dtype(values):
+        values = values.values.codes
+    elif isinstance(values, (ABCSeries, ABCIndex)):
+        values = values.values
+
+    if is_signed_integer_dtype(values):
+        values = _ensure_int64(values)
+    elif is_unsigned_integer_dtype(values):
+        values = _ensure_uint64(values)
+    elif is_complex_dtype(values):
+        values = _ensure_float64(values)
+    elif is_float_dtype(values):
+        values = _ensure_float64(values)
+    else:
+        values = _ensure_object(values)
+
+    return values
 
 
 # --------------- #
@@ -867,9 +906,7 @@ def nsmallest(arr, n, keep='first'):
     narr = len(arr)
     n = min(n, narr)
 
-    sdtype = str(arr.dtype)
-    arr = arr.view(_dtype_map.get(sdtype, sdtype))
-
+    arr = _ensure_data_view(arr)
     kth_val = algos.kth_smallest(arr.copy(), n - 1)
     return _finalize_nsmallest(arr, kth_val, n, keep, narr)
 
@@ -880,8 +917,7 @@ def nlargest(arr, n, keep='first'):
 
     Note: Fails silently with NaN.
     """
-    sdtype = str(arr.dtype)
-    arr = arr.view(_dtype_map.get(sdtype, sdtype))
+    arr = _ensure_data_view(arr)
     return nsmallest(-arr, n, keep=keep)
 
 
@@ -910,9 +946,10 @@ def select_n_series(series, n, keep, method):
     nordered : Series
     """
     dtype = series.dtype
-    if not issubclass(dtype.type, (np.integer, np.floating, np.datetime64,
-                                   np.timedelta64)):
-        raise TypeError("Cannot use method %r with dtype %s" % (method, dtype))
+    if not ((is_numeric_dtype(dtype) and not is_complex_dtype(dtype)) or
+            needs_i8_conversion(dtype)):
+        raise TypeError("Cannot use method '{method}' with "
+                        "dtype {dtype}".format(method=method, dtype=dtype))
 
     if keep not in ('first', 'last'):
         raise ValueError('keep must be either "first", "last"')
@@ -962,9 +999,6 @@ def _finalize_nsmallest(arr, kth_val, n, keep, narr):
         return narr - 1 - inds
     else:
         return inds
-
-
-_dtype_map = {'datetime64[ns]': 'int64', 'timedelta64[ns]': 'int64'}
 
 
 # ------- #
