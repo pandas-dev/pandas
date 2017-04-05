@@ -557,6 +557,8 @@ class Resampler(_GroupBy):
         if not len(self.ax) and isinstance(self._selected_obj, ABCDataFrame):
             result = pd.Series([], index=result.index, dtype='int64')
         return result
+
+
 Resampler._deprecated_valids += dir(Resampler)
 
 # downsample methods

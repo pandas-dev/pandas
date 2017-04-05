@@ -803,14 +803,13 @@ class Base(object):
                     # GH14962
                     expected = Series([])
                     assert_equal = assert_series_equal
-                
+
                 expected.index = f.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
                 assert result.index.freq == expected.index.freq
                 assert_frame_equal(result, expected, check_dtype=False)
 
             # test size for GH13212 (currently stays as df)
-
 
     def test_resample_empty_dtypes(self):
 
