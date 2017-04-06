@@ -1052,6 +1052,7 @@ I/O
 - Bug in ``pd.read_hdf()`` passing a ``Timestamp`` to the ``where`` parameter with a non date column (:issue:`15492`)
 - Bug in ``DataFrame.to_stata()`` and ``StataWriter`` which produces incorrectly formatted files to be produced for some locales (:issue:`13856`)
 - Bug in ``StataReader`` and ``StataWriter`` which allows invalid encodings (:issue:`15723`)
+- Bug in ``pd.to_json()`` for the C engine where rollover was not correctly handled for case where frac is odd and diff is exactly 0.5 (:issue:`15716`, :issue:`15864`)
 
 Plotting
 ^^^^^^^^
