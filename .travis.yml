@@ -7,7 +7,7 @@ python: 3.5
 # set NOCACHE-true
 # To delete caches go to https://travis-ci.org/OWNER/REPOSITORY/caches or run
 # travis cache --delete inside the project directory from the travis command line client
-# The cash directories will be deleted if anything in ci/ changes in a commit
+# The cache directories will be deleted if anything in ci/ changes in a commit
 cache:
  ccache: true
  directories:
