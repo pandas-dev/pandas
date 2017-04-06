@@ -19,7 +19,7 @@ from pandas.types.common import (
     is_bool_dtype, needs_i8_conversion,
     is_categorical, is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_datetime64_dtype, is_timedelta64_dtype,
+    is_timedelta64_dtype,
     is_scalar, is_list_like,
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
@@ -166,6 +166,63 @@ def _ensure_arraylike(values):
     return values
 
 
+_hashtables = {
+    'float64': (htable.Float64HashTable, htable.Float64Vector),
+    'uint64': (htable.UInt64HashTable, htable.UInt64Vector),
+    'int64': (htable.Int64HashTable, htable.Int64Vector),
+    'string': (htable.StringHashTable, htable.ObjectVector),
+    'object': (htable.PyObjectHashTable, htable.ObjectVector)
+}
+
+
+def _get_hashtable_algo(values):
+    """
+    Parameters
+    ----------
+    values : arraylike
+
+    Returns
+    -------
+    tuples(hashtable class,
+           vector class,
+           values,
+           dtype,
+           ndtype)
+    """
+    values, dtype, ndtype = _ensure_data(values)
+
+    if ndtype == 'object':
+
+        # its cheaper to use a String Hash Table than Object
+        if lib.infer_dtype(values) in ['string']:
+            ndtype = 'string'
+        else:
+            ndtype = 'object'
+
+    htable, table = _hashtables[ndtype]
+    return (htable, table, values, dtype, ndtype)
+
+
+def _get_data_algo(values, func_map):
+
+    if is_categorical_dtype(values):
+        values = values._values_for_rank()
+
+    values, dtype, ndtype = _ensure_data(values)
+    if ndtype == 'object':
+
+        # its cheaper to use a String Hash Table than Object
+        if lib.infer_dtype(values) in ['string']:
+            try:
+                f = func_map['string']
+            except KeyError:
+                pass
+
+    f = func_map.get(ndtype, func_map['object'])
+
+    return f, values
+
+
 # --------------- #
 # top-level algos #
 # --------------- #
@@ -191,90 +248,39 @@ def match(to_match, values, na_sentinel=-1):
     match : ndarray of integers
     """
     values = com._asarray_tuplesafe(values)
-    if issubclass(values.dtype.type, string_types):
-        values = np.array(values, dtype='O')
-
-    f = lambda htype, caster: _match_object(to_match, values, htype, caster)
-    result = _hashtable_algo(f, values, np.int64)
+    htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
+    to_match, _, _ = _ensure_data(to_match, dtype)
+    table = htable(min(len(to_match), 1000000))
+    table.map_locations(values)
+    result = table.lookup(to_match)
 
     if na_sentinel != -1:
 
         # replace but return a numpy array
         # use a Series because it handles dtype conversions properly
-        from pandas.core.series import Series
+        from pandas import Series
         result = Series(result.ravel()).replace(-1, na_sentinel).values.\
             reshape(result.shape)
 
     return result
 
 
-def _match_object(values, index, table_type, type_caster):
-    values = type_caster(values)
-    index = type_caster(index)
-    table = table_type(min(len(index), 1000000))
-    table.map_locations(index)
-    return table.lookup(values)
-
-
-def unique(values):
-    """
-    Compute unique values (not necessarily sorted) efficiently from input array
-    of values
-
-    Parameters
-    ----------
-    values : array-like
-
-    Returns
-    -------
-    uniques
-    """
-    values = com._asarray_tuplesafe(values)
-
-    f = lambda htype, caster: _unique_object(values, htype, caster)
-    return _hashtable_algo(f, values)
-
-
-def _unique_object(values, table_type, type_caster):
-    values = type_caster(values)
-    table = table_type(min(len(values), 1000000))
-    uniques = table.unique(values)
-    return type_caster(uniques)
-
-
 def unique1d(values):
     """
     Hash table-based unique
     """
-    if np.issubdtype(values.dtype, np.floating):
-        table = htable.Float64HashTable(len(values))
-        uniques = np.array(table.unique(_ensure_float64(values)),
-                           dtype=np.float64)
-    elif np.issubdtype(values.dtype, np.datetime64):
-        table = htable.Int64HashTable(len(values))
-        uniques = table.unique(_ensure_int64(values))
-        uniques = uniques.view('M8[ns]')
-    elif np.issubdtype(values.dtype, np.timedelta64):
-        table = htable.Int64HashTable(len(values))
-        uniques = table.unique(_ensure_int64(values))
-        uniques = uniques.view('m8[ns]')
-    elif np.issubdtype(values.dtype, np.signedinteger):
-        table = htable.Int64HashTable(len(values))
-        uniques = table.unique(_ensure_int64(values))
-    elif np.issubdtype(values.dtype, np.unsignedinteger):
-        table = htable.UInt64HashTable(len(values))
-        uniques = table.unique(_ensure_uint64(values))
-    else:
+    values = _ensure_arraylike(values)
+    original = values
+    htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
 
-        # its cheaper to use a String Hash Table than Object
-        if lib.infer_dtype(values) in ['string']:
-            table = htable.StringHashTable(len(values))
-        else:
-            table = htable.PyObjectHashTable(len(values))
-
-        uniques = table.unique(_ensure_object(values))
+    table = htable(len(values))
+    uniques = table.unique(values)
+    uniques = _reconstruct_data(uniques, dtype, original)
 
     return uniques
+
+
+unique = unique1d
 
 
 def isin(comps, values):
@@ -1065,67 +1071,7 @@ class SelectNFrame(SelectN):
         return frame
 
 
-# ------- #
-# helpers #
-# ------- #
-
-def _hashtable_algo(f, values, return_dtype=None):
-    """
-    f(HashTable, type_caster) -> result
-    """
-
-    dtype = values.dtype
-    if is_float_dtype(dtype):
-        return f(htable.Float64HashTable, _ensure_float64)
-    elif is_signed_integer_dtype(dtype):
-        return f(htable.Int64HashTable, _ensure_int64)
-    elif is_unsigned_integer_dtype(dtype):
-        return f(htable.UInt64HashTable, _ensure_uint64)
-    elif is_datetime64_dtype(dtype):
-        return_dtype = return_dtype or 'M8[ns]'
-        return f(htable.Int64HashTable, _ensure_int64).view(return_dtype)
-    elif is_timedelta64_dtype(dtype):
-        return_dtype = return_dtype or 'm8[ns]'
-        return f(htable.Int64HashTable, _ensure_int64).view(return_dtype)
-
-    # its cheaper to use a String Hash Table than Object
-    if lib.infer_dtype(values) in ['string']:
-        return f(htable.StringHashTable, _ensure_object)
-
-    # use Object
-    return f(htable.PyObjectHashTable, _ensure_object)
-
-
-_hashtables = {
-    'float64': (htable.Float64HashTable, htable.Float64Vector),
-    'uint64': (htable.UInt64HashTable, htable.UInt64Vector),
-    'int64': (htable.Int64HashTable, htable.Int64Vector),
-    'string': (htable.StringHashTable, htable.ObjectVector),
-    'object': (htable.PyObjectHashTable, htable.ObjectVector)
-}
-
-
-def _get_data_algo(values, func_map):
-
-    if is_categorical_dtype(values):
-        values = values._values_for_rank()
-
-    values, dtype, ndtype = _ensure_data(values)
-    if ndtype == 'object':
-
-        # its cheaper to use a String Hash Table than Object
-        if lib.infer_dtype(values) in ['string']:
-            try:
-                f = func_map['string']
-            except KeyError:
-                pass
-
-    f = func_map.get(ndtype, func_map['object'])
-
-    return f, values
-
-
-# ---- #
+# ------- ## ---- #
 # take #
 # ---- #
 
