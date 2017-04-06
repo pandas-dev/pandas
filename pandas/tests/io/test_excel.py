@@ -2122,7 +2122,7 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
         if not openpyxl_compat.is_compat(major_ver=2):
             pytest.skip('incompatible openpyxl version')
 
-        from pandas.formats.format import ExcelCell
+        from pandas.formats.excel import ExcelCell
 
         sheet_name = 'merge_styled'
 
