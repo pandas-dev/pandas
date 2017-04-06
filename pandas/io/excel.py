@@ -571,7 +571,7 @@ def _fill_mi_header(row, control_row):
     ----------
     row : list
         List of items in a single row.
-    constrol_row : list of boolean
+    control_row : list of boolean
         Helps to determine if particular column is in same parent index as the
         previous value. Used to stop propagation of empty cells between
         different indexes.
