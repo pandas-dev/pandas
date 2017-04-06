@@ -7,11 +7,12 @@ from distutils.version import LooseVersion
 import sys
 import pytest
 
+from string import ascii_lowercase
 from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas.compat import lrange
+from pandas.compat import lrange, product
 from pandas import (compat, isnull, notnull, DataFrame, Series,
                     MultiIndex, date_range, Timestamp)
 import pandas as pd
@@ -1120,73 +1121,6 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                 self.assertTrue(r1.all())
 
     # ----------------------------------------------------------------------
-    # Top / bottom
-
-    def test_nlargest(self):
-        # GH10393
-        from string import ascii_lowercase
-        df = pd.DataFrame({'a': np.random.permutation(10),
-                           'b': list(ascii_lowercase[:10])})
-        result = df.nlargest(5, 'a')
-        expected = df.sort_values('a', ascending=False).head(5)
-        tm.assert_frame_equal(result, expected)
-
-    def test_nlargest_multiple_columns(self):
-        from string import ascii_lowercase
-        df = pd.DataFrame({'a': np.random.permutation(10),
-                           'b': list(ascii_lowercase[:10]),
-                           'c': np.random.permutation(10).astype('float64')})
-        result = df.nlargest(5, ['a', 'b'])
-        expected = df.sort_values(['a', 'b'], ascending=False).head(5)
-        tm.assert_frame_equal(result, expected)
-
-    def test_nsmallest(self):
-        from string import ascii_lowercase
-        df = pd.DataFrame({'a': np.random.permutation(10),
-                           'b': list(ascii_lowercase[:10])})
-        result = df.nsmallest(5, 'a')
-        expected = df.sort_values('a').head(5)
-        tm.assert_frame_equal(result, expected)
-
-    def test_nsmallest_multiple_columns(self):
-        from string import ascii_lowercase
-        df = pd.DataFrame({'a': np.random.permutation(10),
-                           'b': list(ascii_lowercase[:10]),
-                           'c': np.random.permutation(10).astype('float64')})
-        result = df.nsmallest(5, ['a', 'c'])
-        expected = df.sort_values(['a', 'c']).head(5)
-        tm.assert_frame_equal(result, expected)
-
-    def test_nsmallest_nlargest_duplicate_index(self):
-        # GH 13412
-        df = pd.DataFrame({'a': [1, 2, 3, 4],
-                           'b': [4, 3, 2, 1],
-                           'c': [0, 1, 2, 3]},
-                          index=[0, 0, 1, 1])
-        result = df.nsmallest(4, 'a')
-        expected = df.sort_values('a').head(4)
-        tm.assert_frame_equal(result, expected)
-
-        result = df.nlargest(4, 'a')
-        expected = df.sort_values('a', ascending=False).head(4)
-        tm.assert_frame_equal(result, expected)
-
-        result = df.nsmallest(4, ['a', 'c'])
-        expected = df.sort_values(['a', 'c']).head(4)
-        tm.assert_frame_equal(result, expected)
-
-        result = df.nsmallest(4, ['c', 'a'])
-        expected = df.sort_values(['c', 'a']).head(4)
-        tm.assert_frame_equal(result, expected)
-
-        result = df.nlargest(4, ['a', 'c'])
-        expected = df.sort_values(['a', 'c'], ascending=False).head(4)
-        tm.assert_frame_equal(result, expected)
-
-        result = df.nlargest(4, ['c', 'a'])
-        expected = df.sort_values(['c', 'a'], ascending=False).head(4)
-        tm.assert_frame_equal(result, expected)
-    # ----------------------------------------------------------------------
     # Isin
 
     def test_isin(self):
@@ -1965,3 +1899,132 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         with tm.assertRaisesRegexp(ValueError, 'aligned'):
             df.dot(df2)
+
+
+@pytest.fixture
+def df_duplicates():
+    return pd.DataFrame({'a': [1, 2, 3, 4, 4],
+                         'b': [1, 1, 1, 1, 1],
+                         'c': [0, 1, 2, 5, 4]},
+                        index=[0, 0, 1, 1, 1])
+
+
+@pytest.fixture
+def df_strings():
+    return pd.DataFrame({'a': np.random.permutation(10),
+                         'b': list(ascii_lowercase[:10]),
+                         'c': np.random.permutation(10).astype('float64')})
+
+
+@pytest.fixture
+def df_main_dtypes():
+    return pd.DataFrame(
+        {'group': [1, 1, 2],
+         'int': [1, 2, 3],
+         'float': [4., 5., 6.],
+         'string': list('abc'),
+         'category_string': pd.Series(list('abc')).astype('category'),
+         'category_int': [7, 8, 9],
+         'datetime': pd.date_range('20130101', periods=3),
+         'datetimetz': pd.date_range('20130101',
+                                     periods=3,
+                                     tz='US/Eastern'),
+         'timedelta': pd.timedelta_range('1 s', periods=3, freq='s')},
+        columns=['group', 'int', 'float', 'string',
+                 'category_string', 'category_int',
+                 'datetime', 'datetimetz',
+                 'timedelta'])
+
+
+class TestNLargestNSmallest(object):
+
+    dtype_error_msg_template = ("Column {column!r} has dtype {dtype}, cannot "
+                                "use method {method!r} with this dtype")
+
+    # ----------------------------------------------------------------------
+    # Top / bottom
+    @pytest.mark.parametrize(
+        'method, n, order',
+        product(['nsmallest', 'nlargest'], range(1, 11),
+                [['a'],
+                 ['c'],
+                 ['a', 'b'],
+                 ['a', 'c'],
+                 ['b', 'a'],
+                 ['b', 'c'],
+                 ['a', 'b', 'c'],
+                 ['c', 'a', 'b'],
+                 ['c', 'b', 'a'],
+                 ['b', 'c', 'a'],
+                 ['b', 'a', 'c'],
+
+                 # dups!
+                 ['b', 'c', 'c'],
+
+                 ]))
+    def test_n(self, df_strings, method, n, order):
+        # GH10393
+        df = df_strings
+        if 'b' in order:
+
+            error_msg = self.dtype_error_msg_template.format(
+                column='b', method=method, dtype='object')
+            with tm.assertRaisesRegexp(TypeError, error_msg):
+                getattr(df, method)(n, order)
+        else:
+            ascending = method == 'nsmallest'
+            result = getattr(df, method)(n, order)
+            expected = df.sort_values(order, ascending=ascending).head(n)
+            tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        'method, columns',
+        product(['nsmallest', 'nlargest'],
+                product(['group'], ['category_string', 'string'])
+                ))
+    def test_n_error(self, df_main_dtypes, method, columns):
+        df = df_main_dtypes
+        error_msg = self.dtype_error_msg_template.format(
+            column=columns[1], method=method, dtype=df[columns[1]].dtype)
+        with tm.assertRaisesRegexp(TypeError, error_msg):
+            getattr(df, method)(2, columns)
+
+    def test_n_all_dtypes(self, df_main_dtypes):
+        df = df_main_dtypes
+        df.nsmallest(2, list(set(df) - {'category_string', 'string'}))
+        df.nlargest(2, list(set(df) - {'category_string', 'string'}))
+
+    def test_n_identical_values(self):
+        # GH15297
+        df = pd.DataFrame({'a': [1] * 5, 'b': [1, 2, 3, 4, 5]})
+
+        result = df.nlargest(3, 'a')
+        expected = pd.DataFrame(
+            {'a': [1] * 3, 'b': [1, 2, 3]}, index=[0, 1, 2]
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.nsmallest(3, 'a')
+        expected = pd.DataFrame({'a': [1] * 3, 'b': [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        'n, order',
+        product([1, 2, 3, 4, 5],
+                [['a', 'b', 'c'],
+                 ['c', 'b', 'a'],
+                 ['a'],
+                 ['b'],
+                 ['a', 'b'],
+                 ['c', 'b']]))
+    def test_n_duplicate_index(self, df_duplicates, n, order):
+        # GH 13412
+
+        df = df_duplicates
+        result = df.nsmallest(n, order)
+        expected = df.sort_values(order).head(n)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.nlargest(n, order)
+        expected = df.sort_values(order, ascending=False).head(n)
+        tm.assert_frame_equal(result, expected)
