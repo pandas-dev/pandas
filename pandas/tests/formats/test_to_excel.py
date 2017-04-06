@@ -84,6 +84,18 @@ from pandas.formats.excel import CSSToExcelConverter
                                          'patternType': 'solid'}}),
     # BORDER
     # - style
+    # TODO: need to check this produces valid OpenXML without color
+    ('border-style: solid',
+     {'border': {'top': {'style': 'medium'},
+                 'bottom': {'style': 'medium'},
+                 'left': {'style': 'medium'},
+                 'right': {'style': 'medium'}}}),
+    ('border-top-style: solid',
+     {'border': {'top': {'style': 'medium'}}}),
+    ('border-top-style: dotted',
+     {'border': {'top': {'style': 'mediumDashDotDot'}}}),
+    ('border-top-style: dashed',
+     {'border': {'top': {'style': 'mediumDashed'}}}),
     # - color
     # ALIGNMENT
     # - horizontal
