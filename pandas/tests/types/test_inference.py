@@ -13,11 +13,11 @@ import numpy as np
 import pytz
 
 import pandas as pd
-from pandas import lib, tslib
+from pandas._libs import tslib, lib
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical)
-from pandas.compat import u, PY2, lrange
+from pandas.compat import u, PY2, PY3, StringIO, lrange
 from pandas.types import inference
 from pandas.types.common import (is_timedelta64_dtype,
                                  is_timedelta64_ns_dtype,
@@ -30,10 +30,13 @@ from pandas.types.common import (is_timedelta64_dtype,
                                  is_float,
                                  is_bool,
                                  is_scalar,
+                                 is_scipy_sparse,
                                  _ensure_int32,
                                  _ensure_categorical)
 from pandas.types.missing import isnull
 from pandas.util import testing as tm
+
+from pandas.tests.sparse.test_frame import spmatrix  # noqa: F401
 
 
 def test_is_sequence():
@@ -73,6 +76,20 @@ def test_is_dict_like():
 
     for f in fails:
         assert not inference.is_dict_like(f)
+
+
+def test_is_file_like():
+    is_file = inference.is_file_like
+
+    data = StringIO("data")
+    assert is_file(data)
+
+    data = [1, 2, 3]
+    assert not is_file(data)
+
+    if PY3:
+        from unittest import mock
+        assert not is_file(mock.Mock())
 
 
 def test_is_named_tuple():
@@ -517,28 +534,28 @@ class TestTypeInference(tm.TestCase):
         # GH 13664
         arr = np.array([pd.Period('2011-01', freq='D'),
                         pd.Period('2011-02', freq='D')])
-        self.assertEqual(pd.lib.infer_dtype(arr), 'period')
+        self.assertEqual(lib.infer_dtype(arr), 'period')
 
         arr = np.array([pd.Period('2011-01', freq='D'),
                         pd.Period('2011-02', freq='M')])
-        self.assertEqual(pd.lib.infer_dtype(arr), 'period')
+        self.assertEqual(lib.infer_dtype(arr), 'period')
 
         # starts with nan
         for n in [pd.NaT, np.nan]:
             arr = np.array([n, pd.Period('2011-01', freq='D')])
-            self.assertEqual(pd.lib.infer_dtype(arr), 'period')
+            self.assertEqual(lib.infer_dtype(arr), 'period')
 
             arr = np.array([n, pd.Period('2011-01', freq='D'), n])
-            self.assertEqual(pd.lib.infer_dtype(arr), 'period')
+            self.assertEqual(lib.infer_dtype(arr), 'period')
 
         # different type of nat
         arr = np.array([np.datetime64('nat'), pd.Period('2011-01', freq='M')],
                        dtype=object)
-        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+        self.assertEqual(lib.infer_dtype(arr), 'mixed')
 
         arr = np.array([pd.Period('2011-01', freq='M'), np.datetime64('nat')],
                        dtype=object)
-        self.assertEqual(pd.lib.infer_dtype(arr), 'mixed')
+        self.assertEqual(lib.infer_dtype(arr), 'mixed')
 
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
@@ -944,6 +961,12 @@ def test_nan_to_nat_conversions():
     from distutils.version import LooseVersion
     if LooseVersion(np.__version__) >= '1.7.0':
         assert (s[8].value == np.datetime64('NaT').astype(np.int64))
+
+
+def test_is_scipy_sparse(spmatrix):  # noqa: F811
+    tm._skip_if_no_scipy()
+    assert is_scipy_sparse(spmatrix([[0, 1]]))
+    assert not is_scipy_sparse(np.array([1]))
 
 
 def test_ensure_int32():

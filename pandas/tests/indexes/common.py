@@ -10,6 +10,7 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     TimedeltaIndex, PeriodIndex, notnull, isnull)
 from pandas.types.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
+from pandas._libs.tslib import iNaT
 
 import pandas.util.testing as tm
 
@@ -120,7 +121,6 @@ class Base(object):
             idx.get_indexer(idx, method='invalid')
 
     def test_ndarray_compat_properties(self):
-
         idx = self.create_index()
         self.assertTrue(idx.T.equals(idx))
         self.assertTrue(idx.transpose().equals(idx))
@@ -322,7 +322,7 @@ class Base(object):
 
             if needs_i8_conversion(ind):
                 vals = ind.asi8[[0] * 5]
-                vals[0] = pd.tslib.iNaT
+                vals[0] = iNaT
             else:
                 vals = ind.values[[0] * 5]
                 vals[0] = np.nan
@@ -344,12 +344,6 @@ class Base(object):
     def test_sort(self):
         for ind in self.indices.values():
             self.assertRaises(TypeError, ind.sort)
-
-    def test_order(self):
-        for ind in self.indices.values():
-            # 9816 deprecated
-            with tm.assert_produces_warning(FutureWarning):
-                ind.order()
 
     def test_mutability(self):
         for ind in self.indices.values():
@@ -407,7 +401,7 @@ class Base(object):
             # pandas compatibility input validation - the
             # rest already perform separate (or no) such
             # validation via their 'values' attribute as
-            # defined in pandas/indexes/base.py - they
+            # defined in pandas.indexes/base.py - they
             # cannot be changed at the moment due to
             # backwards compatibility concerns
             if isinstance(type(ind), (CategoricalIndex, RangeIndex)):
@@ -496,6 +490,18 @@ class Base(object):
 
         result = i.where(cond)
         tm.assert_index_equal(result, expected)
+
+    def test_where_array_like(self):
+        i = self.create_index()
+
+        _nan = i._na_value
+        cond = [False] + [True] * (len(i) - 1)
+        klasses = [list, tuple, np.array, pd.Series]
+        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
+
+        for klass in klasses:
+            result = i.where(klass(cond))
+            tm.assert_index_equal(result, expected)
 
     def test_setops_errorcases(self):
         for name, idx in compat.iteritems(self.indices):
@@ -824,7 +830,7 @@ class Base(object):
                 if len(index) == 0:
                     continue
                 elif isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
-                    values[1] = pd.tslib.iNaT
+                    values[1] = iNaT
                 elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
                 else:
@@ -864,7 +870,7 @@ class Base(object):
                 values = idx.values
 
                 if isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
-                    values[1] = pd.tslib.iNaT
+                    values[1] = iNaT
                 elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
                 else:
@@ -904,3 +910,9 @@ class Base(object):
                     result = isnull(index)
                     self.assert_numpy_array_equal(index.isnull(), result)
                     self.assert_numpy_array_equal(index.notnull(), ~result)
+
+    def test_empty(self):
+        # GH 15270
+        index = self.create_index()
+        self.assertFalse(index.empty)
+        self.assertTrue(index[:0].empty)

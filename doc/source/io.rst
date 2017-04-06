@@ -29,36 +29,26 @@ IO Tools (Text, CSV, HDF5, ...)
 ===============================
 
 The pandas I/O API is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
-object.
+object. The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
 
-    * :ref:`read_csv<io.read_csv_table>`
-    * :ref:`read_excel<io.excel_reader>`
-    * :ref:`read_hdf<io.hdf5>`
-    * :ref:`read_feather<io.feather>`
-    * :ref:`read_sql<io.sql>`
-    * :ref:`read_json<io.json_reader>`
-    * :ref:`read_msgpack<io.msgpack>`
-    * :ref:`read_html<io.read_html>`
-    * :ref:`read_gbq<io.bigquery>`
-    * :ref:`read_stata<io.stata_reader>`
-    * :ref:`read_sas<io.sas_reader>`
-    * :ref:`read_clipboard<io.clipboard>`
-    * :ref:`read_pickle<io.pickle>`
+.. csv-table::
+    :header: "Format Type", "Data Description", "Reader", "Writer"
+    :widths: 30, 100, 60, 60
+    :delim: ;
 
-The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
-
-    * :ref:`to_csv<io.store_in_csv>`
-    * :ref:`to_excel<io.excel_writer>`
-    * :ref:`to_hdf<io.hdf5>`
-    * :ref:`to_feather<io.feather>`
-    * :ref:`to_sql<io.sql>`
-    * :ref:`to_json<io.json_writer>`
-    * :ref:`to_msgpack<io.msgpack>`
-    * :ref:`to_html<io.html>`
-    * :ref:`to_gbq<io.bigquery>`
-    * :ref:`to_stata<io.stata_writer>`
-    * :ref:`to_clipboard<io.clipboard>`
-    * :ref:`to_pickle<io.pickle>`
+    text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
+    text;`JSON <http://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
+    text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
+    text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
+    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
+    binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
+    binary;`Msgpack <http://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
+    binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
+    binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
+    binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
+    SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
+    SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -91,11 +81,12 @@ filepath_or_buffer : various
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
-  Delimiter to use. If sep is ``None``,
-  will try to automatically determine this. Separators longer than 1 character
-  and different from ``'\s+'`` will be interpreted as regular expressions, will
-  force use of the python parsing engine and will ignore quotes in the data.
-  Regex example: ``'\\r\\t'``.
+  Delimiter to use. If sep is ``None``, the C engine cannot automatically detect
+  the separator, but the Python parsing engine can, meaning the latter will be
+  used automatically. In addition, separators longer than 1 character and
+  different from ``'\s+'`` will be interpreted as regular expressions and
+  will also force the use of the Python parsing engine. Note that regex
+  delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
 delim_whitespace : boolean, default False
@@ -2033,6 +2024,126 @@ using Hadoop or Spark.
   df
   df.to_json(orient='records', lines=True)
 
+
+.. _io.table_schema:
+
+Table Schema
+''''''''''''
+
+.. versionadded:: 0.20.0
+
+`Table Schema`_ is a spec for describing tabular datasets as a JSON
+object. The JSON includes information on the field names, types, and
+other attributes. You can use the orient ``table`` to build
+a JSON string with two fields, ``schema`` and ``data``.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {'A': [1, 2, 3],
+        'B': ['a', 'b', 'c'],
+        'C': pd.date_range('2016-01-01', freq='d', periods=3),
+       }, index=pd.Index(range(3), name='idx'))
+   df
+   df.to_json(orient='table', date_format="iso")
+
+The ``schema`` field contains the ``fields`` key, which itself contains
+a list of column name to type pairs, including the ``Index`` or ``MultiIndex``
+(see below for a list of types).
+The ``schema`` field also contains a ``primaryKey`` field if the (Multi)index
+is unique.
+
+The second field, ``data``, contains the serialized data with the ``records``
+orient.
+The index is included, and any datetimes are ISO 8601 formatted, as required
+by the Table Schema spec.
+
+The full list of types supported are described in the Table Schema
+spec. This table shows the mapping from pandas types:
+
+=============== =================
+Pandas type     Table Schema type
+=============== =================
+int64           integer
+float64         number
+bool            boolean
+datetime64[ns]  datetime
+timedelta64[ns] duration
+categorical     any
+object          str
+=============== =================
+
+A few notes on the generated table schema:
+
+- The ``schema`` object contains a ``pandas_version`` field. This contains
+  the version of pandas' dialect of the schema, and will be incremented
+  with each revision.
+- All dates are converted to UTC when serializing. Even timezone naïve values,
+  which are treated as UTC with an offset of 0.
+
+  .. ipython:: python
+
+     from pandas.io.json import build_table_schema
+     s = pd.Series(pd.date_range('2016', periods=4))
+     build_table_schema(s)
+
+- datetimes with a timezone (before serializing), include an additional field
+  ``tz`` with the time zone name (e.g. ``'US/Central'``).
+
+  .. ipython:: python
+
+     s_tz = pd.Series(pd.date_range('2016', periods=12,
+                                    tz='US/Central'))
+     build_table_schema(s_tz)
+
+- Periods are converted to timestamps before serialization, and so have the
+  same behavior of being converted to UTC. In addition, periods will contain
+  and additional field ``freq`` with the period's frequency, e.g. ``'A-DEC'``
+
+  .. ipython:: python
+
+     s_per = pd.Series(1, index=pd.period_range('2016', freq='A-DEC',
+                                                periods=4))
+     build_table_schema(s_per)
+
+- Categoricals use the ``any`` type and an ``enum`` constraint listing
+  the set of possible values. Additionally, an ``ordered`` field is included
+
+  .. ipython:: python
+
+     s_cat = pd.Series(pd.Categorical(['a', 'b', 'a']))
+     build_table_schema(s_cat)
+
+- A ``primaryKey`` field, containing an array of labels, is included
+  *if the index is unique*:
+
+  .. ipython:: python
+
+     s_dupe = pd.Series([1, 2], index=[1, 1])
+     build_table_schema(s_dupe)
+
+- The ``primaryKey`` behavior is the same with MultiIndexes, but in this
+  case the ``primaryKey`` is an array:
+
+  .. ipython:: python
+
+     s_multi = pd.Series(1, index=pd.MultiIndex.from_product([('a', 'b'),
+                                                              (0, 1)]))
+     build_table_schema(s_multi)
+
+- The default naming roughly follows these rules:
+
+  + For series, the ``object.name`` is used. If that's none, then the
+    name is ``values``
+  + For DataFrames, the stringified version of the column name is used
+  + For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
+    fallback to ``index`` if that is None.
+  + For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
+    then ``level_<i>`` is used.
+
+
+_Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+
 HTML
 ----
 
@@ -2043,7 +2154,7 @@ Reading HTML Content
 
 .. warning::
 
-   We **highly encourage** you to read the :ref:`HTML Table Parsing gotchas<io.html.gotchas>`
+   We **highly encourage** you to read the :ref:`HTML Table Parsing gotchas <io.html.gotchas>`
    below regarding the issues surrounding the BeautifulSoup4/html5lib/lxml parsers.
 
 .. versionadded:: 0.12.0
@@ -2111,9 +2222,10 @@ Read a URL and match a table that contains specific text
    match = 'Metcalf Bank'
    df_list = pd.read_html(url, match=match)
 
-Specify a header row (by default ``<th>`` elements are used to form the column
-index); if specified, the header row is taken from the data minus the parsed
-header elements (``<th>`` elements).
+Specify a header row (by default ``<th>`` or ``<td>`` elements located within a
+``<thead>`` are used to form the column index, if multiple rows are contained within
+``<thead>`` then a multiindex is created); if specified, the header row is taken
+from the data minus the parsed header elements (``<th>`` elements).
 
 .. code-block:: python
 
@@ -2646,6 +2758,20 @@ indices to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
 
+
+Parsing Dates
++++++++++++++
+
+Datetime-like values are normally automatically converted to the appropriate
+dtype when reading the excel file. But if you have a column of strings that
+*look* like dates (but are not actually formatted as dates in excel), you can
+use the `parse_dates` keyword to parse those strings to datetimes:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
+
+
 Cell Converters
 +++++++++++++++
 
@@ -2922,9 +3048,66 @@ any pickled pandas object (or any other pickled object) from file:
    See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
-.. note::
+.. _io.pickle.compression:
 
-    These methods were previously ``pd.save`` and ``pd.load``, prior to 0.12.0, and are now deprecated.
+Compressed pickle files
+'''''''''''''''''''''''
+
+.. versionadded:: 0.20.0
+
+:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
+and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
+`zip`` file supports read only and must contain only one data file
+to be read in.
+
+The compression type can be an explicit parameter or be inferred from the file extension.
+If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
+``'.xz'``, respectively.
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+       'A': np.random.randn(1000),
+       'B': 'foo',
+       'C': pd.date_range('20130101', periods=1000, freq='s')})
+   df
+
+Using an explicit compression type
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.compress", compression="gzip")
+   rt = pd.read_pickle("data.pkl.compress", compression="gzip")
+   rt
+
+Inferring compression type from the extension
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.xz", compression="infer")
+   rt = pd.read_pickle("data.pkl.xz", compression="infer")
+   rt
+
+The default is to 'infer
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.gz")
+   rt = pd.read_pickle("data.pkl.gz")
+   rt
+
+   df["A"].to_pickle("s1.pkl.bz2")
+   rt = pd.read_pickle("s1.pkl.bz2")
+   rt
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove("data.pkl.compress")
+   os.remove("data.pkl.xz")
+   os.remove("data.pkl.gz")
+   os.remove("s1.pkl.bz2")
 
 .. _io.msgpack:
 
@@ -3638,7 +3821,7 @@ be data_columns
 
    # on-disk operations
    store.append('df_dc', df_dc, data_columns = ['B', 'C', 'string', 'string2'])
-   store.select('df_dc', [ pd.Term('B>0') ])
+   store.select('df_dc', where='B>0')
 
    # getting creative
    store.select('df_dc', 'B > 0 & C > 0 & string == foo')
@@ -4232,6 +4415,9 @@ HDFStore supports ``Panel4D`` storage.
 .. ipython:: python
    :okwarning:
 
+   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+                 major_axis=pd.date_range('1/1/2000', periods=5),
+                 minor_axis=['A', 'B', 'C', 'D'])
    p4d = pd.Panel4D({ 'l1' : wp })
    p4d
    store.append('p4d', p4d)
@@ -4248,8 +4434,7 @@ object). This cannot be changed after table creation.
    :okwarning:
 
    store.append('p4d2', p4d, axes=['labels', 'major_axis', 'minor_axis'])
-   store
-   store.select('p4d2', [ pd.Term('labels=l1'), pd.Term('items=Item1'), pd.Term('minor_axis=A_big_strings') ])
+   store.select('p4d2', where='labels=l1 and items=Item1 and minor_axis=A')
 
 .. ipython:: python
    :suppress:
@@ -4652,293 +4837,18 @@ And then issue the following queries:
 Google BigQuery
 ---------------
 
-.. versionadded:: 0.13.0
-
-The :mod:`pandas.io.gbq` module provides a wrapper for Google's BigQuery
-analytics web service to simplify retrieving results from BigQuery tables
-using SQL-like queries. Result sets are parsed into a pandas
-DataFrame with a shape and data types derived from the source table.
-Additionally, DataFrames can be inserted into new BigQuery tables or appended
-to existing tables.
-
 .. warning::
 
-   To use this module, you will need a valid BigQuery account. Refer to the
-   `BigQuery Documentation <https://cloud.google.com/bigquery/what-is-bigquery>`__
-   for details on the service itself.
+   Starting in 0.20.0, pandas has split off Google BigQuery support into the
+   separate package ``pandas-gbq``. You can ``pip install pandas-gbq`` to get it.
 
-The key functions are:
+The ``pandas-gbq`` package provides functionality to read/write from Google BigQuery.
 
-.. currentmodule:: pandas.io.gbq
+pandas integrates with this external package. if ``pandas-gbq`` is installed, you can
+use the pandas methods ``pd.read_gbq`` and ``DataFrame.to_gbq``, which will call the
+respective functions from ``pandas-gbq``.
 
-.. autosummary::
-   :toctree: generated/
-
-   read_gbq
-   to_gbq
-
-.. currentmodule:: pandas
-
-
-Supported Data Types
-++++++++++++++++++++
-
-Pandas supports all these `BigQuery data types <https://cloud.google.com/bigquery/data-types>`__:
-``STRING``, ``INTEGER`` (64bit), ``FLOAT`` (64 bit), ``BOOLEAN`` and
-``TIMESTAMP`` (microsecond precision). Data types ``BYTES`` and ``RECORD``
-are not supported.
-
-Integer and boolean ``NA`` handling
-+++++++++++++++++++++++++++++++++++
-
-.. versionadded:: 0.20
-
-Since all columns in BigQuery queries are nullable, and NumPy lacks of ``NA``
-support for integer and boolean types, this module will store ``INTEGER`` or
-``BOOLEAN`` columns with at least one ``NULL`` value as ``dtype=object``.
-Otherwise those columns will be stored as ``dtype=int64`` or ``dtype=bool``
-respectively.
-
-This is opposite to default pandas behaviour which will promote integer
-type to float in order to store NAs. See the :ref:`gotchas<gotchas.intna>`
-for detailed explaination.
-
-While this trade-off works well for most cases, it breaks down for storing
-values greater than 2**53. Such values in BigQuery can represent identifiers
-and unnoticed precision lost for identifier is what we want to avoid.
-
-.. _io.bigquery_deps:
-
-Dependencies
-++++++++++++
-
-This module requires following additional dependencies:
-
-- `httplib2 <https://github.com/httplib2/httplib2>`__: HTTP client
-- `google-api-python-client <http://github.com/google/google-api-python-client>`__: Google's API client
-- `oauth2client <https://github.com/google/oauth2client>`__: authentication and authorization for Google's API
-
-.. _io.bigquery_authentication:
-
-Authentication
-''''''''''''''
-
-.. versionadded:: 0.18.0
-
-Authentication to the Google ``BigQuery`` service is via ``OAuth 2.0``.
-Is possible to authenticate with either user account credentials or service account credentials.
-
-Authenticating with user account credentials is as simple as following the prompts in a browser window
-which will be automatically opened for you. You will be authenticated to the specified
-``BigQuery`` account using the product name ``pandas GBQ``. It is only possible on local host.
-The remote authentication using user account credentials is not currently supported in pandas.
-Additional information on the authentication mechanism can be found
-`here <https://developers.google.com/identity/protocols/OAuth2#clientside/>`__.
-
-Authentication with service account credentials is possible via the `'private_key'` parameter. This method
-is particularly useful when working on remote servers (eg. jupyter iPython notebook on remote host).
-Additional information on service accounts can be found
-`here <https://developers.google.com/identity/protocols/OAuth2#serviceaccount>`__.
-
-Authentication via ``application default credentials`` is also possible. This is only valid
-if the parameter ``private_key`` is not provided. This method also requires that
-the credentials can be fetched from the environment the code is running in.
-Otherwise, the OAuth2 client-side authentication is used.
-Additional information on
-`application default credentials <https://developers.google.com/identity/protocols/application-default-credentials>`__.
-
-.. versionadded:: 0.19.0
-
-.. note::
-
-   The `'private_key'` parameter can be set to either the file path of the service account key
-   in JSON format, or key contents of the service account key in JSON format.
-
-.. note::
-
-   A private key can be obtained from the Google developers console by clicking
-   `here <https://console.developers.google.com/permissions/serviceaccounts>`__. Use JSON key type.
-
-.. _io.bigquery_reader:
-
-Querying
-''''''''
-
-Suppose you want to load all data from an existing BigQuery table : `test_dataset.test_table`
-into a DataFrame using the :func:`~pandas.io.gbq.read_gbq` function.
-
-.. code-block:: python
-
-   # Insert your BigQuery Project ID Here
-   # Can be found in the Google web console
-   projectid = "xxxxxxxx"
-
-   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table', projectid)
-
-
-You can define which column from BigQuery to use as an index in the
-destination DataFrame as well as a preferred column order as follows:
-
-.. code-block:: python
-
-   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
-                             index_col='index_column_name',
-                             col_order=['col1', 'col2', 'col3'], projectid)
-
-
-Starting with 0.20.0, you can specify the query config as parameter to use additional options of your job.
-For more information about query configuration parameters see
-`here <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__.
-
-.. code-block:: python
-
-   configuration = {
-      'query': {
-        "useQueryCache": False
-      }
-   }
-   data_frame = pd.read_gbq('SELECT * FROM test_dataset.test_table',
-                             configuration=configuration, projectid)
-
-
-.. note::
-
-   You can find your project id in the `Google developers console <https://console.developers.google.com>`__.
-
-
-.. note::
-
-   You can toggle the verbose output via the ``verbose`` flag which defaults to ``True``.
-
-.. note::
-
-    The ``dialect`` argument can be used to indicate whether to use BigQuery's ``'legacy'`` SQL
-    or BigQuery's ``'standard'`` SQL (beta). The default value is ``'legacy'``. For more information
-    on BigQuery's standard SQL, see `BigQuery SQL Reference
-    <https://cloud.google.com/bigquery/sql-reference/>`__
-
-.. _io.bigquery_writer:
-
-Writing DataFrames
-''''''''''''''''''
-
-Assume we want to write a DataFrame ``df`` into a BigQuery table using :func:`~pandas.DataFrame.to_gbq`.
-
-.. ipython:: python
-
-   df = pd.DataFrame({'my_string': list('abc'),
-                      'my_int64': list(range(1, 4)),
-                      'my_float64': np.arange(4.0, 7.0),
-                      'my_bool1': [True, False, True],
-                      'my_bool2': [False, True, False],
-                      'my_dates': pd.date_range('now', periods=3)})
-
-   df
-   df.dtypes
-
-.. code-block:: python
-
-   df.to_gbq('my_dataset.my_table', projectid)
-
-.. note::
-
-   The destination table and destination dataset will automatically be created if they do not already exist.
-
-The ``if_exists`` argument can be used to dictate whether to ``'fail'``, ``'replace'``
-or ``'append'`` if the destination table already exists. The default value is ``'fail'``.
-
-For example, assume that ``if_exists`` is set to ``'fail'``. The following snippet will raise
-a ``TableCreationError`` if the destination table already exists.
-
-.. code-block:: python
-
-   df.to_gbq('my_dataset.my_table', projectid, if_exists='fail')
-
-.. note::
-
-   If the ``if_exists`` argument is set to ``'append'``, the destination dataframe will
-   be written to the table using the defined table schema and column types. The
-   dataframe must match the destination table in structure and data types.
-   If the ``if_exists`` argument is set to ``'replace'``, and the existing table has a
-   different schema, a delay of 2 minutes will be forced to ensure that the new schema
-   has propagated in the Google environment. See
-   `Google BigQuery issue 191 <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__.
-
-Writing large DataFrames can result in errors due to size limitations being exceeded.
-This can be avoided by setting the ``chunksize`` argument when calling :func:`~pandas.DataFrame.to_gbq`.
-For example, the following writes ``df`` to a BigQuery table in batches of 10000 rows at a time:
-
-.. code-block:: python
-
-   df.to_gbq('my_dataset.my_table', projectid, chunksize=10000)
-
-You can also see the progress of your post via the ``verbose`` flag which defaults to ``True``.
-For example:
-
-.. code-block:: python
-
-   In [8]: df.to_gbq('my_dataset.my_table', projectid, chunksize=10000, verbose=True)
-
-           Streaming Insert is 10% Complete
-           Streaming Insert is 20% Complete
-           Streaming Insert is 30% Complete
-           Streaming Insert is 40% Complete
-           Streaming Insert is 50% Complete
-           Streaming Insert is 60% Complete
-           Streaming Insert is 70% Complete
-           Streaming Insert is 80% Complete
-           Streaming Insert is 90% Complete
-           Streaming Insert is 100% Complete
-
-.. note::
-
-   If an error occurs while streaming data to BigQuery, see
-   `Troubleshooting BigQuery Errors <https://cloud.google.com/bigquery/troubleshooting-errors>`__.
-
-.. note::
-
-   The BigQuery SQL query language has some oddities, see the
-   `BigQuery Query Reference Documentation <https://cloud.google.com/bigquery/query-reference>`__.
-
-.. note::
-
-   While BigQuery uses SQL-like syntax, it has some important differences from traditional
-   databases both in functionality, API limitations (size and quantity of queries or uploads),
-   and how Google charges for use of the service. You should refer to `Google BigQuery documentation <https://cloud.google.com/bigquery/what-is-bigquery>`__
-   often as the service seems to be changing and evolving. BiqQuery is best for analyzing large
-   sets of data quickly, but it is not a direct replacement for a transactional database.
-
-.. _io.bigquery_create_tables:
-
-Creating BigQuery Tables
-''''''''''''''''''''''''
-
-.. warning::
-
-   As of 0.17, the function :func:`~pandas.io.gbq.generate_bq_schema` has been deprecated and will be
-   removed in a future version.
-
-As of 0.15.2, the gbq module has a function :func:`~pandas.io.gbq.generate_bq_schema` which will
-produce the dictionary representation schema of the specified pandas DataFrame.
-
-.. code-block:: ipython
-
-   In [10]: gbq.generate_bq_schema(df, default_type='STRING')
-
-   Out[10]: {'fields': [{'name': 'my_bool1', 'type': 'BOOLEAN'},
-            {'name': 'my_bool2', 'type': 'BOOLEAN'},
-            {'name': 'my_dates', 'type': 'TIMESTAMP'},
-            {'name': 'my_float64', 'type': 'FLOAT'},
-            {'name': 'my_int64', 'type': 'INTEGER'},
-            {'name': 'my_string', 'type': 'STRING'}]}
-
-.. note::
-
-   If you delete and re-create a BigQuery table with the same name, but different table schema,
-   you must wait 2 minutes before streaming data into the table. As a workaround, consider creating
-   the new table with a different name. Refer to
-   `Google BigQuery issue 191 <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__.
-
+Full cocumentation can be found `here <https://pandas-gbq.readthedocs.io/>`__
 
 .. _io.stata:
 

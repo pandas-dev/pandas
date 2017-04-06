@@ -14,11 +14,11 @@ from pandas.types.common import (is_object_dtype, is_datetimetz,
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
                     Timedelta)
-from pandas.compat import u, StringIO
+from pandas.compat import StringIO
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.base import (FrozenList, FrozenNDArray, PandasDelegate,
-                              NoNewAttributesMixin)
+from pandas.core.base import PandasDelegate, NoNewAttributesMixin
 from pandas.tseries.base import DatetimeIndexOpsMixin
+from pandas._libs.tslib import iNaT
 
 
 class CheckStringMixin(object):
@@ -81,69 +81,6 @@ class CheckImmutable(object):
         klass = klass or self.klass
         self.assertIsInstance(result, klass)
         self.assertEqual(result, expected)
-
-
-class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
-    mutable_methods = ('extend', 'pop', 'remove', 'insert')
-    unicode_container = FrozenList([u("\u05d0"), u("\u05d1"), "c"])
-
-    def setUp(self):
-        self.lst = [1, 2, 3, 4, 5]
-        self.container = FrozenList(self.lst)
-        self.klass = FrozenList
-
-    def test_add(self):
-        result = self.container + (1, 2, 3)
-        expected = FrozenList(self.lst + [1, 2, 3])
-        self.check_result(result, expected)
-
-        result = (1, 2, 3) + self.container
-        expected = FrozenList([1, 2, 3] + self.lst)
-        self.check_result(result, expected)
-
-    def test_inplace(self):
-        q = r = self.container
-        q += [5]
-        self.check_result(q, self.lst + [5])
-        # other shouldn't be mutated
-        self.check_result(r, self.lst)
-
-
-class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
-    mutable_methods = ('put', 'itemset', 'fill')
-    unicode_container = FrozenNDArray([u("\u05d0"), u("\u05d1"), "c"])
-
-    def setUp(self):
-        self.lst = [3, 5, 7, -2]
-        self.container = FrozenNDArray(self.lst)
-        self.klass = FrozenNDArray
-
-    def test_shallow_copying(self):
-        original = self.container.copy()
-        self.assertIsInstance(self.container.view(), FrozenNDArray)
-        self.assertFalse(isinstance(
-            self.container.view(np.ndarray), FrozenNDArray))
-        self.assertIsNot(self.container.view(), self.container)
-        self.assert_numpy_array_equal(self.container, original)
-        # shallow copy should be the same too
-        self.assertIsInstance(self.container._shallow_copy(), FrozenNDArray)
-
-        # setting should not be allowed
-        def testit(container):
-            container[0] = 16
-
-        self.check_mutable_error(testit, self.container)
-
-    def test_values(self):
-        original = self.container.view(np.ndarray).copy()
-        n = original[0] + 15
-        vals = self.container.values()
-        self.assert_numpy_array_equal(original, vals)
-        self.assertIsNot(original, vals)
-        vals[0] = n
-        self.assertIsInstance(self.container, pd.core.base.FrozenNDArray)
-        self.assert_numpy_array_equal(self.container.values(), original)
-        self.assertEqual(vals[0], n)
 
 
 class TestPandasDelegate(tm.TestCase):
@@ -282,7 +219,7 @@ class Ops(tm.TestCase):
                     self.assertEqual(result, expected)
 
             # freq raises AttributeError on an Int64Index because its not
-            # defined we mostly care about Series hwere anyhow
+            # defined we mostly care about Series here anyhow
             if not ignore_failures:
                 for o in self.not_valid_objs:
 
@@ -515,15 +452,15 @@ class TestIndexOps(Ops):
                 if is_datetimetz(o):
                     if isinstance(o, DatetimeIndex):
                         v = o.asi8
-                        v[0:2] = pd.tslib.iNaT
+                        v[0:2] = iNaT
                         values = o._shallow_copy(v)
                     else:
                         o = o.copy()
-                        o[0:2] = pd.tslib.iNaT
+                        o[0:2] = iNaT
                         values = o._values
 
                 elif needs_i8_conversion(o):
-                    values[0:2] = pd.tslib.iNaT
+                    values[0:2] = iNaT
                     values = o._shallow_copy(values)
                 else:
                     values[0:2] = null_obj
@@ -879,15 +816,6 @@ class TestIndexOps(Ops):
                 result = idx.drop_duplicates(keep='last')
                 tm.assert_index_equal(result, idx[~expected])
 
-                # deprecate take_last
-                with tm.assert_produces_warning(FutureWarning):
-                    duplicated = idx.duplicated(take_last=True)
-                tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
-                with tm.assert_produces_warning(FutureWarning):
-                    result = idx.drop_duplicates(take_last=True)
-                tm.assert_index_equal(result, idx[~expected])
-
                 base = [False] * len(original) + [True, True]
                 base[3] = True
                 base[5] = True
@@ -930,13 +858,6 @@ class TestIndexOps(Ops):
                 tm.assert_series_equal(s.drop_duplicates(keep='last'),
                                        s[~np.array(base)])
 
-                # deprecate take_last
-                with tm.assert_produces_warning(FutureWarning):
-                    tm.assert_series_equal(
-                        s.duplicated(take_last=True), expected)
-                with tm.assert_produces_warning(FutureWarning):
-                    tm.assert_series_equal(s.drop_duplicates(take_last=True),
-                                           s[~np.array(base)])
                 base = [False] * len(original) + [True, True]
                 base[3] = True
                 base[5] = True

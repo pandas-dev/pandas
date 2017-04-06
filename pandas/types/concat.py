@@ -3,7 +3,7 @@ Utility functions related to concat
 """
 
 import numpy as np
-import pandas.tslib as tslib
+import pandas._libs.tslib as tslib
 from pandas import compat
 from pandas.core.algorithms import take_1d
 from .common import (is_categorical_dtype,

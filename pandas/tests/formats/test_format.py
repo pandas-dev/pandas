@@ -1,50 +1,37 @@
 # -*- coding: utf-8 -*-
 
-# TODO(wesm): lots of issues making flake8 hard
-# flake8: noqa
+"""
+Test output formatting for Series/DataFrame, including to_string & reprs
+"""
 
 from __future__ import print_function
-from distutils.version import LooseVersion
 import re
 
-from pandas.compat import (range, zip, lrange, StringIO, PY3,
-                           u, lzip, is_platform_windows,
-                           is_platform_32bit)
-import pandas.compat as compat
 import itertools
 from operator import methodcaller
 import os
 import sys
-from textwrap import dedent
 import warnings
-
-from numpy import nan
-from numpy.random import randn
-import numpy as np
-
-import codecs
-
-div_style = ''
-try:
-    import IPython
-    if IPython.__version__ < LooseVersion('3.0.0'):
-        div_style = ' style="max-width:1500px;overflow:auto;"'
-except (ImportError, AttributeError):
-    pass
-
-from pandas import DataFrame, Series, Index, Timestamp, MultiIndex, date_range, NaT
-
-import pandas.formats.format as fmt
-import pandas.util.testing as tm
-import pandas.core.common as com
-import pandas.formats.printing as printing
-from pandas.util.terminal import get_terminal_size
-import pandas as pd
-from pandas.core.config import (set_option, get_option, option_context,
-                                reset_option)
 from datetime import datetime
 
 import pytest
+
+import numpy as np
+import pandas as pd
+from pandas import (DataFrame, Series, Index, Timestamp, MultiIndex,
+                    date_range, NaT, read_table)
+from pandas.compat import (range, zip, lrange, StringIO, PY3,
+                           u, lzip, is_platform_windows,
+                           is_platform_32bit)
+import pandas.compat as compat
+
+import pandas.formats.format as fmt
+import pandas.formats.printing as printing
+
+import pandas.util.testing as tm
+from pandas.util.terminal import get_terminal_size
+from pandas.core.config import (set_option, get_option, option_context,
+                                reset_option)
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -66,8 +53,14 @@ def has_info_repr(df):
 def has_non_verbose_info_repr(df):
     has_info = has_info_repr(df)
     r = repr(df)
-    nv = len(r.split(
-        '\n')) == 6  # 1. <class>, 2. Index, 3. Columns, 4. dtype, 5. memory usage, 6. trailing newline
+
+    # 1. <class>
+    # 2. Index
+    # 3. Columns
+    # 4. dtype
+    # 5. memory usage
+    # 6. trailing newline
+    nv = len(r.split('\n')) == 6
     return has_info and nv
 
 
@@ -288,7 +281,7 @@ class TestDataFrameFormatting(tm.TestCase):
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:
             pytest.skip("terminal size too small, "
-                                "{0} x {1}".format(term_width, term_height))
+                        "{0} x {1}".format(term_width, term_height))
 
         def mkframe(n):
             index = ['%05d' % i for i in range(n)]
@@ -486,7 +479,7 @@ class TestDataFrameFormatting(tm.TestCase):
         if PY3:
             _rep = repr
         else:
-            _rep = unicode
+            _rep = unicode  # noqa
 
         # not alighned properly because of east asian width
 
@@ -538,27 +531,39 @@ class TestDataFrameFormatting(tm.TestCase):
         # index name
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                         'b': [u'あ', u'いいい', u'う', u'ええええええ']},
-                       index=pd.Index([u'あ', u'い', u'うう', u'え'], name=u'おおおお'))
-        expected = (u"          a       b\nおおおお               \nあ     あああああ       あ\n"
-                    u"い         い     いいい\nうう        う       う\nえ       えええ  ええええええ"
-                    )
+                       index=pd.Index([u'あ', u'い', u'うう', u'え'],
+                                      name=u'おおおお'))
+        expected = (u"          a       b\n"
+                    u"おおおお               \n"
+                    u"あ     あああああ       あ\n"
+                    u"い         い     いいい\n"
+                    u"うう        う       う\n"
+                    u"え       えええ  ええええええ")
         self.assertEqual(_rep(df), expected)
 
         # all
         df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
                         u'いいいいい': [u'あ', u'いいい', u'う', u'ええ']},
-                       index=pd.Index([u'あ', u'いいい', u'うう', u'え'], name=u'お'))
-        expected = (u"       あああ いいいいい\nお               \nあ      あああ     あ\n"
-                    u"いいい      い   いいい\nうう       う     う\nえ    えええええ    ええ")
+                       index=pd.Index([u'あ', u'いいい', u'うう', u'え'],
+                                      name=u'お'))
+        expected = (u"       あああ いいいいい\n"
+                    u"お               \n"
+                    u"あ      あああ     あ\n"
+                    u"いいい      い   いいい\n"
+                    u"うう       う     う\n"
+                    u"え    えええええ    ええ")
         self.assertEqual(_rep(df), expected)
 
         # MultiIndex
         idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
             u'おおお', u'かかかか'), (u'き', u'くく')])
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']}, index=idx)
-        expected = (u"              a       b\nあ   いい    あああああ       あ\n"
-                    u"う   え         い     いいい\nおおお かかかか      う       う\n"
+                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                       index=idx)
+        expected = (u"              a       b\n"
+                    u"あ   いい    あああああ       あ\n"
+                    u"う   え         い     いいい\n"
+                    u"おおお かかかか      う       う\n"
                     u"き   くく      えええ  ええええええ")
         self.assertEqual(_rep(df), expected)
 
@@ -606,18 +611,21 @@ class TestDataFrameFormatting(tm.TestCase):
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"              a             b\na    あああああ            あ\n"
-                        u"bb           い        いいい\nc            う            う\n"
-                        u"ddd      えええ  ええええええ"
-                        "")
+            expected = (u"              a             b\n"
+                        u"a    あああああ            あ\n"
+                        u"bb           い        いいい\n"
+                        u"c            う            う\n"
+                        u"ddd      えええ  ええええええ")
             self.assertEqual(_rep(df), expected)
 
             # column name
             df = DataFrame({u'あああああ': [1, 222, 33333, 4],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"                b  あああああ\na              あ           1\n"
-                        u"bb         いいい         222\nc              う       33333\n"
+            expected = (u"                b  あああああ\n"
+                        u"a              あ           1\n"
+                        u"bb         いいい         222\n"
+                        u"c              う       33333\n"
                         u"ddd  ええええええ           4")
             self.assertEqual(_rep(df), expected)
 
@@ -625,37 +633,49 @@ class TestDataFrameFormatting(tm.TestCase):
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                            index=[u'あああ', u'いいいいいい', u'うう', u'え'])
-            expected = (u"                       a             b\nあああ        あああああ            あ\n"
-                        u"いいいいいい          い        いいい\nうう                  う            う\n"
+            expected = (u"                       a             b\n"
+                        u"あああ        あああああ            あ\n"
+                        u"いいいいいい          い        いいい\n"
+                        u"うう                  う            う\n"
                         u"え                えええ  ええええええ")
             self.assertEqual(_rep(df), expected)
 
             # index name
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
-                           index=pd.Index([u'あ', u'い', u'うう', u'え'], name=u'おおおお'))
-            expected = (u"                   a             b\nおおおお                          \n"
-                        u"あ        あああああ            あ\nい                い        いいい\n"
-                        u"うう              う            う\nえ            えええ  ええええええ"
-                        )
+                           index=pd.Index([u'あ', u'い', u'うう', u'え'],
+                                          name=u'おおおお'))
+            expected = (u"                   a             b\n"
+                        u"おおおお                          \n"
+                        u"あ        あああああ            あ\n"
+                        u"い                い        いいい\n"
+                        u"うう              う            う\n"
+                        u"え            えええ  ええええええ")
             self.assertEqual(_rep(df), expected)
 
             # all
             df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
                             u'いいいいい': [u'あ', u'いいい', u'う', u'ええ']},
-                           index=pd.Index([u'あ', u'いいい', u'うう', u'え'], name=u'お'))
-            expected = (u"            あああ いいいいい\nお                           \n"
-                        u"あ          あああ         あ\nいいい          い     いいい\n"
-                        u"うう            う         う\nえ      えええええ       ええ")
+                           index=pd.Index([u'あ', u'いいい', u'うう', u'え'],
+                                          name=u'お'))
+            expected = (u"            あああ いいいいい\n"
+                        u"お                           \n"
+                        u"あ          あああ         あ\n"
+                        u"いいい          い     いいい\n"
+                        u"うう            う         う\n"
+                        u"え      えええええ       ええ")
             self.assertEqual(_rep(df), expected)
 
             # MultiIndex
             idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
                 u'おおお', u'かかかか'), (u'き', u'くく')])
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']}, index=idx)
-            expected = (u"                          a             b\nあ     いい      あああああ            あ\n"
-                        u"う     え                い        いいい\nおおお かかかか          う            う\n"
+                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+                           index=idx)
+            expected = (u"                          a             b\n"
+                        u"あ     いい      あああああ            あ\n"
+                        u"う     え                い        いいい\n"
+                        u"おおお かかかか          う            う\n"
                         u"き     くく          えええ  ええええええ")
             self.assertEqual(_rep(df), expected)
 
@@ -669,14 +689,18 @@ class TestDataFrameFormatting(tm.TestCase):
                                    u'ああああ': [u'さ', u'し', u'す', u'せ']},
                                   columns=['a', 'b', 'c', u'ああああ'])
 
-                expected = (u"             a   ...    ああああ\n0   あああああ   ...          さ\n"
-                            u"..         ...   ...         ...\n3       えええ   ...          せ\n"
+                expected = (u"             a   ...    ああああ\n"
+                            u"0   あああああ   ...          さ\n"
+                            u"..         ...   ...         ...\n"
+                            u"3       えええ   ...          せ\n"
                             u"\n[4 rows x 4 columns]")
                 self.assertEqual(_rep(df), expected)
 
                 df.index = [u'あああ', u'いいいい', u'う', 'aaa']
-                expected = (u"                 a   ...    ああああ\nあああ  あああああ   ...          さ\n"
-                            u"...            ...   ...         ...\naaa         えええ   ...          せ\n"
+                expected = (u"                 a   ...    ああああ\n"
+                            u"あああ  あああああ   ...          さ\n"
+                            u"...            ...   ...         ...\n"
+                            u"aaa         えええ   ...          せ\n"
                             u"\n[4 rows x 4 columns]")
                 self.assertEqual(_rep(df), expected)
 
@@ -684,8 +708,10 @@ class TestDataFrameFormatting(tm.TestCase):
             df = DataFrame({u'あああああ': [1, 222, 33333, 4],
                             'b': [u'あ', u'いいい', u'¡¡', u'ええええええ']},
                            index=['a', 'bb', 'c', '¡¡¡'])
-            expected = (u"                b  あああああ\na              あ           1\n"
-                        u"bb         いいい         222\nc              ¡¡       33333\n"
+            expected = (u"                b  あああああ\n"
+                        u"a              あ           1\n"
+                        u"bb         いいい         222\n"
+                        u"c              ¡¡       33333\n"
                         u"¡¡¡  ええええええ           4")
             self.assertEqual(_rep(df), expected)
 
@@ -762,7 +788,8 @@ class TestDataFrameFormatting(tm.TestCase):
         # 11594
         import datetime
         s = Series([datetime.datetime(2012, 1, 1)] * 10 +
-                   [datetime.datetime(1012, 1, 2)] + [datetime.datetime(2012, 1, 3)] * 10)
+                   [datetime.datetime(1012, 1, 2)] + [
+            datetime.datetime(2012, 1, 3)] * 10)
 
         with pd.option_context('display.max_rows', 8):
             result = str(s)
@@ -771,7 +798,8 @@ class TestDataFrameFormatting(tm.TestCase):
         # 12045
         df = DataFrame({'text': ['some words'] + [None] * 9})
 
-        with pd.option_context('display.max_rows', 8, 'display.max_columns', 3):
+        with pd.option_context('display.max_rows', 8,
+                               'display.max_columns', 3):
             result = str(df)
             self.assertTrue('None' in result)
             self.assertFalse('NaN' in result)
@@ -780,7 +808,8 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # GH 12211
         df = DataFrame(
-            {'date': [pd.Timestamp('20130101').tz_localize('UTC')] + [pd.NaT] * 5})
+            {'date': [pd.Timestamp('20130101').tz_localize('UTC')] +
+                     [pd.NaT] * 5})
 
         with option_context("display.max_rows", 5):
             result = str(df)
@@ -829,1393 +858,6 @@ class TestDataFrameFormatting(tm.TestCase):
                         '[10 rows x 2 columns]')
             self.assertEqual(repr(df), expected)
 
-    def test_to_html_with_col_space(self):
-        def check_with_width(df, col_space):
-            import re
-            # check that col_space affects HTML generation
-            # and be very brittle about it.
-            html = df.to_html(col_space=col_space)
-            hdrs = [x for x in html.split(r"\n") if re.search(r"<th[>\s]", x)]
-            self.assertTrue(len(hdrs) > 0)
-            for h in hdrs:
-                self.assertTrue("min-width" in h)
-                self.assertTrue(str(col_space) in h)
-
-        df = DataFrame(np.random.random(size=(1, 3)))
-
-        check_with_width(df, 30)
-        check_with_width(df, 50)
-
-    def test_to_html_with_empty_string_label(self):
-        # GH3547, to_html regards empty string labels as repeated labels
-        data = {'c1': ['a', 'b'], 'c2': ['a', ''], 'data': [1, 2]}
-        df = DataFrame(data).set_index(['c1', 'c2'])
-        res = df.to_html()
-        self.assertTrue("rowspan" not in res)
-
-    def test_to_html_unicode(self):
-        df = DataFrame({u('\u03c3'): np.arange(10.)})
-        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>\u03c3</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>0.0</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>1.0</td>\n    </tr>\n    <tr>\n      <th>2</th>\n      <td>2.0</td>\n    </tr>\n    <tr>\n      <th>3</th>\n      <td>3.0</td>\n    </tr>\n    <tr>\n      <th>4</th>\n      <td>4.0</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>5.0</td>\n    </tr>\n    <tr>\n      <th>6</th>\n      <td>6.0</td>\n    </tr>\n    <tr>\n      <th>7</th>\n      <td>7.0</td>\n    </tr>\n    <tr>\n      <th>8</th>\n      <td>8.0</td>\n    </tr>\n    <tr>\n      <th>9</th>\n      <td>9.0</td>\n    </tr>\n  </tbody>\n</table>'
-        self.assertEqual(df.to_html(), expected)
-        df = DataFrame({'A': [u('\u03c3')]})
-        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>A</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>\u03c3</td>\n    </tr>\n  </tbody>\n</table>'
-        self.assertEqual(df.to_html(), expected)
-
-    def test_to_html_decimal(self):
-        # GH 12031
-        df = DataFrame({'A': [6.0, 3.1, 2.2]})
-        result = df.to_html(decimal=',')
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr style="text-align: right;">\n'
-                    '      <th></th>\n'
-                    '      <th>A</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>6,0</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>3,1</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>2</th>\n'
-                    '      <td>2,2</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>')
-        self.assertEqual(result, expected)
-
-    def test_to_html_escaped(self):
-        a = 'str<ing1 &amp;'
-        b = 'stri>ng2 &amp;'
-
-        test_dict = {'co<l1': {a: "<type 'str'>",
-                               b: "<type 'str'>"},
-                     'co>l2': {a: "<type 'str'>",
-                               b: "<type 'str'>"}}
-        rs = DataFrame(test_dict).to_html()
-        xp = """<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>co&lt;l1</th>
-      <th>co&gt;l2</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>str&lt;ing1 &amp;amp;</th>
-      <td>&lt;type 'str'&gt;</td>
-      <td>&lt;type 'str'&gt;</td>
-    </tr>
-    <tr>
-      <th>stri&gt;ng2 &amp;amp;</th>
-      <td>&lt;type 'str'&gt;</td>
-      <td>&lt;type 'str'&gt;</td>
-    </tr>
-  </tbody>
-</table>"""
-
-        self.assertEqual(xp, rs)
-
-    def test_to_html_escape_disabled(self):
-        a = 'str<ing1 &amp;'
-        b = 'stri>ng2 &amp;'
-
-        test_dict = {'co<l1': {a: "<b>bold</b>",
-                               b: "<b>bold</b>"},
-                     'co>l2': {a: "<b>bold</b>",
-                               b: "<b>bold</b>"}}
-        rs = DataFrame(test_dict).to_html(escape=False)
-        xp = """<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>co<l1</th>
-      <th>co>l2</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>str<ing1 &amp;</th>
-      <td><b>bold</b></td>
-      <td><b>bold</b></td>
-    </tr>
-    <tr>
-      <th>stri>ng2 &amp;</th>
-      <td><b>bold</b></td>
-      <td><b>bold</b></td>
-    </tr>
-  </tbody>
-</table>"""
-
-        self.assertEqual(xp, rs)
-
-    def test_to_html_multiindex_index_false(self):
-        # issue 8452
-        df = DataFrame({
-            'a': range(2),
-            'b': range(3, 5),
-            'c': range(5, 7),
-            'd': range(3, 5)
-        })
-        df.columns = MultiIndex.from_product([['a', 'b'], ['c', 'd']])
-        result = df.to_html(index=False)
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th colspan="2" halign="left">a</th>
-      <th colspan="2" halign="left">b</th>
-    </tr>
-    <tr>
-      <th>c</th>
-      <th>d</th>
-      <th>c</th>
-      <th>d</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>0</td>
-      <td>3</td>
-      <td>5</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <td>1</td>
-      <td>4</td>
-      <td>6</td>
-      <td>4</td>
-    </tr>
-  </tbody>
-</table>"""
-
-        self.assertEqual(result, expected)
-
-        df.index = Index(df.index.values, name='idx')
-        result = df.to_html(index=False)
-        self.assertEqual(result, expected)
-
-    def test_to_html_multiindex_sparsify_false_multi_sparse(self):
-        with option_context('display.multi_sparse', False):
-            index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
-                                           names=['foo', None])
-
-            df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
-
-            result = df.to_html()
-            expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th></th>
-      <th>0</th>
-      <th>1</th>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <th>0</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>0</th>
-      <th>1</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <th>0</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <th>1</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
-
-            self.assertEqual(result, expected)
-
-            df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
-                           columns=index[::2], index=index)
-
-            result = df.to_html()
-            expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th></th>
-      <th>foo</th>
-      <th>0</th>
-      <th>1</th>
-    </tr>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>0</th>
-      <th>0</th>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <th>0</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>0</th>
-      <th>1</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <th>0</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <th>1</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
-
-            self.assertEqual(result, expected)
-
-    def test_to_html_multiindex_sparsify(self):
-        index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
-                                       names=['foo', None])
-
-        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
-
-        result = df.to_html()
-        expected = """<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th></th>
-      <th>0</th>
-      <th>1</th>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="2" valign="top">0</th>
-      <th>0</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th rowspan="2" valign="top">1</th>
-      <th>0</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
-
-        self.assertEqual(result, expected)
-
-        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], columns=index[::2],
-                       index=index)
-
-        result = df.to_html()
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th></th>
-      <th>foo</th>
-      <th>0</th>
-      <th>1</th>
-    </tr>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>0</th>
-      <th>0</th>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th></th>
-      <th></th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="2" valign="top">0</th>
-      <th>0</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th rowspan="2" valign="top">1</th>
-      <th>0</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
-
-        self.assertEqual(result, expected)
-
-    def test_to_html_multiindex_odd_even_truncate(self):
-        # GH 14882 - Issue on truncation with odd length DataFrame
-        mi = MultiIndex.from_product([[100, 200, 300],
-                                      [10, 20, 30],
-                                      [1, 2, 3, 4, 5, 6, 7]],
-                                     names=['a', 'b', 'c'])
-        df = DataFrame({'n': range(len(mi))}, index=mi)
-        result = df.to_html(max_rows=60)
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th></th>
-      <th></th>
-      <th>n</th>
-    </tr>
-    <tr>
-      <th>a</th>
-      <th>b</th>
-      <th>c</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="21" valign="top">100</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>4</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>6</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">20</th>
-      <th>1</th>
-      <td>7</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>8</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>9</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>10</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>11</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>12</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>13</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>14</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>15</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>16</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>17</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>18</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>19</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>20</td>
-    </tr>
-    <tr>
-      <th rowspan="19" valign="top">200</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>21</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>22</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>23</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>24</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>25</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>26</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>27</td>
-    </tr>
-    <tr>
-      <th rowspan="5" valign="top">20</th>
-      <th>1</th>
-      <td>28</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>29</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>33</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>34</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>35</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>36</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>37</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>38</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>39</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>40</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>41</td>
-    </tr>
-    <tr>
-      <th rowspan="21" valign="top">300</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>42</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>43</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>44</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>45</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>46</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>47</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>48</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">20</th>
-      <th>1</th>
-      <td>49</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>50</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>51</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>52</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>53</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>54</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>55</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>56</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>57</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>58</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>59</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>60</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>61</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>62</td>
-    </tr>
-  </tbody>
-</table>"""
-        self.assertEqual(result, expected)
-
-        # Test that ... appears in a middle level
-        result = df.to_html(max_rows=56)
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th></th>
-      <th></th>
-      <th>n</th>
-    </tr>
-    <tr>
-      <th>a</th>
-      <th>b</th>
-      <th>c</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="21" valign="top">100</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>4</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>6</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">20</th>
-      <th>1</th>
-      <td>7</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>8</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>9</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>10</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>11</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>12</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>13</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>14</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>15</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>16</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>17</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>18</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>19</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>20</td>
-    </tr>
-    <tr>
-      <th rowspan="15" valign="top">200</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>21</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>22</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>23</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>24</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>25</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>26</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>27</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <th>...</th>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>35</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>36</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>37</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>38</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>39</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>40</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>41</td>
-    </tr>
-    <tr>
-      <th rowspan="21" valign="top">300</th>
-      <th rowspan="7" valign="top">10</th>
-      <th>1</th>
-      <td>42</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>43</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>44</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>45</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>46</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>47</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>48</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">20</th>
-      <th>1</th>
-      <td>49</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>50</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>51</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>52</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>53</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>54</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>55</td>
-    </tr>
-    <tr>
-      <th rowspan="7" valign="top">30</th>
-      <th>1</th>
-      <td>56</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>57</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>58</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>59</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>60</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>61</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>62</td>
-    </tr>
-  </tbody>
-</table>"""
-        self.assertEqual(result, expected)
-
-    def test_to_html_index_formatter(self):
-        df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], columns=['foo', None],
-                       index=lrange(4))
-
-        f = lambda x: 'abcd' [x]
-        result = df.to_html(formatters={'__index__': f})
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>foo</th>
-      <th>None</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>a</th>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>b</th>
-      <td>2</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>c</th>
-      <td>4</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <th>d</th>
-      <td>6</td>
-      <td>7</td>
-    </tr>
-  </tbody>
-</table>"""
-
-        self.assertEqual(result, expected)
-
-    def test_to_html_datetime64_monthformatter(self):
-        months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
-        x = DataFrame({'months': months})
-
-        def format_func(x):
-            return x.strftime('%Y-%m')
-        result = x.to_html(formatters={'months': format_func})
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>months</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>2016-01</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>2016-02</td>
-    </tr>
-  </tbody>
-</table>"""
-        self.assertEqual(result, expected)
-
-    def test_to_html_datetime64_hourformatter(self):
-
-        x = DataFrame({'hod': pd.to_datetime(['10:10:10.100', '12:12:12.120'],
-                                             format='%H:%M:%S.%f')})
-
-        def format_func(x):
-            return x.strftime('%H:%M')
-        result = x.to_html(formatters={'hod': format_func})
-        expected = """\
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>hod</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>10:10</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>12:12</td>
-    </tr>
-  </tbody>
-</table>"""
-        self.assertEqual(result, expected)
-
-    def test_to_html_regression_GH6098(self):
-        df = DataFrame({u('clé1'): [u('a'), u('a'), u('b'), u('b'), u('a')],
-                        u('clé2'): [u('1er'), u('2ème'), u('1er'), u('2ème'),
-                                    u('1er')],
-                        'données1': np.random.randn(5),
-                        'données2': np.random.randn(5)})
-        # it works
-        df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
-
-    def test_to_html_truncate(self):
-        pytest.skip("unreliable on travis")
-        index = pd.DatetimeIndex(start='20010101', freq='D', periods=20)
-        df = DataFrame(index=index, columns=range(20))
-        fmt.set_option('display.max_rows', 8)
-        fmt.set_option('display.max_columns', 4)
-        result = df._repr_html_()
-        expected = '''\
-<div{0}>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>0</th>
-      <th>1</th>
-      <th>...</th>
-      <th>18</th>
-      <th>19</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>2001-01-01</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-02</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-03</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-04</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th>2001-01-17</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-18</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-19</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>2001-01-20</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-  </tbody>
-</table>
-<p>20 rows × 20 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
-        self.assertEqual(result, expected)
-
-    def test_to_html_truncate_multi_index(self):
-        pytest.skip("unreliable on travis")
-        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
-                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        result = df._repr_html_()
-        expected = '''\
-<div{0}>
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th></th>
-      <th></th>
-      <th colspan="2" halign="left">bar</th>
-      <th>baz</th>
-      <th>...</th>
-      <th>foo</th>
-      <th colspan="2" halign="left">qux</th>
-    </tr>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>one</th>
-      <th>two</th>
-      <th>one</th>
-      <th>...</th>
-      <th>two</th>
-      <th>one</th>
-      <th>two</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th rowspan="2" valign="top">bar</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>baz</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <th>...</th>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-      <td>...</td>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th rowspan="2" valign="top">qux</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-  </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
-        self.assertEqual(result, expected)
-
-    def test_to_html_truncate_multi_index_sparse_off(self):
-        pytest.skip("unreliable on travis")
-        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
-                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
-        df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        fmt.set_option('display.multi_sparse', False)
-        result = df._repr_html_()
-        expected = '''\
-<div{0}>
-<table border="1" class="dataframe">
-  <thead>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>bar</th>
-      <th>bar</th>
-      <th>baz</th>
-      <th>...</th>
-      <th>foo</th>
-      <th>qux</th>
-      <th>qux</th>
-    </tr>
-    <tr>
-      <th></th>
-      <th></th>
-      <th>one</th>
-      <th>two</th>
-      <th>one</th>
-      <th>...</th>
-      <th>two</th>
-      <th>one</th>
-      <th>two</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>bar</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>bar</th>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>baz</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>foo</th>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>qux</th>
-      <th>one</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-    <tr>
-      <th>qux</th>
-      <th>two</th>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>...</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>NaN</td>
-    </tr>
-  </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
-        self.assertEqual(result, expected)
-
-    def test_to_html_border(self):
-        df = DataFrame({'A': [1, 2]})
-        result = df.to_html()
-        assert 'border="1"' in result
-
-    def test_to_html_border_option(self):
-        df = DataFrame({'A': [1, 2]})
-        with pd.option_context('html.border', 0):
-            result = df.to_html()
-            self.assertTrue('border="0"' in result)
-            self.assertTrue('border="0"' in df._repr_html_())
-
-    def test_to_html_border_zero(self):
-        df = DataFrame({'A': [1, 2]})
-        result = df.to_html(border=0)
-        self.assertTrue('border="0"' in result)
-
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
@@ -2223,7 +865,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertEqual(len(lines[1]), len(lines[2]))
 
     def test_unicode_problem_decoding_as_ascii(self):
-        dm = DataFrame({u('c/\u03c3'): Series({'test': np.NaN})})
+        dm = DataFrame({u('c/\u03c3'): Series({'test': np.nan})})
         compat.text_type(dm.to_string())
 
     def test_string_repr_encoding(self):
@@ -2271,7 +913,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         # escape embedded tabs in string
         # GH #2038
-        self.assertTrue(not "\t" in pp_t("a\tb", escape_chars=("\t", )))
+        assert "\t" not in pp_t("a\tb", escape_chars=("\t", ))
 
     def test_wide_repr(self):
         with option_context('mode.sim_interactive', True,
@@ -2294,7 +936,8 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_wide_repr_wide_columns(self):
         with option_context('mode.sim_interactive', True):
-            df = DataFrame(randn(5, 3), columns=['a' * 90, 'b' * 90, 'c' * 90])
+            df = DataFrame(np.random.randn(5, 3),
+                           columns=['a' * 90, 'b' * 90, 'c' * 90])
             rep_str = repr(df)
 
             self.assertEqual(len(rep_str.splitlines()), 20)
@@ -2346,8 +989,8 @@ class TestDataFrameFormatting(tm.TestCase):
         with option_context('mode.sim_interactive', True):
             max_cols = get_option('display.max_columns')
             midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
-            mcols = MultiIndex.from_arrays(tm.rands_array(3, size=(2, max_cols
-                                                                   - 1)))
+            mcols = MultiIndex.from_arrays(
+                tm.rands_array(3, size=(2, max_cols - 1)))
             df = DataFrame(tm.rands_array(25, (10, max_cols - 1)),
                            index=midx, columns=mcols)
             df.index.names = ['Level 0', 'Level 1']
@@ -2414,21 +1057,24 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df.set_index(['id1', 'id2', 'id3'])
         result = y.to_string()
         expected = u(
-            '             value\nid1 id2 id3       \n1a3 NaN 78d    123\n9h4 d67 79d     64')
+            '             value\nid1 id2 id3       \n'
+            '1a3 NaN 78d    123\n9h4 d67 79d     64')
         self.assertEqual(result, expected)
 
         # index
         y = df.set_index('id2')
         result = y.to_string()
         expected = u(
-            '     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nd67  9h4  79d     64')
+            '     id1  id3  value\nid2                 \n'
+            'NaN  1a3  78d    123\nd67  9h4  79d     64')
         self.assertEqual(result, expected)
 
         # with append (this failed in 0.12)
         y = df.set_index(['id1', 'id2']).set_index('id3', append=True)
         result = y.to_string()
         expected = u(
-            '             value\nid1 id2 id3       \n1a3 NaN 78d    123\n9h4 d67 79d     64')
+            '             value\nid1 id2 id3       \n'
+            '1a3 NaN 78d    123\n9h4 d67 79d     64')
         self.assertEqual(result, expected)
 
         # all-nan in mi
@@ -2437,7 +1083,8 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df2.set_index('id2')
         result = y.to_string()
         expected = u(
-            '     id1  id3  value\nid2                 \nNaN  1a3  78d    123\nNaN  9h4  79d     64')
+            '     id1  id3  value\nid2                 \n'
+            'NaN  1a3  78d    123\nNaN  9h4  79d     64')
         self.assertEqual(result, expected)
 
         # partial nan in mi
@@ -2446,7 +1093,8 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df2.set_index(['id2', 'id3'])
         result = y.to_string()
         expected = u(
-            '         id1  value\nid2 id3            \nNaN 78d  1a3    123\n    79d  9h4     64')
+            '         id1  value\nid2 id3            \n'
+            'NaN 78d  1a3    123\n    79d  9h4     64')
         self.assertEqual(result, expected)
 
         df = DataFrame({'id1': {0: np.nan,
@@ -2461,20 +1109,19 @@ class TestDataFrameFormatting(tm.TestCase):
         y = df.set_index(['id1', 'id2', 'id3'])
         result = y.to_string()
         expected = u(
-            '             value\nid1 id2 id3       \nNaN NaN NaN    123\n9h4 d67 79d     64')
+            '             value\nid1 id2 id3       \n'
+            'NaN NaN NaN    123\n9h4 d67 79d     64')
         self.assertEqual(result, expected)
 
     def test_to_string(self):
-        from pandas import read_table
-        import re
 
         # big mixed
-        biggie = DataFrame({'A': randn(200),
+        biggie = DataFrame({'A': np.random.randn(200),
                             'B': tm.makeStringIndex(200)},
                            index=lrange(200))
 
-        biggie.loc[:20, 'A'] = nan
-        biggie.loc[:20, 'B'] = nan
+        biggie.loc[:20, 'A'] = np.nan
+        biggie.loc[:20, 'B'] = np.nan
         s = biggie.to_string()
 
         buf = StringIO()
@@ -2521,6 +1168,17 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = "0  1  4\n1  2  5\n2  3  6"
 
         self.assertEqual(df_s, expected)
+
+    def test_to_string_specified_header(self):
+        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+
+        df_s = df.to_string(header=['X', 'Y'])
+        expected = '   X  Y\n0  1  4\n1  2  5\n2  3  6'
+
+        self.assertEqual(df_s, expected)
+
+        with tm.assertRaises(ValueError):
+            df.to_string(header=['X'])
 
     def test_to_string_no_index(self):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
@@ -2713,414 +1371,6 @@ c  10  11  12  13  14\
             self.assertFalse('5 rows' in str(df))
             self.assertFalse('5 rows' in df._repr_html_())
 
-    def test_to_html(self):
-        # big mixed
-        biggie = DataFrame({'A': randn(200),
-                            'B': tm.makeStringIndex(200)},
-                           index=lrange(200))
-
-        biggie.loc[:20, 'A'] = nan
-        biggie.loc[:20, 'B'] = nan
-        s = biggie.to_html()
-
-        buf = StringIO()
-        retval = biggie.to_html(buf=buf)
-        self.assertIsNone(retval)
-        self.assertEqual(buf.getvalue(), s)
-
-        tm.assertIsInstance(s, compat.string_types)
-
-        biggie.to_html(columns=['B', 'A'], col_space=17)
-        biggie.to_html(columns=['B', 'A'],
-                       formatters={'A': lambda x: '%.1f' % x})
-
-        biggie.to_html(columns=['B', 'A'], float_format=str)
-        biggie.to_html(columns=['B', 'A'], col_space=12, float_format=str)
-
-        frame = DataFrame(index=np.arange(200))
-        frame.to_html()
-
-    def test_to_html_filename(self):
-        biggie = DataFrame({'A': randn(200),
-                            'B': tm.makeStringIndex(200)},
-                           index=lrange(200))
-
-        biggie.loc[:20, 'A'] = nan
-        biggie.loc[:20, 'B'] = nan
-        with tm.ensure_clean('test.html') as path:
-            biggie.to_html(path)
-            with open(path, 'r') as f:
-                s = biggie.to_html()
-                s2 = f.read()
-                self.assertEqual(s, s2)
-
-        frame = DataFrame(index=np.arange(200))
-        with tm.ensure_clean('test.html') as path:
-            frame.to_html(path)
-            with open(path, 'r') as f:
-                self.assertEqual(frame.to_html(), f.read())
-
-    def test_to_html_with_no_bold(self):
-        x = DataFrame({'x': randn(5)})
-        ashtml = x.to_html(bold_rows=False)
-        self.assertFalse('<strong' in ashtml[ashtml.find("</thead>")])
-
-    def test_to_html_columns_arg(self):
-        result = self.frame.to_html(columns=['A'])
-        self.assertNotIn('<th>B</th>', result)
-
-    def test_to_html_multiindex(self):
-        columns = MultiIndex.from_tuples(list(zip(np.arange(2).repeat(2),
-                                                  np.mod(lrange(4), 2))),
-                                         names=['CL0', 'CL1'])
-        df = DataFrame([list('abcd'), list('efgh')], columns=columns)
-        result = df.to_html(justify='left')
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr>\n'
-                    '      <th>CL0</th>\n'
-                    '      <th colspan="2" halign="left">0</th>\n'
-                    '      <th colspan="2" halign="left">1</th>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>CL1</th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>a</td>\n'
-                    '      <td>b</td>\n'
-                    '      <td>c</td>\n'
-                    '      <td>d</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>e</td>\n'
-                    '      <td>f</td>\n'
-                    '      <td>g</td>\n'
-                    '      <td>h</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>')
-
-        self.assertEqual(result, expected)
-
-        columns = MultiIndex.from_tuples(list(zip(
-            range(4), np.mod(
-                lrange(4), 2))))
-        df = DataFrame([list('abcd'), list('efgh')], columns=columns)
-
-        result = df.to_html(justify='right')
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr>\n'
-                    '      <th></th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '      <th>2</th>\n'
-                    '      <th>3</th>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th></th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '      <th>0</th>\n'
-                    '      <th>1</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>a</td>\n'
-                    '      <td>b</td>\n'
-                    '      <td>c</td>\n'
-                    '      <td>d</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>e</td>\n'
-                    '      <td>f</td>\n'
-                    '      <td>g</td>\n'
-                    '      <td>h</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>')
-
-        self.assertEqual(result, expected)
-
-    def test_to_html_justify(self):
-        df = DataFrame({'A': [6, 30000, 2],
-                        'B': [1, 2, 70000],
-                        'C': [223442, 0, 1]},
-                       columns=['A', 'B', 'C'])
-        result = df.to_html(justify='left')
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr style="text-align: left;">\n'
-                    '      <th></th>\n'
-                    '      <th>A</th>\n'
-                    '      <th>B</th>\n'
-                    '      <th>C</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>6</td>\n'
-                    '      <td>1</td>\n'
-                    '      <td>223442</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>30000</td>\n'
-                    '      <td>2</td>\n'
-                    '      <td>0</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>2</th>\n'
-                    '      <td>2</td>\n'
-                    '      <td>70000</td>\n'
-                    '      <td>1</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>')
-        self.assertEqual(result, expected)
-
-        result = df.to_html(justify='right')
-        expected = ('<table border="1" class="dataframe">\n'
-                    '  <thead>\n'
-                    '    <tr style="text-align: right;">\n'
-                    '      <th></th>\n'
-                    '      <th>A</th>\n'
-                    '      <th>B</th>\n'
-                    '      <th>C</th>\n'
-                    '    </tr>\n'
-                    '  </thead>\n'
-                    '  <tbody>\n'
-                    '    <tr>\n'
-                    '      <th>0</th>\n'
-                    '      <td>6</td>\n'
-                    '      <td>1</td>\n'
-                    '      <td>223442</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>1</th>\n'
-                    '      <td>30000</td>\n'
-                    '      <td>2</td>\n'
-                    '      <td>0</td>\n'
-                    '    </tr>\n'
-                    '    <tr>\n'
-                    '      <th>2</th>\n'
-                    '      <td>2</td>\n'
-                    '      <td>70000</td>\n'
-                    '      <td>1</td>\n'
-                    '    </tr>\n'
-                    '  </tbody>\n'
-                    '</table>')
-        self.assertEqual(result, expected)
-
-    def test_to_html_index(self):
-        index = ['foo', 'bar', 'baz']
-        df = DataFrame({'A': [1, 2, 3],
-                        'B': [1.2, 3.4, 5.6],
-                        'C': ['one', 'two', np.NaN]},
-                       columns=['A', 'B', 'C'],
-                       index=index)
-        expected_with_index = ('<table border="1" class="dataframe">\n'
-                               '  <thead>\n'
-                               '    <tr style="text-align: right;">\n'
-                               '      <th></th>\n'
-                               '      <th>A</th>\n'
-                               '      <th>B</th>\n'
-                               '      <th>C</th>\n'
-                               '    </tr>\n'
-                               '  </thead>\n'
-                               '  <tbody>\n'
-                               '    <tr>\n'
-                               '      <th>foo</th>\n'
-                               '      <td>1</td>\n'
-                               '      <td>1.2</td>\n'
-                               '      <td>one</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bar</th>\n'
-                               '      <td>2</td>\n'
-                               '      <td>3.4</td>\n'
-                               '      <td>two</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>baz</th>\n'
-                               '      <td>3</td>\n'
-                               '      <td>5.6</td>\n'
-                               '      <td>NaN</td>\n'
-                               '    </tr>\n'
-                               '  </tbody>\n'
-                               '</table>')
-        self.assertEqual(df.to_html(), expected_with_index)
-
-        expected_without_index = ('<table border="1" class="dataframe">\n'
-                                  '  <thead>\n'
-                                  '    <tr style="text-align: right;">\n'
-                                  '      <th>A</th>\n'
-                                  '      <th>B</th>\n'
-                                  '      <th>C</th>\n'
-                                  '    </tr>\n'
-                                  '  </thead>\n'
-                                  '  <tbody>\n'
-                                  '    <tr>\n'
-                                  '      <td>1</td>\n'
-                                  '      <td>1.2</td>\n'
-                                  '      <td>one</td>\n'
-                                  '    </tr>\n'
-                                  '    <tr>\n'
-                                  '      <td>2</td>\n'
-                                  '      <td>3.4</td>\n'
-                                  '      <td>two</td>\n'
-                                  '    </tr>\n'
-                                  '    <tr>\n'
-                                  '      <td>3</td>\n'
-                                  '      <td>5.6</td>\n'
-                                  '      <td>NaN</td>\n'
-                                  '    </tr>\n'
-                                  '  </tbody>\n'
-                                  '</table>')
-        result = df.to_html(index=False)
-        for i in index:
-            self.assertNotIn(i, result)
-        self.assertEqual(result, expected_without_index)
-        df.index = Index(['foo', 'bar', 'baz'], name='idx')
-        expected_with_index = ('<table border="1" class="dataframe">\n'
-                               '  <thead>\n'
-                               '    <tr style="text-align: right;">\n'
-                               '      <th></th>\n'
-                               '      <th>A</th>\n'
-                               '      <th>B</th>\n'
-                               '      <th>C</th>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>idx</th>\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '    </tr>\n'
-                               '  </thead>\n'
-                               '  <tbody>\n'
-                               '    <tr>\n'
-                               '      <th>foo</th>\n'
-                               '      <td>1</td>\n'
-                               '      <td>1.2</td>\n'
-                               '      <td>one</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bar</th>\n'
-                               '      <td>2</td>\n'
-                               '      <td>3.4</td>\n'
-                               '      <td>two</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>baz</th>\n'
-                               '      <td>3</td>\n'
-                               '      <td>5.6</td>\n'
-                               '      <td>NaN</td>\n'
-                               '    </tr>\n'
-                               '  </tbody>\n'
-                               '</table>')
-        self.assertEqual(df.to_html(), expected_with_index)
-        self.assertEqual(df.to_html(index=False), expected_without_index)
-
-        tuples = [('foo', 'car'), ('foo', 'bike'), ('bar', 'car')]
-        df.index = MultiIndex.from_tuples(tuples)
-
-        expected_with_index = ('<table border="1" class="dataframe">\n'
-                               '  <thead>\n'
-                               '    <tr style="text-align: right;">\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '      <th>A</th>\n'
-                               '      <th>B</th>\n'
-                               '      <th>C</th>\n'
-                               '    </tr>\n'
-                               '  </thead>\n'
-                               '  <tbody>\n'
-                               '    <tr>\n'
-                               '      <th rowspan="2" valign="top">foo</th>\n'
-                               '      <th>car</th>\n'
-                               '      <td>1</td>\n'
-                               '      <td>1.2</td>\n'
-                               '      <td>one</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bike</th>\n'
-                               '      <td>2</td>\n'
-                               '      <td>3.4</td>\n'
-                               '      <td>two</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bar</th>\n'
-                               '      <th>car</th>\n'
-                               '      <td>3</td>\n'
-                               '      <td>5.6</td>\n'
-                               '      <td>NaN</td>\n'
-                               '    </tr>\n'
-                               '  </tbody>\n'
-                               '</table>')
-        self.assertEqual(df.to_html(), expected_with_index)
-
-        result = df.to_html(index=False)
-        for i in ['foo', 'bar', 'car', 'bike']:
-            self.assertNotIn(i, result)
-        # must be the same result as normal index
-        self.assertEqual(result, expected_without_index)
-
-        df.index = MultiIndex.from_tuples(tuples, names=['idx1', 'idx2'])
-        expected_with_index = ('<table border="1" class="dataframe">\n'
-                               '  <thead>\n'
-                               '    <tr style="text-align: right;">\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '      <th>A</th>\n'
-                               '      <th>B</th>\n'
-                               '      <th>C</th>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>idx1</th>\n'
-                               '      <th>idx2</th>\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '      <th></th>\n'
-                               '    </tr>\n'
-                               '  </thead>\n'
-                               '  <tbody>\n'
-                               '    <tr>\n'
-                               '      <th rowspan="2" valign="top">foo</th>\n'
-                               '      <th>car</th>\n'
-                               '      <td>1</td>\n'
-                               '      <td>1.2</td>\n'
-                               '      <td>one</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bike</th>\n'
-                               '      <td>2</td>\n'
-                               '      <td>3.4</td>\n'
-                               '      <td>two</td>\n'
-                               '    </tr>\n'
-                               '    <tr>\n'
-                               '      <th>bar</th>\n'
-                               '      <th>car</th>\n'
-                               '      <td>3</td>\n'
-                               '      <td>5.6</td>\n'
-                               '      <td>NaN</td>\n'
-                               '    </tr>\n'
-                               '  </tbody>\n'
-                               '</table>')
-        self.assertEqual(df.to_html(), expected_with_index)
-        self.assertEqual(df.to_html(index=False), expected_without_index)
-
     def test_repr_html(self):
         self.frame._repr_html_()
 
@@ -3186,24 +1436,26 @@ c  10  11  12  13  14\
         assert u('2 columns') in long_repr
 
     def test_repr_html_float(self):
-        max_rows = get_option('display.max_rows')
-        h = max_rows - 1
-        df = DataFrame({'idx': np.linspace(-10, 10, h),
-                        'A': np.arange(1, 1 + h),
-                        'B': np.arange(41, 41 + h)}).set_index('idx')
-        reg_repr = df._repr_html_()
-        assert '..' not in reg_repr
-        assert str(40 + h) in reg_repr
+        with option_context('display.max_rows', 60):
 
-        h = max_rows + 1
-        df = DataFrame({'idx': np.linspace(-10, 10, h),
-                        'A': np.arange(1, 1 + h),
-                        'B': np.arange(41, 41 + h)}).set_index('idx')
-        long_repr = df._repr_html_()
-        assert '..' in long_repr
-        assert '31' not in long_repr
-        assert u('%d rows ') % h in long_repr
-        assert u('2 columns') in long_repr
+            max_rows = get_option('display.max_rows')
+            h = max_rows - 1
+            df = DataFrame({'idx': np.linspace(-10, 10, h),
+                            'A': np.arange(1, 1 + h),
+                            'B': np.arange(41, 41 + h)}).set_index('idx')
+            reg_repr = df._repr_html_()
+            assert '..' not in reg_repr
+            assert str(40 + h) in reg_repr
+
+            h = max_rows + 1
+            df = DataFrame({'idx': np.linspace(-10, 10, h),
+                            'A': np.arange(1, 1 + h),
+                            'B': np.arange(41, 41 + h)}).set_index('idx')
+            long_repr = df._repr_html_()
+            assert '..' in long_repr
+            assert '31' not in long_repr
+            assert u('%d rows ') % h in long_repr
+            assert u('2 columns') in long_repr
 
     def test_repr_html_long_multiindex(self):
         max_rows = get_option('display.max_rows')
@@ -3254,7 +1506,7 @@ c  10  11  12  13  14\
 
     def test_info_repr_max_cols(self):
         # GH #6939
-        df = DataFrame(randn(10, 5))
+        df = DataFrame(np.random.randn(10, 5))
         with option_context('display.large_repr', 'info',
                             'display.max_columns', 1,
                             'display.max_info_columns', 4):
@@ -3299,46 +1551,6 @@ c  10  11  12  13  14\
 
         self.reset_display_options()
 
-    def test_to_html_with_classes(self):
-        df = DataFrame()
-        result = df.to_html(classes="sortable draggable")
-        expected = dedent("""
-
-            <table border="1" class="dataframe sortable draggable">
-              <thead>
-                <tr style="text-align: right;">
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-              </tbody>
-            </table>
-
-        """).strip()
-        self.assertEqual(result, expected)
-
-        result = df.to_html(classes=["sortable", "draggable"])
-        self.assertEqual(result, expected)
-
-    def test_to_html_no_index_max_rows(self):
-        # GH https://github.com/pandas-dev/pandas/issues/14998
-        df = DataFrame({"A": [1, 2, 3, 4]})
-        result = df.to_html(index=False, max_rows=1)
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th>A</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>1</td>
-            </tr>
-          </tbody>
-        </table>""")
-        self.assertEqual(result, expected)
-
     def test_pprint_pathological_object(self):
         """
         if the test fails, the stack will overflow and nose crash,
@@ -3372,541 +1584,6 @@ c  10  11  12  13  14\
         val = df.to_string()
         self.assertTrue("'a': 1" in val)
         self.assertTrue("'b': 2" in val)
-
-    def test_to_latex_filename(self):
-        with tm.ensure_clean('test.tex') as path:
-            self.frame.to_latex(path)
-
-            with open(path, 'r') as f:
-                self.assertEqual(self.frame.to_latex(), f.read())
-
-        # test with utf-8 and encoding option (GH 7061)
-        df = DataFrame([[u'au\xdfgangen']])
-        with tm.ensure_clean('test.tex') as path:
-            df.to_latex(path, encoding='utf-8')
-            with codecs.open(path, 'r', encoding='utf-8') as f:
-                self.assertEqual(df.to_latex(), f.read())
-
-        # test with utf-8 without encoding option
-        if compat.PY3:  # python3: pandas default encoding is utf-8
-            with tm.ensure_clean('test.tex') as path:
-                df.to_latex(path)
-                with codecs.open(path, 'r', encoding='utf-8') as f:
-                    self.assertEqual(df.to_latex(), f.read())
-        else:
-            # python2 default encoding is ascii, so an error should be raised
-            with tm.ensure_clean('test.tex') as path:
-                self.assertRaises(UnicodeEncodeError, df.to_latex, path)
-
-    def test_to_latex(self):
-        # it works!
-        self.frame.to_latex()
-
-        df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
-        withindex_result = df.to_latex()
-        withindex_expected = r"""\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(withindex_result, withindex_expected)
-
-        withoutindex_result = df.to_latex(index=False)
-        withoutindex_expected = r"""\begin{tabular}{rl}
-\toprule
- a &   b \\
-\midrule
- 1 &  b1 \\
- 2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(withoutindex_result, withoutindex_expected)
-
-    def test_to_latex_format(self):
-        # GH Bug #9402
-        self.frame.to_latex(column_format='ccc')
-
-        df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
-        withindex_result = df.to_latex(column_format='ccc')
-        withindex_expected = r"""\begin{tabular}{ccc}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(withindex_result, withindex_expected)
-
-    def test_to_latex_with_formatters(self):
-        df = DataFrame({'int': [1, 2, 3],
-                        'float': [1.0, 2.0, 3.0],
-                        'object': [(1, 2), True, False],
-                        'datetime64': [datetime(2016, 1, 1),
-                                       datetime(2016, 2, 5),
-                                       datetime(2016, 3, 3)]})
-
-        formatters = {'int': lambda x: '0x%x' % x,
-                      'float': lambda x: '[% 4.1f]' % x,
-                      'object': lambda x: '-%s-' % str(x),
-                      'datetime64': lambda x: x.strftime('%Y-%m'),
-                      '__index__': lambda x: 'index: %s' % x}
-        result = df.to_latex(formatters=dict(formatters))
-
-        expected = r"""\begin{tabular}{llrrl}
-\toprule
-{} & datetime64 &  float & int &    object \\
-\midrule
-index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
-index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
-index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
-\bottomrule
-\end{tabular}
-"""
-        self.assertEqual(result, expected)
-
-    def test_to_latex_multiindex(self):
-        df = DataFrame({('x', 'y'): ['a']})
-        result = df.to_latex()
-        expected = r"""\begin{tabular}{ll}
-\toprule
-{} &  x \\
-{} &  y \\
-\midrule
-0 &  a \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(result, expected)
-
-        result = df.T.to_latex()
-        expected = r"""\begin{tabular}{lll}
-\toprule
-  &   &  0 \\
-\midrule
-x & y &  a \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(result, expected)
-
-        df = DataFrame.from_dict({
-            ('c1', 0): pd.Series(dict((x, x) for x in range(4))),
-            ('c1', 1): pd.Series(dict((x, x + 4) for x in range(4))),
-            ('c2', 0): pd.Series(dict((x, x) for x in range(4))),
-            ('c2', 1): pd.Series(dict((x, x + 4) for x in range(4))),
-            ('c3', 0): pd.Series(dict((x, x) for x in range(4))),
-        }).T
-        result = df.to_latex()
-        expected = r"""\begin{tabular}{llrrrr}
-\toprule
-   &   &  0 &  1 &  2 &  3 \\
-\midrule
-c1 & 0 &  0 &  1 &  2 &  3 \\
-   & 1 &  4 &  5 &  6 &  7 \\
-c2 & 0 &  0 &  1 &  2 &  3 \\
-   & 1 &  4 &  5 &  6 &  7 \\
-c3 & 0 &  0 &  1 &  2 &  3 \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(result, expected)
-
-        # GH 10660
-        df = pd.DataFrame({'a': [0, 0, 1, 1],
-                           'b': list('abab'),
-                           'c': [1, 2, 3, 4]})
-        result = df.set_index(['a', 'b']).to_latex()
-        expected = r"""\begin{tabular}{llr}
-\toprule
-  &   &  c \\
-a & b &    \\
-\midrule
-0 & a &  1 \\
-  & b &  2 \\
-1 & a &  3 \\
-  & b &  4 \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(result, expected)
-
-        result = df.groupby('a').describe().to_latex()
-        expected = ('\\begin{tabular}{lrrrrrrrr}\n\\toprule\n{} &     c &     '
-                    ' &           &      &       &      &       &      '
-                    '\\\\\n{} & count & mean &       std &  min &   25\\% &  '
-                    '50\\% &   75\\% &  max \\\\\na &       &      &          '
-                    ' &      &       &      &       &      \\\\\n\\midrule\n0 '
-                    '&   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 '
-                    '&  2.0 \\\\\n1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 '
-                    '&  3.5 &  3.75 &  4.0 '
-                    '\\\\\n\\bottomrule\n\\end{tabular}\n')
-
-        self.assertEqual(result, expected)
-
-    def test_to_latex_escape(self):
-        a = 'a'
-        b = 'b'
-
-        test_dict = {u('co^l1'): {a: "a",
-                                  b: "b"},
-                     u('co$e^x$'): {a: "a",
-                                    b: "b"}}
-
-        unescaped_result = DataFrame(test_dict).to_latex(escape=False)
-        escaped_result = DataFrame(test_dict).to_latex(
-        )  # default: escape=True
-
-        unescaped_expected = r'''\begin{tabular}{lll}
-\toprule
-{} & co$e^x$ & co^l1 \\
-\midrule
-a &       a &     a \\
-b &       b &     b \\
-\bottomrule
-\end{tabular}
-'''
-
-        escaped_expected = r'''\begin{tabular}{lll}
-\toprule
-{} & co\$e\textasciicircumx\$ & co\textasciicircuml1 \\
-\midrule
-a &       a &     a \\
-b &       b &     b \\
-\bottomrule
-\end{tabular}
-'''
-
-        self.assertEqual(unescaped_result, unescaped_expected)
-        self.assertEqual(escaped_result, escaped_expected)
-
-    def test_to_latex_longtable(self):
-        self.frame.to_latex(longtable=True)
-
-        df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
-        withindex_result = df.to_latex(longtable=True)
-        withindex_expected = r"""\begin{longtable}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
-\midrule
-\endfoot
-
-\bottomrule
-\endlastfoot
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\end{longtable}
-"""
-
-        self.assertEqual(withindex_result, withindex_expected)
-
-        withoutindex_result = df.to_latex(index=False, longtable=True)
-        withoutindex_expected = r"""\begin{longtable}{rl}
-\toprule
- a &   b \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
-\midrule
-\endfoot
-
-\bottomrule
-\endlastfoot
- 1 &  b1 \\
- 2 &  b2 \\
-\end{longtable}
-"""
-
-        self.assertEqual(withoutindex_result, withoutindex_expected)
-
-    def test_to_latex_escape_special_chars(self):
-        special_characters = ['&', '%', '$', '#', '_', '{', '}', '~', '^',
-                              '\\']
-        df = DataFrame(data=special_characters)
-        observed = df.to_latex()
-        expected = r"""\begin{tabular}{ll}
-\toprule
-{} &  0 \\
-\midrule
-0 &  \& \\
-1 &  \% \\
-2 &  \$ \\
-3 &  \# \\
-4 &  \_ \\
-5 &  \{ \\
-6 &  \} \\
-7 &  \textasciitilde \\
-8 &  \textasciicircum \\
-9 &  \textbackslash \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(observed, expected)
-
-    def test_to_latex_no_header(self):
-        # GH 7124
-        df = DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
-        withindex_result = df.to_latex(header=False)
-        withindex_expected = r"""\begin{tabular}{lrl}
-\toprule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(withindex_result, withindex_expected)
-
-        withoutindex_result = df.to_latex(index=False, header=False)
-        withoutindex_expected = r"""\begin{tabular}{rl}
-\toprule
- 1 &  b1 \\
- 2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(withoutindex_result, withoutindex_expected)
-
-    def test_to_latex_decimal(self):
-        # GH 12031
-        self.frame.to_latex()
-        df = DataFrame({'a': [1.0, 2.1], 'b': ['b1', 'b2']})
-        withindex_result = df.to_latex(decimal=',')
-        print("WHAT THE")
-        withindex_expected = r"""\begin{tabular}{lrl}
-\toprule
-{} &    a &   b \\
-\midrule
-0 &  1,0 &  b1 \\
-1 &  2,1 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
-
-        self.assertEqual(withindex_result, withindex_expected)
-
-    def test_to_csv_quotechar(self):
-        df = DataFrame({'col': [1, 2]})
-        expected = """\
-"","col"
-"0","1"
-"1","2"
-"""
-
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1)  # 1=QUOTE_ALL
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
-
-        expected = """\
-$$,$col$
-$0$,$1$
-$1$,$2$
-"""
-
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, quotechar="$")
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
-
-        with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(TypeError, 'quotechar'):
-                df.to_csv(path, quoting=1, quotechar=None)
-
-    def test_to_csv_doublequote(self):
-        df = DataFrame({'col': ['a"a', '"bb"']})
-        expected = '''\
-"","col"
-"0","a""a"
-"1","""bb"""
-'''
-
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
-
-        from _csv import Error
-        with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(Error, 'escapechar'):
-                df.to_csv(path, doublequote=False)  # no escapechar set
-
-    def test_to_csv_escapechar(self):
-        df = DataFrame({'col': ['a"a', '"bb"']})
-        expected = '''\
-"","col"
-"0","a\\"a"
-"1","\\"bb\\""
-'''
-
-        with tm.ensure_clean('test.csv') as path:  # QUOTE_ALL
-            df.to_csv(path, quoting=1, doublequote=False, escapechar='\\')
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
-
-        df = DataFrame({'col': ['a,a', ',bb,']})
-        expected = """\
-,col
-0,a\\,a
-1,\\,bb\\,
-"""
-
-        with tm.ensure_clean('test.csv') as path:
-            df.to_csv(path, quoting=3, escapechar='\\')  # QUOTE_NONE
-            with open(path, 'r') as f:
-                self.assertEqual(f.read(), expected)
-
-    def test_csv_to_string(self):
-        df = DataFrame({'col': [1, 2]})
-        expected = ',col\n0,1\n1,2\n'
-        self.assertEqual(df.to_csv(), expected)
-
-    def test_to_csv_decimal(self):
-        # GH 781
-        df = DataFrame({'col1': [1], 'col2': ['a'], 'col3': [10.1]})
-
-        expected_default = ',col1,col2,col3\n0,1,a,10.1\n'
-        self.assertEqual(df.to_csv(), expected_default)
-
-        expected_european_excel = ';col1;col2;col3\n0;1;a;10,1\n'
-        self.assertEqual(
-            df.to_csv(decimal=',', sep=';'), expected_european_excel)
-
-        expected_float_format_default = ',col1,col2,col3\n0,1,a,10.10\n'
-        self.assertEqual(
-            df.to_csv(float_format='%.2f'), expected_float_format_default)
-
-        expected_float_format = ';col1;col2;col3\n0;1;a;10,10\n'
-        self.assertEqual(
-            df.to_csv(decimal=',', sep=';',
-                      float_format='%.2f'), expected_float_format)
-
-        # GH 11553: testing if decimal is taken into account for '0.0'
-        df = pd.DataFrame({'a': [0, 1.1], 'b': [2.2, 3.3], 'c': 1})
-        expected = 'a,b,c\n0^0,2^2,1\n1^1,3^3,1\n'
-        self.assertEqual(df.to_csv(index=False, decimal='^'), expected)
-
-        # same but for an index
-        self.assertEqual(df.set_index('a').to_csv(decimal='^'), expected)
-
-        # same for a multi-index
-        self.assertEqual(
-            df.set_index(['a', 'b']).to_csv(decimal="^"), expected)
-
-    def test_to_csv_float_format(self):
-        # testing if float_format is taken into account for the index
-        # GH 11553
-        df = pd.DataFrame({'a': [0, 1], 'b': [2.2, 3.3], 'c': 1})
-        expected = 'a,b,c\n0,2.20,1\n1,3.30,1\n'
-        self.assertEqual(
-            df.set_index('a').to_csv(float_format='%.2f'), expected)
-
-        # same for a multi-index
-        self.assertEqual(
-            df.set_index(['a', 'b']).to_csv(float_format='%.2f'), expected)
-
-    def test_to_csv_na_rep(self):
-        # testing if NaN values are correctly represented in the index
-        # GH 11553
-        df = DataFrame({'a': [0, np.NaN], 'b': [0, 1], 'c': [2, 3]})
-        expected = "a,b,c\n0.0,0,2\n_,1,3\n"
-        self.assertEqual(df.set_index('a').to_csv(na_rep='_'), expected)
-        self.assertEqual(df.set_index(['a', 'b']).to_csv(na_rep='_'), expected)
-
-        # now with an index containing only NaNs
-        df = DataFrame({'a': np.NaN, 'b': [0, 1], 'c': [2, 3]})
-        expected = "a,b,c\n_,0,2\n_,1,3\n"
-        self.assertEqual(df.set_index('a').to_csv(na_rep='_'), expected)
-        self.assertEqual(df.set_index(['a', 'b']).to_csv(na_rep='_'), expected)
-
-        # check if na_rep parameter does not break anything when no NaN
-        df = DataFrame({'a': 0, 'b': [0, 1], 'c': [2, 3]})
-        expected = "a,b,c\n0,0,2\n0,1,3\n"
-        self.assertEqual(df.set_index('a').to_csv(na_rep='_'), expected)
-        self.assertEqual(df.set_index(['a', 'b']).to_csv(na_rep='_'), expected)
-
-    def test_to_csv_date_format(self):
-        # GH 10209
-        df_sec = DataFrame({'A': pd.date_range('20130101', periods=5, freq='s')
-                            })
-        df_day = DataFrame({'A': pd.date_range('20130101', periods=5, freq='d')
-                            })
-
-        expected_default_sec = ',A\n0,2013-01-01 00:00:00\n1,2013-01-01 00:00:01\n2,2013-01-01 00:00:02' + \
-                               '\n3,2013-01-01 00:00:03\n4,2013-01-01 00:00:04\n'
-        self.assertEqual(df_sec.to_csv(), expected_default_sec)
-
-        expected_ymdhms_day = ',A\n0,2013-01-01 00:00:00\n1,2013-01-02 00:00:00\n2,2013-01-03 00:00:00' + \
-                              '\n3,2013-01-04 00:00:00\n4,2013-01-05 00:00:00\n'
-        self.assertEqual(
-            df_day.to_csv(
-                date_format='%Y-%m-%d %H:%M:%S'), expected_ymdhms_day)
-
-        expected_ymd_sec = ',A\n0,2013-01-01\n1,2013-01-01\n2,2013-01-01\n3,2013-01-01\n4,2013-01-01\n'
-        self.assertEqual(
-            df_sec.to_csv(date_format='%Y-%m-%d'), expected_ymd_sec)
-
-        expected_default_day = ',A\n0,2013-01-01\n1,2013-01-02\n2,2013-01-03\n3,2013-01-04\n4,2013-01-05\n'
-        self.assertEqual(df_day.to_csv(), expected_default_day)
-        self.assertEqual(
-            df_day.to_csv(date_format='%Y-%m-%d'), expected_default_day)
-
-        # testing if date_format parameter is taken into account for
-        # multi-indexed dataframes (GH 7791)
-        df_sec['B'] = 0
-        df_sec['C'] = 1
-        expected_ymd_sec = 'A,B,C\n2013-01-01,0,1\n'
-        df_sec_grouped = df_sec.groupby([pd.Grouper(key='A', freq='1h'), 'B'])
-        self.assertEqual(df_sec_grouped.mean().to_csv(date_format='%Y-%m-%d'),
-                         expected_ymd_sec)
-
-    def test_to_csv_multi_index(self):
-        # see gh-6618
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
-
-        exp = ",1\n,2\n0,1\n"
-        self.assertEqual(df.to_csv(), exp)
-
-        exp = "1\n2\n1\n"
-        self.assertEqual(df.to_csv(index=False), exp)
-
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]),
-                       index=pd.MultiIndex.from_arrays([[1], [2]]))
-
-        exp = ",,1\n,,2\n1,2,1\n"
-        self.assertEqual(df.to_csv(), exp)
-
-        exp = "1\n2\n1\n"
-        self.assertEqual(df.to_csv(index=False), exp)
-
-        df = DataFrame(
-            [1], columns=pd.MultiIndex.from_arrays([['foo'], ['bar']]))
-
-        exp = ",foo\n,bar\n0,1\n"
-        self.assertEqual(df.to_csv(), exp)
-
-        exp = "foo\nbar\n1\n"
-        self.assertEqual(df.to_csv(index=False), exp)
 
     def test_period(self):
         # GH 12615
@@ -4027,8 +1704,8 @@ class TestSeriesFormatting(tm.TestCase):
         if PY3:
             _rep = repr
         else:
-            _rep = unicode
-        # not alighned properly because of east asian width
+            _rep = unicode  # noqa
+        # not aligned properly because of east asian width
 
         # unicode index
         s = Series(['a', 'bb', 'CCC', 'D'],
@@ -4053,7 +1730,8 @@ class TestSeriesFormatting(tm.TestCase):
 
         # unicode footer
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
-                   index=[u'ああ', u'いいいい', u'う', u'えええ'], name=u'おおおおおおお')
+                   index=[u'ああ', u'いいいい', u'う', u'えええ'],
+                   name=u'おおおおおおお')
         expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
                     u"えええ     ええええ\nName: おおおおおおお, dtype: object")
         self.assertEqual(_rep(s), expected)
@@ -4062,7 +1740,9 @@ class TestSeriesFormatting(tm.TestCase):
         idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
             u'おおお', u'かかかか'), (u'き', u'くく')])
         s = Series([1, 22, 3333, 44444], index=idx)
-        expected = (u"あ    いい          1\nう    え          22\nおおお  かかかか     3333\n"
+        expected = (u"あ    いい          1\n"
+                    u"う    え          22\n"
+                    u"おおお  かかかか     3333\n"
                     u"き    くく      44444\ndtype: int64")
         self.assertEqual(_rep(s), expected)
 
@@ -4075,14 +1755,16 @@ class TestSeriesFormatting(tm.TestCase):
         # object dtype, longer than unicode repr
         s = Series([1, 22, 3333, 44444],
                    index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
-        expected = (u"1                          1\nAB                        22\n"
-                    u"2011-01-01 00:00:00     3333\nあああ                    44444\ndtype: int64"
-                    )
+        expected = (u"1                          1\n"
+                    u"AB                        22\n"
+                    u"2011-01-01 00:00:00     3333\n"
+                    u"あああ                    44444\ndtype: int64")
         self.assertEqual(_rep(s), expected)
 
         # truncate
         with option_context('display.max_rows', 3):
-            s = Series([u'あ', u'いい', u'ううう', u'ええええ'], name=u'おおおおおおお')
+            s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                       name=u'おおおおおおお')
 
             expected = (u"0       あ\n     ... \n"
                         u"3    ええええ\nName: おおおおおおお, dtype: object")
@@ -4113,23 +1795,32 @@ class TestSeriesFormatting(tm.TestCase):
             # both
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                        index=[u'ああ', u'いいいい', u'う', u'えええ'])
-            expected = (u"ああ              あ\nいいいい        いい\nう            ううう\n"
+            expected = (u"ああ              あ\n"
+                        u"いいいい        いい\n"
+                        u"う            ううう\n"
                         u"えええ      ええええ\ndtype: object")
             self.assertEqual(_rep(s), expected)
 
             # unicode footer
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
-                       index=[u'ああ', u'いいいい', u'う', u'えええ'], name=u'おおおおおおお')
-            expected = (u"ああ              あ\nいいいい        いい\nう            ううう\n"
-                        u"えええ      ええええ\nName: おおおおおおお, dtype: object")
+                       index=[u'ああ', u'いいいい', u'う', u'えええ'],
+                       name=u'おおおおおおお')
+            expected = (u"ああ              あ\n"
+                        u"いいいい        いい\n"
+                        u"う            ううう\n"
+                        u"えええ      ええええ\n"
+                        u"Name: おおおおおおお, dtype: object")
             self.assertEqual(_rep(s), expected)
 
             # MultiIndex
             idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
                 u'おおお', u'かかかか'), (u'き', u'くく')])
             s = Series([1, 22, 3333, 44444], index=idx)
-            expected = (u"あ      いい            1\nう      え             22\nおおお  かかかか     3333\n"
-                        u"き      くく        44444\ndtype: int64")
+            expected = (u"あ      いい            1\n"
+                        u"う      え             22\n"
+                        u"おおお  かかかか     3333\n"
+                        u"き      くく        44444\n"
+                        u"dtype: int64")
             self.assertEqual(_rep(s), expected)
 
             # object dtype, shorter than unicode repr
@@ -4141,27 +1832,33 @@ class TestSeriesFormatting(tm.TestCase):
             # object dtype, longer than unicode repr
             s = Series([1, 22, 3333, 44444],
                        index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
-            expected = (u"1                          1\nAB                        22\n"
-                        u"2011-01-01 00:00:00     3333\nあああ                 44444\ndtype: int64"
-                        )
+            expected = (u"1                          1\n"
+                        u"AB                        22\n"
+                        u"2011-01-01 00:00:00     3333\n"
+                        u"あああ                 44444\ndtype: int64")
             self.assertEqual(_rep(s), expected)
 
             # truncate
             with option_context('display.max_rows', 3):
-                s = Series([u'あ', u'いい', u'ううう', u'ええええ'], name=u'おおおおおおお')
+                s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                           name=u'おおおおおおお')
                 expected = (u"0          あ\n       ...   \n"
                             u"3    ええええ\nName: おおおおおおお, dtype: object")
                 self.assertEqual(_rep(s), expected)
 
                 s.index = [u'ああ', u'いいいい', u'う', u'えええ']
-                expected = (u"ああ            あ\n            ...   \n"
-                            u"えええ    ええええ\nName: おおおおおおお, dtype: object")
+                expected = (u"ああ            あ\n"
+                            u"            ...   \n"
+                            u"えええ    ええええ\n"
+                            u"Name: おおおおおおお, dtype: object")
                 self.assertEqual(_rep(s), expected)
 
             # ambiguous unicode
             s = Series([u'¡¡', u'い¡¡', u'ううう', u'ええええ'],
                        index=[u'ああ', u'¡¡¡¡いい', u'¡¡', u'えええ'])
-            expected = (u"ああ              ¡¡\n¡¡¡¡いい        い¡¡\n¡¡            ううう\n"
+            expected = (u"ああ              ¡¡\n"
+                        u"¡¡¡¡いい        い¡¡\n"
+                        u"¡¡            ううう\n"
                         u"えええ      ええええ\ndtype: object")
             self.assertEqual(_rep(s), expected)
 
@@ -4291,7 +1988,7 @@ class TestSeriesFormatting(tm.TestCase):
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         tuples = list(zip(*arrays))
         index = MultiIndex.from_tuples(tuples, names=['first', 'second'])
-        s = Series(randn(8), index=index)
+        s = Series(np.random.randn(8), index=index)
 
         with option_context("display.max_rows", 10):
             self.assertEqual(len(str(s).split('\n')), 10)
@@ -4305,7 +2002,7 @@ class TestSeriesFormatting(tm.TestCase):
             self.assertEqual(len(str(s).split('\n')), 10)
 
         # index
-        s = Series(randn(8), None)
+        s = Series(np.random.randn(8), None)
 
         with option_context("display.max_rows", 10):
             self.assertEqual(len(str(s).split('\n')), 9)
@@ -4436,176 +2133,6 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(res, exp)
 
 
-class TestEngFormatter(tm.TestCase):
-
-    def test_eng_float_formatter(self):
-        df = DataFrame({'A': [1.41, 141., 14100, 1410000.]})
-
-        fmt.set_eng_float_format()
-        result = df.to_string()
-        expected = ('             A\n'
-                    '0    1.410E+00\n'
-                    '1  141.000E+00\n'
-                    '2   14.100E+03\n'
-                    '3    1.410E+06')
-        self.assertEqual(result, expected)
-
-        fmt.set_eng_float_format(use_eng_prefix=True)
-        result = df.to_string()
-        expected = ('         A\n'
-                    '0    1.410\n'
-                    '1  141.000\n'
-                    '2  14.100k\n'
-                    '3   1.410M')
-        self.assertEqual(result, expected)
-
-        fmt.set_eng_float_format(accuracy=0)
-        result = df.to_string()
-        expected = ('         A\n'
-                    '0    1E+00\n'
-                    '1  141E+00\n'
-                    '2   14E+03\n'
-                    '3    1E+06')
-        self.assertEqual(result, expected)
-
-        self.reset_display_options()
-
-    def compare(self, formatter, input, output):
-        formatted_input = formatter(input)
-        msg = ("formatting of %s results in '%s', expected '%s'" %
-               (str(input), formatted_input, output))
-        self.assertEqual(formatted_input, output, msg)
-
-    def compare_all(self, formatter, in_out):
-        """
-        Parameters:
-        -----------
-        formatter: EngFormatter under test
-        in_out: list of tuples. Each tuple = (number, expected_formatting)
-
-        It is tested if 'formatter(number) == expected_formatting'.
-        *number* should be >= 0 because formatter(-number) == fmt is also
-        tested. *fmt* is derived from *expected_formatting*
-        """
-        for input, output in in_out:
-            self.compare(formatter, input, output)
-            self.compare(formatter, -input, "-" + output[1:])
-
-    def test_exponents_with_eng_prefix(self):
-        formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
-        f = np.sqrt(2)
-        in_out = [(f * 10 ** -24, " 1.414y"), (f * 10 ** -23, " 14.142y"),
-                  (f * 10 ** -22, " 141.421y"), (f * 10 ** -21, " 1.414z"),
-                  (f * 10 ** -20, " 14.142z"), (f * 10 ** -19, " 141.421z"),
-                  (f * 10 ** -18, " 1.414a"), (f * 10 ** -17, " 14.142a"),
-                  (f * 10 ** -16, " 141.421a"), (f * 10 ** -15, " 1.414f"),
-                  (f * 10 ** -14, " 14.142f"), (f * 10 ** -13, " 141.421f"),
-                  (f * 10 ** -12, " 1.414p"), (f * 10 ** -11, " 14.142p"),
-                  (f * 10 ** -10, " 141.421p"), (f * 10 ** -9, " 1.414n"),
-                  (f * 10 ** -8, " 14.142n"), (f * 10 ** -7, " 141.421n"),
-                  (f * 10 ** -6, " 1.414u"), (f * 10 ** -5, " 14.142u"),
-                  (f * 10 ** -4, " 141.421u"), (f * 10 ** -3, " 1.414m"),
-                  (f * 10 ** -2, " 14.142m"), (f * 10 ** -1, " 141.421m"),
-                  (f * 10 ** 0, " 1.414"), (f * 10 ** 1, " 14.142"),
-                  (f * 10 ** 2, " 141.421"), (f * 10 ** 3, " 1.414k"),
-                  (f * 10 ** 4, " 14.142k"), (f * 10 ** 5, " 141.421k"),
-                  (f * 10 ** 6, " 1.414M"), (f * 10 ** 7, " 14.142M"),
-                  (f * 10 ** 8, " 141.421M"), (f * 10 ** 9, " 1.414G"), (
-                      f * 10 ** 10, " 14.142G"), (f * 10 ** 11, " 141.421G"),
-                  (f * 10 ** 12, " 1.414T"), (f * 10 ** 13, " 14.142T"), (
-                      f * 10 ** 14, " 141.421T"), (f * 10 ** 15, " 1.414P"), (
-                          f * 10 ** 16, " 14.142P"), (f * 10 ** 17, " 141.421P"), (
-                              f * 10 ** 18, " 1.414E"), (f * 10 ** 19, " 14.142E"),
-                  (f * 10 ** 20, " 141.421E"), (f * 10 ** 21, " 1.414Z"), (
-                      f * 10 ** 22, " 14.142Z"), (f * 10 ** 23, " 141.421Z"), (
-                          f * 10 ** 24, " 1.414Y"), (f * 10 ** 25, " 14.142Y"), (
-                              f * 10 ** 26, " 141.421Y")]
-        self.compare_all(formatter, in_out)
-
-    def test_exponents_without_eng_prefix(self):
-        formatter = fmt.EngFormatter(accuracy=4, use_eng_prefix=False)
-        f = np.pi
-        in_out = [(f * 10 ** -24, " 3.1416E-24"),
-                  (f * 10 ** -23, " 31.4159E-24"),
-                  (f * 10 ** -22, " 314.1593E-24"),
-                  (f * 10 ** -21, " 3.1416E-21"),
-                  (f * 10 ** -20, " 31.4159E-21"),
-                  (f * 10 ** -19, " 314.1593E-21"),
-                  (f * 10 ** -18, " 3.1416E-18"),
-                  (f * 10 ** -17, " 31.4159E-18"),
-                  (f * 10 ** -16, " 314.1593E-18"),
-                  (f * 10 ** -15, " 3.1416E-15"),
-                  (f * 10 ** -14, " 31.4159E-15"),
-                  (f * 10 ** -13, " 314.1593E-15"),
-                  (f * 10 ** -12, " 3.1416E-12"),
-                  (f * 10 ** -11, " 31.4159E-12"),
-                  (f * 10 ** -10, " 314.1593E-12"),
-                  (f * 10 ** -9, " 3.1416E-09"), (f * 10 ** -8, " 31.4159E-09"),
-                  (f * 10 ** -7, " 314.1593E-09"), (f * 10 ** -6, " 3.1416E-06"),
-                  (f * 10 ** -5, " 31.4159E-06"), (f * 10 ** -4,
-                                                   " 314.1593E-06"),
-                  (f * 10 ** -3, " 3.1416E-03"), (f * 10 ** -2, " 31.4159E-03"),
-                  (f * 10 ** -1, " 314.1593E-03"), (f * 10 ** 0, " 3.1416E+00"), (
-                      f * 10 ** 1, " 31.4159E+00"), (f * 10 ** 2, " 314.1593E+00"),
-                  (f * 10 ** 3, " 3.1416E+03"), (f * 10 ** 4, " 31.4159E+03"), (
-                      f * 10 ** 5, " 314.1593E+03"), (f * 10 ** 6, " 3.1416E+06"),
-                  (f * 10 ** 7, " 31.4159E+06"), (f * 10 ** 8, " 314.1593E+06"), (
-                      f * 10 ** 9, " 3.1416E+09"), (f * 10 ** 10, " 31.4159E+09"),
-                  (f * 10 ** 11, " 314.1593E+09"), (f * 10 ** 12, " 3.1416E+12"),
-                  (f * 10 ** 13, " 31.4159E+12"), (f * 10 ** 14, " 314.1593E+12"),
-                  (f * 10 ** 15, " 3.1416E+15"), (f * 10 ** 16, " 31.4159E+15"),
-                  (f * 10 ** 17, " 314.1593E+15"), (f * 10 ** 18, " 3.1416E+18"),
-                  (f * 10 ** 19, " 31.4159E+18"), (f * 10 ** 20, " 314.1593E+18"),
-                  (f * 10 ** 21, " 3.1416E+21"), (f * 10 ** 22, " 31.4159E+21"),
-                  (f * 10 ** 23, " 314.1593E+21"), (f * 10 ** 24, " 3.1416E+24"),
-                  (f * 10 ** 25, " 31.4159E+24"), (f * 10 ** 26, " 314.1593E+24")]
-        self.compare_all(formatter, in_out)
-
-    def test_rounding(self):
-        formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
-        in_out = [(5.55555, ' 5.556'), (55.5555, ' 55.556'),
-                  (555.555, ' 555.555'), (5555.55, ' 5.556k'),
-                  (55555.5, ' 55.556k'), (555555, ' 555.555k')]
-        self.compare_all(formatter, in_out)
-
-        formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
-        in_out = [(5.55555, ' 5.6'), (55.5555, ' 55.6'), (555.555, ' 555.6'),
-                  (5555.55, ' 5.6k'), (55555.5, ' 55.6k'), (555555, ' 555.6k')]
-        self.compare_all(formatter, in_out)
-
-        formatter = fmt.EngFormatter(accuracy=0, use_eng_prefix=True)
-        in_out = [(5.55555, ' 6'), (55.5555, ' 56'), (555.555, ' 556'),
-                  (5555.55, ' 6k'), (55555.5, ' 56k'), (555555, ' 556k')]
-        self.compare_all(formatter, in_out)
-
-        formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
-        result = formatter(0)
-        self.assertEqual(result, u(' 0.000'))
-
-    def test_nan(self):
-        # Issue #11981
-
-        formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
-        result = formatter(np.nan)
-        self.assertEqual(result, u('NaN'))
-
-        df = pd.DataFrame({'a': [1.5, 10.3, 20.5],
-                           'b': [50.3, 60.67, 70.12],
-                           'c': [100.2, 101.33, 120.33]})
-        pt = df.pivot_table(values='a', index='b', columns='c')
-        fmt.set_eng_float_format(accuracy=1)
-        result = pt.to_string()
-        self.assertTrue('NaN' in result)
-        self.reset_display_options()
-
-    def test_inf(self):
-        # Issue #11981
-
-        formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
-        result = formatter(np.inf)
-        self.assertEqual(result, u('inf'))
-
-
 def _three_digit_exp():
     return '%.4g' % 1.7e8 == '1.7e+008'
 
@@ -4636,15 +2163,48 @@ class TestFloatArrayFormatter(tm.TestCase):
 
             expected_output = {
                 (0, 6):
-                '           col1\n0  9.999000e-08\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
+                '           col1\n'
+                '0  9.999000e-08\n'
+                '1  1.000000e-07\n'
+                '2  1.000100e-07\n'
+                '3  2.000000e-07\n'
+                '4  4.999000e-07\n'
+                '5  5.000000e-07',
                 (1, 6):
-                '           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07',
+                '           col1\n'
+                '1  1.000000e-07\n'
+                '2  1.000100e-07\n'
+                '3  2.000000e-07\n'
+                '4  4.999000e-07\n'
+                '5  5.000000e-07',
                 (1, 8):
-                '           col1\n1  1.000000e-07\n2  1.000100e-07\n3  2.000000e-07\n4  4.999000e-07\n5  5.000000e-07\n6  5.000100e-07\n7  6.000000e-07',
+                '           col1\n'
+                '1  1.000000e-07\n'
+                '2  1.000100e-07\n'
+                '3  2.000000e-07\n'
+                '4  4.999000e-07\n'
+                '5  5.000000e-07\n'
+                '6  5.000100e-07\n'
+                '7  6.000000e-07',
                 (8, 16):
-                '            col1\n8   9.999000e-07\n9   1.000000e-06\n10  1.000100e-06\n11  2.000000e-06\n12  4.999000e-06\n13  5.000000e-06\n14  5.000100e-06\n15  6.000000e-06',
+                '            col1\n'
+                '8   9.999000e-07\n'
+                '9   1.000000e-06\n'
+                '10  1.000100e-06\n'
+                '11  2.000000e-06\n'
+                '12  4.999000e-06\n'
+                '13  5.000000e-06\n'
+                '14  5.000100e-06\n'
+                '15  6.000000e-06',
                 (9, 16):
-                '        col1\n9   0.000001\n10  0.000001\n11  0.000002\n12  0.000005\n13  0.000005\n14  0.000005\n15  0.000006'
+                '        col1\n'
+                '9   0.000001\n'
+                '10  0.000001\n'
+                '11  0.000002\n'
+                '12  0.000005\n'
+                '13  0.000005\n'
+                '14  0.000005\n'
+                '15  0.000006'
             }
 
             for (start, stop), v in expected_output.items():

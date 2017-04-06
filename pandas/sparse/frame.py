@@ -11,8 +11,8 @@ from pandas import compat
 import numpy as np
 
 from pandas.types.missing import isnull, notnull
-from pandas.types.cast import _maybe_upcast
-from pandas.types.common import _ensure_platform_int
+from pandas.types.cast import maybe_upcast, find_common_type
+from pandas.types.common import _ensure_platform_int, is_scipy_sparse
 
 from pandas.core.common import _try_sort
 from pandas.compat.numpy import function as nv
@@ -25,6 +25,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays)
 import pandas.core.generic as generic
 from pandas.sparse.series import SparseSeries, SparseArray
+from pandas.sparse.libsparse import BlockIndex, get_blocks
 from pandas.util.decorators import Appender
 import pandas.core.ops as ops
 
@@ -39,15 +40,15 @@ class SparseDataFrame(DataFrame):
 
     Parameters
     ----------
-    data : same types as can be passed to DataFrame
+    data : same types as can be passed to DataFrame or scipy.sparse.spmatrix
     index : array-like, optional
     column : array-like, optional
     default_kind : {'block', 'integer'}, default 'block'
         Default sparse kind for converting Series to SparseSeries. Will not
         override SparseSeries passed into constructor
     default_fill_value : float
-        Default fill_value for converting Series to SparseSeries. Will not
-        override SparseSeries passed in
+        Default fill_value for converting Series to SparseSeries
+        (default: nan). Will not override SparseSeries passed in.
     """
     _constructor_sliced = SparseSeries
     _subtyp = 'sparse_frame'
@@ -84,22 +85,19 @@ class SparseDataFrame(DataFrame):
         self._default_kind = default_kind
         self._default_fill_value = default_fill_value
 
-        if isinstance(data, dict):
-            mgr = self._init_dict(data, index, columns)
-            if dtype is not None:
-                mgr = mgr.astype(dtype)
+        if is_scipy_sparse(data):
+            mgr = self._init_spmatrix(data, index, columns, dtype=dtype,
+                                      fill_value=default_fill_value)
+        elif isinstance(data, dict):
+            mgr = self._init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, (np.ndarray, list)):
-            mgr = self._init_matrix(data, index, columns)
-            if dtype is not None:
-                mgr = mgr.astype(dtype)
+            mgr = self._init_matrix(data, index, columns, dtype=dtype)
         elif isinstance(data, SparseDataFrame):
             mgr = self._init_mgr(data._data,
                                  dict(index=index, columns=columns),
                                  dtype=dtype, copy=copy)
         elif isinstance(data, DataFrame):
-            mgr = self._init_dict(data, data.index, data.columns)
-            if dtype is not None:
-                mgr = mgr.astype(dtype)
+            mgr = self._init_dict(data, data.index, data.columns, dtype=dtype)
         elif isinstance(data, BlockManager):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
                                  dtype=dtype, copy=copy)
@@ -144,7 +142,7 @@ class SparseDataFrame(DataFrame):
 
         sp_maker = lambda x: SparseArray(x, kind=self._default_kind,
                                          fill_value=self._default_fill_value,
-                                         copy=True)
+                                         copy=True, dtype=dtype)
         sdict = DataFrame()
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):
@@ -174,7 +172,43 @@ class SparseDataFrame(DataFrame):
         return to_manager(sdict, columns, index)
 
     def _init_matrix(self, data, index, columns, dtype=None):
+        """ Init self from ndarray or list of lists """
         data = _prep_ndarray(data, copy=False)
+        index, columns = self._prep_index(data, index, columns)
+        data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
+        return self._init_dict(data, index, columns, dtype)
+
+    def _init_spmatrix(self, data, index, columns, dtype=None,
+                       fill_value=None):
+        """ Init self from scipy.sparse matrix """
+        index, columns = self._prep_index(data, index, columns)
+        data = data.tocoo()
+        N = len(index)
+
+        # Construct a dict of SparseSeries
+        sdict = {}
+        values = Series(data.data, index=data.row, copy=False)
+        for col, rowvals in values.groupby(data.col):
+            # get_blocks expects int32 row indices in sorted order
+            rows = rowvals.index.values.astype(np.int32)
+            rows.sort()
+            blocs, blens = get_blocks(rows)
+
+            sdict[columns[col]] = SparseSeries(
+                rowvals.values, index=index,
+                fill_value=fill_value,
+                sparse_index=BlockIndex(N, blocs, blens))
+
+        # Add any columns that were empty and thus not grouped on above
+        sdict.update({column: SparseSeries(index=index,
+                                           fill_value=fill_value,
+                                           sparse_index=BlockIndex(N, [], []))
+                      for column in columns
+                      if column not in sdict})
+
+        return self._init_dict(sdict, index, columns, dtype)
+
+    def _prep_index(self, data, index, columns):
         N, K = data.shape
         if index is None:
             index = _default_index(N)
@@ -187,9 +221,48 @@ class SparseDataFrame(DataFrame):
         if len(index) != N:
             raise ValueError('Index length mismatch: %d vs. %d' %
                              (len(index), N))
+        return index, columns
 
-        data = dict([(idx, data[:, i]) for i, idx in enumerate(columns)])
-        return self._init_dict(data, index, columns, dtype)
+    def to_coo(self):
+        """
+        Return the contents of the frame as a sparse SciPy COO matrix.
+
+        .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        coo_matrix : scipy.sparse.spmatrix
+            If the caller is heterogeneous and contains booleans or objects,
+            the result will be of dtype=object. See Notes.
+
+        Notes
+        -----
+        The dtype will be the lowest-common-denominator type (implicit
+        upcasting); that is to say if the dtypes (even of numeric types)
+        are mixed, the one that accommodates all will be chosen.
+
+        e.g. If the dtypes are float16 and float32, dtype will be upcast to
+        float32. By numpy.find_common_type convention, mixing int64 and
+        and uint64 will result in a float64 dtype.
+        """
+        try:
+            from scipy.sparse import coo_matrix
+        except ImportError:
+            raise ImportError('Scipy is not installed')
+
+        dtype = find_common_type(self.dtypes)
+        cols, rows, datas = [], [], []
+        for col, name in enumerate(self):
+            s = self[name]
+            row = s.sp_index.to_int_index().indices
+            cols.append(np.repeat(col, len(row)))
+            rows.append(row)
+            datas.append(s.sp_values.astype(dtype, copy=False))
+
+        cols = np.concatenate(cols)
+        rows = np.concatenate(rows)
+        datas = np.concatenate(datas)
+        return coo_matrix((datas, (rows, cols)), shape=self.shape)
 
     def __array_wrap__(self, result):
         return self._constructor(
@@ -562,7 +635,7 @@ class SparseDataFrame(DataFrame):
                 new = new.values
                 # convert integer to float if necessary. need to do a lot
                 # more than that, handle boolean etc also
-                new, fill_value = _maybe_upcast(new, fill_value=fill_value)
+                new, fill_value = maybe_upcast(new, fill_value=fill_value)
                 np.putmask(new, mask, fill_value)
 
             new_series[col] = new

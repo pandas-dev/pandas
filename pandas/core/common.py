@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 from functools import partial
 
 import numpy as np
-import pandas.lib as lib
-import pandas.tslib as tslib
+from pandas._libs import lib, tslib
+
 from pandas import compat
 from pandas.compat import long, zip, iteritems
 from pandas.core.config import get_option
@@ -19,6 +19,10 @@ from pandas.types.inference import _iterable_not_string
 from pandas.types.missing import isnull
 from pandas.api import types
 from pandas.types import common
+
+# compat
+from pandas.errors import (  # noqa
+    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError)
 
 # back-compat of public API
 # deprecate these functions
@@ -73,37 +77,11 @@ def array_equivalent(*args, **kwargs):
     return missing.array_equivalent(*args, **kwargs)
 
 
-class PandasError(Exception):
-    pass
-
-
-class PerformanceWarning(Warning):
-    pass
-
-
 class SettingWithCopyError(ValueError):
     pass
 
 
 class SettingWithCopyWarning(Warning):
-    pass
-
-
-class AmbiguousIndexError(PandasError, KeyError):
-    pass
-
-
-class UnsupportedFunctionCall(ValueError):
-    pass
-
-
-class UnsortedIndexError(KeyError):
-    """ Error raised when attempting to get a slice of a MultiIndex
-    and the index has not been lexsorted. Subclass of `KeyError`.
-
-    .. versionadded:: 0.20.0
-
-    """
     pass
 
 
@@ -476,7 +454,6 @@ def _where_compat(mask, arr1, arr2):
         new_vals = np.where(mask, arr1.view('i8'), arr2.view('i8'))
         return new_vals.view(_NS_DTYPE)
 
-    import pandas.tslib as tslib
     if arr1.dtype == _NS_DTYPE:
         arr1 = tslib.ints_to_pydatetime(arr1.view('i8'))
     if arr2.dtype == _NS_DTYPE:

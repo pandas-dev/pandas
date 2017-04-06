@@ -11,7 +11,7 @@ from datetime import datetime
 
 import pytest
 import numpy as np
-from pandas.lib import Timestamp
+from pandas._libs.lib import Timestamp
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -19,7 +19,8 @@ from pandas import DataFrame, Series, Index, MultiIndex
 from pandas import compat
 from pandas.compat import (StringIO, BytesIO, PY3,
                            range, lrange, u)
-from pandas.io.common import DtypeWarning, EmptyDataError, URLError
+from pandas.errors import DtypeWarning, EmptyDataError
+from pandas.io.common import URLError
 from pandas.io.parsers import TextFileReader, TextParser
 
 
@@ -384,13 +385,16 @@ bar,foo"""
         df = self.read_csv(StringIO(self.data1), nrows=3.0)
         tm.assert_frame_equal(df, expected)
 
-        msg = "must be an integer"
+        msg = r"'nrows' must be an integer >=0"
 
         with tm.assertRaisesRegexp(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows=1.2)
 
         with tm.assertRaisesRegexp(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows='foo')
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), nrows=-1)
 
     def test_read_chunksize(self):
         reader = self.read_csv(StringIO(self.data1), index_col=0, chunksize=2)
@@ -401,6 +405,45 @@ bar,foo"""
         tm.assert_frame_equal(chunks[0], df[:2])
         tm.assert_frame_equal(chunks[1], df[2:4])
         tm.assert_frame_equal(chunks[2], df[4:])
+
+        # with invalid chunksize value:
+        msg = r"'chunksize' must be an integer >=1"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), chunksize=1.3)
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), chunksize='foo')
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(self.data1), chunksize=0)
+
+    def test_read_chunksize_and_nrows(self):
+
+        # gh-15755
+        # With nrows
+        reader = self.read_csv(StringIO(self.data1), index_col=0,
+                               chunksize=2, nrows=5)
+        df = self.read_csv(StringIO(self.data1), index_col=0, nrows=5)
+
+        tm.assert_frame_equal(pd.concat(reader), df)
+
+        # chunksize > nrows
+        reader = self.read_csv(StringIO(self.data1), index_col=0,
+                               chunksize=8, nrows=5)
+        df = self.read_csv(StringIO(self.data1), index_col=0, nrows=5)
+
+        tm.assert_frame_equal(pd.concat(reader), df)
+
+        # with changing "size":
+        reader = self.read_csv(StringIO(self.data1), index_col=0,
+                               chunksize=8, nrows=5)
+        df = self.read_csv(StringIO(self.data1), index_col=0, nrows=5)
+
+        tm.assert_frame_equal(reader.get_chunk(size=2), df.iloc[:2])
+        tm.assert_frame_equal(reader.get_chunk(size=4), df.iloc[2:5])
+        with tm.assertRaises(StopIteration):
+            reader.get_chunk(size=3)
 
     def test_read_chunksize_named(self):
         reader = self.read_csv(
@@ -1635,3 +1678,20 @@ j,-inF"""
                 if PY3:
                     self.assertFalse(m.closed)
                 m.close()
+
+    def test_invalid_file_buffer(self):
+        # see gh-15337
+
+        class InvalidBuffer(object):
+            pass
+
+        msg = "Invalid file path or buffer object type"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(InvalidBuffer())
+
+        if PY3:
+            from unittest import mock
+
+            with tm.assertRaisesRegexp(ValueError, msg):
+                self.read_csv(mock.Mock())

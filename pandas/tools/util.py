@@ -1,5 +1,5 @@
 import numpy as np
-import pandas.lib as lib
+import pandas._libs.lib as lib
 
 from pandas.types.common import (is_number,
                                  is_numeric_dtype,
@@ -9,7 +9,7 @@ from pandas.types.common import (is_number,
                                  is_decimal,
                                  is_scalar as isscalar)
 
-from pandas.types.cast import _possibly_downcast_to_dtype
+from pandas.types.cast import maybe_downcast_to_dtype
 
 import pandas as pd
 from pandas.compat import reduce
@@ -226,8 +226,7 @@ def to_numeric(arg, errors='raise', downcast=None):
             # from smallest to largest
             for dtype in typecodes:
                 if np.dtype(dtype).itemsize <= values.dtype.itemsize:
-                    values = _possibly_downcast_to_dtype(
-                        values, dtype)
+                    values = maybe_downcast_to_dtype(values, dtype)
 
                     # successful conversion
                     if values.dtype == dtype:

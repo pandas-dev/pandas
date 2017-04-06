@@ -9,7 +9,8 @@ from pandas.types.common import (is_bool_dtype,
                                  is_string_like,
                                  is_list_like,
                                  is_scalar,
-                                 is_integer)
+                                 is_integer,
+                                 is_re)
 from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
@@ -17,7 +18,7 @@ import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
 from pandas.util.decorators import Appender
 import re
-import pandas.lib as lib
+import pandas._libs.lib as lib
 import warnings
 import textwrap
 import codecs
@@ -303,7 +304,7 @@ def str_endswith(arr, pat, na=np.nan):
     return _na_map(f, arr, na, dtype=bool)
 
 
-def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
+def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
     """
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
@@ -311,8 +312,12 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
     Parameters
     ----------
-    pat : string
-        Character sequence or regular expression
+    pat : string or compiled regex
+        String can be a character sequence or regular expression.
+
+        .. versionadded:: 0.20.0
+            `pat` also accepts a compiled regex.
+
     repl : string or callable
         Replacement string or a callable. The callable is passed the regex
         match object and must return a replacement string to be used.
@@ -323,14 +328,23 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
 
     n : int, default -1 (all)
         Number of replacements to make from start
-    case : boolean, default True
-        If True, case sensitive
+    case : boolean, default None
+        - If True, case sensitive (the default if `pat` is a string)
+        - Set to False for case insensitive
+        - Cannot be set if `pat` is a compiled regex
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+        - re module flags, e.g. re.IGNORECASE
+        - Cannot be set if `pat` is a compiled regex
 
     Returns
     -------
     replaced : Series/Index of objects
+
+    Notes
+    -----
+    When `pat` is a compiled regex, all flags should be included in the
+    compiled regex. Use of `case` or `flags` with a compiled regex will
+    raise an error.
 
     Examples
     --------
@@ -372,21 +386,42 @@ def str_replace(arr, pat, repl, n=-1, case=True, flags=0):
     0    tWO
     1    bAR
     dtype: object
+
+    Using a compiled regex with flags
+
+    >>> regex_pat = re.compile(r'FUZ', flags=re.IGNORECASE)
+    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar')
+    0    foo
+    1    bar
+    2    NaN
+    dtype: object
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
     if not (is_string_like(repl) or callable(repl)):
         raise TypeError("repl must be a string or callable")
-    use_re = not case or len(pat) > 1 or flags or callable(repl)
+
+    is_compiled_re = is_re(pat)
+    if is_compiled_re:
+        if (case is not None) or (flags != 0):
+            raise ValueError("case and flags cannot be set"
+                             " when pat is a compiled regex")
+    else:
+        # not a compiled regex
+        # set default case
+        if case is None:
+            case = True
+
+        # add case flag, if provided
+        if case is False:
+            flags |= re.IGNORECASE
+
+    use_re = is_compiled_re or len(pat) > 1 or flags or callable(repl)
 
     if use_re:
-        if not case:
-            flags |= re.IGNORECASE
-        regex = re.compile(pat, flags=flags)
         n = n if n >= 0 else 0
-
-        def f(x):
-            return regex.sub(repl, x, count=n)
+        regex = re.compile(pat, flags=flags)
+        f = lambda x: regex.sub(repl=repl, string=x, count=n)
     else:
         f = lambda x: x.replace(pat, repl, n)
 
@@ -429,11 +464,9 @@ def str_repeat(arr, repeats):
         return result
 
 
-def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
+def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     """
-    Deprecated: Find groups in each string in the Series/Index
-    using passed regular expression.
-    If as_indexer=True, determine if each string matches a regular expression.
+    Determine if each string matches a regular expression.
 
     Parameters
     ----------
@@ -444,60 +477,37 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=False):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer : False, by default, gives deprecated behavior better achieved
-        using str_extract. True return boolean indexer.
+    as_indexer : DEPRECATED
 
     Returns
     -------
     Series/array of boolean values
-        if as_indexer=True
-    Series/Index of tuples
-        if as_indexer=False, default but deprecated
 
     See Also
     --------
     contains : analogous, but less strict, relying on re.search instead of
         re.match
-    extract : now preferred to the deprecated usage of match (as_indexer=False)
+    extract : extract matched groups
 
-    Notes
-    -----
-    To extract matched groups, which is the deprecated behavior of match, use
-    str.extract.
     """
-
     if not case:
         flags |= re.IGNORECASE
 
     regex = re.compile(pat, flags=flags)
 
-    if (not as_indexer) and regex.groups > 0:
-        # Do this first, to make sure it happens even if the re.compile
-        # raises below.
-        warnings.warn("In future versions of pandas, match will change to"
-                      " always return a bool indexer.", FutureWarning,
-                      stacklevel=3)
+    if (as_indexer is False) and (regex.groups > 0):
+        raise ValueError("as_indexer=False with a pattern with groups is no "
+                         "longer supported. Use '.str.extract(pat)' instead")
+    elif as_indexer is not None:
+        # Previously, this keyword was used for changing the default but
+        # deprecated behaviour. This keyword is now no longer needed.
+        warnings.warn("'as_indexer' keyword was specified but is ignored "
+                      "(match now returns a boolean indexer by default), "
+                      "and will be removed in a future version.",
+                      FutureWarning, stacklevel=3)
 
-    if as_indexer and regex.groups > 0:
-        warnings.warn("This pattern has match groups. To actually get the"
-                      " groups, use str.extract.", UserWarning, stacklevel=3)
-
-    # If not as_indexer and regex.groups == 0, this returns empty lists
-    # and is basically useless, so we will not warn.
-
-    if (not as_indexer) and regex.groups > 0:
-        dtype = object
-
-        def f(x):
-            m = regex.match(x)
-            if m:
-                return m.groups()
-            else:
-                return []
-    else:
-        # This is the new behavior of str_match.
-        dtype = bool
-        f = lambda x: bool(regex.match(x))
+    dtype = bool
+    f = lambda x: bool(regex.match(x))
 
     return _na_map(f, arr, na, dtype=dtype)
 
@@ -1552,13 +1562,13 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_match)
-    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=False):
+    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
         result = str_match(self._data, pat, case=case, flags=flags, na=na,
                            as_indexer=as_indexer)
         return self._wrap_result(result)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=-1, case=True, flags=0):
+    def replace(self, pat, repl, n=-1, case=None, flags=0):
         result = str_replace(self._data, pat, repl, n=n, case=case,
                              flags=flags)
         return self._wrap_result(result)

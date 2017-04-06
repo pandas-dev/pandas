@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 from pandas.compat import lrange
+from pandas._libs import tslib
 from pandas import (PeriodIndex, Series, DatetimeIndex,
-                    period_range, Period, tslib, _np_version_under1p9)
+                    period_range, Period, _np_version_under1p9)
 
 
 class TestGetItem(tm.TestCase):

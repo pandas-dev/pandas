@@ -16,7 +16,7 @@ from pandas.tools.util import cartesian_product
 
 import pandas.sparse.frame as spf
 
-from pandas._sparse import BlockIndex, IntIndex
+from pandas.sparse.libsparse import BlockIndex, IntIndex
 from pandas.sparse.api import SparseSeries
 from pandas.tests.series.test_misc_api import SharedWithSparse
 
@@ -111,12 +111,6 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_iteration_and_str(self):
         [x for x in self.bseries]
         str(self.bseries)
-
-    def test_TimeSeries_deprecation(self):
-
-        # deprecation TimeSeries, #10890
-        with tm.assert_produces_warning(FutureWarning):
-            pd.SparseTimeSeries(1, index=pd.date_range('20130101', periods=3))
 
     def test_construct_DataFrame_with_sp_series(self):
         # it works!

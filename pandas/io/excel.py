@@ -15,11 +15,11 @@ from pandas.types.common import (is_integer, is_float,
 
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
+from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              EmptyDataError, get_filepath_or_buffer,
-                              _NA_VALUES)
+                              get_filepath_or_buffer, _NA_VALUES)
 from pandas.tseries.period import Period
-from pandas import json
+from pandas.io.json import libjson
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
                            string_types, OrderedDict)
 from pandas.core import config
@@ -243,9 +243,8 @@ class ExcelFile(object):
         # to get_filepath_or_buffer()
         if _is_url(io):
             io = _urlopen(io)
-        # Deal with S3 urls, path objects, etc. Will convert them to
-        # buffer or path string
-        io, _, _ = get_filepath_or_buffer(io)
+        elif not isinstance(io, (ExcelFile, xlrd.Book)):
+            io, _, _ = get_filepath_or_buffer(io)
 
         if engine == 'xlrd' and isinstance(io, xlrd.Book):
             self.book = io
@@ -343,13 +342,10 @@ class ExcelFile(object):
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")
-        if parse_dates:
-            raise NotImplementedError("parse_dates keyword of read_excel "
-                                      "is not implemented")
 
-        if date_parser is not None:
-            raise NotImplementedError("date_parser keyword of read_excel "
-                                      "is not implemented")
+        if parse_dates is True and index_col is None:
+            warn("The 'parse_dates=True' keyword of read_excel was provided"
+                 " without an 'index_col' keyword value.")
 
         import xlrd
         from xlrd import (xldate, XL_CELL_DATE,
@@ -541,6 +537,22 @@ class ExcelFile(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+
+def _validate_freeze_panes(freeze_panes):
+    if freeze_panes is not None:
+        if (
+            len(freeze_panes) == 2 and
+            all(isinstance(item, int) for item in freeze_panes)
+        ):
+            return True
+
+        raise ValueError("freeze_panes must be of form (row, column)"
+                         " where row and column are integers")
+
+    # freeze_panes wasn't specified, return False so it won't be applied
+    # to output sheet
+    return False
 
 
 def _trim_excel_header(row):
@@ -1330,7 +1342,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
             wks.title = sheet_name
             self.sheets[sheet_name] = wks
 
-        if freeze_panes is not None:
+        if _validate_freeze_panes(freeze_panes):
             wks.freeze_panes = wks.cell(row=freeze_panes[0] + 1,
                                         column=freeze_panes[1] + 1)
 
@@ -1418,7 +1430,7 @@ class _XlwtWriter(ExcelWriter):
             wks = self.book.add_sheet(sheet_name)
             self.sheets[sheet_name] = wks
 
-        if freeze_panes is not None:
+        if _validate_freeze_panes(freeze_panes):
             wks.set_panes_frozen(True)
             wks.set_horz_split_pos(freeze_panes[0])
             wks.set_vert_split_pos(freeze_panes[1])
@@ -1434,7 +1446,7 @@ class _XlwtWriter(ExcelWriter):
             elif isinstance(cell.val, date):
                 num_format_str = self.date_format
 
-            stylekey = json.dumps(cell.style)
+            stylekey = libjson.dumps(cell.style)
             if num_format_str:
                 stylekey += num_format_str
 
@@ -1550,7 +1562,7 @@ class _XlsxWriter(ExcelWriter):
 
         style_dict = {}
 
-        if freeze_panes is not None:
+        if _validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
 
         for cell in cells:
@@ -1562,7 +1574,7 @@ class _XlsxWriter(ExcelWriter):
             elif isinstance(cell.val, date):
                 num_format_str = self.date_format
 
-            stylekey = json.dumps(cell.style)
+            stylekey = libjson.dumps(cell.style)
             if num_format_str:
                 stylekey += num_format_str
 

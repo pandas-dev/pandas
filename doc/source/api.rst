@@ -60,6 +60,7 @@ JSON
    :toctree: generated/
 
    json_normalize
+   build_table_schema
 
 .. currentmodule:: pandas
 
@@ -117,7 +118,6 @@ Google BigQuery
    :toctree: generated/
 
    read_gbq
-   to_gbq
 
 
 .. currentmodule:: pandas
@@ -711,8 +711,8 @@ Serialization / IO / Conversion
    Series.to_string
    Series.to_clipboard
 
-Sparse methods
-~~~~~~~~~~~~~~
+Sparse
+~~~~~~
 .. autosummary::
    :toctree: generated/
 
@@ -933,6 +933,7 @@ Reshaping, sorting, transposing
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
+   DataFrame.melt
    DataFrame.T
    DataFrame.to_panel
    DataFrame.to_xarray
@@ -1029,6 +1030,13 @@ Serialization / IO / Conversion
    DataFrame.to_dense
    DataFrame.to_string
    DataFrame.to_clipboard
+
+Sparse
+~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   SparseDataFrame.to_coo
 
 .. _api.panel:
 
@@ -1237,57 +1245,6 @@ Serialization / IO / Conversion
    Panel.to_xarray
    Panel.to_clipboard
 
-.. _api.panel4d:
-
-Panel4D
--------
-
-Constructor
-~~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   Panel4D
-
-Serialization / IO / Conversion
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   Panel4D.to_xarray
-
-Attributes and underlying data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Axes**
-
-  * **labels**: axis 1; each label corresponds to a Panel contained inside
-  * **items**: axis 2; each item corresponds to a DataFrame contained inside
-  * **major_axis**: axis 3; the index (rows) of each of the DataFrames
-  * **minor_axis**: axis 4; the columns of each of the DataFrames
-
-.. autosummary::
-   :toctree: generated/
-
-   Panel4D.values
-   Panel4D.axes
-   Panel4D.ndim
-   Panel4D.size
-   Panel4D.shape
-   Panel4D.dtypes
-   Panel4D.ftypes
-   Panel4D.get_dtype_counts
-   Panel4D.get_ftype_counts
-
-Conversion
-~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   Panel4D.astype
-   Panel4D.copy
-   Panel4D.isnull
-   Panel4D.notnull
-
 .. _api.index:
 
 Index
@@ -1321,6 +1278,7 @@ Attributes
    Index.nbytes
    Index.ndim
    Index.size
+   Index.empty
    Index.strides
    Index.itemsize
    Index.base
@@ -1455,6 +1413,7 @@ MultiIndex
    :toctree: generated/
 
    MultiIndex
+   IndexSlice
 
 MultiIndex Components
 ~~~~~~~~~~~~~~~~~~~~~~

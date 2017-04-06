@@ -14,7 +14,7 @@ from pandas import (Series, DataFrame, Panel, Index, isnull,
 from pandas.types.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError
-from pandas.core.common import UnsupportedFunctionCall
+from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.frequencies import to_offset
@@ -26,7 +26,7 @@ from pandas.tseries.resample import (DatetimeIndex, TimeGrouper,
 from pandas.tseries.tdi import timedelta_range, TimedeltaIndex
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
-from pandas._period import IncompatibleFrequency
+from pandas._libs.period import IncompatibleFrequency
 
 bday = BDay()
 
@@ -757,10 +757,8 @@ class Base(object):
                         freq in ['M', 'D']):
                     # GH12871 - TODO: name should propagate, but currently
                     # doesn't on lower / same frequency with PeriodIndex
-                    assert_series_equal(result, expected, check_dtype=False,
-                                        check_names=False)
-                    # this assert will break when fixed
-                    self.assertTrue(result.name is None)
+                    assert_series_equal(result, expected, check_dtype=False)
+
                 else:
                     assert_series_equal(result, expected, check_dtype=False)
 

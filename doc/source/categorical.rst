@@ -230,6 +230,15 @@ Categories must be unique or a `ValueError` is raised:
     except ValueError as e:
         print("ValueError: " + str(e))
 
+Categories must also not be ``NaN`` or a `ValueError` is raised:
+
+.. ipython:: python
+
+    try:
+        s.cat.categories = [1,2,np.nan]
+    except ValueError as e:
+        print("ValueError: " + str(e))
+
 Appending new categories
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -617,6 +626,7 @@ Assigning a `Categorical` to parts of a column of other types will use the value
     df
     df.dtypes
 
+.. _categorical.merge:
 
 Merging
 ~~~~~~~
@@ -645,6 +655,9 @@ In this case the categories are not the same and so an error is raised:
         print("ValueError: " + str(e))
 
 The same applies to ``df.append(df_different)``.
+
+See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about preserving merge dtypes and performance.
+
 
 .. _categorical.union:
 

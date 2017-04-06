@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from pandas.core.algorithms import factorize, match, unique, value_counts
+from pandas.core.algorithms import factorize, unique, value_counts
 from pandas.types.missing import isnull, notnull
 from pandas.core.categorical import Categorical
 from pandas.core.groupby import Grouper
@@ -13,11 +13,10 @@ from pandas.core.index import (Index, CategoricalIndex, Int64Index,
                                UInt64Index, RangeIndex, Float64Index,
                                MultiIndex)
 
-from pandas.core.series import Series, TimeSeries
+from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel, WidePanel
 from pandas.core.panel4d import Panel4D
-from pandas.core.groupby import groupby
 from pandas.core.reshape import (pivot_simple as pivot, get_dummies,
                                  lreshape, wide_to_long)
 
@@ -42,3 +41,24 @@ datetools = _DeprecatedModule(deprmod='pandas.core.datetools',
 
 from pandas.core.config import (get_option, set_option, reset_option,
                                 describe_option, option_context, options)
+
+
+# deprecation, xref #13790
+def match(*args, **kwargs):
+    import warnings
+
+    warnings.warn("pd.match() is deprecated and will be removed "
+                  "in a future version",
+                  FutureWarning, stacklevel=2)
+    from pandas.core.algorithms import match
+    return match(*args, **kwargs)
+
+
+def groupby(*args, **kwargs):
+    import warnings
+
+    warnings.warn("pd.groupby() is deprecated and will be removed "
+                  "Please use the Series.groupby() or "
+                  "DataFrame.groupby() methods",
+                  FutureWarning, stacklevel=2)
+    return args[0].groupby(*args[1:], **kwargs)

@@ -1,0 +1,4 @@
+python=3.6*
+python-dateutil
+pytz
+cython

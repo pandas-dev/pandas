@@ -7,8 +7,10 @@ import re
 
 import numpy as np
 
-from pandas.types.common import _ensure_platform_int, is_list_like
-from pandas.types.cast import _maybe_promote
+from pandas.types.common import (_ensure_platform_int,
+                                 is_list_like, is_bool_dtype,
+                                 needs_i8_conversion)
+from pandas.types.cast import maybe_promote
 from pandas.types.missing import notnull
 import pandas.types.concat as _concat
 
@@ -17,15 +19,17 @@ from pandas.core.frame import DataFrame
 
 from pandas.core.sparse import SparseDataFrame, SparseSeries
 from pandas.sparse.array import SparseArray
-from pandas._sparse import IntIndex
+from pandas.sparse.libsparse import IntIndex
 
 from pandas.core.categorical import Categorical, _factorize_from_iterable
 from pandas.core.sorting import (get_group_index, compress_group_index,
                                  decons_obs_group_ids)
 
 import pandas.core.algorithms as algos
-import pandas.algos as _algos
+from pandas._libs import algos as _algos, reshape as _reshape
 
+from pandas.core.frame import _shared_docs
+from pandas.util.decorators import Appender
 from pandas.core.index import MultiIndex, _get_na_value
 
 
@@ -182,25 +186,60 @@ class _Unstacker(object):
         stride = values.shape[1]
         result_width = width * stride
         result_shape = (length, result_width)
+        mask = self.mask
+        mask_all = mask.all()
+
+        # we can simply reshape if we don't have a mask
+        if mask_all and len(values):
+            new_values = (self.sorted_values
+                              .reshape(length, width, stride)
+                              .swapaxes(1, 2)
+                              .reshape(result_shape)
+                          )
+            new_mask = np.ones(result_shape, dtype=bool)
+            return new_values, new_mask
 
         # if our mask is all True, then we can use our existing dtype
-        if self.mask.all():
+        if mask_all:
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
         else:
-            dtype, fill_value = _maybe_promote(values.dtype, self.fill_value)
+            dtype, fill_value = maybe_promote(values.dtype, self.fill_value)
             new_values = np.empty(result_shape, dtype=dtype)
             new_values.fill(fill_value)
 
         new_mask = np.zeros(result_shape, dtype=bool)
 
-        # is there a simpler / faster way of doing this?
-        for i in range(values.shape[1]):
-            chunk = new_values[:, i * width:(i + 1) * width]
-            mask_chunk = new_mask[:, i * width:(i + 1) * width]
+        name = np.dtype(dtype).name
+        sorted_values = self.sorted_values
 
-            chunk.flat[self.mask] = self.sorted_values[:, i]
-            mask_chunk.flat[self.mask] = True
+        # we need to convert to a basic dtype
+        # and possibly coerce an input to our output dtype
+        # e.g. ints -> floats
+        if needs_i8_conversion(values):
+            sorted_values = sorted_values.view('i8')
+            new_values = new_values.view('i8')
+            name = 'int64'
+        elif is_bool_dtype(values):
+            sorted_values = sorted_values.astype('object')
+            new_values = new_values.astype('object')
+            name = 'object'
+        else:
+            sorted_values = sorted_values.astype(name, copy=False)
+
+        # fill in our values & mask
+        f = getattr(_reshape, "unstack_{}".format(name))
+        f(sorted_values,
+          mask.view('u1'),
+          stride,
+          length,
+          width,
+          new_values,
+          new_mask.view('u1'))
+
+        # reconstruct dtype if needed
+        if needs_i8_conversion(values):
+            new_values = new_values.view(values.dtype)
 
         return new_values, new_mask
 
@@ -664,98 +703,12 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     return result
 
 
+@Appender(_shared_docs['melt'] %
+          dict(caller='pd.melt(df, ',
+               versionadded="",
+               other='DataFrame.melt'))
 def melt(frame, id_vars=None, value_vars=None, var_name=None,
          value_name='value', col_level=None):
-    """
-    "Unpivots" a DataFrame from wide format to long format, optionally leaving
-    identifier variables set.
-
-    This function is useful to massage a DataFrame into a format where one
-    or more columns are identifier variables (`id_vars`), while all other
-    columns, considered measured variables (`value_vars`), are "unpivoted" to
-    the row axis, leaving just two non-identifier columns, 'variable' and
-    'value'.
-
-    Parameters
-    ----------
-    frame : DataFrame
-    id_vars : tuple, list, or ndarray, optional
-        Column(s) to use as identifier variables.
-    value_vars : tuple, list, or ndarray, optional
-        Column(s) to unpivot. If not specified, uses all columns that
-        are not set as `id_vars`.
-    var_name : scalar
-        Name to use for the 'variable' column. If None it uses
-        ``frame.columns.name`` or 'variable'.
-    value_name : scalar, default 'value'
-        Name to use for the 'value' column.
-    col_level : int or string, optional
-        If columns are a MultiIndex then use this level to melt.
-
-    See also
-    --------
-    pivot_table
-    DataFrame.pivot
-
-    Examples
-    --------
-    >>> import pandas as pd
-    >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
-    ...                    'B': {0: 1, 1: 3, 2: 5},
-    ...                    'C': {0: 2, 1: 4, 2: 6}})
-    >>> df
-       A  B  C
-    0  a  1  2
-    1  b  3  4
-    2  c  5  6
-
-    >>> pd.melt(df, id_vars=['A'], value_vars=['B'])
-       A variable  value
-    0  a        B      1
-    1  b        B      3
-    2  c        B      5
-
-    >>> pd.melt(df, id_vars=['A'], value_vars=['B', 'C'])
-       A variable  value
-    0  a        B      1
-    1  b        B      3
-    2  c        B      5
-    3  a        C      2
-    4  b        C      4
-    5  c        C      6
-
-    The names of 'variable' and 'value' columns can be customized:
-
-    >>> pd.melt(df, id_vars=['A'], value_vars=['B'],
-    ...         var_name='myVarname', value_name='myValname')
-       A myVarname  myValname
-    0  a         B          1
-    1  b         B          3
-    2  c         B          5
-
-    If you have multi-index columns:
-
-    >>> df.columns = [list('ABC'), list('DEF')]
-    >>> df
-       A  B  C
-       D  E  F
-    0  a  1  2
-    1  b  3  4
-    2  c  5  6
-
-    >>> pd.melt(df, col_level=0, id_vars=['A'], value_vars=['B'])
-       A variable  value
-    0  a        B      1
-    1  b        B      3
-    2  c        B      5
-
-    >>> pd.melt(df, id_vars=[('A', 'D')], value_vars=[('B', 'E')])
-      (A, D) variable_0 variable_1  value
-    0      a          B          E      1
-    1      b          B          E      3
-    2      c          B          E      5
-
-    """
     # TODO: what about the existing index?
     if id_vars is not None:
         if not is_list_like(id_vars):
@@ -811,7 +764,8 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     mdata[value_name] = frame.values.ravel('F')
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns.get_level_values(i)).repeat(N)
+        mdata[col] = np.asanyarray(frame.columns
+                                   ._get_level_values(i)).repeat(N)
 
     return DataFrame(mdata, columns=mcolumns)
 
@@ -1270,7 +1224,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         if not sparse:
             return DataFrame(index=index)
         else:
-            return SparseDataFrame(index=index)
+            return SparseDataFrame(index=index, default_fill_value=0)
 
     # if all NaN
     if not dummy_na and len(levels) == 0:
@@ -1319,6 +1273,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             sparse_series[col] = SparseSeries(data=sarr, index=index)
 
         out = SparseDataFrame(sparse_series, index=index, columns=dummy_cols,
+                              default_fill_value=0,
                               dtype=np.uint8)
         return out
 

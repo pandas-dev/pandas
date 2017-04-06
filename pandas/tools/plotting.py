@@ -150,6 +150,14 @@ def _mpl_ge_2_0_0():
         return False
 
 
+def _mpl_ge_2_0_1():
+    try:
+        import matplotlib
+        return matplotlib.__version__ >= LooseVersion('2.0.1')
+    except ImportError:
+        return False
+
+
 if _mpl_ge_1_5_0():
     # Compat with mp 1.5, which uses cycler.
     import cycler
@@ -352,7 +360,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     >>> df = DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
     >>> scatter_matrix(df, alpha=0.2)
     """
-    import matplotlib.pyplot as plt
 
     df = frame._get_numeric_data()
     n = df.columns.size
@@ -370,8 +377,8 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     hist_kwds = hist_kwds or {}
     density_kwds = density_kwds or {}
 
-    # workaround because `c='b'` is hardcoded in matplotlibs scatter method
-    kwds.setdefault('c', plt.rcParams['patch.facecolor'])
+    # GH 14855
+    kwds.setdefault('edgecolors', 'none')
 
     boundaries_list = []
     for a in df.columns:
@@ -2867,8 +2874,7 @@ def scatter_plot(data, x, y, by=None, ax=None, figsize=None, grid=False,
     """
     import matplotlib.pyplot as plt
 
-    # workaround because `c='b'` is hardcoded in matplotlibs scatter method
-    kwargs.setdefault('c', plt.rcParams['patch.facecolor'])
+    kwargs.setdefault('edgecolors', 'none')
 
     def plot_group(group, ax):
         xvals = group[x].values

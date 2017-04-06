@@ -12,22 +12,22 @@ values = [1,2]
 s4 = s3.astype('object')
 """
 
-series_nlargest1 = Benchmark('s1.nlargest(3, take_last=True);'
-                             's1.nlargest(3, take_last=False)',
+series_nlargest1 = Benchmark("s1.nlargest(3, keep='last');"
+                             "s1.nlargest(3, keep='first')",
                              setup,
                              start_date=datetime(2014, 1, 25))
-series_nlargest2 = Benchmark('s2.nlargest(3, take_last=True);'
-                             's2.nlargest(3, take_last=False)',
+series_nlargest2 = Benchmark("s2.nlargest(3, keep='last');"
+                             "s2.nlargest(3, keep='first')",
                              setup,
                              start_date=datetime(2014, 1, 25))
 
-series_nsmallest2 = Benchmark('s1.nsmallest(3, take_last=True);'
-                              's1.nsmallest(3, take_last=False)',
+series_nsmallest2 = Benchmark("s1.nsmallest(3, keep='last');"
+                              "s1.nsmallest(3, keep='first')",
                               setup,
                               start_date=datetime(2014, 1, 25))
 
-series_nsmallest2 = Benchmark('s2.nsmallest(3, take_last=True);'
-                              's2.nsmallest(3, take_last=False)',
+series_nsmallest2 = Benchmark("s2.nsmallest(3, keep='last');"
+                              "s2.nsmallest(3, keep='first')",
                               setup,
                               start_date=datetime(2014, 1, 25))
 

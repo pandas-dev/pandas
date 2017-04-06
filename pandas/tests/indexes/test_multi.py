@@ -15,9 +15,10 @@ import pandas as pd
 from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
                     compat, date_range, period_range)
 from pandas.compat import PY3, long, lrange, lzip, range, u
-from pandas.core.common import PerformanceWarning, UnsortedIndexError
+from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.indexes.base import InvalidIndexError
-from pandas.lib import Timestamp
+from pandas._libs import lib
+from pandas._libs.lib import Timestamp
 
 import pandas.util.testing as tm
 
@@ -87,6 +88,15 @@ class TestMultiIndex(Base, tm.TestCase):
             i.where(True)
 
         self.assertRaises(NotImplementedError, f)
+
+    def test_where_array_like(self):
+        i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
+        klasses = [list, tuple, np.array, pd.Series]
+        cond = [False, True]
+
+        for klass in klasses:
+            f = lambda: i.where(klass(cond))
+            self.assertRaises(NotImplementedError, f)
 
     def test_repeat(self):
         reps = 2
@@ -842,7 +852,7 @@ class TestMultiIndex(Base, tm.TestCase):
     def test_from_product_datetimeindex(self):
         dt_index = date_range('2000-01-01', periods=2)
         mi = pd.MultiIndex.from_product([[1, 2], dt_index])
-        etalon = pd.lib.list_to_object_array([(1, pd.Timestamp(
+        etalon = lib.list_to_object_array([(1, pd.Timestamp(
             '2000-01-01')), (1, pd.Timestamp('2000-01-02')), (2, pd.Timestamp(
                 '2000-01-01')), (2, pd.Timestamp('2000-01-02'))])
         tm.assert_numpy_array_equal(mi.values, etalon)
@@ -869,7 +879,7 @@ class TestMultiIndex(Base, tm.TestCase):
                   (3, pd.Timestamp('2000-01-03'))]
         mi = pd.MultiIndex.from_tuples(tuples)
         tm.assert_numpy_array_equal(mi.values,
-                                    pd.lib.list_to_object_array(tuples))
+                                    lib.list_to_object_array(tuples))
         # Check that code branches for boxed values produce identical results
         tm.assert_numpy_array_equal(mi.values[:4], mi[:4].values)
 
@@ -1349,7 +1359,7 @@ class TestMultiIndex(Base, tm.TestCase):
                                         names=['one', 'two'])
         result = index.get_indexer(index.values)
         self.assert_numpy_array_equal(result,
-                                      np.arange(len(index), dtype='int64'))
+                                      np.arange(len(index), dtype='intp'))
 
         for i in [0, 1, len(index) - 2, len(index) - 1]:
             result = index.get_loc(index[i])
@@ -2172,7 +2182,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         for keep in ['first', 'last', False]:
             left = mi.duplicated(keep=keep)
-            right = pd.hashtable.duplicated_object(mi.values, keep=keep)
+            right = pd._libs.hashtable.duplicated_object(mi.values, keep=keep)
             tm.assert_numpy_array_equal(left, right)
 
         # GH5873

@@ -19,6 +19,13 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData, _check_mixed_float
 
 
+try:
+    import scipy
+    _is_scipy_ge_0190 = scipy.__version__ >= LooseVersion('0.19.0')
+except:
+    _is_scipy_ge_0190 = False
+
+
 def _skip_if_no_pchip():
     try:
         from scipy.interpolate import pchip_interpolate  # noqa
@@ -549,6 +556,7 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
 
     def test_interp_various(self):
         tm._skip_if_no_scipy()
+
         df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
                         'C': [1, 2, 3, 5, 8, 13, 21]})
         df = df.set_index('C')
@@ -560,8 +568,15 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='cubic')
-        expected.A.loc[3] = 2.81621174
-        expected.A.loc[13] = 5.64146581
+        # GH #15662.
+        # new cubic and quadratic interpolation algorithms from scipy 0.19.0.
+        # previously `splmake` was used. See scipy/scipy#6710
+        if _is_scipy_ge_0190:
+            expected.A.loc[3] = 2.81547781
+            expected.A.loc[13] = 5.52964175
+        else:
+            expected.A.loc[3] = 2.81621174
+            expected.A.loc[13] = 5.64146581
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='nearest')
@@ -570,8 +585,12 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
         assert_frame_equal(result, expected, check_dtype=False)
 
         result = df.interpolate(method='quadratic')
-        expected.A.loc[3] = 2.82533638
-        expected.A.loc[13] = 6.02817974
+        if _is_scipy_ge_0190:
+            expected.A.loc[3] = 2.82150771
+            expected.A.loc[13] = 6.12648668
+        else:
+            expected.A.loc[3] = 2.82533638
+            expected.A.loc[13] = 6.02817974
         assert_frame_equal(result, expected)
 
         result = df.interpolate(method='slinear')
@@ -583,11 +602,6 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
         expected.A.loc[3] = 2.
         expected.A.loc[13] = 5
         assert_frame_equal(result, expected, check_dtype=False)
-
-        result = df.interpolate(method='quadratic')
-        expected.A.loc[3] = 2.82533638
-        expected.A.loc[13] = 6.02817974
-        assert_frame_equal(result, expected)
 
     def test_interp_alt_scipy(self):
         tm._skip_if_no_scipy()

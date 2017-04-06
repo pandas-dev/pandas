@@ -1,2 +1,4 @@
+python=3.5*
+nomkl
 numpy=1.10.4
 cython

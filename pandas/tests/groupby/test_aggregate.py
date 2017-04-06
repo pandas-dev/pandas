@@ -6,7 +6,7 @@ generally in test_groupby.py
 """
 
 from __future__ import print_function
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
 
 import numpy as np
@@ -153,6 +153,29 @@ class TestGroupByAggregate(tm.TestCase):
         assert_frame_equal(grouped.agg({'time': 'last'}), exp)
         assert_series_equal(grouped.time.last(), exp['time'])
         assert_series_equal(grouped.time.agg('last'), exp['time'])
+
+        # count
+        exp = pd.Series([2, 2, 2, 2],
+                        index=Index(list('ABCD'), name='class'),
+                        name='time')
+        assert_series_equal(grouped.time.agg(len), exp)
+        assert_series_equal(grouped.time.size(), exp)
+
+        exp = pd.Series([0, 1, 1, 2],
+                        index=Index(list('ABCD'), name='class'),
+                        name='time')
+        assert_series_equal(grouped.time.count(), exp)
+
+    def test_agg_cast_results_dtypes(self):
+        # similar to GH12821
+        # xref #11444
+        u = [datetime(2015, x + 1, 1) for x in range(12)]
+        v = list('aaabbbbbbccd')
+        df = pd.DataFrame({'X': v, 'Y': u})
+
+        result = df.groupby('X')['Y'].agg(len)
+        expected = df.groupby('X')['Y'].count()
+        assert_series_equal(result, expected)
 
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
@@ -738,3 +761,32 @@ class TestGroupByAggregate(tm.TestCase):
                                 columns=expected_column)
 
         assert_frame_equal(result, expected)
+
+    def test_agg_timezone_round_trip(self):
+        # GH 15426
+        ts = pd.Timestamp("2016-01-01 12:00:00", tz='US/Pacific')
+        df = pd.DataFrame({'a': 1, 'b': [ts + timedelta(minutes=nn)
+                                         for nn in range(10)]})
+
+        result1 = df.groupby('a')['b'].agg(np.min).iloc[0]
+        result2 = df.groupby('a')['b'].agg(lambda x: np.min(x)).iloc[0]
+        result3 = df.groupby('a')['b'].min().iloc[0]
+
+        assert result1 == ts
+        assert result2 == ts
+        assert result3 == ts
+
+        dates = [pd.Timestamp("2016-01-0%d 12:00:00" % i, tz='US/Pacific')
+                 for i in range(1, 5)]
+        df = pd.DataFrame({'A': ['a', 'b'] * 2, 'B': dates})
+        grouped = df.groupby('A')
+
+        ts = df['B'].iloc[0]
+        assert ts == grouped.nth(0)['B'].iloc[0]
+        assert ts == grouped.head(1)['B'].iloc[0]
+        assert ts == grouped.first()['B'].iloc[0]
+        assert ts == grouped.apply(lambda x: x.iloc[0])[0]
+
+        ts = df['B'].iloc[2]
+        assert ts == grouped.last()['B'].iloc[0]
+        assert ts == grouped.apply(lambda x: x.iloc[-1])[0]

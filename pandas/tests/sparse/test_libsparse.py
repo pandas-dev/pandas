@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas import compat
 
 from pandas.sparse.array import IntIndex, BlockIndex, _make_index
-import pandas._sparse as splib
+import pandas.sparse.libsparse as splib
 
 TEST_LENGTH = 20
 
@@ -473,6 +473,44 @@ class TestBlockIndex(tm.TestCase):
 
 
 class TestIntIndex(tm.TestCase):
+
+    def test_check_integrity(self):
+
+        # Too many indices than specified in self.length
+        msg = "Too many indices"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            IntIndex(length=1, indices=[1, 2, 3])
+
+        # No index can be negative.
+        msg = "No index can be less than zero"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            IntIndex(length=5, indices=[1, -2, 3])
+
+        # No index can be negative.
+        msg = "No index can be less than zero"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            IntIndex(length=5, indices=[1, -2, 3])
+
+        # All indices must be less than the length.
+        msg = "All indices must be less than the length"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            IntIndex(length=5, indices=[1, 2, 5])
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            IntIndex(length=5, indices=[1, 2, 6])
+
+        # Indices must be strictly ascending.
+        msg = "Indices must be strictly increasing"
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            IntIndex(length=5, indices=[1, 3, 2])
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            IntIndex(length=5, indices=[1, 3, 3])
 
     def test_int_internal(self):
         idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='integer')

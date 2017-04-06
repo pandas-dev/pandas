@@ -2,7 +2,6 @@
 # pylint: disable-msg=W0612,E1101
 
 from pandas import DataFrame, Series
-from pandas.core.sparse import SparseDataFrame
 import pandas as pd
 
 from numpy import nan
@@ -31,23 +30,46 @@ class TestMelt(tm.TestCase):
         self.df1.columns = [list('ABC'), list('abc')]
         self.df1.columns.names = ['CAP', 'low']
 
-    def test_default_col_names(self):
+    def test_top_level_method(self):
         result = melt(self.df)
         self.assertEqual(result.columns.tolist(), ['variable', 'value'])
 
-        result1 = melt(self.df, id_vars=['id1'])
+    def test_method_signatures(self):
+        tm.assert_frame_equal(self.df.melt(),
+                              melt(self.df))
+
+        tm.assert_frame_equal(self.df.melt(id_vars=['id1', 'id2'],
+                                           value_vars=['A', 'B']),
+                              melt(self.df,
+                                   id_vars=['id1', 'id2'],
+                                   value_vars=['A', 'B']))
+
+        tm.assert_frame_equal(self.df.melt(var_name=self.var_name,
+                                           value_name=self.value_name),
+                              melt(self.df,
+                                   var_name=self.var_name,
+                                   value_name=self.value_name))
+
+        tm.assert_frame_equal(self.df1.melt(col_level=0),
+                              melt(self.df1, col_level=0))
+
+    def test_default_col_names(self):
+        result = self.df.melt()
+        self.assertEqual(result.columns.tolist(), ['variable', 'value'])
+
+        result1 = self.df.melt(id_vars=['id1'])
         self.assertEqual(result1.columns.tolist(), ['id1', 'variable', 'value'
                                                     ])
 
-        result2 = melt(self.df, id_vars=['id1', 'id2'])
+        result2 = self.df.melt(id_vars=['id1', 'id2'])
         self.assertEqual(result2.columns.tolist(), ['id1', 'id2', 'variable',
                                                     'value'])
 
     def test_value_vars(self):
-        result3 = melt(self.df, id_vars=['id1', 'id2'], value_vars='A')
+        result3 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A')
         self.assertEqual(len(result3), 10)
 
-        result4 = melt(self.df, id_vars=['id1', 'id2'], value_vars=['A', 'B'])
+        result4 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'])
         expected4 = DataFrame({'id1': self.df['id1'].tolist() * 2,
                                'id2': self.df['id2'].tolist() * 2,
                                'variable': ['A'] * 10 + ['B'] * 10,
@@ -66,8 +88,8 @@ class TestMelt(tm.TestCase):
                              columns=['id1', 'id2', 'variable', 'value'])
 
         for type_ in (tuple, list, np.array):
-            result = melt(self.df, id_vars=['id1', 'id2'],
-                          value_vars=type_(('A', 'B')))
+            result = self.df.melt(id_vars=['id1', 'id2'],
+                                  value_vars=type_(('A', 'B')))
             tm.assert_frame_equal(result, expected)
 
     def test_vars_work_with_multiindex(self):
@@ -78,7 +100,7 @@ class TestMelt(tm.TestCase):
             'value': self.df1[('B', 'b')],
         }, columns=[('A', 'a'), 'CAP', 'low', 'value'])
 
-        result = melt(self.df1, id_vars=[('A', 'a')], value_vars=[('B', 'b')])
+        result = self.df1.melt(id_vars=[('A', 'a')], value_vars=[('B', 'b')])
         tm.assert_frame_equal(result, expected)
 
     def test_tuple_vars_fail_with_multiindex(self):
@@ -93,26 +115,26 @@ class TestMelt(tm.TestCase):
         for id_vars, value_vars in ((tuple_a, list_b), (list_a, tuple_b),
                                     (tuple_a, tuple_b)):
             with tm.assertRaisesRegexp(ValueError, r'MultiIndex'):
-                melt(self.df1, id_vars=id_vars, value_vars=value_vars)
+                self.df1.melt(id_vars=id_vars, value_vars=value_vars)
 
     def test_custom_var_name(self):
-        result5 = melt(self.df, var_name=self.var_name)
+        result5 = self.df.melt(var_name=self.var_name)
         self.assertEqual(result5.columns.tolist(), ['var', 'value'])
 
-        result6 = melt(self.df, id_vars=['id1'], var_name=self.var_name)
+        result6 = self.df.melt(id_vars=['id1'], var_name=self.var_name)
         self.assertEqual(result6.columns.tolist(), ['id1', 'var', 'value'])
 
-        result7 = melt(self.df, id_vars=['id1', 'id2'], var_name=self.var_name)
+        result7 = self.df.melt(id_vars=['id1', 'id2'], var_name=self.var_name)
         self.assertEqual(result7.columns.tolist(), ['id1', 'id2', 'var',
                                                     'value'])
 
-        result8 = melt(self.df, id_vars=['id1', 'id2'], value_vars='A',
-                       var_name=self.var_name)
+        result8 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A',
+                               var_name=self.var_name)
         self.assertEqual(result8.columns.tolist(), ['id1', 'id2', 'var',
                                                     'value'])
 
-        result9 = melt(self.df, id_vars=['id1', 'id2'], value_vars=['A', 'B'],
-                       var_name=self.var_name)
+        result9 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'],
+                               var_name=self.var_name)
         expected9 = DataFrame({'id1': self.df['id1'].tolist() * 2,
                                'id2': self.df['id2'].tolist() * 2,
                                self.var_name: ['A'] * 10 + ['B'] * 10,
@@ -122,24 +144,24 @@ class TestMelt(tm.TestCase):
         tm.assert_frame_equal(result9, expected9)
 
     def test_custom_value_name(self):
-        result10 = melt(self.df, value_name=self.value_name)
+        result10 = self.df.melt(value_name=self.value_name)
         self.assertEqual(result10.columns.tolist(), ['variable', 'val'])
 
-        result11 = melt(self.df, id_vars=['id1'], value_name=self.value_name)
+        result11 = self.df.melt(id_vars=['id1'], value_name=self.value_name)
         self.assertEqual(result11.columns.tolist(), ['id1', 'variable', 'val'])
 
-        result12 = melt(self.df, id_vars=['id1', 'id2'],
-                        value_name=self.value_name)
+        result12 = self.df.melt(id_vars=['id1', 'id2'],
+                                value_name=self.value_name)
         self.assertEqual(result12.columns.tolist(), ['id1', 'id2', 'variable',
                                                      'val'])
 
-        result13 = melt(self.df, id_vars=['id1', 'id2'], value_vars='A',
-                        value_name=self.value_name)
+        result13 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A',
+                                value_name=self.value_name)
         self.assertEqual(result13.columns.tolist(), ['id1', 'id2', 'variable',
                                                      'val'])
 
-        result14 = melt(self.df, id_vars=['id1', 'id2'], value_vars=['A', 'B'],
-                        value_name=self.value_name)
+        result14 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'],
+                                value_name=self.value_name)
         expected14 = DataFrame({'id1': self.df['id1'].tolist() * 2,
                                 'id2': self.df['id2'].tolist() * 2,
                                 'variable': ['A'] * 10 + ['B'] * 10,
@@ -151,26 +173,29 @@ class TestMelt(tm.TestCase):
 
     def test_custom_var_and_value_name(self):
 
-        result15 = melt(self.df, var_name=self.var_name,
-                        value_name=self.value_name)
+        result15 = self.df.melt(var_name=self.var_name,
+                                value_name=self.value_name)
         self.assertEqual(result15.columns.tolist(), ['var', 'val'])
 
-        result16 = melt(self.df, id_vars=['id1'], var_name=self.var_name,
-                        value_name=self.value_name)
+        result16 = self.df.melt(id_vars=['id1'], var_name=self.var_name,
+                                value_name=self.value_name)
         self.assertEqual(result16.columns.tolist(), ['id1', 'var', 'val'])
 
-        result17 = melt(self.df, id_vars=['id1', 'id2'],
-                        var_name=self.var_name, value_name=self.value_name)
+        result17 = self.df.melt(id_vars=['id1', 'id2'],
+                                var_name=self.var_name,
+                                value_name=self.value_name)
         self.assertEqual(result17.columns.tolist(), ['id1', 'id2', 'var', 'val'
                                                      ])
 
-        result18 = melt(self.df, id_vars=['id1', 'id2'], value_vars='A',
-                        var_name=self.var_name, value_name=self.value_name)
+        result18 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A',
+                                var_name=self.var_name,
+                                value_name=self.value_name)
         self.assertEqual(result18.columns.tolist(), ['id1', 'id2', 'var', 'val'
                                                      ])
 
-        result19 = melt(self.df, id_vars=['id1', 'id2'], value_vars=['A', 'B'],
-                        var_name=self.var_name, value_name=self.value_name)
+        result19 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'],
+                                var_name=self.var_name,
+                                value_name=self.value_name)
         expected19 = DataFrame({'id1': self.df['id1'].tolist() * 2,
                                 'id2': self.df['id2'].tolist() * 2,
                                 self.var_name: ['A'] * 10 + ['B'] * 10,
@@ -182,17 +207,17 @@ class TestMelt(tm.TestCase):
 
         df20 = self.df.copy()
         df20.columns.name = 'foo'
-        result20 = melt(df20)
+        result20 = df20.melt()
         self.assertEqual(result20.columns.tolist(), ['foo', 'value'])
 
     def test_col_level(self):
-        res1 = melt(self.df1, col_level=0)
-        res2 = melt(self.df1, col_level='CAP')
+        res1 = self.df1.melt(col_level=0)
+        res2 = self.df1.melt(col_level='CAP')
         self.assertEqual(res1.columns.tolist(), ['CAP', 'value'])
         self.assertEqual(res2.columns.tolist(), ['CAP', 'value'])
 
     def test_multiindex(self):
-        res = pd.melt(self.df1)
+        res = self.df1.melt()
         self.assertEqual(res.columns.tolist(), ['CAP', 'low', 'value'])
 
 
@@ -234,25 +259,31 @@ class TestGetDummies(tm.TestCase):
                           'b': ['A', 'A', 'B', 'C', 'C'],
                           'c': [2, 3, 3, 3, 2]})
 
+        expected = DataFrame({'a': [1, 0, 0],
+                              'b': [0, 1, 0],
+                              'c': [0, 0, 1]},
+                             dtype='uint8',
+                             columns=list('abc'))
         if not self.sparse:
-            exp_df_type = DataFrame
-            exp_blk_type = pd.core.internals.IntBlock
+            compare = tm.assert_frame_equal
         else:
-            exp_df_type = SparseDataFrame
-            exp_blk_type = pd.core.internals.SparseBlock
+            expected = expected.to_sparse(fill_value=0, kind='integer')
+            compare = tm.assert_sp_frame_equal
 
-        self.assertEqual(
-            type(get_dummies(s_list, sparse=self.sparse)), exp_df_type)
-        self.assertEqual(
-            type(get_dummies(s_series, sparse=self.sparse)), exp_df_type)
+        result = get_dummies(s_list, sparse=self.sparse)
+        compare(result, expected)
 
-        r = get_dummies(s_df, sparse=self.sparse, columns=s_df.columns)
-        self.assertEqual(type(r), exp_df_type)
+        result = get_dummies(s_series, sparse=self.sparse)
+        compare(result, expected)
 
-        r = get_dummies(s_df, sparse=self.sparse, columns=['a'])
-        self.assertEqual(type(r[['a_0']]._data.blocks[0]), exp_blk_type)
-        self.assertEqual(type(r[['a_1']]._data.blocks[0]), exp_blk_type)
-        self.assertEqual(type(r[['a_2']]._data.blocks[0]), exp_blk_type)
+        result = get_dummies(s_df, sparse=self.sparse, columns=s_df.columns)
+        tm.assert_series_equal(result.get_dtype_counts(),
+                               Series({'uint8': 8}))
+
+        result = get_dummies(s_df, sparse=self.sparse, columns=['a'])
+        expected = Series({'uint8': 3, 'int64': 1, 'object': 1}).sort_values()
+        tm.assert_series_equal(result.get_dtype_counts().sort_values(),
+                               expected)
 
     def test_just_na(self):
         just_na_list = [np.nan]

@@ -10,11 +10,12 @@ from pandas import Series, Categorical, CategoricalIndex, Index
 import pandas as pd
 
 from pandas import compat
-import pandas.algos as _algos
+from pandas._libs import (groupby as libgroupby, algos as libalgos,
+                          hashtable)
+from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
-import pandas.hashtable as hashtable
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
@@ -430,6 +431,8 @@ class TestIsin(tm.TestCase):
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_i8(self):
+
         arr = pd.date_range('20130101', periods=3).values
         result = algos.isin(arr, [arr[0]])
         expected = np.array([True, False, False])
@@ -648,7 +651,9 @@ class TestValueCounts(tm.TestCase):
         expected = Series([1, 1], index=[-1, 2**63])
         result = algos.value_counts(arr)
 
-        tm.assert_series_equal(result, expected)
+        # 32-bit linux has a different ordering
+        if not compat.is_platform_32bit():
+            tm.assert_series_equal(result, expected)
 
 
 class TestDuplicated(tm.TestCase):
@@ -889,7 +894,7 @@ class GroupVarTestMixin(object):
 class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
     __test__ = True
 
-    algo = algos.algos.group_var_float64
+    algo = libgroupby.group_var_float64
     dtype = np.float64
     rtol = 1e-5
 
@@ -912,7 +917,7 @@ class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
 class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
     __test__ = True
 
-    algo = algos.algos.group_var_float32
+    algo = libgroupby.group_var_float32
     dtype = np.float32
     rtol = 1e-2
 
@@ -972,7 +977,6 @@ def test_quantile():
 
 
 def test_unique_label_indices():
-    from pandas.hashtable import unique_label_indices
 
     a = np.random.randint(1, 1 << 10, 1 << 15).astype('i8')
 
@@ -998,7 +1002,7 @@ class TestRank(tm.TestCase):
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = _algos.rank_1d_float64(arr)
+            result = libalgos.rank_1d_float64(arr)
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = nan
@@ -1034,26 +1038,26 @@ def test_pad_backfill_object_segfault():
     old = np.array([], dtype='O')
     new = np.array([datetime(2010, 12, 31)], dtype='O')
 
-    result = _algos.pad_object(old, new)
+    result = libalgos.pad_object(old, new)
     expected = np.array([-1], dtype=np.int64)
     assert (np.array_equal(result, expected))
 
-    result = _algos.pad_object(new, old)
+    result = libalgos.pad_object(new, old)
     expected = np.array([], dtype=np.int64)
     assert (np.array_equal(result, expected))
 
-    result = _algos.backfill_object(old, new)
+    result = libalgos.backfill_object(old, new)
     expected = np.array([-1], dtype=np.int64)
     assert (np.array_equal(result, expected))
 
-    result = _algos.backfill_object(new, old)
+    result = libalgos.backfill_object(new, old)
     expected = np.array([], dtype=np.int64)
     assert (np.array_equal(result, expected))
 
 
 def test_arrmap():
     values = np.array(['foo', 'foo', 'bar', 'bar', 'baz', 'qux'], dtype='O')
-    result = _algos.arrmap_object(values, lambda x: x in ['foo', 'bar'])
+    result = libalgos.arrmap_object(values, lambda x: x in ['foo', 'bar'])
     assert (result.dtype == np.bool_)
 
 
@@ -1078,7 +1082,7 @@ class TestTseriesUtil(tm.TestCase):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = _algos.backfill_int64(old.values, new.values)
+        filler = libalgos.backfill_int64(old.values, new.values)
 
         expect_filler = np.array([0, 0, 1, 1, 1, 1,
                                   2, 2, 2, 2, 2, -1], dtype=np.int64)
@@ -1087,7 +1091,7 @@ class TestTseriesUtil(tm.TestCase):
         # corner case
         old = Index([1, 4])
         new = Index(lrange(5, 10))
-        filler = _algos.backfill_int64(old.values, new.values)
+        filler = libalgos.backfill_int64(old.values, new.values)
 
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         self.assert_numpy_array_equal(filler, expect_filler)
@@ -1096,7 +1100,7 @@ class TestTseriesUtil(tm.TestCase):
         old = Index([1, 5, 10])
         new = Index(lrange(12))
 
-        filler = _algos.pad_int64(old.values, new.values)
+        filler = libalgos.pad_int64(old.values, new.values)
 
         expect_filler = np.array([-1, 0, 0, 0, 0, 1,
                                   1, 1, 1, 1, 2, 2], dtype=np.int64)
@@ -1105,7 +1109,7 @@ class TestTseriesUtil(tm.TestCase):
         # corner case
         old = Index([5, 10])
         new = Index(lrange(5))
-        filler = _algos.pad_int64(old.values, new.values)
+        filler = libalgos.pad_int64(old.values, new.values)
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         self.assert_numpy_array_equal(filler, expect_filler)
 
@@ -1137,7 +1141,7 @@ def test_is_lexsorted():
                   6, 5,
                   4, 3, 2, 1, 0])]
 
-    assert (not _algos.is_lexsorted(failure))
+    assert (not libalgos.is_lexsorted(failure))
 
 # def test_get_group_index():
 #     a = np.array([0, 1, 2, 0, 2, 1, 0, 0], dtype=np.int64)
@@ -1153,7 +1157,7 @@ def test_groupsort_indexer():
     a = np.random.randint(0, 1000, 100).astype(np.int64)
     b = np.random.randint(0, 1000, 100).astype(np.int64)
 
-    result = _algos.groupsort_indexer(a, 1000)[0]
+    result = libalgos.groupsort_indexer(a, 1000)[0]
 
     # need to use a stable sort
     expected = np.argsort(a, kind='mergesort')
@@ -1161,7 +1165,7 @@ def test_groupsort_indexer():
 
     # compare with lexsort
     key = a * 1000 + b
-    result = _algos.groupsort_indexer(key, 1000000)[0]
+    result = libalgos.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
     assert (np.array_equal(result, expected))
 
@@ -1172,8 +1176,8 @@ def test_infinity_sort():
     # itself.  Instead, let's give our infinities a self-consistent
     # ordering, but outside the float extended real line.
 
-    Inf = _algos.Infinity()
-    NegInf = _algos.NegInfinity()
+    Inf = libalgos.Infinity()
+    NegInf = libalgos.NegInfinity()
 
     ref_nums = [NegInf, float("-inf"), -1e100, 0, 1e100, float("inf"), Inf]
 
@@ -1191,14 +1195,14 @@ def test_infinity_sort():
         assert sorted(perm) == ref_nums
 
     # smoke tests
-    np.array([_algos.Infinity()] * 32).argsort()
-    np.array([_algos.NegInfinity()] * 32).argsort()
+    np.array([libalgos.Infinity()] * 32).argsort()
+    np.array([libalgos.NegInfinity()] * 32).argsort()
 
 
 def test_ensure_platform_int():
     arr = np.arange(100, dtype=np.intp)
 
-    result = _algos.ensure_platform_int(arr)
+    result = libalgos.ensure_platform_int(arr)
     assert (result is arr)
 
 
@@ -1257,10 +1261,27 @@ class TestMode(tm.TestCase):
         exp = Series([], dtype=np.float64)
         tm.assert_series_equal(algos.mode([]), exp)
 
-        exp = Series([], dtype=np.int)
+    # GH 15714
+    def test_mode_single(self):
+        exp_single = [1]
+        data_single = [1]
+
+        exp_multi = [1]
+        data_multi = [1, 1]
+
+        for dt in np.typecodes['AllInteger'] + np.typecodes['Float']:
+            s = Series(data_single, dtype=dt)
+            exp = Series(exp_single, dtype=dt)
+            tm.assert_series_equal(algos.mode(s), exp)
+
+            s = Series(data_multi, dtype=dt)
+            exp = Series(exp_multi, dtype=dt)
+            tm.assert_series_equal(algos.mode(s), exp)
+
+        exp = Series([1], dtype=np.int)
         tm.assert_series_equal(algos.mode([1]), exp)
 
-        exp = Series([], dtype=np.object)
+        exp = Series(['a', 'b', 'c'], dtype=np.object)
         tm.assert_series_equal(algos.mode(['a', 'b', 'c']), exp)
 
     def test_number_mode(self):
@@ -1296,7 +1317,8 @@ class TestMode(tm.TestCase):
             tm.assert_series_equal(algos.mode(s), exp)
 
     def test_datelike_mode(self):
-        exp = Series([], dtype="M8[ns]")
+        exp = Series(['1900-05-03', '2011-01-03',
+                      '2013-01-02'], dtype="M8[ns]")
         s = Series(['2011-01-03', '2013-01-02',
                     '1900-05-03'], dtype='M8[ns]')
         tm.assert_series_equal(algos.mode(s), exp)
@@ -1307,7 +1329,8 @@ class TestMode(tm.TestCase):
         tm.assert_series_equal(algos.mode(s), exp)
 
     def test_timedelta_mode(self):
-        exp = Series([], dtype='timedelta64[ns]')
+        exp = Series(['-1 days', '0 days', '1 days'],
+                     dtype='timedelta64[ns]')
         s = Series(['1 days', '-1 days', '0 days'],
                    dtype='timedelta64[ns]')
         tm.assert_series_equal(algos.mode(s), exp)
@@ -1327,13 +1350,13 @@ class TestMode(tm.TestCase):
         s = Series([1, 2**63, 2**63], dtype=np.uint64)
         tm.assert_series_equal(algos.mode(s), exp)
 
-        exp = Series([], dtype=np.uint64)
+        exp = Series([1, 2**63], dtype=np.uint64)
         s = Series([1, 2**63], dtype=np.uint64)
         tm.assert_series_equal(algos.mode(s), exp)
 
     def test_categorical(self):
         c = Categorical([1, 2])
-        exp = Series([], dtype=np.int64)
+        exp = Series([1, 2], dtype=np.int64)
         tm.assert_series_equal(algos.mode(c), exp)
 
         c = Categorical([1, 'a', 'a'])
@@ -1346,7 +1369,7 @@ class TestMode(tm.TestCase):
 
     def test_index(self):
         idx = Index([1, 2, 3])
-        exp = Series([], dtype=np.int64)
+        exp = Series([1, 2, 3], dtype=np.int64)
         tm.assert_series_equal(algos.mode(idx), exp)
 
         idx = Index([1, 'a', 'a'])

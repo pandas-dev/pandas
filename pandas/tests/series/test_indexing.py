@@ -7,14 +7,14 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-import pandas.index as _index
+import pandas._libs.index as _index
 from pandas.types.common import is_integer, is_scalar
 from pandas import (Index, Series, DataFrame, isnull,
                     date_range, NaT, MultiIndex,
                     Timestamp, DatetimeIndex, Timedelta)
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
-from pandas import lib, tslib
+from pandas._libs import tslib, lib
 
 from pandas.compat import lrange, range
 from pandas import compat
@@ -164,21 +164,9 @@ class TestSeriesIndexing(TestData, tm.TestCase):
             result = s.get(None)
             self.assertIsNone(result)
 
-    def test_iget(self):
+    def test_iloc(self):
 
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
-
-        # 10711, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            s.iget(1)
-
-        # 10711, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            s.irow(1)
-
-        # 10711, deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            s.iget_value(1)
 
         for i in range(len(s)):
             result = s.iloc[i]
@@ -199,7 +187,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         expected = s.reindex(s.index[[0, 2, 3, 4, 5]])
         assert_series_equal(result, expected)
 
-    def test_iget_nonunique(self):
+    def test_iloc_nonunique(self):
         s = Series([0, 1, 2], index=[0, 1, 0])
         self.assertEqual(s.iloc[2], 2)
 
@@ -387,7 +375,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_getitem_setitem_datetime_tz_dateutil(self):
         tm._skip_if_no_dateutil()
         from dateutil.tz import tzutc
-        from pandas.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslib import _dateutil_gettz as gettz
 
         tz = lambda x: tzutc() if x == 'UTC' else gettz(
             x)  # handle special case for utc in dateutil
@@ -1193,6 +1181,60 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         expected = Series(np.nan, index=[9])
         assert_series_equal(result, expected)
 
+    def test_where_array_like(self):
+        # see gh-15414
+        s = Series([1, 2, 3])
+        cond = [False, True, True]
+        expected = Series([np.nan, 2, 3])
+        klasses = [list, tuple, np.array, Series]
+
+        for klass in klasses:
+            result = s.where(klass(cond))
+            assert_series_equal(result, expected)
+
+    def test_where_invalid_input(self):
+        # see gh-15414: only boolean arrays accepted
+        s = Series([1, 2, 3])
+        msg = "Boolean array expected for the condition"
+
+        conds = [
+            [1, 0, 1],
+            Series([2, 5, 7]),
+            ["True", "False", "True"],
+            [Timestamp("2017-01-01"),
+             pd.NaT, Timestamp("2017-01-02")]
+        ]
+
+        for cond in conds:
+            with tm.assertRaisesRegexp(ValueError, msg):
+                s.where(cond)
+
+        msg = "Array conditional must be same shape as self"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.where([True])
+
+    def test_where_ndframe_align(self):
+        msg = "Array conditional must be same shape as self"
+        s = Series([1, 2, 3])
+
+        cond = [True]
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.where(cond)
+
+        expected = Series([1, np.nan, np.nan])
+
+        out = s.where(Series(cond))
+        tm.assert_series_equal(out, expected)
+
+        cond = np.array([False, True, False, True])
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.where(cond)
+
+        expected = Series([np.nan, 2, np.nan])
+
+        out = s.where(Series(cond))
+        tm.assert_series_equal(out, expected)
+
     def test_where_setitem_invalid(self):
 
         # GH 2702
@@ -1341,6 +1383,14 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         rs = s.where(mask, [10.0, np.nan])
         expected = Series([10, None], dtype='datetime64[ns]')
+        assert_series_equal(rs, expected)
+
+        # GH 15701
+        timestamps = ['2016-12-31 12:00:04+00:00',
+                      '2016-12-31 12:00:04.010000+00:00']
+        s = Series([pd.Timestamp(t) for t in timestamps])
+        rs = s.where(Series([False, True]))
+        expected = Series([pd.NaT, s[1]])
         assert_series_equal(rs, expected)
 
     def test_where_timedelta(self):

@@ -1,0 +1,5 @@
+python=3.5*
+python-dateutil
+pytz
+numpy
+cython
