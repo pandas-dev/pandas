@@ -45,7 +45,7 @@ def _ensure_data(values, dtype=None):
     This will coerce:
     - ints -> int64
     - uint -> uint64
-    - bool -> uint8
+    - bool -> uint64 (TODO this should be uint8)
     - datetimelike -> i8
     - datetime64tz -> i8 (in local tz)
     - categorical -> codes
@@ -74,16 +74,13 @@ def _ensure_data(values, dtype=None):
             from pandas import TimedeltaIndex
             values = TimedeltaIndex(values)
             dtype = values.dtype
-        elif is_datetimetz(values) or is_datetime64tz_dtype(dtype):
-            from pandas import DatetimeIndex
-            values = DatetimeIndex(values)
-            dtype = values.dtype
         else:
+            # Datetime
             from pandas import DatetimeIndex
             values = DatetimeIndex(values)
             dtype = values.dtype
 
-        return values.asi8.view('int64'), dtype, 'int64'
+        return values.asi8, dtype, 'int64'
 
     elif is_categorical_dtype(values) or is_categorical_dtype(dtype):
         values = getattr(values, 'values', values)
@@ -102,7 +99,7 @@ def _ensure_data(values, dtype=None):
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos suppport uint8 directly (see TODO)
-            values = values.view('uint64')
+            values = values.astype('uint64')
             dtype = 'bool'
             ndtype = 'uint64'
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
@@ -123,7 +120,8 @@ def _ensure_data(values, dtype=None):
             ndtype = dtype = 'object'
 
     except (TypeError, ValueError):
-        # object array conversion will fail
+        # if we are trying to coerce to a dtype
+        # and it is incompat this will fall thru to here
         values = _ensure_object(values)
         ndtype = dtype = 'object'
 
@@ -142,7 +140,7 @@ def _reconstruct_data(values, dtype, original):
 
     Returns
     -------
-    Index or ndarray casted to dtype
+    Index for extension types, otherwise ndarray casted to dtype
 
     """
     from pandas import Index
@@ -928,7 +926,7 @@ class SelectNSeries(SelectN):
 
     Parameters
     ----------
-    frame : pandas.DataFrame object
+    obj : Series
     n : int
     keep : {'first', 'last'}, default 'first'
 
@@ -986,7 +984,7 @@ class SelectNFrame(SelectN):
 
     Parameters
     ----------
-    frame : pandas.DataFrame object
+    obj : DataFrame
     n : int
     keep : {'first', 'last'}, default 'first'
     columns : list or str
