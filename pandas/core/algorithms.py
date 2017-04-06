@@ -8,30 +8,22 @@ import numpy as np
 
 from pandas import compat, _np_version_under1p8
 from pandas.types.cast import maybe_promote
-from pandas.types.generic import ABCSeries, ABCIndex
-from pandas.types.common import (is_unsigned_integer_dtype,
-                                 is_signed_integer_dtype,
-                                 is_integer_dtype,
-                                 is_complex_dtype,
-                                 is_categorical_dtype,
-                                 is_extension_type,
-                                 is_datetimetz,
-                                 is_period_dtype,
-                                 is_period_arraylike,
-                                 is_numeric_dtype,
-                                 is_float_dtype,
-                                 is_bool_dtype,
-                                 needs_i8_conversion,
-                                 is_categorical,
-                                 is_datetime64_dtype,
-                                 is_timedelta64_dtype,
-                                 is_scalar,
-                                 _ensure_platform_int,
-                                 _ensure_object,
-                                 _ensure_float64,
-                                 _ensure_uint64,
-                                 _ensure_int64,
-                                 is_list_like)
+from pandas.types.generic import (ABCSeries, ABCIndex,
+                                  ABCIndexClass, ABCCategorical)
+from pandas.types.common import (
+    is_unsigned_integer_dtype, is_signed_integer_dtype,
+    is_integer_dtype, is_complex_dtype,
+    is_categorical_dtype, is_sparse,
+    is_period_dtype,
+    is_numeric_dtype, is_float_dtype,
+    is_bool_dtype, needs_i8_conversion,
+    is_categorical, is_datetimetz,
+    is_datetime64_any_dtype, is_datetime64tz_dtype,
+    is_datetime64_dtype, is_timedelta64_dtype,
+    is_scalar, is_list_like,
+    _ensure_platform_int, _ensure_object,
+    _ensure_float64, _ensure_uint64,
+    _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.types.missing import isnull
 
@@ -45,37 +37,125 @@ from pandas._libs.tslib import iNaT
 # dtype access    #
 # --------------- #
 
-def _ensure_data_view(values):
+def _ensure_data(values, dtype=None):
     """
-    helper routine to ensure that our data is of the correct
+    routine to ensure that our data is of the correct
     input dtype for lower-level routines
+
+    This will coerce:
+    - ints -> int64
+    - uint -> uint64
+    - bool -> uint8
+    - datetimelike -> i8
+    - datetime64tz -> i8 (in local tz)
+    - categorical -> codes
 
     Parameters
     ----------
     values : array-like
+    dtype : pandas_dtype, optional
+        coerce to this dtype
+
+    Returns
+    -------
+    (ndarray, pandas_dtype)
+
     """
 
-    if needs_i8_conversion(values):
-        values = values.view(np.int64)
-    elif is_period_arraylike(values):
-        from pandas.tseries.period import PeriodIndex
-        values = PeriodIndex(values).asi8
-    elif is_categorical_dtype(values):
-        values = values.values.codes
-    elif isinstance(values, (ABCSeries, ABCIndex)):
-        values = values.values
+    if (needs_i8_conversion(values) or
+            is_period_dtype(dtype) or
+            is_datetime64_any_dtype(dtype) or
+            is_timedelta64_dtype(dtype)):
+        if is_period_dtype(values) or is_period_dtype(dtype):
+            from pandas import PeriodIndex
+            values = PeriodIndex(values)
+            dtype = values.dtype
+        elif is_timedelta64_dtype(values) or is_timedelta64_dtype(dtype):
+            from pandas import TimedeltaIndex
+            values = TimedeltaIndex(values)
+            dtype = values.dtype
+        elif is_datetimetz(values) or is_datetime64tz_dtype(dtype):
+            from pandas import DatetimeIndex
+            values = DatetimeIndex(values)
+            dtype = values.dtype
+        else:
+            from pandas import DatetimeIndex
+            values = DatetimeIndex(values)
+            dtype = values.dtype
 
-    if is_signed_integer_dtype(values):
-        values = _ensure_int64(values)
-    elif is_unsigned_integer_dtype(values):
-        values = _ensure_uint64(values)
-    elif is_complex_dtype(values):
-        values = _ensure_float64(values)
-    elif is_float_dtype(values):
-        values = _ensure_float64(values)
-    else:
+        return values.asi8, dtype
+
+    elif is_categorical_dtype(values) or is_categorical_dtype(dtype):
+        values = getattr(values, 'values', values)
+        values = values.codes
+        dtype = 'category'
+
+        return values, dtype
+
+    values = np.asarray(values)
+
+    try:
+        if is_bool_dtype(values) or is_bool_dtype(dtype):
+            values = values.view('uint8')
+            dtype = 'bool'
+        elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
+            values = _ensure_int64(values)
+            dtype = 'int64'
+        elif (is_unsigned_integer_dtype(values) or
+              is_unsigned_integer_dtype(dtype)):
+            values = _ensure_uint64(values)
+            dtype = 'uint64'
+        elif is_complex_dtype(values) or is_complex_dtype(dtype):
+            dtype = 'float64'
+            values = _ensure_float64(values)
+        elif is_float_dtype(values) or is_float_dtype(dtype):
+            values = _ensure_float64(values)
+            dtype = 'float64'
+        else:
+            values = _ensure_object(values)
+            dtype = 'object'
+
+    except (TypeError, ValueError):
+        # object array conversion will fail
         values = _ensure_object(values)
+        dtype = 'object'
 
+    return values, dtype
+
+
+def _reconstruct_data(values, dtype, original):
+    """
+    reverse of _ensure_data
+
+    Parameters
+    ----------
+    values : ndarray
+    dtype : pandas_dtype
+    original : ndarray-like
+
+    Returns
+    -------
+    Index or ndarray casted to dtype
+
+    """
+    from pandas import Index
+    if is_categorical_dtype(dtype):
+        pass
+    elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
+        values = Index(original)._shallow_copy(values, name=None)
+    elif dtype is not None:
+        values = values.astype(dtype)
+
+    return values
+
+
+def _ensure_arraylike(values):
+    """
+    ensure that we are arraylike if not already
+    """
+    if not isinstance(values, (np.ndarray, ABCCategorical,
+                               ABCIndexClass, ABCSeries)):
+        values = np.array(values)
     return values
 
 
@@ -213,38 +293,11 @@ def isin(comps, values):
                         " to isin(), you passed a "
                         "[{0}]".format(type(values).__name__))
 
-    from pandas import DatetimeIndex, TimedeltaIndex, PeriodIndex
-
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = np.array(list(values), dtype='object')
 
-    if needs_i8_conversion(comps):
-        if is_period_dtype(values):
-            comps = PeriodIndex(comps)
-            values = PeriodIndex(values)
-        elif is_timedelta64_dtype(comps):
-            comps = TimedeltaIndex(comps)
-            values = TimedeltaIndex(values)
-        else:
-            comps = DatetimeIndex(comps)
-            values = DatetimeIndex(values)
-
-        values = values.asi8
-        comps = comps.asi8
-    elif is_bool_dtype(comps):
-
-        try:
-            comps = np.asarray(comps).view('uint8')
-            values = np.asarray(values).view('uint8')
-        except TypeError:
-            # object array conversion will fail
-            pass
-    elif is_numeric_dtype(comps):
-        comps = np.asarray(comps)
-        values = np.asarray(values)
-    else:
-        comps = np.asarray(comps).astype(object)
-        values = np.asarray(values).astype(object)
+    comps, dtype = _ensure_data(comps)
+    values, _ = _ensure_data(values, dtype=dtype)
 
     # GH11232
     # work-around for numpy < 1.8 and comparisions on py3
@@ -396,53 +449,32 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     note: an array of Periods will ignore sort as it returns an always sorted
     PeriodIndex
     """
-    from pandas import Index, Series, DatetimeIndex, PeriodIndex
 
-    # handling possibilities here
-    # - for a numpy datetimelike simply view as i8 then cast back
-    # - bool handled as uint8 then cast back
-    # - for an extension datetimelike view as i8 then
-    #   reconstruct from boxed values to transfer metadata
-    dtype = None
-    if needs_i8_conversion(values):
-        if is_period_dtype(values):
-            values = PeriodIndex(values)
-            vals = values.asi8
-        elif is_datetimetz(values):
-            values = DatetimeIndex(values)
-            vals = values.asi8
-        else:
-            # numpy dtype
-            dtype = values.dtype
-            vals = values.view(np.int64)
-    elif is_bool_dtype(values):
-        dtype = bool
-        vals = np.asarray(values).view('uint8')
-    else:
-        vals = np.asarray(values)
+    original = values
+    values, dtype = _ensure_data(values)
+    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
-    (hash_klass, vec_klass), vals = _get_data_algo(vals, _hashtables)
-
-    table = hash_klass(size_hint or len(vals))
+    table = hash_klass(size_hint or len(values))
     uniques = vec_klass()
-    check_nulls = not is_integer_dtype(values)
-    labels = table.get_labels(vals, uniques, 0, na_sentinel, check_nulls)
+    check_nulls = not is_integer_dtype(original)
+    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
 
     labels = _ensure_platform_int(labels)
-
     uniques = uniques.to_array()
 
     if sort and len(uniques) > 0:
         uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
                                     assume_unique=True)
 
-    if dtype is not None:
-        uniques = uniques.astype(dtype)
+    uniques = _reconstruct_data(uniques, dtype, original)
 
-    if isinstance(values, Index):
-        uniques = values._shallow_copy(uniques, name=None)
-    elif isinstance(values, Series):
+    # return original tenor
+    if isinstance(original, ABCIndexClass):
+        uniques = original._shallow_copy(uniques, name=None)
+    elif isinstance(original, ABCSeries):
+        from pandas import Index
         uniques = Index(uniques)
+
     return labels, uniques
 
 
@@ -471,7 +503,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     value_counts : Series
 
     """
-    from pandas.core.series import Series
+    from pandas.core.series import Series, Index
     name = getattr(values, 'name', None)
 
     if bins is not None:
@@ -483,17 +515,16 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
             raise TypeError("bins argument only works with numeric data.")
         values = cat.codes
 
-    if is_extension_type(values) and not is_datetimetz(values):
+    if is_categorical_dtype(values) or is_sparse(values):
+
         # handle Categorical and sparse,
-        # datetime tz can be handeled in ndarray path
         result = Series(values).values.value_counts(dropna=dropna)
         result.name = name
         counts = result.values
-    else:
-        # ndarray path. pass original to handle DatetimeTzBlock
-        keys, counts = _value_counts_arraylike(values, dropna=dropna)
 
-        from pandas import Index, Series
+    else:
+        keys, counts = _value_counts_arraylike(values, dropna)
+
         if not isinstance(keys, Index):
             keys = Index(keys)
         result = Series(counts, index=keys, name=name)
@@ -513,60 +544,52 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     return result
 
 
-def _value_counts_arraylike(values, dropna=True):
-    is_datetimetz_type = is_datetimetz(values)
-    is_period_type = (is_period_dtype(values) or
-                      is_period_arraylike(values))
+def _value_counts_arraylike(values, dropna):
+    """
+    Parameters
+    ----------
+    values : arraylike
+    dropna : boolean
 
-    orig = values
+    Returns
+    -------
+    (uniques, counts)
 
-    from pandas.core.series import Series
-    values = Series(values).values
-    dtype = values.dtype
+    """
+    values = _ensure_arraylike(values)
+    original = values
+    values, dtype = _ensure_data(values)
 
-    if needs_i8_conversion(dtype) or is_period_type:
+    if needs_i8_conversion(dtype):
+        # i8
 
-        from pandas.tseries.index import DatetimeIndex
-        from pandas.tseries.period import PeriodIndex
-
-        if is_period_type:
-            # values may be an object
-            values = PeriodIndex(values)
-            freq = values.freq
-
-        values = values.view(np.int64)
         keys, counts = htable.value_count_int64(values, dropna)
 
         if dropna:
             msk = keys != iNaT
             keys, counts = keys[msk], counts[msk]
 
-        # convert the keys back to the dtype we came in
-        keys = keys.astype(dtype)
-
-        # dtype handling
-        if is_datetimetz_type:
-            keys = DatetimeIndex._simple_new(keys, tz=orig.dtype.tz)
-        elif is_period_type:
-            keys = PeriodIndex._from_ordinals(keys, freq=freq)
-
-    elif is_signed_integer_dtype(dtype):
-        values = _ensure_int64(values)
-        keys, counts = htable.value_count_int64(values, dropna)
-    elif is_unsigned_integer_dtype(dtype):
-        values = _ensure_uint64(values)
-        keys, counts = htable.value_count_uint64(values, dropna)
-    elif is_float_dtype(dtype):
-        values = _ensure_float64(values)
-        keys, counts = htable.value_count_float64(values, dropna)
     else:
-        values = _ensure_object(values)
-        keys, counts = htable.value_count_object(values, dropna)
+        # ndarray like
+
+        if is_signed_integer_dtype(values):
+            dtype = 'int64'
+            values = _ensure_int64(values)
+        elif is_bool_dtype(dtype):
+            dtype = 'uint64'
+            values = _ensure_uint64(values)
+
+        # TODO: handle uint8
+        f = getattr(htable, "value_count_{dtype}".format(dtype=dtype))
+        keys, counts = f(values, dropna)
 
         mask = isnull(values)
         if not dropna and mask.any():
-            keys = np.insert(keys, 0, np.NaN)
-            counts = np.insert(counts, 0, mask.sum())
+            if not isnull(keys).any():
+                keys = np.insert(keys, 0, np.NaN)
+                counts = np.insert(counts, 0, mask.sum())
+
+    keys = _reconstruct_data(keys, original.dtype, original)
 
     return keys, counts
 
@@ -593,33 +616,15 @@ def duplicated(values, keep='first'):
     duplicated : ndarray
     """
 
-    dtype = values.dtype
+    values, dtype = _ensure_data(values)
 
-    # no need to revert to original type
-    if needs_i8_conversion(dtype):
-        values = values.view(np.int64)
-    elif is_period_arraylike(values):
-        from pandas.tseries.period import PeriodIndex
-        values = PeriodIndex(values).asi8
-    elif is_categorical_dtype(dtype):
-        values = values.values.codes
-    elif isinstance(values, (ABCSeries, ABCIndex)):
-        values = values.values
-
-    if is_signed_integer_dtype(dtype):
+    if is_signed_integer_dtype(values):
+        dtype = 'int64'
         values = _ensure_int64(values)
-        duplicated = htable.duplicated_int64(values, keep=keep)
-    elif is_unsigned_integer_dtype(dtype):
-        values = _ensure_uint64(values)
-        duplicated = htable.duplicated_uint64(values, keep=keep)
-    elif is_float_dtype(dtype):
-        values = _ensure_float64(values)
-        duplicated = htable.duplicated_float64(values, keep=keep)
-    else:
-        values = _ensure_object(values)
-        duplicated = htable.duplicated_object(values, keep=keep)
 
-    return duplicated
+    # TODO: handle uint8 (bool)
+    f = getattr(htable, "duplicated_{dtype}".format(dtype=dtype))
+    return f(values, keep=keep)
 
 
 def mode(values):
@@ -635,40 +640,38 @@ def mode(values):
     -------
     mode : Series
     """
+    from pandas import Series
 
-    # must sort because hash order isn't necessarily defined.
-    from pandas.core.series import Series
+    values = _ensure_arraylike(values)
+    original = values
 
-    if isinstance(values, Series):
-        constructor = values._constructor
-        values = values.values
-    else:
-        values = np.asanyarray(values)
-        constructor = Series
+    # categorical is a fast-path
+    if is_categorical_dtype(values):
 
-    dtype = values.dtype
+        if isinstance(values, Series):
+            return Series(values.values.mode())
+        return values.mode()
+
+    values, dtype = _ensure_data(values)
+
     if is_signed_integer_dtype(values):
+        dtype = 'int64'
         values = _ensure_int64(values)
-        result = constructor(np.sort(htable.mode_int64(values)), dtype=dtype)
     elif is_unsigned_integer_dtype(values):
-        values = _ensure_uint64(values)
-        result = constructor(np.sort(htable.mode_uint64(values)), dtype=dtype)
-    elif issubclass(values.dtype.type, (np.datetime64, np.timedelta64)):
-        dtype = values.dtype
-        values = values.view(np.int64)
-        result = constructor(np.sort(htable.mode_int64(values)), dtype=dtype)
-    elif is_categorical_dtype(values):
-        result = constructor(values.mode())
+        pass
     else:
+        dtype = 'object'
         values = _ensure_object(values)
-        res = htable.mode_object(values)
-        try:
-            res = np.sort(res)
-        except TypeError as e:
-            warn("Unable to sort modes: %s" % e)
-        result = constructor(res, dtype=dtype)
 
-    return result
+    f = getattr(htable, "mode_{dtype}".format(dtype=dtype))
+    result = f(values)
+    try:
+        result = np.sort(result)
+    except TypeError as e:
+        warn("Unable to sort modes: %s" % e)
+
+    result = _reconstruct_data(result, original.dtype, original)
+    return Series(result)
 
 
 def rank(values, axis=0, method='average', na_option='keep',
@@ -961,7 +964,7 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr = _ensure_data_view(dropped.values)
+        arr, _ = _ensure_data(dropped.values)
         if method == 'nlargest':
             arr = -arr
 
@@ -1114,29 +1117,15 @@ _hashtables = {
 
 def _get_data_algo(values, func_map):
 
-    f = None
-
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
-    if is_float_dtype(values):
-        f = func_map['float64']
-        values = _ensure_float64(values)
-
-    elif needs_i8_conversion(values):
-        f = func_map['int64']
-        values = values.view('i8')
-
-    elif is_signed_integer_dtype(values):
-        f = func_map['int64']
+    values, dtype = _ensure_data(values)
+    if is_signed_integer_dtype(values):
+        dtype = 'int64'
         values = _ensure_int64(values)
 
-    elif is_unsigned_integer_dtype(values):
-        f = func_map['uint64']
-        values = _ensure_uint64(values)
-
-    else:
-        values = _ensure_object(values)
+    if dtype == 'object':
 
         # its cheaper to use a String Hash Table than Object
         if lib.infer_dtype(values) in ['string']:
@@ -1145,8 +1134,7 @@ def _get_data_algo(values, func_map):
             except KeyError:
                 pass
 
-    if f is None:
-        f = func_map['object']
+    f = func_map.get(dtype, func_map['object'])
 
     return f, values
 
@@ -1544,22 +1532,40 @@ _diff_special = {
 
 
 def diff(arr, n, axis=0):
-    """ difference of n between self,
-        analagoust to s-s.shift(n) """
+    """
+    difference of n between self,
+    analagoust to s-s.shift(n)
+
+    Parameters
+    ----------
+    arr : ndarray
+    n : int
+        number of periods
+    axis : int
+        axis to shift on
+
+    Returns
+    -------
+    shifted
+
+    """
 
     n = int(n)
     na = np.nan
     dtype = arr.dtype
+
     is_timedelta = False
     if needs_i8_conversion(arr):
         dtype = np.float64
         arr = arr.view('i8')
         na = iNaT
         is_timedelta = True
-    elif issubclass(dtype.type, np.integer):
-        dtype = np.float64
-    elif issubclass(dtype.type, np.bool_):
+
+    elif is_bool_dtype(dtype):
         dtype = np.object_
+
+    elif is_integer_dtype(dtype):
+        dtype = np.float64
 
     dtype = np.dtype(dtype)
     out_arr = np.empty(arr.shape, dtype=dtype)
