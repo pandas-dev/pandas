@@ -931,6 +931,15 @@ def select_n_slow(dropped, n, keep, method):
 _select_methods = {'nsmallest': nsmallest, 'nlargest': nlargest}
 
 
+def _is_valid_dtype_n_method(dtype):
+    """
+    Helper function to determine if dtype is valid for
+    nsmallest/nlargest methods
+    """
+    return ((is_numeric_dtype(dtype) and not is_complex_dtype(dtype)) or
+            needs_i8_conversion(dtype))
+
+
 def select_n_series(series, n, keep, method):
     """Implement n largest/smallest for pandas Series
 
@@ -946,8 +955,7 @@ def select_n_series(series, n, keep, method):
     nordered : Series
     """
     dtype = series.dtype
-    if not ((is_numeric_dtype(dtype) and not is_complex_dtype(dtype)) or
-            needs_i8_conversion(dtype)):
+    if not _is_valid_dtype_n_method(dtype):
         raise TypeError("Cannot use method '{method}' with "
                         "dtype {dtype}".format(method=method, dtype=dtype))
 
@@ -981,14 +989,67 @@ def select_n_frame(frame, columns, n, method, keep):
     -------
     nordered : DataFrame
     """
-    from pandas.core.series import Series
+    from pandas import Int64Index
     if not is_list_like(columns):
         columns = [columns]
     columns = list(columns)
-    ser = getattr(frame[columns[0]], method)(n, keep=keep)
-    if isinstance(ser, Series):
-        ser = ser.to_frame()
-    return ser.merge(frame, on=columns[0], left_index=True)[frame.columns]
+    for column in columns:
+        dtype = frame[column].dtype
+        if not _is_valid_dtype_n_method(dtype):
+            raise TypeError((
+                "Column {column!r} has dtype {dtype}, cannot use method "
+                "{method!r} with this dtype"
+            ).format(column=column, dtype=dtype, method=method))
+
+    def get_indexer(current_indexer, other_indexer):
+        """Helper function to concat `current_indexer` and `other_indexer`
+        depending on `method`
+        """
+        if method == 'nsmallest':
+            return current_indexer.append(other_indexer)
+        else:
+            return other_indexer.append(current_indexer)
+
+    # Below we save and reset the index in case index contains duplicates
+    original_index = frame.index
+    cur_frame = frame = frame.reset_index(drop=True)
+    cur_n = n
+    indexer = Int64Index([])
+
+    for i, column in enumerate(columns):
+
+        # For each column we apply method to cur_frame[column]. If it is the
+        # last column in columns, or if the values returned are unique in
+        # frame[column] we save this index and break
+        # Otherwise we must save the index of the non duplicated values
+        # and set the next cur_frame to cur_frame filtered on all duplcicated
+        # values (#GH15297)
+        series = cur_frame[column]
+        values = getattr(series, method)(cur_n, keep=keep)
+        is_last_column = len(columns) - 1 == i
+        if is_last_column or values.nunique() == series.isin(values).sum():
+
+            # Last column in columns or values are unique in series => values
+            # is all that matters
+            indexer = get_indexer(indexer, values.index)
+            break
+
+        duplicated_filter = series.duplicated(keep=False)
+        duplicated = values[duplicated_filter]
+        non_duplicated = values[~duplicated_filter]
+        indexer = get_indexer(indexer, non_duplicated.index)
+
+        # Must set cur frame to include all duplicated values to consider for
+        # the next column, we also can reduce cur_n by the current length of
+        # the indexer
+        cur_frame = cur_frame[series.isin(duplicated)]
+        cur_n = n - len(indexer)
+
+    frame = frame.take(indexer)
+
+    # Restore the index on frame
+    frame.index = original_index.take(indexer)
+    return frame
 
 
 def _finalize_nsmallest(arr, kth_val, n, keep, narr):
