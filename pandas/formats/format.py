@@ -33,7 +33,7 @@ from pandas.core.config import get_option, set_option
 from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
 from pandas.formats.printing import adjoin, justify, pprint_thing
 from pandas.formats.excel import ExcelFormatter  # for downstream # NOQA
-from pandas.formats.common import _get_level_lengths
+from pandas.formats.common import get_level_lengths
 import pandas.core.common as com
 import pandas._libs.lib as lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
@@ -1189,7 +1189,7 @@ class HTMLFormatter(TableFormatter):
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
                                          names=False)
-            level_lengths = _get_level_lengths(levels, sentinel)
+            level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
             for lnum, (records, values) in enumerate(zip(level_lengths,
                                                          levels)):

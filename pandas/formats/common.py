@@ -1,4 +1,4 @@
-def _get_level_lengths(levels, sentinel=''):
+def get_level_lengths(levels, sentinel=''):
     """For each index in each level the function returns lengths of indexes.
 
     Parameters

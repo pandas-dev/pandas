@@ -14,7 +14,7 @@ from pandas.types.common import (is_float)
 import pandas._libs.lib as lib
 from pandas.core.index import Index, MultiIndex
 from pandas.tseries.period import PeriodIndex
-from pandas.formats.common import _get_level_lengths
+from pandas.formats.common import get_level_lengths
 
 
 # from collections import namedtuple
@@ -376,7 +376,7 @@ class ExcelFormatter(object):
         columns = self.columns
         level_strs = columns.format(sparsify=self.merge_cells, adjoin=False,
                                     names=False)
-        level_lengths = _get_level_lengths(level_strs)
+        level_lengths = get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
 
