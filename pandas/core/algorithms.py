@@ -58,7 +58,7 @@ def _ensure_data(values, dtype=None):
 
     Returns
     -------
-    (ndarray, pandas_dtype)
+    (ndarray, pandas_dtype, algo dtype as a string)
 
     """
 
@@ -83,44 +83,51 @@ def _ensure_data(values, dtype=None):
             values = DatetimeIndex(values)
             dtype = values.dtype
 
-        return values.asi8, dtype
+        return values.asi8.view('int64'), dtype, 'int64'
 
     elif is_categorical_dtype(values) or is_categorical_dtype(dtype):
         values = getattr(values, 'values', values)
         values = values.codes
         dtype = 'category'
 
-        return values, dtype
+        # we are actually coercing to int64
+        # until our algos suppport int* directly (not all do)
+        values = _ensure_int64(values)
+
+        return values, dtype, 'int64'
 
     values = np.asarray(values)
 
     try:
         if is_bool_dtype(values) or is_bool_dtype(dtype):
-            values = values.view('uint8')
+            # we are actually coercing to uint64
+            # until our algos suppport uint8 directly (see TODO)
+            values = values.view('uint64')
             dtype = 'bool'
+            ndtype = 'uint64'
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
             values = _ensure_int64(values)
-            dtype = 'int64'
+            ndtype = dtype = 'int64'
         elif (is_unsigned_integer_dtype(values) or
               is_unsigned_integer_dtype(dtype)):
             values = _ensure_uint64(values)
-            dtype = 'uint64'
+            ndtype = dtype = 'uint64'
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
-            dtype = 'float64'
             values = _ensure_float64(values)
+            ndtype = dtype = 'float64'
         elif is_float_dtype(values) or is_float_dtype(dtype):
             values = _ensure_float64(values)
-            dtype = 'float64'
+            ndtype = dtype = 'float64'
         else:
             values = _ensure_object(values)
-            dtype = 'object'
+            ndtype = dtype = 'object'
 
     except (TypeError, ValueError):
         # object array conversion will fail
         values = _ensure_object(values)
-        dtype = 'object'
+        ndtype = dtype = 'object'
 
-    return values, dtype
+    return values, dtype, ndtype
 
 
 def _reconstruct_data(values, dtype, original):
@@ -296,8 +303,8 @@ def isin(comps, values):
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = np.array(list(values), dtype='object')
 
-    comps, dtype = _ensure_data(comps)
-    values, _ = _ensure_data(values, dtype=dtype)
+    comps, dtype, _ = _ensure_data(comps)
+    values, _, _ = _ensure_data(values, dtype=dtype)
 
     # GH11232
     # work-around for numpy < 1.8 and comparisions on py3
@@ -451,7 +458,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
 
     original = values
-    values, dtype = _ensure_data(values)
+    values, dtype, _ = _ensure_data(values)
     (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
     table = hash_klass(size_hint or len(values))
@@ -558,7 +565,7 @@ def _value_counts_arraylike(values, dropna):
     """
     values = _ensure_arraylike(values)
     original = values
-    values, dtype = _ensure_data(values)
+    values, dtype, ndtype = _ensure_data(values)
 
     if needs_i8_conversion(dtype):
         # i8
@@ -572,15 +579,8 @@ def _value_counts_arraylike(values, dropna):
     else:
         # ndarray like
 
-        if is_signed_integer_dtype(values):
-            dtype = 'int64'
-            values = _ensure_int64(values)
-        elif is_bool_dtype(dtype):
-            dtype = 'uint64'
-            values = _ensure_uint64(values)
-
         # TODO: handle uint8
-        f = getattr(htable, "value_count_{dtype}".format(dtype=dtype))
+        f = getattr(htable, "value_count_{dtype}".format(dtype=ndtype))
         keys, counts = f(values, dropna)
 
         mask = isnull(values)
@@ -616,14 +616,8 @@ def duplicated(values, keep='first'):
     duplicated : ndarray
     """
 
-    values, dtype = _ensure_data(values)
-
-    if is_signed_integer_dtype(values):
-        dtype = 'int64'
-        values = _ensure_int64(values)
-
-    # TODO: handle uint8 (bool)
-    f = getattr(htable, "duplicated_{dtype}".format(dtype=dtype))
+    values, dtype, ndtype = _ensure_data(values)
+    f = getattr(htable, "duplicated_{dtype}".format(dtype=ndtype))
     return f(values, keep=keep)
 
 
@@ -652,18 +646,14 @@ def mode(values):
             return Series(values.values.mode())
         return values.mode()
 
-    values, dtype = _ensure_data(values)
+    values, dtype, ndtype = _ensure_data(values)
 
-    if is_signed_integer_dtype(values):
-        dtype = 'int64'
-        values = _ensure_int64(values)
-    elif is_unsigned_integer_dtype(values):
-        pass
-    else:
-        dtype = 'object'
+    # TODO: this should support float64
+    if ndtype not in ['int64', 'uint64', 'object']:
+        ndtype = 'object'
         values = _ensure_object(values)
 
-    f = getattr(htable, "mode_{dtype}".format(dtype=dtype))
+    f = getattr(htable, "mode_{dtype}".format(dtype=ndtype))
     result = f(values)
     try:
         result = np.sort(result)
@@ -964,7 +954,7 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, _ = _ensure_data(dropped.values)
+        arr, _, _ = _ensure_data(dropped.values)
         if method == 'nlargest':
             arr = -arr
 
@@ -1120,12 +1110,8 @@ def _get_data_algo(values, func_map):
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
-    values, dtype = _ensure_data(values)
-    if is_signed_integer_dtype(values):
-        dtype = 'int64'
-        values = _ensure_int64(values)
-
-    if dtype == 'object':
+    values, dtype, ndtype = _ensure_data(values)
+    if ndtype == 'object':
 
         # its cheaper to use a String Hash Table than Object
         if lib.infer_dtype(values) in ['string']:
@@ -1134,7 +1120,7 @@ def _get_data_algo(values, func_map):
             except KeyError:
                 pass
 
-    f = func_map.get(dtype, func_map['object'])
+    f = func_map.get(ndtype, func_map['object'])
 
     return f, values
 
