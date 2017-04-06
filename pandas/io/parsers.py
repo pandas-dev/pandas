@@ -2469,26 +2469,7 @@ class PythonParser(ParserBase):
                 next(self.data)
 
             while True:
-                try:
-                    orig_line = next(self.data)
-                except csv.Error as e:
-                    msg = str(e)
-
-                    if 'NULL byte' in str(e):
-                        msg = ('NULL byte detected. This byte '
-                               'cannot be processed in Python\'s '
-                               'native csv library at the moment, '
-                               'so please pass in engine=\'c\' instead')
-
-                    if self.skipfooter > 0:
-                        reason = ('Error could possibly be due to '
-                                  'parsing errors in the skipped footer rows '
-                                  '(the skipfooter keyword is only applied '
-                                  'after Python\'s csv library has parsed '
-                                  'all rows).')
-                        msg += '. ' + reason
-
-                    raise csv.Error(msg)
+                orig_line = self._next_iter_line()
                 line = self._check_comments([orig_line])[0]
                 self.pos += 1
                 if (not self.skip_blank_lines and
@@ -2509,6 +2490,43 @@ class PythonParser(ParserBase):
         self.line_pos += 1
         self.buf.append(line)
         return line
+
+    def _next_iter_line(self, **kwargs):
+        """
+        Wrapper around iterating through `self.data` (CSV source).
+
+        When a CSV error is raised, we check for specific
+        error messages that allow us to customize the
+        error message displayed to the user.
+
+        Parameters
+        ----------
+        kwargs : Keyword arguments used to customize the error message.
+        """
+
+        try:
+            return next(self.data)
+        except csv.Error as e:
+            msg = str(e)
+
+            if 'NULL byte' in msg:
+                msg = ('NULL byte detected. This byte '
+                       'cannot be processed in Python\'s '
+                       'native csv library at the moment, '
+                       'so please pass in engine=\'c\' instead')
+            elif 'newline inside string' in msg:
+                msg = ('EOF inside string starting with '
+                       'line ' + str(kwargs['row_num']))
+
+            if self.skipfooter > 0:
+                reason = ('Error could possibly be due to '
+                          'parsing errors in the skipped footer rows '
+                          '(the skipfooter keyword is only applied '
+                          'after Python\'s csv library has parsed '
+                          'all rows).')
+                msg += '. ' + reason
+
+            raise csv.Error(msg)
 
     def _check_comments(self, lines):
         if self.comment is None:
@@ -2688,7 +2706,6 @@ class PythonParser(ParserBase):
         return zipped_content
 
     def _get_lines(self, rows=None):
-        source = self.data
         lines = self.buf
         new_rows = None
 
@@ -2703,14 +2720,14 @@ class PythonParser(ParserBase):
                 rows -= len(self.buf)
 
         if new_rows is None:
-            if isinstance(source, list):
-                if self.pos > len(source):
+            if isinstance(self.data, list):
+                if self.pos > len(self.data):
                     raise StopIteration
                 if rows is None:
-                    new_rows = source[self.pos:]
-                    new_pos = len(source)
+                    new_rows = self.data[self.pos:]
+                    new_pos = len(self.data)
                 else:
-                    new_rows = source[self.pos:self.pos + rows]
+                    new_rows = self.data[self.pos:self.pos + rows]
                     new_pos = self.pos + rows
 
                 # Check for stop rows. n.b.: self.skiprows is a set.
@@ -2726,21 +2743,17 @@ class PythonParser(ParserBase):
                 try:
                     if rows is not None:
                         for _ in range(rows):
-                            new_rows.append(next(source))
+                            new_rows.append(next(self.data))
                         lines.extend(new_rows)
                     else:
                         rows = 0
+
                         while True:
-                            try:
-                                new_rows.append(next(source))
-                                rows += 1
-                            except csv.Error as inst:
-                                if 'newline inside string' in str(inst):
-                                    row_num = str(self.pos + rows)
-                                    msg = ('EOF inside string starting with '
-                                           'line ' + row_num)
-                                    raise Exception(msg)
-                                raise
+                            new_row = self._next_iter_line(
+                                row_num=self.pos + rows)
+                            new_rows.append(new_row)
+                            rows += 1
+
                 except StopIteration:
                     if self.skiprows:
                         new_rows = [row for i, row in enumerate(new_rows)
