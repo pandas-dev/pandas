@@ -48,3 +48,11 @@ class TestDatetimeIndex(tm.TestCase):
                             pd.Timestamp('2011-01-01 11:00', tz=tz)],
                            dtype=object)
             self.assert_index_equal(idx.fillna('x'), exp)
+
+    def test_fillna_timezone(self):
+        # GH 15855
+        df = pd.DataFrame({'A': [pd.Timestamp('2012-11-11 00:00:00+01:00'),
+                                 pd.NaT]})
+        exp = pd.DataFrame({'A': [pd.Timestamp('2012-11-11 00:00:00+01:00'),
+                                  pd.Timestamp('2012-11-11 00:00:00+01:00')]})
+        self.assert_frame_equal(df.fillna(method='pad'), exp)
