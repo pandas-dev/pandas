@@ -35,6 +35,7 @@ class ExcelCell(object):
         self.mergestart = mergestart
         self.mergeend = mergeend
 
+
 header_style = {"font": {"bold": True},
                 "borders": {"top": "thin",
                             "right": "thin",

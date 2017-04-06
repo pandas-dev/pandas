@@ -36,7 +36,8 @@ def test_css_parse_comments():
 
 @pytest.mark.xfail
 def test_css_parse_specificity():
-    # we don't need to handle specificity markers like !important, but we should ignore them
+    # we don't need to handle specificity markers like !important,
+    # but we should ignore them
     pass
 
 
@@ -229,5 +230,3 @@ def test_css_relative_font_size(size, relative_to, resolved):
 
 def test_css_font_size_invalid():
     pass  # TODO
-
-

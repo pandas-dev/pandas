@@ -36,5 +36,3 @@ def get_level_lengths(levels, sentinel=''):
         result.append(lengths)
 
     return result
-
-
