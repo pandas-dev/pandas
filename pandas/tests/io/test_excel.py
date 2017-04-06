@@ -2009,7 +2009,7 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
         self.assertEqual(kw['protection'], protection)
 
     def test_write_cells_merge_styled(self):
-        from pandas.formats.format import ExcelCell
+        from pandas.formats.excel import ExcelCell
         from openpyxl import styles
 
         sheet_name = 'merge_styled'
