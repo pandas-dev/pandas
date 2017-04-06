@@ -528,7 +528,7 @@ class ExcelFormatter(object):
                 # Format hierarchical rows as merged cells.
                 level_strs = self.df.index.format(sparsify=True, adjoin=False,
                                                   names=False)
-                level_lengths = _get_level_lengths(level_strs)
+                level_lengths = get_level_lengths(level_strs)
 
                 for spans, levels, labels in zip(level_lengths,
                                                  self.df.index.levels,

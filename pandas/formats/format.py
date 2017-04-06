@@ -1355,7 +1355,7 @@ class HTMLFormatter(TableFormatter):
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
-            level_lengths = _get_level_lengths(levels, sentinel)
+            level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
             if truncate_v:
                 # Insert ... row and adjust idx_values and
