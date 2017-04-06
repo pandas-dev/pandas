@@ -228,8 +228,8 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             # Special case for single str 'CN' match and convert to hex
             # for supporting matplotlib < 2.0.0
             if re.match(r'C[0-9]', colors) and len(colors) == 2:
-                prop_cycler = plt.rcParams['axes.prop_cycle']
-                hex_color = prop_cycler.by_key().get('color', ['k'])
+                hex_color = [c['color']
+                             for c in list(plt.rcParams['axes.prop_cycle'])]
                 colors = [hex_color[int(colors[1])]]
             else:
                 # non-default cycle may be parsed as single or many colors
