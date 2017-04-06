@@ -1856,8 +1856,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         121637    4.240952
         dtype: float64
         """
-        return algorithms.select_n_series(self, n=n, keep=keep,
-                                          method='nlargest')
+        return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
     def nsmallest(self, n=5, keep='first'):
         """Return the smallest `n` elements.
@@ -1903,8 +1902,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         359919   -4.331927
         dtype: float64
         """
-        return algorithms.select_n_series(self, n=n, keep=keep,
-                                          method='nsmallest')
+        return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """

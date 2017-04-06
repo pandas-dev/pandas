@@ -859,6 +859,12 @@ def quantile(x, q, interpolation_method='fraction'):
 
     values = np.sort(x)
 
+    def _interpolate(a, b, fraction):
+        """Returns the point at the given fraction between a and b, where
+        'fraction' must be between 0 and 1.
+        """
+        return a + (b - a) * fraction
+
     def _get_score(at):
         if len(values) == 0:
             return np.nan
@@ -887,179 +893,183 @@ def quantile(x, q, interpolation_method='fraction'):
         return algos.arrmap_float64(q, _get_score)
 
 
-def _interpolate(a, b, fraction):
-    """Returns the point at the given fraction between a and b, where
-    'fraction' must be between 0 and 1.
+# --------------- #
+# select n        #
+# --------------- #
+
+class SelectN(object):
+
+    def __init__(self, obj, n, keep):
+        self.obj = obj
+        self.n = n
+        self.keep = keep
+
+        if self.keep not in ('first', 'last'):
+            raise ValueError('keep must be either "first", "last"')
+
+    def nlargest(self):
+        return self.compute('nlargest')
+
+    def nsmallest(self):
+        return self.compute('nsmallest')
+
+    @staticmethod
+    def is_valid_dtype_n_method(dtype):
+        """
+        Helper function to determine if dtype is valid for
+        nsmallest/nlargest methods
+        """
+        return ((is_numeric_dtype(dtype) and not is_complex_dtype(dtype)) or
+                needs_i8_conversion(dtype))
+
+
+class SelectNSeries(SelectN):
     """
-    return a + (b - a) * fraction
-
-
-def nsmallest(arr, n, keep='first'):
-    """
-    Find the indices of the n smallest values of a numpy array.
-
-    Note: Fails silently with NaN.
-    """
-    if keep == 'last':
-        arr = arr[::-1]
-
-    narr = len(arr)
-    n = min(n, narr)
-
-    arr = _ensure_data_view(arr)
-    kth_val = algos.kth_smallest(arr.copy(), n - 1)
-    return _finalize_nsmallest(arr, kth_val, n, keep, narr)
-
-
-def nlargest(arr, n, keep='first'):
-    """
-    Find the indices of the n largest values of a numpy array.
-
-    Note: Fails silently with NaN.
-    """
-    arr = _ensure_data_view(arr)
-    return nsmallest(-arr, n, keep=keep)
-
-
-def select_n_slow(dropped, n, keep, method):
-    reverse_it = (keep == 'last' or method == 'nlargest')
-    ascending = method == 'nsmallest'
-    slc = np.s_[::-1] if reverse_it else np.s_[:]
-    return dropped[slc].sort_values(ascending=ascending).head(n)
-
-
-_select_methods = {'nsmallest': nsmallest, 'nlargest': nlargest}
-
-
-def _is_valid_dtype_n_method(dtype):
-    """
-    Helper function to determine if dtype is valid for
-    nsmallest/nlargest methods
-    """
-    return ((is_numeric_dtype(dtype) and not is_complex_dtype(dtype)) or
-            needs_i8_conversion(dtype))
-
-
-def select_n_series(series, n, keep, method):
-    """Implement n largest/smallest for pandas Series
+    Implement n largest/smallest for Series
 
     Parameters
     ----------
-    series : pandas.Series object
+    frame : pandas.DataFrame object
     n : int
     keep : {'first', 'last'}, default 'first'
-    method : str, {'nlargest', 'nsmallest'}
 
     Returns
     -------
     nordered : Series
     """
-    dtype = series.dtype
-    if not _is_valid_dtype_n_method(dtype):
-        raise TypeError("Cannot use method '{method}' with "
-                        "dtype {dtype}".format(method=method, dtype=dtype))
 
-    if keep not in ('first', 'last'):
-        raise ValueError('keep must be either "first", "last"')
+    def compute(self, method):
 
-    if n <= 0:
-        return series[[]]
+        n = self.n
+        dtype = self.obj.dtype
+        if not self.is_valid_dtype_n_method(dtype):
+            raise TypeError("Cannot use method '{method}' with "
+                            "dtype {dtype}".format(method=method,
+                                                   dtype=dtype))
 
-    dropped = series.dropna()
+        if n <= 0:
+            return self.obj[[]]
 
-    if n >= len(series):
-        return select_n_slow(dropped, n, keep, method)
+        dropped = self.obj.dropna()
 
-    inds = _select_methods[method](dropped.values, n, keep)
-    return dropped.iloc[inds]
+        # slow method
+        if n >= len(self.obj):
+
+            reverse_it = (self.keep == 'last' or method == 'nlargest')
+            ascending = method == 'nsmallest'
+            slc = np.s_[::-1] if reverse_it else np.s_[:]
+            return dropped[slc].sort_values(ascending=ascending).head(n)
+
+        # fast method
+        arr = _ensure_data_view(dropped.values)
+        if method == 'nlargest':
+            arr = -arr
+
+        if self.keep == 'last':
+            arr = arr[::-1]
+
+        narr = len(arr)
+        n = min(n, narr)
+
+        kth_val = algos.kth_smallest(arr.copy(), n - 1)
+        ns, = np.nonzero(arr <= kth_val)
+        inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+        if self.keep == 'last':
+            # reverse indices
+            inds = narr - 1 - inds
+
+        return dropped.iloc[inds]
 
 
-def select_n_frame(frame, columns, n, method, keep):
-    """Implement n largest/smallest for pandas DataFrame
+class SelectNFrame(SelectN):
+    """
+    Implement n largest/smallest for DataFrame
 
     Parameters
     ----------
     frame : pandas.DataFrame object
-    columns : list or str
     n : int
     keep : {'first', 'last'}, default 'first'
-    method : str, {'nlargest', 'nsmallest'}
+    columns : list or str
 
     Returns
     -------
     nordered : DataFrame
     """
-    from pandas import Int64Index
-    if not is_list_like(columns):
-        columns = [columns]
-    columns = list(columns)
-    for column in columns:
-        dtype = frame[column].dtype
-        if not _is_valid_dtype_n_method(dtype):
-            raise TypeError((
-                "Column {column!r} has dtype {dtype}, cannot use method "
-                "{method!r} with this dtype"
-            ).format(column=column, dtype=dtype, method=method))
 
-    def get_indexer(current_indexer, other_indexer):
-        """Helper function to concat `current_indexer` and `other_indexer`
-        depending on `method`
-        """
-        if method == 'nsmallest':
-            return current_indexer.append(other_indexer)
-        else:
-            return other_indexer.append(current_indexer)
+    def __init__(self, obj, n, keep, columns):
+        super(SelectNFrame, self).__init__(obj, n, keep)
+        if not is_list_like(columns):
+            columns = [columns]
+        columns = list(columns)
+        self.columns = columns
 
-    # Below we save and reset the index in case index contains duplicates
-    original_index = frame.index
-    cur_frame = frame = frame.reset_index(drop=True)
-    cur_n = n
-    indexer = Int64Index([])
+    def compute(self, method):
 
-    for i, column in enumerate(columns):
+        from pandas import Int64Index
+        n = self.n
+        frame = self.obj
+        columns = self.columns
 
-        # For each column we apply method to cur_frame[column]. If it is the
-        # last column in columns, or if the values returned are unique in
-        # frame[column] we save this index and break
-        # Otherwise we must save the index of the non duplicated values
-        # and set the next cur_frame to cur_frame filtered on all duplcicated
-        # values (#GH15297)
-        series = cur_frame[column]
-        values = getattr(series, method)(cur_n, keep=keep)
-        is_last_column = len(columns) - 1 == i
-        if is_last_column or values.nunique() == series.isin(values).sum():
+        for column in columns:
+            dtype = frame[column].dtype
+            if not self.is_valid_dtype_n_method(dtype):
+                raise TypeError((
+                    "Column {column!r} has dtype {dtype}, cannot use method "
+                    "{method!r} with this dtype"
+                ).format(column=column, dtype=dtype, method=method))
 
-            # Last column in columns or values are unique in series => values
-            # is all that matters
-            indexer = get_indexer(indexer, values.index)
-            break
+        def get_indexer(current_indexer, other_indexer):
+            """Helper function to concat `current_indexer` and `other_indexer`
+            depending on `method`
+            """
+            if method == 'nsmallest':
+                return current_indexer.append(other_indexer)
+            else:
+                return other_indexer.append(current_indexer)
 
-        duplicated_filter = series.duplicated(keep=False)
-        duplicated = values[duplicated_filter]
-        non_duplicated = values[~duplicated_filter]
-        indexer = get_indexer(indexer, non_duplicated.index)
+        # Below we save and reset the index in case index contains duplicates
+        original_index = frame.index
+        cur_frame = frame = frame.reset_index(drop=True)
+        cur_n = n
+        indexer = Int64Index([])
 
-        # Must set cur frame to include all duplicated values to consider for
-        # the next column, we also can reduce cur_n by the current length of
-        # the indexer
-        cur_frame = cur_frame[series.isin(duplicated)]
-        cur_n = n - len(indexer)
+        for i, column in enumerate(columns):
 
-    frame = frame.take(indexer)
+            # For each column we apply method to cur_frame[column].
+            # If it is the last column in columns, or if the values
+            # returned are unique in frame[column] we save this index
+            # and break
+            # Otherwise we must save the index of the non duplicated values
+            # and set the next cur_frame to cur_frame filtered on all
+            # duplcicated values (#GH15297)
+            series = cur_frame[column]
+            values = getattr(series, method)(cur_n, keep=self.keep)
+            is_last_column = len(columns) - 1 == i
+            if is_last_column or values.nunique() == series.isin(values).sum():
 
-    # Restore the index on frame
-    frame.index = original_index.take(indexer)
-    return frame
+                # Last column in columns or values are unique in
+                # series => values
+                # is all that matters
+                indexer = get_indexer(indexer, values.index)
+                break
 
+            duplicated_filter = series.duplicated(keep=False)
+            duplicated = values[duplicated_filter]
+            non_duplicated = values[~duplicated_filter]
+            indexer = get_indexer(indexer, non_duplicated.index)
 
-def _finalize_nsmallest(arr, kth_val, n, keep, narr):
-    ns, = np.nonzero(arr <= kth_val)
-    inds = ns[arr[ns].argsort(kind='mergesort')][:n]
-    if keep == 'last':
-        # reverse indices
-        return narr - 1 - inds
-    else:
-        return inds
+            # Must set cur frame to include all duplicated values
+            # to consider for the next column, we also can reduce
+            # cur_n by the current length of the indexer
+            cur_frame = cur_frame[series.isin(duplicated)]
+            cur_n = n - len(indexer)
+
+        frame = frame.take(indexer)
+
+        # Restore the index on frame
+        frame.index = original_index.take(indexer)
+        return frame
 
 
 # ------- #
