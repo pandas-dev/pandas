@@ -69,7 +69,7 @@ Different Choices for Indexing
 .. versionadded:: 0.11.0
 
 Object selection has had a number of user-requested additions in order to
-support more explicit location based indexing. pandas now supports three types
+support more explicit location based indexing. Pandas now supports three types
 of multi-axis indexing.
 
 - ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
