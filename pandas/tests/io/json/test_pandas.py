@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 import pytest
-from pandas.compat import range, lrange, StringIO, OrderedDict
+from pandas.compat import (range, lrange, StringIO,
+                           OrderedDict, is_platform_32bit)
 import os
 
 import numpy as np
@@ -380,6 +381,8 @@ class TestPandasContainer(tm.TestCase):
         unser = read_json(df.to_json(), dtype=False)
         self.assertTrue(np.isnan(unser[2][0]))
 
+    @pytest.mark.skipif(is_platform_32bit(),
+                        reason="not compliant on 32-bit, xref #15865")
     def test_frame_to_json_float_precision(self):
         df = pd.DataFrame([dict(a_float=0.95)])
         encoded = df.to_json(double_precision=1)
