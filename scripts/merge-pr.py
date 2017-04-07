@@ -299,13 +299,17 @@ if not bool(pr["mergeable"]):
 print("\n=== Pull Request #%s ===" % pr_num)
 print("title\t%s\nsource\t%s\ntarget\t%s\nurl\t%s"
       % (title, pr_repo_desc, target_ref, url))
-continue_maybe("Proceed with updating or merging pull request #%s?" % pr_num)
+
+
 
 merged_refs = [target_ref]
 
-update = continue_maybe2("Update PR and push to github (y) or merge locally (n)?")
+print("\nProceed with updating or merging pull request #%s?" % pr_num)
+update = input("Update PR and push to remote (r), merge locally (l), "
+               "or do nothing (n) ?")
+update = update.lower()
 
-if update:
+if update == 'r':
     merge_hash = update_pr(pr_num, user_login, base_ref)
-else:
+elif update == 'l':
     merge_hash = merge_pr(pr_num, target_ref)
