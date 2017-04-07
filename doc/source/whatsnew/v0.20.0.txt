@@ -320,11 +320,11 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 IntervalIndex
 ^^^^^^^^^^^^^
 
-pandas has gain an ``IntervalIndex`` with its own dtype, ``interval`` as well as the ``Interval`` scalar type. These allow first-class support for interval
-notation, specifically as return type for ``pd.cut`` and ``pd.qcut``. The ``IntervalIndex`` allows some unique indexing, see the
+pandas has gained an ``IntervalIndex`` with its own dtype, ``interval`` as well as the ``Interval`` scalar type. These allow first-class support for interval
+notation, specifically as a return type for the categories in ``pd.cut`` and ``pd.qcut``. The ``IntervalIndex`` allows some unique indexing, see the
 :ref:`docs <indexing.intervallindex>`. (:issue:`7640`, :issue:`8625`)
 
-**Previous behavior**:
+Previous behavior:
 
 .. code-block:: ipython
 
@@ -337,14 +337,40 @@ notation, specifically as return type for ``pd.cut`` and ``pd.qcut``. The ``Inte
    In [3]: pd.cut(range(3), 2).categories
    Out[3]: Index(['(-0.002, 1]', '(1, 2]'], dtype='object')
 
-**New behavior**:
+New behavior:
 
 .. ipython:: python
 
-   c = pd.cut(range(3), 2)
+   c = pd.cut(range(4), bins=2)
    c
    c.categories
-   pd.api.types.is_interval_dtype(c.categories)
+
+Furthermore, this allows one to bin *other* data with these same bins. ``NaN`` represents a missing
+value similar to other dtypes.
+
+.. ipython:: python
+
+   pd.cut([0, 3, 1, 1], bins=c.categories)
+
+These can also used in ``Series`` and ``DataFrame``, and indexed.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': range(4),
+                      'B': pd.cut([0, 3, 1, 1], bins=c.categories)}
+                    ).set_index('B')
+
+Selecting a specific interval
+
+.. ipython:: python
+
+   df.loc[pd.Interval(1.5, 3.0)]
+
+Selecting via a scalar value that is contained in the intervals.
+
+.. ipython:: python
+
+   df.loc[0]
 
 .. _whatsnew_0200.enhancements.other:
 
