@@ -715,6 +715,48 @@ class TestDataFrameFormatting(tm.TestCase):
                         u"¡¡¡  ええええええ           4")
             self.assertEqual(_rep(df), expected)
 
+    def test_datetimelike_frame(self):
+        # GH 12211
+        dts = [pd.Timestamp('2011-01-01', tz='US/Eastern')] * 5 + [pd.NaT] * 5
+        df = pd.DataFrame({"dt": dts,
+                           "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        with option_context('display.max_rows', 5):
+            expected = ('                          dt   x\n'
+                        '0  2011-01-01 00:00:00-05:00   1\n'
+                        '1  2011-01-01 00:00:00-05:00   2\n'
+                        '..                       ...  ..\n'
+                        '8                        NaT   9\n'
+                        '9                        NaT  10\n\n'
+                        '[10 rows x 2 columns]')
+            self.assertEqual(repr(df), expected)
+
+        dts = [pd.NaT] * 5 + [pd.Timestamp('2011-01-01', tz='US/Eastern')] * 5
+        df = pd.DataFrame({"dt": dts,
+                           "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        with option_context('display.max_rows', 5):
+            expected = ('                          dt   x\n'
+                        '0                        NaT   1\n'
+                        '1                        NaT   2\n'
+                        '..                       ...  ..\n'
+                        '8  2011-01-01 00:00:00-05:00   9\n'
+                        '9  2011-01-01 00:00:00-05:00  10\n\n'
+                        '[10 rows x 2 columns]')
+            self.assertEqual(repr(df), expected)
+
+        dts = ([pd.Timestamp('2011-01-01', tz='Asia/Tokyo')] * 5 +
+               [pd.Timestamp('2011-01-01', tz='US/Eastern')] * 5)
+        df = pd.DataFrame({"dt": dts,
+                           "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        with option_context('display.max_rows', 5):
+            expected = ('                           dt   x\n'
+                        '0   2011-01-01 00:00:00+09:00   1\n'
+                        '1   2011-01-01 00:00:00+09:00   2\n'
+                        '..                        ...  ..\n'
+                        '8   2011-01-01 00:00:00-05:00   9\n'
+                        '9   2011-01-01 00:00:00-05:00  10\n\n'
+                        '[10 rows x 2 columns]')
+            self.assertEqual(repr(df), expected)
+
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
 
