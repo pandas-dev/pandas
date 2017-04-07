@@ -599,7 +599,7 @@ pd.unique will now be consistent with extension types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In prior versions, using ``Series.unique()`` and ``pd.unique(Series)`` on ``Categorical`` and tz-aware
-datatypes would yield different return types. These are now made consistent.
+datatypes would yield different return types. These are now made consistent. (:issue:`15903`)
 
 - Datetime tz-aware
 
