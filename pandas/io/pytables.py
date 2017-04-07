@@ -1323,6 +1323,13 @@ class HDFStore(StringMixin):
 def get_store(path, **kwargs):
     """ Backwards compatible alias for ``HDFStore``
     """
+    warnings.warn(
+        "get_store is deprecated and be "
+        "removed in a future version\n"
+        "HDFStore(path, **kwargs) is the replacement",
+        FutureWarning,
+        stacklevel=6)
+
     return HDFStore(path, **kwargs)
 
 
