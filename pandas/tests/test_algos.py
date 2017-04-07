@@ -384,6 +384,51 @@ class TestUnique(tm.TestCase):
         exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(algos.unique(s), exp)
 
+    def test_categorical(self):
+        c = pd.Categorical(list('aabc'))
+        result = c.unique()
+        expected = pd.Categorical(list('abc'))
+        tm.assert_categorical_equal(result, expected)
+
+        result = algos.unique(c)
+        tm.assert_categorical_equal(result, expected)
+
+        result = algos.unique(Series(c, name='foo'))
+        expected = Series(expected, name='foo')
+        tm.assert_series_equal(result, expected)
+
+    def test_order_of_appearance(self):
+        # 9346
+        # light testing of guarantee of order of appearance
+        # these also are the doc-examples
+        result = pd.unique(pd.Series([2, 1, 3, 3]))
+        tm.assert_numpy_array_equal(result, np.array([2, 1, 3]))
+
+        result = pd.unique(pd.Series([2] + [1] * 5))
+        tm.assert_numpy_array_equal(result, np.array([2, 1]))
+
+        result = pd.unique(Series([pd.Timestamp('20160101'),
+                                   pd.Timestamp('20160101')]))
+        expected = np.array(['2016-01-01T00:00:00.000000000'],
+                            dtype='datetime64[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pd.unique(pd.Index(
+            [pd.Timestamp('20160101', tz='US/Eastern'),
+             pd.Timestamp('20160101', tz='US/Eastern')]))
+        expected = pd.DatetimeIndex(['2016-01-01 00:00:00'],
+                                    dtype='datetime64[ns, US/Eastern]',
+                                    freq=None)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.unique(list('aabc'))
+        expected = np.array(['a', 'b', 'c'], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pd.unique(Series(pd.Categorical(list('aabc'))))
+        expected = Series(pd.Categorical(list('abc')))
+        tm.assert_series_equal(result, expected)
+
 
 class TestIsin(tm.TestCase):
 

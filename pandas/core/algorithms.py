@@ -267,11 +267,58 @@ def match(to_match, values, na_sentinel=-1):
     return result
 
 
-def unique1d(values):
+def unique(values):
     """
-    Hash table-based unique
+    Hash table-based unique. uniques are returned in order
+    of appearance. This does NOT sort.
+
+    Parameters
+    ----------
+    values : 1d array-like
+
+    Returns
+    -------
+    unique values. The returned type will be a pandas Index
+    if a pandas type is input, otherwise ndarray
+
+    Examples
+    --------
+    pd.unique(pd.Series([2, 1, 3, 3]))
+    array([2, 1, 3])
+
+    >>> pd.unique(pd.Series([2] + [1] * 5))
+    array([2, 1])
+
+    >>> pd.unique(Series([pd.Timestamp('20160101'),
+    ...                   pd.Timestamp('20160101')]))
+    array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+
+    >>> pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+    ...                     pd.Timestamp('20160101', tz='US/Eastern')]))
+    DatetimeIndex(['2016-01-01 00:00:00-05:00'],
+    ...           dtype='datetime64[ns, US/Eastern]', freq=None)
+
+    >>> pd.unique(list('aabc'))
+    array(['a', 'b', 'c'], dtype=object)
+
+    >>> pd.unique(Series(pd.Categorical(list('aabc'))))
+    0    a
+    1    b
+    2    c
+    dtype: category
+    Categories (3, object): [a, b, c]
+
     """
     values = _ensure_arraylike(values)
+
+    # categorical is a fast-path
+    if is_categorical_dtype(values):
+
+        if isinstance(values, ABCSeries):
+            from pandas import Series
+            return Series(values.values.unique(), name=values.name)
+        return values.unique()
+
     original = values
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
 
@@ -282,7 +329,7 @@ def unique1d(values):
     return uniques
 
 
-unique = unique1d
+unique1d = unique
 
 
 def isin(comps, values):
@@ -651,7 +698,7 @@ def mode(values):
     if is_categorical_dtype(values):
 
         if isinstance(values, Series):
-            return Series(values.values.mode())
+            return Series(values.values.mode(), name=values.name)
         return values.mode()
 
     values, dtype, ndtype = _ensure_data(values)
