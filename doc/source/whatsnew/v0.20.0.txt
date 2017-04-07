@@ -598,7 +598,8 @@ ndarray, you can always convert explicitly using ``np.asarray(idx.hour)``.
 pd.unique will now be consistent with extension types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In prior versions, using ``Series.unique()`` and ``pd.unique(Series)`` on ``Categorical`` and tz-aware datatypes would yield different return types. These are now consistent to return the extension type.
+In prior versions, using ``Series.unique()`` and ``pd.unique(Series)`` on ``Categorical`` and tz-aware
+datatypes would yield different return types. These are now made consistent.
 
 - Datetime tz-aware
 
@@ -628,13 +629,13 @@ In prior versions, using ``Series.unique()`` and ``pd.unique(Series)`` on ``Cate
 
   .. ipython:: python
 
-     # Series
+     # Series, returns an array of Timestamp tz-aware
      Series(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
                       pd.Timestamp('20160101', tz='US/Eastern')])).unique()
      pd.unique(Series(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
                                 pd.Timestamp('20160101', tz='US/Eastern')])))
 
-     # Index
+     # Index, returns a DatetimeIndex
      pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
                pd.Timestamp('20160101', tz='US/Eastern')])
      pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
@@ -658,6 +659,7 @@ In prior versions, using ``Series.unique()`` and ``pd.unique(Series)`` on ``Cate
 
   .. ipython:: python
 
+     # returns a Categorical
      pd.Series(pd.Categorical(list('aabc'))).unique()
      pd.unique(pd.Series(pd.Categorical(list('aabc'))).unique())
 
