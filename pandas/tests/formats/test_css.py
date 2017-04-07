@@ -34,10 +34,10 @@ def test_css_parse_comments():
                            'hello/* foo */:/* bar \n */ world /*;not:here*/')
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='''we don't need to handle specificity
+                             markers like !important, but we should
+                             ignore them in the future''')
 def test_css_parse_specificity():
-    # we don't need to handle specificity markers like !important,
-    # but we should ignore them
     pass
 
 

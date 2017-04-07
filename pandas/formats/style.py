@@ -27,6 +27,7 @@ from pandas.core.generic import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.util.decorators import Appender
+from pandas.formats.excel import ExcelFormatter
 try:
     import matplotlib.pyplot as plt
     from matplotlib import colors
@@ -206,15 +207,16 @@ class Styler(object):
                  merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
                  freeze_panes=None):
 
-        from pandas.core.frame import _to_excel
-        return _to_excel(self, excel_writer, sheet_name=sheet_name,
-                         na_rep=na_rep, float_format=float_format,
-                         columns=columns, header=header, index=index,
-                         index_label=index_label, startrow=startrow,
-                         startcol=startcol, engine=engine,
-                         merge_cells=merge_cells, encoding=encoding,
-                         inf_rep=inf_rep, verbose=verbose,
-                         freeze_panes=freeze_panes)
+        formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
+                                   header=header,
+                                   float_format=float_format, index=index,
+                                   index_label=index_label,
+                                   merge_cells=merge_cells,
+                                   inf_rep=inf_rep)
+        formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
+                        startcol=startcol, freeze_panes=freeze_panes,
+                        engine=engine)
+
 
     def _translate(self):
         """

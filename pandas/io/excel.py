@@ -24,6 +24,7 @@ from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
                            string_types, OrderedDict)
 from pandas.core import config
 from pandas.formats.printing import pprint_thing
+from pandas.formats.excel import ExcelFormatter
 import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
