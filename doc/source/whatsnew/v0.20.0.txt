@@ -1184,6 +1184,7 @@ I/O
 - Bug in ``pd.read_csv()`` in which certain invalid file objects caused the Python interpreter to crash (:issue:`15337`)
 - Bug in ``pd.read_csv()`` in which invalid values for ``nrows`` and ``chunksize`` were allowed (:issue:`15767`)
 - Bug in ``pd.read_csv()`` for the Python engine in which unhelpful error messages were being raised when parsing errors occurred (:issue:`15910`)
+- Bug in ``pd.read_csv()`` in which the ``skipfooter`` parameter was not being properly validated (:issue:`15925`)
 - Bug in ``pd.tools.hashing.hash_pandas_object()`` in which hashing of categoricals depended on the ordering of categories, instead of just their values. (:issue:`15143`)
 - Bug in ``.to_json()`` where ``lines=True`` and contents (keys or values) contain escaped characters (:issue:`15096`)
 - Bug in ``.to_json()`` causing single byte ascii characters to be expanded to four byte unicode (:issue:`15344`)
