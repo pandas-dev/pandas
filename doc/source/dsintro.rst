@@ -788,6 +788,7 @@ From 3D ndarray with optional axis labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
+   :okwarning:
 
    wp = pd.Panel(np.random.randn(2, 5, 4), items=['Item1', 'Item2'],
                  major_axis=pd.date_range('1/1/2000', periods=5),
@@ -799,6 +800,7 @@ From dict of DataFrame objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. ipython:: python
+   :okwarning:
 
    data = {'Item1' : pd.DataFrame(np.random.randn(4, 3)),
            'Item2' : pd.DataFrame(np.random.randn(4, 2))}
@@ -821,6 +823,7 @@ dictionary of DataFrames as above, and the following named parameters:
 For example, compare to the construction above:
 
 .. ipython:: python
+   :okwarning:
 
    pd.Panel.from_dict(data, orient='minor')
 
@@ -829,6 +832,7 @@ DataFrame objects with mixed-type columns, all of the data will get upcasted to
 ``dtype=object`` unless you pass ``orient='minor'``:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({'a': ['foo', 'bar', 'baz'],
                       'b': np.random.randn(3)})
@@ -856,6 +860,7 @@ This method was introduced in v0.7 to replace ``LongPanel.to_long``, and convert
 a DataFrame with a two-level index to a Panel.
 
 .. ipython:: python
+   :okwarning:
 
    midx = pd.MultiIndex(levels=[['one', 'two'], ['x','y']], labels=[[1,1,0,0],[1,0,1,0]])
    df = pd.DataFrame({'A' : [1, 2, 3, 4], 'B': [5, 6, 7, 8]}, index=midx)
@@ -885,6 +890,7 @@ A Panel can be rearranged using its ``transpose`` method (which does not make a
 copy by default unless the data are heterogeneous):
 
 .. ipython:: python
+   :okwarning:
 
    wp.transpose(2, 0, 1)
 
@@ -914,6 +920,7 @@ Squeezing
 Another way to change the dimensionality of an object is to ``squeeze`` a 1-len object, similar to ``wp['Item1']``
 
 .. ipython:: python
+   :okwarning:
 
    wp.reindex(items=['Item1']).squeeze()
    wp.reindex(items=['Item1'], minor=['B']).squeeze()
@@ -928,6 +935,7 @@ for more on this. To convert a Panel to a DataFrame, use the ``to_frame``
 method:
 
 .. ipython:: python
+   :okwarning:
 
    panel = pd.Panel(np.random.randn(3, 5, 4), items=['one', 'two', 'three'],
                     major_axis=pd.date_range('1/1/2000', periods=5),
@@ -964,6 +972,7 @@ support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
 Convert to a MultiIndex DataFrame
 
 .. ipython:: python
+   :okwarning:
 
    p.to_frame()
 

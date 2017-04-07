@@ -14,7 +14,7 @@ Highlights include:
 - Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
 - Improved support for UInt64 dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
 - A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
-- Window Binary Corr/Cov operations return a MultiIndex DataFrame rather than a Panel, see :ref:`here <whhatsnew_0200.api_breaking.rolling_pairwise>`
+- Window Binary Corr/Cov operations return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
@@ -872,8 +872,9 @@ Window Binary Corr/Cov operations return a MultiIndex DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A binary window operation, like ``.corr()`` or ``.cov()``, when operating on a ``.rolling(..)``, ``.expanding(..)``, or ``.ewm(..)`` object,
-will now return a 2-level ``MultiIndexed DataFrame`` rather than a ``Panel``. These are equivalent in function,
-but MultiIndexed DataFrames enjoy more support in pandas.
+will now return a 2-level ``MultiIndexed DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated,
+see :ref:`here <_whatsnew_0200.api_breaking.deprecate_panel>`. These are equivalent in function,
+but MultiIndexed ``DataFrame`` s enjoy more support in pandas.
 See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for more information. (:issue:`15677`)
 
 .. ipython:: python
@@ -883,7 +884,7 @@ See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for 
                      columns=pd.Index(['A', 'B'], name='bar'),
                      index=pd.date_range('20160101',
                                          periods=100, freq='D', name='foo'))
-   df
+   df.tail()
 
 Old Behavior:
 
@@ -902,7 +903,7 @@ New Behavior:
 .. ipython:: python
 
    res = df.rolling(12).corr()
-   res
+   res.tail()
 
 Retrieving a correlation matrix for a cross-section
 

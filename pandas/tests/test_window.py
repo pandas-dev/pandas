@@ -2751,7 +2751,7 @@ class TestMomentsConsistency(Base):
         df2_expected = DataFrame(
             index=pd.MultiIndex.from_product([df2.index, df2.columns],
                                              names=['bar', 'foo']),
-            columns=Index(['a']),
+            columns=Index(['a'], name='foo'),
             dtype='float64')
 
         functions = [lambda x: (x.expanding(min_periods=5)
@@ -2789,7 +2789,7 @@ class TestMomentsConsistency(Base):
         result3 = df1a.expanding().cov(df2, pairwise=True).loc[2]
         result4 = df1a.expanding().cov(df2a, pairwise=True).loc[2]
         expected = DataFrame([[-3.0, -6.0], [-5.0, -10.0]],
-                             columns=['A', 'B'],
+                             columns=Index(['A', 'B'], name='foo'),
                              index=Index(['X', 'Y'], name='foo'))
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)

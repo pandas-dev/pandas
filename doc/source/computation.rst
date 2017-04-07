@@ -534,7 +534,7 @@ In financial data analysis and other fields it's common to compute covariance
 and correlation matrices for a collection of time series. Often one is also
 interested in moving-window covariance and correlation matrices. This can be
 done by passing the ``pairwise`` keyword argument, which in the case of
-``DataFrame`` inputs will yield a ``MultiIndexed DataFrame`` whose ``index`` are the dates in
+``DataFrame`` inputs will yield a MultiIndexed ``DataFrame`` whose ``index`` are the dates in
 question. In the case of a single DataFrame argument the ``pairwise`` argument
 can even be omitted:
 
@@ -549,12 +549,12 @@ can even be omitted:
 .. ipython:: python
 
    covs = df[['B','C','D']].rolling(window=50).cov(df[['A','B','C']], pairwise=True)
-   covs.unstack(-1).iloc[-50]
+   covs.loc['2002-09-22':]
 
 .. ipython:: python
 
    correls = df.rolling(window=50).corr()
-   correls.unstack(-1).iloc[-50]
+   correls.loc['2002-09-22':]
 
 You can efficiently retrieve the time series of correlations between two
 columns using ``.loc`` indexing:
@@ -567,7 +567,7 @@ columns using ``.loc`` indexing:
 .. ipython:: python
 
    @savefig rolling_corr_pairwise_ex.png
-   correls.unstack(-1).[('A', 'C')].plot()
+   correls.loc[:, ('A', 'C')].plot()
 
 .. _stats.aggregate:
 

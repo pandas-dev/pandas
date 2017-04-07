@@ -1730,9 +1730,11 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                         columns=arg2.columns,
                         dtype='float64')
 
-                # reset our names to arg1 names
+                # reset our index names to arg1 names
+                # reset our column names to arg2 names
                 # careful not to mutate the original names
-                result.columns = Index(result.columns).set_names(None)
+                result.columns = Index(result.columns).set_names(
+                    arg2.columns.name)
                 result.index = result.index.set_names(
                     [arg1.index.name, arg1.columns.name])
 
