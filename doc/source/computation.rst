@@ -557,7 +557,7 @@ can even be omitted:
    correls.loc['2002-09-22':]
 
 You can efficiently retrieve the time series of correlations between two
-columns using ``.loc`` indexing:
+columns by reshaping and indexing:
 
 .. ipython:: python
    :suppress:
@@ -567,7 +567,7 @@ columns using ``.loc`` indexing:
 .. ipython:: python
 
    @savefig rolling_corr_pairwise_ex.png
-   correls.loc[:, ('A', 'C')].plot()
+   correls.unstack(1)[('A', 'C')].plot()
 
 .. _stats.aggregate:
 
