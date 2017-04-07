@@ -6,7 +6,8 @@ from numpy.random import RandomState
 from numpy import nan
 from datetime import datetime
 from itertools import permutations
-from pandas import Series, Categorical, CategoricalIndex, Index
+from pandas import (Series, Categorical, CategoricalIndex, Index,
+                    Timestamp, DatetimeIndex)
 import pandas as pd
 
 from pandas import compat
@@ -34,7 +35,7 @@ class TestMatch(tm.TestCase):
         expected = Series(np.array([0, 2, 1, 1, 0, 2, np.nan, 0]))
         tm.assert_series_equal(result, expected)
 
-        s = pd.Series(np.arange(5), dtype=np.float32)
+        s = Series(np.arange(5), dtype=np.float32)
         result = algos.match(s, [2, 4])
         expected = np.array([-1, -1, 0, -1, 1], dtype=np.int64)
         self.assert_numpy_array_equal(result, expected)
@@ -204,20 +205,20 @@ class TestFactorize(tm.TestCase):
     def test_datelike(self):
 
         # M8
-        v1 = pd.Timestamp('20130101 09:00:00.00004')
-        v2 = pd.Timestamp('20130101')
+        v1 = Timestamp('20130101 09:00:00.00004')
+        v2 = Timestamp('20130101')
         x = Series([v1, v1, v1, v2, v2, v1])
         labels, uniques = algos.factorize(x)
 
         exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
-        exp = pd.DatetimeIndex([v1, v2])
+        exp = DatetimeIndex([v1, v2])
         self.assert_index_equal(uniques, exp)
 
         labels, uniques = algos.factorize(x, sort=True)
         exp = np.array([1, 1, 1, 0, 0, 1], dtype=np.intp)
         self.assert_numpy_array_equal(labels, exp)
-        exp = pd.DatetimeIndex([v2, v1])
+        exp = DatetimeIndex([v2, v1])
         self.assert_index_equal(uniques, exp)
 
         # period
@@ -350,7 +351,7 @@ class TestUnique(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
         self.assertEqual(result.dtype, expected.dtype)
 
-        s = pd.Series(dt_index)
+        s = Series(dt_index)
         result = algos.unique(s)
         tm.assert_numpy_array_equal(result, expected)
         self.assertEqual(result.dtype, expected.dtype)
@@ -369,7 +370,7 @@ class TestUnique(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
         self.assertEqual(result.dtype, expected.dtype)
 
-        s = pd.Series(td_index)
+        s = Series(td_index)
         result = algos.unique(s)
         tm.assert_numpy_array_equal(result, expected)
         self.assertEqual(result.dtype, expected.dtype)
@@ -380,11 +381,12 @@ class TestUnique(tm.TestCase):
         self.assertEqual(result.dtype, expected.dtype)
 
     def test_uint64_overflow(self):
-        s = pd.Series([1, 2, 2**63, 2**63], dtype=np.uint64)
+        s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
         exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(algos.unique(s), exp)
 
     def test_categorical(self):
+        # GH 15939
         c = pd.Categorical(list('aabc'))
         result = c.unique()
         expected = pd.Categorical(list('abc'))
@@ -397,28 +399,56 @@ class TestUnique(tm.TestCase):
         expected = Series(expected, name='foo')
         tm.assert_series_equal(result, expected)
 
+    def test_datetime64tz_aware(self):
+        # GH 15939
+        result = Series(
+            pd.Index([Timestamp('20160101', tz='US/Eastern'),
+                      Timestamp('20160101', tz='US/Eastern')])).unique()
+        expected = np.array([Timestamp('2016-01-01 00:00:00-0500',
+                                       tz='US/Eastern')], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pd.Index([Timestamp('20160101', tz='US/Eastern'),
+                           Timestamp('20160101', tz='US/Eastern')]).unique()
+        expected = DatetimeIndex(['2016-01-01 00:00:00'],
+                                 dtype='datetime64[ns, US/Eastern]', freq=None)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.unique(
+            Series(pd.Index([Timestamp('20160101', tz='US/Eastern'),
+                             Timestamp('20160101', tz='US/Eastern')])))
+        expected = DatetimeIndex(['2016-01-01 00:00:00'],
+                                 dtype='datetime64[ns, US/Eastern]', freq=None)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.unique(pd.Index([Timestamp('20160101', tz='US/Eastern'),
+                                     Timestamp('20160101', tz='US/Eastern')]))
+        expected = DatetimeIndex(['2016-01-01 00:00:00'],
+                                 dtype='datetime64[ns, US/Eastern]', freq=None)
+        tm.assert_index_equal(result, expected)
+
     def test_order_of_appearance(self):
         # 9346
         # light testing of guarantee of order of appearance
         # these also are the doc-examples
-        result = pd.unique(pd.Series([2, 1, 3, 3]))
+        result = pd.unique(Series([2, 1, 3, 3]))
         tm.assert_numpy_array_equal(result, np.array([2, 1, 3]))
 
-        result = pd.unique(pd.Series([2] + [1] * 5))
+        result = pd.unique(Series([2] + [1] * 5))
         tm.assert_numpy_array_equal(result, np.array([2, 1]))
 
-        result = pd.unique(Series([pd.Timestamp('20160101'),
-                                   pd.Timestamp('20160101')]))
+        result = pd.unique(Series([Timestamp('20160101'),
+                                   Timestamp('20160101')]))
         expected = np.array(['2016-01-01T00:00:00.000000000'],
                             dtype='datetime64[ns]')
         tm.assert_numpy_array_equal(result, expected)
 
         result = pd.unique(pd.Index(
-            [pd.Timestamp('20160101', tz='US/Eastern'),
-             pd.Timestamp('20160101', tz='US/Eastern')]))
-        expected = pd.DatetimeIndex(['2016-01-01 00:00:00'],
-                                    dtype='datetime64[ns, US/Eastern]',
-                                    freq=None)
+            [Timestamp('20160101', tz='US/Eastern'),
+             Timestamp('20160101', tz='US/Eastern')]))
+        expected = DatetimeIndex(['2016-01-01 00:00:00'],
+                                 dtype='datetime64[ns, US/Eastern]',
+                                 freq=None)
         tm.assert_index_equal(result, expected)
 
         result = pd.unique(list('aabc'))
@@ -448,15 +478,15 @@ class TestIsin(tm.TestCase):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(pd.Series([1, 2]), [1])
+        result = algos.isin(Series([1, 2]), [1])
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(pd.Series([1, 2]), pd.Series([1]))
+        result = algos.isin(Series([1, 2]), Series([1]))
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(pd.Series([1, 2]), set([1]))
+        result = algos.isin(Series([1, 2]), set([1]))
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -464,11 +494,11 @@ class TestIsin(tm.TestCase):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(pd.Series(['a', 'b']), pd.Series(['a']))
+        result = algos.isin(Series(['a', 'b']), Series(['a']))
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(pd.Series(['a', 'b']), set(['a']))
+        result = algos.isin(Series(['a', 'b']), set(['a']))
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -565,33 +595,33 @@ class TestValueCounts(tm.TestCase):
             self.assertEqual(len(vc), 1)
             self.assertEqual(len(vc_with_na), 2)
 
-        exp_dt = pd.Series({pd.Timestamp('2014-01-01 00:00:00'): 1})
+        exp_dt = Series({Timestamp('2014-01-01 00:00:00'): 1})
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
         # TODO same for (timedelta)
 
     def test_value_counts_datetime_outofbounds(self):
         # GH 13663
-        s = pd.Series([datetime(3000, 1, 1), datetime(5000, 1, 1),
-                       datetime(5000, 1, 1), datetime(6000, 1, 1),
-                       datetime(3000, 1, 1), datetime(3000, 1, 1)])
+        s = Series([datetime(3000, 1, 1), datetime(5000, 1, 1),
+                    datetime(5000, 1, 1), datetime(6000, 1, 1),
+                    datetime(3000, 1, 1), datetime(3000, 1, 1)])
         res = s.value_counts()
 
         exp_index = pd.Index([datetime(3000, 1, 1), datetime(5000, 1, 1),
                               datetime(6000, 1, 1)], dtype=object)
-        exp = pd.Series([3, 2, 1], index=exp_index)
+        exp = Series([3, 2, 1], index=exp_index)
         tm.assert_series_equal(res, exp)
 
         # GH 12424
-        res = pd.to_datetime(pd.Series(['2362-01-01', np.nan]),
+        res = pd.to_datetime(Series(['2362-01-01', np.nan]),
                              errors='ignore')
-        exp = pd.Series(['2362-01-01', np.nan], dtype=object)
+        exp = Series(['2362-01-01', np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
     def test_categorical(self):
         s = Series(pd.Categorical(list('aaabbc')))
         result = s.value_counts()
-        expected = pd.Series([3, 2, 1],
-                             index=pd.CategoricalIndex(['a', 'b', 'c']))
+        expected = Series([3, 2, 1],
+                          index=pd.CategoricalIndex(['a', 'b', 'c']))
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # preserve order?
@@ -604,11 +634,11 @@ class TestValueCounts(tm.TestCase):
         s = Series(pd.Categorical(list('aaaaabbbcc')))  # 4,3,2,1 (nan)
         s.iloc[1] = np.nan
         result = s.value_counts()
-        expected = pd.Series([4, 3, 2], index=pd.CategoricalIndex(
+        expected = Series([4, 3, 2], index=pd.CategoricalIndex(
             ['a', 'b', 'c'], categories=['a', 'b', 'c']))
         tm.assert_series_equal(result, expected, check_index_type=True)
         result = s.value_counts(dropna=False)
-        expected = pd.Series([
+        expected = Series([
             4, 3, 2, 1
         ], index=pd.CategoricalIndex(['a', 'b', 'c', np.nan]))
         tm.assert_series_equal(result, expected, check_index_type=True)
@@ -618,12 +648,12 @@ class TestValueCounts(tm.TestCase):
             list('aaaaabbbcc'), ordered=True, categories=['b', 'a', 'c']))
         s.iloc[1] = np.nan
         result = s.value_counts()
-        expected = pd.Series([4, 3, 2], index=pd.CategoricalIndex(
+        expected = Series([4, 3, 2], index=pd.CategoricalIndex(
             ['a', 'b', 'c'], categories=['b', 'a', 'c'], ordered=True))
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         result = s.value_counts(dropna=False)
-        expected = pd.Series([4, 3, 2, 1], index=pd.CategoricalIndex(
+        expected = Series([4, 3, 2, 1], index=pd.CategoricalIndex(
             ['a', 'b', 'c', np.nan], categories=['b', 'a', 'c'], ordered=True))
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -640,33 +670,33 @@ class TestValueCounts(tm.TestCase):
         # https://github.com/pandas-dev/pandas/issues/9443#issuecomment-73719328
 
         tm.assert_series_equal(
-            pd.Series([True, True, False]).value_counts(dropna=True),
-            pd.Series([2, 1], index=[True, False]))
+            Series([True, True, False]).value_counts(dropna=True),
+            Series([2, 1], index=[True, False]))
         tm.assert_series_equal(
-            pd.Series([True, True, False]).value_counts(dropna=False),
-            pd.Series([2, 1], index=[True, False]))
+            Series([True, True, False]).value_counts(dropna=False),
+            Series([2, 1], index=[True, False]))
 
         tm.assert_series_equal(
-            pd.Series([True, True, False, None]).value_counts(dropna=True),
-            pd.Series([2, 1], index=[True, False]))
+            Series([True, True, False, None]).value_counts(dropna=True),
+            Series([2, 1], index=[True, False]))
         tm.assert_series_equal(
-            pd.Series([True, True, False, None]).value_counts(dropna=False),
-            pd.Series([2, 1, 1], index=[True, False, np.nan]))
+            Series([True, True, False, None]).value_counts(dropna=False),
+            Series([2, 1, 1], index=[True, False, np.nan]))
         tm.assert_series_equal(
-            pd.Series([10.3, 5., 5.]).value_counts(dropna=True),
-            pd.Series([2, 1], index=[5., 10.3]))
+            Series([10.3, 5., 5.]).value_counts(dropna=True),
+            Series([2, 1], index=[5., 10.3]))
         tm.assert_series_equal(
-            pd.Series([10.3, 5., 5.]).value_counts(dropna=False),
-            pd.Series([2, 1], index=[5., 10.3]))
+            Series([10.3, 5., 5.]).value_counts(dropna=False),
+            Series([2, 1], index=[5., 10.3]))
 
         tm.assert_series_equal(
-            pd.Series([10.3, 5., 5., None]).value_counts(dropna=True),
-            pd.Series([2, 1], index=[5., 10.3]))
+            Series([10.3, 5., 5., None]).value_counts(dropna=True),
+            Series([2, 1], index=[5., 10.3]))
 
         # 32-bit linux has a different ordering
         if not compat.is_platform_32bit():
-            result = pd.Series([10.3, 5., 5., None]).value_counts(dropna=False)
-            expected = pd.Series([2, 1, 1], index=[5., 10.3, np.nan])
+            result = Series([10.3, 5., 5., None]).value_counts(dropna=False)
+            expected = Series([2, 1, 1], index=[5., 10.3, np.nan])
             tm.assert_series_equal(result, expected)
 
     def test_value_counts_normalized(self):
@@ -781,15 +811,15 @@ class TestDuplicated(tm.TestCase):
                 tm.assert_numpy_array_equal(res_false, exp_false)
 
             # series
-            for s in [pd.Series(case), pd.Series(case, dtype='category')]:
+            for s in [Series(case), Series(case, dtype='category')]:
                 res_first = s.duplicated(keep='first')
-                tm.assert_series_equal(res_first, pd.Series(exp_first))
+                tm.assert_series_equal(res_first, Series(exp_first))
 
                 res_last = s.duplicated(keep='last')
-                tm.assert_series_equal(res_last, pd.Series(exp_last))
+                tm.assert_series_equal(res_last, Series(exp_last))
 
                 res_false = s.duplicated(keep=False)
-                tm.assert_series_equal(res_false, pd.Series(exp_false))
+                tm.assert_series_equal(res_false, Series(exp_false))
 
     def test_datetime_likes(self):
 
@@ -798,8 +828,8 @@ class TestDuplicated(tm.TestCase):
         td = ['1 days', '2 days', '1 days', 'NaT', '3 days',
               '2 days', '4 days', '1 days', 'NaT', '6 days']
 
-        cases = [np.array([pd.Timestamp(d) for d in dt]),
-                 np.array([pd.Timestamp(d, tz='US/Eastern') for d in dt]),
+        cases = [np.array([Timestamp(d) for d in dt]),
+                 np.array([Timestamp(d, tz='US/Eastern') for d in dt]),
                  np.array([pd.Period(d, freq='D') for d in dt]),
                  np.array([np.datetime64(d) for d in dt]),
                  np.array([pd.Timedelta(d) for d in td])]
@@ -833,16 +863,16 @@ class TestDuplicated(tm.TestCase):
                 tm.assert_numpy_array_equal(res_false, exp_false)
 
             # series
-            for s in [pd.Series(case), pd.Series(case, dtype='category'),
-                      pd.Series(case, dtype=object)]:
+            for s in [Series(case), Series(case, dtype='category'),
+                      Series(case, dtype=object)]:
                 res_first = s.duplicated(keep='first')
-                tm.assert_series_equal(res_first, pd.Series(exp_first))
+                tm.assert_series_equal(res_first, Series(exp_first))
 
                 res_last = s.duplicated(keep='last')
-                tm.assert_series_equal(res_last, pd.Series(exp_last))
+                tm.assert_series_equal(res_last, Series(exp_last))
 
                 res_false = s.duplicated(keep=False)
-                tm.assert_series_equal(res_false, pd.Series(exp_false))
+                tm.assert_series_equal(res_false, Series(exp_false))
 
     def test_unique_index(self):
         cases = [pd.Index([1, 2, 3]), pd.RangeIndex(0, 3)]
@@ -984,7 +1014,7 @@ class TestHashTable(tm.TestCase):
                                       np.arange(len(xs), dtype=np.int64))
 
     def test_get_unique(self):
-        s = pd.Series([1, 2, 2**63, 2**63], dtype=np.uint64)
+        s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
         exp = np.array([1, 2, 2**63], dtype=np.uint64)
         self.assert_numpy_array_equal(s.unique(), exp)
 
