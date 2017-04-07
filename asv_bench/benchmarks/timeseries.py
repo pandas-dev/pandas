@@ -292,7 +292,10 @@ class TimeSeries(object):
         self.rng3 = date_range(start='1/1/2000', periods=1500000, freq='S')
         self.ts3 = Series(1, index=self.rng3)
 
-    def time_sort_index(self):
+    def time_sort_index_monotonic(self):
+        self.ts2.sort_index()
+
+    def time_sort_index_non_monotonic(self):
         self.ts.sort_index()
 
     def time_timeseries_slice_minutely(self):

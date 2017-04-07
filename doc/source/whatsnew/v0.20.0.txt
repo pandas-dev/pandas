@@ -366,6 +366,8 @@ Other Enhancements
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pandas.io.json.json_normalize()`` has gained a ``sep`` option that accepts ``str`` to separate joined fields; the default is ".", which is backward compatible. (:issue:`14883`)
 - ``pd.read_csv()`` will now raise a ``csv.Error`` error whenever an end-of-file character is encountered in the middle of a data row (:issue:`15913`)
+- A new function has been added to a ``MultiIndex`` to facilitate :ref:`Removing Unused Levels <advanced.shown_levels>`. (:issue:`15694`)
+- :func:`MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
 
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
@@ -714,6 +716,72 @@ If indicated, a deprecation warning will be issued if you reference that module.
     "pandas._hash", "pandas.tools.libhash", ""
     "pandas._window", "pandas.core.libwindow", ""
 
+.. _whatsnew_0200.api_breaking.sort_index:
+
+DataFrame.sort_index changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In certain cases, calling ``.sort_index()`` on a MultiIndexed DataFrame would return the *same* DataFrame without seeming to sort.
+This would happen with a ``lexsorted``, but non-monotonic levels. (:issue:`15622`, :issue:`15687`, :issue:`14015`, :issue:`13431`)
+
+This is UNCHANGED between versions, but showing for illustration purposes:
+
+.. ipython:: python
+
+    df = DataFrame(np.arange(6), columns=['value'], index=MultiIndex.from_product([list('BA'), range(3)]))
+    df
+
+.. ipython:: python
+
+    df.index.is_lexsorted()
+    df.index.is_monotonic
+
+Sorting works as expected
+
+.. ipython:: python
+
+    df.sort_index()
+
+.. ipython:: python
+
+    df.sort_index().index.is_lexsorted()
+    df.sort_index().index.is_monotonic
+
+However, this example, which has a non-monotonic 2nd level,
+doesn't behave as desired.
+
+.. ipython:: python
+   df = pd.DataFrame(
+           {'value': [1, 2, 3, 4]},
+            index=pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
+                                labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+
+Previous Behavior:
+
+.. ipython:: python
+
+   In [11]: df.sort_index()
+   Out[11]:
+         value
+   a bb      1
+     aa      2
+   b bb      3
+     aa      4
+
+   In [14]: df.sort_index().index.is_lexsorted()
+   Out[14]: True
+
+   In [15]: df.sort_index().index.is_monotonic
+   Out[15]: False
+
+New Behavior:
+
+.. ipython:: python
+
+   df.sort_index()
+   df.sort_index().index.is_lexsorted()
+   df.sort_index().index.is_monotonic
+
 
 .. _whatsnew_0200.api_breaking.groupby_describe:
 
@@ -965,7 +1033,7 @@ Performance Improvements
 - Improve performance of ``pd.core.groupby.GroupBy.apply`` when the applied
   function used the ``.name`` attribute of the group DataFrame (:issue:`15062`).
 - Improved performance of ``iloc`` indexing with a list or array (:issue:`15504`).
-
+- Improved performance of ``Series.sort_index()`` with a monotonic index (:issue:`15694`)
 
 .. _whatsnew_0200.bug_fixes:
 

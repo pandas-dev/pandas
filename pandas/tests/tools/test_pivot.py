@@ -2,6 +2,7 @@ from datetime import datetime, date, timedelta
 
 import numpy as np
 
+from collections import OrderedDict
 import pandas as pd
 from pandas import (DataFrame, Series, Index, MultiIndex,
                     Grouper, date_range, concat)
@@ -513,7 +514,7 @@ class TestPivotTable(tm.TestCase):
         self.assertTrue(pivoted.columns.is_monotonic)
 
     def test_pivot_complex_aggfunc(self):
-        f = {'D': ['std'], 'E': ['sum']}
+        f = OrderedDict([('D', ['std']), ('E', ['sum'])])
         expected = self.data.groupby(['A', 'B']).agg(f).unstack('B')
         result = self.data.pivot_table(index='A', columns='B', aggfunc=f)
 

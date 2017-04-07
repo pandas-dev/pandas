@@ -87,6 +87,35 @@ class TestHashing(tm.TestCase):
         result = hash_pandas_object(mi)
         self.assertTrue(result.is_unique)
 
+    def test_multiindex_objects(self):
+        mi = MultiIndex(levels=[['b', 'd', 'a'], [1, 2, 3]],
+                        labels=[[0, 1, 0, 2], [2, 0, 0, 1]],
+                        names=['col1', 'col2'])
+        recons = mi._sort_levels_monotonic()
+
+        # these are equal
+        assert mi.equals(recons)
+        assert Index(mi.values).equals(Index(recons.values))
+
+        # _hashed_values and hash_pandas_object(..., index=False)
+        # equivalency
+        expected = hash_pandas_object(
+            mi, index=False).values
+        result = mi._hashed_values
+        tm.assert_numpy_array_equal(result, expected)
+
+        expected = hash_pandas_object(
+            recons, index=False).values
+        result = recons._hashed_values
+        tm.assert_numpy_array_equal(result, expected)
+
+        expected = mi._hashed_values
+        result = recons._hashed_values
+
+        # values should match, but in different order
+        tm.assert_numpy_array_equal(np.sort(result),
+                                    np.sort(expected))
+
     def test_hash_pandas_object(self):
 
         for obj in [Series([1, 2, 3]),

@@ -2411,6 +2411,80 @@ class TestMultiIndex(Base, tm.TestCase):
 
         self.assertFalse(i.is_monotonic)
 
+    def test_reconstruct_sort(self):
+
+        # starts off lexsorted & monotonic
+        mi = MultiIndex.from_arrays([
+            ['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]
+        ])
+        assert mi.is_lexsorted()
+        assert mi.is_monotonic
+
+        recons = mi._sort_levels_monotonic()
+        assert recons.is_lexsorted()
+        assert recons.is_monotonic
+        assert mi is recons
+
+        assert mi.equals(recons)
+        assert Index(mi.values).equals(Index(recons.values))
+
+        # cannot convert to lexsorted
+        mi = pd.MultiIndex.from_tuples([('z', 'a'), ('x', 'a'), ('y', 'b'),
+                                        ('x', 'b'), ('y', 'a'), ('z', 'b')],
+                                       names=['one', 'two'])
+        assert not mi.is_lexsorted()
+        assert not mi.is_monotonic
+
+        recons = mi._sort_levels_monotonic()
+        assert not recons.is_lexsorted()
+        assert not recons.is_monotonic
+
+        assert mi.equals(recons)
+        assert Index(mi.values).equals(Index(recons.values))
+
+        # cannot convert to lexsorted
+        mi = MultiIndex(levels=[['b', 'd', 'a'], [1, 2, 3]],
+                        labels=[[0, 1, 0, 2], [2, 0, 0, 1]],
+                        names=['col1', 'col2'])
+        assert not mi.is_lexsorted()
+        assert not mi.is_monotonic
+
+        recons = mi._sort_levels_monotonic()
+        assert not recons.is_lexsorted()
+        assert not recons.is_monotonic
+
+        assert mi.equals(recons)
+        assert Index(mi.values).equals(Index(recons.values))
+
+    def test_reconstruct_remove_unused(self):
+        # xref to GH 2770
+        df = DataFrame([['deleteMe', 1, 9],
+                        ['keepMe', 2, 9],
+                        ['keepMeToo', 3, 9]],
+                       columns=['first', 'second', 'third'])
+        df2 = df.set_index(['first', 'second'], drop=False)
+        df2 = df2[df2['first'] != 'deleteMe']
+
+        # removed levels are there
+        expected = MultiIndex(levels=[['deleteMe', 'keepMe', 'keepMeToo'],
+                                      [1, 2, 3]],
+                              labels=[[1, 2], [1, 2]],
+                              names=['first', 'second'])
+        result = df2.index
+        tm.assert_index_equal(result, expected)
+
+        expected = MultiIndex(levels=[['keepMe', 'keepMeToo'],
+                                      [2, 3]],
+                              labels=[[0, 1], [0, 1]],
+                              names=['first', 'second'])
+        result = df2.index.remove_unused_levels()
+        tm.assert_index_equal(result, expected)
+
+        # idempotent
+        result2 = result.remove_unused_levels()
+        tm.assert_index_equal(result2, expected)
+        assert result2 is result
+
     def test_isin(self):
         values = [('foo', 2), ('bar', 3), ('quux', 4)]
 
@@ -2698,6 +2772,30 @@ class TestMultiIndex(Base, tm.TestCase):
 
         with assertRaises(KeyError):
             df.loc(axis=0)['q', :]
+
+    def test_unsortedindex_doc_examples(self):
+        # http://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex  # noqa
+        dfm = DataFrame({'jim': [0, 0, 1, 1],
+                         'joe': ['x', 'x', 'z', 'y'],
+                         'jolie': np.random.rand(4)})
+
+        dfm = dfm.set_index(['jim', 'joe'])
+        with tm.assert_produces_warning(PerformanceWarning):
+            dfm.loc[(1, 'z')]
+
+        with pytest.raises(UnsortedIndexError):
+            dfm.loc[(0, 'y'):(1, 'z')]
+
+        assert not dfm.index.is_lexsorted()
+        assert dfm.index.lexsort_depth == 1
+
+        # sort it
+        dfm = dfm.sort_index()
+        dfm.loc[(1, 'z')]
+        dfm.loc[(0, 'y'):(1, 'z')]
+
+        assert dfm.index.is_lexsorted()
+        assert dfm.index.lexsort_depth == 2
 
     def test_tuples_with_name_string(self):
         # GH 15110 and GH 14848

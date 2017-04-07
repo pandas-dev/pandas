@@ -1432,6 +1432,7 @@ MultiIndex Components
    MultiIndex.droplevel
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
+   MultiIndex.remove_unused_levels
 
 .. _api.datetimeindex:
 
