@@ -105,7 +105,7 @@ _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
 
 
-def _groupby_function(name, alias, npfunc, numeric_only=True,
+def _groupby_function(name, alias, npfunc, numeric_only=True, skipna=True,
                       _convert=False):
 
     _local_template = "Compute %(f)s of group values"
@@ -807,7 +807,7 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         return self._wrap_transformed_output(output, names)
 
-    def _cython_agg_general(self, how, alt=None, numeric_only=True):
+    def _cython_agg_general(self, how, alt=None, numeric_only=True, skipna=True):
         output = {}
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -815,7 +815,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                 continue
 
             try:
-                result, names = self.grouper.aggregate(obj.values, how)
+                result, names = self.grouper.aggregate(obj.values, how, skipna)
             except AssertionError as e:
                 raise GroupByError(str(e))
             output[name] = self._try_cast(result, obj)
@@ -1020,7 +1020,7 @@ class GroupBy(_GroupBy):
 
         For multiple groupings, the result index will be a MultiIndex
         """
-        nv.validate_groupby_func('mean', args, kwargs, ['numeric_only'])
+        nv.validate_groupby_func('mean', args, kwargs, ['numeric_only','skipna'])
         try:
             return self._cython_agg_general('mean', **kwargs)
         except GroupByError:
@@ -1067,7 +1067,7 @@ class GroupBy(_GroupBy):
         """
 
         # TODO: implement at Cython level?
-        nv.validate_groupby_func('std', args, kwargs)
+        nv.validate_groupby_func('std', args, kwargs,['skipna'])
         return np.sqrt(self.var(ddof=ddof, **kwargs))
 
     @Substitution(name='groupby')
@@ -1083,7 +1083,7 @@ class GroupBy(_GroupBy):
         ddof : integer, default 1
             degrees of freedom
         """
-        nv.validate_groupby_func('var', args, kwargs)
+        nv.validate_groupby_func('var', args, kwargs, ['skipna'])
         if ddof == 1:
             return self._cython_agg_general('var', **kwargs)
         else:
@@ -1093,7 +1093,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def sem(self, ddof=1):
+    def sem(self, ddof=1, **kwargs):
         """
         Compute standard error of the mean of groups, excluding missing values
 
@@ -1105,7 +1105,7 @@ class GroupBy(_GroupBy):
             degrees of freedom
         """
 
-        return self.std(ddof=ddof) / np.sqrt(self.count())
+        return self.std(ddof=ddof, **kwargs) / np.sqrt(self.count())
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1117,10 +1117,10 @@ class GroupBy(_GroupBy):
             result.name = getattr(self, 'name', None)
         return result
 
-    sum = _groupby_function('sum', 'add', np.sum)
-    prod = _groupby_function('prod', 'prod', np.prod)
-    min = _groupby_function('min', 'min', np.min, numeric_only=False)
-    max = _groupby_function('max', 'max', np.max, numeric_only=False)
+    sum = _groupby_function('sum', 'add', np.sum, skipna=True)
+    prod = _groupby_function('prod', 'prod', np.prod, skipna=True)
+    min = _groupby_function('min', 'min', np.min, numeric_only=False, skipna=True)
+    max = _groupby_function('max', 'max', np.max, numeric_only=False, skipna=True)
     first = _groupby_function('first', 'first', _first_compat,
                               numeric_only=False, _convert=True)
     last = _groupby_function('last', 'last', _last_compat, numeric_only=False,
@@ -1849,7 +1849,7 @@ class BaseGrouper(object):
                                       (how, dtype_str))
         return func, dtype_str
 
-    def _cython_operation(self, kind, values, how, axis):
+    def _cython_operation(self, kind, values, how, axis, skipna):
         assert kind in ['transform', 'aggregate']
 
         # can we do this operation with our cython functions
@@ -1933,7 +1933,7 @@ class BaseGrouper(object):
                                  fill_value=np.nan)
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(
-                result, counts, values, labels, func, is_numeric,
+                result, counts, values, labels, skipna, func, is_numeric,
                 is_datetimelike)
         elif kind == 'transform':
             result = _maybe_fill(np.empty_like(values, dtype=out_dtype),
@@ -1975,13 +1975,13 @@ class BaseGrouper(object):
 
         return result, names
 
-    def aggregate(self, values, how, axis=0):
-        return self._cython_operation('aggregate', values, how, axis)
+    def aggregate(self, values, how, skipna, axis=0):
+        return self._cython_operation('aggregate', values, how, axis, skipna)
 
     def transform(self, values, how, axis=0):
-        return self._cython_operation('transform', values, how, axis)
+        return self._cython_operation('transform', values, how, axis, skipna=True)
 
-    def _aggregate(self, result, counts, values, comp_ids, agg_func,
+    def _aggregate(self, result, counts, values, comp_ids, skipna, agg_func,
                    is_numeric, is_datetimelike):
         if values.ndim > 3:
             # punting for now
@@ -1991,9 +1991,9 @@ class BaseGrouper(object):
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
                 chunk = chunk.squeeze()
-                agg_func(result[:, :, i], counts, chunk, comp_ids)
+                agg_func(result[:, :, i], counts, chunk, comp_ids, skipna)
         else:
-            agg_func(result, counts, values, comp_ids)
+            agg_func(result, counts, values, comp_ids, skipna)
 
         return result
 
@@ -3187,9 +3187,9 @@ class NDFrameGroupBy(GroupBy):
                 continue
             yield val, slicer(val)
 
-    def _cython_agg_general(self, how, alt=None, numeric_only=True):
+    def _cython_agg_general(self, how, alt=None, numeric_only=True, skipna=True):
         new_items, new_blocks = self._cython_agg_blocks(
-            how, alt=alt, numeric_only=numeric_only)
+            how, alt=alt, numeric_only=numeric_only, skipna=skipna)
         return self._wrap_agged_blocks(new_items, new_blocks)
 
     def _wrap_agged_blocks(self, items, blocks):
@@ -3215,7 +3215,7 @@ class NDFrameGroupBy(GroupBy):
 
     _block_agg_axis = 0
 
-    def _cython_agg_blocks(self, how, alt=None, numeric_only=True):
+    def _cython_agg_blocks(self, how, alt=None, numeric_only=True,skipna=None):
         # TODO: the actual managing of mgr_locs is a PITA
         # here, it should happen via BlockManager.combine
 
@@ -3232,8 +3232,9 @@ class NDFrameGroupBy(GroupBy):
             locs = block.mgr_locs.as_array
             try:
                 result, _ = self.grouper.aggregate(
-                    block.values, how, axis=agg_axis)
+                    block.values, how, skipna=skipna, axis=agg_axis)
             except NotImplementedError:
+                continue
                 # generally if we have numeric_only=False
                 # and non-applicable functions
                 # try to python agg
@@ -3327,6 +3328,9 @@ class NDFrameGroupBy(GroupBy):
             self._insert_inaxis_grouper_inplace(result)
             result.index = np.arange(len(result))
 
+        if result.empty:
+            for col in result.columns:
+                result[col] = result[col].astype(self.obj[col])
         return result._convert(datetime=True)
 
     agg = aggregate
