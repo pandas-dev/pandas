@@ -19,7 +19,7 @@ from pandas import DataFrame, Series, Index, MultiIndex
 from pandas import compat
 from pandas.compat import (StringIO, BytesIO, PY3,
                            range, lrange, u)
-from pandas.errors import DtypeWarning, EmptyDataError
+from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 from pandas.io.common import URLError
 from pandas.io.parsers import TextFileReader, TextParser
 
@@ -1569,7 +1569,7 @@ j,-inF"""
             tm.assert_frame_equal(out, expected)
         else:
             msg = "NULL byte detected"
-            with tm.assertRaisesRegexp(csv.Error, msg):
+            with tm.assertRaisesRegexp(ParserError, msg):
                 self.read_csv(StringIO(data), names=cols)
 
     def test_utf8_bom(self):
@@ -1695,3 +1695,41 @@ j,-inF"""
 
             with tm.assertRaisesRegexp(ValueError, msg):
                 self.read_csv(mock.Mock())
+
+    def test_skip_bad_lines(self):
+        # see gh-15925
+        data = 'a\n1\n1,2,3\n4\n5,6,7'
+
+        with tm.assertRaises(ParserError):
+            self.read_csv(StringIO(data))
+
+        with tm.assertRaises(ParserError):
+            self.read_csv(StringIO(data), error_bad_lines=True)
+
+        stderr = sys.stderr
+        expected = DataFrame({'a': [1, 4]})
+
+        sys.stderr = StringIO()
+        try:
+            out = self.read_csv(StringIO(data),
+                                error_bad_lines=False,
+                                warn_bad_lines=False)
+            tm.assert_frame_equal(out, expected)
+
+            val = sys.stderr.getvalue()
+            self.assertEqual(val, '')
+        finally:
+            sys.stderr = stderr
+
+        sys.stderr = StringIO()
+        try:
+            out = self.read_csv(StringIO(data),
+                                error_bad_lines=False,
+                                warn_bad_lines=True)
+            tm.assert_frame_equal(out, expected)
+
+            val = sys.stderr.getvalue()
+            self.assertTrue('Skipping line 3' in val)
+            self.assertTrue('Skipping line 5' in val)
+        finally:
+            sys.stderr = stderr

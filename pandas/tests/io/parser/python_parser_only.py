@@ -14,6 +14,7 @@ import pytest
 import pandas.util.testing as tm
 from pandas import DataFrame, Index
 from pandas import compat
+from pandas.errors import ParserError
 from pandas.compat import StringIO, BytesIO, u
 
 
@@ -213,13 +214,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         data = 'a,,b\n1,,a\n2,,"2,,b"'
         msg = 'ignored when a multi-char delimiter is used'
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ParserError, msg):
             self.read_csv(StringIO(data), sep=',,')
 
         # We expect no match, so there should be an assertion
         # error out of the inner context manager.
         with tm.assertRaises(AssertionError):
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assertRaisesRegexp(ParserError, msg):
                 self.read_csv(StringIO(data), sep=',,',
                               quoting=csv.QUOTE_NONE)
 
@@ -231,11 +232,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         for data in ('a\n1\n"b"a',
                      'a,b,c\ncat,foo,bar\ndog,foo,"baz'):
-            with tm.assertRaisesRegexp(csv.Error, msg):
+            with tm.assertRaisesRegexp(ParserError, msg):
                 self.read_csv(StringIO(data), skipfooter=1)
 
             # We expect no match, so there should be an assertion
             # error out of the inner context manager.
             with tm.assertRaises(AssertionError):
-                with tm.assertRaisesRegexp(csv.Error, msg):
+                with tm.assertRaisesRegexp(ParserError, msg):
                     self.read_csv(StringIO(data))
