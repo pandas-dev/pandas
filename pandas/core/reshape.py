@@ -22,8 +22,8 @@ from pandas.sparse.array import SparseArray
 from pandas.sparse.libsparse import IntIndex
 
 from pandas.core.categorical import Categorical, _factorize_from_iterable
-from pandas.core.sorting import (get_group_index, compress_group_index,
-                                 decons_obs_group_ids)
+from pandas.core.sorting import (get_group_index, get_compressed_ids,
+                                 compress_group_index, decons_obs_group_ids)
 
 import pandas.core.algorithms as algos
 from pandas._libs import algos as _algos, reshape as _reshape
@@ -494,11 +494,6 @@ def _unstack_frame(obj, level, fill_value=None):
                                value_columns=obj.columns,
                                fill_value=fill_value)
         return unstacker.get_result()
-
-
-def get_compressed_ids(labels, sizes):
-    ids = get_group_index(labels, sizes, sort=True, xnull=False)
-    return compress_group_index(ids, sort=True)
 
 
 def stack(frame, level=-1, dropna=True):

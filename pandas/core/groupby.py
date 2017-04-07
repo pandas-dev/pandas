@@ -1882,6 +1882,13 @@ class BaseGrouper(object):
         'ohlc': lambda *args: ['open', 'high', 'low', 'close']
     }
 
+    def _is_builtin_func(self, arg):
+        """
+        if we define an builtin function for this argument, return it,
+        otherwise return the arg
+        """
+        return SelectionMixin._builtin_table.get(arg, arg)
+
     def _get_cython_function(self, kind, how, values, is_numeric):
 
         dtype_str = values.dtype.name
@@ -2107,7 +2114,7 @@ class BaseGrouper(object):
         # avoids object / Series creation overhead
         dummy = obj._get_values(slice(None, 0)).to_dense()
         indexer = get_group_index_sorter(group_index, ngroups)
-        obj = obj.take(indexer, convert=False)
+        obj = obj.take(indexer, convert=False).to_dense()
         group_index = algorithms.take_nd(
             group_index, indexer, allow_fill=False)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
