@@ -10,12 +10,15 @@ users upgrade to this version.
 Highlights include:
 
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
+- ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
 - Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
 - Improved support for UInt64 dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
 - A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
+- Window Binary Corr/Cov operations return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
+
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
@@ -424,6 +427,33 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
+
+.. _whatsnew_0200.api_breaking.deprecate_panel:
+
+Deprecate Panel
+^^^^^^^^^^^^^^^
+
+``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
+with a ``MultiIndex``on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+provides a :meth:`~Panel.to_xarray` method to automate this conversion. See the documentation :ref:`Deprecate Panel <dsintro.deprecate_panel>`. (:issue:`13563`).
+
+.. ipython:: python
+   :okwarning:
+
+   p = tm.makePanel()
+   p
+
+Convert to a MultiIndex DataFrame
+
+.. ipython:: python
+
+   p.to_frame()
+
+Convert to an xarray DataArray
+
+.. ipython:: python
+
+   p.to_xarray()
 
 .. _whatsnew.api_breaking.io_compat:
 
@@ -835,6 +865,51 @@ New Behavior:
    df.groupby('A').describe()
 
    df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+
+.. _whatsnew_0200.api_breaking.rolling_pairwise:
+
+Window Binary Corr/Cov operations return a MultiIndex DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A binary window operation, like ``.corr()`` or ``.cov()``, when operating on a ``.rolling(..)``, ``.expanding(..)``, or ``.ewm(..)`` object,
+will now return a 2-level ``MultiIndexed DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated,
+see :ref:`here <_whatsnew_0200.api_breaking.deprecate_panel>`. These are equivalent in function,
+but MultiIndexed ``DataFrame`` s enjoy more support in pandas.
+See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for more information. (:issue:`15677`)
+
+.. ipython:: python
+
+   np.random.seed(1234)
+   df = pd.DataFrame(np.random.rand(100, 2),
+                     columns=pd.Index(['A', 'B'], name='bar'),
+                     index=pd.date_range('20160101',
+                                         periods=100, freq='D', name='foo'))
+   df.tail()
+
+Old Behavior:
+
+.. code-block:: ipython
+
+   In [2]: df.rolling(12).corr()
+   Out[2]:
+   <class 'pandas.core.panel.Panel'>
+   Dimensions: 100 (items) x 2 (major_axis) x 2 (minor_axis)
+   Items axis: 2016-01-01 00:00:00 to 2016-04-09 00:00:00
+   Major_axis axis: A to B
+   Minor_axis axis: A to B
+
+New Behavior:
+
+.. ipython:: python
+
+   res = df.rolling(12).corr()
+   res.tail()
+
+Retrieving a correlation matrix for a cross-section
+
+.. ipython:: python
+
+   df.rolling(12).corr().loc['2016-04-07']
 
 .. _whatsnew_0200.api_breaking.hdfstore_where:
 

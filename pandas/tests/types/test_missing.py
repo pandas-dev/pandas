@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from warnings import catch_warnings
 import numpy as np
 from datetime import datetime
 from pandas.util import testing as tm
@@ -76,14 +77,15 @@ class TestIsNull(tm.TestCase):
             tm.assert_frame_equal(result, expected)
 
         # panel
-        for p in [tm.makePanel(), tm.makePeriodPanel(),
-                  tm.add_nans(tm.makePanel())]:
-            result = isnull(p)
-            expected = p.apply(isnull)
-            tm.assert_panel_equal(result, expected)
+        with catch_warnings(record=True):
+            for p in [tm.makePanel(), tm.makePeriodPanel(),
+                      tm.add_nans(tm.makePanel())]:
+                result = isnull(p)
+                expected = p.apply(isnull)
+                tm.assert_panel_equal(result, expected)
 
         # panel 4d
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
                 result = isnull(p)
                 expected = p.apply(isnull)
