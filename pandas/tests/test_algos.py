@@ -620,9 +620,9 @@ class TestValueCounts(tm.TestCase):
 
         # 32-bit linux has a different ordering
         if not compat.is_platform_32bit():
-            tm.assert_series_equal(
-                pd.Series([10.3, 5., 5., None]).value_counts(dropna=False),
-                pd.Series([2, 1, 1], index=[5., 10.3, np.nan]))
+            result = pd.Series([10.3, 5., 5., None]).value_counts(dropna=False)
+            expected = pd.Series([2, 1, 1], index=[5., 10.3, np.nan])
+            tm.assert_series_equal(result, expected)
 
     def test_value_counts_normalized(self):
         # GH12558
@@ -1356,16 +1356,19 @@ class TestMode(tm.TestCase):
 
     def test_categorical(self):
         c = Categorical([1, 2])
-        exp = Series([1, 2], dtype=np.int64)
-        tm.assert_series_equal(algos.mode(c), exp)
+        exp = c
+        tm.assert_categorical_equal(algos.mode(c), exp)
+        tm.assert_categorical_equal(c.mode(), exp)
 
         c = Categorical([1, 'a', 'a'])
-        exp = Series(['a'], dtype=object)
-        tm.assert_series_equal(algos.mode(c), exp)
+        exp = Categorical(['a'], categories=[1, 'a'])
+        tm.assert_categorical_equal(algos.mode(c), exp)
+        tm.assert_categorical_equal(c.mode(), exp)
 
         c = Categorical([1, 1, 2, 3, 3])
-        exp = Series([1, 3], dtype=np.int64)
-        tm.assert_series_equal(algos.mode(c), exp)
+        exp = Categorical([1, 3], categories=[1, 2, 3])
+        tm.assert_categorical_equal(algos.mode(c), exp)
+        tm.assert_categorical_equal(c.mode(), exp)
 
     def test_index(self):
         idx = Index([1, 2, 3])

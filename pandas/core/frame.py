@@ -3441,7 +3441,10 @@ it is assumed to be aliases for the column names.')
         1  10  b   2
         2   8  d NaN
         """
-        return algorithms.select_n_frame(self, columns, n, 'nlargest', keep)
+        return algorithms.SelectNFrame(self,
+                                       n=n,
+                                       keep=keep,
+                                       columns=columns).nlargest()
 
     def nsmallest(self, n, columns, keep='first'):
         """Get the rows of a DataFrame sorted by the `n` smallest
@@ -3475,7 +3478,10 @@ it is assumed to be aliases for the column names.')
         0  1  a   1
         2  8  d NaN
         """
-        return algorithms.select_n_frame(self, columns, n, 'nsmallest', keep)
+        return algorithms.SelectNFrame(self,
+                                       n=n,
+                                       keep=keep,
+                                       columns=columns).nsmallest()
 
     def swaplevel(self, i=-2, j=-1, axis=0):
         """

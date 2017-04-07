@@ -82,6 +82,8 @@ class ExtensionDtype(object):
             return True
         elif isinstance(dtype, np.dtype):
             return False
+        elif dtype is None:
+            return False
         try:
             return cls.construct_from_string(dtype) is not None
         except:

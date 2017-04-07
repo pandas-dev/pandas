@@ -359,6 +359,8 @@ def _coerce_to_dtype(dtype):
 
 
 def _get_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        raise TypeError
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, type):

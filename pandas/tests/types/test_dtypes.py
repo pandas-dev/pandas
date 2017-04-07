@@ -149,6 +149,7 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
                           lambda: DatetimeTZDtype.construct_from_string('foo'))
 
     def test_is_dtype(self):
+        self.assertFalse(DatetimeTZDtype.is_dtype(None))
         self.assertTrue(DatetimeTZDtype.is_dtype(self.dtype))
         self.assertTrue(DatetimeTZDtype.is_dtype('datetime64[ns, US/Eastern]'))
         self.assertFalse(DatetimeTZDtype.is_dtype('foo'))
