@@ -1723,15 +1723,13 @@ class TestPairwise(object):
 
         # DataFrame methods (which do not call _flex_binary_moment())
 
-        with warnings.catch_warnings(record=True):
-
-            results = [f(df) for df in self.df1s]
-            for (df, result) in zip(self.df1s, results):
-                tm.assert_index_equal(result.index, df.columns)
-                tm.assert_index_equal(result.columns, df.columns)
-            for i, result in enumerate(results):
-                if i > 0:
-                    self.compare(result, results[0])
+        results = [f(df) for df in self.df1s]
+        for (df, result) in zip(self.df1s, results):
+            tm.assert_index_equal(result.index, df.columns)
+            tm.assert_index_equal(result.columns, df.columns)
+        for i, result in enumerate(results):
+            if i > 0:
+                self.compare(result, results[0])
 
     @pytest.mark.parametrize(
         'f', [lambda x: x.expanding().cov(pairwise=True),
@@ -1805,24 +1803,24 @@ class TestPairwise(object):
               lambda x, y: x.ewm(com=3).corr(y, pairwise=False), ])
     def test_no_pairwise_with_other(self, f):
 
-        with warnings.catch_warnings(record=True):
-
-            # DataFrame with another DataFrame, pairwise=False
-            results = [f(df, self.df2) if df.columns.is_unique else None
-                       for df in self.df1s]
-            for (df, result) in zip(self.df1s, results):
-                if result is not None:
+        # DataFrame with another DataFrame, pairwise=False
+        results = [f(df, self.df2) if df.columns.is_unique else None
+                   for df in self.df1s]
+        for (df, result) in zip(self.df1s, results):
+            if result is not None:
+                with catch_warnings(record=True):
+                    # we can have int and str columns
                     expected_index = df.index.union(self.df2.index)
                     expected_columns = df.columns.union(self.df2.columns)
-                    tm.assert_index_equal(result.index, expected_index)
-                    tm.assert_index_equal(result.columns, expected_columns)
-                else:
-                    tm.assertRaisesRegexp(
-                        ValueError, "'arg1' columns are not unique", f, df,
-                        self.df2)
-                    tm.assertRaisesRegexp(
-                        ValueError, "'arg2' columns are not unique", f,
-                        self.df2, df)
+                tm.assert_index_equal(result.index, expected_index)
+                tm.assert_index_equal(result.columns, expected_columns)
+            else:
+                tm.assertRaisesRegexp(
+                    ValueError, "'arg1' columns are not unique", f, df,
+                    self.df2)
+                tm.assertRaisesRegexp(
+                    ValueError, "'arg2' columns are not unique", f,
+                    self.df2, df)
 
     @pytest.mark.parametrize(
         'f', [lambda x, y: x.expanding().cov(y),
@@ -2664,7 +2662,7 @@ class TestMomentsConsistency(Base):
                        columns=Index(['A', 'B'], name='foo'),
                        index=Index(range(4), name='bar'))
         df_expected = DataFrame(
-            columns=Index(['A', 'B']),
+            columns=Index(['A', 'B'], name='foo'),
             index=pd.MultiIndex.from_product([df.index, df.columns],
                                              names=['bar', 'foo']),
             dtype='float64')
