@@ -133,6 +133,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
         # indexer is the same type as the array
         # this doesn't matter for int64, but DOES
         # matter for smaller int dtypes
+        # https://github.com/numpy/numpy/issues/5370
         try:
             v = self.dtype.type(v)
         except:
