@@ -258,6 +258,18 @@ class TestSeriesMissingData(TestData, tm.TestCase):
             self.assert_series_equal(expected, result)
             self.assert_series_equal(pd.isnull(s), null_loc)
 
+        # with timezone
+        # GH 15855
+        df = pd.Series([pd.Timestamp('2012-11-11 00:00:00+01:00'), pd.NaT])
+        exp = pd.Series([pd.Timestamp('2012-11-11 00:00:00+01:00'),
+                         pd.Timestamp('2012-11-11 00:00:00+01:00')])
+        self.assert_series_equal(df.fillna(method='pad'), exp)
+
+        df = pd.Series([pd.NaT, pd.Timestamp('2012-11-11 00:00:00+01:00')])
+        exp = pd.Series([pd.Timestamp('2012-11-11 00:00:00+01:00'),
+                         pd.Timestamp('2012-11-11 00:00:00+01:00')])
+        self.assert_series_equal(df.fillna(method='bfill'), exp)
+
     def test_datetime64tz_fillna_round_issue(self):
         # GH 14872
 
