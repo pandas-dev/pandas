@@ -144,8 +144,40 @@ def is_categorical_dtype(arr_or_dtype):
 
 
 def is_string_dtype(arr_or_dtype):
-    dtype = _get_dtype(arr_or_dtype)
-    return dtype.kind in ('O', 'S', 'U') and not is_period_dtype(dtype)
+    """
+    Check whether the provided array or dtype is of the string dtype.
+
+    Parameters
+    ----------
+    arr_or_dtype : ndarray, dtype, type
+        The array or dtype to check.
+
+    Returns
+    -------
+    boolean : Whether or not the array or dtype is of the string dtype.
+
+    Examples
+    --------
+    >>> is_string_dtype(str)
+    True
+    >>> is_string_dtype(object)
+    True
+    >>> is_string_dtype(int)
+    False
+    >>>
+    >>> is_string_dtype(np.array(['a', 'b']))
+    True
+    >>> is_string_dtype(np.array([1, 2]))
+    False
+    """
+
+    # TODO: gh-15585: consider making the checks stricter.
+
+    try:
+        dtype = _get_dtype(arr_or_dtype)
+        return dtype.kind in ('O', 'S', 'U') and not is_period_dtype(dtype)
+    except TypeError:
+        return False
 
 
 def is_period_arraylike(arr):
@@ -237,8 +269,40 @@ def is_datetime64_ns_dtype(arr_or_dtype):
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype):
-    tipo = _get_dtype(arr_or_dtype)
-    return tipo == _TD_DTYPE
+    """
+    Check whether the provided array or dtype is of the timedelta64[ns] dtype.
+
+    This is a very specific dtype, so generic ones like `np.timedelta64`
+    will return False if passed into this function.
+
+    Parameters
+    ----------
+    arr_or_dtype : ndarray, dtype, type
+        The array or dtype to check.
+
+    Returns
+    -------
+    boolean : Whether or not the array or dtype
+              is of the timedelta64[ns] dtype.
+
+    Examples
+    --------
+    >>> is_timedelta64_ns_dtype(np.dtype('m8[ns]')
+    True
+    >>> is_timedelta64_ns_dtype(np.dtype('m8[ps]')  # Wrong frequency
+    False
+    >>>
+    >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype='m8[ns]'))
+    True
+    >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
+    False
+    """
+
+    try:
+        tipo = _get_dtype(arr_or_dtype)
+        return tipo == _TD_DTYPE
+    except TypeError:
+        return False
 
 
 def is_datetime_or_timedelta_dtype(arr_or_dtype):
@@ -260,8 +324,7 @@ def _is_unorderable_exception(e):
 
     Returns
     -------
-    is_orderable_exc : Whether or not the exception raised is an
-                       unorderable exception.
+    boolean : Whether or not the exception raised is an unorderable exception.
     """
 
     if PY36:
@@ -342,9 +405,39 @@ def is_numeric_dtype(arr_or_dtype):
 
 
 def is_string_like_dtype(arr_or_dtype):
-    # exclude object as its a mixed dtype
-    dtype = _get_dtype(arr_or_dtype)
-    return dtype.kind in ('S', 'U')
+    """
+    Check whether the provided array or dtype is of a string-like dtype.
+
+    Unlike `is_string_dtype`, the object dtype is excluded because it
+    is a mixed dtype.
+
+    Parameters
+    ----------
+    arr_or_dtype : ndarray, dtype, type
+        The array or dtype to check.
+
+    Returns
+    -------
+    boolean : Whether or not the array or dtype is of the string dtype.
+
+    Examples
+    --------
+    >>> is_string_like_dtype(str)
+    True
+    >>> is_string_like_dtype(object)
+    False
+    >>>
+    >>> is_string_like_dtype(np.array(['a', 'b']))
+    True
+    >>> is_string_like_dtype(np.array([1, 2]))
+    False
+    """
+
+    try:
+        dtype = _get_dtype(arr_or_dtype)
+        return dtype.kind in ('S', 'U')
+    except TypeError:
+        return False
 
 
 def is_float_dtype(arr_or_dtype):
