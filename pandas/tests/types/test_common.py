@@ -6,7 +6,6 @@ import numpy as np
 from pandas.types.dtypes import DatetimeTZDtype, PeriodDtype, CategoricalDtype
 from pandas.types.common import pandas_dtype, is_dtype_equal
 
-import pandas.types.common as com
 import pandas.util.testing as tm
 
 
@@ -91,9 +90,8 @@ def get_is_dtype_funcs():
     Get all functions in pandas.types.common that
     begin with 'is_' and end with 'dtype'
 
-    Assumes that we have imported the module
-    "pandas.types.common" as com.
     """
+    import pandas.types.common as com
 
     fnames = [f for f in dir(com) if (f.startswith('is_') and
                                       f.endswith('dtype'))]
@@ -101,7 +99,8 @@ def get_is_dtype_funcs():
 
 
 @pytest.mark.parametrize('func',
-                         get_is_dtype_funcs())
+                         get_is_dtype_funcs(),
+                         ids=lambda x: x.__name__)
 def test_get_dtype_error_catch(func):
     # see gh-15941
     #
