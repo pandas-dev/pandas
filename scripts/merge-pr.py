@@ -99,6 +99,14 @@ def continue_maybe(prompt):
         fail("Okay, exiting")
 
 
+def continue_maybe2(prompt):
+    result = input("\n%s (y/n): " % prompt)
+    if result.lower() != "y":
+        return False
+    else:
+        return True
+
+
 original_head = run_cmd("git rev-parse HEAD")[:8]
 
 
@@ -193,6 +201,40 @@ def merge_pr(pr_num, target_ref):
     return merge_hash
 
 
+def update_pr(pr_num, user_login, base_ref):
+
+    pr_branch_name = "%s_MERGE_PR_%s" % (BRANCH_PREFIX, pr_num)
+
+    run_cmd("git fetch %s pull/%s/head:%s" % (PR_REMOTE_NAME, pr_num,
+                                              pr_branch_name))
+    run_cmd("git checkout %s" % pr_branch_name)
+
+    continue_maybe("Update ready (local ref %s)? Push to %s/%s?" % (
+        pr_branch_name, user_login, base_ref))
+
+    push_user_remote = "https://github.com/%s/pandas.git" % user_login
+
+    try:
+        run_cmd('git push %s %s:%s' % (push_user_remote, pr_branch_name,
+                                       base_ref))
+    except Exception as e:
+
+        if continue_maybe2("Force push?"):
+            try:
+                run_cmd(
+                    'git push -f %s %s:%s' % (push_user_remote, pr_branch_name,
+                                           base_ref))
+            except Exception as e:
+                fail("Exception while pushing: %s" % e)
+                clean_up()
+        else:
+            fail("Exception while pushing: %s" % e)
+            clean_up()
+
+    clean_up()
+    print("Pull request #%s updated!" % pr_num)
+
+
 def cherry_pick(pr_num, merge_hash, default_branch):
     pick_ref = input("Enter a branch name [%s]: " % default_branch)
     if pick_ref == "":
@@ -257,8 +299,17 @@ if not bool(pr["mergeable"]):
 print("\n=== Pull Request #%s ===" % pr_num)
 print("title\t%s\nsource\t%s\ntarget\t%s\nurl\t%s"
       % (title, pr_repo_desc, target_ref, url))
-continue_maybe("Proceed with merging pull request #%s?" % pr_num)
+
+
 
 merged_refs = [target_ref]
 
-merge_hash = merge_pr(pr_num, target_ref)
+print("\nProceed with updating or merging pull request #%s?" % pr_num)
+update = input("Update PR and push to remote (r), merge locally (l), "
+               "or do nothing (n) ?")
+update = update.lower()
+
+if update == 'r':
+    merge_hash = update_pr(pr_num, user_login, base_ref)
+elif update == 'l':
+    merge_hash = merge_pr(pr_num, target_ref)
