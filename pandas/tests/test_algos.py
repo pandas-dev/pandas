@@ -399,6 +399,15 @@ class TestUnique(tm.TestCase):
         expected = Series(expected, name='foo')
         tm.assert_series_equal(result, expected)
 
+        # CI
+        ci = pd.CategoricalIndex(pd.Categorical(list('aabc')))
+        result = ci.unique()
+        expected = pd.CategoricalIndex(pd.Categorical(list('abc')))
+        tm.assert_index_equal(result, expected)
+
+        result = pd.unique(ci)
+        tm.assert_index_equal(result, expected)
+
     def test_datetime64tz_aware(self):
         # GH 15939
 
