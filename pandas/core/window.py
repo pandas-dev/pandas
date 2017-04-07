@@ -927,8 +927,9 @@ class _Rolling_and_Expanding(_Rolling):
         If False then only matching columns between self and other will be used
         and the output will be a DataFrame.
         If True then all pairwise combinations will be calculated and the
-        output will be a Panel in the case of DataFrame inputs. In the case of
-        missing elements, only complete pairwise observations will be used.
+        output will be a MultiIndexed DataFrame in the case of DataFrame
+        inputs. In the case of missing elements, only complete pairwise
+        observations will be used.
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.""")
@@ -964,11 +965,12 @@ class _Rolling_and_Expanding(_Rolling):
     other : Series, DataFrame, or ndarray, optional
         if not supplied then will default to self and produce pairwise output
     pairwise : bool, default None
-        If False then only matching columns between self and other will be used
-        and the output will be a DataFrame.
+        If False then only matching columns between self and other will be
+        used and the output will be a DataFrame.
         If True then all pairwise combinations will be calculated and the
-        output will be a Panel in the case of DataFrame inputs. In the case of
-        missing elements, only complete pairwise observations will be used.""")
+        output will be a MultiIndex DataFrame in the case of DataFrame inputs.
+        In the case of missing elements, only complete pairwise observations
+        will be used.""")
 
     def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
@@ -1397,8 +1399,9 @@ pairwise : bool, default None
     If False then only matching columns between self and other will be used and
     the output will be a DataFrame.
     If True then all pairwise combinations will be calculated and the output
-    will be a Panel in the case of DataFrame inputs. In the case of missing
-    elements, only complete pairwise observations will be used.
+    will be a MultiIndex DataFrame in the case of DataFrame inputs.
+    In the case of missing elements, only complete pairwise observations will
+    be used.
 bias : boolean, default False
    Use a standard estimation bias correction
 """
@@ -1708,11 +1711,12 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 # TODO: not the most efficient (perf-wise)
                 # though not bad code-wise
                 from pandas import Panel, MultiIndex, Index
-                p = Panel.from_dict(results).swapaxes('items', 'major')
-                if len(p.major_axis) > 0:
-                    p.major_axis = arg1.columns[p.major_axis]
-                if len(p.minor_axis) > 0:
-                    p.minor_axis = arg2.columns[p.minor_axis]
+                with warnings.catch_warnings(record=True):
+                    p = Panel.from_dict(results).swapaxes('items', 'major')
+                    if len(p.major_axis) > 0:
+                        p.major_axis = arg1.columns[p.major_axis]
+                    if len(p.minor_axis) > 0:
+                        p.minor_axis = arg2.columns[p.minor_axis]
 
                 if len(p.items):
                     result = pd.concat(
