@@ -1173,7 +1173,7 @@ class MultiIndex(Index):
         labels = cartesian_product(labels)
         return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
-    def sort_levels_monotonic(self):
+    def _sort_levels_monotonic(self):
         """
         .. versionadded:: 0.20.0
 
@@ -1236,14 +1236,14 @@ class MultiIndex(Index):
 
     def remove_unused_levels(self):
         """
-        .. versionadded:: 0.20.0
-
-        create a new MultiIndex from the current that removesing
+        create a new MultiIndex from the current that removing
         unused levels, meaning that they are not expressed in the labels
 
         The resulting MultiIndex will have the same outward
         appearance, meaning the same .values and ordering. It will also
         be .equals() to the original.
+
+        .. versionadded:: 0.20.0
 
         Returns
         -------
