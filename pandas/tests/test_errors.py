@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+from warnings import catch_warnings
 import pandas  # noqa
 import pandas as pd
 
@@ -44,7 +45,8 @@ def test_error_rename():
     except CParserError:
         pass
 
-    try:
-        raise ParserError()
-    except pd.parser.CParserError:
-        pass
+    with catch_warnings(record=True):
+        try:
+            raise ParserError()
+        except pd.parser.CParserError:
+            pass

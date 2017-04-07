@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from __future__ import division
-from warnings import warn
+from warnings import warn, catch_warnings
 import numpy as np
 
 from pandas import compat, _np_version_under1p8
@@ -110,7 +110,11 @@ def _ensure_data(values, dtype=None):
             values = _ensure_uint64(values)
             ndtype = dtype = 'uint64'
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
-            values = _ensure_float64(values)
+
+            # ignore the fact that we are casting to float
+            # which discards complex parts
+            with catch_warnings(record=True):
+                values = _ensure_float64(values)
             ndtype = dtype = 'float64'
         elif is_float_dtype(values) or is_float_dtype(dtype):
             values = _ensure_float64(values)
