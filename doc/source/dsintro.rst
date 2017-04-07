@@ -953,8 +953,8 @@ datatype support, and manipulation routines. As a result, supporting efficient i
 routines for ``Series``, ``DataFrame`` and ``Panel`` has contributed to an increasingly fragmented and
 difficult-to-understand codebase.
 
-The 3-d structure of a ``Panel`` is much less common for many types of data analysis,
-than the 1-d of the ``Series`` or the 2-D of the ``DataFrame``. Going forward it makes sense for
+The 3-D structure of a ``Panel`` is much less common for many types of data analysis,
+than the 1-D of the ``Series`` or the 2-D of the ``DataFrame``. Going forward it makes sense for
 pandas to focus on these areas exclusively.
 
 Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working with higher dimensional data.
