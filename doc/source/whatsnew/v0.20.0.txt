@@ -383,8 +383,8 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Deprecate Automatic Zero Filling of Missing Values in .get_dummies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate Automatic Zero Filling of Missing Values in pd.get_dummies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``pd.get_dummies`` function currently fills missing values with zero by default. This behavior is in conflict with the rest of the pandas API since missing values should be filled with ``fillna`` and missing values should be propagated through pandas transformations. In the future, ``get_dummies`` will propagate missing values by default. The recommended way to reproduce the current behavior of filling with zeros with the new, upcoming API is
 
