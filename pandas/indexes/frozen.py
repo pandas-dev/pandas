@@ -117,6 +117,28 @@ class FrozenNDArray(PandasObject, np.ndarray):
                              quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
+    def searchsorted(self, v, side='left', sorter=None):
+        """
+        Find indices where elements of v should be inserted
+        in a to maintain order.
+
+        For full documentation, see `numpy.searchsorted`
+
+        See Also
+        --------
+        numpy.searchsorted : equivalent function
+        Type:      method_descriptor
+        """
+
+        # we are much more performant if we have the same
+        # type as the indexer
+        try:
+            v = self.dtype.type(v)
+        except:
+            pass
+        return super(FrozenNDArray, self).searchsorted(
+            v, side=side, sorter=sorter)
+
 
 def _ensure_frozen(array_like, categories, copy=False):
     array_like = coerce_indexer_dtype(array_like, categories)
