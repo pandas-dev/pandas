@@ -2,6 +2,7 @@
 
 from warnings import catch_warnings
 
+import pytest
 import pandas as pd
 from pandas import api
 from pandas.util import testing as tm
@@ -63,7 +64,7 @@ class TestPDApi(Base, tm.TestCase):
     # top-level functions
     funcs = ['bdate_range', 'concat', 'crosstab', 'cut',
              'date_range', 'eval',
-             'factorize', 'get_dummies', 'get_store',
+             'factorize', 'get_dummies',
              'infer_freq', 'isnull', 'lreshape',
              'melt', 'notnull', 'offsets',
              'merge', 'merge_ordered', 'merge_asof',
@@ -102,7 +103,7 @@ class TestPDApi(Base, tm.TestCase):
                         'rolling_median', 'rolling_min', 'rolling_quantile',
                         'rolling_skew', 'rolling_std', 'rolling_sum',
                         'rolling_var', 'rolling_window', 'ordered_merge',
-                        'pnow', 'match', 'groupby']
+                        'pnow', 'match', 'groupby', 'get_store']
 
     def test_api(self):
 
@@ -140,6 +141,7 @@ class TestDatetoolsDeprecation(tm.TestCase):
 
 
 class TestTopLevelDeprecations(tm.TestCase):
+
     # top-level API deprecations
     # GH 13790
 
@@ -167,6 +169,16 @@ class TestTopLevelDeprecations(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.groupby(pd.Series([1, 2, 3]), [1, 1, 1])
+
+    # GH 15940
+
+    def test_get_store(self):
+        pytest.importorskip('tables')
+        with tm.ensure_clean() as path:
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                s = pd.get_store(path)
+                s.close()
 
 
 class TestJson(tm.TestCase):
