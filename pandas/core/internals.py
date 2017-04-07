@@ -2475,7 +2475,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
-                result = result.reshape(len(result))
+                result = result.reshape(np.prod(result.shape))
             result = self.values._shallow_copy(result)
 
         return result
