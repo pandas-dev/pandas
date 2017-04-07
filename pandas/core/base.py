@@ -873,6 +873,7 @@ class IndexOpsMixin(object):
         else:
             from pandas.core.algorithms import unique1d
             result = unique1d(values)
+
         return result
 
     def nunique(self, dropna=True):

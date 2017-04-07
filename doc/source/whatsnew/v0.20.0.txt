@@ -593,6 +593,58 @@ result. On the other hand, this might have backward incompatibilities: e.g.
 compared to numpy arrays, ``Index`` objects are not mutable. To get the original
 ndarray, you can always convert explicitly using ``np.asarray(idx.hour)``.
 
+.. _whatsnew_0200.api_breaking.unique:
+
+pd.unique will now be consistent with extension types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In prior versions, using ``Series.unique()`` and ``pd.unique(Series)`` on ``Categorical`` and tz-aware datatypes would yield different return types. These are now consistent to return the extension type.
+
+Previous behaviour:
+
+Datetime tz-aware
+
+.. code-block:: ipython
+
+   In [5]: Series(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+                            pd.Timestamp('20160101', tz='US/Eastern')])).unique()
+   Out[5]: array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')], dtype=object)
+
+   In [7]: pd.unique(Series(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+                                      pd.Timestamp('20160101', tz='US/Eastern')])))
+   Out[7]: array(['2016-01-01T05:00:00.000000000'], dtype='datetime64[ns]')
+
+Categoricals
+
+.. code-block:: ipython
+
+
+   In [1]: pd.Series(pd.Categorical(list('aabc'))).unique()
+   Out[1]:
+   [a, b, c]
+   Categories (3, object): [a, b, c]
+
+   In [2]: pd.unique(pd.Series(pd.Categorical(list('aabc'))).unique())
+   Out[2]: array(['a', 'b', 'c'], dtype=object)
+
+New Behavior:
+
+Datetime tz-aware
+
+.. ipython:: python
+
+   Series(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+                    pd.Timestamp('20160101', tz='US/Eastern')])).unique()
+   pd.unique(Series(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+                              pd.Timestamp('20160101', tz='US/Eastern')])))
+
+Categoricals
+
+.. ipython:: python
+
+   pd.Series(pd.Categorical(list('aabc'))).unique()
+   pd.unique(pd.Series(pd.Categorical(list('aabc'))).unique())
+
 .. _whatsnew_0200.api_breaking.s3:
 
 S3 File Handling

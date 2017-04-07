@@ -278,8 +278,10 @@ def unique(values):
 
     Returns
     -------
-    unique values. The returned type will be a pandas Index
-    if a pandas type is input, otherwise ndarray
+    unique values.
+    - If the input is a Categorical dtype, the return is a Categorical
+    - If the input is an Index, the return is an Index
+    - If the input is a Series/ndarray, the return will be an ndarray
 
     Examples
     --------
@@ -292,6 +294,11 @@ def unique(values):
     >>> pd.unique(Series([pd.Timestamp('20160101'),
     ...                   pd.Timestamp('20160101')]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+
+    >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+    ...                      pd.Timestamp('20160101', tz='US/Eastern')]))
+    array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
+          dtype=object)
 
     >>> pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
     ...                     pd.Timestamp('20160101', tz='US/Eastern')]))
@@ -309,6 +316,7 @@ def unique(values):
     Categories (3, object): [a, b, c]
 
     """
+
     values = _ensure_arraylike(values)
 
     # categorical is a fast-path
@@ -325,6 +333,13 @@ def unique(values):
     table = htable(len(values))
     uniques = table.unique(values)
     uniques = _reconstruct_data(uniques, dtype, original)
+
+    if isinstance(original, ABCSeries) and is_datetime64tz_dtype(dtype):
+        # we are special casing datetime64tz_dtype
+        # to return an object array of tz-aware Timestamps
+
+        # TODO: it must return DatetimeArray with tz in pandas 2.0
+        uniques = uniques.asobject.values
 
     return uniques
 
