@@ -241,12 +241,16 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(df, 'Name', colors=colors)
 
+    def test_parallel_coordinates_with_sorted_labels(self):
+        """ For #15908 """
+        from pandas.tools.plotting import parallel_coordinates
+
         df = DataFrame({"feat": [i for i in range(30)],
                         "class": [2 for _ in range(10)] +
                         [3 for _ in range(10)] +
                         [1 for _ in range(10)]})
         ax = parallel_coordinates(df, 'class', sort_labels=True)
-        polylines, lables = ax.get_legend_handles_labels()
+        polylines, labels = ax.get_legend_handles_labels()
         color_label_tuples = \
             zip([polyline.get_color() for polyline in polylines], labels)
         ordered_color_label_tuples = sorted(color_label_tuples,

@@ -371,6 +371,8 @@ Other Enhancements
 - :func:`MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
 - ``pd.read_csv()`` will now raise a ``ParserError`` error whenever any parsing error occurs (:issue:`15913`, :issue:`15925`)
 - ``pd.read_csv()`` now supports the ``error_bad_lines`` and ``warn_bad_lines`` arguments for the Python parser (:issue:`15925`)
+- ``pd.read_csv()`` will now raise a ``csv.Error`` error whenever an end-of-file character is encountered in the middle of a data row (:issue:`15913`)
+- ``parallel_coordinates()`` now has a ``sort_labels`` keyword arg that sorts class labels and the colours assigned to them (:issue:`15908`)
 
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations

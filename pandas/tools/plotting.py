@@ -719,8 +719,11 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
         If true, vertical lines will be added at each xtick
     axvlines_kwds: keywords, optional
         Options to be passed to axvline method for vertical lines
-    sort_labels: bool, optional
+    sort_labels: bool, False
         Sort class_column labels, useful when assigning colours
+
+        .. versionadded:: 0.20.0
+
     kwds: keywords
         Options to pass to matplotlib plotting method
 
@@ -779,6 +782,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     if sort_labels is True:
         classes = sorted(classes)
+        color_values = sorted(color_values)
     colors = dict(zip(classes, color_values))
 
     for i in range(n):
