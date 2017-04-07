@@ -927,8 +927,9 @@ class _Rolling_and_Expanding(_Rolling):
         If False then only matching columns between self and other will be used
         and the output will be a DataFrame.
         If True then all pairwise combinations will be calculated and the
-        output will be a Panel in the case of DataFrame inputs. In the case of
-        missing elements, only complete pairwise observations will be used.
+        output will be a MultiIndexed DataFrame in the case of DataFrame
+        inputs. In the case of missing elements, only complete pairwise
+        observations will be used.
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.""")
@@ -964,11 +965,12 @@ class _Rolling_and_Expanding(_Rolling):
     other : Series, DataFrame, or ndarray, optional
         if not supplied then will default to self and produce pairwise output
     pairwise : bool, default None
-        If False then only matching columns between self and other will be used
-        and the output will be a DataFrame.
+        If False then only matching columns between self and other will be
+        used and the output will be a DataFrame.
         If True then all pairwise combinations will be calculated and the
-        output will be a Panel in the case of DataFrame inputs. In the case of
-        missing elements, only complete pairwise observations will be used.""")
+        output will be a MultiIndex DataFrame in the case of DataFrame inputs.
+        In the case of missing elements, only complete pairwise observations
+        will be used.""")
 
     def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
@@ -1397,8 +1399,9 @@ pairwise : bool, default None
     If False then only matching columns between self and other will be used and
     the output will be a DataFrame.
     If True then all pairwise combinations will be calculated and the output
-    will be a Panel in the case of DataFrame inputs. In the case of missing
-    elements, only complete pairwise observations will be used.
+    will be a MultiIndex DataFrame in the case of DataFrame inputs.
+    In the case of missing elements, only complete pairwise observations will
+    be used.
 bias : boolean, default False
    Use a standard estimation bias correction
 """
@@ -1652,7 +1655,8 @@ class EWM(_Rolling):
 
 
 def _flex_binary_moment(arg1, arg2, f, pairwise=False):
-    from pandas import Series, DataFrame, Panel
+    from pandas import Series, DataFrame
+
     if not (isinstance(arg1, (np.ndarray, Series, DataFrame)) and
             isinstance(arg2, (np.ndarray, Series, DataFrame))):
         raise TypeError("arguments to moment function must be of type "
@@ -1684,10 +1688,13 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                         raise ValueError("'arg1' columns are not unique")
                     if not arg2.columns.is_unique:
                         raise ValueError("'arg2' columns are not unique")
-                    X, Y = arg1.align(arg2, join='outer')
+                    with warnings.catch_warnings(record=True):
+                        X, Y = arg1.align(arg2, join='outer')
                     X = X + 0 * Y
                     Y = Y + 0 * X
-                    res_columns = arg1.columns.union(arg2.columns)
+
+                    with warnings.catch_warnings(record=True):
+                        res_columns = arg1.columns.union(arg2.columns)
                     for col in res_columns:
                         if col in X and col in Y:
                             results[col] = f(X[col], Y[col])
@@ -1703,12 +1710,39 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                         else:
                             results[i][j] = f(*_prep_binary(arg1.iloc[:, i],
                                                             arg2.iloc[:, j]))
-                p = Panel.from_dict(results).swapaxes('items', 'major')
-                if len(p.major_axis) > 0:
-                    p.major_axis = arg1.columns[p.major_axis]
-                if len(p.minor_axis) > 0:
-                    p.minor_axis = arg2.columns[p.minor_axis]
-                return p
+
+                # TODO: not the most efficient (perf-wise)
+                # though not bad code-wise
+                from pandas import Panel, MultiIndex, Index
+                with warnings.catch_warnings(record=True):
+                    p = Panel.from_dict(results).swapaxes('items', 'major')
+                    if len(p.major_axis) > 0:
+                        p.major_axis = arg1.columns[p.major_axis]
+                    if len(p.minor_axis) > 0:
+                        p.minor_axis = arg2.columns[p.minor_axis]
+
+                if len(p.items):
+                    result = pd.concat(
+                        [p.iloc[i].T for i in range(len(p.items))],
+                        keys=p.items)
+                else:
+
+                    result = DataFrame(
+                        index=MultiIndex(levels=[arg1.index, arg1.columns],
+                                         labels=[[], []]),
+                        columns=arg2.columns,
+                        dtype='float64')
+
+                # reset our index names to arg1 names
+                # reset our column names to arg2 names
+                # careful not to mutate the original names
+                result.columns = Index(result.columns).set_names(
+                    arg2.columns.name)
+                result.index = result.index.set_names(
+                    [arg1.index.name, arg1.columns.name])
+
+                return result
+
             else:
                 raise ValueError("'pairwise' is not True/False")
         else:

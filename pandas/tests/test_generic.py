@@ -3,6 +3,8 @@
 
 from operator import methodcaller
 from copy import copy, deepcopy
+from warnings import catch_warnings
+
 import pytest
 import numpy as np
 from numpy import nan
@@ -1570,17 +1572,18 @@ class TestPanel(tm.TestCase, Generic):
         tm._skip_if_no_xarray()
         from xarray import DataArray
 
-        p = tm.makePanel()
+        with catch_warnings(record=True):
+            p = tm.makePanel()
 
-        result = p.to_xarray()
-        self.assertIsInstance(result, DataArray)
-        self.assertEqual(len(result.coords), 3)
-        assert_almost_equal(list(result.coords.keys()),
-                            ['items', 'major_axis', 'minor_axis'])
-        self.assertEqual(len(result.dims), 3)
+            result = p.to_xarray()
+            self.assertIsInstance(result, DataArray)
+            self.assertEqual(len(result.coords), 3)
+            assert_almost_equal(list(result.coords.keys()),
+                                ['items', 'major_axis', 'minor_axis'])
+            self.assertEqual(len(result.dims), 3)
 
-        # idempotency
-        assert_panel_equal(result.to_pandas(), p)
+            # idempotency
+            assert_panel_equal(result.to_pandas(), p)
 
 
 class TestPanel4D(tm.TestCase, Generic):
@@ -1590,15 +1593,12 @@ class TestPanel4D(tm.TestCase, Generic):
     def test_sample(self):
         pytest.skip("sample on Panel4D")
 
-    def test_copy_and_deepcopy(self):
-        pytest.skip("copy_and_deepcopy on Panel4D")
-
     def test_to_xarray(self):
 
         tm._skip_if_no_xarray()
         from xarray import DataArray
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             p = tm.makePanel4D()
 
             result = p.to_xarray()
@@ -1624,12 +1624,20 @@ for t in ['test_rename', 'test_rename_axis', 'test_get_numeric_data',
           'test_stat_unexpected_keyword', 'test_api_compat',
           'test_stat_non_defaults_args',
           'test_clip', 'test_truncate_out_of_bounds', 'test_numpy_clip',
-          'test_metadata_propagation']:
+          'test_metadata_propagation', 'test_copy_and_deepcopy',
+          'test_sample']:
 
     def f():
         def tester(self):
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+            with catch_warnings(record=True):
+                return getattr(super(TestPanel, self), t)()
+        return tester
+
+    setattr(TestPanel, t, f())
+
+    def f():
+        def tester(self):
+            with catch_warnings(record=True):
                 return getattr(super(TestPanel4D, self), t)()
         return tester
 
@@ -1660,10 +1668,11 @@ class TestNDFrame(tm.TestCase):
         with tm.assertRaises(ValueError):
             s.sample(n=3, weights='weight_column')
 
-        panel = pd.Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
-                         minor_axis=[3, 4, 5])
-        with tm.assertRaises(ValueError):
-            panel.sample(n=1, weights='weight_column')
+        with catch_warnings(record=True):
+            panel = Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
+                          minor_axis=[3, 4, 5])
+            with tm.assertRaises(ValueError):
+                panel.sample(n=1, weights='weight_column')
 
         with tm.assertRaises(ValueError):
             df.sample(n=1, weights='weight_column', axis=1)
@@ -1726,14 +1735,15 @@ class TestNDFrame(tm.TestCase):
         assert_frame_equal(sample1, df[['colString']])
 
         # Test default axes
-        p = pd.Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
-                     minor_axis=[1, 3, 5])
-        assert_panel_equal(
-            p.sample(n=3, random_state=42), p.sample(n=3, axis=1,
-                                                     random_state=42))
-        assert_frame_equal(
-            df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
-                                                       random_state=42))
+        with catch_warnings(record=True):
+            p = Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
+                      minor_axis=[1, 3, 5])
+            assert_panel_equal(
+                p.sample(n=3, random_state=42), p.sample(n=3, axis=1,
+                                                         random_state=42))
+            assert_frame_equal(
+                df.sample(n=3, random_state=42), df.sample(n=3, axis=0,
+                                                           random_state=42))
 
         # Test that function aligns weights with frame
         df = DataFrame(
@@ -1763,9 +1773,10 @@ class TestNDFrame(tm.TestCase):
             tm.assert_series_equal(s.squeeze(), s)
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.squeeze(), df)
-        for p in [tm.makePanel()]:
-            tm.assert_panel_equal(p.squeeze(), p)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
+            for p in [tm.makePanel()]:
+                tm.assert_panel_equal(p.squeeze(), p)
+        with catch_warnings(record=True):
             for p4d in [tm.makePanel4D()]:
                 tm.assert_panel4d_equal(p4d.squeeze(), p4d)
 
@@ -1773,24 +1784,26 @@ class TestNDFrame(tm.TestCase):
         df = tm.makeTimeDataFrame().reindex(columns=['A'])
         tm.assert_series_equal(df.squeeze(), df['A'])
 
-        p = tm.makePanel().reindex(items=['ItemA'])
-        tm.assert_frame_equal(p.squeeze(), p['ItemA'])
+        with catch_warnings(record=True):
+            p = tm.makePanel().reindex(items=['ItemA'])
+            tm.assert_frame_equal(p.squeeze(), p['ItemA'])
 
-        p = tm.makePanel().reindex(items=['ItemA'], minor_axis=['A'])
-        tm.assert_series_equal(p.squeeze(), p.loc['ItemA', :, 'A'])
+            p = tm.makePanel().reindex(items=['ItemA'], minor_axis=['A'])
+            tm.assert_series_equal(p.squeeze(), p.loc['ItemA', :, 'A'])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             p4d = tm.makePanel4D().reindex(labels=['label1'])
             tm.assert_panel_equal(p4d.squeeze(), p4d['label1'])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             p4d = tm.makePanel4D().reindex(labels=['label1'], items=['ItemA'])
             tm.assert_frame_equal(p4d.squeeze(), p4d.loc['label1', 'ItemA'])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
-        empty_series = pd.Series([], name='five')
-        empty_frame = pd.DataFrame([empty_series])
-        empty_panel = pd.Panel({'six': empty_frame})
+        empty_series = Series([], name='five')
+        empty_frame = DataFrame([empty_series])
+        with catch_warnings(record=True):
+            empty_panel = Panel({'six': empty_frame})
 
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
          for higher_dim in [empty_series, empty_frame, empty_panel]]
@@ -1825,13 +1838,15 @@ class TestNDFrame(tm.TestCase):
             tm.assert_series_equal(s.transpose(), s)
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.transpose().transpose(), df)
-        for p in [tm.makePanel()]:
-            tm.assert_panel_equal(p.transpose(2, 0, 1)
-                                  .transpose(1, 2, 0), p)
-            tm.assertRaisesRegexp(TypeError, msg, p.transpose,
-                                  2, 0, 1, axes=(2, 0, 1))
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
+            for p in [tm.makePanel()]:
+                tm.assert_panel_equal(p.transpose(2, 0, 1)
+                                      .transpose(1, 2, 0), p)
+                tm.assertRaisesRegexp(TypeError, msg, p.transpose,
+                                      2, 0, 1, axes=(2, 0, 1))
+
+        with catch_warnings(record=True):
             for p4d in [tm.makePanel4D()]:
                 tm.assert_panel4d_equal(p4d.transpose(2, 0, 3, 1)
                                         .transpose(1, 3, 0, 2), p4d)
@@ -1853,12 +1868,13 @@ class TestNDFrame(tm.TestCase):
         tm.assertRaisesRegexp(ValueError, msg,
                               np.transpose, df, axes=1)
 
-        p = tm.makePanel()
-        tm.assert_panel_equal(np.transpose(
-            np.transpose(p, axes=(2, 0, 1)),
-            axes=(1, 2, 0)), p)
+        with catch_warnings(record=True):
+            p = tm.makePanel()
+            tm.assert_panel_equal(np.transpose(
+                np.transpose(p, axes=(2, 0, 1)),
+                axes=(1, 2, 0)), p)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             p4d = tm.makePanel4D()
             tm.assert_panel4d_equal(np.transpose(
                 np.transpose(p4d, axes=(2, 0, 3, 1)),
@@ -1880,15 +1896,16 @@ class TestNDFrame(tm.TestCase):
             tm.assert_frame_equal(out, expected)
 
         indices = [-3, 2, 0, 1]
-        for p in [tm.makePanel()]:
-            out = p.take(indices)
-            expected = Panel(data=p.values.take(indices, axis=0),
-                             items=p.items.take(indices),
-                             major_axis=p.major_axis,
-                             minor_axis=p.minor_axis)
-            tm.assert_panel_equal(out, expected)
+        with catch_warnings(record=True):
+            for p in [tm.makePanel()]:
+                out = p.take(indices)
+                expected = Panel(data=p.values.take(indices, axis=0),
+                                 items=p.items.take(indices),
+                                 major_axis=p.major_axis,
+                                 minor_axis=p.minor_axis)
+                tm.assert_panel_equal(out, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
             for p4d in [tm.makePanel4D()]:
                 out = p4d.take(indices)
                 expected = Panel4D(data=p4d.values.take(indices, axis=0),
@@ -1902,9 +1919,9 @@ class TestNDFrame(tm.TestCase):
         indices = [-3, 2, 0, 1]
         s = tm.makeFloatSeries()
         df = tm.makeTimeDataFrame()
-        p = tm.makePanel()
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
+            p = tm.makePanel()
             p4d = tm.makePanel4D()
 
         for obj in (s, df, p, p4d):
@@ -2011,8 +2028,9 @@ class TestNDFrame(tm.TestCase):
         self.assertTrue(e.equals(f))
 
     def test_describe_raises(self):
-        with tm.assertRaises(NotImplementedError):
-            tm.makePanel().describe()
+        with catch_warnings(record=True):
+            with tm.assertRaises(NotImplementedError):
+                tm.makePanel().describe()
 
     def test_pipe(self):
         df = DataFrame({'A': [1, 2, 3]})
@@ -2043,15 +2061,16 @@ class TestNDFrame(tm.TestCase):
             df.A.pipe((f, 'y'), x=1, y=0)
 
     def test_pipe_panel(self):
-        wp = Panel({'r1': DataFrame({"A": [1, 2, 3]})})
-        f = lambda x, y: x + y
-        result = wp.pipe(f, 2)
-        expected = wp + 2
-        assert_panel_equal(result, expected)
+        with catch_warnings(record=True):
+            wp = Panel({'r1': DataFrame({"A": [1, 2, 3]})})
+            f = lambda x, y: x + y
+            result = wp.pipe(f, 2)
+            expected = wp + 2
+            assert_panel_equal(result, expected)
 
-        result = wp.pipe((f, 'y'), x=1)
-        expected = wp + 1
-        assert_panel_equal(result, expected)
+            result = wp.pipe((f, 'y'), x=1)
+            expected = wp + 1
+            assert_panel_equal(result, expected)
 
-        with tm.assertRaises(ValueError):
-            result = wp.pipe((f, 'y'), x=1, y=1)
+            with tm.assertRaises(ValueError):
+                result = wp.pipe((f, 'y'), x=1, y=1)
