@@ -442,10 +442,12 @@ class TestUnique(tm.TestCase):
         # light testing of guarantee of order of appearance
         # these also are the doc-examples
         result = pd.unique(Series([2, 1, 3, 3]))
-        tm.assert_numpy_array_equal(result, np.array([2, 1, 3]))
+        tm.assert_numpy_array_equal(result,
+                                    np.array([2, 1, 3], dtype='int64'))
 
         result = pd.unique(Series([2] + [1] * 5))
-        tm.assert_numpy_array_equal(result, np.array([2, 1]))
+        tm.assert_numpy_array_equal(result,
+                                    np.array([2, 1], dtype='int64'))
 
         result = pd.unique(Series([Timestamp('20160101'),
                                    Timestamp('20160101')]))
