@@ -2441,7 +2441,19 @@ class PythonParser(ParserBase):
             # return an empty string.
             return [""]
 
-    def _empty(self, line):
+    def _is_line_empty(self, line):
+        """
+        Check if a line is empty or not.
+
+        Parameters
+        ----------
+        line : str, array-like
+            The line of data to check.
+
+        Returns
+        -------
+        boolean : Whether or not the line is empty.
+        """
         return not line or all(not x for x in line)
 
     def _next_line(self):
@@ -2454,11 +2466,12 @@ class PythonParser(ParserBase):
                     line = self._check_comments([self.data[self.pos]])[0]
                     self.pos += 1
                     # either uncommented or blank to begin with
-                    if not self.skip_blank_lines and (self._empty(self.data[
-                            self.pos - 1]) or line):
+                    if (not self.skip_blank_lines and
+                            (self._is_line_empty(
+                                self.data[self.pos - 1]) or line)):
                         break
                     elif self.skip_blank_lines:
-                        ret = self._check_empty([line])
+                        ret = self._remove_empty_lines([line])
                         if ret:
                             line = ret[0]
                             break
@@ -2477,12 +2490,12 @@ class PythonParser(ParserBase):
                     line = self._check_comments([orig_line])[0]
 
                     if self.skip_blank_lines:
-                        ret = self._check_empty([line])
+                        ret = self._remove_empty_lines([line])
 
                         if ret:
                             line = ret[0]
                             break
-                    elif self._empty(orig_line) or line:
+                    elif self._is_line_empty(orig_line) or line:
                         break
 
         # This was the first line of the file,
@@ -2573,7 +2586,22 @@ class PythonParser(ParserBase):
             ret.append(rl)
         return ret
 
-    def _check_empty(self, lines):
+    def _remove_empty_lines(self, lines):
+        """
+        Iterate through the lines and remove any that are
+        either empty or contain only one whitespace value
+
+        Parameters
+        ----------
+        lines : array-like
+            The array of lines that we are to filter.
+
+        Returns
+        -------
+        filtered_lines : array-like
+            The same array of lines with the "empty" ones removed.
+        """
+
         ret = []
         for l in lines:
             # Remove empty lines and lines with only one whitespace value
@@ -2816,7 +2844,7 @@ class PythonParser(ParserBase):
 
         lines = self._check_comments(lines)
         if self.skip_blank_lines:
-            lines = self._check_empty(lines)
+            lines = self._remove_empty_lines(lines)
         lines = self._check_thousands(lines)
         return self._check_decimal(lines)
 
