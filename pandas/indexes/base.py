@@ -2900,10 +2900,12 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # figure out join names
         self_names = [n for n in self.names if n is not None]
         other_names = [n for n in other.names if n is not None]
+        
         overlap = list(set(self_names) & set(other_names))
 
         # Drop the non matching levels
-        drop_lvls = [l for l in other_names if l not in overlap]
+        ldrop_lvls = [l for l in self_names if l not in overlap]
+        rdrop_lvls = [l for l in other_names if l not in overlap]
 
         self_is_mi = isinstance(self, MultiIndex)
         other_is_mi = isinstance(other, MultiIndex)
@@ -2914,16 +2916,49 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                              "overlapping names")
 
         if self_is_mi and other_is_mi:
-            other = other.droplevel(drop_lvls)
-            if other.is_unique:
-                # Join only when the other does not contain dupls
-                lindexer = self.get_indexer(self)
-                rindexer = other.get_indexer(other)
-                result = self, lindexer, rindexer
-                return result
+            self_tmp = self.droplevel(ldrop_lvls)
+            other_tmp = other.droplevel(rdrop_lvls)
+
+            join_index, lidx, ridx = self_tmp.join(other_tmp, how=how,
+                                                   return_indexers=True)
+            
+            # Append to the returned Index the non-overlapping levels            
+            not_overlap = (set(self_names) ^ set(other_names))
+            
+            #def _get_levels():
+            if how == 'left':
+                ji = self
+            elif how == 'right':
+                ji = other
             else:
-                raise TypeError('Join on level between non-unique '
-                                'MultiIndex objects is ambiguous')
+                ji = join_index
+            
+            new_levels = ji.levels
+            new_labels = ji.labels
+            new_names = ji.names
+            
+            if how == 'outer':
+                for n in not_overlap:
+                    if n in self_names:
+                        idx = lidx
+                        lvls = self.levels[self_names.index(n)].values
+                        lbls = self.labels[self_names.index(n)]
+                    else:
+                        idx = ridx
+                        lvls = other.levels[other_names.index(n)].values
+                        lbls = other.labels[other_names.index(n)]
+                        
+                    new_levels = new_levels.union([lvls])                    
+                    l = [lbls[i] if i!=-1 else -1 for i in idx]  
+                    new_labels = new_labels.union([l])
+                    
+                    new_names = new_names.union([n])
+                    
+            join_index = MultiIndex(levels=new_levels, labels=new_labels,
+                                    names=new_names, verify_integrity=False)
+            
+            return join_index, lidx, ridx
+
         else:
             jl = overlap[0]
 
@@ -3878,44 +3913,42 @@ def _validate_join_method(method):
 
 if __name__ == '__main__':
     import pandas as pd
-    # GH 3662
-# merge multi-levels
-    household = (
+
+    matrix = (
         pd.DataFrame(
-            dict(household_id=[1, 2, 3],
-                 male=[0, 1, 0],
-                 wealth=[196087.3, 316478.7, 294750]),
-            columns=['household_id', 'male', 'wealth'])
-        .set_index('household_id'))
-    portfolio = (
+            dict(Origin=[1, 1, 2, 2, 3],
+                 Destination=[1, 2, 1, 3, 4],
+                 Period=['AM','PM','IP','AM','OP'],
+                 TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
+                 Trips=[1987, 3647, 2470, 4296, 4444]),
+            columns=['Origin', 'Destination', 'Period', 'TripPurp', 'Trips'])
+        .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
+
+    distances = (
         pd.DataFrame(
-            dict(household_id=[1, 2, 2, 3, 3, 3, 4],
-                 asset_id=["nl0000301109", "nl0000289783", "gb00b03mlx29",
-                           "gb00b03mlx29", "lu0197800237", "nl0000289965",
-                           np.nan],
-                 name=["ABN Amro", "Robeco", "Royal Dutch Shell",
-                       "Royal Dutch Shell",
-                       "AAB Eastern Europe Equity Fund",
-                       "Postbank BioTech Fonds", np.nan],
-                 share=[1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0]),
-            columns=['household_id', 'asset_id', 'name', 'share'])
-        .set_index(['household_id', 'asset_id']))
+            dict(Origin=     [1, 1, 2, 2, 3, 3, 5],
+                 Destination=[1, 2, 1, 2, 1, 2, 6],
+                 Period=['AM','PM','IP','AM','OP','IP', 'AM'],
+                 LinkType=['a', 'a', 'c', 'b', 'a', 'b', 'a'],
+                 Distance=[100, 80, 90, 80, 75, 35, 55]),
+            columns=['Origin', 'Destination', 'Period', 'LinkType', 'Distance'])
+        .set_index(['Origin', 'Destination','Period', 'LinkType']))
+
     expected = (
         pd.DataFrame(
-            dict(male=[0, 1, 1, 0, 0, 0],
-                 wealth=[196087.3, 316478.7, 316478.7,
-                         294750.0, 294750.0, 294750.0],
-                 name=['ABN Amro', 'Robeco', 'Royal Dutch Shell',
-                       'Royal Dutch Shell',
-                       'AAB Eastern Europe Equity Fund',
-                       'Postbank BioTech Fonds'],
-                 share=[1.00, 0.40, 0.60, 0.15, 0.60, 0.25],
-                 household_id=[1, 2, 2, 3, 3, 3],
-                 asset_id=['nl0000301109', 'nl0000289783', 'gb00b03mlx29',
-                           'gb00b03mlx29', 'lu0197800237',
-                           'nl0000289965']))
-        .set_index(['household_id', 'asset_id'])
-        .reindex(columns=['male', 'wealth', 'name', 'share']))
+            dict(Origin=     [1, 1, 2, 2, 3],
+                 Destination=[1, 2, 1, 3, 1],
 
-    result = household.join(portfolio, how='inner')
+                 Period=['AM','PM','IP', 'AM', 'OP'],
+                 Trips=[1987, 3647, 2470, 4296, 4444],
+                 Distance=[100, 80, 90, np.nan, 75]),
+            columns=['Origin', 'Destination', 'Period', 'Trips', 'Distance'])
+        .set_index(['Origin', 'Destination', 'Period']))
+
+    
+    print(matrix)
+    print(distances)
+
+    result = matrix.join(distances, how='outer')
+    
     print(result)
