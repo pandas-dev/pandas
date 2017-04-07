@@ -71,6 +71,18 @@ class TestCut(tm.TestCase):
         result = cut(range(6), bins=expected.categories)
         tm.assert_categorical_equal(result, expected)
 
+        # doc example
+        # make sure we preserve the bins
+        ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
+        c = cut(ages, bins=[0, 18, 35, 70])
+        expected = IntervalIndex.from_tuples([(0, 18), (18, 35), (35, 70)])
+        tm.assert_index_equal(c.categories, expected)
+
+        result = cut([25, 20, 50], bins=c.categories)
+        tm.assert_index_equal(result.categories, expected)
+        tm.assert_numpy_array_equal(result.codes,
+                                    np.array([1, 1, 2], dtype='int8'))
+
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         self.assertRaises(ValueError, cut, data, [0.1, 1.5, 1, 10])

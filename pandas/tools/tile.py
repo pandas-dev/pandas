@@ -220,7 +220,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
         # we have a fast-path here
         ids = bins.get_indexer(x)
         result = algos.take_nd(bins, ids)
-        result = Categorical(result, ordered=True)
+        result = Categorical(result, categories=bins, ordered=True)
         return result, bins
 
     unique_bins = algos.unique(bins)
