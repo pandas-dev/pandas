@@ -46,7 +46,7 @@ data with an arbitrary number of dimensions in lower dimensional data
 structures like Series (1d) and DataFrame (2d).
 
 In this section, we will show what exactly we mean by "hierarchical" indexing
-and how it integrates with the all of the pandas indexing functionality
+and how it integrates with all of the pandas indexing functionality
 described above and in prior sections. Later, when discussing :ref:`group by
 <groupby>` and :ref:`pivoting and reshaping data <reshaping>`, we'll show
 non-trivial applications to illustrate how it aids in structuring data for
