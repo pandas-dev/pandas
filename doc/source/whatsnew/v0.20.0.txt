@@ -1145,6 +1145,7 @@ Conversion
 - Bug in ``.asfreq()``, where frequency was not set for empty ``Series`` (:issue:`14320`)
 - Bug in ``DataFrame`` construction with nulls and datetimes in a list-like (:issue:`15869`)
 - Bug in ``DataFrame.fillna()`` with tz-aware datetimes (:issue:`15855`)
+- Bug in ``is_string_dtype``, ``is_timedelta64_ns_dtype``, and ``is_string_like_dtype`` in which an error was raised when ``None`` was passed in (:issue:`15941`)
 
 Indexing
 ^^^^^^^^
