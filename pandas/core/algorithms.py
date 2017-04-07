@@ -19,7 +19,7 @@ from pandas.types.common import (
     is_bool_dtype, needs_i8_conversion,
     is_categorical, is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype,
+    is_timedelta64_dtype, is_interval_dtype,
     is_scalar, is_list_like,
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
@@ -610,19 +610,6 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
 
-    if is_categorical_dtype(values) or is_sparse(values):
-
-        # handle Categorical and sparse,
-        result = Series(values).values.value_counts(dropna=dropna)
-        result.name = name
-        counts = result.values
-
-    else:
-        keys, counts = _value_counts_arraylike(values, dropna)
-
-        if not isinstance(keys, Index):
-            keys = Index(keys)
-        result = Series(counts, index=keys, name=name)
         # count, remove nulls (from the index), and but the bins
         result = ii.value_counts(dropna=dropna)
         result = result[result.index.notnull()]
@@ -635,6 +622,22 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
         # normalizing is by len of all (regardless of dropna)
         counts = np.array([len(ii)])
+
+    else:
+
+        if is_categorical_dtype(values) or is_sparse(values):
+
+            # handle Categorical and sparse,
+            result = Series(values).values.value_counts(dropna=dropna)
+            result.name = name
+            counts = result.values
+
+        else:
+            keys, counts = _value_counts_arraylike(values, dropna)
+
+            if not isinstance(keys, Index):
+                keys = Index(keys)
+            result = Series(counts, index=keys, name=name)
 
     if sort:
         result = result.sort_values(ascending=ascending)
