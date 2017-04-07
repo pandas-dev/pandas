@@ -598,7 +598,7 @@ ndarray, you can always convert explicitly using ``np.asarray(idx.hour)``.
 pd.unique will now be consistent with extension types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In prior versions, using ``Series.unique()`` and ``pd.unique(Series)`` on ``Categorical`` and tz-aware datatypes would yield different return types. These are now consistent to return the extension type.
+In prior versions, using ``Series.unique()`` and ``pd.unique(Series)`` on ``Categorical`` and tz-aware datatypes would yield different return types. These are now consistent to return the extension type. Note that the behavior of ``Index.unique()`` and ``pd.unique(Index)`` has not changed. (:issue:`15939`)
 
 Previous behaviour:
 
