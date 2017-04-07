@@ -68,7 +68,7 @@ class _DeprecatedModule(object):
         elif self.moved is not None and name in self.moved:
             warnings.warn(
                 "{deprmod} is deprecated and will be removed in "
-                "a future version.\nYou can access {name} in {moved}".format(
+                "a future version.\nYou can access {name} as {moved}".format(
                     deprmod=self.deprmod,
                     name=name,
                     moved=self.moved[name]),
