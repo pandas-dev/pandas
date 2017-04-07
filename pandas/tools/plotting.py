@@ -694,7 +694,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 @deprecate_kwarg(old_arg_name='data', new_arg_name='frame', stacklevel=3)
 def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                          use_columns=False, xticks=None, colormap=None,
-                         axvlines=True, axvlines_kwds=None, **kwds):
+                         axvlines=True, axvlines_kwds=None, sort_labels=False,
+                         **kwds):
     """Parallel coordinates plotting.
 
     Parameters
@@ -718,6 +719,8 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
         If true, vertical lines will be added at each xtick
     axvlines_kwds: keywords, optional
         Options to be passed to axvline method for vertical lines
+    sort_labels: bool, optional
+        Sort class_column labels, useful when assigning colours
     kwds: keywords
         Options to pass to matplotlib plotting method
 
@@ -774,6 +777,8 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                                         colormap=colormap, color_type='random',
                                         color=color)
 
+    if sort_labels is True:
+        classes = sorted(classes)
     colors = dict(zip(classes, color_values))
 
     for i in range(n):
