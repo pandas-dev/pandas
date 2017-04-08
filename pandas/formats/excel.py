@@ -129,7 +129,6 @@ class CSSToExcelConverter(object):
                 }
 
     def build_border(self, props):
-        print(props)
         return {side: {
             'style': self._border_style(props.get('border-%s-style' % side),
                                         props.get('border-%s-width' % side)),
