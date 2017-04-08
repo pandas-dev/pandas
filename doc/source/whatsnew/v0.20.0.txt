@@ -368,7 +368,6 @@ Other Enhancements
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pandas.io.json.json_normalize()`` has gained a ``sep`` option that accepts ``str`` to separate joined fields; the default is ".", which is backward compatible. (:issue:`14883`)
-- A new function has been added to a ``MultiIndex`` to facilitate :ref:`Removing Unused Levels <advanced.shown_levels>`. (:issue:`15694`)
 - :func:`MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
 - ``pd.read_csv()`` will now raise a ``ParserError`` error whenever any parsing error occurs (:issue:`15913`, :issue:`15925`)
 - ``pd.read_csv()`` now supports the ``error_bad_lines`` and ``warn_bad_lines`` arguments for the Python parser (:issue:`15925`)
@@ -678,9 +677,9 @@ New Behavior:
 Pandas Google BigQuery support has moved
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-pandas has split off Google BigQuery support into a separate package ``pandas-gbq``. You can ``pip install pandas-gbq`` to get it.
-The functionality of :func:`read_gbq` and :meth:`DataFrame.to_gbq` remain the same with the currently released version of ``pandas-gbq=0.1.3``.
-Documentation is now hosted `here <https://pandas-gbq.readthedocs.io/>`__  (:issue:`15347`)
+pandas has split off Google BigQuery support into a separate package ``pandas-gbq``. You can ``conda install pandas-gbq -c conda-forge`` or
+``pip install pandas-gbq`` to get it. The functionality of :func:`read_gbq` and :meth:`DataFrame.to_gbq` remain the same with the
+currently released version of ``pandas-gbq=0.1.4``. Documentation is now hosted `here <https://pandas-gbq.readthedocs.io/>`__  (:issue:`15347`)
 
 .. _whatsnew_0200.api_breaking.memory_usage:
 
@@ -782,14 +781,16 @@ However, this example, which has a non-monotonic 2nd level,
 doesn't behave as desired.
 
 .. ipython:: python
+
    df = pd.DataFrame(
            {'value': [1, 2, 3, 4]},
             index=pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
                                 labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+   df
 
 Previous Behavior:
 
-.. ipython:: python
+.. code-block:: python
 
    In [11]: df.sort_index()
    Out[11]:
