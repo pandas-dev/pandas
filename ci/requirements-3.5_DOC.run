@@ -5,6 +5,7 @@ nbconvert
 nbformat
 notebook
 matplotlib
+seaborn
 scipy
 lxml
 beautifulsoup4
