@@ -1060,8 +1060,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
 
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
-                fill_value=None, columns=None, sparse=False,
-                drop_first=False):
+                columns=None, sparse=False, drop_first=False,
+                fill_value=None):
     """
     Convert categorical variable into dummy/indicator variables
 
@@ -1078,14 +1078,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         list or dictionary as with `prefix.`
     dummy_na : bool, default False
         Add a column to indicate NaNs if True.
-    fill_value : scalar, default None
-        Value to fill NaNs with. The default of `None` will fill with
-        zeros. To do no filling of NaNs, specify `fill_value=np.nan`.
-        The default behavior of filling with zeros will be deprecated
-        in the future and using this default will not raise a
-        `DeprecationWarning`.
-
-        .. versionadded:: 0.20.0
     columns : list-like, default None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
@@ -1101,6 +1093,14 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         first level.
 
         .. versionadded:: 0.18.0
+    fill_value : scalar, default None
+        Value to fill NaNs with. The default of `None` will fill with
+        zeros. To do no filling of NaNs, specify `fill_value=np.nan`.
+        The default behavior of filling with zeros will be deprecated
+        in the future and using this default will not raise a
+        `FutureWarning`.
+
+        .. versionadded:: 0.20.0
     Returns
     -------
     dummies : DataFrame or SparseDataFrame
@@ -1175,16 +1175,16 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     from pandas.tools.concat import concat
     from itertools import cycle
 
-    # Deprecate filling missing values with zeros, GH15926
+    # Deprecate filling NaN values with zeros, GH15926
     # When this is finally deprecated, simply remove this block
     # of code and change the default to np.nan in the function signature
     # of `get_dummies`.
     if fill_value is None:
-        warnings.warn('The default behavior of filling missing values '
+        warnings.warn('The default behavior of filling NaN values '
                       'with zeros will be deprecated. Use '
-                      '`df = pd.get_dummies(df).fillna(0)` to reproduce '
-                      'this behavior', DeprecationWarning)
-        fill_value = 0.0
+                      '`df = pd.get_dummies(df, fill_value=0)` to reproduce '
+                      'this behavior', FutureWarning, stack_level=3)
+        fill_value = 0
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
