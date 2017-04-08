@@ -1254,6 +1254,7 @@ c   1   2   3   4
                              columns=['a', 'b', 'c'])
         tm.assert_frame_equal(result, expected)
 
+    @tm.capture_stdout
     def test_verbose_import(self):
         text = """a,b,c,d
 one,1,2,3
@@ -1265,22 +1266,18 @@ one,1,2,3
 one,1,2,3
 two,1,2,3"""
 
-        buf = StringIO()
-        sys.stdout = buf
+        # Engines are verbose in different ways.
+        self.read_csv(StringIO(text), verbose=True)
+        output = sys.stdout.getvalue()
 
-        try:  # engines are verbose in different ways
-            self.read_csv(StringIO(text), verbose=True)
-            if self.engine == 'c':
-                self.assertIn('Tokenization took:', buf.getvalue())
-                self.assertIn('Parser memory cleanup took:', buf.getvalue())
-            else:  # Python engine
-                self.assertEqual(buf.getvalue(),
-                                 'Filled 3 NA values in column a\n')
-        finally:
-            sys.stdout = sys.__stdout__
+        if self.engine == 'c':
+            assert 'Tokenization took:' in output
+            assert 'Parser memory cleanup took:' in output
+        else:  # Python engine
+            assert output == 'Filled 3 NA values in column a\n'
 
-        buf = StringIO()
-        sys.stdout = buf
+        # Reset the stdout buffer.
+        sys.stdout = StringIO()
 
         text = """a,b,c,d
 one,1,2,3
@@ -1292,16 +1289,15 @@ five,1,2,3
 seven,1,2,3
 eight,1,2,3"""
 
-        try:  # engines are verbose in different ways
-            self.read_csv(StringIO(text), verbose=True, index_col=0)
-            if self.engine == 'c':
-                self.assertIn('Tokenization took:', buf.getvalue())
-                self.assertIn('Parser memory cleanup took:', buf.getvalue())
-            else:  # Python engine
-                self.assertEqual(buf.getvalue(),
-                                 'Filled 1 NA values in column a\n')
-        finally:
-            sys.stdout = sys.__stdout__
+        self.read_csv(StringIO(text), verbose=True, index_col=0)
+        output = sys.stdout.getvalue()
+
+        # Engines are verbose in different ways.
+        if self.engine == 'c':
+            assert 'Tokenization took:' in output
+            assert 'Parser memory cleanup took:' in output
+        else:  # Python engine
+            assert output == 'Filled 1 NA values in column a\n'
 
     def test_iteration_open_handle(self):
         if PY3:
@@ -1696,6 +1692,7 @@ j,-inF"""
             with tm.assertRaisesRegexp(ValueError, msg):
                 self.read_csv(mock.Mock())
 
+    @tm.capture_stderr
     def test_skip_bad_lines(self):
         # see gh-15925
         data = 'a\n1\n1,2,3\n4\n5,6,7'
@@ -1706,30 +1703,24 @@ j,-inF"""
         with tm.assertRaises(ParserError):
             self.read_csv(StringIO(data), error_bad_lines=True)
 
-        stderr = sys.stderr
         expected = DataFrame({'a': [1, 4]})
 
+        out = self.read_csv(StringIO(data),
+                            error_bad_lines=False,
+                            warn_bad_lines=False)
+        tm.assert_frame_equal(out, expected)
+
+        val = sys.stderr.getvalue()
+        assert val == ''
+
+        # Reset the stderr buffer.
         sys.stderr = StringIO()
-        try:
-            out = self.read_csv(StringIO(data),
-                                error_bad_lines=False,
-                                warn_bad_lines=False)
-            tm.assert_frame_equal(out, expected)
 
-            val = sys.stderr.getvalue()
-            self.assertEqual(val, '')
-        finally:
-            sys.stderr = stderr
+        out = self.read_csv(StringIO(data),
+                            error_bad_lines=False,
+                            warn_bad_lines=True)
+        tm.assert_frame_equal(out, expected)
 
-        sys.stderr = StringIO()
-        try:
-            out = self.read_csv(StringIO(data),
-                                error_bad_lines=False,
-                                warn_bad_lines=True)
-            tm.assert_frame_equal(out, expected)
-
-            val = sys.stderr.getvalue()
-            self.assertTrue('Skipping line 3' in val)
-            self.assertTrue('Skipping line 5' in val)
-        finally:
-            sys.stderr = stderr
+        val = sys.stderr.getvalue()
+        assert 'Skipping line 3' in val
+        assert 'Skipping line 5' in val

@@ -12,7 +12,7 @@ import pandas as pd
 from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
                     bdate_range)
 from pandas.types.api import is_list_like
-from pandas.compat import (range, lrange, StringIO, lmap, lzip, u, zip, PY3)
+from pandas.compat import range, lrange, lmap, lzip, u, zip, PY3
 from pandas.formats.printing import pprint_thing
 import pandas.util.testing as tm
 from pandas.util.testing import slow
@@ -1558,8 +1558,8 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual(ax.get_legend().get_texts()[0].get_text(), 'None')
 
     @slow
+    @tm.capture_stdout
     def test_line_colors(self):
-        import sys
         from matplotlib import cm
 
         custom_colors = 'rgcby'
@@ -1568,16 +1568,13 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(color=custom_colors)
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
 
-        tmp = sys.stderr
-        sys.stderr = StringIO()
-        try:
-            tm.close()
-            ax2 = df.plot(colors=custom_colors)
-            lines2 = ax2.get_lines()
-            for l1, l2 in zip(ax.get_lines(), lines2):
-                self.assertEqual(l1.get_color(), l2.get_color())
-        finally:
-            sys.stderr = tmp
+        tm.close()
+
+        ax2 = df.plot(colors=custom_colors)
+        lines2 = ax2.get_lines()
+
+        for l1, l2 in zip(ax.get_lines(), lines2):
+            self.assertEqual(l1.get_color(), l2.get_color())
 
         tm.close()
 
