@@ -32,7 +32,6 @@ from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
 from pandas.formats.printing import adjoin, justify, pprint_thing
-from pandas.formats.excel import ExcelFormatter  # for downstream # NOQA
 from pandas.formats.common import get_level_lengths
 import pandas.core.common as com
 import pandas._libs.lib as lib

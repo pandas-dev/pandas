@@ -12,8 +12,7 @@ from pandas.formats.css import CSSResolver, CSSWarning
 from pandas.formats.printing import pprint_thing
 from pandas.types.common import (is_float)
 import pandas._libs.lib as lib
-from pandas.core.index import Index, MultiIndex
-from pandas.tseries.period import PeriodIndex
+from pandas import Index, MultiIndex, PeriodIndex
 from pandas.formats.common import get_level_lengths
 
 

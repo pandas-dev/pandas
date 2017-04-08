@@ -27,7 +27,6 @@ from pandas.core.generic import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.util.decorators import Appender
-from pandas.formats.excel import ExcelFormatter
 try:
     import matplotlib.pyplot as plt
     from matplotlib import colors
@@ -207,6 +206,7 @@ class Styler(object):
                  merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
                  freeze_panes=None):
 
+        from pandas.formats.excel import ExcelFormatter
         formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
                                    header=header,
                                    float_format=float_format, index=index,

@@ -89,7 +89,6 @@ import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
 import pandas.formats.format as fmt
-from pandas.formats.excel import ExcelFormatter
 from pandas.formats.printing import pprint_thing
 import pandas.tools.plotting as gfx
 
@@ -1419,6 +1418,7 @@ class DataFrame(NDFrame):
                  merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
                  freeze_panes=None):
 
+        from pandas.formats.excel import ExcelFormatter
         formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
                                    header=header,
                                    float_format=float_format, index=index,
