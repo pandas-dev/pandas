@@ -1751,17 +1751,31 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
 
+        # TODO: this can be combined with DataFrame.sort_index impl as
+        # almost identical
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
         index = self.index
-        if level is not None:
+
+        if level:
             new_index, indexer = index.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
         elif isinstance(index, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
-            indexer = lexsort_indexer(index.labels, orders=ascending)
+            labels = index._sort_levels_monotonic()
+            indexer = lexsort_indexer(labels.labels, orders=ascending)
         else:
             from pandas.core.sorting import nargsort
+
+            # Check monotonic-ness before sort an index
+            # GH11080
+            if ((ascending and index.is_monotonic_increasing) or
+                    (not ascending and index.is_monotonic_decreasing)):
+                if inplace:
+                    return
+                else:
+                    return self.copy()
+
             indexer = nargsort(index, kind=kind, ascending=ascending,
                                na_position=na_position)
 
@@ -1856,8 +1870,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         121637    4.240952
         dtype: float64
         """
-        return algorithms.select_n_series(self, n=n, keep=keep,
-                                          method='nlargest')
+        return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
     def nsmallest(self, n=5, keep='first'):
         """Return the smallest `n` elements.
@@ -1903,8 +1916,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         359919   -4.331927
         dtype: float64
         """
-        return algorithms.select_n_series(self, n=n, keep=keep,
-                                          method='nsmallest')
+        return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """

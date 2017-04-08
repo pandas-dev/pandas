@@ -31,6 +31,20 @@ _ensure_float32 = algos.ensure_float32
 
 
 def _ensure_float(arr):
+    """
+    Ensure that an array object has a float dtype if possible.
+
+    Parameters
+    ----------
+    arr : ndarray, Series
+        The array whose data type we want to enforce as float.
+
+    Returns
+    -------
+    float_arr : The original array cast to the float dtype if
+                possible. Otherwise, the original array is returned.
+    """
+
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         arr = arr.astype(float)
     return arr
@@ -46,6 +60,20 @@ _ensure_object = algos.ensure_object
 
 
 def _ensure_categorical(arr):
+    """
+    Ensure that an array-like object is a Categorical (if not already).
+
+    Parameters
+    ----------
+    arr : array-like
+        The array that we want to convert into a Categorical.
+
+    Returns
+    -------
+    cat_arr : The original array cast as a Categorical. If it already
+              is a Categorical, we return as is.
+    """
+
     if not is_categorical(arr):
         from pandas import Categorical
         arr = Categorical(arr)
@@ -116,8 +144,40 @@ def is_categorical_dtype(arr_or_dtype):
 
 
 def is_string_dtype(arr_or_dtype):
-    dtype = _get_dtype(arr_or_dtype)
-    return dtype.kind in ('O', 'S', 'U') and not is_period_dtype(dtype)
+    """
+    Check whether the provided array or dtype is of the string dtype.
+
+    Parameters
+    ----------
+    arr_or_dtype : ndarray, dtype, type
+        The array or dtype to check.
+
+    Returns
+    -------
+    boolean : Whether or not the array or dtype is of the string dtype.
+
+    Examples
+    --------
+    >>> is_string_dtype(str)
+    True
+    >>> is_string_dtype(object)
+    True
+    >>> is_string_dtype(int)
+    False
+    >>>
+    >>> is_string_dtype(np.array(['a', 'b']))
+    True
+    >>> is_string_dtype(np.array([1, 2]))
+    False
+    """
+
+    # TODO: gh-15585: consider making the checks stricter.
+
+    try:
+        dtype = _get_dtype(arr_or_dtype)
+        return dtype.kind in ('O', 'S', 'U') and not is_period_dtype(dtype)
+    except TypeError:
+        return False
 
 
 def is_period_arraylike(arr):
@@ -209,8 +269,40 @@ def is_datetime64_ns_dtype(arr_or_dtype):
 
 
 def is_timedelta64_ns_dtype(arr_or_dtype):
-    tipo = _get_dtype(arr_or_dtype)
-    return tipo == _TD_DTYPE
+    """
+    Check whether the provided array or dtype is of the timedelta64[ns] dtype.
+
+    This is a very specific dtype, so generic ones like `np.timedelta64`
+    will return False if passed into this function.
+
+    Parameters
+    ----------
+    arr_or_dtype : ndarray, dtype, type
+        The array or dtype to check.
+
+    Returns
+    -------
+    boolean : Whether or not the array or dtype
+              is of the timedelta64[ns] dtype.
+
+    Examples
+    --------
+    >>> is_timedelta64_ns_dtype(np.dtype('m8[ns]')
+    True
+    >>> is_timedelta64_ns_dtype(np.dtype('m8[ps]')  # Wrong frequency
+    False
+    >>>
+    >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype='m8[ns]'))
+    True
+    >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
+    False
+    """
+
+    try:
+        tipo = _get_dtype(arr_or_dtype)
+        return tipo == _TD_DTYPE
+    except TypeError:
+        return False
 
 
 def is_datetime_or_timedelta_dtype(arr_or_dtype):
@@ -220,10 +312,21 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
 
 def _is_unorderable_exception(e):
     """
-    return a boolean if we an unorderable exception error message
+    Check if the exception raised is an unorderable exception.
 
-    These are different error message for PY>=3<=3.5 and PY>=3.6
+    The error message differs for 3 <= PY <= 3.5 and PY >= 3.6, so
+    we need to condition based on Python version.
+
+    Parameters
+    ----------
+    e : Exception or sub-class
+        The exception object to check.
+
+    Returns
+    -------
+    boolean : Whether or not the exception raised is an unorderable exception.
     """
+
     if PY36:
         return "'>' not supported between instances of" in str(e)
 
@@ -302,9 +405,39 @@ def is_numeric_dtype(arr_or_dtype):
 
 
 def is_string_like_dtype(arr_or_dtype):
-    # exclude object as its a mixed dtype
-    dtype = _get_dtype(arr_or_dtype)
-    return dtype.kind in ('S', 'U')
+    """
+    Check whether the provided array or dtype is of a string-like dtype.
+
+    Unlike `is_string_dtype`, the object dtype is excluded because it
+    is a mixed dtype.
+
+    Parameters
+    ----------
+    arr_or_dtype : ndarray, dtype, type
+        The array or dtype to check.
+
+    Returns
+    -------
+    boolean : Whether or not the array or dtype is of the string dtype.
+
+    Examples
+    --------
+    >>> is_string_like_dtype(str)
+    True
+    >>> is_string_like_dtype(object)
+    False
+    >>>
+    >>> is_string_like_dtype(np.array(['a', 'b']))
+    True
+    >>> is_string_like_dtype(np.array([1, 2]))
+    False
+    """
+
+    try:
+        dtype = _get_dtype(arr_or_dtype)
+        return dtype.kind in ('S', 'U')
+    except TypeError:
+        return False
 
 
 def is_float_dtype(arr_or_dtype):
@@ -346,7 +479,22 @@ def is_complex_dtype(arr_or_dtype):
 
 
 def _coerce_to_dtype(dtype):
-    """ coerce a string / np.dtype to a dtype """
+    """
+    Coerce a string or np.dtype to a pandas or numpy
+    dtype if possible.
+
+    If we cannot convert to a pandas dtype initially,
+    we convert to a numpy dtype.
+
+    Parameters
+    ----------
+    dtype : The dtype that we want to coerce.
+
+    Returns
+    -------
+    pd_or_np_dtype : The coerced dtype.
+    """
+
     if is_categorical_dtype(dtype):
         dtype = CategoricalDtype()
     elif is_datetime64tz_dtype(dtype):
@@ -359,6 +507,27 @@ def _coerce_to_dtype(dtype):
 
 
 def _get_dtype(arr_or_dtype):
+    """
+    Get the dtype instance associated with an array
+    or dtype object.
+
+    Parameters
+    ----------
+    arr_or_dtype : ndarray, Series, dtype, type
+        The array-like or dtype object whose dtype we want to extract.
+
+    Returns
+    -------
+    obj_dtype : The extract dtype instance from the
+                passed in array or dtype object.
+
+    Raises
+    ------
+    TypeError : The passed in object is None.
+    """
+
+    if arr_or_dtype is None:
+        raise TypeError("Cannot deduce dtype from null object")
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, type):
@@ -383,6 +552,21 @@ def _get_dtype(arr_or_dtype):
 
 
 def _get_dtype_type(arr_or_dtype):
+    """
+    Get the type (NOT dtype) instance associated with
+    an array or dtype object.
+
+    Parameters
+    ----------
+    arr_or_dtype : ndarray, Series, dtype, type
+        The array-like or dtype object whose type we want to extract.
+
+    Returns
+    -------
+    obj_type : The extract type instance from the
+               passed in array or dtype object.
+    """
+
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
     elif isinstance(arr_or_dtype, type):
@@ -408,16 +592,27 @@ def _get_dtype_type(arr_or_dtype):
 
 
 def _get_dtype_from_object(dtype):
-    """Get a numpy dtype.type-style object. This handles the datetime64[ns]
-    and datetime64[ns, TZ] compat
+    """
+    Get a numpy dtype.type-style object for a dtype object.
 
-    Notes
-    -----
-    If nothing can be found, returns ``object``.
+    This methods also includes handling of the datetime64[ns] and
+    datetime64[ns, TZ] objects.
+
+    If no dtype can be found, we return ``object``.
+
+    Parameters
+    ----------
+    dtype : dtype, type
+        The dtype object whose numpy dtype.type-style
+        object we want to extract.
+
+    Returns
+    -------
+    dtype_object : The extracted numpy dtype.type-style object.
     """
 
-    # type object from a dtype
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
+        # Type object from a dtype
         return dtype
     elif is_categorical(dtype):
         return CategoricalDtype().type
@@ -427,7 +622,7 @@ def _get_dtype_from_object(dtype):
         try:
             _validate_date_like_dtype(dtype)
         except TypeError:
-            # should still pass if we don't have a datelike
+            # Should still pass if we don't have a date-like
             pass
         return dtype.type
     elif isinstance(dtype, string_types):
@@ -442,10 +637,11 @@ def _get_dtype_from_object(dtype):
         try:
             return _get_dtype_from_object(getattr(np, dtype))
         except (AttributeError, TypeError):
-            # handles cases like _get_dtype(int)
-            # i.e., python objects that are valid dtypes (unlike user-defined
-            # types, in general)
-            # TypeError handles the float16 typecode of 'e'
+            # Handles cases like _get_dtype(int) i.e.,
+            # Python objects that are valid dtypes
+            # (unlike user-defined types, in general)
+            #
+            # TypeError handles the float16 type code of 'e'
             # further handle internal types
             pass
 
@@ -453,6 +649,21 @@ def _get_dtype_from_object(dtype):
 
 
 def _validate_date_like_dtype(dtype):
+    """
+    Check whether the dtype is a date-like dtype. Raises an error if invalid.
+
+    Parameters
+    ----------
+    dtype : dtype, type
+        The dtype to check.
+
+    Raises
+    ------
+    TypeError : The dtype could not be casted to a date-like dtype.
+    ValueError : The dtype is an illegal date-like dtype (e.g. the
+                 the frequency provided is too specific)
+    """
+
     try:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:

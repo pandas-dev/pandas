@@ -244,9 +244,8 @@ class ExcelFile(object):
         # to get_filepath_or_buffer()
         if _is_url(io):
             io = _urlopen(io)
-        # Deal with S3 urls, path objects, etc. Will convert them to
-        # buffer or path string
-        io, _, _ = get_filepath_or_buffer(io)
+        elif not isinstance(io, (ExcelFile, xlrd.Book)):
+            io, _, _ = get_filepath_or_buffer(io)
 
         if engine == 'xlrd' and isinstance(io, xlrd.Book):
             self.book = io
@@ -573,7 +572,7 @@ def _fill_mi_header(row, control_row):
     ----------
     row : list
         List of items in a single row.
-    constrol_row : list of boolean
+    control_row : list of boolean
         Helps to determine if particular column is in same parent index as the
         previous value. Used to stop propagation of empty cells between
         different indexes.

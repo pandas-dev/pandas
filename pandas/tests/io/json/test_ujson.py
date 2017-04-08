@@ -8,8 +8,6 @@ except ImportError:
     import simplejson as json
 import math
 import pytest
-import platform
-import sys
 import time
 import datetime
 import calendar
@@ -25,18 +23,14 @@ from pandas import DataFrame, Series, Index, NaT, DatetimeIndex
 import pandas.util.testing as tm
 
 
-def _skip_if_python_ver(skip_major, skip_minor=None):
-    major, minor = sys.version_info[:2]
-    if major == skip_major and (skip_minor is None or minor == skip_minor):
-        pytest.skip("skipping Python version %d.%d" % (major, minor))
-
-
 json_unicode = (json.dumps if compat.PY3
                 else partial(json.dumps, encoding="utf-8"))
 
 
 class UltraJSONTests(TestCase):
 
+    @pytest.mark.skipif(compat.is_platform_32bit(),
+                        reason="not compliant on 32-bit, xref #15865")
     def test_encodeDecimal(self):
         sut = decimal.Decimal("1337.1337")
         encoded = ujson.encode(sut, double_precision=15)
@@ -153,10 +147,9 @@ class UltraJSONTests(TestCase):
         decoded = ujson.decode(encoded, precise_float=True)
         self.assertEqual(sut, decoded)
 
+    @pytest.mark.skipif(compat.is_platform_windows() and not compat.PY3,
+                        reason="buggy on win-64 for py2")
     def test_encodeDoubleTinyExponential(self):
-        if compat.is_platform_windows() and not compat.PY3:
-            pytest.skip("buggy on win-64 for py2")
-
         num = 1e-40
         self.assertEqual(num, ujson.decode(ujson.encode(num)))
         num = 1e-100
@@ -275,8 +268,6 @@ class UltraJSONTests(TestCase):
         self.assertEqual(dec, json.loads(enc))
 
     def test_encodeUnicodeSurrogatePair(self):
-        _skip_if_python_ver(2, 5)
-        _skip_if_python_ver(2, 6)
         input = "\xf0\x90\x8d\x86"
         enc = ujson.encode(input)
         dec = ujson.decode(enc)
@@ -285,8 +276,6 @@ class UltraJSONTests(TestCase):
         self.assertEqual(dec, json.loads(enc))
 
     def test_encodeUnicode4BytesUTF8(self):
-        _skip_if_python_ver(2, 5)
-        _skip_if_python_ver(2, 6)
         input = "\xf0\x91\x80\xb0TRAILINGNORMAL"
         enc = ujson.encode(input)
         dec = ujson.decode(enc)
@@ -295,8 +284,6 @@ class UltraJSONTests(TestCase):
         self.assertEqual(dec, json.loads(enc))
 
     def test_encodeUnicode4BytesUTF8Highest(self):
-        _skip_if_python_ver(2, 5)
-        _skip_if_python_ver(2, 6)
         input = "\xf3\xbf\xbf\xbfTRAILINGNORMAL"
         enc = ujson.encode(input)
 
@@ -462,7 +449,6 @@ class UltraJSONTests(TestCase):
         self.assertRaises(ValueError, ujson.encode, val, date_unit='foo')
 
     def test_encodeToUTF8(self):
-        _skip_if_python_ver(2, 5)
         input = "\xe6\x97\xa5\xd1\x88"
         enc = ujson.encode(input, ensure_ascii=False)
         dec = ujson.decode(enc)
@@ -696,8 +682,8 @@ class UltraJSONTests(TestCase):
         input = "-31337"
         self.assertEqual(-31337, ujson.decode(input))
 
+    @pytest.mark.skipif(compat.PY3, reason="only PY2")
     def test_encodeUnicode4BytesUTF8Fail(self):
-        _skip_if_python_ver(3)
         input = "\xfd\xbf\xbf\xbf\xbf\xbf"
         try:
             enc = ujson.encode(input)  # noqa
@@ -1029,7 +1015,7 @@ class NumpyJSONTests(TestCase):
         num = np.uint32(np.iinfo(np.uint32).max)
         self.assertEqual(np.uint32(ujson.decode(ujson.encode(num))), num)
 
-        if platform.architecture()[0] != '32bit':
+        if not compat.is_platform_32bit():
             num = np.int64(np.iinfo(np.int64).max)
             self.assertEqual(np.int64(ujson.decode(ujson.encode(num))), num)
 

@@ -10,8 +10,8 @@ import numpy as np
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas import (Series, DataFrame, Panel, bdate_range, isnull,
-                    notnull, concat, Timestamp)
+from pandas import (Series, DataFrame, bdate_range, isnull,
+                    notnull, concat, Timestamp, Index)
 import pandas.stats.moments as mom
 import pandas.core.window as rwindow
 import pandas.tseries.offsets as offsets
@@ -172,7 +172,7 @@ class TestApi(Base):
         tm.assert_index_equal(result, expected)
 
         result = r['A'].agg([np.sum, np.mean]).columns
-        expected = pd.Index(['sum', 'mean'])
+        expected = Index(['sum', 'mean'])
         tm.assert_index_equal(result, expected)
 
         result = r.agg({'A': [np.sum, np.mean]}).columns
@@ -1688,6 +1688,160 @@ class TestMoments(Base):
         self.assertEqual(type(frame_result), DataFrame)
 
 
+class TestPairwise(object):
+
+    # GH 7738
+    df1s = [DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0, 1]),
+            DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 0]),
+            DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 1]),
+            DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]],
+                      columns=['C', 'C']),
+            DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1., 0]),
+            DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0., 1]),
+            DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=['C', 1]),
+            DataFrame([[2., 4.], [1., 2.], [5., 2.], [8., 1.]],
+                      columns=[1, 0.]),
+            DataFrame([[2, 4.], [1, 2.], [5, 2.], [8, 1.]],
+                      columns=[0, 1.]),
+            DataFrame([[2, 4], [1, 2], [5, 2], [8, 1.]],
+                      columns=[1., 'X']), ]
+    df2 = DataFrame([[None, 1, 1], [None, 1, 2],
+                     [None, 3, 2], [None, 8, 1]], columns=['Y', 'Z', 'X'])
+    s = Series([1, 1, 3, 8])
+
+    def compare(self, result, expected):
+
+        # since we have sorted the results
+        # we can only compare non-nans
+        result = result.dropna().values
+        expected = expected.dropna().values
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('f', [lambda x: x.cov(), lambda x: x.corr()])
+    def test_no_flex(self, f):
+
+        # DataFrame methods (which do not call _flex_binary_moment())
+
+        results = [f(df) for df in self.df1s]
+        for (df, result) in zip(self.df1s, results):
+            tm.assert_index_equal(result.index, df.columns)
+            tm.assert_index_equal(result.columns, df.columns)
+        for i, result in enumerate(results):
+            if i > 0:
+                self.compare(result, results[0])
+
+    @pytest.mark.parametrize(
+        'f', [lambda x: x.expanding().cov(pairwise=True),
+              lambda x: x.expanding().corr(pairwise=True),
+              lambda x: x.rolling(window=3).cov(pairwise=True),
+              lambda x: x.rolling(window=3).corr(pairwise=True),
+              lambda x: x.ewm(com=3).cov(pairwise=True),
+              lambda x: x.ewm(com=3).corr(pairwise=True)])
+    def test_pairwise_with_self(self, f):
+
+        # DataFrame with itself, pairwise=True
+        results = [f(df) for df in self.df1s]
+        for (df, result) in zip(self.df1s, results):
+            tm.assert_index_equal(result.index.levels[0],
+                                  df.index,
+                                  check_names=False)
+            tm.assert_index_equal(result.index.levels[1],
+                                  df.columns,
+                                  check_names=False)
+            tm.assert_index_equal(result.columns, df.columns)
+        for i, result in enumerate(results):
+            if i > 0:
+                self.compare(result, results[0])
+
+    @pytest.mark.parametrize(
+        'f', [lambda x: x.expanding().cov(pairwise=False),
+              lambda x: x.expanding().corr(pairwise=False),
+              lambda x: x.rolling(window=3).cov(pairwise=False),
+              lambda x: x.rolling(window=3).corr(pairwise=False),
+              lambda x: x.ewm(com=3).cov(pairwise=False),
+              lambda x: x.ewm(com=3).corr(pairwise=False), ])
+    def test_no_pairwise_with_self(self, f):
+
+        # DataFrame with itself, pairwise=False
+        results = [f(df) for df in self.df1s]
+        for (df, result) in zip(self.df1s, results):
+            tm.assert_index_equal(result.index, df.index)
+            tm.assert_index_equal(result.columns, df.columns)
+        for i, result in enumerate(results):
+            if i > 0:
+                self.compare(result, results[0])
+
+    @pytest.mark.parametrize(
+        'f', [lambda x, y: x.expanding().cov(y, pairwise=True),
+              lambda x, y: x.expanding().corr(y, pairwise=True),
+              lambda x, y: x.rolling(window=3).cov(y, pairwise=True),
+              lambda x, y: x.rolling(window=3).corr(y, pairwise=True),
+              lambda x, y: x.ewm(com=3).cov(y, pairwise=True),
+              lambda x, y: x.ewm(com=3).corr(y, pairwise=True), ])
+    def test_pairwise_with_other(self, f):
+
+        # DataFrame with another DataFrame, pairwise=True
+        results = [f(df, self.df2) for df in self.df1s]
+        for (df, result) in zip(self.df1s, results):
+            tm.assert_index_equal(result.index.levels[0],
+                                  df.index,
+                                  check_names=False)
+            tm.assert_index_equal(result.index.levels[1],
+                                  self.df2.columns,
+                                  check_names=False)
+        for i, result in enumerate(results):
+            if i > 0:
+                self.compare(result, results[0])
+
+    @pytest.mark.parametrize(
+        'f', [lambda x, y: x.expanding().cov(y, pairwise=False),
+              lambda x, y: x.expanding().corr(y, pairwise=False),
+              lambda x, y: x.rolling(window=3).cov(y, pairwise=False),
+              lambda x, y: x.rolling(window=3).corr(y, pairwise=False),
+              lambda x, y: x.ewm(com=3).cov(y, pairwise=False),
+              lambda x, y: x.ewm(com=3).corr(y, pairwise=False), ])
+    def test_no_pairwise_with_other(self, f):
+
+        # DataFrame with another DataFrame, pairwise=False
+        results = [f(df, self.df2) if df.columns.is_unique else None
+                   for df in self.df1s]
+        for (df, result) in zip(self.df1s, results):
+            if result is not None:
+                with catch_warnings(record=True):
+                    # we can have int and str columns
+                    expected_index = df.index.union(self.df2.index)
+                    expected_columns = df.columns.union(self.df2.columns)
+                tm.assert_index_equal(result.index, expected_index)
+                tm.assert_index_equal(result.columns, expected_columns)
+            else:
+                tm.assertRaisesRegexp(
+                    ValueError, "'arg1' columns are not unique", f, df,
+                    self.df2)
+                tm.assertRaisesRegexp(
+                    ValueError, "'arg2' columns are not unique", f,
+                    self.df2, df)
+
+    @pytest.mark.parametrize(
+        'f', [lambda x, y: x.expanding().cov(y),
+              lambda x, y: x.expanding().corr(y),
+              lambda x, y: x.rolling(window=3).cov(y),
+              lambda x, y: x.rolling(window=3).corr(y),
+              lambda x, y: x.ewm(com=3).cov(y),
+              lambda x, y: x.ewm(com=3).corr(y), ])
+    def test_pairwise_with_series(self, f):
+
+        # DataFrame with a Series
+        results = ([f(df, self.s) for df in self.df1s] +
+                   [f(self.s, df) for df in self.df1s])
+        for (df, result) in zip(self.df1s, results):
+            tm.assert_index_equal(result.index, df.index)
+            tm.assert_index_equal(result.columns, df.columns)
+        for i, result in enumerate(results):
+            if i > 0:
+                self.compare(result, results[0])
+
+
 # create the data only once as we are not setting it
 def _create_consistency_data():
     def create_series():
@@ -2083,21 +2237,6 @@ class TestMomentsConsistency(Base):
                             assert_equal(expanding_f_result,
                                          expanding_apply_f_result)
 
-                        if (name in ['cov', 'corr']) and isinstance(x,
-                                                                    DataFrame):
-                            # test pairwise=True
-                            expanding_f_result = expanding_f(x, pairwise=True)
-                            expected = Panel(items=x.index,
-                                             major_axis=x.columns,
-                                             minor_axis=x.columns)
-                            for i, _ in enumerate(x.columns):
-                                for j, _ in enumerate(x.columns):
-                                    expected.iloc[:, i, j] = getattr(
-                                        x.iloc[:, i].expanding(
-                                            min_periods=min_periods),
-                                        name)(x.iloc[:, j])
-                            tm.assert_panel_equal(expanding_f_result, expected)
-
     @tm.slow
     def test_rolling_consistency(self):
 
@@ -2203,25 +2342,6 @@ class TestMomentsConsistency(Base):
                             assert_equal(rolling_f_result,
                                          rolling_apply_f_result)
 
-                        if (name in ['cov', 'corr']) and isinstance(
-                                x, DataFrame):
-                            # test pairwise=True
-                            rolling_f_result = rolling_f(x,
-                                                         pairwise=True)
-                            expected = Panel(items=x.index,
-                                             major_axis=x.columns,
-                                             minor_axis=x.columns)
-                            for i, _ in enumerate(x.columns):
-                                for j, _ in enumerate(x.columns):
-                                    expected.iloc[:, i, j] = (
-                                        getattr(
-                                            x.iloc[:, i]
-                                            .rolling(window=window,
-                                                     min_periods=min_periods,
-                                                     center=center),
-                                            name)(x.iloc[:, j]))
-                            tm.assert_panel_equal(rolling_f_result, expected)
-
     # binary moments
     def test_rolling_cov(self):
         A = self.series
@@ -2257,11 +2377,11 @@ class TestMomentsConsistency(Base):
         def get_result(obj, obj2=None):
             return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
 
-        panel = get_result(self.frame)
-        actual = panel.loc[:, 1, 5]
+        result = get_result(self.frame)
+        result = result.loc[(slice(None), 1), 5]
+        result.index = result.index.droplevel(1)
         expected = get_result(self.frame[1], self.frame[5])
-        tm.assert_series_equal(actual, expected, check_names=False)
-        self.assertEqual(actual.name, 5)
+        tm.assert_series_equal(result, expected, check_names=False)
 
     def test_flex_binary_moment(self):
         # GH3155
@@ -2429,17 +2549,14 @@ class TestMomentsConsistency(Base):
         rolling_result = self.frame.rolling(window=len(self.frame),
                                             min_periods=1).corr()
 
-        for i in result.items:
-            tm.assert_almost_equal(result[i], rolling_result[i])
+        tm.assert_frame_equal(result, rolling_result)
 
     def test_expanding_corr_pairwise(self):
         result = self.frame.expanding().corr()
 
         rolling_result = self.frame.rolling(window=len(self.frame),
                                             min_periods=1).corr()
-
-        for i in result.items:
-            tm.assert_almost_equal(result[i], rolling_result[i])
+        tm.assert_frame_equal(result, rolling_result)
 
     def test_expanding_cov_diff_index(self):
         # GH 7512
@@ -2507,8 +2624,6 @@ class TestMomentsConsistency(Base):
         s_expected = Series(np.nan, index=s.index)
         df = DataFrame([[1, 5], [3, 2], [3, 9], [-1, 0]], columns=['A', 'B'])
         df_expected = DataFrame(np.nan, index=df.index, columns=df.columns)
-        df_expected_panel = Panel(items=df.index, major_axis=df.columns,
-                                  minor_axis=df.columns)
 
         functions = [lambda x: (x.rolling(window=10, min_periods=5)
                                 .cov(x, pairwise=False)),
@@ -2540,13 +2655,24 @@ class TestMomentsConsistency(Base):
                 # scipy needed for rolling_window
                 continue
 
+    def test_rolling_functions_window_non_shrinkage_binary(self):
+
+        # corr/cov return a MI DataFrame
+        df = DataFrame([[1, 5], [3, 2], [3, 9], [-1, 0]],
+                       columns=Index(['A', 'B'], name='foo'),
+                       index=Index(range(4), name='bar'))
+        df_expected = DataFrame(
+            columns=Index(['A', 'B'], name='foo'),
+            index=pd.MultiIndex.from_product([df.index, df.columns],
+                                             names=['bar', 'foo']),
+            dtype='float64')
         functions = [lambda x: (x.rolling(window=10, min_periods=5)
                                 .cov(x, pairwise=True)),
                      lambda x: (x.rolling(window=10, min_periods=5)
                                 .corr(x, pairwise=True))]
         for f in functions:
-            df_result_panel = f(df)
-            tm.assert_panel_equal(df_result_panel, df_expected_panel)
+            df_result = f(df)
+            tm.assert_frame_equal(df_result, df_expected)
 
     def test_moment_functions_zero_length(self):
         # GH 8056
@@ -2554,13 +2680,9 @@ class TestMomentsConsistency(Base):
         s_expected = s
         df1 = DataFrame()
         df1_expected = df1
-        df1_expected_panel = Panel(items=df1.index, major_axis=df1.columns,
-                                   minor_axis=df1.columns)
         df2 = DataFrame(columns=['a'])
         df2['a'] = df2['a'].astype('float64')
         df2_expected = df2
-        df2_expected_panel = Panel(items=df2.index, major_axis=df2.columns,
-                                   minor_axis=df2.columns)
 
         functions = [lambda x: x.expanding().count(),
                      lambda x: x.expanding(min_periods=5).cov(
@@ -2613,6 +2735,23 @@ class TestMomentsConsistency(Base):
                 # scipy needed for rolling_window
                 continue
 
+    def test_moment_functions_zero_length_pairwise(self):
+
+        df1 = DataFrame()
+        df1_expected = df1
+        df2 = DataFrame(columns=Index(['a'], name='foo'),
+                        index=Index([], name='bar'))
+        df2['a'] = df2['a'].astype('float64')
+
+        df1_expected = DataFrame(
+            index=pd.MultiIndex.from_product([df1.index, df1.columns]),
+            columns=Index([]))
+        df2_expected = DataFrame(
+            index=pd.MultiIndex.from_product([df2.index, df2.columns],
+                                             names=['bar', 'foo']),
+            columns=Index(['a'], name='foo'),
+            dtype='float64')
+
         functions = [lambda x: (x.expanding(min_periods=5)
                                 .cov(x, pairwise=True)),
                      lambda x: (x.expanding(min_periods=5)
@@ -2623,24 +2762,33 @@ class TestMomentsConsistency(Base):
                                 .corr(x, pairwise=True)),
                      ]
         for f in functions:
-            df1_result_panel = f(df1)
-            tm.assert_panel_equal(df1_result_panel, df1_expected_panel)
+            df1_result = f(df1)
+            tm.assert_frame_equal(df1_result, df1_expected)
 
-            df2_result_panel = f(df2)
-            tm.assert_panel_equal(df2_result_panel, df2_expected_panel)
+            df2_result = f(df2)
+            tm.assert_frame_equal(df2_result, df2_expected)
 
     def test_expanding_cov_pairwise_diff_length(self):
         # GH 7512
-        df1 = DataFrame([[1, 5], [3, 2], [3, 9]], columns=['A', 'B'])
-        df1a = DataFrame([[1, 5], [3, 9]], index=[0, 2], columns=['A', 'B'])
-        df2 = DataFrame([[5, 6], [None, None], [2, 1]], columns=['X', 'Y'])
-        df2a = DataFrame([[5, 6], [2, 1]], index=[0, 2], columns=['X', 'Y'])
-        result1 = df1.expanding().cov(df2a, pairwise=True)[2]
-        result2 = df1.expanding().cov(df2a, pairwise=True)[2]
-        result3 = df1a.expanding().cov(df2, pairwise=True)[2]
-        result4 = df1a.expanding().cov(df2a, pairwise=True)[2]
-        expected = DataFrame([[-3., -5.], [-6., -10.]], index=['A', 'B'],
-                             columns=['X', 'Y'])
+        df1 = DataFrame([[1, 5], [3, 2], [3, 9]],
+                        columns=Index(['A', 'B'], name='foo'))
+        df1a = DataFrame([[1, 5], [3, 9]],
+                         index=[0, 2],
+                         columns=Index(['A', 'B'], name='foo'))
+        df2 = DataFrame([[5, 6], [None, None], [2, 1]],
+                        columns=Index(['X', 'Y'], name='foo'))
+        df2a = DataFrame([[5, 6], [2, 1]],
+                         index=[0, 2],
+                         columns=Index(['X', 'Y'], name='foo'))
+        # TODO: xref gh-15826
+        # .loc is not preserving the names
+        result1 = df1.expanding().cov(df2a, pairwise=True).loc[2]
+        result2 = df1.expanding().cov(df2a, pairwise=True).loc[2]
+        result3 = df1a.expanding().cov(df2, pairwise=True).loc[2]
+        result4 = df1a.expanding().cov(df2a, pairwise=True).loc[2]
+        expected = DataFrame([[-3.0, -6.0], [-5.0, -10.0]],
+                             columns=Index(['A', 'B'], name='foo'),
+                             index=Index(['X', 'Y'], name='foo'))
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
         tm.assert_frame_equal(result3, expected)
@@ -2648,148 +2796,29 @@ class TestMomentsConsistency(Base):
 
     def test_expanding_corr_pairwise_diff_length(self):
         # GH 7512
-        df1 = DataFrame([[1, 2], [3, 2], [3, 4]], columns=['A', 'B'])
-        df1a = DataFrame([[1, 2], [3, 4]], index=[0, 2], columns=['A', 'B'])
-        df2 = DataFrame([[5, 6], [None, None], [2, 1]], columns=['X', 'Y'])
-        df2a = DataFrame([[5, 6], [2, 1]], index=[0, 2], columns=['X', 'Y'])
-        result1 = df1.expanding().corr(df2, pairwise=True)[2]
-        result2 = df1.expanding().corr(df2a, pairwise=True)[2]
-        result3 = df1a.expanding().corr(df2, pairwise=True)[2]
-        result4 = df1a.expanding().corr(df2a, pairwise=True)[2]
-        expected = DataFrame([[-1.0, -1.0], [-1.0, -1.0]], index=['A', 'B'],
-                             columns=['X', 'Y'])
+        df1 = DataFrame([[1, 2], [3, 2], [3, 4]],
+                        columns=['A', 'B'],
+                        index=Index(range(3), name='bar'))
+        df1a = DataFrame([[1, 2], [3, 4]],
+                         index=Index([0, 2], name='bar'),
+                         columns=['A', 'B'])
+        df2 = DataFrame([[5, 6], [None, None], [2, 1]],
+                        columns=['X', 'Y'],
+                        index=Index(range(3), name='bar'))
+        df2a = DataFrame([[5, 6], [2, 1]],
+                         index=Index([0, 2], name='bar'),
+                         columns=['X', 'Y'])
+        result1 = df1.expanding().corr(df2, pairwise=True).loc[2]
+        result2 = df1.expanding().corr(df2a, pairwise=True).loc[2]
+        result3 = df1a.expanding().corr(df2, pairwise=True).loc[2]
+        result4 = df1a.expanding().corr(df2a, pairwise=True).loc[2]
+        expected = DataFrame([[-1.0, -1.0], [-1.0, -1.0]],
+                             columns=['A', 'B'],
+                             index=Index(['X', 'Y']))
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
         tm.assert_frame_equal(result3, expected)
         tm.assert_frame_equal(result4, expected)
-
-    def test_pairwise_stats_column_names_order(self):
-        # GH 7738
-        df1s = [DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0, 1]),
-                DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 0]),
-                DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 1]),
-                DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]],
-                          columns=['C', 'C']),
-                DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1., 0]),
-                DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0., 1]),
-                DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=['C', 1]),
-                DataFrame([[2., 4.], [1., 2.], [5., 2.], [8., 1.]],
-                          columns=[1, 0.]),
-                DataFrame([[2, 4.], [1, 2.], [5, 2.], [8, 1.]],
-                          columns=[0, 1.]),
-                DataFrame([[2, 4], [1, 2], [5, 2], [8, 1.]],
-                          columns=[1., 'X']), ]
-        df2 = DataFrame([[None, 1, 1], [None, 1, 2],
-                         [None, 3, 2], [None, 8, 1]], columns=['Y', 'Z', 'X'])
-        s = Series([1, 1, 3, 8])
-
-        # suppress warnings about incomparable objects, as we are deliberately
-        # testing with such column labels
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore",
-                                    message=".*incomparable objects.*",
-                                    category=RuntimeWarning)
-
-            # DataFrame methods (which do not call _flex_binary_moment())
-            for f in [lambda x: x.cov(), lambda x: x.corr(), ]:
-                results = [f(df) for df in df1s]
-                for (df, result) in zip(df1s, results):
-                    tm.assert_index_equal(result.index, df.columns)
-                    tm.assert_index_equal(result.columns, df.columns)
-                for i, result in enumerate(results):
-                    if i > 0:
-                        # compare internal values, as columns can be different
-                        self.assert_numpy_array_equal(result.values,
-                                                      results[0].values)
-
-            # DataFrame with itself, pairwise=True
-            for f in [lambda x: x.expanding().cov(pairwise=True),
-                      lambda x: x.expanding().corr(pairwise=True),
-                      lambda x: x.rolling(window=3).cov(pairwise=True),
-                      lambda x: x.rolling(window=3).corr(pairwise=True),
-                      lambda x: x.ewm(com=3).cov(pairwise=True),
-                      lambda x: x.ewm(com=3).corr(pairwise=True), ]:
-                results = [f(df) for df in df1s]
-                for (df, result) in zip(df1s, results):
-                    tm.assert_index_equal(result.items, df.index)
-                    tm.assert_index_equal(result.major_axis, df.columns)
-                    tm.assert_index_equal(result.minor_axis, df.columns)
-                for i, result in enumerate(results):
-                    if i > 0:
-                        self.assert_numpy_array_equal(result.values,
-                                                      results[0].values)
-
-            # DataFrame with itself, pairwise=False
-            for f in [lambda x: x.expanding().cov(pairwise=False),
-                      lambda x: x.expanding().corr(pairwise=False),
-                      lambda x: x.rolling(window=3).cov(pairwise=False),
-                      lambda x: x.rolling(window=3).corr(pairwise=False),
-                      lambda x: x.ewm(com=3).cov(pairwise=False),
-                      lambda x: x.ewm(com=3).corr(pairwise=False), ]:
-                results = [f(df) for df in df1s]
-                for (df, result) in zip(df1s, results):
-                    tm.assert_index_equal(result.index, df.index)
-                    tm.assert_index_equal(result.columns, df.columns)
-                for i, result in enumerate(results):
-                    if i > 0:
-                        self.assert_numpy_array_equal(result.values,
-                                                      results[0].values)
-
-            # DataFrame with another DataFrame, pairwise=True
-            for f in [lambda x, y: x.expanding().cov(y, pairwise=True),
-                      lambda x, y: x.expanding().corr(y, pairwise=True),
-                      lambda x, y: x.rolling(window=3).cov(y, pairwise=True),
-                      lambda x, y: x.rolling(window=3).corr(y, pairwise=True),
-                      lambda x, y: x.ewm(com=3).cov(y, pairwise=True),
-                      lambda x, y: x.ewm(com=3).corr(y, pairwise=True), ]:
-                results = [f(df, df2) for df in df1s]
-                for (df, result) in zip(df1s, results):
-                    tm.assert_index_equal(result.items, df.index)
-                    tm.assert_index_equal(result.major_axis, df.columns)
-                    tm.assert_index_equal(result.minor_axis, df2.columns)
-                for i, result in enumerate(results):
-                    if i > 0:
-                        self.assert_numpy_array_equal(result.values,
-                                                      results[0].values)
-
-            # DataFrame with another DataFrame, pairwise=False
-            for f in [lambda x, y: x.expanding().cov(y, pairwise=False),
-                      lambda x, y: x.expanding().corr(y, pairwise=False),
-                      lambda x, y: x.rolling(window=3).cov(y, pairwise=False),
-                      lambda x, y: x.rolling(window=3).corr(y, pairwise=False),
-                      lambda x, y: x.ewm(com=3).cov(y, pairwise=False),
-                      lambda x, y: x.ewm(com=3).corr(y, pairwise=False), ]:
-                results = [f(df, df2) if df.columns.is_unique else None
-                           for df in df1s]
-                for (df, result) in zip(df1s, results):
-                    if result is not None:
-                        expected_index = df.index.union(df2.index)
-                        expected_columns = df.columns.union(df2.columns)
-                        tm.assert_index_equal(result.index, expected_index)
-                        tm.assert_index_equal(result.columns, expected_columns)
-                    else:
-                        tm.assertRaisesRegexp(
-                            ValueError, "'arg1' columns are not unique", f, df,
-                            df2)
-                        tm.assertRaisesRegexp(
-                            ValueError, "'arg2' columns are not unique", f,
-                            df2, df)
-
-            # DataFrame with a Series
-            for f in [lambda x, y: x.expanding().cov(y),
-                      lambda x, y: x.expanding().corr(y),
-                      lambda x, y: x.rolling(window=3).cov(y),
-                      lambda x, y: x.rolling(window=3).corr(y),
-                      lambda x, y: x.ewm(com=3).cov(y),
-                      lambda x, y: x.ewm(com=3).corr(y), ]:
-                results = [f(df, s) for df in df1s] + [f(s, df) for df in df1s]
-                for (df, result) in zip(df1s, results):
-                    tm.assert_index_equal(result.index, df.index)
-                    tm.assert_index_equal(result.columns, df.columns)
-                for i, result in enumerate(results):
-                    if i > 0:
-                        self.assert_numpy_array_equal(result.values,
-                                                      results[0].values)
 
     def test_rolling_skew_edge_cases(self):
 

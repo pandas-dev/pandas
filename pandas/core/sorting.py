@@ -93,6 +93,27 @@ def get_group_index(labels, shape, sort, xnull):
     return loop(list(labels), list(shape))
 
 
+def get_compressed_ids(labels, sizes):
+    """
+
+    Group_index is offsets into cartesian product of all possible labels. This
+    space can be huge, so this function compresses it, by computing offsets
+    (comp_ids) into the list of unique labels (obs_group_ids).
+
+    Parameters
+    ----------
+    labels : list of label arrays
+    sizes : list of size of the levels
+
+    Returns
+    -------
+    tuple of (comp_ids, obs_group_ids)
+
+    """
+    ids = get_group_index(labels, sizes, sort=True, xnull=False)
+    return compress_group_index(ids, sort=True)
+
+
 def is_int64_overflow_possible(shape):
     the_prod = long(1)
     for x in shape:

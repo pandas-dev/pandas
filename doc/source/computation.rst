@@ -505,12 +505,17 @@ two ``Series`` or any combination of ``DataFrame/Series`` or
 - ``DataFrame/DataFrame``: by default compute the statistic for matching column
   names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
   passed then computes the statistic for each pair of columns, returning a
-  ``Panel`` whose ``items`` are the dates in question (see :ref:`the next section
+  ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
   <stats.moments.corr_pairwise>`).
 
 For example:
 
 .. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(1000, 4),
+                     index=pd.date_range('1/1/2000', periods=1000),
+                     columns=['A', 'B', 'C', 'D'])
+   df = df.cumsum()
 
    df2 = df[:20]
    df2.rolling(window=5).corr(df2['B'])
@@ -520,11 +525,16 @@ For example:
 Computing rolling pairwise covariances and correlations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   Prior to version 0.20.0 if ``pairwise=True`` was passed, a ``Panel`` would be returned.
+   This will now return a 2-level MultiIndexed DataFrame, see the whatsnew :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
+
 In financial data analysis and other fields it's common to compute covariance
 and correlation matrices for a collection of time series. Often one is also
 interested in moving-window covariance and correlation matrices. This can be
 done by passing the ``pairwise`` keyword argument, which in the case of
-``DataFrame`` inputs will yield a ``Panel`` whose ``items`` are the dates in
+``DataFrame`` inputs will yield a MultiIndexed ``DataFrame`` whose ``index`` are the dates in
 question. In the case of a single DataFrame argument the ``pairwise`` argument
 can even be omitted:
 
@@ -539,15 +549,15 @@ can even be omitted:
 .. ipython:: python
 
    covs = df[['B','C','D']].rolling(window=50).cov(df[['A','B','C']], pairwise=True)
-   covs[df.index[-50]]
+   covs.loc['2002-09-22':]
 
 .. ipython:: python
 
    correls = df.rolling(window=50).corr()
-   correls[df.index[-50]]
+   correls.loc['2002-09-22':]
 
 You can efficiently retrieve the time series of correlations between two
-columns using ``.loc`` indexing:
+columns by reshaping and indexing:
 
 .. ipython:: python
    :suppress:
@@ -557,7 +567,7 @@ columns using ``.loc`` indexing:
 .. ipython:: python
 
    @savefig rolling_corr_pairwise_ex.png
-   correls.loc[:, 'A', 'C'].plot()
+   correls.unstack(1)[('A', 'C')].plot()
 
 .. _stats.aggregate:
 

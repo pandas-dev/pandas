@@ -10,12 +10,15 @@ users upgrade to this version.
 Highlights include:
 
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
+- ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
 - Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
 - Improved support for UInt64 dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
 - A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
+- Window Binary Corr/Cov operations return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
+
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
@@ -365,6 +368,10 @@ Other Enhancements
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pandas.io.json.json_normalize()`` has gained a ``sep`` option that accepts ``str`` to separate joined fields; the default is ".", which is backward compatible. (:issue:`14883`)
+- A new function has been added to a ``MultiIndex`` to facilitate :ref:`Removing Unused Levels <advanced.shown_levels>`. (:issue:`15694`)
+- :func:`MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
+- ``pd.read_csv()`` will now raise a ``ParserError`` error whenever any parsing error occurs (:issue:`15913`, :issue:`15925`)
+- ``pd.read_csv()`` now supports the ``error_bad_lines`` and ``warn_bad_lines`` arguments for the Python parser (:issue:`15925`)
 
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
@@ -421,6 +428,33 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
+
+.. _whatsnew_0200.api_breaking.deprecate_panel:
+
+Deprecate Panel
+^^^^^^^^^^^^^^^
+
+``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
+with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+provides a :meth:`~Panel.to_xarray` method to automate this conversion. See the documentation :ref:`Deprecate Panel <dsintro.deprecate_panel>`. (:issue:`13563`).
+
+.. ipython:: python
+   :okwarning:
+
+   p = tm.makePanel()
+   p
+
+Convert to a MultiIndex DataFrame
+
+.. ipython:: python
+
+   p.to_frame()
+
+Convert to an xarray DataArray
+
+.. ipython:: python
+
+   p.to_xarray()
 
 .. _whatsnew.api_breaking.io_compat:
 
@@ -713,6 +747,72 @@ If indicated, a deprecation warning will be issued if you reference that module.
     "pandas._hash", "pandas.tools.libhash", ""
     "pandas._window", "pandas.core.libwindow", ""
 
+.. _whatsnew_0200.api_breaking.sort_index:
+
+DataFrame.sort_index changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In certain cases, calling ``.sort_index()`` on a MultiIndexed DataFrame would return the *same* DataFrame without seeming to sort.
+This would happen with a ``lexsorted``, but non-monotonic levels. (:issue:`15622`, :issue:`15687`, :issue:`14015`, :issue:`13431`)
+
+This is UNCHANGED between versions, but showing for illustration purposes:
+
+.. ipython:: python
+
+    df = DataFrame(np.arange(6), columns=['value'], index=MultiIndex.from_product([list('BA'), range(3)]))
+    df
+
+.. ipython:: python
+
+    df.index.is_lexsorted()
+    df.index.is_monotonic
+
+Sorting works as expected
+
+.. ipython:: python
+
+    df.sort_index()
+
+.. ipython:: python
+
+    df.sort_index().index.is_lexsorted()
+    df.sort_index().index.is_monotonic
+
+However, this example, which has a non-monotonic 2nd level,
+doesn't behave as desired.
+
+.. ipython:: python
+   df = pd.DataFrame(
+           {'value': [1, 2, 3, 4]},
+            index=pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
+                                labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+
+Previous Behavior:
+
+.. ipython:: python
+
+   In [11]: df.sort_index()
+   Out[11]:
+         value
+   a bb      1
+     aa      2
+   b bb      3
+     aa      4
+
+   In [14]: df.sort_index().index.is_lexsorted()
+   Out[14]: True
+
+   In [15]: df.sort_index().index.is_monotonic
+   Out[15]: False
+
+New Behavior:
+
+.. ipython:: python
+
+   df.sort_index()
+   df.sort_index().index.is_lexsorted()
+   df.sort_index().index.is_monotonic
+
 
 .. _whatsnew_0200.api_breaking.groupby_describe:
 
@@ -766,6 +866,51 @@ New Behavior:
    df.groupby('A').describe()
 
    df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+
+.. _whatsnew_0200.api_breaking.rolling_pairwise:
+
+Window Binary Corr/Cov operations return a MultiIndex DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A binary window operation, like ``.corr()`` or ``.cov()``, when operating on a ``.rolling(..)``, ``.expanding(..)``, or ``.ewm(..)`` object,
+will now return a 2-level ``MultiIndexed DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated,
+see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`. These are equivalent in function,
+but a MultiIndexed ``DataFrame`` enjoys more support in pandas.
+See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for more information. (:issue:`15677`)
+
+.. ipython:: python
+
+   np.random.seed(1234)
+   df = pd.DataFrame(np.random.rand(100, 2),
+                     columns=pd.Index(['A', 'B'], name='bar'),
+                     index=pd.date_range('20160101',
+                                         periods=100, freq='D', name='foo'))
+   df.tail()
+
+Old Behavior:
+
+.. code-block:: ipython
+
+   In [2]: df.rolling(12).corr()
+   Out[2]:
+   <class 'pandas.core.panel.Panel'>
+   Dimensions: 100 (items) x 2 (major_axis) x 2 (minor_axis)
+   Items axis: 2016-01-01 00:00:00 to 2016-04-09 00:00:00
+   Major_axis axis: A to B
+   Minor_axis axis: A to B
+
+New Behavior:
+
+.. ipython:: python
+
+   res = df.rolling(12).corr()
+   res.tail()
+
+Retrieving a correlation matrix for a cross-section
+
+.. ipython:: python
+
+   df.rolling(12).corr().loc['2016-04-07']
 
 .. _whatsnew_0200.api_breaking.hdfstore_where:
 
@@ -912,13 +1057,14 @@ Deprecations
 - importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
 - The ``as_indexer`` keyword of ``Series.str.match()`` has been deprecated (ignored keyword) (:issue:`15257`).
-- The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`)
+- The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`, :issue:`15940`)
 
   * ``pd.pnow()``, replaced by ``Period.now()``
   * ``pd.Term``, is removed, as it is not applicable to user code. Instead use in-line string expressions in the where clause when searching in HDFStore
   * ``pd.Expr``, is removed, as it is not applicable to user code.
   * ``pd.match()``, is removed.
   * ``pd.groupby()``, replaced by using the ``.groupby()`` method directly on a ``Series/DataFrame``
+  * ``pd.get_store()``, replaced by a direct call to ``pd.HDFStore(...)``
 
 .. _whatsnew_0200.prior_deprecations:
 
@@ -964,7 +1110,7 @@ Performance Improvements
 - Improve performance of ``pd.core.groupby.GroupBy.apply`` when the applied
   function used the ``.name`` attribute of the group DataFrame (:issue:`15062`).
 - Improved performance of ``iloc`` indexing with a list or array (:issue:`15504`).
-
+- Improved performance of ``Series.sort_index()`` with a monotonic index (:issue:`15694`)
 
 .. _whatsnew_0200.bug_fixes:
 
@@ -998,6 +1144,8 @@ Conversion
 - Bug in ``DataFrame.fillna()`` where the argument ``downcast`` was ignored when fillna value was of type ``dict`` (:issue:`15277`)
 - Bug in ``.asfreq()``, where frequency was not set for empty ``Series`` (:issue:`14320`)
 - Bug in ``DataFrame`` construction with nulls and datetimes in a list-like (:issue:`15869`)
+- Bug in ``DataFrame.fillna()`` with tz-aware datetimes (:issue:`15855`)
+- Bug in ``is_string_dtype``, ``is_timedelta64_ns_dtype``, and ``is_string_like_dtype`` in which an error was raised when ``None`` was passed in (:issue:`15941`)
 
 Indexing
 ^^^^^^^^
@@ -1033,7 +1181,9 @@ I/O
 - Bug in ``pd.read_csv()`` with ``parse_dates`` when multiline headers are specified (:issue:`15376`)
 - Bug in ``pd.read_csv()`` with ``float_precision='round_trip'`` which caused a segfault when a text entry is parsed (:issue:`15140`)
 - Bug in ``pd.read_csv()`` when an index was specified and no values were specified as null values (:issue:`15835`)
-- Added checks in ``pd.read_csv()`` ensuring that values for ``nrows`` and ``chunksize`` are valid (:issue:`15767`)
+- Bug in ``pd.read_csv()`` in which certain invalid file objects caused the Python interpreter to crash (:issue:`15337`)
+- Bug in ``pd.read_csv()`` in which invalid values for ``nrows`` and ``chunksize`` were allowed (:issue:`15767`)
+- Bug in ``pd.read_csv()`` for the Python engine in which unhelpful error messages were being raised when parsing errors occurred (:issue:`15910`)
 - Bug in ``pd.tools.hashing.hash_pandas_object()`` in which hashing of categoricals depended on the ordering of categories, instead of just their values. (:issue:`15143`)
 - Bug in ``.to_json()`` where ``lines=True`` and contents (keys or values) contain escaped characters (:issue:`15096`)
 - Bug in ``.to_json()`` causing single byte ascii characters to be expanded to four byte unicode (:issue:`15344`)
@@ -1055,6 +1205,7 @@ Plotting
 
 - Bug in ``DataFrame.hist`` where ``plt.tight_layout`` caused an ``AttributeError``  (use ``matplotlib >= 2.0.1``) (:issue:`9351`)
 - Bug in ``DataFrame.boxplot`` where ``fontsize`` was not applied to the tick labels on both axes (:issue:`15108`)
+- Bug in ``pd.scatter_matrix()`` could accept either ``color`` or ``c``, but not both (:issue:`14855`)
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1093,6 +1244,7 @@ Reshaping
 - Bug in ``pd.pivot_table()`` where no error was raised when values argument was not in the columns (:issue:`14938`)
 - Bug in ``pd.concat()`` in which concatting with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 - Bug with ``sort=True`` in ``DataFrame.join`` and ``pd.merge`` when joining on indexes (:issue:`15582`)
+- Bug in ``DataFrame.nsmallest`` and ``DataFrame.nlargest`` where identical values resulted in duplicated rows (:issue:`15297`)
 
 Numeric
 ^^^^^^^
