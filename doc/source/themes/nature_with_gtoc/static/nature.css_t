@@ -330,6 +330,12 @@ tbody tr:nth-child(odd) {
     background: #f5f5f5;
 }
 
+table td.data, table th.row_heading table th.col_heading {
+    font-family: monospace;
+    text-align: right;
+}
+
+
 /**
  * See also
  */
