@@ -1036,6 +1036,37 @@ def _evaluate_usecols(usecols, names):
     return usecols
 
 
+def _validate_skipfooter_arg(skipfooter):
+    """
+    Validate the 'skipfooter' parameter.
+
+    Checks whether 'skipfooter' is a non-negative integer.
+    Raises a ValueError if that is not the case.
+
+    Parameters
+    ----------
+    skipfooter : non-negative integer
+        The number of rows to skip at the end of the file.
+
+    Returns
+    -------
+    validated_skipfooter : non-negative integer
+        The original input if the validation succeeds.
+
+    Raises
+    ------
+    ValueError : 'skipfooter' was not a non-negative integer.
+    """
+
+    if not is_integer(skipfooter):
+        raise ValueError("skipfooter must be an integer")
+
+    if skipfooter < 0:
+        raise ValueError("skipfooter cannot be negative")
+
+    return skipfooter
+
+
 def _validate_usecols_arg(usecols):
     """
     Validate the 'usecols' parameter.
@@ -1880,7 +1911,7 @@ class PythonParser(ParserBase):
         else:
             self.skipfunc = lambda x: x in self.skiprows
 
-        self.skipfooter = kwds['skipfooter']
+        self.skipfooter = _validate_skipfooter_arg(kwds['skipfooter'])
         self.delimiter = kwds['delimiter']
 
         self.quotechar = kwds['quotechar']
@@ -2684,9 +2715,6 @@ class PythonParser(ParserBase):
         return index_name, orig_names, columns
 
     def _rows_to_cols(self, content):
-        if self.skipfooter < 0:
-            raise ValueError('skip footer cannot be negative')
-
         col_len = self.num_original_columns
 
         if self._implicit_index:

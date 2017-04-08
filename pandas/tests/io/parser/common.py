@@ -546,7 +546,7 @@ baz,7,8,9
         if self.engine == 'python':
             # test bad parameter (skipfooter)
             reader = self.read_csv(StringIO(self.data1), index_col=0,
-                                   iterator=True, skipfooter=True)
+                                   iterator=True, skipfooter=1)
             self.assertRaises(ValueError, reader.read, 3)
 
     def test_pass_names_with_index(self):

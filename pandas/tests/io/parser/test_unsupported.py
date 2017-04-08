@@ -112,8 +112,8 @@ class TestDeprecatedFeatures(tm.TestCase):
             'as_recarray': True,
             'buffer_lines': True,
             'compact_ints': True,
-            'skip_footer': True,
             'use_unsigned': True,
+            'skip_footer': 1,
         }
 
         engines = 'c', 'python'
