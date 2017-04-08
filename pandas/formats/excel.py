@@ -161,8 +161,6 @@ class CSSToExcelConverter(object):
         width = float(width[:-2])
         if width < 1e-5:
             return None
-        if width < 1:
-            width_name = 'hair'
         elif width < 2:
             width_name = 'thin'
         elif width < 3.5:

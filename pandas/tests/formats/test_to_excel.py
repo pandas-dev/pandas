@@ -50,11 +50,11 @@ from pandas.formats.excel import CSSToExcelConverter
      {'font': {'strike': False}}),
     # - strike
     ('text-decoration: line-through',
-     {'font': {'strike': True, 'underline': False}}),
+     {'font': {'strike': True}}),
     ('text-decoration: underline line-through',
-     {'font': {'strike': True, 'underline': True}}),
+     {'font': {'strike': True, 'underline': 'single'}}),
     ('text-decoration: underline; text-decoration: line-through',
-     {'font': {'strike': True, 'underline': False}}),
+     {'font': {'strike': True}}),
     # - color
     ('color: red', {'font': {'color': 'FF0000'}}),
     ('color: #ff0000', {'font': {'color': 'FF0000'}}),
