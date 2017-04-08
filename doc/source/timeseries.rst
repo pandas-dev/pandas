@@ -247,6 +247,8 @@ Return NaT for input when unparseable
     Out[6]: DatetimeIndex(['2009-07-31', 'NaT'], dtype='datetime64[ns]', freq=None)
 
 
+.. _timeseries.converting.epoch:
+
 Epoch Timestamps
 ~~~~~~~~~~~~~~~~
 
@@ -279,9 +281,26 @@ Typical epoch stored units
 
    .. ipython:: python
 
-      1490195805.433502912
       pd.to_datetime([1490195805.433, 1490195805.433502912], unit='s')
       pd.to_datetime(1490195805433502912, unit='ns')
+
+.. _timeseries.converting.epoch_inverse:
+
+From Timestamps to Epoch
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To invert the operation from above, namely, to convert from a ``Timestamp`` to a 'unix' epoch:
+
+.. ipython:: python
+
+   stamps = pd.date_range('2012-10-08 18:15:05', periods=4, freq='D')
+   stamps
+
+We convert the ``DatetimeIndex`` to an ``int64`` array, then divide by the conversion unit.
+
+.. ipython:: python
+
+   stamps.view('int64') // pd.Timedelta(1, unit='s')
 
 .. _timeseries.origin:
 
@@ -305,16 +324,6 @@ Commonly called 'unix epoch' or POSIX time.
 .. ipython:: python
 
    pd.to_datetime([1, 2, 3], unit='D')
-
-.. note::
-
-   Without specifying origin the following examples still evaluate, but the results
-   may be unexpected.
-
-   .. ipython:: python
-
-      pd.to_datetime([1])
-      pd.to_datetime([1, 3.14], unit='s')
 
 .. _timeseries.daterange:
 
