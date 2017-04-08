@@ -84,7 +84,6 @@ from pandas.formats.excel import CSSToExcelConverter
                                          'patternType': 'solid'}}),
     # BORDER
     # - style
-    # TODO: need to check this produces valid OpenXML without color
     ('border-style: solid',
      {'border': {'top': {'style': 'medium'},
                  'bottom': {'style': 'medium'},
@@ -96,11 +95,16 @@ from pandas.formats.excel import CSSToExcelConverter
      {'border': {'top': {'style': 'mediumDashDotDot'}}}),
     ('border-top-style: dashed',
      {'border': {'top': {'style': 'mediumDashed'}}}),
+    # TODO: test other widths
     # - color
+    # TODO
     # ALIGNMENT
     # - horizontal
+    # TODO
     # - vertical
+    # TODO
     # - wrap_text
+    # TODO
 ])
 def test_css_to_excel(css, expected):
     convert = CSSToExcelConverter()
@@ -117,10 +121,10 @@ def test_css_to_excel_multiple():
         unused: something;
     ''')
     assert {"font": {"bold": True},
-            "border": {"top": {"style": "hair"},
-                       "right": {"style": "hair"},
-                       "bottom": {"style": "hair"},
-                       "left": {"style": "hair"}},
+            "border": {"top": {"style": "thin"},
+                       "right": {"style": "thin"},
+                       "bottom": {"style": "thin"},
+                       "left": {"style": "thin"}},
             "alignment": {"horizontal": "center",
                           "vertical": "top"}} == actual
 
@@ -145,4 +149,4 @@ def test_css_to_excel_inherited(css, inherited, expected):
 
 @pytest.mark.xfail
 def test_css_to_excel_warns_when_not_supported():
-    pass
+    pass  # TODO
