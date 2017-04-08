@@ -315,6 +315,16 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
     1 loop, best of 3: 471 ms per loop
 
+    Using a unix epoch time
+
+    >>> pd.to_datetime(1490195805, unit='s')
+    Timestamp('2017-03-22 15:16:45')
+    >>> pd.to_datetime(1490195805433502912, unit='ns')
+    Timestamp('2017-03-22 15:16:45.433502912')
+
+    .. warning:: For float arg, precision rounding might happen. To prevent
+        unexpected behavior use a fixed-width exact type.
+
     Using a non-unix epoch origin
 
     >>> pd.to_datetime([1, 2, 3], unit='D',
