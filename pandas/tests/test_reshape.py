@@ -327,8 +327,8 @@ class TestGetDummies(tm.TestCase):
                                 dtype=np.uint8)
         tm.assert_numpy_array_equal(res_just_na.values, exp_just_na.values)
 
-    # Add `fill_value` keyword GH15926
     def test_fill_value_na(self):
+        # Add `fill_value` keyword GH15926
         s = ['a', 'b', np.nan]
         res_na = get_dummies(
             s, dummy_na=True, fill_value=np.nan, sparse=self.sparse)

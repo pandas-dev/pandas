@@ -312,7 +312,10 @@ def maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def infer_dtype_from_scalar(val, pandas_dtype=False):
+def infer_dtype_from_scalar(val,
+                            pandas_dtype=False,
+                            downcast=False,
+                            allow_uint=False):
     """
     interpret the dtype from a scalar
 
@@ -322,7 +325,51 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
         whether to infer dtype including pandas extension types.
         If False, scalar belongs to pandas extension types is inferred as
         object
+    downcast : bool, default False
+        If True, downcast float and integer types to the smallest width
+        type that can hold `val`.
+
+    .. versionadded:: 0.20.0
+    allow_uint : bool, default False
+        If True and `downcast` is True, non-negative integers will be
+        downcast to smallest width unsigned integer type that can hold
+        them. Otherwise, signed types are always downcast to signed types
+        and the same for unsigned types.
+
+    .. versionadded:: 0.20.0
     """
+
+    def _downcast_dtype(dtype, val):
+        if 'float' in str(dtype):
+            if ((val > np.finfo(np.float16).min and
+                    val < np.finfo(np.float16).max) or val is np.nan):
+                return np.float16
+            elif (val > np.finfo(np.float32).min and
+                    val < np.finfo(np.float32).max):
+                return np.float32
+            else:
+                return np.float64
+        elif 'uint' in str(dtype) or (val >= 0 and allow_uint):
+            if val < np.iinfo(np.uint8).max:
+                return np.uint8
+            elif val < np.iinfo(np.uint16).max:
+                return np.uint16
+            elif val < np.iinfo(np.uint32).max:
+                return np.uint32
+            else:
+                return np.uint64
+        elif 'int' in str(dtype):
+            if (val > np.iinfo(np.int8).min and
+                    val < np.iinfo(np.int8).max):
+                return np.int8
+            elif (val > np.iinfo(np.int16).min and
+                    val < np.iinfo(np.int16).max):
+                return np.int16
+            elif (val > np.iinfo(np.int32).min and
+                    val < np.iinfo(np.int32).max):
+                return np.int32
+            else:
+                return np.int64
 
     dtype = np.object_
 
@@ -334,6 +381,8 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
 
         dtype = val.dtype
         val = val.item()
+
+        dtype = _downcast_dtype(dtype, val) if downcast else dtype
 
     elif isinstance(val, string_types):
 
@@ -370,11 +419,15 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
         else:
             dtype = np.int64
 
+        dtype = _downcast_dtype(dtype, val) if downcast else dtype
+
     elif is_float(val):
         if isinstance(val, np.floating):
             dtype = type(val)
         else:
             dtype = np.float64
+
+        dtype = _downcast_dtype(dtype, val) if downcast else dtype
 
     elif is_complex(val):
         dtype = np.complex_

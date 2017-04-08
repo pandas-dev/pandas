@@ -1188,34 +1188,20 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     # Infer the proper output dtype.
     # GH15926
-    try:
-        if np.all(np.isfinite(data.values if hasattr(data, 'values') else data)):
-            any_null = True
-        else:
-            any_null = False
-    except TypeError:
-        any_null = False
-
-    if any_null:
-        output_dtype = np.uint8
-    else:
-        fill_value_dtype, fill_value = infer_dtype_from_scalar(fill_value)
-
-        if 'int' in str(fill_value_dtype):
-            if fill_value >= 0:
-                if fill_value <= np.iinfo(np.uint8).max:
-                    output_dtype = np.uint8
-                else:
-                    output_dtype = np.uint64
-            else:
-                if fill_value >= np.iinfo(np.int8).min and fill_value <= np.iinfo(np.int8).max:
-                    output_dtype = np.int8
-                else:
-                    output_dtype = np.int64
-        elif 'float' in str(fill_value_dtype):
+    vals = data.values.ravel() if hasattr(data, 'values') else data
+    isnotfinite = []
+    for v in vals:
+        try:
+            isnotfinite.append(~np.isfinite(v))
+        except TypeError:
+            isnotfinite.append(False)
+    if np.any(isnotfinite):
+        output_dtype, fill_value = infer_dtype_from_scalar(
+            fill_value, downcast=True, allow_uint=True)
+        if output_dtype == np.float16:
             output_dtype = np.float32
-        else:
-            raise ValueError('`fill_value` must be `np.nan`, an int or a float type!')
+    else:
+        output_dtype = np.uint8
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
@@ -1297,9 +1283,10 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     # Record NaN values before we munge the codes, GH15826
     nan_codes_msk = codes == -1
+    num_orig_levels = len(levels)
     codes = codes.copy()
     if dummy_na:
-        codes[nan_codes_msk] = len(levels)
+        codes[nan_codes_msk] = num_orig_levels
         levels = np.append(levels, np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
@@ -1323,57 +1310,38 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     if sparse:
         sparse_series = {}
         N = len(data)
-        sp_indices = [[] for _ in range(len(dummy_cols))]
-        for ndx, code, missing in zip(
-                range(len(codes)), codes, nan_codes_msk):
-            if missing:
-                # For missing values, we have to decide what to do.
-                # GH15926
+        # Construct lists of inds and if the value is NaN.
+        # GH15926
+        sp_indices = [None] * len(dummy_cols)
+        sp_fill = [None] * len(dummy_cols)
+        for code in np.unique(codes[codes != -1]):
+            # Non-zero value in sparse array if value is of the level
+            # or the value is NaN and it is filled non-zero and
+            # and it is not the dummy column for NaNs.
+            # GH15926
+            sp_indices[code] = sorted(
+                np.where((codes == code) |
+                         ((fill_value != 0) &
+                          (code < num_orig_levels) &
+                          nan_codes_msk))[0].tolist())
 
-                if dummy_na:
-                    # Then we need a one in the last column.
-                    # GH15926
-                    sp_indices[code].append(ndx)
-
-                if fill_value != 0:
-                    # Then we need to mark these locations to put back another
-                    # fill value later. (Zero fill values will be filled by the
-                    # sparse array implicitly).
-                    # Use a negative index here to code NaNs.
-                    # Offset by -1 to account for zero.
-                    # Have to add to ALL columns, except the
-                    # last one if dummy_na.
-                    # GH15926
-                    if dummy_na:
-                        _num_cols = len(dummy_cols) - 1
-                    else:
-                        _num_cols = len(dummy_cols)
-                    for _code in range(_num_cols):
-                        sp_indices[_code].append(-ndx - 1)
-            else:
-                # Value is not missing so do as normal.
-                # GH15926
-                sp_indices[code].append(ndx)
+            # Value is filled with `fill_value` if it is NaN
+            # and not in dummy col and fill value is non-zero.
+            # GH15926
+            sp_fill[code] = (nan_codes_msk[sp_indices[code]] &
+                             (fill_value != 0) &
+                             (code < num_orig_levels))
 
         if drop_first:
             # remove first categorical level to avoid perfect collinearity
             # GH12042
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
-        for col, ixs in zip(dummy_cols, sp_indices):
+            sp_fill = sp_fill[1:]
+
+        for col, ixs, fill in zip(dummy_cols, sp_indices, sp_fill):
             sarr = np.ones(len(ixs), dtype=output_dtype)
-
-            # NaNs are marked by a negative index.
-            # Only need to set for sparse output if
-            # fill_value != 0.
-            # Ditto for any negative indexes generated above.
-            # GH15926
-            if fill_value != 0:
-                ixs = np.array(ixs)
-                sarr[ixs < 0] = fill_value
-                ixs[ixs < 0] += 1  # undo the offset
-                ixs = np.abs(ixs)  # set index back to positive.
-
+            sarr[fill] = fill_value  # Fill with `fill_value`, GH15926
             sarr = SparseArray(
                 sarr,
                 sparse_index=IntIndex(N, ixs),

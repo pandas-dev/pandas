@@ -86,6 +86,99 @@ class TestMaybeDowncast(tm.TestCase):
 
 class TestInferDtype(object):
 
+    def test_infer_dtype_from_scalar_downcast_basic(self):
+        # Make sure downcasting works. GH15926
+
+        for dtypec in [np.int8, np.int16, np.int32, np.int64]:
+            data = dtypec(12)
+            dtype, val = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=False)
+            assert dtype == np.int8
+            dtype, val = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=True)
+            assert dtype == np.uint8
+
+            data = dtypec(-12)
+            dtype, val = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=False)
+            assert dtype == np.int8
+            dtype, val = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=True)
+            assert dtype == np.int8
+
+        for dtypec in [np.uint8, np.uint16, np.uint32, np.uint64]:
+            data = dtypec(12)
+            dtype, val = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=False)
+            assert dtype == np.uint8
+            dtype, val = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=True)
+            assert dtype == np.uint8
+
+        data = 12
+        dtype, val = infer_dtype_from_scalar(
+            data, downcast=True)
+        assert dtype == np.int8
+        dtype, val = infer_dtype_from_scalar(
+            data, downcast=True, allow_uint=True)
+        assert dtype == np.uint8
+
+        data = -12
+        dtype, val = infer_dtype_from_scalar(
+            data, downcast=True)
+        assert dtype == np.int8
+        dtype, val = infer_dtype_from_scalar(
+            data, downcast=True, allow_uint=True)
+        assert dtype == np.int8
+
+
+        for dtypec in [np.float16, np.float32, np.float64]:
+            data = dtypec(12)
+            dtype, val = infer_dtype_from_scalar(data, downcast=True)
+            assert dtype == np.float16
+
+        data = np.float(12)
+        dtype, val = infer_dtype_from_scalar(data, downcast=True)
+        assert dtype == np.float16
+
+    def test_infer_dtype_from_scalar_downcast_bounds(self):
+        # Make sure downcasting works at bounds. GH15926
+
+        for dtypec, dtypec_up in [(np.uint8, np.uint16),
+                                  (np.uint16, np.uint32),
+                                  (np.uint32, np.uint64)]:
+            val = dtypec(np.iinfo(dtypec).max)
+
+            data = dtypec(val - 1)
+            dtype, _ = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=False)
+            assert dtype == dtypec
+            dtype, _ = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=True)
+            assert dtype == dtypec
+
+            data = dtypec_up(val + 1)
+            dtype, _ = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=False)
+            assert dtype == dtypec_up
+            dtype, _ = infer_dtype_from_scalar(
+                data, downcast=True, allow_uint=True)
+            assert dtype == dtypec_up
+
+        for dtypec, dtypec_up in [(np.float16, np.float32),
+                                  (np.float32, np.float64)]:
+            data = dtypec(np.finfo(dtypec).min)
+            dtype, _ = infer_dtype_from_scalar(data, downcast=True)
+            assert dtype == dtypec_up
+            dtype, _ = infer_dtype_from_scalar(data, downcast=True)
+            assert dtype == dtypec_up
+
+            data = dtypec(np.finfo(dtypec).max)
+            dtype, _ = infer_dtype_from_scalar(data, downcast=True)
+            assert dtype == dtypec_up
+            dtype, _ = infer_dtype_from_scalar(data, downcast=True)
+            assert dtype == dtypec_up
+
     def test_infer_dtype_from_scalar(self):
         # Test that _infer_dtype_from_scalar is returning correct dtype for int
         # and float.
