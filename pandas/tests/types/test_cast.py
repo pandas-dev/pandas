@@ -131,7 +131,6 @@ class TestInferDtype(object):
             data, downcast=True, allow_uint=True)
         assert dtype == np.int8
 
-
         for dtypec in [np.float16, np.float32, np.float64]:
             data = dtypec(12)
             dtype, val = infer_dtype_from_scalar(data, downcast=True)
