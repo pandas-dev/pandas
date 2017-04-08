@@ -43,11 +43,11 @@ from pandas.formats.excel import CSSToExcelConverter
     # - italic
     # - underline
     ('text-decoration: underline',
-     {'font': {'underline': True, 'strike': False}}),
+     {'font': {'underline': 'single', 'strike': False}}),
     ('text-decoration: overline',
-     {'font': {'underline': False, 'strike': False}}),
+     {'font': {'strike': False}}),
     ('text-decoration: none',
-     {'font': {'underline': False, 'strike': False}}),
+     {'font': {'strike': False}}),
     # - strike
     ('text-decoration: line-through',
      {'font': {'strike': True, 'underline': False}}),
@@ -56,9 +56,9 @@ from pandas.formats.excel import CSSToExcelConverter
     ('text-decoration: underline; text-decoration: line-through',
      {'font': {'strike': True, 'underline': False}}),
     # - color
-    ('font-color: red', {'font': {'color': 'FF0000'}}),
-    ('font-color: #ff0000', {'font': {'color': 'FF0000'}}),
-    ('font-color: #f0a', {'font': {'color': 'FF00AA'}}),
+    ('color: red', {'font': {'color': 'FF0000'}}),
+    ('color: #ff0000', {'font': {'color': 'FF0000'}}),
+    ('color: #f0a', {'font': {'color': 'FF00AA'}}),
     # - shadow
     ('text-shadow: none', {'font': {'shadow': False}}),
     ('text-shadow: 0px -0em 0px #CCC', {'font': {'shadow': False}}),
@@ -141,3 +141,8 @@ def test_css_to_excel_multiple():
 def test_css_to_excel_inherited(css, inherited, expected):
     convert = CSSToExcelConverter(inherited)
     assert expected == convert(css)
+
+
+@pytest.mark.xfail
+def test_css_to_excel_warns_when_not_supported():
+    pass

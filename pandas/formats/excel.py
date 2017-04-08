@@ -237,11 +237,13 @@ class CSSToExcelConverter(object):
             'size': size,
             'bold': self.BOLD_MAP.get(props.get('font-weight')),
             'italic': self.ITALIC_MAP.get(props.get('font-style')),
-            'underline': (None if decoration is None
-                          else 'underline' in decoration),
+            'underline': ('single'
+                          if decoration is not None
+                          and 'underline' in decoration
+                          else None),
             'strike': (None if decoration is None
                        else 'line-through' in decoration),
-            'color': self.color_to_excel(props.get('font-color')),
+            'color': self.color_to_excel(props.get('color')),
             # shadow if nonzero digit before shadow colour
             'shadow': (bool(re.search('^[^#(]*[1-9]',
                                       props['text-shadow']))
