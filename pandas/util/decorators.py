@@ -1,7 +1,6 @@
-from pandas.compat import StringIO, callable, signature
+from pandas.compat import callable, signature
 from pandas._libs.lib import cache_readonly  # noqa
 import types
-import sys
 import warnings
 from textwrap import dedent
 from functools import wraps, update_wrapper
@@ -194,17 +193,6 @@ def indent(text, indents=1):
         return ''
     jointext = ''.join(['\n'] + ['    '] * indents)
     return jointext.join(text.split('\n'))
-
-
-def suppress_stdout(f):
-    def wrapped(*args, **kwargs):
-        try:
-            sys.stdout = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    return wrapped
 
 
 def make_signature(func):
