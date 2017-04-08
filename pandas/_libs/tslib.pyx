@@ -1570,7 +1570,7 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                 if tz is not None:
                     # shift for _localize_tso
                     ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                            ambiguous='raise', 
+                                            ambiguous='raise',
                                             errors='raise')[0]
         except ValueError:
             try:
@@ -4075,7 +4075,23 @@ except:
     have_pytz = False
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
+    """
+    Convert the values (in i8) from timezone1 to timezone2
+
+    Parameters
+    ----------
+    vals : int64 ndarray
+    tz1 : string / timezone object
+    tz2 : string / timezone object
+
+    Returns
+    -------
+    int64 ndarray of converted
+    """
+
     cdef:
         ndarray[int64_t] utc_dates, tt, result, trans, deltas
         Py_ssize_t i, j, pos, n = len(vals)
@@ -4177,6 +4193,23 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
 
 def tz_convert_single(int64_t val, object tz1, object tz2):
+    """
+    Convert the val (in i8) from timezone1 to timezone2
+
+    This is a single timezone versoin of tz_convert
+
+    Parameters
+    ----------
+    val : int64
+    tz1 : string / timezone object
+    tz2 : string / timezone object
+
+    Returns
+    -------
+    int64 converted
+
+    """
+
     cdef:
         ndarray[int64_t] trans, deltas
         Py_ssize_t pos
@@ -4376,7 +4409,7 @@ cpdef ndarray _unbox_utcoffsets(object transinfo):
 def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                        object errors='raise'):
     """
-    Localize tzinfo-naive DateRange to given time zone (using pytz). If
+    Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
 
     Returns
@@ -4547,6 +4580,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 raise pytz.NonExistentTimeError(stamp)
 
     return result
+
 
 cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     cdef Py_ssize_t pivot, left = 0, right = n
