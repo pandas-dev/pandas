@@ -265,17 +265,23 @@ Typical epoch stored units
    pd.to_datetime([1349720105100, 1349720105200, 1349720105300,
                    1349720105400, 1349720105500 ], unit='ms')
 
-These *work*, but the results may be unexpected.
-
-.. ipython:: python
-
-   pd.to_datetime([1])
-
-   pd.to_datetime([1, 3.14], unit='s')
-
 .. note::
 
    Epoch times will be rounded to the nearest nanosecond.
+
+.. warning::
+
+   Conversion of float epoch times can lead to inaccurate and unexpected results.
+   :ref:`Python floats <python:tut-fp-issues>` have about 15 digits precision in
+   decimal. Rounding during conversion from float to high precision ``Timestamp`` is
+   unavoidable. The only way to achieve exact precision is to use a fixed-width
+   types (e.g. an int64).
+
+   .. ipython:: python
+
+      1490195805.433502912
+      pd.to_datetime([1490195805.433, 1490195805.433502912], unit='s')
+      pd.to_datetime(1490195805433502912, unit='ns')
 
 .. _timeseries.origin:
 
@@ -299,6 +305,16 @@ Commonly called 'unix epoch' or POSIX time.
 .. ipython:: python
 
    pd.to_datetime([1, 2, 3], unit='D')
+
+.. note::
+
+   Without specifying origin the following examples still evaluate, but the results
+   may be unexpected.
+
+   .. ipython:: python
+
+      pd.to_datetime([1])
+      pd.to_datetime([1, 3.14], unit='s')
 
 .. _timeseries.daterange:
 
