@@ -1224,6 +1224,7 @@ class MultiIndex(Index):
             lev = lev.take(indexer)
 
             # indexer to reorder the labels
+            indexer = _ensure_int64(indexer)
             ri = lib.get_reverse_indexer(indexer, len(indexer))
             lab = algos.take_1d(ri, lab)
 
