@@ -38,7 +38,7 @@ import pandas.compat as compat
 from pandas.compat import (
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
     raise_with_traceback, httplib, is_platform_windows, is_platform_32bit,
-    PY3
+    StringIO, PY3
 )
 
 from pandas.computation import expressions as expr
@@ -628,6 +628,105 @@ def _valid_locales(locales, normalize):
         normalizer = lambda x: x.strip()
 
     return list(filter(_can_set_locale, map(normalizer, locales)))
+
+# -----------------------------------------------------------------------------
+# Stdout / stderr decorators
+
+
+def capture_stdout(f):
+    """
+    Decorator to capture stdout in a buffer so that it can be checked
+    (or suppressed) during testing.
+
+    Parameters
+    ----------
+    f : callable
+        The test that is capturing stdout.
+
+    Returns
+    -------
+    f : callable
+        The decorated test ``f``, which captures stdout.
+
+    Examples
+    --------
+
+    >>> from pandas.util.testing import capture_stdout
+    >>>
+    >>> import sys
+    >>>
+    >>> @capture_stdout
+    ... def test_print_pass():
+    ...     print("foo")
+    ...     out = sys.stdout.getvalue()
+    ...     assert out == "foo\n"
+    >>>
+    >>> @capture_stdout
+    ... def test_print_fail():
+    ...     print("foo")
+    ...     out = sys.stdout.getvalue()
+    ...     assert out == "bar\n"
+    ...
+    AssertionError: assert 'foo\n' == 'bar\n'
+    """
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            sys.stdout = StringIO()
+            f(*args, **kwargs)
+        finally:
+            sys.stdout = sys.__stdout__
+
+    return wrapper
+
+
+def capture_stderr(f):
+    """
+    Decorator to capture stderr in a buffer so that it can be checked
+    (or suppressed) during testing.
+
+    Parameters
+    ----------
+    f : callable
+        The test that is capturing stderr.
+
+    Returns
+    -------
+    f : callable
+        The decorated test ``f``, which captures stderr.
+
+    Examples
+    --------
+
+    >>> from pandas.util.testing import capture_stderr
+    >>>
+    >>> import sys
+    >>>
+    >>> @capture_stderr
+    ... def test_stderr_pass():
+    ...     sys.stderr.write("foo")
+    ...     out = sys.stderr.getvalue()
+    ...     assert out == "foo\n"
+    >>>
+    >>> @capture_stderr
+    ... def test_stderr_fail():
+    ...     sys.stderr.write("foo")
+    ...     out = sys.stderr.getvalue()
+    ...     assert out == "bar\n"
+    ...
+    AssertionError: assert 'foo\n' == 'bar\n'
+    """
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            sys.stderr = StringIO()
+            f(*args, **kwargs)
+        finally:
+            sys.stderr = sys.__stderr__
+
+    return wrapper
 
 # -----------------------------------------------------------------------------
 # Console debugging tools

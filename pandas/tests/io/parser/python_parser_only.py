@@ -8,7 +8,6 @@ arguments when parsing.
 """
 
 import csv
-import sys
 import pytest
 
 import pandas.util.testing as tm
@@ -92,16 +91,9 @@ baz|7|8|9
 
     def test_single_line(self):
         # see gh-6607: sniff separator
-
-        buf = StringIO()
-        sys.stdout = buf
-
-        try:
-            df = self.read_csv(StringIO('1,2'), names=['a', 'b'],
-                               header=None, sep=None)
-            tm.assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
-        finally:
-            sys.stdout = sys.__stdout__
+        df = self.read_csv(StringIO('1,2'), names=['a', 'b'],
+                           header=None, sep=None)
+        tm.assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
 
     def test_skipfooter(self):
         # see gh-6607

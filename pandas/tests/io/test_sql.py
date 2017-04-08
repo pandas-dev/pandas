@@ -23,7 +23,6 @@ import unittest
 import sqlite3
 import csv
 import os
-import sys
 
 import warnings
 import numpy as np
@@ -36,7 +35,7 @@ from pandas.types.common import (is_object_dtype, is_datetime64_dtype,
 from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
-from pandas.compat import StringIO, range, lrange, string_types, PY36
+from pandas.compat import range, lrange, string_types, PY36
 from pandas.tseries.tools import format as date_format
 
 import pandas.io.sql as sql
@@ -2220,6 +2219,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         cur = self.conn.cursor()
         cur.execute(create_sql)
 
+    @tm.capture_stdout
     def test_execute_fail(self):
         create_sql = """
         CREATE TABLE test
@@ -2236,14 +2236,10 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(Exception, sql.execute,
-                              'INSERT INTO test VALUES("foo", "bar", 7)',
-                              self.conn)
-        finally:
-            sys.stdout = sys.__stdout__
+        with pytest.raises(Exception):
+            sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
+    @tm.capture_stdout
     def test_execute_closed_connection(self):
         create_sql = """
         CREATE TABLE test
@@ -2259,12 +2255,9 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
 
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(Exception, tquery, "select * from test",
-                              con=self.conn)
-        finally:
-            sys.stdout = sys.__stdout__
+
+        with pytest.raises(Exception):
+            tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)
         self.setUp()
@@ -2534,6 +2527,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         cur.execute(drop_sql)
         cur.execute(create_sql)
 
+    @tm.capture_stdout
     def test_execute_fail(self):
         _skip_if_no_pymysql()
         drop_sql = "DROP TABLE IF EXISTS test"
@@ -2553,14 +2547,10 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(Exception, sql.execute,
-                              'INSERT INTO test VALUES("foo", "bar", 7)',
-                              self.conn)
-        finally:
-            sys.stdout = sys.__stdout__
+        with pytest.raises(Exception):
+            sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
+    @tm.capture_stdout
     def test_execute_closed_connection(self):
         _skip_if_no_pymysql()
         drop_sql = "DROP TABLE IF EXISTS test"
@@ -2579,12 +2569,9 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
 
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
-        try:
-            sys.stdout = StringIO()
-            self.assertRaises(Exception, tquery, "select * from test",
-                              con=self.conn)
-        finally:
-            sys.stdout = sys.__stdout__
+
+        with pytest.raises(Exception):
+            tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)
         self.setUp()

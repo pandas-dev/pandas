@@ -142,6 +142,7 @@ class TestTextReader(tm.TestCase):
         expected = DataFrame([123456, 12500])
         tm.assert_frame_equal(result, expected)
 
+    @tm.capture_stderr
     def test_skip_bad_lines(self):
         # too many lines, see #2430 for why
         data = ('a:b:c\n'
@@ -165,19 +166,15 @@ class TestTextReader(tm.TestCase):
                     2: ['c', 'f', 'i', 'n']}
         assert_array_dicts_equal(result, expected)
 
-        stderr = sys.stderr
-        sys.stderr = StringIO()
-        try:
-            reader = TextReader(StringIO(data), delimiter=':',
-                                header=None,
-                                error_bad_lines=False,
-                                warn_bad_lines=True)
-            reader.read()
-            val = sys.stderr.getvalue()
-            self.assertTrue('Skipping line 4' in val)
-            self.assertTrue('Skipping line 6' in val)
-        finally:
-            sys.stderr = stderr
+        reader = TextReader(StringIO(data), delimiter=':',
+                            header=None,
+                            error_bad_lines=False,
+                            warn_bad_lines=True)
+        reader.read()
+        val = sys.stderr.getvalue()
+
+        assert 'Skipping line 4' in val
+        assert 'Skipping line 6' in val
 
     def test_header_not_enough_lines(self):
         data = ('skip this\n'

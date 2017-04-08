@@ -191,6 +191,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         # GH 12182
         self.assertIsNone(df._repr_latex_())
 
+    @tm.capture_stdout
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
@@ -198,11 +199,8 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
         frame = DataFrame(np.random.randn(5, 3))
 
-        import sys
-        sys.stdout = StringIO()
         frame.info()
         frame.info(verbose=False)
-        sys.stdout = sys.__stdout__
 
     def test_info_wide(self):
         from pandas import set_option, reset_option

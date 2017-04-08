@@ -3,13 +3,15 @@
 
 from datetime import datetime, timedelta
 
+import sys
+
 import numpy as np
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, date_range)
 from pandas.core.index import MultiIndex
 
-from pandas.compat import StringIO, lrange, range, u
+from pandas.compat import lrange, range, u
 from pandas import compat
 import pandas.util.testing as tm
 
@@ -112,20 +114,15 @@ class TestSeriesRepr(TestData, tm.TestCase):
         a.name = 'title1'
         repr(a)  # should not raise exception
 
+    @tm.capture_stderr
     def test_repr_bool_fails(self):
         s = Series([DataFrame(np.random.randn(2, 2)) for i in range(5)])
 
-        import sys
+        # It works (with no Cython exception barf)!
+        repr(s)
 
-        buf = StringIO()
-        tmp = sys.stderr
-        sys.stderr = buf
-        try:
-            # it works (with no Cython exception barf)!
-            repr(s)
-        finally:
-            sys.stderr = tmp
-        self.assertEqual(buf.getvalue(), '')
+        output = sys.stderr.getvalue()
+        assert output == ''
 
     def test_repr_name_iterable_indexable(self):
         s = Series([1, 2, 3], name=np.int64(3))
