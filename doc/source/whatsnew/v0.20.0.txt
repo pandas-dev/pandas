@@ -1124,6 +1124,7 @@ Conversion
 - Bug in ``Timestamp.replace`` now raises ``TypeError`` when incorrect argument names are given; previously this raised ``ValueError`` (:issue:`15240`)
 - Bug in ``Timestamp.replace`` with compat for passing long integers (:issue:`15030`)
 - Bug in ``Timestamp`` returning UTC based time/date attributes when a timezone was provided (:issue:`13303`)
+- Bug in ``Timestamp`` incorrectly localizing timezones during construction (:issue:`11481`, :issue:`15777`)
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
 - Bug in ``TimedeltaIndex`` raising a ``ValueError`` when boolean indexing with ``loc`` (:issue:`14946`)
 - Bug in catching an overflow in ``Timestamp`` + ``Timedelta/Offset`` operations (:issue:`15126`)
