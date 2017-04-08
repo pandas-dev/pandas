@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Common helper methods used in different submodules of pandas.formats
+"""
+
+
 def get_level_lengths(levels, sentinel=''):
     """For each index in each level the function returns lengths of indexes.
 
