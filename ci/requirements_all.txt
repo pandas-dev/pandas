@@ -3,6 +3,7 @@ pytest-cov
 pytest-xdist
 flake8
 sphinx
+nbsphinx
 ipython
 python-dateutil
 pytz
@@ -19,6 +20,7 @@ scipy
 numexpr
 pytables
 matplotlib
+seaborn
 lxml
 sqlalchemy
 bottleneck

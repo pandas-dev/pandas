@@ -106,106 +106,42 @@ def clean():
 
 
 @contextmanager
-def cleanup_nb(nb):
+def maybe_exclude_notebooks():
+    """
+    Skip building the notebooks if pandoc is not installed.
+    This assumes that nbsphinx is installed.
+    """
+    base = os.path.dirname(__file__)
+    notebooks = [os.path.join(base, 'source', nb)
+                 for nb in ['style.ipynb']]
+    contents = {}
     try:
-        yield
-    finally:
-        try:
-            os.remove(nb + '.executed')
-        except OSError:
-            pass
-
-
-def get_kernel():
-    """Find the kernel name for your python version"""
-    return 'python%s' % sys.version_info.major
-
-
-def execute_nb(src, dst, allow_errors=False, timeout=1000, kernel_name=''):
-    """
-    Execute notebook in `src` and write the output to `dst`
-
-    Parameters
-    ----------
-    src, dst: str
-        path to notebook
-    allow_errors: bool
-    timeout: int
-    kernel_name: str
-        defualts to value set in notebook metadata
-
-    Returns
-    -------
-    dst: str
-    """
-    import nbformat
-    from nbconvert.preprocessors import ExecutePreprocessor
-
-    with io.open(src, encoding='utf-8') as f:
-        nb = nbformat.read(f, as_version=4)
-
-    ep = ExecutePreprocessor(allow_errors=allow_errors,
-                             timeout=timeout,
-                             kernel_name=kernel_name)
-    ep.preprocess(nb, resources={})
-
-    with io.open(dst, 'wt', encoding='utf-8') as f:
-        nbformat.write(nb, f)
-    return dst
-
-
-def convert_nb(src, dst, to='html', template_file='basic'):
-    """
-    Convert a notebook `src`.
-
-    Parameters
-    ----------
-    src, dst: str
-        filepaths
-    to: {'rst', 'html'}
-        format to export to
-    template_file: str
-        name of template file to use. Default 'basic'
-    """
-    from nbconvert import HTMLExporter, RSTExporter
-
-    dispatch = {'rst': RSTExporter, 'html': HTMLExporter}
-    exporter = dispatch[to.lower()](template_file=template_file)
-
-    (body, resources) = exporter.from_filename(src)
-    with io.open(dst, 'wt', encoding='utf-8') as f:
-        f.write(body)
-    return dst
+        import nbconvert
+        nbconvert.utils.pandoc.get_pandoc_version()
+    except (ImportError, nbconvert.utils.pandoc.PandocMissing):
+        print("Warning: Pandoc is not installed. Skipping Notebooks.")
+        for nb in notebooks:
+            with open(nb, 'rt') as f:
+                contents[nb] = f.read()
+            os.remove(nb)
+    yield
+    for nb, content in contents.items():
+        with open(nb, 'wt') as f:
+            f.write(content)
 
 
 def html():
     check_build()
 
-    notebooks = [
-        'source/html-styling.ipynb',
-    ]
-
-    for nb in notebooks:
-        with cleanup_nb(nb):
-            try:
-                print("Converting %s" % nb)
-                kernel_name = get_kernel()
-                executed = execute_nb(nb, nb + '.executed', allow_errors=True,
-                                      kernel_name=kernel_name)
-                convert_nb(executed, nb.rstrip('.ipynb') + '.html')
-            except (ImportError, IndexError) as e:
-                print(e)
-                print("Failed to convert %s" % nb)
-
-    if os.system('sphinx-build -P -b html -d build/doctrees '
-                 'source build/html'):
-        raise SystemExit("Building HTML failed.")
-    try:
-        # remove stale file
-        os.remove('source/html-styling.html')
-        os.remove('build/html/pandas.zip')
-    except:
-        pass
+    with maybe_exclude_notebooks():
+        if os.system('sphinx-build -P -b html -d build/doctrees '
+                     'source build/html'):
+            raise SystemExit("Building HTML failed.")
+        try:
+            # remove stale file
+            os.remove('build/html/pandas.zip')
+        except:
+            pass
 
 
 def zip_html():

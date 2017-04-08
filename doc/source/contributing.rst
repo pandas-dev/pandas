@@ -347,15 +347,14 @@ have ``sphinx`` and ``ipython`` installed. `numpydoc
 <https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
 follow the Numpy Docstring Standard (see above), but you don't need to install
 this because a local copy of numpydoc is included in the *pandas* source
-code.
-`nbconvert <https://nbconvert.readthedocs.io/en/latest/>`_ and
-`nbformat <https://nbformat.readthedocs.io/en/latest/>`_ are required to build
+code. `nbsphinx <https://nbsphinx.readthedocs.io/>`_ is required to build
 the Jupyter notebooks included in the documentation.
 
 If you have a conda environment named ``pandas_dev``, you can install the extra
 requirements with::
 
       conda install -n pandas_dev sphinx ipython nbconvert nbformat
+      conda install -n pandas_dev -c conda-forge nbsphinx
 
 Furthermore, it is recommended to have all :ref:`optional dependencies <install.optional_dependencies>`.
 installed. This is not strictly necessary, but be aware that you will see some error
