@@ -269,8 +269,10 @@ def match(to_match, values, na_sentinel=-1):
 
 def unique(values):
     """
-    Hash table-based unique. uniques are returned in order
+    Hash table-based unique. Uniques are returned in order
     of appearance. This does NOT sort.
+
+    Significantly faster than numpy.unique. Includes NA values.
 
     Parameters
     ----------
@@ -279,9 +281,9 @@ def unique(values):
     Returns
     -------
     unique values.
-    - If the input is a Categorical dtype, the return is a Categorical
-    - If the input is an Index, the return is an Index
-    - If the input is a Series/ndarray, the return will be an ndarray
+      - If the input is an Index, the return is an Index
+      - If the input is a Categorical dtype, the return is a Categorical
+      - If the input is a Series/ndarray, the return will be an ndarray
 
     Examples
     --------
@@ -305,26 +307,43 @@ def unique(values):
     DatetimeIndex(['2016-01-01 00:00:00-05:00'],
     ...           dtype='datetime64[ns, US/Eastern]', freq=None)
 
-    >>> pd.unique(list('aabc'))
-    array(['a', 'b', 'c'], dtype=object)
+    >>> pd.unique(list('baabc'))
+    array(['b', 'a', 'c'], dtype=object)
 
-    >>> pd.unique(Series(pd.Categorical(list('aabc'))))
-    0    a
-    1    b
-    2    c
-    dtype: category
-    Categories (3, object): [a, b, c]
+    An unordered Categorical will return categories in the
+    order of appearance.
+
+    >>> pd.unique(Series(pd.Categorical(list('baabc'))))
+    [b, a, c]
+    Categories (3, object): [b, a, c]
+
+    >>> pd.unique(Series(pd.Categorical(list('baabc'),
+    ...                                 categories=list('abc'))))
+    [b, a, c]
+    Categories (3, object): [b, a, c]
+
+    An ordered Categorical preserves the category ordering.
+
+    >>> pd.unique(Series(pd.Categorical(list('baabc'),
+    ...                                 categories=list('abc'),
+    ...                                 ordered=True)))
+    [b, a, c]
+    Categories (3, object): [a < b < c]
+
+    See Also
+    --------
+    pd.Index.unique
+    pd.Series.unique
 
     """
 
     values = _ensure_arraylike(values)
 
     # categorical is a fast-path
+    # this will coerce Categorical, CategoricalIndex,
+    # and category dtypes Series to same return of Category
     if is_categorical_dtype(values):
-
-        if isinstance(values, ABCSeries):
-            from pandas import Series
-            return Series(values.values.unique(), name=values.name)
+        values = getattr(values, '.values', values)
         return values.unique()
 
     original = values

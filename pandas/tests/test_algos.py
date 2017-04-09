@@ -386,23 +386,46 @@ class TestUnique(tm.TestCase):
         tm.assert_numpy_array_equal(algos.unique(s), exp)
 
     def test_categorical(self):
+
+        # we are expecting to return in the order
+        # of appearance
+        expected = pd.Categorical(list('bac'),
+                                  categories=list('bac'))
+
+        # we are expecting to return in the order
+        # of the categories
+        expected_o = pd.Categorical(list('bac'),
+                                    categories=list('abc'),
+                                    ordered=True)
+
         # GH 15939
-        c = pd.Categorical(list('aabc'))
+        c = pd.Categorical(list('baabc'))
         result = c.unique()
-        expected = pd.Categorical(list('abc'))
         tm.assert_categorical_equal(result, expected)
 
         result = algos.unique(c)
         tm.assert_categorical_equal(result, expected)
 
-        result = algos.unique(Series(c, name='foo'))
-        expected = Series(expected, name='foo')
-        tm.assert_series_equal(result, expected)
+        c = pd.Categorical(list('baabc'), ordered=True)
+        result = c.unique()
+        tm.assert_categorical_equal(result, expected_o)
 
-        # CI
-        ci = pd.CategoricalIndex(pd.Categorical(list('aabc')))
+        result = algos.unique(c)
+        tm.assert_categorical_equal(result, expected_o)
+
+        # Series of categorical dtype
+        s = Series(pd.Categorical(list('baabc')), name='foo')
+        result = s.unique()
+        tm.assert_categorical_equal(result, expected)
+
+        result = pd.unique(s)
+        tm.assert_categorical_equal(result, expected)
+
+        # CI -> return CI
+        ci = pd.CategoricalIndex(pd.Categorical(list('baabc'),
+                                                categories=list('bac')))
+        expected = pd.CategoricalIndex(expected)
         result = ci.unique()
-        expected = pd.CategoricalIndex(pd.Categorical(list('abc')))
         tm.assert_index_equal(result, expected)
 
         result = pd.unique(ci)
@@ -468,8 +491,8 @@ class TestUnique(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
         result = pd.unique(Series(pd.Categorical(list('aabc'))))
-        expected = Series(pd.Categorical(list('abc')))
-        tm.assert_series_equal(result, expected)
+        expected = pd.Categorical(list('abc'))
+        tm.assert_categorical_equal(result, expected)
 
 
 class TestIsin(tm.TestCase):
