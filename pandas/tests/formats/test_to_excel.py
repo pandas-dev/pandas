@@ -89,22 +89,77 @@ from pandas.formats.excel import CSSToExcelConverter
                  'bottom': {'style': 'medium'},
                  'left': {'style': 'medium'},
                  'right': {'style': 'medium'}}}),
+    ('border-style: solid; border-width: thin',
+     {'border': {'top': {'style': 'thin'},
+                 'bottom': {'style': 'thin'},
+                 'left': {'style': 'thin'},
+                 'right': {'style': 'thin'}}}),
+
+    ('border-top-style: solid; border-top-width: thin',
+     {'border': {'top': {'style': 'thin'}}}),
+    ('border-top-style: solid; border-top-width: 1pt',
+     {'border': {'top': {'style': 'thin'}}}),
     ('border-top-style: solid',
      {'border': {'top': {'style': 'medium'}}}),
+    ('border-top-style: solid; border-top-width: medium',
+     {'border': {'top': {'style': 'medium'}}}),
+    ('border-top-style: solid; border-top-width: 2pt',
+     {'border': {'top': {'style': 'medium'}}}),
+    ('border-top-style: solid; border-top-width: thick',
+     {'border': {'top': {'style': 'thick'}}}),
+    ('border-top-style: solid; border-top-width: 4pt',
+     {'border': {'top': {'style': 'thick'}}}),
+
     ('border-top-style: dotted',
      {'border': {'top': {'style': 'mediumDashDotDot'}}}),
+    ('border-top-style: dotted; border-top-width: thin',
+     {'border': {'top': {'style': 'dotted'}}}),
     ('border-top-style: dashed',
      {'border': {'top': {'style': 'mediumDashed'}}}),
-    # TODO: test other widths
+    ('border-top-style: dashed; border-top-width: thin',
+     {'border': {'top': {'style': 'dashed'}}}),
+    ('border-top-style: double',
+     {'border': {'top': {'style': 'double'}}}),
     # - color
-    # TODO
+    ('border-style: solid; border-color: #0000ff',
+     {'border': {'top': {'style': 'medium', 'color': '0000FF'},
+                 'right': {'style': 'medium', 'color': '0000FF'},
+                 'bottom': {'style': 'medium', 'color': '0000FF'},
+                 'left': {'style': 'medium', 'color': '0000FF'}}}),
+    ('border-top-style: double; border-top-color: blue',
+     {'border': {'top': {'style': 'double', 'color': '0000FF'}}}),
+    ('border-top-style: solid; border-top-color: #06c',
+     {'border': {'top': {'style': 'medium', 'color': '0066CC'}}}),
     # ALIGNMENT
     # - horizontal
-    # TODO
+    ('text-align: center',
+     {'alignment': {'horizontal': 'center'}}),
+    ('text-align: left',
+     {'alignment': {'horizontal': 'left'}}),
+    ('text-align: right',
+     {'alignment': {'horizontal': 'right'}}),
+    ('text-align: justify',
+     {'alignment': {'horizontal': 'justify'}}),
     # - vertical
-    # TODO
+    ('vertical-align: top',
+     {'alignment': {'vertical': 'top'}}),
+    ('vertical-align: text-top',
+     {'alignment': {'vertical': 'top'}}),
+    ('vertical-align: middle',
+     {'alignment': {'vertical': 'center'}}),
+    ('vertical-align: bottom',
+     {'alignment': {'vertical': 'bottom'}}),
+    ('vertical-align: text-bottom',
+     {'alignment': {'vertical': 'bottom'}}),
     # - wrap_text
-    # TODO
+    ('white-space: nowrap',
+     {'alignment': {'wrap_text': False}}),
+    ('white-space: pre',
+     {'alignment': {'wrap_text': False}}),
+    ('white-space: pre-line',
+     {'alignment': {'wrap_text': False}}),
+    ('white-space: normal',
+     {'alignment': {'wrap_text': True}}),
 ])
 def test_css_to_excel(css, expected):
     convert = CSSToExcelConverter()
@@ -115,12 +170,15 @@ def test_css_to_excel_multiple():
     convert = CSSToExcelConverter()
     actual = convert('''
         font-weight: bold;
+        text-decoration: underline;
+        color: red;
         border-width: thin;
         text-align: center;
         vertical-align: top;
         unused: something;
     ''')
-    assert {"font": {"bold": True},
+    assert {"font": {"bold": True, "strike": False,
+                     "underline": "single", "color": "FF0000"},
             "border": {"top": {"style": "thin"},
                        "right": {"style": "thin"},
                        "bottom": {"style": "thin"},

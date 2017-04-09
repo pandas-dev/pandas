@@ -125,8 +125,9 @@ class CSSToExcelConverter(object):
         # TODO: text-indent, padding-left -> alignment.indent
         return {'horizontal': props.get('text-align'),
                 'vertical': self.VERTICAL_MAP.get(props.get('vertical-align')),
-                'wrap_text': (props['white-space'] not in (None, 'nowrap')
-                              if 'white-space' in props else None),
+                'wrap_text': (None if props.get('white-space') is None else
+                              props['white-space'] not in
+                              ('nowrap', 'pre', 'pre-line'))
                 }
 
     def build_border(self, props):
@@ -162,9 +163,9 @@ class CSSToExcelConverter(object):
         width = float(width[:-2])
         if width < 1e-5:
             return None
-        elif width < 2:
+        elif width < 1.3:
             width_name = 'thin'
-        elif width < 3.5:
+        elif width < 2.8:
             width_name = 'medium'
         else:
             width_name = 'thick'
