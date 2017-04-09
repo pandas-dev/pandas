@@ -1895,6 +1895,33 @@ class Categorical(PandasObject):
         Returns
         -------
         unique values : ``Categorical``
+
+        Examples
+        --------
+        An unordered Categorical will return categories in the
+        order of appearance.
+
+        >>> pd.Categorical(list('baabc'))
+        [b, a, c]
+        Categories (3, object): [b, a, c]
+
+        >>> pd.Categorical(list('baabc'), categories=list('abc'))
+        [b, a, c]
+        Categories (3, object): [b, a, c]
+
+        An ordered Categorical preserves the category ordering.
+
+        >>> pd.Categorical(list('baabc'),
+        ...                categories=list('abc'),
+        ...                ordered=True)
+        [b, a, c]
+        Categories (3, object): [a < b < c]
+
+        See Also
+        --------
+        pandas.unique
+        pandas.CategoricalIndex.unique
+
         """
 
         # unlike np.unique, unique1d does not sort

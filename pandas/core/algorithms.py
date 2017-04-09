@@ -267,11 +267,85 @@ def match(to_match, values, na_sentinel=-1):
     return result
 
 
-def unique1d(values):
+def unique(values):
     """
-    Hash table-based unique
+    Hash table-based unique. Uniques are returned in order
+    of appearance. This does NOT sort.
+
+    Significantly faster than numpy.unique. Includes NA values.
+
+    Parameters
+    ----------
+    values : 1d array-like
+
+    Returns
+    -------
+    unique values.
+      - If the input is an Index, the return is an Index
+      - If the input is a Categorical dtype, the return is a Categorical
+      - If the input is a Series/ndarray, the return will be an ndarray
+
+    Examples
+    --------
+    pd.unique(pd.Series([2, 1, 3, 3]))
+    array([2, 1, 3])
+
+    >>> pd.unique(pd.Series([2] + [1] * 5))
+    array([2, 1])
+
+    >>> pd.unique(Series([pd.Timestamp('20160101'),
+    ...                   pd.Timestamp('20160101')]))
+    array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+
+    >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+    ...                      pd.Timestamp('20160101', tz='US/Eastern')]))
+    array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
+          dtype=object)
+
+    >>> pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+    ...                     pd.Timestamp('20160101', tz='US/Eastern')]))
+    DatetimeIndex(['2016-01-01 00:00:00-05:00'],
+    ...           dtype='datetime64[ns, US/Eastern]', freq=None)
+
+    >>> pd.unique(list('baabc'))
+    array(['b', 'a', 'c'], dtype=object)
+
+    An unordered Categorical will return categories in the
+    order of appearance.
+
+    >>> pd.unique(Series(pd.Categorical(list('baabc'))))
+    [b, a, c]
+    Categories (3, object): [b, a, c]
+
+    >>> pd.unique(Series(pd.Categorical(list('baabc'),
+    ...                                 categories=list('abc'))))
+    [b, a, c]
+    Categories (3, object): [b, a, c]
+
+    An ordered Categorical preserves the category ordering.
+
+    >>> pd.unique(Series(pd.Categorical(list('baabc'),
+    ...                                 categories=list('abc'),
+    ...                                 ordered=True)))
+    [b, a, c]
+    Categories (3, object): [a < b < c]
+
+    See Also
+    --------
+    pandas.Index.unique
+    pandas.Series.unique
+
     """
+
     values = _ensure_arraylike(values)
+
+    # categorical is a fast-path
+    # this will coerce Categorical, CategoricalIndex,
+    # and category dtypes Series to same return of Category
+    if is_categorical_dtype(values):
+        values = getattr(values, '.values', values)
+        return values.unique()
+
     original = values
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
 
@@ -279,10 +353,17 @@ def unique1d(values):
     uniques = table.unique(values)
     uniques = _reconstruct_data(uniques, dtype, original)
 
+    if isinstance(original, ABCSeries) and is_datetime64tz_dtype(dtype):
+        # we are special casing datetime64tz_dtype
+        # to return an object array of tz-aware Timestamps
+
+        # TODO: it must return DatetimeArray with tz in pandas 2.0
+        uniques = uniques.asobject.values
+
     return uniques
 
 
-unique = unique1d
+unique1d = unique
 
 
 def isin(comps, values):
@@ -651,7 +732,7 @@ def mode(values):
     if is_categorical_dtype(values):
 
         if isinstance(values, Series):
-            return Series(values.values.mode())
+            return Series(values.values.mode(), name=values.name)
         return values.mode()
 
     values, dtype, ndtype = _ensure_data(values)
