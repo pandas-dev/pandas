@@ -653,12 +653,20 @@ adding ordering information or special categories is need at creation time of th
    Categorical.from_codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a numpy array, so levels and order information is not preserved!
+the Categorical back to a numpy array, so categories and order information is not preserved!
 
 .. autosummary::
    :toctree: generated/
 
    Categorical.__array__
+
+Categorical methods
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.unique
+   Categorical.value_counts
 
 Plotting
 ~~~~~~~~
