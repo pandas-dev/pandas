@@ -95,6 +95,7 @@ class CSSToExcelConverter(object):
             'fill': self.build_fill(props),
             'font': self.build_font(props),
         }
+        # TODO: support number format
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
         def remove_none(d):
@@ -207,6 +208,16 @@ class CSSToExcelConverter(object):
             assert size.endswith('pt')
             size = float(size[:-2])
 
+        # TODO:
+        # re.search(r'''(?x)
+        #     (
+        #     "(?:[^"]|\\")+"
+        #     |
+        #     '(?:[^']|\\')+'
+        #     |
+        #     [^'"]+
+        #     )(?=,|\s*$)
+        # ''')
         font_names = [name.strip()
                       for name in props.get('font-family', '').split(',')
                       if name.strip()]
@@ -237,7 +248,7 @@ class CSSToExcelConverter(object):
             'italic': self.ITALIC_MAP.get(props.get('font-style')),
             'underline': ('single' if
                           decoration is not None and
-                          'underline' in decoration`
+                          'underline' in decoration
                           else None),
             'strike': (None if decoration is None
                        else 'line-through' in decoration),
