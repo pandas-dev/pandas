@@ -227,12 +227,12 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         if maybe_single_color and maybe_color_cycle and len(colors) > 1:
             # Special case for single str 'CN' match and convert to hex
             # for supporting matplotlib < 2.0.0
-            if re.match(r'C[0-9]', colors) and len(colors) == 2:
+            if re.match(r'\AC[0-9]\Z', colors) and _mpl_ge_2_0_0():
                 hex_color = [c['color']
                              for c in list(plt.rcParams['axes.prop_cycle'])]
                 colors = [hex_color[int(colors[1])]]
             else:
-                # non-default cycle may be parsed as single or many colors
+                # this may no longer be required
                 msg = ("'{0}' can be parsed as both single color and "
                        "color cycle. Specify each color using a list "
                        "like ['{0}'] or {1}")

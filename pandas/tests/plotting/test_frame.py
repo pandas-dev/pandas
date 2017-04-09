@@ -144,15 +144,16 @@ class TestDataFramePlots(TestPlotBase):
     # GH 15516
     def test_mpl2_color_cycle_str(self):
         # test CN mpl 2.0 color cycle
-        import matplotlib.pyplot as plt
-        # mpl 1.5 color cycle is 'bgrcmyk' and
-        # tests up to 'C6' for compatibility
-        colors = ['C' + str(x) for x in range(7)]
-        hex_color = [c['color']
-                     for c in list(plt.rcParams['axes.prop_cycle'])]
-        df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
-        for c in colors:
-            _check_plot_works(df.plot, color=hex_color[int(c[1])])
+        if self.mpl_ge_2_0_0:
+            colors = ['C' + str(x) for x in range(10)]
+            df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
+            for c in colors:
+                _check_plot_works(df.plot, color=c)
+        else:
+            pytest.skip("not supported in matplotlib < 2.0.0")
+
+    def test_color_empty_string(self):
+        df = DataFrame(randn(10, 2))
         with tm.assertRaises(ValueError):
             df.plot(color='')
 
@@ -1613,10 +1614,6 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = df.plot(color='red')
         self._check_colors(ax.get_lines(), linecolors=['red'] * 5)
-        tm.close()
-
-        ax = df.plot(color='C0')
-        self._check_colors(ax.get_lines(), linecolors=['C0'] * 5)
         tm.close()
 
         # GH 10299
