@@ -1137,8 +1137,9 @@ class Categorical(PandasObject):
 
         See also
         --------
-        pandas.isnull : pandas version
+        isnull : pandas version
         Categorical.notnull : boolean inverse of Categorical.isnull
+
         """
 
         ret = self._codes == -1
@@ -1164,8 +1165,9 @@ class Categorical(PandasObject):
 
         See also
         --------
-        pandas.notnull : pandas version
+        notnull : pandas version
         Categorical.isnull : boolean inverse of Categorical.notnull
+
         """
         return ~self.isnull()
 
@@ -1206,6 +1208,11 @@ class Categorical(PandasObject):
         Returns
         -------
         counts : Series
+
+        See Also
+        --------
+        Series.value_counts
+
         """
         from numpy import bincount
         from pandas.types.missing import isnull
@@ -1308,6 +1315,7 @@ class Categorical(PandasObject):
         See Also
         --------
         Categorical.sort
+        Series.sort_values
 
         Examples
         --------
@@ -1919,8 +1927,9 @@ class Categorical(PandasObject):
 
         See Also
         --------
-        pandas.unique
-        pandas.CategoricalIndex.unique
+        unique
+        CategoricalIndex.unique
+        Series.unique
 
         """
 

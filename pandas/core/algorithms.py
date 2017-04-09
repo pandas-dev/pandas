@@ -287,7 +287,7 @@ def unique(values):
 
     Examples
     --------
-    pd.unique(pd.Series([2, 1, 3, 3]))
+    >>> pd.unique(pd.Series([2, 1, 3, 3]))
     array([2, 1, 3])
 
     >>> pd.unique(pd.Series([2] + [1] * 5))
