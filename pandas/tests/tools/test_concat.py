@@ -1048,6 +1048,24 @@ class TestConcatenate(ConcatenateBase):
         result = concat([df, df])
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_multiindex_with_none_in_index_names(self):
+        # GH 15787
+        from pandas.indexes.frozen import FrozenList
+
+        index = pd.MultiIndex.from_product([[1], range(5)],
+                                           names=['level1', None])
+        df = pd.DataFrame({'col': range(5)}, index=index)
+
+        result = concat([df, df], keys=[1, 2], names=['level2'])
+        result = result.index.names
+        expected = FrozenList(['level2', 'level1', None])
+        self.assertEqual(result, expected)
+
+        result = concat([df, df[:2]], keys=[1, 2], names=['level2'])
+        result = result.index.names
+        expected = FrozenList(['level2', 'level1', None])
+        self.assertEqual(result, expected)
+
     def test_concat_keys_and_levels(self):
         df = DataFrame(np.random.randn(1, 3))
         df2 = DataFrame(np.random.randn(1, 4))
