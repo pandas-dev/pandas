@@ -490,7 +490,7 @@ from present information back to past information. This allows the rolling windo
    df["right"] = df.rolling('2s', closed='right').x.sum() # default
    df["both"] = df.rolling('2s', closed='both').x.sum()
    df["left"] = df.rolling('2s', closed='left').x.sum()
-   df["open"] = df.rolling('2s', closed='neither').x.sum()
+   df["neither"] = df.rolling('2s', closed='neither').x.sum()
 
    df
 

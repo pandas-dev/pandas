@@ -431,6 +431,12 @@ class TestRolling(Base):
             tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
                                   getattr(r, func), dtype=np.float64)
 
+    def test_closed(self):
+        df = DataFrame({'A': [0, 1, 2, 3, 4]})
+        # closed only allowed for datetimelike
+        with self.assertRaises(ValueError):
+             df.rolling(window=3, closed='both')
+
 
 class TestExpanding(Base):
 
@@ -3395,10 +3401,6 @@ class TestRollingTS(tm.TestCase):
                               pd.Timestamp('20130101 09:00:03'),
                               pd.Timestamp('20130101 09:00:04'),
                               pd.Timestamp('20130101 09:00:06')])
-
-        # closed only allowed for datetimelike
-        with self.assertRaises(ValueError):
-             self.regular.rolling(window=3, closed='both')
 
         # closed must be 'right', 'left', 'both', 'neither'
         with self.assertRaises(ValueError):

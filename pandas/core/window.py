@@ -1060,7 +1060,7 @@ class Rolling(_Rolling_and_Expanding):
 
         if not self.is_datetimelike and self.closed is not None:
             raise ValueError("closed only implemented for datetimelike "
-                                         "and offset based windows")
+                             "and offset based windows")
 
     def _validate_monotonic(self):
         """ validate on is monotonic """
