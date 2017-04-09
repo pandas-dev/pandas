@@ -855,13 +855,24 @@ class IndexOpsMixin(object):
 
     _shared_docs['unique'] = (
         """
-        Return %(unique)s of unique values in the object.
-        Significantly faster than numpy.unique. Includes NA values.
-        The order of the original is preserved.
+        Return unique values in the object. Uniques are returned in order
+        of appearance, this does NOT sort. Hash table-based unique.
+
+        Parameters
+        ----------
+        values : 1d array-like
 
         Returns
         -------
-        uniques : %(unique)s
+        unique values.
+          - If the input is an Index, the return is an Index
+          - If the input is a Categorical dtype, the return is a Categorical
+          - If the input is a Series/ndarray, the return will be an ndarray
+
+        See Also
+        --------
+        pandas.unique
+        pandas.Categorical.unique
         """)
 
     @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
@@ -873,6 +884,7 @@ class IndexOpsMixin(object):
         else:
             from pandas.core.algorithms import unique1d
             result = unique1d(values)
+
         return result
 
     def nunique(self, dropna=True):
