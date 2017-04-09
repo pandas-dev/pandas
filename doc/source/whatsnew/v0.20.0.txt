@@ -325,17 +325,16 @@ For example, after running the following, ``styled.xlsx`` renders as below:
 
 .. ipython:: python
 
-    import pandas as pd
-    import numpy as np
-
     np.random.seed(24)
     df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
-    df = pd.concat([df, pd.DataFrame(np.random.randn(10, 4), columns=list('BCDE'))],
+    df = pd.concat([df, pd.DataFrame(np.random.RandomState(24).randn(10, 4),
+                                     columns=list('BCDE'))],
                    axis=1)
     df.iloc[0, 2] = np.nan
     df.style.\
-        applymap(color_negative_red).\
-        apply(highlight_max).\
+        applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black').\
+        apply(lambda s: ['background-color: yellow' if v else ''
+                         for v in s == s.max()]).\
         to_excel('styled.xlsx', engine='openpyxl')
 
 .. image:: _static/style-excel.png
