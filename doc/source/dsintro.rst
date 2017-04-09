@@ -979,6 +979,7 @@ Convert to a MultiIndex DataFrame
 Alternatively, one can convert to an xarray ``DataArray``.
 
 .. ipython:: python
+   :okwarning:
 
    p.to_xarray()
 

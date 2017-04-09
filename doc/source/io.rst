@@ -4487,6 +4487,7 @@ See the `Full Documentation <https://github.com/wesm/feather>`__
 Write to a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_feather('example.feather')
 
