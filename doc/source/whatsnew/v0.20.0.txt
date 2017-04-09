@@ -314,7 +314,7 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 
    sdf.to_coo()
 
-.. _whatsnew_0200.enhancements.other:
+.. _whatsnew_0200.enhancements.style_excel:
 
 Excel output for styled DataFrames
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -340,6 +340,8 @@ For example, after running the following, ``styled.xlsx`` renders as below:
 .. image:: _static/style-excel.png
 
 See the :ref:`Style documentation <style>` for more detail.
+
+.. _whatsnew_0200.enhancements.other:
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
