@@ -3018,7 +3018,8 @@ class NDFrame(PandasObject):
         return self._constructor(self._data.get_bool_data()).__finalize__(self)
 
     def _get_datetime_data(self):
-        return self._constructor(self._data.get_datetime_data()).__finalize__(self)
+        return self._constructor(
+            self._data.get_datetime_data()).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
