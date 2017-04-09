@@ -278,7 +278,7 @@ class _Concatenator(object):
                     break
 
         else:
-            # filter out the empties if we have not multi-index possibiltes
+            # filter out the empties if we have not multi-index possibilities
             # note to keep empty Series as it affect to result columns / name
             non_empties = [obj for obj in objs
                            if sum(obj.shape) > 0 or isinstance(obj, Series)]
