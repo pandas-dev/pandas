@@ -316,8 +316,8 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 
 .. _whatsnew_0200.enhancements.other:
 
-Stylers now support Excel output
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Excel output for styled DataFrames
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Experimental support has been added to export ``DataFrame.style`` to Excel using the ``openpyxl`` engine. (:issue:`15530`)
 
