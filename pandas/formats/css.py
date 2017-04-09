@@ -163,8 +163,9 @@ class CSSResolver(object):
             try:
                 val = float(val)
             except ValueError:
-                warnings.warn('Unhandled font size: %r' % val + unit,
+                warnings.warn('Unhandled size: %r' % val + unit,
                               CSSWarning)
+                return self.size_to_pt('1!!default', conversions=conversions)
 
         while unit != 'pt':
             if unit == 'em':
