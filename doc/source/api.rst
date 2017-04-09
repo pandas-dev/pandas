@@ -165,6 +165,7 @@ Data manipulations
    concat
    get_dummies
    factorize
+   unique
    wide_to_long
 
 Top-level missing data
