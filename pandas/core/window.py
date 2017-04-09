@@ -1057,7 +1057,8 @@ class Rolling(_Rolling_and_Expanding):
             raise ValueError("window must be an integer")
         elif self.window < 0:
             raise ValueError("window must be non-negative")
-        elif self.closed is not None:
+
+        if not self.is_datetimelike and self.closed is not None:
             raise ValueError("closed only implemented for datetimelike "
                                          "and offset based windows")
 
