@@ -212,7 +212,6 @@ def test_css_absolute_font_size(size, relative_to, resolved):
     ('2.0ex', None, '12pt'),
     ('2.50ex', None, '15pt'),
     ('inherit', '16pt', '16pt'),
-    # TODO: smaller, larger
 
     ('smaller', None, '10pt'),
     ('smaller', '18pt', '15pt'),
