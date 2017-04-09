@@ -3354,7 +3354,7 @@ class BlockManager(PandasObject):
         self._consolidate_inplace()
         return self.combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def get_dt_data(self, copy=False):
+    def get_datetime_data(self, copy=False):
         """
         Parameters
         ----------
