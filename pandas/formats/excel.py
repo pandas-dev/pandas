@@ -235,9 +235,9 @@ class CSSToExcelConverter(object):
             'size': size,
             'bold': self.BOLD_MAP.get(props.get('font-weight')),
             'italic': self.ITALIC_MAP.get(props.get('font-style')),
-            'underline': ('single'
-                          if decoration is not None
-                          and 'underline' in decoration
+            'underline': ('single' if
+                          decoration is not None and
+                          'underline' in decoration`
                           else None),
             'strike': (None if decoration is None
                        else 'line-through' in decoration),

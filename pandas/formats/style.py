@@ -217,7 +217,6 @@ class Styler(object):
                         startcol=startcol, freeze_panes=freeze_panes,
                         engine=engine)
 
-
     def _translate(self):
         """
         Convert the DataFrame in `self.data` and the attrs from `_build_styles`
