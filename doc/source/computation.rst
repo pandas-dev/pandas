@@ -487,7 +487,7 @@ from present information back to past information. This allows the rolling windo
                               pd.Timestamp('20130101 09:00:04'),
                               pd.Timestamp('20130101 09:00:06')])
 
-   df["right"] = df.rolling('2s', closed='right').x.sum() # default
+   df["right"] = df.rolling('2s', closed='right').x.sum()  # default
    df["both"] = df.rolling('2s', closed='both').x.sum()
    df["left"] = df.rolling('2s', closed='left').x.sum()
    df["neither"] = df.rolling('2s', closed='neither').x.sum()

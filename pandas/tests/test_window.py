@@ -435,7 +435,7 @@ class TestRolling(Base):
         df = DataFrame({'A': [0, 1, 2, 3, 4]})
         # closed only allowed for datetimelike
         with self.assertRaises(ValueError):
-             df.rolling(window=3, closed='both')
+            df.rolling(window=3, closed='both')
 
 
 class TestExpanding(Base):
