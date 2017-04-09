@@ -332,8 +332,8 @@ def unique(values):
 
     See Also
     --------
-    pd.Index.unique
-    pd.Series.unique
+    pandas.Index.unique
+    pandas.Series.unique
 
     """
 

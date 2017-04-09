@@ -855,8 +855,8 @@ class IndexOpsMixin(object):
 
     _shared_docs['unique'] = (
         """
-        Hash table-based unique. Uniques are returned in order
-        of appearance. This does NOT sort.
+        Return unique values in the object. Uniques are returned in order
+        of appearance, this does NOT sort. Hash table-based unique.
 
         Parameters
         ----------
@@ -871,8 +871,8 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        pd.unique
-        pd.Categorical.unique
+        pandas.unique
+        pandas.Categorical.unique
         """)
 
     @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)

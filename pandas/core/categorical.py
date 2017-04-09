@@ -1919,8 +1919,8 @@ class Categorical(PandasObject):
 
         See Also
         --------
-        pd.unique
-        pd.CategoricalIndex.unique
+        pandas.unique
+        pandas.CategoricalIndex.unique
 
         """
 
