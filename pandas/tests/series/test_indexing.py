@@ -1024,9 +1024,9 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         # scalar
         s = orig.copy()
         s[1] = pd.Timestamp('2011-01-01', tz=tz)
-        exp = pd.Series([pd.Timestamp('2016-11-06 00:00', tz=tz),
-                         pd.Timestamp('2011-01-01 00:00', tz=tz),
-                         pd.Timestamp('2016-11-06 02:00', tz=tz)])
+        exp = pd.Series([pd.Timestamp('2016-11-06 00:00-04:00', tz=tz),
+                         pd.Timestamp('2011-01-01 00:00-05:00', tz=tz),
+                         pd.Timestamp('2016-11-06 01:00-05:00', tz=tz)])
         tm.assert_series_equal(s, exp)
 
         s = orig.copy()

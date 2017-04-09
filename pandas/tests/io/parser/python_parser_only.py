@@ -8,7 +8,6 @@ arguments when parsing.
 """
 
 import csv
-import sys
 import pytest
 
 import pandas.util.testing as tm
@@ -20,20 +19,22 @@ from pandas.compat import StringIO, BytesIO, u
 
 class PythonParserTests(object):
 
-    def test_negative_skipfooter_raises(self):
-        text = """#foo,a,b,c
-#foo,a,b,c
-#foo,a,b,c
-#foo,a,b,c
-#foo,a,b,c
-#foo,a,b,c
-1/1/2000,1.,2.,3.
-1/2/2000,4,5,6
-1/3/2000,7,8,9
-"""
+    def test_invalid_skipfooter(self):
+        text = "a\n1\n2"
 
-        with tm.assertRaisesRegexp(
-                ValueError, 'skip footer cannot be negative'):
+        # see gh-15925 (comment)
+        msg = "skipfooter must be an integer"
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(text), skipfooter="foo")
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(text), skipfooter=1.5)
+
+        with tm.assertRaisesRegexp(ValueError, msg):
+            self.read_csv(StringIO(text), skipfooter=True)
+
+        msg = "skipfooter cannot be negative"
+        with tm.assertRaisesRegexp(ValueError, msg):
             self.read_csv(StringIO(text), skipfooter=-1)
 
     def test_sniff_delimiter(self):
@@ -90,16 +91,9 @@ baz|7|8|9
 
     def test_single_line(self):
         # see gh-6607: sniff separator
-
-        buf = StringIO()
-        sys.stdout = buf
-
-        try:
-            df = self.read_csv(StringIO('1,2'), names=['a', 'b'],
-                               header=None, sep=None)
-            tm.assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
-        finally:
-            sys.stdout = sys.__stdout__
+        df = self.read_csv(StringIO('1,2'), names=['a', 'b'],
+                           header=None, sep=None)
+        tm.assert_frame_equal(DataFrame({'a': [1], 'b': [2]}), df)
 
     def test_skipfooter(self):
         # see gh-6607

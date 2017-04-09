@@ -1224,6 +1224,7 @@ class MultiIndex(Index):
             lev = lev.take(indexer)
 
             # indexer to reorder the labels
+            indexer = _ensure_int64(indexer)
             ri = lib.get_reverse_indexer(indexer, len(indexer))
             lab = algos.take_1d(ri, lab)
 
@@ -1260,8 +1261,9 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[1, 1], [0, 1]])
 
-        # the 0 from the first level is not represented
-        # and can be removed
+        The 0 from the first level is not represented
+        and can be removed
+
         >>> i[2:].remove_unused_levels()
         MultiIndex(levels=[[1], ['a', 'b']],
                    labels=[[0, 0], [0, 1]])
