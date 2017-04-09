@@ -209,19 +209,26 @@ class CSSToExcelConverter(object):
             assert size.endswith('pt')
             size = float(size[:-2])
 
-        # TODO:
-        # re.search(r'''(?x)
-        #     (
-        #     "(?:[^"]|\\")+"
-        #     |
-        #     '(?:[^']|\\')+'
-        #     |
-        #     [^'"]+
-        #     )(?=,|\s*$)
-        # ''')
-        font_names = [name.strip()
-                      for name in props.get('font-family', '').split(',')
-                      if name.strip()]
+        font_names_tmp = re.findall(r'''(?x)
+            (
+            "(?:[^"]|\\")+"
+            |
+            '(?:[^']|\\')+'
+            |
+            [^'",]+
+            )(?=,|\s*$)
+        ''', props.get('font-family', ''))
+        font_names = []
+        for name in font_names_tmp:
+            if name[:1] == '"':
+                name = name[1:-1].replace('\\"', '"')
+            elif name[:1] == '\'':
+                name = name[1:-1].replace('\\\'', '\'')
+            else:
+                name = name.strip()
+            if name:
+                font_names.append(name)
+
         family = None
         for name in font_names:
             if name == 'serif':

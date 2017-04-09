@@ -12,13 +12,17 @@ from pandas.formats.excel import CSSToExcelConverter
     # FONT
     # - name
     ('font-family: foo,bar', {'font': {'name': 'foo'}}),
-    pytest.mark.xfail(('font-family: "foo bar",baz',
-                       {'font': {'name': 'foo bar'}})),
+    ('font-family: "foo bar",baz', {'font': {'name': 'foo bar'}}),
     ('font-family: foo,\nbar', {'font': {'name': 'foo'}}),
     ('font-family: foo, bar,    baz', {'font': {'name': 'foo'}}),
     ('font-family: bar, foo', {'font': {'name': 'bar'}}),
+    ('font-family: \'foo bar\', baz', {'font': {'name': 'foo bar'}}),
+    ('font-family: \'foo \\\'bar\', baz', {'font': {'name': 'foo \'bar'}}),
+    ('font-family: "foo \\"bar", baz', {'font': {'name': 'foo "bar'}}),
+    ('font-family: "foo ,bar", baz', {'font': {'name': 'foo ,bar'}}),
     # - family
     ('font-family: serif', {'font': {'name': 'serif', 'family': 1}}),
+    ('font-family: Serif', {'font': {'name': 'serif', 'family': 1}}),
     ('font-family: roman, serif', {'font': {'name': 'roman', 'family': 1}}),
     ('font-family: roman, sans-serif', {'font': {'name': 'roman',
                                                  'family': 2}}),
