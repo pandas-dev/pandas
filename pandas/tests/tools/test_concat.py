@@ -1052,12 +1052,13 @@ class TestConcatenate(ConcatenateBase):
         # GH 15787
         index = pd.MultiIndex.from_product([[1], range(5)],
                                            names=['level1', None])
-        df = pd.DataFrame({'col': range(5)}, index=index)
+        df = pd.DataFrame({'col': range(5)}, index=index, dtype=np.int32)
 
         result = concat([df, df], keys=[1, 2], names=['level2'])
         index = pd.MultiIndex.from_product([[1, 2], [1], range(5)],
                                            names=['level2', 'level1', None])
-        expected = pd.DataFrame({'col': list(range(5)) * 2}, index=index)
+        expected = pd.DataFrame({'col': list(range(5)) * 2},
+                                index=index, dtype=np.int32)
         assert_frame_equal(result, expected)
 
         result = concat([df, df[:2]], keys=[1, 2], names=['level2'])
@@ -1067,7 +1068,8 @@ class TestConcatenate(ConcatenateBase):
         tuples = list(zip(level2, level1, no_name))
         index = pd.MultiIndex.from_tuples(tuples,
                                           names=['level2', 'level1', None])
-        expected = pd.DataFrame({'col': no_name}, index=index)
+        expected = pd.DataFrame({'col': no_name}, index=index,
+                                dtype=np.int32)
         assert_frame_equal(result, expected)
 
     def test_concat_keys_and_levels(self):
