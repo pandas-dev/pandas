@@ -871,8 +871,9 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        pandas.unique
-        pandas.Categorical.unique
+        unique
+        Index.unique
+        Series.unique
         """)
 
     @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
