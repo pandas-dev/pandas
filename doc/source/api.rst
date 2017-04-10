@@ -660,14 +660,6 @@ the Categorical back to a numpy array, so categories and order information is no
 
    Categorical.__array__
 
-Categorical methods
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.unique
-   Categorical.value_counts
-
 Plotting
 ~~~~~~~~
 
