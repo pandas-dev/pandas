@@ -1,6 +1,6 @@
 """ self-contained to write legacy storage (pickle/msgpack) files """
-from warnings import catch_warnings
 from __future__ import print_function
+from warnings import catch_warnings
 from distutils.version import LooseVersion
 from pandas import (Series, DataFrame, Panel,
                     SparseSeries, SparseDataFrame,
