@@ -218,8 +218,8 @@ class Styler(object):
 
         cell_context = dict()
 
-        n_rlvls = self.data.index.nlevels
-        n_clvls = self.data.columns.nlevels
+        n_rlvls = 0 if self.data.empty else self.data.index.nlevels
+        n_clvls = 0 if self.data.empty else self.data.columns.nlevels
         rlabels = self.data.index.tolist()
         clabels = self.data.columns.tolist()
 
