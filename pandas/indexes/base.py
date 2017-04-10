@@ -944,7 +944,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
 
         from pandas import Series
-        return Series(self._to_embed(), index=self, name=self.name)
+        return Series(self._to_embed(),
+                      index=self._shallow_copy(),
+                      name=self.name)
 
     def _to_embed(self, keep_tz=False):
         """

@@ -16,17 +16,16 @@ from .common import TestData
 class TestSeriesQuantile(TestData, tm.TestCase):
 
     def test_quantile(self):
-        from numpy import percentile
 
         q = self.ts.quantile(0.1)
-        self.assertEqual(q, percentile(self.ts.valid(), 10))
+        self.assertEqual(q, np.percentile(self.ts.valid(), 10))
 
         q = self.ts.quantile(0.9)
-        self.assertEqual(q, percentile(self.ts.valid(), 90))
+        self.assertEqual(q, np.percentile(self.ts.valid(), 90))
 
         # object dtype
         q = Series(self.ts, dtype=object).quantile(0.9)
-        self.assertEqual(q, percentile(self.ts.valid(), 90))
+        self.assertEqual(q, np.percentile(self.ts.valid(), 90))
 
         # datetime64[ns] dtype
         dts = self.ts.index.to_series()
@@ -48,12 +47,11 @@ class TestSeriesQuantile(TestData, tm.TestCase):
                 self.ts.quantile(invalid)
 
     def test_quantile_multi(self):
-        from numpy import percentile
 
         qs = [.1, .9]
         result = self.ts.quantile(qs)
-        expected = pd.Series([percentile(self.ts.valid(), 10),
-                              percentile(self.ts.valid(), 90)],
+        expected = pd.Series([np.percentile(self.ts.valid(), 10),
+                              np.percentile(self.ts.valid(), 90)],
                              index=qs, name=self.ts.name)
         tm.assert_series_equal(result, expected)
 
@@ -70,50 +68,44 @@ class TestSeriesQuantile(TestData, tm.TestCase):
             [], dtype=float))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.skipif(_np_version_under1p9,
+                        reason="Numpy version is under 1.9")
     def test_quantile_interpolation(self):
         # GH #10174
-        if _np_version_under1p9:
-            pytest.skip("Numpy version is under 1.9")
-
-        from numpy import percentile
 
         # interpolation = linear (default case)
         q = self.ts.quantile(0.1, interpolation='linear')
-        self.assertEqual(q, percentile(self.ts.valid(), 10))
+        self.assertEqual(q, np.percentile(self.ts.valid(), 10))
         q1 = self.ts.quantile(0.1)
-        self.assertEqual(q1, percentile(self.ts.valid(), 10))
+        self.assertEqual(q1, np.percentile(self.ts.valid(), 10))
 
         # test with and without interpolation keyword
         self.assertEqual(q, q1)
 
+    @pytest.mark.skipif(_np_version_under1p9,
+                        reason="Numpy version is under 1.9")
     def test_quantile_interpolation_dtype(self):
         # GH #10174
-        if _np_version_under1p9:
-            pytest.skip("Numpy version is under 1.9")
-
-        from numpy import percentile
 
         # interpolation = linear (default case)
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='lower')
-        self.assertEqual(q, percentile(np.array([1, 3, 4]), 50))
+        self.assertEqual(q, np.percentile(np.array([1, 3, 4]), 50))
         self.assertTrue(is_integer(q))
 
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='higher')
-        self.assertEqual(q, percentile(np.array([1, 3, 4]), 50))
+        self.assertEqual(q, np.percentile(np.array([1, 3, 4]), 50))
         self.assertTrue(is_integer(q))
 
+    @pytest.mark.skipif(not _np_version_under1p9,
+                        reason="Numpy version is greater 1.9")
     def test_quantile_interpolation_np_lt_1p9(self):
         # GH #10174
-        if not _np_version_under1p9:
-            pytest.skip("Numpy version is greater than 1.9")
-
-        from numpy import percentile
 
         # interpolation = linear (default case)
         q = self.ts.quantile(0.1, interpolation='linear')
-        self.assertEqual(q, percentile(self.ts.valid(), 10))
+        self.assertEqual(q, np.percentile(self.ts.valid(), 10))
         q1 = self.ts.quantile(0.1)
-        self.assertEqual(q1, percentile(self.ts.valid(), 10))
+        self.assertEqual(q1, np.percentile(self.ts.valid(), 10))
 
         # interpolation other than linear
         expErrMsg = "Interpolation methods other than "

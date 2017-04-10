@@ -18,7 +18,7 @@ import pandas.sparse.frame as spf
 
 from pandas.sparse.libsparse import BlockIndex, IntIndex
 from pandas.sparse.api import SparseSeries
-from pandas.tests.series.test_misc_api import SharedWithSparse
+from pandas.tests.series.test_api import SharedWithSparse
 
 
 def _test_data1():

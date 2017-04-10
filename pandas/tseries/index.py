@@ -895,7 +895,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Series
         """
         from pandas import Series
-        return Series(self._to_embed(keep_tz), index=self, name=self.name)
+        return Series(self._to_embed(keep_tz),
+                      index=self._shallow_copy(),
+                      name=self.name)
 
     def _to_embed(self, keep_tz=False):
         """
