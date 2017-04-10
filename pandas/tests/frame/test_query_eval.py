@@ -484,7 +484,7 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         df = DataFrame(d)
         df.loc[np.random.rand(n) > 0.5, 'dates1'] = pd.NaT
         df.set_index('dates1', inplace=True, drop=True)
-        res = df.query('index < 20130101 < dates3', engine=engine,
+        res = df.query('dates1 < 20130101 < dates3', engine=engine,
                        parser=parser)
         expec = df[(df.index.to_series() < '20130101') &
                    ('20130101' < df.dates3)]

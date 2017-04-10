@@ -22,7 +22,7 @@ import pandas.sparse.frame as spf
 
 from pandas.sparse.libsparse import BlockIndex, IntIndex
 from pandas.sparse.api import SparseSeries, SparseDataFrame, SparseArray
-from pandas.tests.frame.test_misc_api import SharedWithSparse
+from pandas.tests.frame.test_api import SharedWithSparse
 
 from pandas.tests.sparse.common import spmatrix  # noqa: F401
 

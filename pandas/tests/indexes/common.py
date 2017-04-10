@@ -38,6 +38,15 @@ class Base(object):
         # need an object to create with
         self.assertRaises(TypeError, self._holder)
 
+    def test_to_series(self):
+        # assert that we are creating a copy of the index
+
+        idx = self.create_index()
+        s = idx.to_series()
+        assert s.values is not idx.values
+        assert s.index is not idx
+        assert s.name == idx.name
+
     def test_shift(self):
 
         # GH8083 test the base class for shift
