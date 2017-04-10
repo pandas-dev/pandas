@@ -1,5 +1,6 @@
 import pytest
 
+from warnings import catch_warnings
 import os
 import datetime
 import numpy as np
@@ -452,9 +453,10 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        self.panel = {
-            'float': Panel(dict(ItemA=self.frame['float'],
-                                ItemB=self.frame['float'] + 1))}
+        with catch_warnings(record=True):
+            self.panel = {
+                'float': Panel(dict(ItemA=self.frame['float'],
+                                    ItemB=self.frame['float'] + 1))}
 
     def test_basic_frame(self):
 
@@ -899,8 +901,9 @@ TestPackers
                 continue
             vf = os.path.join(pth, f)
             try:
-                self.compare(current_packers_data, all_packers_data,
-                             vf, version)
+                with catch_warnings(record=True):
+                    self.compare(current_packers_data, all_packers_data,
+                                 vf, version)
             except ImportError:
                 # blosc not installed
                 continue

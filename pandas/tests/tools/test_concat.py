@@ -1936,21 +1936,23 @@ bar2,12,13,14,15
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
 @pytest.mark.parametrize('dt', np.sctypes['float'])
 def test_concat_no_unnecessary_upcast(dt, pdt):
-    # GH 13247
-    dims = pdt().ndim
-    dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
-           pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
-           pdt(np.array([5], dtype=dt, ndmin=dims))]
-    x = pd.concat(dfs)
-    assert x.values.dtype == dt
+    with catch_warnings(record=True):
+        # GH 13247
+        dims = pdt().ndim
+        dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
+               pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
+               pdt(np.array([5], dtype=dt, ndmin=dims))]
+        x = pd.concat(dfs)
+        assert x.values.dtype == dt
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
 @pytest.mark.parametrize('dt', np.sctypes['int'])
 def test_concat_will_upcast(dt, pdt):
-    dims = pdt().ndim
-    dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
-           pdt(np.array([np.nan], ndmin=dims)),
-           pdt(np.array([5], dtype=dt, ndmin=dims))]
-    x = pd.concat(dfs)
-    assert x.values.dtype == 'float64'
+    with catch_warnings(record=True):
+        dims = pdt().ndim
+        dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
+               pdt(np.array([np.nan], ndmin=dims)),
+               pdt(np.array([5], dtype=dt, ndmin=dims))]
+        x = pd.concat(dfs)
+        assert x.values.dtype == 'float64'

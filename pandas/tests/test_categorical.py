@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101,E1103,W0232
 
+from warnings import catch_warnings
 import pytest
 import sys
 from datetime import datetime
@@ -1816,9 +1817,11 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_reshaping(self):
 
-        p = tm.makePanel()
-        p['str'] = 'foo'
-        df = p.to_frame()
+        with catch_warnings(record=True):
+            p = tm.makePanel()
+            p['str'] = 'foo'
+            df = p.to_frame()
+
         df['category'] = df['str'].astype('category')
         result = df['category'].unstack()
 

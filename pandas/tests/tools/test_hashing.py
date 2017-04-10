@@ -1,3 +1,6 @@
+import pytest
+
+from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 
@@ -195,11 +198,14 @@ class TestHashing(tm.TestCase):
 
     def test_pandas_errors(self):
 
-        for obj in [pd.Timestamp('20130101'), tm.makePanel()]:
-            def f():
-                hash_pandas_object(f)
+        for obj in [pd.Timestamp('20130101')]:
+            with pytest.raises(TypeError):
+                hash_pandas_object(obj)
 
-            self.assertRaises(TypeError, f)
+        with catch_warnings(record=True):
+            obj = tm.makePanel()
+        with pytest.raises(TypeError):
+            hash_pandas_object(obj)
 
     def test_hash_keys(self):
         # using different hash keys, should have different hashes
