@@ -1,4 +1,5 @@
 """ self-contained to write legacy storage (pickle/msgpack) files """
+from warnings import catch_warnings
 from __future__ import print_function
 from distutils.version import LooseVersion
 from pandas import (Series, DataFrame, Panel,
@@ -127,14 +128,15 @@ def create_data():
                      u'B': Timestamp('20130603', tz='CET')}, index=range(5))
                  )
 
-    mixed_dup_panel = Panel({u'ItemA': frame[u'float'],
-                             u'ItemB': frame[u'int']})
-    mixed_dup_panel.items = [u'ItemA', u'ItemA']
-    panel = dict(float=Panel({u'ItemA': frame[u'float'],
-                              u'ItemB': frame[u'float'] + 1}),
-                 dup=Panel(np.arange(30).reshape(3, 5, 2).astype(np.float64),
-                           items=[u'A', u'B', u'A']),
-                 mixed_dup=mixed_dup_panel)
+    with catch_warnings(record=True):
+        mixed_dup_panel = Panel({u'ItemA': frame[u'float'],
+                                 u'ItemB': frame[u'int']})
+        mixed_dup_panel.items = [u'ItemA', u'ItemA']
+        panel = dict(float=Panel({u'ItemA': frame[u'float'],
+                                  u'ItemB': frame[u'float'] + 1}),
+                     dup=Panel(np.arange(30).reshape(3, 5, 2).astype(np.float64),
+                               items=[u'A', u'B', u'A']),
+                     mixed_dup=mixed_dup_panel)
 
     cat = dict(int8=Categorical(list('abcdefg')),
                int16=Categorical(np.arange(1000)),
