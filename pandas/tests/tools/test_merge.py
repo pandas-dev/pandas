@@ -1165,14 +1165,14 @@ class TestMergeMulti(tm.TestCase):
 
         def f():
             household.join(portfolio, how='inner')
-        self.assertRaises(TypeError, f)
+        self.assertRaises(ValueError, f)
 
         portfolio2 = portfolio.copy()
         portfolio2.index.set_names(['household_id', 'foo'])
 
         def f():
             portfolio2.join(portfolio, how='inner')
-        self.assertRaises(TypeError, f)
+        self.assertRaises(ValueError, f)
 
     def test_join_multi_levels2(self):
 
@@ -1211,10 +1211,6 @@ class TestMergeMulti(tm.TestCase):
             .set_index(["household_id", "asset_id", "t"])
             .reindex(columns=['share', 'log_return']))
 
-        def f():
-            household.join(log_return, how='inner')
-        self.assertRaises(TypeError, f)
-
         # this is equivalency the
         result = (merge(household.reset_index(), log_return.reset_index(),
                         on=['asset_id'], how='inner')
@@ -1224,7 +1220,7 @@ class TestMergeMulti(tm.TestCase):
         expected = (
             DataFrame(dict(
                 household_id=[1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
-                asset_id=["nl0000301109", "nl0000289783", "gb00b03mlx29",
+                asset_id=["nl0000301109", "nl0000301109", "gb00b03mlx29",
                           "gb00b03mlx29", "gb00b03mlx29",
                           "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29",
                           "lu0197800237", "lu0197800237",
@@ -1237,38 +1233,51 @@ class TestMergeMulti(tm.TestCase):
                             .09604978, -.06524096, .03532373,
                             .03025441, .036997, None, None]
             ))
-            .set_index(["household_id", "asset_id", "t"]))
+            .set_index(["household_id", "asset_id", "t"])
+            .reindex(columns=['share', 'log_return']))
 
-        def f():
-            household.join(log_return, how='outer')
-        self.assertRaises(TypeError, f)
+        result = (merge(household.reset_index(), log_return.reset_index(),
+                on=['asset_id'], how='outer')
+          .set_index(['household_id', 'asset_id', 't']))
+
+        assert_frame_equal(result, expected)
 
     def test_join_multi_levels3(self):
+
         matrix = (
             pd.DataFrame(
                 dict(Origin=[1, 1, 2, 2, 3],
                      Destination=[1, 2, 1, 3, 1],
-                     Trips=[1987, 3647, 2470, 7521, 4296]),
-                columns=['Origin', 'Destination', 'Trips'])
-            .set_index(['Origin', 'Destination']))
-
+                     Period=['AM','PM','IP','AM','OP'],
+                     TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
+                     Trips=[1987, 3647, 2470, 4296, 4444]),
+                columns=['Origin', 'Destination', 'Period',
+                         'TripPurp', 'Trips'])
+            .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
+    
         distances = (
             pd.DataFrame(
-                dict(Origin=[1, 1, 2, 2, 3, 3],
-                     Destination=[2, 3, 1, 3, 1, 2],
-                     Distance=[100, 80, 90, 80, 70, 70]),
-                columns=['Origin', 'Destination', 'Distance'])
-            .set_index(['Origin', 'Destination']))
-
-        result = matrix.join(distances, how='left')
-
+                dict(Origin=     [1, 1, 2, 2, 3, 3, 5],
+                     Destination=[1, 2, 1, 2, 1, 2, 6],
+                     Period=['AM','PM','IP','AM','OP','IP', 'AM'],
+                     LinkType=['a', 'a', 'c', 'b', 'a', 'b', 'a'],
+                     Distance=[100, 80, 90, 80, 75, 35, 55]),
+                columns=['Origin', 'Destination', 'Period', 
+                         'LinkType', 'Distance'])
+            .set_index(['Origin', 'Destination','Period', 'LinkType']))
+    
         expected = (
             pd.DataFrame(
-                dict(Origin=[1, 1, 2, 2, 3],
+                dict(Origin=     [1, 1, 2, 2, 3],
                      Destination=[1, 2, 1, 3, 1],
-                     Trips=[1987, 3647, 2470, 7521, 4296],
-                     Distance=[np.nan, 100, 90, 80, 70]),
-                columns=['Origin', 'Destination', 'Trips', 'Distance'])
-            .set_index(['Origin', 'Destination']))
-
+                     Period=['AM','PM','IP', 'AM', 'OP'],
+                     TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
+                     Trips=[1987, 3647, 2470, 4296, 4444],
+                     Distance=[100, 80, 90, np.nan, 75]),
+                columns=['Origin', 'Destination', 'Period', 'TripPurp', 
+                         'Trips', 'Distance'])
+            .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
+    
+        
+        result = matrix.join(distances, how='left')
         assert_frame_equal(result, expected)
