@@ -1770,12 +1770,14 @@ class TestSeriesFormatting(tm.TestCase):
                        name=u'おおおおおおお')
 
             expected = (u"0       あ\n     ... \n"
-                        u"3    ええええ\nName: おおおおおおお, dtype: object")
+                        u"3    ええええ\n"
+                        u"Name: おおおおおおお, Length: 4, dtype: object")
             self.assertEqual(_rep(s), expected)
 
             s.index = [u'ああ', u'いいいい', u'う', u'えええ']
             expected = (u"ああ        あ\n       ... \n"
-                        u"えええ    ええええ\nName: おおおおおおお, dtype: object")
+                        u"えええ    ええええ\n"
+                        u"Name: おおおおおおお, Length: 4, dtype: object")
             self.assertEqual(_rep(s), expected)
 
         # Emable Unicode option -----------------------------------------
@@ -1846,14 +1848,15 @@ class TestSeriesFormatting(tm.TestCase):
                 s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                            name=u'おおおおおおお')
                 expected = (u"0          あ\n       ...   \n"
-                            u"3    ええええ\nName: おおおおおおお, dtype: object")
+                            u"3    ええええ\n"
+                            u"Name: おおおおおおお, Length: 4, dtype: object")
                 self.assertEqual(_rep(s), expected)
 
                 s.index = [u'ああ', u'いいいい', u'う', u'えええ']
                 expected = (u"ああ            あ\n"
                             u"            ...   \n"
                             u"えええ    ええええ\n"
-                            u"Name: おおおおおおお, dtype: object")
+                            u"Name: おおおおおおお, Length: 4, dtype: object")
                 self.assertEqual(_rep(s), expected)
 
             # ambiguous unicode
@@ -2021,7 +2024,8 @@ class TestSeriesFormatting(tm.TestCase):
     # Make sure #8532 is fixed
     def test_consistent_format(self):
         s = pd.Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9999, 1, 1] * 10)
-        with option_context("display.max_rows", 10):
+        with option_context("display.max_rows", 10,
+                            "display.show_dimensions", False):
             res = repr(s)
         exp = ('0      1.0000\n1      1.0000\n2      1.0000\n3      '
                '1.0000\n4      1.0000\n        ...  \n125    '
@@ -2040,7 +2044,8 @@ class TestSeriesFormatting(tm.TestCase):
 
     def test_format_explicit(self):
         test_sers = gen_series_formatting()
-        with option_context("display.max_rows", 4):
+        with option_context("display.max_rows", 4,
+                            "display.show_dimensions", False):
             res = repr(test_sers['onel'])
             exp = '0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object'
             self.assertEqual(exp, res)
@@ -2086,6 +2091,21 @@ class TestSeriesFormatting(tm.TestCase):
         with option_context("display.max_rows", 2):
             strrepr = repr(s).replace('\n', '')
         self.assertEqual(getndots(strrepr), 3)
+
+    def test_show_dimensions(self):
+        s = Series(range(5))
+
+        assert 'Length' not in repr(s)
+
+        with option_context("display.max_rows", 4):
+            assert 'Length' in repr(s)
+
+        with option_context("display.show_dimensions", True):
+            assert 'Length' in repr(s)
+
+        with option_context("display.max_rows", 4,
+                            "display.show_dimensions", False):
+            assert 'Length' not in repr(s)
 
     def test_to_string_name(self):
         s = Series(range(100), dtype='int64')
