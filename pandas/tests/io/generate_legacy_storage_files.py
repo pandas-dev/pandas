@@ -134,8 +134,9 @@ def create_data():
         mixed_dup_panel.items = [u'ItemA', u'ItemA']
         panel = dict(float=Panel({u'ItemA': frame[u'float'],
                                   u'ItemB': frame[u'float'] + 1}),
-                     dup=Panel(np.arange(30).reshape(3, 5, 2).astype(np.float64),
-                               items=[u'A', u'B', u'A']),
+                     dup=Panel(
+                         np.arange(30).reshape(3, 5, 2).astype(np.float64),
+                         items=[u'A', u'B', u'A']),
                      mixed_dup=mixed_dup_panel)
 
     cat = dict(int8=Categorical(list('abcdefg')),

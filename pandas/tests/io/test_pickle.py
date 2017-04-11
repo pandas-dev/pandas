@@ -14,6 +14,8 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 """
 
 import pytest
+from warnings import catch_warnings
+
 import os
 from distutils.version import LooseVersion
 import pandas as pd
@@ -202,7 +204,8 @@ def test_pickles(current_pickle_data, version):
     n = 0
     for f in os.listdir(pth):
         vf = os.path.join(pth, f)
-        data = compare(current_pickle_data, vf, version)
+        with catch_warnings(record=True):
+            data = compare(current_pickle_data, vf, version)
 
         if data is None:
             continue

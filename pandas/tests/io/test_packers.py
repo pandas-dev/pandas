@@ -466,9 +466,10 @@ class TestNDFrame(TestPackers):
 
     def test_basic_panel(self):
 
-        for s, i in self.panel.items():
-            i_rec = self.encode_decode(i)
-            assert_panel_equal(i, i_rec)
+        with catch_warnings(record=True):
+            for s, i in self.panel.items():
+                i_rec = self.encode_decode(i)
+                assert_panel_equal(i, i_rec)
 
     def test_multi(self):
 
