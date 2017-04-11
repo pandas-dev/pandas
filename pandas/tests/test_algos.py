@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-from pandas.compat import range
 
 import numpy as np
 from numpy.random import RandomState
 from numpy import nan
 from datetime import datetime
 from itertools import permutations
-from pandas import (Series, Categorical, CategoricalIndex, Index,
 from pandas import (Series, Categorical, CategoricalIndex,
                     Timestamp, DatetimeIndex,
                     Index, IntervalIndex)
@@ -16,7 +14,7 @@ from pandas import compat
 from pandas._libs import (groupby as libgroupby, algos as libalgos,
                           hashtable)
 from pandas._libs.hashtable import unique_label_indices
-from pandas.compat import lrange
+from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 from pandas.compat.numpy import np_array_datetime64_compat
