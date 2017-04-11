@@ -335,7 +335,7 @@ class TestGetDummies(tm.TestCase):
         exp_na = DataFrame({'a': [1, 0, np.nan],
                             'b': [0, 1, np.nan],
                             np.nan: [0, 0, 1]},
-                           dtype=np.float32)
+                           dtype=np.float64)
         exp_na = exp_na.reindex_axis(['a', 'b', np.nan], 1)
         assert_frame_equal(res_na, exp_na)
 
@@ -343,7 +343,7 @@ class TestGetDummies(tm.TestCase):
             [nan], dummy_na=True, fill_value=np.nan, sparse=self.sparse)
         exp_just_na = DataFrame([[1]],
                                 columns=[np.nan],
-                                dtype=np.float32)
+                                dtype=np.float64)
         assert_frame_equal(res_just_na, exp_just_na)
 
     def test_unicode(self
@@ -501,7 +501,7 @@ class TestGetDummies(tm.TestCase):
                               'B_nan': [0, 0, 0, 1]},
                              dtype=np.float64)
         cols = ['A_a', 'A_b', 'A_nan', 'B_b', 'B_c', 'B_nan']
-        expected[cols] = expected[cols].astype(np.float32)
+        expected[cols] = expected[cols].astype(np.float64)
         expected = expected[
             ['C', 'A_a', 'A_b', 'A_nan', 'B_b', 'B_c', 'B_nan']]
         assert_frame_equal(result, expected)
@@ -589,7 +589,7 @@ class TestGetDummies(tm.TestCase):
 
         res_na = get_dummies(s_NA, fill_value=np.nan, sparse=self.sparse,
                              drop_first=True)
-        exp_na = DataFrame({'b': [0, 1, np.nan]}, dtype=np.float32)
+        exp_na = DataFrame({'b': [0, 1, np.nan]}, dtype=np.float64)
         assert_frame_equal(res_na, exp_na)
 
         res_just_na = get_dummies([nan], dummy_na=True, sparse=self.sparse,
@@ -645,7 +645,7 @@ class TestGetDummies(tm.TestCase):
                               'B_c': [0, 0, 1, np.nan],
                               'B_nan': [0, 0, 0, 1]}, dtype=np.float64)
         cols = ['A_b', 'B_c', 'A_nan', 'B_nan']
-        expected[cols] = expected[cols].astype(np.float32)
+        expected[cols] = expected[cols].astype(np.float64)
         expected = expected[['C', 'A_b', 'A_nan', 'B_c', 'B_nan']]
         assert_frame_equal(result, expected)
 
@@ -667,7 +667,7 @@ class TestGetDummies(tm.TestCase):
                               'B_c': [0, 0, 1, np.nan]},
                              dtype=np.float64)
         cols = ['A_b', 'B_c']
-        expected[cols] = expected[cols].astype(np.float32)
+        expected[cols] = expected[cols].astype(np.float64)
         expected = expected[['C', 'A_b', 'B_c']]
         assert_frame_equal(result, expected)
 
