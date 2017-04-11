@@ -1533,7 +1533,8 @@ def units_from_epochs():
     return list(range(5))
 
 
-@pytest.fixture(params=[epoch_1960(), epoch_1960().to_datetime(),
+@pytest.fixture(params=[epoch_1960(),
+                        epoch_1960().to_pydatetime(),
                         epoch_1960().to_datetime64(),
                         str(epoch_1960())])
 def epochs(request):

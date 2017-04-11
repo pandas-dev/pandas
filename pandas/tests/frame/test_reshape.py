@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from warnings import catch_warnings
 from datetime import datetime
 import itertools
 
@@ -53,11 +54,12 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         self.assertEqual(pivoted.index.name, 'index')
         self.assertEqual(pivoted.columns.names, (None, 'columns'))
 
-        # pivot multiple columns
-        wp = tm.makePanel()
-        lp = wp.to_frame()
-        df = lp.reset_index()
-        assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
+        with catch_warnings(record=True):
+            # pivot multiple columns
+            wp = tm.makePanel()
+            lp = wp.to_frame()
+            df = lp.reset_index()
+            assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
 
     def test_pivot_duplicates(self):
         data = DataFrame({'a': ['bar', 'bar', 'foo', 'foo', 'foo'],

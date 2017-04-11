@@ -1,5 +1,6 @@
 # pylint: disable=E1101
 
+from warnings import catch_warnings
 from datetime import datetime, timedelta
 from functools import partial
 
@@ -1479,44 +1480,47 @@ class TestDatetimeIndex(Base, tm.TestCase):
         rng = date_range('1/1/2000', '6/30/2000')
         n = len(rng)
 
-        panel = Panel(np.random.randn(3, n, 5),
-                      items=['one', 'two', 'three'],
-                      major_axis=rng,
-                      minor_axis=['a', 'b', 'c', 'd', 'e'])
+        with catch_warnings(record=True):
+            panel = Panel(np.random.randn(3, n, 5),
+                          items=['one', 'two', 'three'],
+                          major_axis=rng,
+                          minor_axis=['a', 'b', 'c', 'd', 'e'])
 
-        result = panel.resample('M', axis=1).mean()
+            result = panel.resample('M', axis=1).mean()
 
-        def p_apply(panel, f):
-            result = {}
-            for item in panel.items:
-                result[item] = f(panel[item])
-            return Panel(result, items=panel.items)
+            def p_apply(panel, f):
+                result = {}
+                for item in panel.items:
+                    result[item] = f(panel[item])
+                return Panel(result, items=panel.items)
 
-        expected = p_apply(panel, lambda x: x.resample('M').mean())
-        tm.assert_panel_equal(result, expected)
+            expected = p_apply(panel, lambda x: x.resample('M').mean())
+            tm.assert_panel_equal(result, expected)
 
-        panel2 = panel.swapaxes(1, 2)
-        result = panel2.resample('M', axis=2).mean()
-        expected = p_apply(panel2, lambda x: x.resample('M', axis=1).mean())
-        tm.assert_panel_equal(result, expected)
+            panel2 = panel.swapaxes(1, 2)
+            result = panel2.resample('M', axis=2).mean()
+            expected = p_apply(panel2,
+                               lambda x: x.resample('M', axis=1).mean())
+            tm.assert_panel_equal(result, expected)
 
     def test_resample_panel_numpy(self):
         rng = date_range('1/1/2000', '6/30/2000')
         n = len(rng)
 
-        panel = Panel(np.random.randn(3, n, 5),
-                      items=['one', 'two', 'three'],
-                      major_axis=rng,
-                      minor_axis=['a', 'b', 'c', 'd', 'e'])
+        with catch_warnings(record=True):
+            panel = Panel(np.random.randn(3, n, 5),
+                          items=['one', 'two', 'three'],
+                          major_axis=rng,
+                          minor_axis=['a', 'b', 'c', 'd', 'e'])
 
-        result = panel.resample('M', axis=1).apply(lambda x: x.mean(1))
-        expected = panel.resample('M', axis=1).mean()
-        tm.assert_panel_equal(result, expected)
+            result = panel.resample('M', axis=1).apply(lambda x: x.mean(1))
+            expected = panel.resample('M', axis=1).mean()
+            tm.assert_panel_equal(result, expected)
 
-        panel = panel.swapaxes(1, 2)
-        result = panel.resample('M', axis=2).apply(lambda x: x.mean(2))
-        expected = panel.resample('M', axis=2).mean()
-        tm.assert_panel_equal(result, expected)
+            panel = panel.swapaxes(1, 2)
+            result = panel.resample('M', axis=2).apply(lambda x: x.mean(2))
+            expected = panel.resample('M', axis=2).mean()
+            tm.assert_panel_equal(result, expected)
 
     def test_resample_anchored_ticks(self):
         # If a fixed delta (5 minute, 4 hour) evenly divides a day, we should
@@ -3037,20 +3041,22 @@ class TestTimeGrouper(tm.TestCase):
     def test_panel_aggregation(self):
         ind = pd.date_range('1/1/2000', periods=100)
         data = np.random.randn(2, len(ind), 4)
-        wp = pd.Panel(data, items=['Item1', 'Item2'], major_axis=ind,
-                      minor_axis=['A', 'B', 'C', 'D'])
 
-        tg = TimeGrouper('M', axis=1)
-        _, grouper, _ = tg._get_grouper(wp)
-        bingrouped = wp.groupby(grouper)
-        binagg = bingrouped.mean()
+        with catch_warnings(record=True):
+            wp = Panel(data, items=['Item1', 'Item2'], major_axis=ind,
+                       minor_axis=['A', 'B', 'C', 'D'])
 
-        def f(x):
-            assert (isinstance(x, Panel))
-            return x.mean(1)
+            tg = TimeGrouper('M', axis=1)
+            _, grouper, _ = tg._get_grouper(wp)
+            bingrouped = wp.groupby(grouper)
+            binagg = bingrouped.mean()
 
-        result = bingrouped.agg(f)
-        tm.assert_panel_equal(result, binagg)
+            def f(x):
+                assert (isinstance(x, Panel))
+                return x.mean(1)
+
+            result = bingrouped.agg(f)
+            tm.assert_panel_equal(result, binagg)
 
     def test_fails_on_no_datetime_index(self):
         index_names = ('Int64Index', 'Index', 'Float64Index', 'MultiIndex')

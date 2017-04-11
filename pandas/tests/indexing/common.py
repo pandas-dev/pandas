@@ -37,41 +37,46 @@ class Base(object):
         self.frame_ints = DataFrame(np.random.randn(4, 4),
                                     index=lrange(0, 8, 2),
                                     columns=lrange(0, 12, 3))
-        self.panel_ints = Panel(np.random.rand(4, 4, 4),
-                                items=lrange(0, 8, 2),
-                                major_axis=lrange(0, 12, 3),
-                                minor_axis=lrange(0, 16, 4))
+        with catch_warnings(record=True):
+            self.panel_ints = Panel(np.random.rand(4, 4, 4),
+                                    items=lrange(0, 8, 2),
+                                    major_axis=lrange(0, 12, 3),
+                                    minor_axis=lrange(0, 16, 4))
 
         self.series_uints = Series(np.random.rand(4),
                                    index=UInt64Index(lrange(0, 8, 2)))
         self.frame_uints = DataFrame(np.random.randn(4, 4),
                                      index=UInt64Index(lrange(0, 8, 2)),
                                      columns=UInt64Index(lrange(0, 12, 3)))
-        self.panel_uints = Panel(np.random.rand(4, 4, 4),
-                                 items=UInt64Index(lrange(0, 8, 2)),
-                                 major_axis=UInt64Index(lrange(0, 12, 3)),
-                                 minor_axis=UInt64Index(lrange(0, 16, 4)))
+        with catch_warnings(record=True):
+            self.panel_uints = Panel(np.random.rand(4, 4, 4),
+                                     items=UInt64Index(lrange(0, 8, 2)),
+                                     major_axis=UInt64Index(lrange(0, 12, 3)),
+                                     minor_axis=UInt64Index(lrange(0, 16, 4)))
 
         self.series_labels = Series(np.random.randn(4), index=list('abcd'))
         self.frame_labels = DataFrame(np.random.randn(4, 4),
                                       index=list('abcd'), columns=list('ABCD'))
-        self.panel_labels = Panel(np.random.randn(4, 4, 4),
-                                  items=list('abcd'),
-                                  major_axis=list('ABCD'),
-                                  minor_axis=list('ZYXW'))
+        with catch_warnings(record=True):
+            self.panel_labels = Panel(np.random.randn(4, 4, 4),
+                                      items=list('abcd'),
+                                      major_axis=list('ABCD'),
+                                      minor_axis=list('ZYXW'))
 
         self.series_mixed = Series(np.random.randn(4), index=[2, 4, 'null', 8])
         self.frame_mixed = DataFrame(np.random.randn(4, 4),
                                      index=[2, 4, 'null', 8])
-        self.panel_mixed = Panel(np.random.randn(4, 4, 4),
-                                 items=[2, 4, 'null', 8])
+        with catch_warnings(record=True):
+            self.panel_mixed = Panel(np.random.randn(4, 4, 4),
+                                     items=[2, 4, 'null', 8])
 
         self.series_ts = Series(np.random.randn(4),
                                 index=date_range('20130101', periods=4))
         self.frame_ts = DataFrame(np.random.randn(4, 4),
                                   index=date_range('20130101', periods=4))
-        self.panel_ts = Panel(np.random.randn(4, 4, 4),
-                              items=date_range('20130101', periods=4))
+        with catch_warnings(record=True):
+            self.panel_ts = Panel(np.random.randn(4, 4, 4),
+                                  items=date_range('20130101', periods=4))
 
         dates_rev = (date_range('20130101', periods=4)
                      .sort_values(ascending=False))
@@ -79,12 +84,14 @@ class Base(object):
                                     index=dates_rev)
         self.frame_ts_rev = DataFrame(np.random.randn(4, 4),
                                       index=dates_rev)
-        self.panel_ts_rev = Panel(np.random.randn(4, 4, 4),
-                                  items=dates_rev)
+        with catch_warnings(record=True):
+            self.panel_ts_rev = Panel(np.random.randn(4, 4, 4),
+                                      items=dates_rev)
 
         self.frame_empty = DataFrame({})
         self.series_empty = Series({})
-        self.panel_empty = Panel({})
+        with catch_warnings(record=True):
+            self.panel_empty = Panel({})
 
         # form agglomerates
         for o in self._objs:
@@ -255,8 +262,18 @@ class Base(object):
                         continue
 
                     obj = d[t]
-                    if obj is not None:
+                    if obj is None:
+                        continue
+
+                    def _call(obj=obj):
                         obj = obj.copy()
 
                         k2 = key2
                         _eq(t, o, a, obj, key1, k2)
+
+                    # Panel deprecations
+                    if isinstance(obj, Panel):
+                        with catch_warnings(record=True):
+                            _call()
+                    else:
+                        _call()

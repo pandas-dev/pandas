@@ -1,4 +1,5 @@
 import warnings
+from warnings import catch_warnings
 import operator
 from itertools import product
 
@@ -1130,11 +1131,12 @@ class TestOperationsNumExprPandas(tm.TestCase):
             self.assertEqual(res, exp)
 
     def test_panel_fails(self):
-        x = Panel(randn(3, 4, 5))
-        y = Series(randn(10))
-        with pytest.raises(NotImplementedError):
-            self.eval('x + y',
-                      local_dict={'x': x, 'y': y})
+        with catch_warnings(record=True):
+            x = Panel(randn(3, 4, 5))
+            y = Series(randn(10))
+            with pytest.raises(NotImplementedError):
+                self.eval('x + y',
+                          local_dict={'x': x, 'y': y})
 
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)

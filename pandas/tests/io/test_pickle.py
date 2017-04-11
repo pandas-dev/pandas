@@ -14,6 +14,8 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 """
 
 import pytest
+from warnings import catch_warnings
+
 import os
 from distutils.version import LooseVersion
 import pandas as pd
@@ -202,7 +204,8 @@ def test_pickles(current_pickle_data, version):
     n = 0
     for f in os.listdir(pth):
         vf = os.path.join(pth, f)
-        data = compare(current_pickle_data, vf, version)
+        with catch_warnings(record=True):
+            data = compare(current_pickle_data, vf, version)
 
         if data is None:
             continue
@@ -339,7 +342,8 @@ class TestCompression(object):
             raise ValueError(msg)
 
         if compression != "zip":
-            f.write(open(src_path, "rb").read())
+            with open(src_path, "rb") as fh:
+                f.write(fh.read())
             f.close()
 
     def decompress_file(self, src_path, dest_path, compression):
@@ -369,7 +373,8 @@ class TestCompression(object):
             msg = 'Unrecognized compression type: {}'.format(compression)
             raise ValueError(msg)
 
-        open(dest_path, "wb").write(f.read())
+        with open(dest_path, "wb") as fh:
+            fh.write(f.read())
         f.close()
 
     @pytest.mark.parametrize('compression', [None, 'gzip', 'bz2', 'xz'])

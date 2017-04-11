@@ -302,7 +302,7 @@ def array_equivalent(left, right, strict_nan=False):
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left) or is_complex_dtype(left):
-        return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+        return ((left == right) | (isnull(left) & isnull(right))).all()
 
     # numpy will will not allow this type of datetimelike vs integer comparison
     elif is_datetimelike_v_numeric(left, right):

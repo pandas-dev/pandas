@@ -3,7 +3,7 @@
 import operator
 
 import pytest
-
+from warnings import catch_warnings
 from numpy import nan
 import numpy as np
 import pandas as pd
@@ -953,23 +953,25 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         self._check_all(_check)
 
     def test_stack_sparse_frame(self):
-        def _check(frame):
-            dense_frame = frame.to_dense()  # noqa
+        with catch_warnings(record=True):
 
-            wp = Panel.from_dict({'foo': frame})
-            from_dense_lp = wp.to_frame()
+            def _check(frame):
+                dense_frame = frame.to_dense()  # noqa
 
-            from_sparse_lp = spf.stack_sparse_frame(frame)
+                wp = Panel.from_dict({'foo': frame})
+                from_dense_lp = wp.to_frame()
 
-            self.assert_numpy_array_equal(from_dense_lp.values,
-                                          from_sparse_lp.values)
+                from_sparse_lp = spf.stack_sparse_frame(frame)
 
-        _check(self.frame)
-        _check(self.iframe)
+                self.assert_numpy_array_equal(from_dense_lp.values,
+                                              from_sparse_lp.values)
 
-        # for now
-        self.assertRaises(Exception, _check, self.zframe)
-        self.assertRaises(Exception, _check, self.fill_frame)
+            _check(self.frame)
+            _check(self.iframe)
+
+            # for now
+            self.assertRaises(Exception, _check, self.zframe)
+            self.assertRaises(Exception, _check, self.fill_frame)
 
     def test_transpose(self):
 
