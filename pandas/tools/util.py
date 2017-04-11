@@ -9,7 +9,7 @@ from pandas.types.common import (is_number,
                                  is_decimal,
                                  is_scalar as isscalar)
 
-from pandas.types.cast import maybe_downcast_to_dtype
+from pandas.types.cast import maybe_downcast_itemsize
 
 import pandas as pd
 from pandas.compat import reduce
@@ -159,9 +159,6 @@ def to_numeric(arg, errors='raise', downcast=None):
     3   -3.0
     dtype: float64
     """
-    if downcast not in (None, 'integer', 'signed', 'unsigned', 'float'):
-        raise ValueError('invalid downcasting method provided')
-
     is_series = False
     is_index = False
     is_scalar = False
@@ -206,31 +203,7 @@ def to_numeric(arg, errors='raise', downcast=None):
     # attempt downcast only if the data has been successfully converted
     # to a numerical dtype and if a downcast method has been specified
     if downcast is not None and is_numeric_dtype(values):
-        typecodes = None
-
-        if downcast in ('integer', 'signed'):
-            typecodes = np.typecodes['Integer']
-        elif downcast == 'unsigned' and np.min(values) >= 0:
-            typecodes = np.typecodes['UnsignedInteger']
-        elif downcast == 'float':
-            typecodes = np.typecodes['Float']
-
-            # pandas support goes only to np.float32,
-            # as float dtypes smaller than that are
-            # extremely rare and not well supported
-            float_32_char = np.dtype(np.float32).char
-            float_32_ind = typecodes.index(float_32_char)
-            typecodes = typecodes[float_32_ind:]
-
-        if typecodes is not None:
-            # from smallest to largest
-            for dtype in typecodes:
-                if np.dtype(dtype).itemsize <= values.dtype.itemsize:
-                    values = maybe_downcast_to_dtype(values, dtype)
-
-                    # successful conversion
-                    if values.dtype == dtype:
-                        break
+        _, values = maybe_downcast_itemsize(values, downcast)
 
     if is_series:
         return pd.Series(values, index=arg.index, name=arg.name)

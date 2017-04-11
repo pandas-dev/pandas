@@ -90,7 +90,11 @@ def maybe_downcast_to_dtype(result, dtype):
                 return result
 
         if issubclass(dtype.type, np.floating):
-            return result.astype(dtype)
+            if np.allclose(result, trans(result).astype(dtype)):
+                return result.astype(dtype)
+            else:
+                return result
+
         elif is_bool_dtype(dtype) or is_integer_dtype(dtype):
 
             # if we don't have any elements, just astype it
@@ -312,10 +316,69 @@ def maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def infer_dtype_from_scalar(val,
-                            pandas_dtype=False,
-                            downcast=False,
-                            allow_uint=False):
+def maybe_downcast_itemsize(val, downcast):
+    """maybe downcast an itemsize
+
+    Parameters
+    ----------
+    val : any object with a numeric type
+        Value to maybe be downcasted.
+    downcast : str, one of {'integer', 'signed', 'unsigned', 'float'}
+        Downcast that resulting data to the smallest numerical dtype
+        possible according to the following rules:
+
+        - 'integer' or 'signed': smallest signed int dtype (min.: np.int8)
+        - 'unsigned': smallest unsigned int dtype (min.: np.uint8)
+        - 'float': smallest float dtype (min.: np.float32)
+
+        Downcasting will only occur if the size
+        of the data's dtype is strictly larger than
+        the dtype it is to be cast to, so if none of the dtypes
+        checked satisfy that specification, no downcasting will be
+        performed on the data.
+
+        Values smaller than the minimums above will be returned as is.
+
+    .. versionadded:: 0.20.0
+    Returns
+    -------
+    dtype : a numpy dtype
+    val : the downcasted value
+    """
+
+    if downcast not in ('integer', 'signed', 'unsigned', 'float'):
+        raise ValueError('invalid downcasting method provided')
+
+    typecodes = None
+
+    if downcast in ('integer', 'signed'):
+        typecodes = np.typecodes['Integer']
+    elif downcast == 'unsigned' and np.min(val) >= 0:
+        typecodes = np.typecodes['UnsignedInteger']
+    elif downcast == 'float':
+        typecodes = np.typecodes['Float']
+
+        # pandas support goes only to np.float32,
+        # as float dtypes smaller than that are
+        # extremely rare and not well supported
+        float_32_char = np.dtype(np.float32).char
+        float_32_ind = typecodes.index(float_32_char)
+        typecodes = typecodes[float_32_ind:]
+
+    if typecodes is not None:
+        # from smallest to largest
+        for dtype in typecodes:
+            if np.dtype(dtype).itemsize <= val.dtype.itemsize:
+                val = maybe_downcast_to_dtype(val, dtype)
+
+                # successful conversion
+                if val.dtype == dtype:
+                    break
+
+    return val.dtype.type, val
+
+
+def infer_dtype_from_scalar(val, pandas_dtype=False):
     """
     interpret the dtype from a scalar
 
@@ -325,51 +388,7 @@ def infer_dtype_from_scalar(val,
         whether to infer dtype including pandas extension types.
         If False, scalar belongs to pandas extension types is inferred as
         object
-    downcast : bool, default False
-        If True, downcast float and integer types to the smallest width
-        type that can hold `val`.
-
-    .. versionadded:: 0.20.0
-    allow_uint : bool, default False
-        If True and `downcast` is True, non-negative integers will be
-        downcast to smallest width unsigned integer type that can hold
-        them. Otherwise, signed types are always downcast to signed types
-        and the same for unsigned types.
-
-    .. versionadded:: 0.20.0
     """
-
-    def _downcast_dtype(dtype, val):
-        if 'float' in str(dtype):
-            if ((val > np.finfo(np.float16).min and
-                    val < np.finfo(np.float16).max) or val is np.nan):
-                return np.float16
-            elif (val > np.finfo(np.float32).min and
-                    val < np.finfo(np.float32).max):
-                return np.float32
-            else:
-                return np.float64
-        elif 'uint' in str(dtype) or (val >= 0 and allow_uint):
-            if val < np.iinfo(np.uint8).max:
-                return np.uint8
-            elif val < np.iinfo(np.uint16).max:
-                return np.uint16
-            elif val < np.iinfo(np.uint32).max:
-                return np.uint32
-            else:
-                return np.uint64
-        elif 'int' in str(dtype):
-            if (val > np.iinfo(np.int8).min and
-                    val < np.iinfo(np.int8).max):
-                return np.int8
-            elif (val > np.iinfo(np.int16).min and
-                    val < np.iinfo(np.int16).max):
-                return np.int16
-            elif (val > np.iinfo(np.int32).min and
-                    val < np.iinfo(np.int32).max):
-                return np.int32
-            else:
-                return np.int64
 
     dtype = np.object_
 
@@ -381,8 +400,6 @@ def infer_dtype_from_scalar(val,
 
         dtype = val.dtype
         val = val.item()
-
-        dtype = _downcast_dtype(dtype, val) if downcast else dtype
 
     elif isinstance(val, string_types):
 
@@ -419,15 +436,11 @@ def infer_dtype_from_scalar(val,
         else:
             dtype = np.int64
 
-        dtype = _downcast_dtype(dtype, val) if downcast else dtype
-
     elif is_float(val):
         if isinstance(val, np.floating):
             dtype = type(val)
         else:
             dtype = np.float64
-
-        dtype = _downcast_dtype(dtype, val) if downcast else dtype
 
     elif is_complex(val):
         dtype = np.complex_

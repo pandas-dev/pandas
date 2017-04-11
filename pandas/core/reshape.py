@@ -11,7 +11,8 @@ import numpy as np
 from pandas.types.common import (_ensure_platform_int,
                                  is_list_like, is_bool_dtype,
                                  needs_i8_conversion)
-from pandas.types.cast import maybe_promote, infer_dtype_from_scalar
+from pandas.types.cast import (maybe_promote, infer_dtype_from_scalar,
+                               maybe_downcast_itemsize)
 from pandas.types.missing import notnull
 import pandas.types.concat as _concat
 
@@ -1077,7 +1078,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         If appending prefix, separator/delimiter to use. Or pass a
         list or dictionary as with `prefix.`
     dummy_na : bool, default False
-        Add a column to indicate NaNs if True.
+        If True, add an extra dummy column to indicate NaNs, otherwise
+        no extra column is added.
     columns : list-like, default None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
@@ -1094,11 +1096,16 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
         .. versionadded:: 0.18.0
     fill_value : scalar, default None
-        Value to fill NaNs with. The default of `None` will fill with
-        zeros. To do no filling of NaNs, specify `fill_value=np.nan`.
-        The default behavior of filling with zeros will be deprecated
-        in the future and using this default will not raise a
-        `FutureWarning`.
+        Value to fill NaNs with. If no missing values are found or NaN is not
+        used to fill them, the returned data type will be the smallest
+        width type that can represent the returned values. See
+        pandas.types.cast.maybe_downcast_itemsize for details. If NaNs are
+        present and NaN is used to fill them, then the smallest floating
+        point type (typically `np.float32`) will be used. Currently, the
+        default of `None` will fill with zeros. To do no filling of NaNs,
+        specify `fill_value=np.nan`. The default behavior of filling with
+        zeros will be deprecated in the future and using this default will
+        now raise a `FutureWarning`.
 
         .. versionadded:: 0.20.0
     Returns
@@ -1196,10 +1203,20 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         except TypeError:
             isnotfinite.append(False)
     if np.any(isnotfinite):
-        output_dtype, fill_value = infer_dtype_from_scalar(
-            fill_value, downcast=True, allow_uint=True)
-        if output_dtype == np.float16:
-            output_dtype = np.float32
+        output_dtype, fill_value = infer_dtype_from_scalar(fill_value)
+        # `maybe_downcast_itemsize` only accepts arrays, so make a one
+        # element array and then extract the value back out. GH15926
+        if 'float' in str(output_dtype) or fill_value is np.nan:
+            output_dtype, fill_value = maybe_downcast_itemsize(
+                np.array([np.float64(fill_value)]), 'float')
+        elif 'int' in str(output_dtype):
+            if fill_value >= 0:
+                fill_value = np.uint64(fill_value)
+            else:
+                fill_value = np.int64(fill_value)
+            output_dtype, fill_value \
+                = maybe_downcast_itemsize(np.array([fill_value]), 'unsigned')
+        fill_value = output_dtype(fill_value[0])
     else:
         output_dtype = np.uint8
 
