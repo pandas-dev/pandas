@@ -2897,15 +2897,33 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _join_multi(self, other, how, return_indexers=True):
         from .multi import MultiIndex
 
+        def _complete_join(new_lvls, new_lbls, new_nms):
+            for n in not_overlap:
+                if n in self_names:
+                    idx = lidx
+                    lvls = self.levels[self_names.index(n)].values
+                    lbls = self.labels[self_names.index(n)]
+                else:
+                    idx = ridx
+                    lvls = other.levels[other_names.index(n)].values
+                    lbls = other.labels[other_names.index(n)]
+                    
+                new_lvls = new_levels.union([lvls])                    
+                l = [lbls[i] if i!=-1 else -1 for i in idx]  
+                new_lbls = new_lbls.union([l])
+                
+                new_nms = new_nms.union([n])
+        
+            return  new_lvls, new_lbls, new_nms
+        
         # figure out join names
         self_names = [n for n in self.names if n is not None]
         other_names = [n for n in other.names if n is not None]
-        
         overlap = list(set(self_names) & set(other_names))
 
         # Drop the non matching levels
-        ldrop_lvls = [l for l in self_names if l not in overlap]
-        rdrop_lvls = [l for l in other_names if l not in overlap]
+        ldrop_levels = [l for l in self_names if l not in overlap]
+        rdrop_levels = [l for l in other_names if l not in overlap]
 
         self_is_mi = isinstance(self, MultiIndex)
         other_is_mi = isinstance(other, MultiIndex)
@@ -2916,8 +2934,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                              "overlapping names")
 
         if self_is_mi and other_is_mi:
-            self_tmp = self.droplevel(ldrop_lvls)
-            other_tmp = other.droplevel(rdrop_lvls)
+            self_tmp = self.droplevel(ldrop_levels)
+            other_tmp = other.droplevel(rdrop_levels)
 
             join_index, lidx, ridx = self_tmp.join(other_tmp, how=how,
                                                    return_indexers=True)
@@ -2925,7 +2943,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             # Append to the returned Index the non-overlapping levels            
             not_overlap = (set(self_names) ^ set(other_names))
             
-            #def _get_levels():
             if how == 'left':
                 ji = self
             elif how == 'right':
@@ -2933,27 +2950,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             else:
                 ji = join_index
             
-            new_levels = ji.levels
-            new_labels = ji.labels
-            new_names = ji.names
-            
             if how == 'outer':
-                for n in not_overlap:
-                    if n in self_names:
-                        idx = lidx
-                        lvls = self.levels[self_names.index(n)].values
-                        lbls = self.labels[self_names.index(n)]
-                    else:
-                        idx = ridx
-                        lvls = other.levels[other_names.index(n)].values
-                        lbls = other.labels[other_names.index(n)]
-                        
-                    new_levels = new_levels.union([lvls])                    
-                    l = [lbls[i] if i!=-1 else -1 for i in idx]  
-                    new_labels = new_labels.union([l])
-                    
-                    new_names = new_names.union([n])
-                    
+                new_levels, new_labels, new_names = _complete_join(ji.levels,
+                                                                   ji.labels,
+                                                                   ji.names)
+            else:
+                new_levels = ji.levels
+                new_labels = ji.labels
+                new_names = ji.names
+            
             join_index = MultiIndex(levels=new_levels, labels=new_labels,
                                     names=new_names, verify_integrity=False)
             
@@ -3917,7 +3922,7 @@ if __name__ == '__main__':
     matrix = (
         pd.DataFrame(
             dict(Origin=[1, 1, 2, 2, 3],
-                 Destination=[1, 2, 1, 3, 4],
+                 Destination=[1, 2, 1, 3, 1],
                  Period=['AM','PM','IP','AM','OP'],
                  TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
                  Trips=[1987, 3647, 2470, 4296, 4444]),
@@ -3938,17 +3943,20 @@ if __name__ == '__main__':
         pd.DataFrame(
             dict(Origin=     [1, 1, 2, 2, 3],
                  Destination=[1, 2, 1, 3, 1],
-
                  Period=['AM','PM','IP', 'AM', 'OP'],
+                 TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
                  Trips=[1987, 3647, 2470, 4296, 4444],
                  Distance=[100, 80, 90, np.nan, 75]),
-            columns=['Origin', 'Destination', 'Period', 'Trips', 'Distance'])
-        .set_index(['Origin', 'Destination', 'Period']))
+            columns=['Origin', 'Destination', 'Period', 'TripPurp', 
+                     'Trips', 'Distance'])
+        .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
 
     
     print(matrix)
     print(distances)
 
-    result = matrix.join(distances, how='outer')
+    result = matrix.join(distances, how='left')
     
+    print(expected)
+
     print(result)
