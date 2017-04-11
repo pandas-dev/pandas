@@ -373,6 +373,7 @@ Other Enhancements
 - ``pd.read_csv()`` will now raise a ``ParserError`` error whenever any parsing error occurs (:issue:`15913`, :issue:`15925`)
 - ``pd.read_csv()`` now supports the ``error_bad_lines`` and ``warn_bad_lines`` arguments for the Python parser (:issue:`15925`)
 - ``pd.get_dummies()`` now accepts the ``fill_value`` keyword which specifies how to fill NaN values in the dummy variables. (:issue:`15923`)
+- ``pd.types.cast`` has a new function ``maybe_downcast_itemsize`` which can be used to reduce the width of numeric types. (:issue:`15923`)
 
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
