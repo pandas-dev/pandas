@@ -54,7 +54,7 @@ class TestSorting(tm.TestCase):
         for k, v in compat.iteritems(expected):
             assert left[k] == right[k[::-1]]
             assert left[k] == v
-        len(left) == len(right)
+        assert len(left) == len(right)
 
     def test_int64_overflow_moar(self):
 
