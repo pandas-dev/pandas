@@ -304,6 +304,24 @@ class TestGroupByAggregate(tm.TestCase):
                                                     ['D', 'C']])
         assert_frame_equal(result, expected, check_like=True)
 
+    def test_agg_dict_renaming_deprecation(self):
+        # 15931
+        df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+                           'B': range(5),
+                           'C': range(5)})
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w:
+            df.groupby('A').agg({'B': {'foo': ['sum', 'max']},
+                                 'C': {'bar': ['count', 'min']}})
+            assert "using a dict with renaming" in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w:
+            df.groupby('A').B.agg({'foo': 'count'})
+            assert "using a dict on a Series for aggregation" in str(
+                w[0].message)
+
     def test_agg_compat(self):
 
         # GH 12334

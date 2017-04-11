@@ -447,7 +447,6 @@ pandas.DataFrame.%(name)s
         how can be a string describe the required post-processing, or
         None if not required
         """
-
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
         is_nested_renamer = False
 
@@ -482,7 +481,7 @@ pandas.DataFrame.%(name)s
                     # the keys must be in the columns
                     # for ndim=2, or renamers for ndim=1
 
-                    # ok
+                    # ok for now, but deprecated
                     # {'A': { 'ra': 'mean' }}
                     # {'A': { 'ra': ['mean'] }}
                     # {'ra': ['mean']}
@@ -497,7 +496,25 @@ pandas.DataFrame.%(name)s
                                                      'for {0} with a nested '
                                                      'dictionary'.format(k))
 
+                        # deprecation of nested renaming
+                        warnings.warn(
+                            ("using a dict with renaming "
+                             "is deprecated and will be removed in a future "
+                             "version"),
+                            FutureWarning, stacklevel=3)
+
                 arg = new_arg
+
+            else:
+                # we may have renaming keys
+                keys = list(compat.iterkeys(arg))
+                if (isinstance(obj, ABCDataFrame) and
+                        len(obj.columns.intersection(keys)) != len(keys)):
+                    warnings.warn(
+                        ("using a dict with renaming "
+                         "is deprecated and will be removed in a future "
+                         "version"),
+                        FutureWarning, stacklevel=3)
 
             from pandas.tools.concat import concat
 
@@ -532,16 +549,6 @@ pandas.DataFrame.%(name)s
             # set the final keys
             keys = list(compat.iterkeys(arg))
             result = compat.OrderedDict()
-
-            # renaming keys
-            if isinstance(self._selected_obj, ABCDataFrame):
-                if len(self._selected_obj.columns.intersection(
-                        keys)) != len(keys):
-                    warnings.warn(
-                        ("using a dict with renaming"
-                         "is deprecated and will be removed in a future "
-                         "version"),
-                        FutureWarning, stacklevel=3)
 
             # nested renamer
             if is_nested_renamer:

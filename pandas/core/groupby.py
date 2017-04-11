@@ -2835,9 +2835,11 @@ class SeriesGroupBy(GroupBy):
     def _aggregate_multiple_funcs(self, arg, _level):
         if isinstance(arg, dict):
 
-            if isinstance(self._selected_obj, Series):
+            # show the deprecation, but only if we
+            # have not shown a higher level one
+            if isinstance(self._selected_obj, Series) and _level <= 1:
                 warnings.warn(
-                    ("using a dictionary on a Series for aggregation\n"
+                    ("using a dict on a Series for aggregation\n"
                      "is deprecated and will be removed in a future "
                      "version"),
                     FutureWarning, stacklevel=7)
