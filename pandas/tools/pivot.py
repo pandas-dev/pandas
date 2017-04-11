@@ -386,7 +386,8 @@ def _convert_by(by):
 
 
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
-             aggfunc=None, margins=False, dropna=True, normalize=False):
+             aggfunc=None, margins=False, dropna=True, normalize=False,
+             margins_name='All'):
     """
     Compute a simple cross-tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an
@@ -420,6 +421,9 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
         - If margins is `True`, will also normalize margin values.
 
         .. versionadded:: 0.18.1
+    margins_name : string, default 'All'
+        Name of the row / column that will contain the totals
+        when margins is True.
 
 
     Notes
@@ -488,14 +492,16 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
         df = DataFrame(data)
         df['__dummy__'] = 0
         table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
-                               aggfunc=len, margins=margins, dropna=dropna)
+                               aggfunc=len, margins=margins, dropna=dropna,
+                               margins_name=margins_name)
         table = table.fillna(0).astype(np.int64)
 
     else:
         data['__dummy__'] = values
         df = DataFrame(data)
         table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
-                               aggfunc=aggfunc, margins=margins, dropna=dropna)
+                               aggfunc=aggfunc, margins=margins, dropna=dropna,
+                               margins_name=margins_name)
 
     # Post-process
     if normalize is not False:
