@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -33,7 +34,8 @@ class TestABCClasses(tm.TestCase):
         self.assertIsInstance(pd.Int64Index([1, 2, 3]), gt.ABCIndexClass)
         self.assertIsInstance(pd.Series([1, 2, 3]), gt.ABCSeries)
         self.assertIsInstance(self.df, gt.ABCDataFrame)
-        self.assertIsInstance(self.df.to_panel(), gt.ABCPanel)
+        with catch_warnings(record=True):
+            self.assertIsInstance(self.df.to_panel(), gt.ABCPanel)
         self.assertIsInstance(self.sparse_series, gt.ABCSparseSeries)
         self.assertIsInstance(self.sparse_array, gt.ABCSparseArray)
         self.assertIsInstance(self.categorical, gt.ABCCategorical)

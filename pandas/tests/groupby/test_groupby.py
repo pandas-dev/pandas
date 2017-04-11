@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+from warnings import catch_warnings
 from string import ascii_lowercase
 from datetime import datetime
 from numpy import nan
@@ -814,12 +815,14 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_series_equal(result, e)
 
     def test_get_group(self):
-        wp = tm.makePanel()
-        grouped = wp.groupby(lambda x: x.month, axis='major')
+        with catch_warnings(record=True):
+            wp = tm.makePanel()
+            grouped = wp.groupby(lambda x: x.month, axis='major')
 
-        gp = grouped.get_group(1)
-        expected = wp.reindex(major=[x for x in wp.major_axis if x.month == 1])
-        assert_panel_equal(gp, expected)
+            gp = grouped.get_group(1)
+            expected = wp.reindex(
+                major=[x for x in wp.major_axis if x.month == 1])
+            assert_panel_equal(gp, expected)
 
         # GH 5267
         # be datelike friendly
@@ -1317,16 +1320,17 @@ class TestGroupBy(MixIn, tm.TestCase):
             pass
 
     def test_multi_iter_panel(self):
-        wp = tm.makePanel()
-        grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
-                             axis=1)
+        with catch_warnings(record=True):
+            wp = tm.makePanel()
+            grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
+                                 axis=1)
 
-        for (month, wd), group in grouped:
-            exp_axis = [x
-                        for x in wp.major_axis
-                        if x.month == month and x.weekday() == wd]
-            expected = wp.reindex(major=exp_axis)
-            assert_panel_equal(group, expected)
+            for (month, wd), group in grouped:
+                exp_axis = [x
+                            for x in wp.major_axis
+                            if x.month == month and x.weekday() == wd]
+                expected = wp.reindex(major=exp_axis)
+                assert_panel_equal(group, expected)
 
     def test_multi_func(self):
         col1 = self.df['A']
@@ -1387,25 +1391,26 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         def _check_op(op):
 
-            result1 = op(grouped)
+            with catch_warnings(record=True):
+                result1 = op(grouped)
 
-            expected = defaultdict(dict)
-            for n1, gp1 in data.groupby('A'):
-                for n2, gp2 in gp1.groupby('B'):
-                    expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
-            expected = dict((k, DataFrame(v))
-                            for k, v in compat.iteritems(expected))
-            expected = Panel.fromDict(expected).swapaxes(0, 1)
-            expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
+                expected = defaultdict(dict)
+                for n1, gp1 in data.groupby('A'):
+                    for n2, gp2 in gp1.groupby('B'):
+                        expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
+                expected = dict((k, DataFrame(v))
+                                for k, v in compat.iteritems(expected))
+                expected = Panel.fromDict(expected).swapaxes(0, 1)
+                expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
 
-            # a little bit crude
-            for col in ['C', 'D']:
-                result_col = op(grouped[col])
-                exp = expected[col]
-                pivoted = result1[col].unstack()
-                pivoted2 = result_col.unstack()
-                assert_frame_equal(pivoted.reindex_like(exp), exp)
-                assert_frame_equal(pivoted2.reindex_like(exp), exp)
+                # a little bit crude
+                for col in ['C', 'D']:
+                    result_col = op(grouped[col])
+                    exp = expected[col]
+                    pivoted = result1[col].unstack()
+                    pivoted2 = result_col.unstack()
+                    assert_frame_equal(pivoted.reindex_like(exp), exp)
+                    assert_frame_equal(pivoted2.reindex_like(exp), exp)
 
         _check_op(lambda x: x.sum())
         _check_op(lambda x: x.mean())
@@ -2980,8 +2985,9 @@ class TestGroupBy(MixIn, tm.TestCase):
 
     def test_sparse_friendly(self):
         sdf = self.df[['C', 'D']].to_sparse()
-        panel = tm.makePanel()
-        tm.add_nans(panel)
+        with catch_warnings(record=True):
+            panel = tm.makePanel()
+            tm.add_nans(panel)
 
         def _check_work(gp):
             gp.mean()
@@ -2997,27 +3003,28 @@ class TestGroupBy(MixIn, tm.TestCase):
         # _check_work(panel.groupby(lambda x: x.month, axis=1))
 
     def test_panel_groupby(self):
-        self.panel = tm.makePanel()
-        tm.add_nans(self.panel)
-        grouped = self.panel.groupby({'ItemA': 0, 'ItemB': 0, 'ItemC': 1},
-                                     axis='items')
-        agged = grouped.mean()
-        agged2 = grouped.agg(lambda x: x.mean('items'))
+        with catch_warnings(record=True):
+            self.panel = tm.makePanel()
+            tm.add_nans(self.panel)
+            grouped = self.panel.groupby({'ItemA': 0, 'ItemB': 0, 'ItemC': 1},
+                                         axis='items')
+            agged = grouped.mean()
+            agged2 = grouped.agg(lambda x: x.mean('items'))
 
-        tm.assert_panel_equal(agged, agged2)
+            tm.assert_panel_equal(agged, agged2)
 
-        self.assert_index_equal(agged.items, Index([0, 1]))
+            self.assert_index_equal(agged.items, Index([0, 1]))
 
-        grouped = self.panel.groupby(lambda x: x.month, axis='major')
-        agged = grouped.mean()
+            grouped = self.panel.groupby(lambda x: x.month, axis='major')
+            agged = grouped.mean()
 
-        exp = Index(sorted(list(set(self.panel.major_axis.month))))
-        self.assert_index_equal(agged.major_axis, exp)
+            exp = Index(sorted(list(set(self.panel.major_axis.month))))
+            self.assert_index_equal(agged.major_axis, exp)
 
-        grouped = self.panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
-                                     axis='minor')
-        agged = grouped.mean()
-        self.assert_index_equal(agged.minor_axis, Index([0, 1]))
+            grouped = self.panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
+                                         axis='minor')
+            agged = grouped.mean()
+            self.assert_index_equal(agged.minor_axis, Index([0, 1]))
 
     def test_groupby_2d_malformed(self):
         d = DataFrame(index=lrange(2))

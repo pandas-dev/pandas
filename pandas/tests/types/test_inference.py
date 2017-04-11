@@ -5,7 +5,7 @@ These the test the public routines exposed in types/common.py
 related to inference and not otherwise tested in types/test_common.py
 
 """
-
+from warnings import catch_warnings
 import collections
 import re
 from datetime import datetime, date, timedelta, time
@@ -930,8 +930,9 @@ class Testisscalar(tm.TestCase):
         self.assertFalse(is_scalar(Series([1])))
         self.assertFalse(is_scalar(DataFrame()))
         self.assertFalse(is_scalar(DataFrame([[1]])))
-        self.assertFalse(is_scalar(Panel()))
-        self.assertFalse(is_scalar(Panel([[[1]]])))
+        with catch_warnings(record=True):
+            self.assertFalse(is_scalar(Panel()))
+            self.assertFalse(is_scalar(Panel([[[1]]])))
         self.assertFalse(is_scalar(Index([])))
         self.assertFalse(is_scalar(Index([1])))
 

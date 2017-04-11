@@ -7,6 +7,7 @@ import os
 from distutils.version import LooseVersion
 
 import warnings
+from warnings import catch_warnings
 import operator
 import functools
 import pytest
@@ -2340,9 +2341,13 @@ class ExcelWriterEngineTests(tm.TestCase):
             writer = ExcelWriter('something.test')
             tm.assertIsInstance(writer, DummyClass)
             df = tm.makeCustomDataframe(1, 1)
-            panel = tm.makePanel()
-            func = lambda: df.to_excel('something.test')
-            check_called(func)
-            check_called(lambda: panel.to_excel('something.test'))
-            check_called(lambda: df.to_excel('something.xlsx'))
-            check_called(lambda: df.to_excel('something.xls', engine='dummy'))
+
+            with catch_warnings(record=True):
+                panel = tm.makePanel()
+                func = lambda: df.to_excel('something.test')
+                check_called(func)
+                check_called(lambda: panel.to_excel('something.test'))
+                check_called(lambda: df.to_excel('something.xlsx'))
+                check_called(
+                    lambda: df.to_excel(
+                        'something.xls', engine='dummy'))
