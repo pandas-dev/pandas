@@ -317,6 +317,10 @@ class TestGroupByAggregate(tm.TestCase):
             assert "using a dict with renaming" in str(w[0].message)
 
         with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
+
+        with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False) as w:
             df.groupby('A').B.agg({'foo': 'count'})
             assert "using a dict on a Series for aggregation" in str(

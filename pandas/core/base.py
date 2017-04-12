@@ -292,8 +292,11 @@ class SelectionMixin(object):
 
     @property
     def _selection_name(self):
-        """ return a name for myself; this would ideally be the 'name' property, but
-        we cannot conflict with the Series.name property which can be set """
+        """
+        return a name for myself; this would ideally be called
+        the 'name' property, but we cannot conflict with the
+        Series.name property which can be set
+        """
         if self._selection is None:
             return None  # 'result'
         else:
@@ -502,7 +505,7 @@ pandas.DataFrame.%(name)s
                             ("using a dict with renaming "
                              "is deprecated and will be removed in a future "
                              "version"),
-                            FutureWarning, stacklevel=3)
+                            FutureWarning, stacklevel=4)
 
                 arg = new_arg
 
@@ -516,7 +519,7 @@ pandas.DataFrame.%(name)s
                         ("using a dict with renaming "
                          "is deprecated and will be removed in a future "
                          "version"),
-                        FutureWarning, stacklevel=3)
+                        FutureWarning, stacklevel=4)
 
             from pandas.tools.concat import concat
 
