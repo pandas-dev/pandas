@@ -2837,6 +2837,7 @@ class SeriesGroupBy(GroupBy):
 
             # show the deprecation, but only if we
             # have not shown a higher level one
+            # GH 15931
             if isinstance(self._selected_obj, Series) and _level <= 1:
                 warnings.warn(
                     ("using a dict on a Series for aggregation\n"

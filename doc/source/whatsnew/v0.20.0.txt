@@ -429,7 +429,6 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
 
-<<<<<<< c25fbde09272f369f280212e5216441d5975687c
 .. _whatsnew_0200.api_breaking.deprecate_panel:
 
 Deprecate Panel
@@ -462,23 +461,30 @@ Convert to an xarray DataArray
 Deprecate groupby.agg() with a dictionary when renaming
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``.groupby(..).agg(..)`` syntax can accept a variable of inputs, including scalars, list, and a dictionary of column names to scalars or lists.
-This provides a useful syntax for constructing multiple (potentially different) aggregations for a groupby.
+The ``.groupby(..).agg(..)``, ``.rolling(..).agg(..)``, and ``.resample(..).agg(..)``  syntax can accept a variable of inputs, including scalars,
+list, and a dict of column names to scalars or lists. This provides a useful syntax for constructing multiple
+(potentially different) aggregations.
 
-1) We are deprecating passing a dictionary to a grouped ``Series``. This allowed one to ``rename`` the resulting aggregation, but this had a completely different
-meaning that passing a dictionary to a grouped ``DataFrame``, which accepts column-to-aggregations.
-2) We are deprecating passing a dict-of-dict to a grouped ``DataFrame`` in a similar manner.
+However, ``.agg(..)`` can *also* accept a dict that allows 'renaming' of the result columns. This is a complicated and confusing syntax, as well as not consistent
+between ``Series`` and ``DataFrame``. We are deprecating this 'renaming' functionarility.
 
-Here's an example of 1), passing a dict to a grouped ``Series``:
+1) We are deprecating passing a dict to a grouped/rolled/resampled ``Series``. This allowed
+one to ``rename`` the resulting aggregation, but this had a completely different
+meaning than passing a dictionary to a grouped ``DataFrame``, which accepts column-to-aggregations.
+2) We are deprecating passing a dict-of-dict to a grouped/rolled/resampled ``DataFrame`` in a similar manner.
+
+This is an illustrative example:
 
 .. ipython:: python
 
     df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
                        'B': range(5),
-                       'C':range(5)})
+                       'C': range(5)})
     df
 
-Aggregating a DataFrame with column selection.
+Here is a typical useful syntax for computing different aggregations for different columns. This
+is a natural (and useful) syntax. We aggregate from the dict-to-list by taking the specified
+columns and applying the list of functions. This returns a ``MultiIndex`` for the columns.
 
 .. ipython:: python
 
@@ -486,9 +492,10 @@ Aggregating a DataFrame with column selection.
                         'C': ['count', 'min']})
 
 
-We are deprecating the following
+Here's an example of the first deprecation (1), passing a dict to a grouped ``Series``. This
+is a combination aggregation & renaming:
 
-.. code-block:: ipython. Which is a combination aggregation & renaming.
+.. code-block:: ipython
 
    In [6]: df.groupby('A').B.agg({'foo': 'count'})
    FutureWarning: using a dictionary on a Series for aggregation
@@ -507,7 +514,7 @@ You can accomplish the same operation, more idiomatically by:
    df.groupby('A').B.agg(['count']).rename({'count': 'foo'})
 
 
-Here's an example of 2), passing a dict-of-dict to a grouped ``DataFrame``:
+Here's an example of the second deprecation (2), passing a dict-of-dict to a grouped ``DataFrame``:
 
 .. code-block:: python
 

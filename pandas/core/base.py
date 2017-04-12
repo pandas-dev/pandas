@@ -497,6 +497,7 @@ pandas.DataFrame.%(name)s
                                                      'dictionary'.format(k))
 
                         # deprecation of nested renaming
+                        # GH 15931
                         warnings.warn(
                             ("using a dict with renaming "
                              "is deprecated and will be removed in a future "
@@ -506,7 +507,8 @@ pandas.DataFrame.%(name)s
                 arg = new_arg
 
             else:
-                # we may have renaming keys
+                # deprecation of renaming keys
+                # GH 15931
                 keys = list(compat.iterkeys(arg))
                 if (isinstance(obj, ABCDataFrame) and
                         len(obj.columns.intersection(keys)) != len(keys)):
