@@ -1564,10 +1564,7 @@ class CSVFormatter(object):
         self.chunksize = int(chunksize)
 
         self.data_index = obj.index
-        if isinstance(obj.index, PeriodIndex):
-            self.data_index = obj.index.to_timestamp()
-
-        if (isinstance(self.data_index, DatetimeIndex) and
+        if (isinstance(self.data_index, (DatetimeIndex, PeriodIndex)) and
                 date_format is not None):
             self.data_index = Index([x.strftime(date_format) if notnull(x) else
                                      '' for x in self.data_index])
