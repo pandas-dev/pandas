@@ -1,7 +1,10 @@
 """ routings for casting """
 
 from datetime import datetime, timedelta
+
 import numpy as np
+import warnings
+
 from pandas._libs import tslib, lib
 from pandas._libs.tslib import iNaT
 from pandas.compat import string_types, text_type, PY3
@@ -620,6 +623,14 @@ def astype_nansafe(arr, dtype, copy=True):
         # work around NumPy brokenness, #1987
         return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
 
+    if dtype.name in ("datetime64", "timedelta64"):
+        msg = ("Passing in '{dtype}' dtype with no frequency is "
+               "deprecated and will raise in a future version. "
+               "Please pass in '{dtype}[ns]' instead.")
+        warnings.warn(msg.format(dtype=dtype.name),
+                      FutureWarning, stacklevel=2)
+        dtype = np.dtype(dtype.name + "[ns]")
+
     if copy:
         return arr.astype(dtype)
     return arr.view(dtype)
@@ -871,8 +882,15 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
         if is_datetime64 or is_datetime64tz or is_timedelta64:
 
             # force the dtype if needed
+            msg = ("Passing in '{dtype}' dtype with no frequency is "
+                   "deprecated and will raise in a future version. "
+                   "Please pass in '{dtype}[ns]' instead.")
+
             if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
-                if dtype.name == 'datetime64[ns]':
+                if dtype.name in ('datetime64', 'datetime64[ns]'):
+                    if dtype.name == 'datetime64':
+                        warnings.warn(msg.format(dtype=dtype.name),
+                                      FutureWarning, stacklevel=2)
                     dtype = _NS_DTYPE
                 else:
                     raise TypeError("cannot convert datetimelike to "
@@ -886,7 +904,10 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                     value = [value]
 
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
-                if dtype.name == 'timedelta64[ns]':
+                if dtype.name in ('timedelta64', 'timedelta64[ns]'):
+                    if dtype.name == 'timedelta64':
+                        warnings.warn(msg.format(dtype=dtype.name),
+                                      FutureWarning, stacklevel=2)
                     dtype = _TD_DTYPE
                 else:
                     raise TypeError("cannot convert timedeltalike to "

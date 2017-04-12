@@ -839,3 +839,27 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         s = Series(date_range('1/1/2000', periods=10), dtype=object)
         exp = Series(date_range('1/1/2000', periods=10))
         tm.assert_series_equal(s, exp)
+
+    def test_constructor_generic_timestamp(self):
+        # see gh-15524
+        dtype = np.timedelta64
+        s = Series([], dtype=dtype)
+
+        assert s.empty
+        assert s.dtype == 'm8[ns]'
+
+        dtype = np.datetime64
+        s = Series([], dtype=dtype)
+
+        assert s.empty
+        assert s.dtype == 'M8[ns]'
+
+        # These timestamps have the wrong frequencies,
+        # so an Exception should be raised now.
+        msg = "cannot convert timedeltalike"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Series([], dtype='m8[ps]')
+
+        msg = "cannot convert datetimelike"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Series([], dtype='M8[ps]')

@@ -153,6 +153,38 @@ class TestSeriesDtypes(TestData, tm.TestCase):
         self.assertRaises(KeyError, s.astype, {'abc': str, 'def': str})
         self.assertRaises(KeyError, s.astype, {0: str})
 
+    def test_astype_generic_timestamp(self):
+        # see gh-15524
+        data = [1]
+
+        s = Series(data)
+        dtype = np.datetime64
+        result = s.astype(dtype)
+        expected = Series(data, dtype=dtype)
+        assert_series_equal(result, expected)
+
+        s = Series(data)
+        dtype = np.timedelta64
+        result = s.astype(dtype)
+        expected = Series(data, dtype=dtype)
+        assert_series_equal(result, expected)
+
+    def test_astype_empty_constructor_equality(self):
+        # see gh-15524
+
+        for dtype in np.typecodes['All']:
+            if dtype not in ('S', 'V'):  # poor support (if any) currently
+                init_empty = Series([], dtype=dtype)
+                astype_empty = Series([]).astype(dtype)
+
+                try:
+                    assert_series_equal(init_empty, astype_empty)
+                except AssertionError as e:
+                    name = np.dtype(dtype).name
+                    msg = "{dtype} failed: ".format(dtype=name) + str(e)
+
+                    raise AssertionError(msg)
+
     def test_complexx(self):
         # GH4819
         # complex access for ndarray compat
