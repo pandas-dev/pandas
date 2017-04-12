@@ -2213,6 +2213,7 @@ _network_error_messages = (
     'Temporary failure in name resolution',
     'Name or service not known',
     'Connection refused',
+    'certificate verify',
 )
 
 # or this e.errno/e.reason.errno
