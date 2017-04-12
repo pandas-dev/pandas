@@ -1211,11 +1211,7 @@ class TestMergeMulti(tm.TestCase):
             .set_index(["household_id", "asset_id", "t"])
             .reindex(columns=['share', 'log_return']))
 
-        def f():
-            household.join(log_return, how='inner')
-        self.assertRaises(NotImplementedError, f)
-
-        # this is the equivalency
+        # this is equivalency the
         result = (merge(household.reset_index(), log_return.reset_index(),
                         on=['asset_id'], how='inner')
                   .set_index(['household_id', 'asset_id', 't']))
@@ -1224,7 +1220,7 @@ class TestMergeMulti(tm.TestCase):
         expected = (
             DataFrame(dict(
                 household_id=[1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
-                asset_id=["nl0000301109", "nl0000289783", "gb00b03mlx29",
+                asset_id=["nl0000301109", "nl0000301109", "gb00b03mlx29",
                           "gb00b03mlx29", "gb00b03mlx29",
                           "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29",
                           "lu0197800237", "lu0197800237",
@@ -1237,8 +1233,177 @@ class TestMergeMulti(tm.TestCase):
                             .09604978, -.06524096, .03532373,
                             .03025441, .036997, None, None]
             ))
-            .set_index(["household_id", "asset_id", "t"]))
+            .set_index(["household_id", "asset_id", "t"])
+            .reindex(columns=['share', 'log_return']))
 
+        result = (merge(household.reset_index(), log_return.reset_index(),
+                on=['asset_id'], how='outer')
+          .set_index(['household_id', 'asset_id', 't']))
+
+        assert_frame_equal(result, expected)
+
+    def test_join_multi_levels3(self):
+    
+        # Self join
+        matrix = (
+            pd.DataFrame(
+                dict(Origin=[1, 1, 2, 2, 3],
+                     Destination=[1, 2, 1, 3, 1],
+                     Period=['AM','PM','IP','AM','OP'],
+                     TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
+                     Trips=[1987, 3647, 2470, 4296, 4444]),
+                columns=['Origin', 'Destination', 'Period',
+                         'TripPurp', 'Trips'])
+            .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
+        
+        distances = (
+            pd.DataFrame(
+                dict(Origin=     [1, 1, 2, 2, 3, 3, 5],
+                     Destination=[1, 2, 1, 2, 1, 2, 6],
+                     Period=['AM','PM','IP','AM','OP','IP', 'AM'],
+                     LinkType=['a', 'a', 'c', 'b', 'a', 'b', 'a'],
+                     Distance=[100, 80, 90, 80, 75, 35, 55]),
+                columns=['Origin', 'Destination', 'Period', 
+                         'LinkType', 'Distance'])
+            .set_index(['Origin', 'Destination','Period', 'LinkType']))
+        
+        expected = (
+            pd.DataFrame(
+                dict(Origin=[1, 1, 2, 2, 3],
+                     Destination=[1, 2, 1, 3, 1],
+                     Period=['AM','PM','IP','AM','OP'],
+                     TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
+                     Trips=[1987, 3647, 2470, 4296, 4444],
+                     Trips_joined=[1987, 3647, 2470, 4296, 4444]),
+                columns=['Origin', 'Destination', 'Period',
+                         'TripPurp', 'Trips', 'Trips_joined'])
+            .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
+        
+        result = matrix.join(matrix, how='inner', rsuffix='_joined') 
+        assert_frame_equal(result, expected)
+        
+        #Left join
+        expected = (
+            pd.DataFrame(
+                dict(Origin=     [1, 1, 2, 2, 3],
+                     Destination=[1, 2, 1, 3, 1],
+                     Period=['AM','PM','IP', 'AM', 'OP'],
+                     TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
+                     Trips=[1987, 3647, 2470, 4296, 4444],
+                     Distance=[100, 80, 90, np.nan, 75]),
+                columns=['Origin', 'Destination', 'Period', 'TripPurp', 
+                         'Trips', 'Distance'])
+            .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
+        
+        result = matrix.join(distances, how='left')
+        assert_frame_equal(result, expected)
+        
+        #Right join
+        expected = (
+            pd.DataFrame(
+                dict(Origin=     [1, 1, 2, 2, 3, 3, 5],
+                     Destination=[1, 2, 1, 2, 1, 2, 6],
+                     Period=['AM','PM','IP','AM','OP','IP', 'AM'],
+                     LinkType=['a', 'a', 'c', 'b', 'a', 'b', 'a'],
+                     Trips=[1987, 3647, 2470, np.nan, 4444, np.nan, np.nan],
+                     Distance=[100, 80, 90, 80, 75, 35, 55]),
+                columns=['Origin', 'Destination', 'Period', 
+                         'LinkType', 'Trips', 'Distance'])
+            .set_index(['Origin', 'Destination','Period', 'LinkType']))
+        
+        result = matrix.join(distances, how='right')
+        assert_frame_equal(result, expected)
+        
+        #Inner join
+        expected = (
+            pd.DataFrame(
+                dict(Origin=     [1, 1, 2, 3],
+                     Destination=[1, 2, 1, 1],
+                     Period=['AM','PM','IP', 'OP'],
+                     Trips=[1987, 3647, 2470, 4444],
+                     Distance=[100, 80, 90, 75]),
+                columns=['Origin', 'Destination', 'Period', 'Trips', 'Distance'])
+            .set_index(['Origin', 'Destination', 'Period']))
+        
+        result = matrix.join(distances, how='inner')
+        assert_frame_equal(result, expected)
+
+        #Outer join
+        expected = (
+            pd.DataFrame(
+                dict(Origin=     [1, 1, 2, 2, 2, 3, 3, 5],
+                     Destination=[1, 2, 1, 2, 3, 1, 2, 6],
+                     Period=['AM','PM','IP', 'AM', 'AM', 'OP', 'IP', 'AM'],
+                     TripPurp=['hbw', 'nhb', 'hbo', np.nan, 'nhb',
+                               'hbw', np.nan, np.nan],
+                     LinkType=['a', 'a', 'c', 'b', np.nan, 'a', 'b', 'a'],
+                     Trips=[1987, 3647, 2470, np.nan, 4296, 4444, np.nan, np.nan],
+                     Distance=[100, 80, 90, 80, np.nan, 75, 35, 55]),
+                columns=['Origin', 'Destination', 'Period', 'TripPurp', 'LinkType', 
+                         'Trips', 'Distance'])
+            .set_index(['Origin', 'Destination', 'Period', 'TripPurp', 'LinkType']))
+        
+        
+        result = matrix.join(distances, how='outer')
+        assert_frame_equal(result, expected)
+        
+        #Non-unique resulting index
+        distances2 = (
+            pd.DataFrame(
+                dict(Origin=     [1, 1, 2],
+                     Destination=[1, 1, 1],
+                     Period=['AM','AM', 'PM'],
+                     LinkType=['a', 'b', 'a'],
+                     Distance=[100, 110, 120]),
+                columns=['Origin', 'Destination', 'Period', 
+                         'LinkType', 'Distance'])
+            .set_index(['Origin', 'Destination','Period', 'LinkType']))
+                
         def f():
-            household.join(log_return, how='outer')
-        self.assertRaises(NotImplementedError, f)
+            matrix.join(distances2, how='left')
+        self.assertRaises(TypeError, f)
+                
+        #No-overlapping level names
+        distances2 = (
+            pd.DataFrame(
+                dict(Orig=     [1, 1, 2, 2, 3, 3, 5],
+                     Dest=[1, 2, 1, 2, 1, 2, 6],
+                     Per=['AM','PM','IP','AM','OP','IP', 'AM'],
+                     LinkTyp=['a', 'a', 'c', 'b', 'a', 'b', 'a'],
+                     Dist=[100, 80, 90, 80, 75, 35, 55]),
+                columns=['Orig', 'Dest', 'Per', 
+                         'LinkTyp', 'Dist'])
+            .set_index(['Orig', 'Dest','Per', 'LinkTyp']))
+        
+        def f():
+            matrix.join(distances2, how='left')
+        self.assertRaises(ValueError, f)
+
+        # Empty Level
+
+        distances2 = (
+            pd.DataFrame(
+                dict(Origin=[1, 1, 2, 2, 3, 3, 5],
+                     Destination=[1, 2, 1, 2, 1, 2, 6],
+                     Period=[np.nan,np.nan,np.nan,np.nan,np.nan,np.nan,np.nan],
+                     LinkType=['a', 'a', 'c', 'b', 'a', 'b', 'a'],
+                     Distance=[100, 80, 90, 80, 75, 35, 55]),
+                columns=['Origin', 'Destination', 'Period', 
+                         'LinkType', 'Distance'])
+            .set_index(['Origin', 'Destination','Period', 'LinkType']))
+        
+        
+        expected = (
+            pd.DataFrame(
+                dict(Origin=[1, 1, 2, 2, 3],
+                     Destination=[1, 2, 1, 3, 1],
+                     Period=['AM','PM','IP','AM','OP'],
+                     TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
+                     Trips=[1987, 3647, 2470, 4296, 4444],
+                     Distance=[np.nan, np.nan, np.nan, np.nan, np.nan]),
+                columns=['Origin', 'Destination', 'Period',
+                         'TripPurp', 'Trips', 'Distance'])
+            .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
+        
+        result = matrix.join(distances2, how='left')
+        assert_frame_equal(result, expected)

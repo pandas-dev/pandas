@@ -2896,27 +2896,83 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _join_multi(self, other, how, return_indexers=True):
         from .multi import MultiIndex
-        self_is_mi = isinstance(self, MultiIndex)
-        other_is_mi = isinstance(other, MultiIndex)
 
+        def _complete_join():
+            new_lvls = join_index.levels
+            new_lbls = join_index.labels
+            new_nms = join_index.names
+            
+            for n in not_overlap:
+                if n in self_names:
+                    idx = lidx
+                    lvls = self.levels[self_names.index(n)].values
+                    lbls = self.labels[self_names.index(n)]
+                else:
+                    idx = ridx
+                    lvls = other.levels[other_names.index(n)].values
+                    lbls = other.labels[other_names.index(n)]
+                    
+                new_lvls = new_lvls.union([lvls])                    
+                l = [lbls[i] if i!=-1 else -1 for i in idx]  
+                new_lbls = new_lbls.union([l])
+                
+                new_nms = new_nms.union([n])
+        
+            return  new_lvls, new_lbls, new_nms
+        
         # figure out join names
         self_names = [n for n in self.names if n is not None]
         other_names = [n for n in other.names if n is not None]
         overlap = list(set(self_names) & set(other_names))
 
+        # Drop the non matching levels
+        ldrop_levels = [l for l in self_names if l not in overlap]
+        rdrop_levels = [l for l in other_names if l not in overlap]
+
+        self_is_mi = isinstance(self, MultiIndex)
+        other_is_mi = isinstance(other, MultiIndex)
+
         # need at least 1 in common, but not more than 1
         if not len(overlap):
-            raise ValueError("cannot join with no level specified and no "
-                             "overlapping names")
-        if len(overlap) > 1:
-            raise NotImplementedError("merging with more than one level "
-                                      "overlap on a multi-index is not "
-                                      "implemented")
-        jl = overlap[0]
+            raise ValueError("cannot join with no overlapping index names")
 
-        # make the indices into mi's that match
-        if not (self_is_mi and other_is_mi):
+        if self_is_mi and other_is_mi:
+            self_tmp = self.droplevel(ldrop_levels)
+            other_tmp = other.droplevel(rdrop_levels)
 
+            if not (other_tmp.is_unique and self_tmp.is_unique):
+                raise TypeError("The index of the overlapping levels "
+                                 "is not unique")
+                
+            join_index, lidx, ridx = self_tmp.join(other_tmp, how=how,
+                                                   return_indexers=True)
+            
+            # Append to the returned Index the non-overlapping levels            
+            not_overlap = ldrop_levels + rdrop_levels
+            
+            if how == 'left':
+                join_index = self
+            elif how == 'right':
+                join_index = other
+            else:
+                join_index = join_index
+            
+            if how == 'outer':
+                new_levels, new_labels, new_names = _complete_join()
+            else:
+                new_levels = join_index.levels
+                new_labels = join_index.labels
+                new_names = join_index.names
+            
+            join_index = MultiIndex(levels=new_levels, labels=new_labels,
+                                    names=new_names, verify_integrity=False)
+            
+            return join_index, lidx, ridx
+
+        else:
+            jl = overlap[0]
+
+            # make the indices into mi's that match
             flip_order = False
             if self_is_mi:
                 self, other = other, self
@@ -2932,10 +2988,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 if isinstance(result, tuple):
                     return result[0], result[2], result[1]
             return result
-
-        # 2 multi-indexes
-        raise NotImplementedError("merging with both multi-indexes is not "
-                                  "implemented")
 
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.tools.merge import _get_join_indexers
