@@ -1243,7 +1243,7 @@ class TestMergeMulti(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_join_multi_levels3(self):
-    
+        # Multi-index join tests
         # Self join
         matrix = (
             pd.DataFrame(

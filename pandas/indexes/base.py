@@ -2941,8 +2941,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             other_tmp = other.droplevel(rdrop_levels)
 
             if not (other_tmp.is_unique and self_tmp.is_unique):
-                raise TypeError("The index of the overlapping levels "
-                                 "is not unique")
+                raise TypeError(" The index resulting from the overlapping "
+                                 "levels is not unique")
                 
             join_index, lidx, ridx = self_tmp.join(other_tmp, how=how,
                                                    return_indexers=True)
