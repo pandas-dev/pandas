@@ -141,6 +141,22 @@ class TestDataFramePlots(TestPlotBase):
             result = ax.get_axes()  # deprecated
         self.assertIs(result, axes[0])
 
+    # GH 15516
+    def test_mpl2_color_cycle_str(self):
+        # test CN mpl 2.0 color cycle
+        if self.mpl_ge_2_0_0:
+            colors = ['C' + str(x) for x in range(10)]
+            df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
+            for c in colors:
+                _check_plot_works(df.plot, color=c)
+        else:
+            pytest.skip("not supported in matplotlib < 2.0.0")
+
+    def test_color_empty_string(self):
+        df = DataFrame(randn(10, 2))
+        with tm.assertRaises(ValueError):
+            df.plot(color='')
+
     def test_color_and_style_arguments(self):
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
         # passing both 'color' and 'style' arguments should be allowed

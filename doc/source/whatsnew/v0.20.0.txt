@@ -345,6 +345,7 @@ Other Enhancements
 - The ``skiprows`` argument in ``pd.read_csv()`` now accepts a callable function as a value  (:issue:`10882`)
 - The ``nrows`` and ``chunksize`` arguments in ``pd.read_csv()`` are supported if both are passed (:issue:`6774`, :issue:`15755`)
 - ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
+- ``pd.DataFrame.plot`` can pass `matplotlib 2.0 default color cycle as a single string as color parameter <http://matplotlib.org/2.0.0/users/colors.html#cn-color-selection>`__. (:issue:`15516`)
 - ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
 - ``Timedelta.isoformat`` method added for formatting Timedeltas as an `ISO 8601 duration`_. See the :ref:`Timedelta docs <timedeltas.isoformat>` (:issue:`15136`)
 - ``.select_dtypes()`` now allows the string 'datetimetz' to generically select datetimes with tz (:issue:`14910`)
