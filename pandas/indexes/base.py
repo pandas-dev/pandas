@@ -2897,7 +2897,11 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _join_multi(self, other, how, return_indexers=True):
         from .multi import MultiIndex
 
-        def _complete_join(new_lvls, new_lbls, new_nms):
+        def _complete_join():
+            new_lvls = join_index.levels
+            new_lbls = join_index.labels
+            new_nms = join_index.names
+            
             for n in not_overlap:
                 if n in self_names:
                     idx = lidx
@@ -2908,7 +2912,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     lvls = other.levels[other_names.index(n)].values
                     lbls = other.labels[other_names.index(n)]
                     
-                new_lvls = new_levels.union([lvls])                    
+                new_lvls = new_lvls.union([lvls])                    
                 l = [lbls[i] if i!=-1 else -1 for i in idx]  
                 new_lbls = new_lbls.union([l])
                 
@@ -2930,34 +2934,35 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         # need at least 1 in common, but not more than 1
         if not len(overlap):
-            raise ValueError("cannot join with no level specified and no "
-                             "overlapping names")
+            raise ValueError("cannot join with no overlapping index names")
 
         if self_is_mi and other_is_mi:
             self_tmp = self.droplevel(ldrop_levels)
             other_tmp = other.droplevel(rdrop_levels)
 
+            if not (other_tmp.is_unique and self_tmp.is_unique):
+                raise TypeError("The index of the overlapping levels "
+                                 "is not unique")
+                
             join_index, lidx, ridx = self_tmp.join(other_tmp, how=how,
                                                    return_indexers=True)
             
             # Append to the returned Index the non-overlapping levels            
-            not_overlap = (set(self_names) ^ set(other_names))
+            not_overlap = ldrop_levels + rdrop_levels
             
             if how == 'left':
-                ji = self
+                join_index = self
             elif how == 'right':
-                ji = other
+                join_index = other
             else:
-                ji = join_index
+                join_index = join_index
             
             if how == 'outer':
-                new_levels, new_labels, new_names = _complete_join(ji.levels,
-                                                                   ji.labels,
-                                                                   ji.names)
+                new_levels, new_labels, new_names = _complete_join()
             else:
-                new_levels = ji.levels
-                new_labels = ji.labels
-                new_names = ji.names
+                new_levels = join_index.levels
+                new_labels = join_index.labels
+                new_names = join_index.names
             
             join_index = MultiIndex(levels=new_levels, labels=new_labels,
                                     names=new_names, verify_integrity=False)
