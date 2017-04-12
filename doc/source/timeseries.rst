@@ -113,7 +113,7 @@ For example:
    pd.Period('2012-05', freq='D')
 
 ``Timestamp`` and ``Period`` can be the index. Lists of ``Timestamp`` and
-``Period`` are automatically coerce to ``DatetimeIndex`` and ``PeriodIndex``
+``Period`` are automatically coerced to ``DatetimeIndex`` and ``PeriodIndex``
 respectively.
 
 .. ipython:: python
