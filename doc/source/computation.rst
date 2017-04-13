@@ -644,10 +644,10 @@ columns if none are selected.
 
 .. _stats.aggregate.multifunc:
 
-Applying multiple functions at once
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Applying multiple functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With windowed Series you can also pass a list or dict of functions to do
+With windowed ``Series`` you can also pass a list of functions to do
 aggregation with, outputting a DataFrame:
 
 .. ipython:: python
@@ -668,7 +668,7 @@ Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By passing a dict to ``aggregate`` you can apply a different aggregation to the
-columns of a DataFrame:
+columns of a ``DataFrame``:
 
 .. ipython:: python
    :okexcept:

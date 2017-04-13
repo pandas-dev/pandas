@@ -470,6 +470,15 @@ pandas.DataFrame.%(name)s
 
             obj = self._selected_obj
 
+            def nested_renaming_depr(level=4):
+                # deprecation of nested renaming
+                # GH 15931
+                warnings.warn(
+                    ("using a dict with renaming "
+                     "is deprecated and will be removed in a future "
+                     "version"),
+                    FutureWarning, stacklevel=level)
+
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
@@ -498,14 +507,10 @@ pandas.DataFrame.%(name)s
                             raise SpecificationError('cannot perform renaming '
                                                      'for {0} with a nested '
                                                      'dictionary'.format(k))
+                        nested_renaming_depr(4 + (_level or 0))
 
-                        # deprecation of nested renaming
-                        # GH 15931
-                        warnings.warn(
-                            ("using a dict with renaming "
-                             "is deprecated and will be removed in a future "
-                             "version"),
-                            FutureWarning, stacklevel=4)
+                    elif isinstance(obj, ABCSeries):
+                        nested_renaming_depr()
 
                 arg = new_arg
 
@@ -515,11 +520,7 @@ pandas.DataFrame.%(name)s
                 keys = list(compat.iterkeys(arg))
                 if (isinstance(obj, ABCDataFrame) and
                         len(obj.columns.intersection(keys)) != len(keys)):
-                    warnings.warn(
-                        ("using a dict with renaming "
-                         "is deprecated and will be removed in a future "
-                         "version"),
-                        FutureWarning, stacklevel=4)
+                    nested_renaming_depr()
 
             from pandas.tools.concat import concat
 

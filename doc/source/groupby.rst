@@ -440,7 +440,7 @@ Aggregation
 
 Once the GroupBy object has been created, several methods are available to
 perform a computation on the grouped data. These operations are similar to the
-:ref:`aggregating API <basics.aggregate>`, :ref:`window functions <stats.aggregate>`,
+:ref:`aggregating API <basics.aggregate>`, :ref:`window functions API <stats.aggregate>`,
 and :ref:`resample API <timeseries.aggregate>`.
 
 An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` method:

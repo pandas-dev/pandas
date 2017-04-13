@@ -563,6 +563,15 @@ class TestDataFrameAggregate(tm.TestCase, TestData):
                              index=['max', 'min', 'sum'])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
+    def test_agg_dict_nested_renaming_depr(self):
+
+        df = pd.DataFrame({'A': range(5), 'B': 5})
+
+        # nested renaming
+        with tm.assert_produces_warning(FutureWarning):
+            df.agg({'A': {'foo': 'min'},
+                    'B': {'bar': 'max'}})
+
     def test_agg_reduce(self):
         # all reducers
         expected = zip_frames(self.frame.mean().to_frame(),

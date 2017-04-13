@@ -843,10 +843,11 @@ Aggregation API
 .. versionadded:: 0.20.0
 
 The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
-This API is similar across pandas objects, :ref:`groupby aggregates <groupby.aggregate>`,
-:ref:`window functions <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
+This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
+:ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
+The entry point for aggregation is the method :meth:`~DataFrame.aggregate`, or the alias :meth:`~DataFrame.agg`.
 
-We will use a similar starting frame from above.
+We will use a similar starting frame from above:
 
 .. ipython:: python
 
@@ -855,8 +856,8 @@ We will use a similar starting frame from above.
    tsdf.iloc[3:7] = np.nan
    tsdf
 
-Using a single function is equivalent to ``.apply``; You can also pass named methods as strings.
-This will return a Series of the output.
+Using a single function is equivalent to :meth:`~DataFrame.apply`; You can also pass named methods as strings.
+These will return a ``Series`` of the aggregated output:
 
 .. ipython:: python
 
@@ -867,72 +868,68 @@ This will return a Series of the output.
    # these are equivalent to a ``.sum()`` because we are aggregating on a single function
    tsdf.sum()
 
-On a Series this will result in a scalar value
+Single aggregations on a ``Series`` this will result in a scalar value:
 
 .. ipython:: python
 
    tsdf.A.agg('sum')
 
 
-Aggregating multiple functions at once
-++++++++++++++++++++++++++++++++++++++
+Aggregating with multiple functions
++++++++++++++++++++++++++++++++++++
 
-You can pass arguments as a list. The results of each of the passed functions will be a row in the resultant DataFrame.
+You can pass multiple aggregation arguments as a list.
+The results of each of the passed functions will be a row in the resultant ``DataFrame``.
 These are naturally named from the aggregation function.
 
 .. ipython:: python
 
    tsdf.agg(['sum'])
 
-Multiple functions yield multiple rows.
+Multiple functions yield multiple rows:
 
 .. ipython:: python
 
    tsdf.agg(['sum', 'mean'])
 
-On a Series, multiple functions return a Series, indexed by the function names.
+On a ``Series``, multiple functions return a ``Series``, indexed by the function names:
 
 .. ipython:: python
 
    tsdf.A.agg(['sum', 'mean'])
 
+Passing a ``lambda`` function will yield a ``<lambda>`` named row:
 
-Aggregating with a dict of functions
-++++++++++++++++++++++++++++++++++++
+.. ipython:: python
 
-Passing a dictionary of column name to function or list of functions, to ``DataFame.agg``
+   tsdf.A.agg(['sum', lambda x: x.mean()])
+
+Passing a named function will yield that name for the row:
+
+.. ipython:: python
+
+   def mymean(x):
+      return x.mean()
+
+   tsdf.A.agg(['sum', mymean])
+
+Aggregating with a dict
++++++++++++++++++++++++
+
+Passing a dictionary of column names to a scalar or a list of scalars, to ``DataFame.agg``
 allows you to customize which functions are applied to which columns.
 
 .. ipython:: python
 
    tsdf.agg({'A': 'mean', 'B': 'sum'})
 
-Passing a list-like will generate a DataFrame output. You will get a matrix-like output
-of all of the aggregators; some may be missing values.
+Passing a list-like will generate a ``DataFrame`` output. You will get a matrix-like output
+of all of the aggregators. The output will consist of all unique functions. Those that are
+not noted for a particular column will be ``NaN``:
 
 .. ipython:: python
 
    tsdf.agg({'A': ['mean', 'min'], 'B': 'sum'})
-
-For a Series, you can pass a dict. You will get back a MultiIndex Series; The outer level will
-be the keys, the inner the name of the functions.
-
-.. ipython:: python
-
-   tsdf.A.agg({'foo': ['sum', 'mean']})
-
-Alternatively, using multiple dictionaries, you can have renamed elements with the aggregation
-
-.. ipython:: python
-
-    tsdf.A.agg({'foo': 'sum', 'bar': 'mean'})
-
-Multiple keys will yield a MultiIndex Series. The outer level will be the keys, the inner
-the names of the functions.
-
-.. ipython:: python
-
-    tsdf.A.agg({'foo': ['sum', 'mean'], 'bar': ['min', 'max', lambda x: x.sum()+1]})
 
 .. _basics.aggregation.mixed_dtypes:
 
@@ -980,7 +977,7 @@ Transform API
 
 .. versionadded:: 0.20.0
 
-The ``transform`` method returns an object that is indexed the same (same size)
+The :method:`~DataFrame.transform` method returns an object that is indexed the same (same size)
 as the original. This API allows you to provide *multiple* operations at the same
 time rather than one-by-one. Its api is quite similar to the ``.agg`` API.
 
@@ -1034,8 +1031,8 @@ resulting column names will be the transforming functions.
    tsdf.A.transform([np.abs, lambda x: x+1])
 
 
-Transforming with a dict of functions
-+++++++++++++++++++++++++++++++++++++
+Transforming with a dict
+++++++++++++++++++++++++
 
 
 Passing a dict of functions will will allow selective transforming per column.
@@ -1050,14 +1047,6 @@ selective transforms.
 .. ipython:: python
 
    tsdf.transform({'A': np.abs, 'B': [lambda x: x+1, 'sqrt']})
-
-On a Series, passing a dict allows renaming as in ``.agg()``
-
-.. ipython:: python
-
-   tsdf.A.transform({'foo': np.abs})
-   tsdf.A.transform({'foo': np.abs, 'bar': [lambda x: x+1, 'sqrt']})
-
 
 .. _basics.elementwise:
 

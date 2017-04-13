@@ -139,6 +139,14 @@ class TestSeriesApply(TestData, tm.TestCase):
         exp = pd.Series(['Asia/Tokyo'] * 25, name='XX')
         tm.assert_series_equal(result, exp)
 
+    def test_apply_dict_depr(self):
+
+        tsdf = pd.DataFrame(np.random.randn(10, 3),
+                            columns=['A', 'B', 'C'],
+                            index=pd.date_range('1/1/2000', periods=10))
+        with tm.assert_produces_warning(FutureWarning):
+            tsdf.A.agg({'foo': ['sum', 'mean']})
+
 
 class TestSeriesAggregate(TestData, tm.TestCase):
 
@@ -225,7 +233,10 @@ class TestSeriesAggregate(TestData, tm.TestCase):
         expected = Series([0], index=['foo'], name='series')
         tm.assert_series_equal(result, expected)
 
-        result = s.agg({'foo': ['min', 'max']})
+        # nested renaming
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.agg({'foo': ['min', 'max']})
+
         expected = DataFrame(
             {'foo': [0, 5]},
             index=['min', 'max']).unstack().rename('series')
@@ -234,7 +245,9 @@ class TestSeriesAggregate(TestData, tm.TestCase):
     def test_multiple_aggregators_with_dict_api(self):
 
         s = Series(range(6), dtype='int64', name='series')
-        result = s.agg({'foo': ['min', 'max'], 'bar': ['sum', 'mean']})
+        # nested renaming
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.agg({'foo': ['min', 'max'], 'bar': ['sum', 'mean']})
 
         expected = DataFrame(
             {'foo': [5.0, np.nan, 0.0, np.nan],
