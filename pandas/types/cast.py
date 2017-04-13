@@ -628,7 +628,7 @@ def astype_nansafe(arr, dtype, copy=True):
                "deprecated and will raise in a future version. "
                "Please pass in '{dtype}[ns]' instead.")
         warnings.warn(msg.format(dtype=dtype.name),
-                      FutureWarning, stacklevel=2)
+                      FutureWarning, stacklevel=5)
         dtype = np.dtype(dtype.name + "[ns]")
 
     if copy:
@@ -890,7 +890,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                 if dtype.name in ('datetime64', 'datetime64[ns]'):
                     if dtype.name == 'datetime64':
                         warnings.warn(msg.format(dtype=dtype.name),
-                                      FutureWarning, stacklevel=2)
+                                      FutureWarning, stacklevel=5)
                     dtype = _NS_DTYPE
                 else:
                     raise TypeError("cannot convert datetimelike to "
@@ -907,7 +907,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                 if dtype.name in ('timedelta64', 'timedelta64[ns]'):
                     if dtype.name == 'timedelta64':
                         warnings.warn(msg.format(dtype=dtype.name),
-                                      FutureWarning, stacklevel=2)
+                                      FutureWarning, stacklevel=5)
                     dtype = _TD_DTYPE
                 else:
                     raise TypeError("cannot convert timedeltalike to "
