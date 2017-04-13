@@ -2843,7 +2843,7 @@ class SeriesGroupBy(GroupBy):
                     ("using a dict on a Series for aggregation\n"
                      "is deprecated and will be removed in a future "
                      "version"),
-                    FutureWarning, stacklevel=4)
+                    FutureWarning, stacklevel=3)
 
             columns = list(arg.keys())
             arg = list(arg.items())

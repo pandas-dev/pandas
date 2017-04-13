@@ -310,18 +310,15 @@ class TestGroupByAggregate(tm.TestCase):
                            'B': range(5),
                            'C': range(5)})
 
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False) as w:
+        with tm.assert_produces_warning(FutureWarning) as w:
             df.groupby('A').agg({'B': {'foo': ['sum', 'max']},
                                  'C': {'bar': ['count', 'min']}})
             assert "using a dict with renaming" in str(w[0].message)
 
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
 
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False) as w:
+        with tm.assert_produces_warning(FutureWarning) as w:
             df.groupby('A').B.agg({'foo': 'count'})
             assert "using a dict on a Series for aggregation" in str(
                 w[0].message)
