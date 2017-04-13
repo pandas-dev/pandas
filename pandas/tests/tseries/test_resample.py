@@ -394,8 +394,10 @@ class TestResampleAPI(tm.TestCase):
 
         r = df.resample('3T')
 
-        expected = r[['A', 'B', 'C']].agg({'r1': 'mean', 'r2': 'sum'})
-        result = r.agg({'r1': 'mean', 'r2': 'sum'})
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = r[['A', 'B', 'C']].agg({'r1': 'mean', 'r2': 'sum'})
+            result = r.agg({'r1': 'mean', 'r2': 'sum'})
         assert_frame_equal(result, expected)
 
     # TODO: once GH 14008 is fixed, move these tests into
@@ -459,7 +461,9 @@ class TestResampleAPI(tm.TestCase):
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
                                                       ('A', 'sum')])
         for t in cases:
-            result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
             assert_frame_equal(result, expected, check_like=True)
 
         expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
@@ -468,8 +472,10 @@ class TestResampleAPI(tm.TestCase):
                                                       ('B', 'mean2'),
                                                       ('B', 'sum2')])
         for t in cases:
-            result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'},
-                                  'B': {'mean2': 'mean', 'sum2': 'sum'}})
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'},
+                                      'B': {'mean2': 'mean', 'sum2': 'sum'}})
             assert_frame_equal(result, expected, check_like=True)
 
         expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
@@ -529,9 +535,12 @@ class TestResampleAPI(tm.TestCase):
                                                       ('result1', 'B'),
                                                       ('result2', 'A'),
                                                       ('result2', 'B')])
+
         for t in cases:
-            result = t[['A', 'B']].agg(OrderedDict([('result1', np.sum),
-                                                    ('result2', np.mean)]))
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = t[['A', 'B']].agg(OrderedDict([('result1', np.sum),
+                                                        ('result2', np.mean)]))
             assert_frame_equal(result, expected, check_like=True)
 
         # agg with different hows
@@ -557,7 +566,9 @@ class TestResampleAPI(tm.TestCase):
 
         # series like aggs
         for t in cases:
-            result = t['A'].agg({'A': ['sum', 'std']})
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = t['A'].agg({'A': ['sum', 'std']})
             expected = pd.concat([t['A'].sum(),
                                   t['A'].std()],
                                  axis=1)
@@ -572,15 +583,20 @@ class TestResampleAPI(tm.TestCase):
                                                           ('A', 'std'),
                                                           ('B', 'mean'),
                                                           ('B', 'std')])
-            result = t['A'].agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = t['A'].agg({'A': ['sum', 'std'],
+                                     'B': ['mean', 'std']})
             assert_frame_equal(result, expected, check_like=True)
 
         # errors
         # invalid names in the agg specification
         for t in cases:
             def f():
-                t[['A']].agg({'A': ['sum', 'std'],
-                              'B': ['mean', 'std']})
+                with tm.assert_produces_warning(FutureWarning,
+                                                check_stacklevel=False):
+                    t[['A']].agg({'A': ['sum', 'std'],
+                                  'B': ['mean', 'std']})
 
             self.assertRaises(SpecificationError, f)
 
@@ -617,12 +633,16 @@ class TestResampleAPI(tm.TestCase):
             expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
                 'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
 
-            result = t[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
-                                        'B': {'rb': ['mean', 'std']}})
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = t[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
+                                            'B': {'rb': ['mean', 'std']}})
             assert_frame_equal(result, expected, check_like=True)
 
-            result = t.agg({'A': {'ra': ['mean', 'std']},
-                            'B': {'rb': ['mean', 'std']}})
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = t.agg({'A': {'ra': ['mean', 'std']},
+                                'B': {'rb': ['mean', 'std']}})
             assert_frame_equal(result, expected, check_like=True)
 
     def test_selection_api_validation(self):
@@ -752,16 +772,7 @@ class Base(object):
                 expected.index = s.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
                 self.assertEqual(result.index.freq, expected.index.freq)
-
-                if (method == 'size' and
-                    isinstance(result.index, PeriodIndex) and
-                        freq in ['M', 'D']):
-                    # GH12871 - TODO: name should propagate, but currently
-                    # doesn't on lower / same frequency with PeriodIndex
-                    assert_series_equal(result, expected, check_dtype=False)
-
-                else:
-                    assert_series_equal(result, expected, check_dtype=False)
+                assert_series_equal(result, expected, check_dtype=False)
 
     def test_resample_empty_dataframe(self):
         # GH13212
@@ -1846,10 +1857,12 @@ class TestDatetimeIndex(Base, tm.TestCase):
         tm.assert_series_equal(result['foo'], foo_exp)
         tm.assert_series_equal(result['bar'], bar_exp)
 
+        # this is a MI Series, so comparing the names of the results
+        # doesn't make sense
         result = ts.resample('M').aggregate({'foo': lambda x: x.mean(),
                                              'bar': lambda x: x.std(ddof=1)})
-        tm.assert_series_equal(result['foo'], foo_exp)
-        tm.assert_series_equal(result['bar'], bar_exp)
+        tm.assert_series_equal(result['foo'], foo_exp, check_names=False)
+        tm.assert_series_equal(result['bar'], bar_exp, check_names=False)
 
     def test_resample_unequal_times(self):
         # #1772

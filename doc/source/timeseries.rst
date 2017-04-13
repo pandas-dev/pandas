@@ -1549,14 +1549,6 @@ You can pass a list or dict of functions to do aggregation with, outputting a Da
 
    r['A'].agg([np.sum, np.mean, np.std])
 
-If a dict is passed, the keys will be used to name the columns. Otherwise the
-function's name (stored in the function object) will be used.
-
-.. ipython:: python
-
-   r['A'].agg({'result1' : np.sum,
-               'result2' : np.mean})
-
 On a resampled DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 

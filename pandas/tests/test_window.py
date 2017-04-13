@@ -134,16 +134,18 @@ class TestApi(Base):
         expected.columns = ['mean', 'sum']
         tm.assert_frame_equal(result, expected)
 
-        result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
+        with catch_warnings(record=True):
+            result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
         expected = pd.concat([a_mean, a_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
                                                       ('A', 'sum')])
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = r.aggregate({'A': {'mean': 'mean',
-                                    'sum': 'sum'},
-                              'B': {'mean2': 'mean',
-                                    'sum2': 'sum'}})
+        with catch_warnings(record=True):
+            result = r.aggregate({'A': {'mean': 'mean',
+                                        'sum': 'sum'},
+                                  'B': {'mean2': 'mean',
+                                        'sum2': 'sum'}})
         expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
         exp_cols = [('A', 'mean'), ('A', 'sum'), ('B', 'mean2'), ('B', 'sum2')]
         expected.columns = pd.MultiIndex.from_tuples(exp_cols)
@@ -195,12 +197,14 @@ class TestApi(Base):
                               r['B'].std()], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
             'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
-        result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
-                                    'B': {'rb': ['mean', 'std']}})
+        with catch_warnings(record=True):
+            result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
+                                        'B': {'rb': ['mean', 'std']}})
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = r.agg({'A': {'ra': ['mean', 'std']},
-                        'B': {'rb': ['mean', 'std']}})
+        with catch_warnings(record=True):
+            result = r.agg({'A': {'ra': ['mean', 'std']},
+                            'B': {'rb': ['mean', 'std']}})
         expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
             'A', 'ra', 'std'), ('B', 'rb', 'mean'), ('B', 'rb', 'std')])
         tm.assert_frame_equal(result, expected, check_like=True)

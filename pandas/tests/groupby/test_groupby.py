@@ -59,7 +59,10 @@ class TestGroupBy(MixIn, tm.TestCase):
 
             # complex agg
             agged = grouped.aggregate([np.mean, np.std])
-            agged = grouped.aggregate({'one': np.mean, 'two': np.std})
+
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                agged = grouped.aggregate({'one': np.mean, 'two': np.std})
 
             group_constants = {0: 10, 1: 20, 2: 30}
             agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
@@ -1262,7 +1265,9 @@ class TestGroupBy(MixIn, tm.TestCase):
         result = grouped['C'].agg([np.mean, np.std])
         self.assertEqual(result.index.name, 'A')
 
-        result = grouped['C'].agg({'foo': np.mean, 'bar': np.std})
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = grouped['C'].agg({'foo': np.mean, 'bar': np.std})
         self.assertEqual(result.index.name, 'A')
 
     def test_multi_iter(self):
@@ -1438,7 +1443,10 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = self.df.groupby('A', as_index=True)
         expected3 = grouped['C'].sum()
         expected3 = DataFrame(expected3).rename(columns={'C': 'Q'})
-        result3 = grouped['C'].agg({'Q': np.sum})
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result3 = grouped['C'].agg({'Q': np.sum})
         assert_frame_equal(result3, expected3)
 
         # multi-key
