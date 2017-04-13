@@ -614,23 +614,34 @@ the expected correct result::
 
         assert_frame_equal(pivoted, expected)
 
-How to use ``parametrize``
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Transitioning to ``pytest``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`pytest <http://doc.pytest.org/en/latest/>`__ has a nice feature `parametrize <https://docs.pytest.org/en/latest/parametrize.html>`__ to allow
-testing of many cases in a concise way that enables an easy-to-read syntax.
+*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class, inheriting from ``tm.TestCase``.
 
-.. note::
+.. code-block:: python
 
-   *pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class, inheriting from ``tm.TestCase``.
+    class TestReallyCoolFeature(tm.TestCase):
+        ....
 
-   .. code-block:: python
+Going forward, we are moving to a more *functional* style using the `pytest <http://doc.pytest.org/en/latest/>`__ framework, which offers a richer testing
+framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
 
-      class TestReallyCoolFeature(tm.TestCase):
-          ....
+.. code-block:: python
 
-   Going forward we are moving to a more *functional* style, please see below.
+    def test_really_cool_feature():
+        ....
 
+Sometimes, it does make sense to bundle test functions together into a single class, either because the test file is testing multiple functions from a single module, and
+using test classes allows for better organization. However, instead of inheriting from ``tm.TestCase``, we should just inherit from ``object``:
+
+.. code-block:: python
+
+    class TestReallyCoolFeature(object):
+        ....
+
+Using ``pytest``
+~~~~~~~~~~~~~~~~
 
 Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
 
@@ -641,7 +652,7 @@ Here is an example of a self-contained set of tests that illustrate multiple fea
 - ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
 - the typical pattern of constructing an ``expected`` and comparing versus the ``result``
 
-We would name this file ``test_cool_feature.py`` and put in an appropriate place in the ``pandas/tests/`` sturcture.
+We would name this file ``test_cool_feature.py`` and put in an appropriate place in the ``pandas/tests/`` structure.
 
 .. code-block:: python
 
