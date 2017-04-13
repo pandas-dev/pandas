@@ -461,18 +461,22 @@ default of the index) in a DataFrame.
 
 .. _stats.rolling_window.endpoints:
 
-Rolling window endpoint inclusion
-~~~~~~~~~~~~~~~~~~
+Rolling Window Endpoints
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.20.0
 
 The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
 parameter:
 
-  - ``right`` : close right endpoint (default for time-based windows)
-  - ``left`` : close left endpoint
-  - ``both`` : close both endpoints (default for fixed windows)
-  - ``neither`` : open endpoints
+.. csv-table::
+    :header: "``closed``", "Description", "Default for"
+    :widths: 20, 30, 30
+
+    ``right``, close right endpoint, time-based windows
+    ``left``, close left endpoint,
+    ``both``, close both endpoints, fixed windows
+    ``neither``, open endpoints,
 
 For example, having the right endpoint open is useful in many problems that require that there is no contamination
 from present information back to past information. This allows the rolling window to compute statistics
@@ -495,6 +499,7 @@ from present information back to past information. This allows the rolling windo
    df
 
 Currently, this feature is only implemented for time-based windows.
+For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
 .. _stats.moments.ts-versus-resampling:
 
