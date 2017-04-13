@@ -456,6 +456,88 @@ Convert to an xarray DataArray
 
    p.to_xarray()
 
+.. _whatsnew_0200.api_breaking.deprecate_group_agg_dict:
+
+Deprecate groupby.agg() with a dictionary when renaming
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``.groupby(..).agg(..)``, ``.rolling(..).agg(..)``, and ``.resample(..).agg(..)``  syntax can accept a variable of inputs, including scalars,
+list, and a dict of column names to scalars or lists. This provides a useful syntax for constructing multiple
+(potentially different) aggregations.
+
+However, ``.agg(..)`` can *also* accept a dict that allows 'renaming' of the result columns. This is a complicated and confusing syntax, as well as not consistent
+between ``Series`` and ``DataFrame``. We are deprecating this 'renaming' functionaility.
+
+1) We are deprecating passing a dict to a grouped/rolled/resampled ``Series``. This allowed
+one to ``rename`` the resulting aggregation, but this had a completely different
+meaning than passing a dictionary to a grouped ``DataFrame``, which accepts column-to-aggregations.
+2) We are deprecating passing a dict-of-dicts to a grouped/rolled/resampled ``DataFrame`` in a similar manner.
+
+This is an illustrative example:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+                       'B': range(5),
+                       'C': range(5)})
+    df
+
+Here is a typical useful syntax for computing different aggregations for different columns. This
+is a natural (and useful) syntax. We aggregate from the dict-to-list by taking the specified
+columns and applying the list of functions. This returns a ``MultiIndex`` for the columns.
+
+.. ipython:: python
+
+   df.groupby('A').agg({'B': 'sum', 'C': 'min'})
+
+Here's an example of the first deprecation (1), passing a dict to a grouped ``Series``. This
+is a combination aggregation & renaming:
+
+.. code-block:: ipython
+
+   In [6]: df.groupby('A').B.agg({'foo': 'count'})
+   FutureWarning: using a dict on a Series for aggregation
+   is deprecated and will be removed in a future version
+
+   Out[6]:
+      foo
+   A
+   1    3
+   2    2
+
+You can accomplish the same operation, more idiomatically by:
+
+.. ipython:: python
+
+   df.groupby('A').B.agg(['count']).rename({'count': 'foo'})
+
+
+Here's an example of the second deprecation (2), passing a dict-of-dict to a grouped ``DataFrame``:
+
+.. code-block:: python
+
+   In [23]: (df.groupby('A')
+               .agg({'B': {'foo': 'sum'}, 'C': {'bar': 'min'}})
+            )
+   FutureWarning: using a dict with renaming is deprecated and will be removed in a future version
+
+   Out[23]:
+        B   C
+      foo bar
+   A
+   1   3   0
+   2   7   3
+
+
+You can accomplish nearly the same by:
+
+.. ipython:: python
+
+   (df.groupby('A')
+      .agg({'B': 'sum', 'C': 'min'})
+      .rename(columns={'B': 'foo', 'C': 'bar'})
+   )
+
 .. _whatsnew.api_breaking.io_compat:
 
 Possible incompat for HDF5 formats for pandas < 0.13.0
