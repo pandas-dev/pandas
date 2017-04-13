@@ -459,6 +459,48 @@ default of the index) in a DataFrame.
    dft
    dft.rolling('2s', on='foo').sum()
 
+.. _stats.rolling_window.endpoints:
+
+Rolling Window Endpoints
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
+parameter:
+
+.. csv-table::
+    :header: "``closed``", "Description", "Default for"
+    :widths: 20, 30, 30
+
+    ``right``, close right endpoint, time-based windows
+    ``left``, close left endpoint,
+    ``both``, close both endpoints, fixed windows
+    ``neither``, open endpoints,
+
+For example, having the right endpoint open is useful in many problems that require that there is no contamination
+from present information back to past information. This allows the rolling window to compute statistics
+"up to that point in time", but not including that point in time.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'x': 1},
+                     index = [pd.Timestamp('20130101 09:00:01'),
+                              pd.Timestamp('20130101 09:00:02'),
+                              pd.Timestamp('20130101 09:00:03'),
+                              pd.Timestamp('20130101 09:00:04'),
+                              pd.Timestamp('20130101 09:00:06')])
+
+   df["right"] = df.rolling('2s', closed='right').x.sum()  # default
+   df["both"] = df.rolling('2s', closed='both').x.sum()
+   df["left"] = df.rolling('2s', closed='left').x.sum()
+   df["neither"] = df.rolling('2s', closed='neither').x.sum()
+
+   df
+
+Currently, this feature is only implemented for time-based windows.
+For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
+
 .. _stats.moments.ts-versus-resampling:
 
 Time-aware Rolling vs. Resampling
