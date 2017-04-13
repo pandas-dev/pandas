@@ -1143,3 +1143,31 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         df = df.set_index(['a', 'b'])
         expected = '"a","b","c"\n"1","3","5"\n"2","4","6"\n'
         self.assertEqual(df.to_csv(quoting=csv.QUOTE_ALL), expected)
+
+    def test_period_index_date_overflow(self):
+        # see gh-15982
+
+        dates = ["1990-01-01", "2000-01-01", "3005-01-01"]
+        index = pd.PeriodIndex(dates, freq="D")
+
+        df = pd.DataFrame([4, 5, 6], index=index)
+        result = df.to_csv()
+
+        expected = ',0\n1990-01-01,4\n2000-01-01,5\n3005-01-01,6\n'
+        assert result == expected
+
+        date_format = "%m-%d-%Y"
+        result = df.to_csv(date_format=date_format)
+
+        expected = ',0\n01-01-1990,4\n01-01-2000,5\n01-01-3005,6\n'
+        assert result == expected
+
+        # Overflow with pd.NaT
+        dates = ["1990-01-01", pd.NaT, "3005-01-01"]
+        index = pd.PeriodIndex(dates, freq="D")
+
+        df = pd.DataFrame([4, 5, 6], index=index)
+        result = df.to_csv()
+
+        expected = ',0\n1990-01-01,4\n,5\n3005-01-01,6\n'
+        assert result == expected
