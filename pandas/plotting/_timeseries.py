@@ -12,9 +12,9 @@ from pandas.tseries.tdi import TimedeltaIndex
 from pandas.formats.printing import pprint_thing
 import pandas.compat as compat
 
-from pandas.tseries.converter import (TimeSeries_DateLocator,
-                                      TimeSeries_DateFormatter,
-                                      TimeSeries_TimedeltaFormatter)
+from pandas.plotting._converter import (TimeSeries_DateLocator,
+                                        TimeSeries_DateFormatter,
+                                        TimeSeries_TimedeltaFormatter)
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches

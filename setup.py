@@ -649,7 +649,7 @@ setup(name=DISTNAME,
                 'pandas.io.msgpack',
                 'pandas._libs',
                 'pandas.formats',
-                'pandas.plotting'
+                'pandas.plotting',
                 'pandas.sparse',
                 'pandas.stats',
                 'pandas.util',
