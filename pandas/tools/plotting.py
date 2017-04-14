@@ -780,7 +780,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
                                         colormap=colormap, color_type='random',
                                         color=color)
 
-    if sort_labels is True:
+    if sort_labels:
         classes = sorted(classes)
         color_values = sorted(color_values)
     colors = dict(zip(classes, color_values))
