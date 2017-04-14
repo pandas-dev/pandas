@@ -1,9 +1,9 @@
 .. _whatsnew_0200:
 
-v0.20.0 (April ??, 2017)
+v0.20.0 (May 12, 2017)
 ------------------------
 
-This is a major release from 0.19 and includes a small number of API changes, several new features,
+This is a major release from 0.19.2 and includes a small number of API changes, deprecations, new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
@@ -13,11 +13,11 @@ Highlights include:
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
 - ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
-- Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
-- Improved support for UInt64 dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
 - Addition of an ``IntervalIndex`` and ``Interval`` scalar type, see :ref:`here <whatsnew_0200.enhancements.intervalindex>`
-- A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
-- Window Binary Corr/Cov operations return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
+- Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
+- Improved support for ``UInt64`` dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
+- A new orient for JSON serialization, ``orient='table'``, that uses the :ref:`Table Schema spec <whatsnew_0200.enhancements.table_schema>`
+- Window Binary Corr/Cov operations now return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
@@ -42,7 +42,7 @@ New features
 Series & DataFrame have been enhanced to support the aggregation API. This is an already familiar API that
 is supported for groupby, window operations, and resampling. This allows one to express, possibly multiple
 aggregation operations, in a single concise way by using :meth:`~DataFrame.agg`,
-and :meth:`~DataFrame.transform`. The full documentation is :ref:`here <basics.aggregate>`` (:issue:`1623`)
+and :meth:`~DataFrame.transform`. The full documentation is :ref:`here <basics.aggregate>` (:issue:`1623`)
 
 Here is a sample
 
@@ -67,7 +67,7 @@ Multiple functions in lists.
 
    df.agg(['sum', 'min'])
 
-Dictionaries to provide the ability to provide selective aggregation per column.
+Using a dict provides the ability to have selective aggregation per column.
 You will get a matrix-like output of all of the aggregators. The output will consist
 of all unique functions. Those that are not noted for a particular column will be ``NaN``:
 
@@ -129,7 +129,7 @@ fixed-width text files, and :func:`read_excel` for parsing Excel files.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`to_datetime` has gained a new parameter, ``origin``, to define a reference date
-from where to compute the resulting ``DatetimeIndex``. (:issue:`11276`, :issue:`11745`)
+from where to compute the resulting ``DatetimeIndex`` when ``unit`` is specified. (:issue:`11276`, :issue:`11745`)
 
 Start with 1960-01-01 as the starting date
 
@@ -138,7 +138,7 @@ Start with 1960-01-01 as the starting date
    pd.to_datetime([1, 2, 3], unit='D', origin=pd.Timestamp('1960-01-01'))
 
 The default is set at ``origin='unix'``, which defaults to ``1970-01-01 00:00:00``.
-Commonly called 'unix epoch' or POSIX time.
+Commonly called 'unix epoch' or POSIX time. This was the previous default, so this is a backward compatible change.
 
 .. ipython:: python
 
@@ -149,7 +149,7 @@ Commonly called 'unix epoch' or POSIX time.
 pandas errors
 ^^^^^^^^^^^^^
 
-We are adding a standard public location for all pandas exceptions & warnings ``pandas.errors``. (:issue:`14800`). Previously
+We are adding a standard public module for all pandas exceptions & warnings ``pandas.errors``. (:issue:`14800`). Previously
 these exceptions & warnings could be imported from ``pandas.core.common`` or ``pandas.io.common``. These exceptions and warnings
 will be removed from the ``*.common`` locations in a future release. (:issue:`15541`)
 
@@ -243,7 +243,7 @@ Inferring compression type from the extension
    rt = pd.read_pickle("data.pkl.xz", compression="infer")
    rt
 
-The default is to 'infer
+The default is to ``infer``:
 
 .. ipython:: python
 
@@ -348,7 +348,7 @@ protocol).
 This gives frontends like the Jupyter notebook and `nteract`_
 more flexiblity in how they display pandas objects, since they have
 more information about the data.
-You must enable this by setting the ``display.html.table_schema`` option to True.
+You must enable this by setting the ``display.html.table_schema`` option to ``True``.
 
 .. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
 .. _nteract: http://nteract.io/
@@ -385,21 +385,24 @@ IntervalIndex
 ^^^^^^^^^^^^^
 
 pandas has gained an ``IntervalIndex`` with its own dtype, ``interval`` as well as the ``Interval`` scalar type. These allow first-class support for interval
-notation, specifically as a return type for the categories in ``pd.cut`` and ``pd.qcut``. The ``IntervalIndex`` allows some unique indexing, see the
+notation, specifically as a return type for the categories in :func:`cut` and :func:`qcut`. The ``IntervalIndex`` allows some unique indexing, see the
 :ref:`docs <indexing.intervallindex>`. (:issue:`7640`, :issue:`8625`)
 
 Previous behavior:
 
+The returned categories were strings, representing Intervals
+
 .. code-block:: ipython
 
-   In [2]: pd.cut(range(3), 2)
-   Out[2]:
-   [(-0.002, 1], (-0.002, 1], (1, 2]]
-   Categories (2, object): [(-0.002, 1] < (1, 2]]
+   In [1]: c = pd.cut(range(4), bins=2)
 
-   # the returned categories are strings, representing Intervals
-   In [3]: pd.cut(range(3), 2).categories
-   Out[3]: Index(['(-0.002, 1]', '(1, 2]'], dtype='object')
+   In [2]: c
+   Out[2]:
+   [(-0.003, 1.5], (-0.003, 1.5], (1.5, 3], (1.5, 3]]
+   Categories (2, object): [(-0.003, 1.5] < (1.5, 3]]
+
+   In [3]: c.categories
+   Out[3]: Index(['(-0.003, 1.5]', '(1.5, 3]'], dtype='object')
 
 New behavior:
 
@@ -409,28 +412,29 @@ New behavior:
    c
    c.categories
 
-Furthermore, this allows one to bin *other* data with these same bins. ``NaN`` represents a missing
+Furthermore, this allows one to bin *other* data with these same bins, with ``NaN`` represents a missing
 value similar to other dtypes.
 
 .. ipython:: python
 
-   pd.cut([0, 3, 1, 1], bins=c.categories)
+   pd.cut([0, 3, 5, 1], bins=c.categories)
 
-These can also used in ``Series`` and ``DataFrame``, and indexed.
+An ``IntervalIndex`` can also be used in ``Series`` and ``DataFrame`` as the index.
 
 .. ipython:: python
 
    df = pd.DataFrame({'A': range(4),
                       'B': pd.cut([0, 3, 1, 1], bins=c.categories)}
                     ).set_index('B')
+   df
 
-Selecting a specific interval
+Selecting via a specific interval:
 
 .. ipython:: python
 
    df.loc[pd.Interval(1.5, 3.0)]
 
-Selecting via a scalar value that is contained in the intervals.
+Selecting via a scalar value that is contained *in* the intervals.
 
 .. ipython:: python
 
@@ -454,7 +458,7 @@ Other Enhancements
 - ``DataFrame.groupby()`` has gained a ``.nunique()`` method to count the distinct values for all columns within each group (:issue:`14336`, :issue:`15197`).
 
 - ``pd.read_excel()`` now preserves sheet order when using ``sheetname=None`` (:issue:`9930`)
-- Multiple offset aliases with decimal points are now supported (e.g. '0.5min' is parsed as '30s') (:issue:`8419`)
+- Multiple offset aliases with decimal points are now supported (e.g. ``0.5min`` is parsed as ``30s``) (:issue:`8419`)
 - ``.isnull()`` and ``.notnull()`` have been added to ``Index`` object to make them more consistent with the ``Series`` API (:issue:`15300`)
 
 - New ``UnsortedIndexError`` (subclass of ``KeyError``) raised when indexing/slicing into an
@@ -467,11 +471,11 @@ Other Enhancements
 - The ``usecols`` argument in ``pd.read_csv()`` now accepts a callable function as a value  (:issue:`14154`)
 - The ``skiprows`` argument in ``pd.read_csv()`` now accepts a callable function as a value  (:issue:`10882`)
 - The ``nrows`` and ``chunksize`` arguments in ``pd.read_csv()`` are supported if both are passed (:issue:`6774`, :issue:`15755`)
-- ``pd.DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
-- ``pd.DataFrame.plot`` can pass `matplotlib 2.0 default color cycle as a single string as color parameter <http://matplotlib.org/2.0.0/users/colors.html#cn-color-selection>`__. (:issue:`15516`)
-- ``pd.Series.interpolate`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
+- ``DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
+- ``DataFrame.plot`` can pass the matplotlib 2.0 default color cycle as a single string as color parameter, see `here <http://matplotlib.org/2.0.0/users/colors.html#cn-color-selection>`__. (:issue:`15516`)
+- ``Series.interpolate()`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
 - ``Timedelta.isoformat`` method added for formatting Timedeltas as an `ISO 8601 duration`_. See the :ref:`Timedelta docs <timedeltas.isoformat>` (:issue:`15136`)
-- ``.select_dtypes()`` now allows the string 'datetimetz' to generically select datetimes with tz (:issue:`14910`)
+- ``.select_dtypes()`` now allows the string ``datetimetz`` to generically select datetimes with tz (:issue:`14910`)
 - The ``.to_latex()`` method will now accept ``multicolumn`` and ``multirow`` arguments to use the accompanying LaTeX enhancements
 
 - ``pd.merge_asof()`` gained the option ``direction='backward'|'forward'|'nearest'`` (:issue:`14887`)
@@ -483,16 +487,16 @@ Other Enhancements
 - ``pd.read_html()`` will parse multiple header rows, creating a multiindex header. (:issue:`13434`).
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
 
-- ``pd.TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
+- ``TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
 - ``pd.types.concat.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
-- ``pd.DataFrame.to_latex`` and ``pd.DataFrame.to_string`` now allow optional header aliases. (:issue:`15536`)
-- Re-enable the ``parse_dates`` keyword of ``read_excel`` to parse string columns as dates (:issue:`14326`)
+- ``DataFrame.to_latex()`` and ``DataFrame.to_string()`` now allow optional header aliases. (:issue:`15536`)
+- Re-enable the ``parse_dates`` keyword of ``pd.read_excel()`` to parse string columns as dates (:issue:`14326`)
 - Added ``.empty`` property to subclasses of ``Index``. (:issue:`15270`)
 - Enabled floor division for ``Timedelta`` and ``TimedeltaIndex`` (:issue:`15828`)
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pandas.io.json.json_normalize()`` has gained a ``sep`` option that accepts ``str`` to separate joined fields; the default is ".", which is backward compatible. (:issue:`14883`)
-- :func:`MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
+- :method:`~MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
 - ``pd.read_csv()`` will now raise a ``ParserError`` error whenever any parsing error occurs (:issue:`15913`, :issue:`15925`)
 - ``pd.read_csv()`` now supports the ``error_bad_lines`` and ``warn_bad_lines`` arguments for the Python parser (:issue:`15925`)
 - ``parallel_coordinates()`` has gained a ``sort_labels`` keyword arg that sorts class labels and the colours assigned to them (:issue:`15908`)
@@ -592,10 +596,10 @@ list, and a dict of column names to scalars or lists. This provides a useful syn
 However, ``.agg(..)`` can *also* accept a dict that allows 'renaming' of the result columns. This is a complicated and confusing syntax, as well as not consistent
 between ``Series`` and ``DataFrame``. We are deprecating this 'renaming' functionaility.
 
-1) We are deprecating passing a dict to a grouped/rolled/resampled ``Series``. This allowed
+- We are deprecating passing a dict to a grouped/rolled/resampled ``Series``. This allowed
 one to ``rename`` the resulting aggregation, but this had a completely different
 meaning than passing a dictionary to a grouped ``DataFrame``, which accepts column-to-aggregations.
-2) We are deprecating passing a dict-of-dicts to a grouped/rolled/resampled ``DataFrame`` in a similar manner.
+- We are deprecating passing a dict-of-dicts to a grouped/rolled/resampled ``DataFrame`` in a similar manner.
 
 This is an illustrative example:
 
@@ -607,14 +611,14 @@ This is an illustrative example:
     df
 
 Here is a typical useful syntax for computing different aggregations for different columns. This
-is a natural (and useful) syntax. We aggregate from the dict-to-list by taking the specified
+is a natural, and useful syntax. We aggregate from the dict-to-list by taking the specified
 columns and applying the list of functions. This returns a ``MultiIndex`` for the columns.
 
 .. ipython:: python
 
    df.groupby('A').agg({'B': 'sum', 'C': 'min'})
 
-Here's an example of the first deprecation (1), passing a dict to a grouped ``Series``. This
+Here's an example of the first deprecation, passing a dict to a grouped ``Series``. This
 is a combination aggregation & renaming:
 
 .. code-block:: ipython
@@ -633,17 +637,18 @@ You can accomplish the same operation, more idiomatically by:
 
 .. ipython:: python
 
-   df.groupby('A').B.agg(['count']).rename({'count': 'foo'})
+   df.groupby('A').B.agg(['count']).rename(columns={'count': 'foo'})
 
 
-Here's an example of the second deprecation (2), passing a dict-of-dict to a grouped ``DataFrame``:
+Here's an example of the second deprecation, passing a dict-of-dict to a grouped ``DataFrame``:
 
 .. code-block:: python
 
    In [23]: (df.groupby('A')
                .agg({'B': {'foo': 'sum'}, 'C': {'bar': 'min'}})
             )
-   FutureWarning: using a dict with renaming is deprecated and will be removed in a future version
+   FutureWarning: using a dict with renaming is deprecated and
+   will be removed in a future version
 
    Out[23]:
         B   C
@@ -805,7 +810,7 @@ ndarray, you can always convert explicitly using ``np.asarray(idx.hour)``.
 pd.unique will now be consistent with extension types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In prior versions, using ``Series.unique()`` and ``pd.unique(Series)`` on ``Categorical`` and tz-aware
+In prior versions, using ``Series.unique()`` and :func:`unique` on ``Categorical`` and tz-aware
 datatypes would yield different return types. These are now made consistent. (:issue:`15903`)
 
 - Datetime tz-aware
@@ -884,7 +889,7 @@ in prior versions of pandas. (:issue:`11915`).
 Partial String Indexing Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>` now works as exact match, provided that string resolution coincides with index resolution, including a case when both are seconds (:issue:`14826`). See :ref:`Slice vs. Exact Match <timeseries.slice_vs_exact_match>` for details.
+:ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>` now works as an exact match, provided that string resolution coincides with index resolution, including a case when both are seconds (:issue:`14826`). See :ref:`Slice vs. Exact Match <timeseries.slice_vs_exact_match>` for details.
 
 .. ipython:: python
 
@@ -1031,7 +1036,7 @@ DataFrame.sort_index changes
 In certain cases, calling ``.sort_index()`` on a MultiIndexed DataFrame would return the *same* DataFrame without seeming to sort.
 This would happen with a ``lexsorted``, but non-monotonic levels. (:issue:`15622`, :issue:`15687`, :issue:`14015`, :issue:`13431`)
 
-This is UNCHANGED between versions, but showing for illustration purposes:
+This is *unchanged* from prior versions, but shown for illustration purposes:
 
 .. ipython:: python
 
@@ -1196,27 +1201,40 @@ HDFStore where string comparison
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions most types could be compared to string column in a ``HDFStore``
-usually resulting in an invalid comparsion.  These comparisions will now raise a
+usually resulting in an invalid comparsion, returning an empty result frame. These comparisions will now raise a
 ``TypeError`` (:issue:`15492`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'unparsed_date': ['2014-01-01', '2014-01-01']})
+   df.to_hdf('store.h5', 'key', format='table', data_columns=True)
+   df.dtypes
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [4]: pd.read_hdf('store.h5', 'key', where='unparsed_date > ts')
+   File "<string>", line 1
+     (unparsed_date > 1970-01-01 00:00:01.388552400)
+                           ^
+   SyntaxError: invalid token
 
 New Behavior:
 
 .. code-block:: ipython
-
-   In [15]: df = pd.DataFrame({'unparsed_date': ['2014-01-01', '2014-01-01']})
-
-   In [16]: df.dtypes
-   Out[16]:
-   unparsed_date    object
-   dtype: object
-
-   In [17]: df.to_hdf('store.h5', 'key', format='table', data_columns=True)
 
    In [18]: ts = pd.Timestamp('2014-01-01')
 
    In [19]: pd.read_hdf('store.h5', 'key', where='unparsed_date > ts')
    TypeError: Cannot compare 2014-01-01 00:00:00 of
    type <class 'pandas.tslib.Timestamp'> to string column
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('store.h5')
 
 .. _whatsnew_0200.api_breaking.index_order:
 
