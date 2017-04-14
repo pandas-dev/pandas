@@ -54,7 +54,7 @@ from pandas.core.sorting import (get_group_index_sorter, get_group_index,
                                  decons_obs_group_ids, get_indexer_dict)
 from pandas.util.decorators import (cache_readonly, Substitution,
                                     Appender, make_signature)
-from pandas.formats.printing import pprint_thing
+from pandas.core.formats.printing import pprint_thing
 from pandas.util.validators import validate_kwargs
 
 import pandas.core.algorithms as algorithms

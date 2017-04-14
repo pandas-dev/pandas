@@ -920,7 +920,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _format_native_types(self, na_rep='', quoting=None, **kwargs):
         """ actually format my specific types """
-        from pandas.formats.format import IntervalArrayFormatter
+        from pandas.core.formats.format import IntervalArrayFormatter
         return IntervalArrayFormatter(values=self,
                                       na_rep=na_rep,
                                       justify='all').get_result()

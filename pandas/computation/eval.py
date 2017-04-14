@@ -5,7 +5,7 @@
 
 import warnings
 import tokenize
-from pandas.formats.printing import pprint_thing
+from pandas.core.formats.printing import pprint_thing
 from pandas.computation import _NUMEXPR_INSTALLED
 from pandas.computation.expr import Expr, _parsers, tokenize_string
 from pandas.computation.scope import _ensure_scope

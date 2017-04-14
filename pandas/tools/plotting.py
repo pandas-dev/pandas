@@ -28,7 +28,7 @@ from pandas.core.series import Series, remove_na
 from pandas.tseries.period import PeriodIndex
 from pandas.compat import range, lrange, lmap, map, zip, string_types
 import pandas.compat as compat
-from pandas.formats.printing import pprint_thing
+from pandas.core.formats.printing import pprint_thing
 from pandas.util.decorators import Appender
 try:  # mpl optional
     import pandas.tseries.converter as conv

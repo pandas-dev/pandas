@@ -2,8 +2,8 @@
 import pytest
 from pandas import compat
 import pandas as pd
-import pandas.formats.printing as printing
-import pandas.formats.format as fmt
+import pandas.core.formats.printing as printing
+import pandas.core.formats.format as fmt
 import pandas.util.testing as tm
 import pandas.core.config as cf
 

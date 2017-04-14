@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 from pandas.core.base import PandasObject
-from pandas.formats.printing import pprint_thing
+from pandas.core.formats.printing import pprint_thing
 
 from pandas.types.common import is_scalar
 from pandas.sparse.array import SparseArray

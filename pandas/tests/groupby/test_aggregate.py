@@ -18,7 +18,7 @@ from pandas import (date_range, MultiIndex, DataFrame,
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.groupby import SpecificationError, DataError
 from pandas.compat import OrderedDict
-from pandas.formats.printing import pprint_thing
+from pandas.core.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
 

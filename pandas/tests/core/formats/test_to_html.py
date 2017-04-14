@@ -11,7 +11,7 @@ import pandas as pd
 from pandas import compat, DataFrame, MultiIndex, option_context, Index
 from pandas.compat import u, lrange, StringIO
 from pandas.util import testing as tm
-import pandas.formats.format as fmt
+import pandas.core.formats.format as fmt
 
 div_style = ''
 try:

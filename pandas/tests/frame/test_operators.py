@@ -15,7 +15,7 @@ from pandas import compat
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range)
 import pandas.core.common as com
-import pandas.formats.printing as printing
+import pandas.core.formats.printing as printing
 import pandas as pd
 
 from pandas.util.testing import (assert_numpy_array_equal,

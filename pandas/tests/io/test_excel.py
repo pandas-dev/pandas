@@ -2006,7 +2006,7 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
         self.assertEqual(kw['protection'], protection)
 
     def test_write_cells_merge_styled(self):
-        from pandas.formats.format import ExcelCell
+        from pandas.core.formats.format import ExcelCell
         from openpyxl import styles
 
         sheet_name = 'merge_styled'
@@ -2119,7 +2119,7 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
         if not openpyxl_compat.is_compat(major_ver=2):
             pytest.skip('incompatible openpyxl version')
 
-        from pandas.formats.format import ExcelCell
+        from pandas.core.formats.format import ExcelCell
 
         sheet_name = 'merge_styled'
 
