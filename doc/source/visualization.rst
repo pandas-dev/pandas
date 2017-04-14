@@ -1228,14 +1228,14 @@ Using the ``x_compat`` parameter, you can suppress this behavior:
    plt.close('all')
 
 If you have more than one plot that needs to be suppressed, the ``use`` method
-in ``pandas.plot_params`` can be used in a `with statement`:
+in ``pandas.plotting.plot_params`` can be used in a `with statement`:
 
 .. ipython:: python
 
    plt.figure()
 
    @savefig ser_plot_suppress_context.png
-   with pd.plot_params.use('x_compat', True):
+   with pd.plotting.plot_params.use('x_compat', True):
        df.A.plot(color='r')
        df.B.plot(color='g')
        df.C.plot(color='b')

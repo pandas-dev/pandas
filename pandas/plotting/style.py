@@ -179,16 +179,26 @@ class _Options(dict):
     _ALIASES = {'x_compat': 'xaxis.compat'}
     _DEFAULT_KEYS = ['xaxis.compat']
 
-    def __init__(self):
-        self['xaxis.compat'] = False
+    def __init__(self, deprecated=False):
+        self._deprecated = deprecated
+        # self['xaxis.compat'] = False
+        super(_Options, self).__setitem__('xaxis.compat', False)
+
+    def _warn_if_deprecated(self):
+        if self._deprecated:
+            warnings.warn("'pandas.plot_params' is deprecated. Use "
+                          "'pandas.plotting.plot_params' instead",
+                          FutureWarning, stacklevel=3)
 
     def __getitem__(self, key):
+        self._warn_if_deprecated()
         key = self._get_canonical_key(key)
         if key not in self:
             raise ValueError('%s is not a valid pandas plotting option' % key)
         return super(_Options, self).__getitem__(key)
 
     def __setitem__(self, key, value):
+        self._warn_if_deprecated()
         key = self._get_canonical_key(key)
         return super(_Options, self).__setitem__(key, value)
 
@@ -210,6 +220,7 @@ class _Options(dict):
         -------
         None
         """
+        self._warn_if_deprecated()
         self.__init__()
 
     def _get_canonical_key(self, key):
@@ -221,6 +232,7 @@ class _Options(dict):
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.
         """
+        self._warn_if_deprecated()
         old_value = self[key]
         try:
             self[key] = value

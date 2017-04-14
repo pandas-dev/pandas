@@ -50,9 +50,9 @@ from pandas.tools.merge import (merge, ordered_merge,
                                 merge_ordered, merge_asof)
 from pandas.tools.pivot import pivot_table, crosstab
 
-# deprecate tools.plotting, and scatter_matrix on the top namespace
+# deprecate tools.plotting, plot_params and scatter_matrix on the top namespace
 import pandas.tools.plotting
-from pandas.plotting import plot_params
+plot_params = pandas.plotting.style._Options(deprecated=True)
 # do not import deprecate to top namespace
 scatter_matrix = pandas.util.decorators.deprecate(
     'pandas.scatter_matrix', pandas.plotting.scatter_matrix,

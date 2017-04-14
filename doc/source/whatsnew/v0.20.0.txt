@@ -563,12 +563,11 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 Deprecate .plotting
 ^^^^^^^^^^^^^^^^^^^
 
-``pandas.tools.plotting`` module has been deprecated, moving directory under the
-top namespace ``pandas.plotting``. All the public plotting functions should be available
+The ``pandas.tools.plotting`` module has been deprecated,  in favor of the top level ``pandas.plotting`` module. All the public plotting functions are now available
 from ``pandas.plotting``.
 
-Also, ``scatter_matrix`` function imported directly under ``pandas`` namespace is also deprecated.
-Users shoud use ``pandas.plotting.scatter_matrix`` instead.
+Further, the top-level ``pandas.scatter_matrix`` and ``pandas.plot_params`` are also deprecated.
+Users can import these from ``pandas.plotting`` as well.
 
 Previous script:
 
