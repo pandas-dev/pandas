@@ -28,7 +28,7 @@ from pandas.core.typed.common import (
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.typed.missing import isnull
 
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.compat import string_types
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT

@@ -60,7 +60,7 @@ for t in ['is_datetime_arraylike',
             warnings.warn("pandas.core.common.{t} is deprecated. "
                           "These are not longer public API functions, "
                           "but can be imported from "
-                          "pandas.core.typed.common.{t} instead".format(t=t),
+                          "pandas.api.types.{t} instead".format(t=t),
                           DeprecationWarning, stacklevel=3)
             return getattr(common, t)(*args, **kwargs)
         return wrapper

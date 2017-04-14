@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from warnings import catch_warnings
 import numpy as np
 
+import pandas
 from pandas.core import common as com
 from pandas.api import types
 from pandas.util import testing as tm
@@ -28,7 +30,7 @@ class TestTypes(Base, tm.TestCase):
                'is_dict_like', 'is_iterator', 'is_file_like',
                'is_list_like', 'is_hashable',
                'is_named_tuple', 'is_sequence',
-               'pandas_dtype']
+               'pandas_dtype', 'union_categoricals']
 
     def test_types(self):
 
@@ -82,3 +84,10 @@ class TestTypes(Base, tm.TestCase):
         for t in ['is_null_datelike_scalar',
                   'ensure_float']:
             self.assertRaises(AttributeError, lambda: getattr(com, t))
+
+
+def test_moved_infer_dtype():
+
+    with catch_warnings(record=True):
+        e = pandas.lib.infer_dtype('foo')
+        assert e is not None

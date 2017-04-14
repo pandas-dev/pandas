@@ -5,18 +5,18 @@ Utility functions related to concat
 import numpy as np
 import pandas._libs.tslib as tslib
 from pandas import compat
-from pandas.core.algorithms import take_1d
-from .common import (is_categorical_dtype,
-                     is_sparse,
-                     is_datetimetz,
-                     is_datetime64_dtype,
-                     is_timedelta64_dtype,
-                     is_period_dtype,
-                     is_object_dtype,
-                     is_bool_dtype,
-                     is_dtype_equal,
-                     _NS_DTYPE,
-                     _TD_DTYPE)
+from pandas.core.typed.common import (
+    is_categorical_dtype,
+    is_sparse,
+    is_datetimetz,
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
+    is_period_dtype,
+    is_object_dtype,
+    is_bool_dtype,
+    is_dtype_equal,
+    _NS_DTYPE,
+    _TD_DTYPE)
 from pandas.core.typed.generic import (
     ABCDatetimeIndex, ABCTimedeltaIndex,
     ABCPeriodIndex)
@@ -277,6 +277,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         if sort_categories and not categories.is_monotonic_increasing:
             categories = categories.sort_values()
             indexer = categories.get_indexer(first.categories)
+
+            from pandas.core.algorithms import take_1d
             new_codes = take_1d(indexer, new_codes, fill_value=-1)
     elif ignore_order or all(not c.ordered for c in to_union):
         # different categories - union and recode
@@ -289,6 +291,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         for c in to_union:
             if len(c.categories) > 0:
                 indexer = categories.get_indexer(c.categories)
+
+                from pandas.core.algorithms import take_1d
                 new_codes.append(take_1d(indexer, c.codes, fill_value=-1))
             else:
                 # must be all NaN

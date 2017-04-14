@@ -209,8 +209,15 @@ class DatetimeTZDtype(ExtensionDtype):
             raise ValueError("DatetimeTZDtype constructor must have a tz "
                              "supplied")
 
+        # hash with the actual tz if we can
+        # some cannot be hashed, so stringfy
+        try:
+            key = (unit, tz)
+            hash(key)
+        except TypeError:
+            key = (unit, str(tz))
+
         # set/retrieve from cache
-        key = (unit, str(tz))
         try:
             return cls._cache[key]
         except KeyError:

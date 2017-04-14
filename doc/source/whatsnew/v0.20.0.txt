@@ -489,7 +489,7 @@ Other Enhancements
 
 
 - ``TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
-- ``pd.types.concat.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
+- ``pd.api.types.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
 - ``DataFrame.to_latex()`` and ``DataFrame.to_string()`` now allow optional header aliases. (:issue:`15536`)
 - Re-enable the ``parse_dates`` keyword of ``pd.read_excel()`` to parse string columns as dates (:issue:`14326`)
 - Added ``.empty`` property to subclasses of ``Index``. (:issue:`15270`)
@@ -1056,6 +1056,8 @@ If indicated, a deprecation warning will be issued if you reference that module.
     "pandas._sparse", "pandas.sparse.libsparse", ""
     "pandas._hash", "pandas.tools.libhash", ""
     "pandas._window", "pandas.core.libwindow", ""
+
+- The function :func:`~pandas.api.type.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
 
 .. _whatsnew_0200.api_breaking.sort_index:
 

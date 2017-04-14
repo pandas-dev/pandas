@@ -2869,8 +2869,6 @@ def _sanitize_index(data, index, copy=False):
         data = data.asobject
     elif isinstance(data, DatetimeIndex):
         data = data._to_embed(keep_tz=True)
-        if copy:
-            data = data.copy()
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
