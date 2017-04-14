@@ -1,7 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from collections import OrderedDict
+from collections import Counter, defaultdict, OrderedDict
 import numpy as np
 import pandas as pd
 
@@ -410,6 +410,23 @@ class TestSeriesMap(TestData, tm.TestCase):
         # All labels should be filled now
         tm.assert_series_equal(df['labels'], df['expected_labels'],
                                check_names=False)
+
+    def test_map_counter(self):
+        s = Series(['a', 'b', 'c'], index=[1, 2, 3])
+        counter = Counter()
+        counter['b'] = 5
+        counter['c'] += 1
+        result = s.map(counter)
+        expected = Series([0, 5, 1], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+    def test_map_defaultdict(self):
+        s = Series([1, 2, 3], index=['a', 'b', 'c'])
+        default_dict = defaultdict(lambda: 'blank')
+        default_dict[1] = 'stuff'
+        result = s.map(default_dict)
+        expected = Series(['stuff', 'blank', 'blank'], index=['a', 'b', 'c'])
+        assert_series_equal(result, expected)
 
     def test_map_box(self):
         vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
