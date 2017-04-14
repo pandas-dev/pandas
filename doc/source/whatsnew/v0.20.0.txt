@@ -449,10 +449,8 @@ Other Enhancements
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - ``Series.str.replace()`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
 - ``Series.str.replace()`` now accepts a compiled regular expression as a pattern (:issue:`15446`)
-
-
+- ``Series.map()`` now respects default values of dictionary subclasses with a ``__missing__`` method, such as ``collections.Counter`` (:issue:`15999`, :issue:`16002`)
 - ``Series.sort_index`` accepts parameters ``kind`` and ``na_position`` (:issue:`13589`, :issue:`14444`)
-
 - ``DataFrame`` has gained a ``nunique()`` method to count the distinct values over an axis (:issue:`14336`).
 - ``DataFrame`` has gained a ``melt()`` method, equivalent to ``pd.melt()``, for unpivoting from a wide to long format (:issue:`12640`).
 - ``DataFrame.groupby()`` has gained a ``.nunique()`` method to count the distinct values for all columns within each group (:issue:`14336`, :issue:`15197`).
