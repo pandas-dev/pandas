@@ -12,7 +12,7 @@ from numpy.random import randn
 
 import pandas.tools.plotting as plotting
 
-from pandas.plotting.tests.common import TestPlotBase
+from pandas.tests.plotting.common import TestPlotBase
 
 
 """
@@ -61,6 +61,12 @@ class TestDeprecatedNameSpace(TestPlotBase):
         df = self.iris
         with tm.assert_produces_warning(FutureWarning):
             plotting.radviz(frame=df, class_column='Name')
+
+    @slow
+    def test_plot_params(self):
+
+        with tm.assert_produces_warning(FutureWarning):
+            pd.plot_params['xaxis.compat'] = True
 
 
 if __name__ == '__main__':

@@ -17,7 +17,7 @@ from pandas.tseries.resample import DatetimeIndex
 from pandas.util.testing import assert_series_equal, ensure_clean, slow
 import pandas.util.testing as tm
 
-from pandas.plotting.tests.common import (TestPlotBase,
+from pandas.tests.plotting.common import (TestPlotBase,
                                           _skip_if_no_scipy_gaussian_kde)
 
 

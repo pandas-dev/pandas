@@ -23,7 +23,7 @@ import numpy as np
 from numpy.random import rand, randn
 
 import pandas.plotting as plotting
-from pandas.plotting.tests.common import (TestPlotBase, _check_plot_works,
+from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
@@ -240,13 +240,13 @@ class TestDataFramePlots(TestPlotBase):
         self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
-        pd.plot_params['xaxis.compat'] = True
+        pd.plotting.plot_params['xaxis.compat'] = True
         ax = df.plot()
         lines = ax.get_lines()
         self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
-        pd.plot_params['x_compat'] = False
+        pd.plotting.plot_params['x_compat'] = False
         ax = df.plot()
         lines = ax.get_lines()
         self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
@@ -254,7 +254,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
         # useful if you're plotting a bunch together
-        with pd.plot_params.use('x_compat', True):
+        with pd.plotting.plot_params.use('x_compat', True):
             ax = df.plot()
             lines = ax.get_lines()
             self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)

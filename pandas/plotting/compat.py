@@ -49,3 +49,11 @@ def _mpl_ge_2_0_0():
         return matplotlib.__version__ >= LooseVersion('2.0')
     except ImportError:
         return False
+
+
+def _mpl_ge_2_0_1():
+    try:
+        import matplotlib
+        return matplotlib.__version__ >= LooseVersion('2.0.1')
+    except ImportError:
+        return False

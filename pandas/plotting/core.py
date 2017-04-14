@@ -36,15 +36,6 @@ from pandas.plotting.tools import (_subplots, _flatten, table,
                                    format_date_labels)
 
 
-
-def _mpl_ge_2_0_1():
-    try:
-        import matplotlib
-        return matplotlib.__version__ >= LooseVersion('2.0.1')
-    except ImportError:
-        return False
-
-
 if _mpl_ge_1_5_0():
     # Compat with mp 1.5, which uses cycler.
     import cycler
