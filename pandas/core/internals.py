@@ -2324,7 +2324,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if slicer is not None:
             values = values[..., slicer]
 
-        from pandas.core.formats.format import _get_format_datetime64_from_values
+        from pandas.core.formats.format import (
+            _get_format_datetime64_from_values)
         format = _get_format_datetime64_from_values(values, date_format)
 
         result = tslib.format_array_from_datetime(

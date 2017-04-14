@@ -829,7 +829,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self.astype('O') + offset
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
-        from pandas.core.formats.format import _get_format_datetime64_from_values
+        from pandas.core.formats.format import (
+            _get_format_datetime64_from_values)
         format = _get_format_datetime64_from_values(self, date_format)
 
         return libts.format_array_from_datetime(self.asi8,

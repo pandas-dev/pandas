@@ -830,7 +830,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        from pandas.core.formats.format import get_console_size, _get_adjustment
+        from pandas.core.formats.format import (
+            get_console_size, _get_adjustment)
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80
