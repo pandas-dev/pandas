@@ -2147,7 +2147,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         if isinstance(arg, dict):
             if hasattr(arg, '__missing__'):
                 # If a dictionary subclass defines a default value method,
-                # convert arg to a lookup function (https://git.io/vS7LK).
+                # convert arg to a lookup function (GH #15999).
                 dict_with_default = arg
                 arg = lambda x: dict_with_default[x]
             else:

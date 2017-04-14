@@ -449,7 +449,6 @@ Other Enhancements
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - ``Series.str.replace()`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
 - ``Series.str.replace()`` now accepts a compiled regular expression as a pattern (:issue:`15446`)
-- ``Series.map()`` now respects default values of dictionary subclasses with a ``__missing__`` method, such as ``collections.Counter`` (:issue:`15999`, :issue:`16002`)
 - ``Series.sort_index`` accepts parameters ``kind`` and ``na_position`` (:issue:`13589`, :issue:`14444`)
 - ``DataFrame`` has gained a ``nunique()`` method to count the distinct values over an axis (:issue:`14336`).
 - ``DataFrame`` has gained a ``melt()`` method, equivalent to ``pd.melt()``, for unpivoting from a wide to long format (:issue:`12640`).
@@ -1300,6 +1299,7 @@ Other API Changes
 - ``CParserError`` has been renamed to ``ParserError`` in ``pd.read_csv()`` and will be removed in the future (:issue:`12665`)
 - ``SparseArray.cumsum()`` and ``SparseSeries.cumsum()`` will now always return ``SparseArray`` and ``SparseSeries`` respectively (:issue:`12855`)
 - ``DataFrame.applymap()`` with an empty ``DataFrame`` will return a copy of the empty ``DataFrame`` instead of a ``Series`` (:issue:`8222`)
+- ``Series.map()`` now respects default values of dictionary subclasses with a ``__missing__`` method, such as ``collections.Counter`` (:issue:`15999`)
 - ``.loc`` has compat with ``.ix`` for accepting iterators, and NamedTuples (:issue:`15120`)
 - ``interpolate()`` and ``fillna()`` will raise a ``ValueError`` if the ``limit`` keyword argument is not greater than 0. (:issue:`9217`)
 - ``pd.read_csv()`` will now issue a ``ParserWarning`` whenever there are conflicting values provided by the ``dialect`` parameter and the user (:issue:`14898`)
