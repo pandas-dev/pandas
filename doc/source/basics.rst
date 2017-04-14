@@ -917,7 +917,8 @@ Aggregating with a dict
 +++++++++++++++++++++++
 
 Passing a dictionary of column names to a scalar or a list of scalars, to ``DataFame.agg``
-allows you to customize which functions are applied to which columns.
+allows you to customize which functions are applied to which columns. Note that the results
+are not in any particular order, you can use an ``OrderedDict`` instead to guarantee ordering.
 
 .. ipython:: python
 
@@ -977,9 +978,9 @@ Transform API
 
 .. versionadded:: 0.20.0
 
-The :method:`~DataFrame.transform` method returns an object that is indexed the same (same size)
+The :meth:`~DataFrame.transform` method returns an object that is indexed the same (same size)
 as the original. This API allows you to provide *multiple* operations at the same
-time rather than one-by-one. Its api is quite similar to the ``.agg`` API.
+time rather than one-by-one. Its API is quite similar to the ``.agg`` API.
 
 Use a similar frame to the above sections.
 
@@ -990,8 +991,8 @@ Use a similar frame to the above sections.
    tsdf.iloc[3:7] = np.nan
    tsdf
 
-Transform the entire frame. Transform allows functions to input as a numpy function, string
-function name and user defined function.
+Transform the entire frame. ``.transform()`` allows input functions as: a numpy function, a string
+function name or a user defined function.
 
 .. ipython:: python
 
@@ -999,13 +1000,13 @@ function name and user defined function.
    tsdf.transform('abs')
    tsdf.transform(lambda x: x.abs())
 
-Since this is a single function, this is equivalent to a ufunc application
+Here ``.transform()`` received a single function; this is equivalent to a ufunc application
 
 .. ipython:: python
 
    np.abs(tsdf)
 
-Passing a single function to ``.transform()`` with a Series will yield a single Series in return.
+Passing a single function to ``.transform()`` with a ``Series`` will yield a single ``Series`` in return.
 
 .. ipython:: python
 

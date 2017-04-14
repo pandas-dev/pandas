@@ -618,7 +618,7 @@ Aggregation
 
 Once the ``Rolling``, ``Expanding`` or ``EWM`` objects have been created, several methods are available to
 perform multiple computations on the data. These operations are similar to the :ref:`aggregating API <basics.aggregate>`,
-:ref:`groupby aggregates <groupby.aggregate>`, and :ref:`resample API <timeseries.aggregate>`.
+:ref:`groupby API <groupby.aggregate>`, and :ref:`resample API <timeseries.aggregate>`.
 
 
 .. ipython:: python
