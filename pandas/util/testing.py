@@ -859,7 +859,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     right : Index
     exact : bool / string {'equiv'}, default False
         Whether to check the Index class, dtype and inferred_type
-        are identical. If 'equiv', then RangeIndex can be substitued for
+        are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well
     check_names : bool, default True
         Whether to check the names attribute.
