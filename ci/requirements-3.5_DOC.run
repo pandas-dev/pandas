@@ -1,5 +1,6 @@
 ipython
 ipykernel
+ipywidgets
 sphinx
 nbconvert
 nbformat
