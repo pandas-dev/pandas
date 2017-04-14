@@ -16,7 +16,8 @@ from pandas.types.cast import (maybe_downcast_to_dtype,
                                infer_dtype_from_array,
                                maybe_convert_string_to_object,
                                maybe_convert_scalar,
-                               find_common_type)
+                               find_common_type,
+                               maybe_downcast_itemsize)
 from pandas.types.dtypes import (CategoricalDtype,
                                  DatetimeTZDtype, PeriodDtype)
 from pandas.util import testing as tm
@@ -82,6 +83,180 @@ class TestMaybeDowncast(tm.TestCase):
 
         res = maybe_downcast_to_dtype(exp.asi8, exp.dtype)
         tm.assert_index_equal(res, exp)
+
+
+class TestMaybeDowncastItemSize(object):
+
+    @pytest.mark.parametrize(
+        "dtypec",
+        [np.float16, np.float32, np.float64])
+    def test_maybe_downcast_itemsize_float(self, dtypec):
+        # Make sure downcasting works for floats. GH15926
+
+        data = np.array([12], dtype=dtypec)
+        dtype, val = maybe_downcast_itemsize(data, 'float')
+        if np.dtype(dtypec).itemsize >= 4:
+            assert dtype == np.float32
+        else:
+            assert dtype == dtypec
+
+    @pytest.mark.parametrize(
+        "data, dtypec",
+        [(12, np.int8),
+         (12, np.int16),
+         (12, np.int32),
+         (12, np.int64),
+         (12, np.uint8),
+         (12, np.uint16),
+         (12, np.uint32),
+         (12, np.uint64),
+         (-12, np.int8),
+         (-12, np.int16),
+         (-12, np.int32),
+         (-12, np.int64)])
+    def test_maybe_downcast_itemsize_int(self, data, dtypec):
+        # Make sure downcasting works for ints. GH15926
+
+        data = np.array([data], dtype=dtypec)
+        dtype, val = maybe_downcast_itemsize(
+            data, downcast='integer')
+        assert dtype == np.int8
+        dtype, val = maybe_downcast_itemsize(
+            data, downcast='signed')
+        assert dtype == np.int8
+        dtype, val = maybe_downcast_itemsize(
+            data, downcast='unsigned')
+        if val >= 0:
+            assert dtype == np.uint8
+        else:
+            assert dtype == dtypec
+        dtype, val = maybe_downcast_itemsize(
+            data, downcast='float')
+        if np.dtype(dtypec).itemsize >= 4:
+            assert dtype == np.float32
+        else:
+            assert dtype == dtypec
+
+    @pytest.mark.parametrize(
+        "dtypec, dtypec_up",
+        [(np.uint8, np.uint16),
+         (np.uint16, np.uint32),
+         (np.uint32, np.uint64)])
+    def test_maybe_downcast_itemsize_uint_bounds(self, dtypec, dtypec_up):
+        # Make sure downcasting works at bounds for uint. GH15926
+
+        val = np.array([np.iinfo(dtypec).max], dtype=dtypec)
+
+        data = val - 1
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'unsigned')
+        assert dtype == dtypec
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'integer')
+        assert dtype == dtypec
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'signed')
+        assert dtype == dtypec
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'float')
+        if np.dtype(dtypec).itemsize >= 4:
+            assert dtype == np.float32
+        else:
+            assert dtype == dtypec
+
+        data = val.astype(dtypec_up) + 1
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'unsigned')
+        assert dtype == dtypec_up
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'integer')
+        assert dtype \
+            == getattr(np, str(np.dtype(dtypec_up)).replace('uint', 'int'))
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'signed')
+        assert dtype \
+            == getattr(np, str(np.dtype(dtypec_up)).replace('uint', 'int'))
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'float')
+        if np.dtype(dtypec_up).itemsize >= 4:
+            assert dtype == np.float32
+        else:
+            assert dtype == dtypec_up
+
+    @pytest.mark.parametrize(
+        "dtypec, dtypec_up",
+        [(np.float16, np.float32),
+         (np.float32, np.float64)])
+    def test_maybe_downcast_itemsize_float_bounds(self, dtypec, dtypec_up):
+        # Make sure downcasting works at bounds for float. GH15926
+
+        data = np.array(
+            [float(np.finfo(dtypec).min) * 2.0], dtype=dtypec_up)
+        dtype, val = maybe_downcast_itemsize(data, 'float')
+        assert dtype == dtypec_up
+
+        data = np.array(
+            [float(np.finfo(dtypec).max) * 2.0], dtype=dtypec_up)
+        dtype, _ = maybe_downcast_itemsize(data, 'float')
+        assert dtype == dtypec_up
+
+        data = np.array(
+            [float(np.finfo(dtypec).min) * 0.5], dtype=dtypec)
+        dtype, val = maybe_downcast_itemsize(data, 'float')
+        assert dtype == dtypec
+
+        data = np.array(
+            [float(np.finfo(dtypec).max) * 0.5], dtype=dtypec)
+        dtype, _ = maybe_downcast_itemsize(data, 'float')
+        assert dtype == dtypec
+
+    @pytest.mark.parametrize(
+        "dtypec, dtypec_up",
+        [(np.int8, np.int16),
+         (np.int16, np.int32),
+         (np.int32, np.int64)])
+    def test_maybe_downcast_itemsize_int_bounds(self, dtypec, dtypec_up):
+        # Make sure downcasting works at bounds for uint. GH15926
+
+        val = np.array([np.iinfo(dtypec).max], dtype=dtypec)
+
+        data = val - 1
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'unsigned')
+        assert dtype \
+            == getattr(np, str(np.dtype(dtypec)).replace('int', 'uint'))
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'integer')
+        assert dtype == dtypec
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'signed')
+        assert dtype == dtypec
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'float')
+        if np.dtype(dtypec).itemsize >= 4:
+            assert dtype == np.float32
+        else:
+            assert dtype == dtypec
+
+        data = val.astype(dtypec_up) + 1
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'unsigned')
+        assert dtype \
+            == getattr(np, str(np.dtype(dtypec)).replace('int', 'uint'))
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'integer')
+        assert dtype \
+            == getattr(np, str(np.dtype(dtypec_up)).replace('uint', 'int'))
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'signed')
+        assert dtype \
+            == getattr(np, str(np.dtype(dtypec_up)).replace('uint', 'int'))
+        dtype, _ = maybe_downcast_itemsize(
+            data, 'float')
+        if np.dtype(dtypec_up).itemsize >= 4:
+            assert dtype == np.float32
+        else:
+            assert dtype == dtypec_up
 
 
 class TestInferDtype(object):

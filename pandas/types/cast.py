@@ -110,7 +110,11 @@ def maybe_downcast_to_dtype(result, dtype):
                 return result
 
         if issubclass(dtype.type, np.floating):
-            return result.astype(dtype)
+            if np.allclose(result, trans(result).astype(dtype)):
+                return result.astype(dtype)
+            else:
+                return result
+
         elif is_bool_dtype(dtype) or is_integer_dtype(dtype):
 
             # if we don't have any elements, just astype it
@@ -330,6 +334,68 @@ def maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
 
     return dtype, fill_value
+
+
+def maybe_downcast_itemsize(val, downcast):
+    """maybe downcast an itemsize
+
+    Parameters
+    ----------
+    val : any object with a numeric type
+        Value to maybe be downcasted.
+    downcast : str, one of {'integer', 'signed', 'unsigned', 'float'}
+        Downcast that resulting data to the smallest numerical dtype
+        possible according to the following rules:
+
+        - 'integer' or 'signed': smallest signed int dtype (min.: np.int8)
+        - 'unsigned': smallest unsigned int dtype (min.: np.uint8)
+        - 'float': smallest float dtype (min.: np.float32)
+
+        Downcasting will only occur if the size
+        of the data's dtype is strictly larger than
+        the dtype it is to be cast to, so if none of the dtypes
+        checked satisfy that specification, no downcasting will be
+        performed on the data.
+
+        Values smaller than the minimums above will be returned as is.
+
+    .. versionadded:: 0.20.0
+    Returns
+    -------
+    dtype : a numpy dtype
+    val : the downcasted value
+    """
+
+    if downcast not in ('integer', 'signed', 'unsigned', 'float'):
+        raise ValueError('invalid downcasting method provided')
+
+    typecodes = None
+
+    if downcast in ('integer', 'signed'):
+        typecodes = np.typecodes['Integer']
+    elif downcast == 'unsigned' and np.min(val) >= 0:
+        typecodes = np.typecodes['UnsignedInteger']
+    elif downcast == 'float':
+        typecodes = np.typecodes['Float']
+
+        # pandas support goes only to np.float32,
+        # as float dtypes smaller than that are
+        # extremely rare and not well supported
+        float_32_char = np.dtype(np.float32).char
+        float_32_ind = typecodes.index(float_32_char)
+        typecodes = typecodes[float_32_ind:]
+
+    if typecodes is not None:
+        # from smallest to largest
+        for dtype in typecodes:
+            if np.dtype(dtype).itemsize <= val.dtype.itemsize:
+                val = maybe_downcast_to_dtype(val, dtype)
+
+                # successful conversion
+                if val.dtype == dtype:
+                    break
+
+    return val.dtype.type, val
 
 
 def infer_dtype_from_scalar(val, pandas_dtype=False):

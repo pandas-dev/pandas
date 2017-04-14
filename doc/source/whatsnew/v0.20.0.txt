@@ -373,6 +373,8 @@ Other Enhancements
 - :func:`MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
 - ``pd.read_csv()`` will now raise a ``ParserError`` error whenever any parsing error occurs (:issue:`15913`, :issue:`15925`)
 - ``pd.read_csv()`` now supports the ``error_bad_lines`` and ``warn_bad_lines`` arguments for the Python parser (:issue:`15925`)
+- ``pd.get_dummies()`` now accepts the ``fill_value`` keyword which specifies how to fill NaN values in the dummy variables. (:issue:`15923`)
+- ``pd.types.cast`` has a new function ``maybe_downcast_itemsize`` which can be used to reduce the width of numeric types. (:issue:`15923`)
 
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
@@ -382,6 +384,19 @@ Other Enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Deprecate Automatic Zero Filling of Missing Values in ``pd.get_dummies``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :func:`get_dummies` function currently fills NaN values with zero by default. This behavior is in conflict with the rest of the pandas API since NaN values should be filled with ``fillna`` or a ``fill_value`` keyword, and NaN values should be propagated through pandas transformations. In the future, :func:`get_dummies` will propagate NaN values by default. (:issue:`15923`)
+
+
+The recommended way to reproduce the current behavior of filling NaN values with zeros with the new, upcoming API is
+
+.. ipython: python
+
+  df = pd.get_dummies(df, fill_value=0)
+
 
 .. _whatsnew_0200.api_breaking.deprecate_ix:
 

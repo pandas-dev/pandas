@@ -4,13 +4,15 @@ from pandas.compat import range, zip
 from pandas import compat
 import itertools
 import re
+import warnings
 
 import numpy as np
 
 from pandas.types.common import (_ensure_platform_int,
                                  is_list_like, is_bool_dtype,
                                  needs_i8_conversion)
-from pandas.types.cast import maybe_promote
+from pandas.types.cast import (maybe_promote, infer_dtype_from_scalar,
+                               maybe_downcast_itemsize)
 from pandas.types.missing import notnull
 import pandas.types.concat as _concat
 
@@ -1059,7 +1061,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
 
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
-                columns=None, sparse=False, drop_first=False):
+                columns=None, sparse=False, drop_first=False,
+                fill_value=None):
     """
     Convert categorical variable into dummy/indicator variables
 
@@ -1075,7 +1078,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         If appending prefix, separator/delimiter to use. Or pass a
         list or dictionary as with `prefix.`
     dummy_na : bool, default False
-        Add a column to indicate NaNs, if False NaNs are ignored.
+        If True, add an extra dummy column to indicate NaNs, otherwise
+        no extra column is added.
     columns : list-like, default None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
@@ -1091,6 +1095,19 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         first level.
 
         .. versionadded:: 0.18.0
+    fill_value : scalar, default None
+        Value to fill NaNs with. If no missing values are found or NaN is not
+        used to fill them, the returned data type will be the smallest
+        width type that can represent the returned values. See
+        pandas.types.cast.maybe_downcast_itemsize for details. If NaNs are
+        present and NaN is used to fill them, then the smallest floating
+        point type (typically `np.float32`) will be used. Currently, the
+        default of `None` will fill with zeros. To do no filling of NaNs,
+        specify `fill_value=np.nan`. The default behavior of filling with
+        zeros will be deprecated in the future and using this default will
+        now raise a `FutureWarning`.
+
+        .. versionadded:: 0.20.0
     Returns
     -------
     dummies : DataFrame or SparseDataFrame
@@ -1120,6 +1137,18 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     0  1  0    0
     1  0  1    0
     2  0  0    1
+
+    >>> pd.get_dummies(s1, fill_value=np.nan)
+         a    b
+    0    1    0
+    1    0    1
+    2  NaN  NaN
+
+    >>> pd.get_dummies(s1, fill_value=np.nan, dummy_na=True)
+         a    b  NaN
+    0    1    0    0
+    1    0    1    0
+    2  NaN  NaN    1
 
     >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
                         'C': [1, 2, 3]})
@@ -1152,6 +1181,44 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     """
     from pandas.tools.concat import concat
     from itertools import cycle
+
+    # Deprecate filling NaN values with zeros, GH15926
+    # When this is finally deprecated, simply remove this block
+    # of code and change the default to np.nan in the function signature
+    # of `get_dummies`.
+    if fill_value is None:
+        warnings.warn('The default behavior of filling NaN values '
+                      'with zeros will be deprecated. Use '
+                      '`df = pd.get_dummies(df, fill_value=0)` to reproduce '
+                      'this behavior', FutureWarning, 3)
+        fill_value = 0
+
+    # Infer the proper output dtype.
+    # GH15926
+    vals = data.values.ravel() if hasattr(data, 'values') else data
+    isnotfinite = []
+    for v in vals:
+        try:
+            isnotfinite.append(~np.isfinite(v))
+        except TypeError:
+            isnotfinite.append(False)
+    if np.any(isnotfinite):
+        output_dtype, fill_value = infer_dtype_from_scalar(fill_value)
+        # `maybe_downcast_itemsize` only accepts arrays, so make a one
+        # element array and then extract the value back out. GH15926
+        if 'float' in str(output_dtype) or fill_value is np.nan:
+            output_dtype, fill_value = maybe_downcast_itemsize(
+                np.array([np.float64(fill_value)]), 'float')
+        elif 'int' in str(output_dtype):
+            if fill_value >= 0:
+                fill_value = np.uint64(fill_value)
+            else:
+                fill_value = np.int64(fill_value)
+            output_dtype, fill_value \
+                = maybe_downcast_itemsize(np.array([fill_value]), 'unsigned')
+        fill_value = output_dtype(fill_value[0])
+    else:
+        output_dtype = np.uint8
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
@@ -1197,17 +1264,22 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
             dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,
                                     dummy_na=dummy_na, sparse=sparse,
-                                    drop_first=drop_first)
+                                    drop_first=drop_first,
+                                    fill_value=fill_value,
+                                    output_dtype=output_dtype)
             with_dummies.append(dummy)
         result = concat(with_dummies, axis=1)
     else:
         result = _get_dummies_1d(data, prefix, prefix_sep, dummy_na,
-                                 sparse=sparse, drop_first=drop_first)
+                                 sparse=sparse, drop_first=drop_first,
+                                 fill_value=fill_value,
+                                 output_dtype=output_dtype)
     return result
 
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
-                    sparse=False, drop_first=False):
+                    fill_value=np.nan, sparse=False, drop_first=False,
+                    output_dtype=np.uint8):
     # Series avoids inconsistent NaN handling
     codes, levels = _factorize_from_iterable(Series(data))
 
@@ -1221,17 +1293,23 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         else:
             return SparseDataFrame(index=index, default_fill_value=0)
 
-    # if all NaN
-    if not dummy_na and len(levels) == 0:
+    # If we get all NaN and are not making a dummy col, then just return.
+    # GH15826
+    if len(levels) == 0 and not dummy_na:
         return get_empty_Frame(data, sparse)
 
+    # Record NaN values before we munge the codes, GH15826
+    nan_codes_msk = codes == -1
+    num_orig_levels = len(levels)
     codes = codes.copy()
     if dummy_na:
-        codes[codes == -1] = len(levels)
+        codes[nan_codes_msk] = num_orig_levels
         levels = np.append(levels, np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
-    if drop_first and len(levels) == 1:
+    # test for length of levels was changed to `<=` from `==` to cover
+    # all NaN inputs, GH15826
+    if drop_first and len(levels) <= 1:
         return get_empty_Frame(data, sparse)
 
     number_of_cols = len(levels)
@@ -1249,41 +1327,66 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
     if sparse:
         sparse_series = {}
         N = len(data)
-        sp_indices = [[] for _ in range(len(dummy_cols))]
-        for ndx, code in enumerate(codes):
-            if code == -1:
-                # Blank entries if not dummy_na and code == -1, #GH4446
-                continue
-            sp_indices[code].append(ndx)
+        # Construct lists of inds and if the value is NaN.
+        # GH15926
+        sp_indices = [None] * len(dummy_cols)
+        sp_fill = [None] * len(dummy_cols)
+        for code in np.unique(codes[codes != -1]):
+            # Non-zero value in sparse array if value is of the level
+            # or the value is NaN and it is filled non-zero and
+            # and it is not the dummy column for NaNs.
+            # GH15926
+            sp_indices[code] = sorted(
+                np.where((codes == code) |
+                         ((fill_value != 0) &
+                          (code < num_orig_levels) &
+                          nan_codes_msk))[0].tolist())
+
+            # Value is filled with `fill_value` if it is NaN
+            # and not in dummy col and fill value is non-zero.
+            # GH15926
+            sp_fill[code] = (nan_codes_msk[sp_indices[code]] &
+                             (fill_value != 0) &
+                             (code < num_orig_levels))
 
         if drop_first:
             # remove first categorical level to avoid perfect collinearity
             # GH12042
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
-        for col, ixs in zip(dummy_cols, sp_indices):
-            sarr = SparseArray(np.ones(len(ixs), dtype=np.uint8),
-                               sparse_index=IntIndex(N, ixs), fill_value=0,
-                               dtype=np.uint8)
+            sp_fill = sp_fill[1:]
+
+        for col, ixs, fill in zip(dummy_cols, sp_indices, sp_fill):
+            sarr = np.ones(len(ixs), dtype=output_dtype)
+            sarr[fill] = fill_value  # Fill with `fill_value`, GH15926
+            sarr = SparseArray(
+                sarr,
+                sparse_index=IntIndex(N, ixs),
+                fill_value=0,
+                dtype=output_dtype)
             sparse_series[col] = SparseSeries(data=sarr, index=index)
 
         out = SparseDataFrame(sparse_series, index=index, columns=dummy_cols,
                               default_fill_value=0,
-                              dtype=np.uint8)
+                              dtype=output_dtype)
         return out
 
     else:
-        dummy_mat = np.eye(number_of_cols, dtype=np.uint8).take(codes, axis=0)
+        dummy_mat = np.eye(
+            number_of_cols, dtype=output_dtype).take(codes, axis=0)
 
-        if not dummy_na:
-            # reset NaN GH4446
-            dummy_mat[codes == -1] = 0
+        # user specified fill value via `fill_value` GH15926
+        if dummy_na:
+            dummy_mat[nan_codes_msk, :-1] = fill_value
+        else:
+            dummy_mat[nan_codes_msk] = fill_value
 
         if drop_first:
             # remove first GH12042
             dummy_mat = dummy_mat[:, 1:]
             dummy_cols = dummy_cols[1:]
-        return DataFrame(dummy_mat, index=index, columns=dummy_cols)
+        return DataFrame(
+            dummy_mat, index=index, columns=dummy_cols, dtype=output_dtype)
 
 
 def make_axis_dummies(frame, axis='minor', transform=None):
