@@ -2079,8 +2079,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         two   bar
         three baz
 
-        Mapping a dictionary keys on the index labels works similar as
-        with a `Series`:
+        If `arg` is a dictionary, return a new Series with values converted
+        according to the dictionary's mapping:
 
         >>> z = {1: 'A', 2: 'B', 3: 'C'}
 
@@ -2088,6 +2088,20 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         one   A
         two   B
         three C
+
+        Values in Series that are not in the dictionary (as keys) are converted
+        to ``NaN``. However, if the dictionary is a ``dict`` subclass that
+        defines ``__missing__`` (i.e. provides a method for default values),
+        then this default is used rather than ``NaN``:
+
+        >>> from collections import Counter
+        >>> counter = Counter()
+        >>> counter['bar'] += 1
+        >>> y.map(counter)
+        1    0
+        2    1
+        3    0
+        dtype: int64
 
         Use na_action to control whether NA values are affected by the mapping
         function.
