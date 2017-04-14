@@ -3,17 +3,19 @@ Quantilization functions and related stuff
 """
 
 from pandas.types.missing import isnull
-from pandas.types.common import (is_float, is_integer,
-                                 is_scalar, _ensure_int64)
+from pandas.types.common import (is_integer,
+                                 is_scalar,
+                                 is_categorical_dtype,
+                                 is_datetime64_dtype,
+                                 is_timedelta64_dtype,
+                                 _ensure_int64)
 
-from pandas.core.api import Series
-from pandas.core.categorical import Categorical
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
-from pandas.compat import zip
-from pandas import to_timedelta, to_datetime
-from pandas.types.common import is_datetime64_dtype, is_timedelta64_dtype
 from pandas._libs.lib import infer_dtype
+from pandas import (to_timedelta, to_datetime,
+                    Categorical, Timestamp, Timedelta,
+                    Series, Interval, IntervalIndex)
 
 import numpy as np
 
@@ -27,7 +29,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     ----------
     x : array-like
         Input array to be binned. It has to be 1-dimensional.
-    bins : int or sequence of scalars
+    bins : int, sequence of scalars, or IntervalIndex
         If `bins` is an int, it defines the number of equal-width bins in the
         range of `x`. However, in this case, the range of `x` is extended
         by .1% on each side to include the min or max values of `x`. If
@@ -45,9 +47,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     retbins : bool, optional
         Whether to return the bins or not. Can be useful if bins is given
         as a scalar.
-    precision : int
+    precision : int, optional
         The precision at which to store and display the bins labels
-    include_lowest : bool
+    include_lowest : bool, optional
         Whether the first interval should be left-inclusive or not.
 
     Returns
@@ -76,10 +78,12 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
       (6.533, 9.7], (0.191, 3.367]]
     Categories (3, object): [(0.191, 3.367] < (3.367, 6.533] < (6.533, 9.7]],
     array([ 0.1905    ,  3.36666667,  6.53333333,  9.7       ]))
+
     >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3,
                labels=["good","medium","bad"])
     [good, good, good, medium, bad, good]
     Categories (3, object): [good < medium < bad]
+
     >>> pd.cut(np.ones(5), 4, labels=False)
     array([1, 1, 1, 1, 1], dtype=int64)
     """
@@ -93,14 +97,16 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         if is_scalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
 
-        sz = x.size
+        try:  # for array-like
+            sz = x.size
+        except AttributeError:
+            x = np.asarray(x)
+            sz = x.size
 
         if sz == 0:
             raise ValueError('Cannot cut empty array')
-            # handle empty arrays. Can't determine range, so use 0-1.
-            # rng = (0, 1)
-        else:
-            rng = (nanops.nanmin(x), nanops.nanmax(x))
+
+        rng = (nanops.nanmin(x), nanops.nanmax(x))
         mn, mx = [mi + 0.0 for mi in rng]
 
         if mn == mx:  # adjust end points before binning
@@ -115,15 +121,18 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
             else:
                 bins[-1] += adj
 
+    elif isinstance(bins, IntervalIndex):
+        pass
     else:
         bins = np.asarray(bins)
-        bins = _convert_bin_to_numeric_type(bins)
+        bins = _convert_bin_to_numeric_type(bins, dtype)
         if (np.diff(bins) < 0).any():
             raise ValueError('bins must increase monotonically.')
 
     fac, bins = _bins_to_cuts(x, bins, right=right, labels=labels,
                               precision=precision,
-                              include_lowest=include_lowest, dtype=dtype)
+                              include_lowest=include_lowest,
+                              dtype=dtype)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
                                 series_index, name)
@@ -147,9 +156,9 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
         the resulting bins. If False, return only integer indicators of the
         bins.
     retbins : bool, optional
-        Whether to return the bins or not. Can be useful if bins is given
-        as a scalar.
-    precision : int
+        Whether to return the (bins, labels) or not. Can be useful if bins
+        is given as a scalar.
+    precision : int, optional
         The precision at which to store and display the bins labels
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
@@ -174,9 +183,11 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     >>> pd.qcut(range(5), 4)
     [[0, 1], [0, 1], (1, 2], (2, 3], (3, 4]]
     Categories (4, object): [[0, 1] < (1, 2] < (2, 3] < (3, 4]]
+
     >>> pd.qcut(range(5), 3, labels=["good","medium","bad"])
     [good, good, medium, bad, bad]
     Categories (3, object): [good < medium < bad]
+
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3], dtype=int64)
     """
@@ -205,6 +216,13 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
         raise ValueError("invalid value for 'duplicates' parameter, "
                          "valid options are: raise, drop")
 
+    if isinstance(bins, IntervalIndex):
+        # we have a fast-path here
+        ids = bins.get_indexer(x)
+        result = algos.take_nd(bins, ids)
+        result = Categorical(result, categories=bins, ordered=True)
+        return result, bins
+
     unique_bins = algos.unique(bins)
     if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == 'raise':
@@ -225,96 +243,26 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
 
     if labels is not False:
         if labels is None:
-            increases = 0
-            while True:
-                try:
-                    levels = _format_levels(bins, precision, right=right,
-                                            include_lowest=include_lowest,
-                                            dtype=dtype)
-                except ValueError:
-                    increases += 1
-                    precision += 1
-                    if increases >= 20:
-                        raise
-                else:
-                    break
-
+            labels = _format_labels(bins, precision, right=right,
+                                    include_lowest=include_lowest,
+                                    dtype=dtype)
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError('Bin labels must be one fewer than '
                                  'the number of bin edges')
-            levels = labels
+        if not is_categorical_dtype(labels):
+            labels = Categorical(labels, ordered=True)
 
-        levels = np.asarray(levels, dtype=object)
         np.putmask(ids, na_mask, 0)
-        fac = Categorical(ids - 1, levels, ordered=True, fastpath=True)
+        result = algos.take_nd(labels, ids - 1)
+
     else:
-        fac = ids - 1
+        result = ids - 1
         if has_nas:
-            fac = fac.astype(np.float64)
-            np.putmask(fac, na_mask, np.nan)
+            result = result.astype(np.float64)
+            np.putmask(result, na_mask, np.nan)
 
-    return fac, bins
-
-
-def _format_levels(bins, prec, right=True,
-                   include_lowest=False, dtype=None):
-    fmt = lambda v: _format_label(v, precision=prec, dtype=dtype)
-    if right:
-        levels = []
-        for a, b in zip(bins, bins[1:]):
-            fa, fb = fmt(a), fmt(b)
-
-            if a != b and fa == fb:
-                raise ValueError('precision too low')
-
-            formatted = '(%s, %s]' % (fa, fb)
-
-            levels.append(formatted)
-
-        if include_lowest:
-            levels[0] = '[' + levels[0][1:]
-    else:
-        levels = ['[%s, %s)' % (fmt(a), fmt(b))
-                  for a, b in zip(bins, bins[1:])]
-    return levels
-
-
-def _format_label(x, precision=3, dtype=None):
-    fmt_str = '%%.%dg' % precision
-
-    if is_datetime64_dtype(dtype):
-        return to_datetime(x, unit='ns')
-    if is_timedelta64_dtype(dtype):
-        return to_timedelta(x, unit='ns')
-    if np.isinf(x):
-        return str(x)
-    elif is_float(x):
-        frac, whole = np.modf(x)
-        sgn = '-' if x < 0 else ''
-        whole = abs(whole)
-        if frac != 0.0:
-            val = fmt_str % frac
-
-            # rounded up or down
-            if '.' not in val:
-                if x < 0:
-                    return '%d' % (-whole - 1)
-                else:
-                    return '%d' % (whole + 1)
-
-            if 'e' in val:
-                return _trim_zeros(fmt_str % x)
-            else:
-                val = _trim_zeros(val)
-                if '.' in val:
-                    return sgn + '.'.join(('%d' % whole, val.split('.')[1]))
-                else:  # pragma: no cover
-                    return sgn + '.'.join(('%d' % whole, val))
-        else:
-            return sgn + '%0.f' % whole
-    else:
-        return str(x)
+    return result, bins
 
 
 def _trim_zeros(x):
@@ -343,17 +291,65 @@ def _coerce_to_type(x):
     return x, dtype
 
 
-def _convert_bin_to_numeric_type(x):
+def _convert_bin_to_numeric_type(bins, dtype):
     """
     if the passed bin is of datetime/timedelta type,
     this method converts it to integer
+
+    Parameters
+    ----------
+    bins : list-liek of bins
+    dtype : dtype of data
+
+    Raises
+    ------
+    ValueError if bins are not of a compat dtype to dtype
     """
-    dtype = infer_dtype(x)
-    if dtype == 'timedelta' or dtype == 'timedelta64':
-        x = to_timedelta(x).view(np.int64)
-    elif dtype == 'datetime' or dtype == 'datetime64':
-        x = to_datetime(x).view(np.int64)
-    return x
+    bins_dtype = infer_dtype(bins)
+    if is_timedelta64_dtype(dtype):
+        if bins_dtype in ['timedelta', 'timedelta64']:
+            bins = to_timedelta(bins).view(np.int64)
+        else:
+            raise ValueError("bins must be of timedelta64 dtype")
+    elif is_datetime64_dtype(dtype):
+        if bins_dtype in ['datetime', 'datetime64']:
+            bins = to_datetime(bins).view(np.int64)
+        else:
+            raise ValueError("bins must be of datetime64 dtype")
+
+    return bins
+
+
+def _format_labels(bins, precision, right=True,
+                   include_lowest=False, dtype=None):
+    """ based on the dtype, return our labels """
+
+    closed = 'right' if right else 'left'
+
+    if is_datetime64_dtype(dtype):
+        formatter = Timestamp
+        adjust = lambda x: x - Timedelta('1ns')
+    elif is_timedelta64_dtype(dtype):
+        formatter = Timedelta
+        adjust = lambda x: x - Timedelta('1ns')
+    else:
+        precision = _infer_precision(precision, bins)
+        formatter = lambda x: _round_frac(x, precision)
+        adjust = lambda x: x - 10 ** (-precision)
+
+    breaks = [formatter(b) for b in bins]
+    labels = IntervalIndex.from_breaks(breaks, closed=closed)
+
+    if right and include_lowest:
+        # we will adjust the left hand side by precision to
+        # account that we are all right closed
+        v = adjust(labels[0].left)
+
+        i = IntervalIndex.from_intervals(
+            [Interval(v, labels[0].right, closed='right')])
+        labels = i.append(labels[1:])
+
+    return labels
 
 
 def _preprocess_for_cut(x):
@@ -375,7 +371,8 @@ def _preprocess_for_cut(x):
     return x_is_series, series_index, name, x
 
 
-def _postprocess_for_cut(fac, bins, retbins, x_is_series, series_index, name):
+def _postprocess_for_cut(fac, bins, retbins, x_is_series,
+                         series_index, name):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
@@ -388,3 +385,28 @@ def _postprocess_for_cut(fac, bins, retbins, x_is_series, series_index, name):
         return fac
 
     return fac, bins
+
+
+def _round_frac(x, precision):
+    """
+    Round the fractional part of the given number
+    """
+    if not np.isfinite(x) or x == 0:
+        return x
+    else:
+        frac, whole = np.modf(x)
+        if whole == 0:
+            digits = -int(np.floor(np.log10(abs(frac)))) - 1 + precision
+        else:
+            digits = precision
+        return np.around(x, digits)
+
+
+def _infer_precision(base_precision, bins):
+    """Infer an appropriate precision for _round_frac
+    """
+    for precision in range(base_precision, 20):
+        levels = [_round_frac(b, precision) for b in bins]
+        if algos.unique(levels).size == bins.size:
+            return precision
+    return base_precision  # default

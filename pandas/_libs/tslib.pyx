@@ -1296,6 +1296,18 @@ cdef class _Timestamp(datetime):
 
             return result
 
+    property _short_repr:
+        def __get__(self):
+            # format a Timestamp with only _date_repr if possible
+            # otherwise _repr_base
+            if (self.hour == 0 and
+                self.minute == 0 and
+                self.second == 0 and
+                self.microsecond == 0 and
+                self.nanosecond == 0):
+                return self._date_repr
+            return self._repr_base
+
     property asm8:
         def __get__(self):
             return np.datetime64(self.value, 'ns')

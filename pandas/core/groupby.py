@@ -18,6 +18,7 @@ from pandas.compat import set_function_name
 from pandas.types.common import (is_numeric_dtype,
                                  is_timedelta64_dtype, is_datetime64_dtype,
                                  is_categorical_dtype,
+                                 is_interval_dtype,
                                  is_datetimelike,
                                  is_datetime64_any_dtype,
                                  is_bool, is_integer_dtype,
@@ -40,11 +41,11 @@ from pandas.core.common import (_values_from_object, AbstractMethodError,
 
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
+from pandas.core.index import (Index, MultiIndex,
+                               CategoricalIndex, _ensure_index)
 from pandas.core.categorical import Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.index import (Index, MultiIndex, CategoricalIndex,
-                               _ensure_index)
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.panel import Panel
@@ -2660,7 +2661,7 @@ def _convert_grouper(axis, grouper):
             return grouper.reindex(axis)._values
     elif isinstance(grouper, (list, Series, Index, np.ndarray)):
         if len(grouper) != len(axis):
-            raise AssertionError('Grouper and axis must be same length')
+            raise ValueError('Grouper and axis must be same length')
         return grouper
     else:
         return grouper
@@ -3145,20 +3146,29 @@ class SeriesGroupBy(GroupBy):
 
         if bins is None:
             lab, lev = algorithms.factorize(val, sort=True)
+            llab = lambda lab, inc: lab[inc]
         else:
-            cat, bins = cut(val, bins, retbins=True)
-            # bins[:-1] for backward compat;
-            # o.w. cat.categories could be better
-            lab, lev, dropna = cat.codes, bins[:-1], False
 
-        sorter = np.lexsort((lab, ids))
+            # lab is a Categorical with categories an IntervalIndex
+            lab = cut(Series(val), bins, include_lowest=True)
+            lev = lab.cat.categories
+            lab = lev.take(lab.cat.codes)
+            llab = lambda lab, inc: lab[inc]._multiindex.labels[-1]
+
+        if is_interval_dtype(lab):
+            # TODO: should we do this inside II?
+            sorter = np.lexsort((lab.left, lab.right, ids))
+        else:
+            sorter = np.lexsort((lab, ids))
+
         ids, lab = ids[sorter], lab[sorter]
 
         # group boundaries are where group ids change
         idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
 
         # new values are where sorted labels change
-        inc = np.r_[True, lab[1:] != lab[:-1]]
+        lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
+        inc = np.r_[True, lchanges]
         inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0])  # value counts
 
@@ -3166,7 +3176,7 @@ class SeriesGroupBy(GroupBy):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        labels = list(map(rep, self.grouper.recons_labels)) + [lab[inc]]
+        labels = list(map(rep, self.grouper.recons_labels)) + [llab(lab, inc)]
         levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
         names = self.grouper.names + [self._selection_name]
 

@@ -8,7 +8,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import Categorical, compat, notnull
+from pandas import Categorical, IntervalIndex, compat, notnull
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
 import pandas as pd
@@ -343,11 +343,26 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertIsInstance(result, Index)
         self.assertNotIsInstance(result, CategoricalIndex)
 
+        # interval
+        ii = IntervalIndex.from_arrays(left=[-0.001, 2.0],
+                                       right=[2, 4],
+                                       closed='right')
+
+        ci = CategoricalIndex(Categorical.from_codes(
+            [0, 1, -1], categories=ii, ordered=True))
+
+        result = ci.astype('interval')
+        expected = ii.take([0, 1, -1])
+        tm.assert_index_equal(result, expected)
+
+        result = IntervalIndex.from_intervals(result.values)
+        tm.assert_index_equal(result, expected)
+
     def test_reindex_base(self):
 
         # determined by cat ordering
         idx = self.create_index()
-        expected = np.array([4, 0, 1, 5, 2, 3], dtype=np.intp)
+        expected = np.arange(len(idx), dtype=np.intp)
 
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)

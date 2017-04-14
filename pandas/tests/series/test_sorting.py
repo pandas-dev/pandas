@@ -3,9 +3,9 @@
 import numpy as np
 import random
 
-from pandas import (DataFrame, Series, MultiIndex)
+from pandas import DataFrame, Series, MultiIndex, IntervalIndex
 
-from pandas.util.testing import (assert_series_equal, assert_almost_equal)
+from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -177,3 +177,18 @@ class TestSeriesSorting(TestData, tm.TestCase):
         expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan])
         index_sorted_series = series.sort_index(na_position='last')
         assert_series_equal(expected_series_last, index_sorted_series)
+
+    def test_sort_index_intervals(self):
+        s = Series([np.nan, 1, 2, 3], IntervalIndex.from_arrays(
+            [0, 1, 2, 3],
+            [1, 2, 3, 4]))
+
+        result = s.sort_index()
+        expected = s
+        assert_series_equal(result, expected)
+
+        result = s.sort_index(ascending=False)
+        expected = Series([3, 2, 1, np.nan], IntervalIndex.from_arrays(
+            [3, 2, 1, 0],
+            [4, 3, 2, 1]))
+        assert_series_equal(result, expected)

@@ -10,8 +10,7 @@ import pandas as pd
 
 from pandas.types.common import is_categorical_dtype, is_datetime64tz_dtype
 from pandas import (Index, Series, isnull, date_range,
-                    period_range, NaT)
-from pandas.core.index import MultiIndex
+                    NaT, period_range, MultiIndex, IntervalIndex)
 from pandas.tseries.index import Timestamp, DatetimeIndex
 
 from pandas._libs import lib
@@ -542,6 +541,17 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         s = Series(pd.NaT, index=[0, 1], dtype='datetime64[ns, US/Eastern]')
         expected = Series(pd.DatetimeIndex(['NaT', 'NaT'], tz='US/Eastern'))
         assert_series_equal(s, expected)
+
+    def test_construction_interval(self):
+        # construction from interval & array of intervals
+        index = IntervalIndex.from_breaks(np.arange(3), closed='right')
+        result = Series(index)
+        repr(result)
+        str(result)
+        tm.assert_index_equal(Index(result.values), index)
+
+        result = Series(index.values)
+        tm.assert_index_equal(Index(result.values), index)
 
     def test_construction_consistency(self):
 

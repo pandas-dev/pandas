@@ -19,7 +19,7 @@ from pandas.types.common import (
     is_bool_dtype, needs_i8_conversion,
     is_categorical, is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype,
+    is_timedelta64_dtype, is_interval_dtype,
     is_scalar, is_list_like,
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
@@ -605,31 +605,39 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
     if bins is not None:
         try:
             from pandas.tools.tile import cut
-            values = Series(values).values
-            cat, bins = cut(values, bins, retbins=True)
+            values = Series(values)
+            ii = cut(values, bins, include_lowest=True)
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
-        values = cat.codes
 
-    if is_categorical_dtype(values) or is_sparse(values):
+        # count, remove nulls (from the index), and but the bins
+        result = ii.value_counts(dropna=dropna)
+        result = result[result.index.notnull()]
+        result.index = result.index.astype('interval')
+        result = result.sort_index()
 
-        # handle Categorical and sparse,
-        result = Series(values).values.value_counts(dropna=dropna)
-        result.name = name
-        counts = result.values
+        # if we are dropna and we have NO values
+        if dropna and (result.values == 0).all():
+            result = result.iloc[0:0]
+
+        # normalizing is by len of all (regardless of dropna)
+        counts = np.array([len(ii)])
 
     else:
-        keys, counts = _value_counts_arraylike(values, dropna)
 
-        if not isinstance(keys, Index):
-            keys = Index(keys)
-        result = Series(counts, index=keys, name=name)
+        if is_categorical_dtype(values) or is_sparse(values):
 
-    if bins is not None:
-        # TODO: This next line should be more efficient
-        result = result.reindex(np.arange(len(cat.categories)),
-                                fill_value=0)
-        result.index = bins[:-1]
+            # handle Categorical and sparse,
+            result = Series(values).values.value_counts(dropna=dropna)
+            result.name = name
+            counts = result.values
+
+        else:
+            keys, counts = _value_counts_arraylike(values, dropna)
+
+            if not isinstance(keys, Index):
+                keys = Index(keys)
+            result = Series(counts, index=keys, name=name)
 
     if sort:
         result = result.sort_values(ascending=ascending)
@@ -1395,6 +1403,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         return arr.take_nd(indexer, fill_value=fill_value,
                            allow_fill=allow_fill)
     elif is_datetimetz(arr):
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+    elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if indexer is None:

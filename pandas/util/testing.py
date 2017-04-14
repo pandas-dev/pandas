@@ -29,6 +29,7 @@ from pandas.types.common import (is_datetimelike_v_numeric,
                                  is_number, is_bool,
                                  needs_i8_conversion,
                                  is_categorical_dtype,
+                                 is_interval_dtype,
                                  is_sequence,
                                  is_list_like)
 from pandas.formats.printing import pprint_thing
@@ -43,9 +44,11 @@ from pandas.compat import (
 
 from pandas.computation import expressions as expr
 
-from pandas import (bdate_range, CategoricalIndex, Categorical, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, RangeIndex, Index, MultiIndex,
+from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
+                    DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
+                    Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
+
 from pandas.util.decorators import deprecate
 from pandas.util import libtesting
 from pandas.io.common import urlopen
@@ -943,6 +946,9 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         assert_attr_equal('names', left, right, obj=obj)
     if isinstance(left, pd.PeriodIndex) or isinstance(right, pd.PeriodIndex):
         assert_attr_equal('freq', left, right, obj=obj)
+    if (isinstance(left, pd.IntervalIndex) or
+            isinstance(right, pd.IntervalIndex)):
+        assert_attr_equal('closed', left, right, obj=obj)
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
@@ -1307,6 +1313,12 @@ def assert_series_equal(left, right, check_dtype=True,
         else:
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
+    elif is_interval_dtype(left) or is_interval_dtype(right):
+        # TODO: big hack here
+        l = pd.IntervalIndex(left)
+        r = pd.IntervalIndex(right)
+        assert_index_equal(l, r, obj='{0}.index'.format(obj))
+
     else:
         libtesting.assert_almost_equal(left.get_values(), right.get_values(),
                                        check_less_precise=check_less_precise,
@@ -1685,6 +1697,12 @@ def makeCategoricalIndex(k=10, n=3, name=None):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
     return CategoricalIndex(np.random.choice(x, k), name=name)
+
+
+def makeIntervalIndex(k=10, name=None):
+    """ make a length k IntervalIndex """
+    x = np.linspace(0, 100, num=(k + 1))
+    return IntervalIndex.from_breaks(x, name=name)
 
 
 def makeBoolIndex(k=10, name=None):

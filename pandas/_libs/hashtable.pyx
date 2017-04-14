@@ -41,7 +41,6 @@ cdef extern from "Python.h":
 
 cdef size_t _INIT_VEC_CAP = 128
 
-
 include "hashtable_class_helper.pxi"
 include "hashtable_func_helper.pxi"
 

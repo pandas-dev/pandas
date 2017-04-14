@@ -347,6 +347,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
         return PeriodIndex([item], **self._get_attributes_dict())
 
+    @Appender(_index_shared_docs['__contains__'])
     def __contains__(self, key):
         if isinstance(key, Period):
             if key.freq != self.freq:
@@ -360,6 +361,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             except Exception:
                 return False
             return False
+
+    contains = __contains__
 
     @property
     def asi8(self):
