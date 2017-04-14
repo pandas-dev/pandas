@@ -2134,15 +2134,21 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         if isinstance(arg, dict):
             if hasattr(arg, '__missing__'):
+                # If a dictionary subclass defines a default value method,
+                # convert arg to a lookup function (https://git.io/vS7LK).
                 dict_with_default = arg
                 arg = lambda x: dict_with_default[x]
             else:
+                # Dictionary does not have a default. Thus it's safe to
+                # convert to an indexed series for efficiency.
                 arg = self._constructor(arg, index=arg.keys())
 
         if isinstance(arg, Series):
+            # arg is a Series
             indexer = arg.index.get_indexer(values)
             new_values = algorithms.take_1d(arg._values, indexer)
         else:
+            # arg is a function
             new_values = map_f(values, arg)
 
         return self._constructor(new_values,
