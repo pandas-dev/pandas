@@ -40,9 +40,9 @@ New features
 ^^^^^^^^^^^
 
 Series & DataFrame have been enhanced to support the aggregation API. This is an already familiar API that
-is supported for groupby, windows operations, and resampling. This allows one to express, possibly multiple
-aggregation operations in a single concise way by using ``.agg()`` and ``.transform()``. The
-full documentation is :ref:`here <basics.aggregate>`` (:issue:`1623`)
+is supported for groupby, window operations, and resampling. This allows one to express, possibly multiple
+aggregation operations, in a single concise way by using :meth:`~DataFrame.agg`,
+and :meth:`~DataFrame.transform`. The full documentation is :ref:`here <basics.aggregate>`` (:issue:`1623`)
 
 Here is a sample
 
@@ -67,28 +67,22 @@ Multiple functions in lists.
 
    df.agg(['sum', 'min'])
 
-Dictionaries to provide the ability to selective calculation.
+Dictionaries to provide the ability to provide selective aggregation per column.
+You will get a matrix-like output of all of the aggregators. The output will consist
+of all unique functions. Those that are not noted for a particular column will be ``NaN``:
 
 .. ipython:: python
 
    df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
 
-When operating on a Series, passing a dictionry allows one to rename multiple
-function aggregates; this will return a MultiIndexed Series. The outer level
-are the keys, the inner are the names of the functions.
-
-.. ipython:: python
-
-   df.A.agg({'foo':['sum', 'min'], 'bar' : ['count','max']})
-
 The API also supports a ``.transform()`` function to provide for broadcasting results.
 
 .. ipython:: python
 
-   df.transform(['abs', lambda x: x-x.min()])
+   df.transform(['abs', lambda x: x - x.min()])
 
-When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
-aggregations. This is similiar to how groupby ``.agg`` works. (:issue:`15015`)
+When presented with mixed dtypes that cannot aggregate, ``.agg()`` will only take the valid
+aggregations. This is similiar to how groupby ``.agg()`` works. (:issue:`15015`)
 
 .. ipython:: python
 
