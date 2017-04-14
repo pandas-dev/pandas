@@ -6,7 +6,6 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import collections
 import types
 import warnings
 
@@ -2133,13 +2132,12 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             else:
                 map_f = lib.map_infer
 
-        default_dict_types = collections.Counter, collections.defaultdict
-        if isinstance(arg, default_dict_types):
-            dict_with_default = arg
-            arg = lambda x: dict_with_default[x]
-
-        elif isinstance(arg, dict):
-            arg = self._constructor(arg, index=arg.keys())
+        if isinstance(arg, dict):
+            if hasattr(arg, '__missing__'):
+                dict_with_default = arg
+                arg = lambda x: dict_with_default[x]
+            else:
+                arg = self._constructor(arg, index=arg.keys())
 
         if isinstance(arg, Series):
             indexer = arg.index.get_indexer(values)
