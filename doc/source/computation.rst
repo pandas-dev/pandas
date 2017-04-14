@@ -617,7 +617,9 @@ Aggregation
 -----------
 
 Once the ``Rolling``, ``Expanding`` or ``EWM`` objects have been created, several methods are available to
-perform multiple computations on the data. This is very similar to a ``.groupby(...).agg`` seen :ref:`here <groupby.aggregate>`.
+perform multiple computations on the data. These operations are similar to the :ref:`aggregating API <basics.aggregate>`,
+:ref:`groupby aggregates <groupby.aggregate>`, and :ref:`resample API <timeseries.aggregate>`.
+
 
 .. ipython:: python
 
@@ -642,10 +644,10 @@ columns if none are selected.
 
 .. _stats.aggregate.multifunc:
 
-Applying multiple functions at once
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Applying multiple functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With windowed Series you can also pass a list or dict of functions to do
+With windowed ``Series`` you can also pass a list of functions to do
 aggregation with, outputting a DataFrame:
 
 .. ipython:: python
@@ -666,7 +668,7 @@ Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By passing a dict to ``aggregate`` you can apply a different aggregation to the
-columns of a DataFrame:
+columns of a ``DataFrame``:
 
 .. ipython:: python
    :okexcept:

@@ -7,6 +7,7 @@ from pandas.util import testing as tm
 from pandas import MultiIndex, DataFrame, Series, date_range
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("n,m", product((100, 1000), (5, 20)))
 def test_series_groupby_value_counts(n, m):
     np.random.seed(1234)

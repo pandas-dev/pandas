@@ -1519,11 +1519,13 @@ We can instead only resample those groups where we have points as follows:
 
     ts.groupby(partial(round, freq='3T')).sum()
 
+.. _timeseries.aggregate:
+
 Aggregation
 ~~~~~~~~~~~
 
-Similar to :ref:`groupby aggregates <groupby.aggregate>` and the :ref:`window functions <stats.aggregate>`, a ``Resampler`` can be selectively
-resampled.
+Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby aggregates API <groupby.aggregate>`, and  the :ref:`window functions API <stats.aggregate>`,
+a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
 
