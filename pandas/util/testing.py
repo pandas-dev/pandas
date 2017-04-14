@@ -23,15 +23,16 @@ import pytest
 import numpy as np
 
 import pandas as pd
-from pandas.types.missing import array_equivalent
-from pandas.types.common import (is_datetimelike_v_numeric,
-                                 is_datetimelike_v_object,
-                                 is_number, is_bool,
-                                 needs_i8_conversion,
-                                 is_categorical_dtype,
-                                 is_interval_dtype,
-                                 is_sequence,
-                                 is_list_like)
+from pandas.core.typed.missing import array_equivalent
+from pandas.core.typed.common import (
+    is_datetimelike_v_numeric,
+    is_datetimelike_v_object,
+    is_number, is_bool,
+    needs_i8_conversion,
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_sequence,
+    is_list_like)
 from pandas.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 

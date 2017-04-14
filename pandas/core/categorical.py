@@ -8,21 +8,24 @@ from pandas import compat
 from pandas.compat import u, lzip
 from pandas._libs import lib, algos as libalgos
 
-from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
-from pandas.types.missing import isnull, notnull
-from pandas.types.cast import (maybe_infer_to_datetimelike,
-                               coerce_indexer_dtype)
-from pandas.types.dtypes import CategoricalDtype
-from pandas.types.common import (_ensure_int64,
-                                 _ensure_object,
-                                 _ensure_platform_int,
-                                 is_dtype_equal,
-                                 is_datetimelike,
-                                 is_categorical,
-                                 is_categorical_dtype,
-                                 is_integer_dtype, is_bool,
-                                 is_list_like, is_sequence,
-                                 is_scalar)
+from pandas.core.typed.generic import (
+    ABCSeries, ABCIndexClass, ABCCategoricalIndex)
+from pandas.core.typed.missing import isnull, notnull
+from pandas.core.typed.cast import (
+    maybe_infer_to_datetimelike,
+    coerce_indexer_dtype)
+from pandas.core.typed.dtypes import CategoricalDtype
+from pandas.core.typed.common import (
+    _ensure_int64,
+    _ensure_object,
+    _ensure_platform_int,
+    is_dtype_equal,
+    is_datetimelike,
+    is_categorical,
+    is_categorical_dtype,
+    is_integer_dtype, is_bool,
+    is_list_like, is_sequence,
+    is_scalar)
 from pandas.core.common import is_null_slice
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
@@ -1215,7 +1218,7 @@ class Categorical(PandasObject):
 
         """
         from numpy import bincount
-        from pandas.types.missing import isnull
+        from pandas.core.typed.missing import isnull
         from pandas.core.series import Series
         from pandas.core.index import CategoricalIndex
 

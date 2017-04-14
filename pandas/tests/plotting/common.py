@@ -8,7 +8,7 @@ import warnings
 from pandas import DataFrame, Series
 from pandas.compat import zip, iteritems
 from pandas.util.decorators import cache_readonly
-from pandas.types.api import is_list_like
+from pandas.core.typed.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
                                  assert_is_valid_plot_return_object)

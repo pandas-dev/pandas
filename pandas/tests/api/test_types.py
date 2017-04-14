@@ -61,7 +61,7 @@ class TestTypes(Base, tm.TestCase):
 
     def test_deprecation_core_common_moved(self):
 
-        # these are in pandas.types.common
+        # these are in pandas.core.typed.common
         l = ['is_datetime_arraylike',
              'is_datetime_or_timedelta_dtype',
              'is_datetimelike',
@@ -73,7 +73,7 @@ class TestTypes(Base, tm.TestCase):
              'is_string_like',
              'is_string_like_dtype']
 
-        from pandas.types import common as c
+        from pandas.core.typed import common as c
         for t in l:
             self.check_deprecation(getattr(com, t), getattr(c, t))
 

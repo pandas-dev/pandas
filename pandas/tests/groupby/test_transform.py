@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 from pandas import Series, DataFrame, Timestamp, MultiIndex, concat, date_range
-from pandas.types.common import _ensure_platform_int, is_timedelta64_dtype
+from pandas.core.typed.common import _ensure_platform_int, is_timedelta64_dtype
 from pandas.compat import StringIO
 from pandas._libs import groupby
 from .common import MixIn, assert_fp_equal

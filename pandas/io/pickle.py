@@ -3,7 +3,7 @@
 import numpy as np
 from numpy.lib.format import read_array, write_array
 from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc, PY3
-from pandas.types.common import is_datetime64_dtype, _NS_DTYPE
+from pandas.core.typed.common import is_datetime64_dtype, _NS_DTYPE
 from pandas.io.common import _get_handle, _infer_compression
 
 

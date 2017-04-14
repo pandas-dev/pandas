@@ -1,4 +1,4 @@
 """ public toolkit API """
 
-from pandas.types.api import *  # noqa
+from pandas.core.typed.api import *  # noqa
 del np  # noqa

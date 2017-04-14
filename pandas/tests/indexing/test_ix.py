@@ -5,7 +5,7 @@ from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 
-from pandas.types.common import is_scalar
+from pandas.core.typed.common import is_scalar
 from pandas.compat import lrange
 from pandas import Series, DataFrame, option_context, MultiIndex
 from pandas.util import testing as tm

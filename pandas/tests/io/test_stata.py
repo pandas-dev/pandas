@@ -20,7 +20,7 @@ from pandas.io.parsers import read_csv
 from pandas.io.stata import (read_stata, StataReader, InvalidColumnName,
                              PossiblePrecisionLoss, StataMissingValue)
 from pandas._libs.tslib import NaT
-from pandas.types.common import is_categorical_dtype
+from pandas.core.typed.common import is_categorical_dtype
 
 
 class TestStata(tm.TestCase):

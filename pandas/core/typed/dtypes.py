@@ -410,7 +410,7 @@ class IntervalDtype(ExtensionDtype):
                 if m is not None:
                     subtype = m.group('subtype')
 
-            from pandas.types.common import pandas_dtype
+            from pandas.core.typed.common import pandas_dtype
             try:
                 subtype = pandas_dtype(subtype)
             except TypeError:

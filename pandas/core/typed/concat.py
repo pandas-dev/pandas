@@ -17,8 +17,9 @@ from .common import (is_categorical_dtype,
                      is_dtype_equal,
                      _NS_DTYPE,
                      _TD_DTYPE)
-from pandas.types.generic import (ABCDatetimeIndex, ABCTimedeltaIndex,
-                                  ABCPeriodIndex)
+from pandas.core.typed.generic import (
+    ABCDatetimeIndex, ABCTimedeltaIndex,
+    ABCPeriodIndex)
 
 
 def get_dtype_kinds(l):

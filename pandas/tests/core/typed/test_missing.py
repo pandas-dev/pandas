@@ -11,9 +11,10 @@ from pandas.compat import u
 from pandas._libs.tslib import iNaT
 from pandas import (NaT, Float64Index, Series,
                     DatetimeIndex, TimedeltaIndex, date_range)
-from pandas.types.dtypes import DatetimeTZDtype
-from pandas.types.missing import (array_equivalent, isnull, notnull,
-                                  na_value_for_dtype)
+from pandas.core.typed.dtypes import DatetimeTZDtype
+from pandas.core.typed.missing import (
+    array_equivalent, isnull, notnull,
+    na_value_for_dtype)
 
 
 def test_notnull():

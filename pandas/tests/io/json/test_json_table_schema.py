@@ -7,11 +7,14 @@ import pandas as pd
 import pytest
 
 from pandas import DataFrame
-from pandas.types.dtypes import PeriodDtype, CategoricalDtype, DatetimeTZDtype
+from pandas.core.typed.dtypes import (
+    PeriodDtype, CategoricalDtype, DatetimeTZDtype)
 import pandas.util.testing as tm
 from pandas.io.json.table_schema import (
-    as_json_table_type, build_table_schema, make_field, set_default_names
-)
+    as_json_table_type,
+    build_table_schema,
+    make_field,
+    set_default_names)
 
 
 class TestBuildSchema(tm.TestCase):

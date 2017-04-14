@@ -9,7 +9,7 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, IntervalIndex,
                     notnull, isnull)
-from pandas.types.common import needs_i8_conversion
+from pandas.core.typed.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
 from pandas._libs.tslib import iNaT
 

@@ -1,7 +1,7 @@
 # pylint: disable=E1103
 
 
-from pandas.types.common import is_list_like, is_scalar
+from pandas.core.typed.common import is_list_like, is_scalar
 from pandas import Series, DataFrame, MultiIndex, Index, concat
 from pandas.core.groupby import Grouper
 from pandas.tools.util import cartesian_product

@@ -8,8 +8,8 @@ with float64 data
 import numpy as np
 import warnings
 
-from pandas.types.missing import isnull, notnull
-from pandas.types.common import is_scalar
+from pandas.core.typed.missing import isnull, notnull
+from pandas.core.typed.common import is_scalar
 from pandas.core.common import _values_from_object, _maybe_match_name
 
 from pandas.compat.numpy import function as nv

@@ -12,7 +12,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.types.common import is_list_like
+from pandas.core.typed.common import is_list_like
 from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, urlopen,
                               parse_url, _validate_header_arg)

@@ -48,8 +48,9 @@ import numpy as np
 from pandas import compat
 from pandas.compat import u, u_safe
 
-from pandas.types.common import (is_categorical_dtype, is_object_dtype,
-                                 needs_i8_conversion, pandas_dtype)
+from pandas.core.typed.common import (
+    is_categorical_dtype, is_object_dtype,
+    needs_i8_conversion, pandas_dtype)
 
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,

@@ -10,8 +10,9 @@ import os
 import abc
 import numpy as np
 
-from pandas.types.common import (is_integer, is_float,
-                                 is_bool, is_list_like)
+from pandas.core.typed.common import (
+    is_integer, is_float,
+    is_bool, is_list_like)
 
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser

@@ -7,12 +7,13 @@ import re
 
 import numpy as np
 
-from pandas.types.common import (_ensure_platform_int,
-                                 is_list_like, is_bool_dtype,
-                                 needs_i8_conversion)
-from pandas.types.cast import maybe_promote
-from pandas.types.missing import notnull
-import pandas.types.concat as _concat
+from pandas.core.typed.common import (
+    _ensure_platform_int,
+    is_list_like, is_bool_dtype,
+    needs_i8_conversion)
+from pandas.core.typed.cast import maybe_promote
+from pandas.core.typed.missing import notnull
+import pandas.core.typed.concat as _concat
 
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame

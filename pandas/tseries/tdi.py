@@ -2,18 +2,19 @@
 
 from datetime import timedelta
 import numpy as np
-from pandas.types.common import (_TD_DTYPE,
-                                 is_integer, is_float,
-                                 is_bool_dtype,
-                                 is_list_like,
-                                 is_scalar,
-                                 is_integer_dtype,
-                                 is_object_dtype,
-                                 is_timedelta64_dtype,
-                                 is_timedelta64_ns_dtype,
-                                 _ensure_int64)
-from pandas.types.missing import isnull
-from pandas.types.generic import ABCSeries
+from pandas.core.typed.common import (
+    _TD_DTYPE,
+    is_integer, is_float,
+    is_bool_dtype,
+    is_list_like,
+    is_scalar,
+    is_integer_dtype,
+    is_object_dtype,
+    is_timedelta64_dtype,
+    is_timedelta64_ns_dtype,
+    _ensure_int64)
+from pandas.core.typed.missing import isnull
+from pandas.core.typed.generic import ABCSeries
 from pandas.core.common import _maybe_box, _values_from_object, is_bool_indexer
 
 from pandas.core.index import Index, Int64Index
@@ -24,7 +25,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.base import _shared_docs
 from pandas.indexes.base import _index_shared_docs
 import pandas.core.common as com
-import pandas.types.concat as _concat
+import pandas.core.typed.concat as _concat
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.timedeltas import (to_timedelta,

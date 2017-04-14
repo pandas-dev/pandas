@@ -4,7 +4,7 @@ from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.types import generic as gt
+from pandas.core.typed import generic as gt
 
 
 class TestABCClasses(tm.TestCase):

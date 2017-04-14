@@ -1,15 +1,16 @@
 import numpy as np
 import pandas._libs.lib as lib
 
-from pandas.types.common import (is_number,
-                                 is_numeric_dtype,
-                                 is_datetime_or_timedelta_dtype,
-                                 is_list_like,
-                                 _ensure_object,
-                                 is_decimal,
-                                 is_scalar as isscalar)
+from pandas.core.typed.common import (
+    is_number,
+    is_numeric_dtype,
+    is_datetime_or_timedelta_dtype,
+    is_list_like,
+    _ensure_object,
+    is_decimal,
+    is_scalar as isscalar)
 
-from pandas.types.cast import maybe_downcast_to_dtype
+from pandas.core.typed.cast import maybe_downcast_to_dtype
 
 import pandas as pd
 from pandas.compat import reduce

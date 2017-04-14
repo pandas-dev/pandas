@@ -3,7 +3,7 @@ Table Schema builders
 
 http://specs.frictionlessdata.io/json-table-schema/
 """
-from pandas.types.common import (
+from pandas.core.typed.common import (
     is_integer_dtype, is_timedelta64_dtype, is_numeric_dtype,
     is_bool_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     is_categorical_dtype, is_period_dtype, is_string_dtype

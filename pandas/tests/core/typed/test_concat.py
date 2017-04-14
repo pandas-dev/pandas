@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-import pandas.types.concat as _concat
+import pandas.core.typed.concat as _concat
 import pandas.util.testing as tm
 
 

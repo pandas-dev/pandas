@@ -2,19 +2,20 @@
 
 import numpy as np
 
-from pandas.types.missing import notnull, isnull
-from pandas.types.generic import ABCPeriodIndex
-from pandas.types.dtypes import IntervalDtype
-from pandas.types.common import (_ensure_platform_int,
-                                 is_list_like,
-                                 is_datetime_or_timedelta_dtype,
-                                 is_integer_dtype,
-                                 is_object_dtype,
-                                 is_categorical_dtype,
-                                 is_float_dtype,
-                                 is_interval_dtype,
-                                 is_scalar,
-                                 is_integer)
+from pandas.core.typed.missing import notnull, isnull
+from pandas.core.typed.generic import ABCPeriodIndex
+from pandas.core.typed.dtypes import IntervalDtype
+from pandas.core.typed.common import (
+    _ensure_platform_int,
+    is_list_like,
+    is_datetime_or_timedelta_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+    is_categorical_dtype,
+    is_float_dtype,
+    is_interval_dtype,
+    is_scalar,
+    is_integer)
 from pandas.indexes.base import (Index, _ensure_index,
                                  default_pprint, _index_shared_docs)
 

@@ -1,16 +1,17 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.types.generic import ABCSeries, ABCIndex
-from pandas.types.missing import isnull, notnull
-from pandas.types.common import (is_bool_dtype,
-                                 is_categorical_dtype,
-                                 is_object_dtype,
-                                 is_string_like,
-                                 is_list_like,
-                                 is_scalar,
-                                 is_integer,
-                                 is_re)
+from pandas.core.typed.generic import ABCSeries, ABCIndex
+from pandas.core.typed.missing import isnull, notnull
+from pandas.core.typed.common import (
+    is_bool_dtype,
+    is_categorical_dtype,
+    is_object_dtype,
+    is_string_like,
+    is_list_like,
+    is_scalar,
+    is_integer,
+    is_re)
 from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d

@@ -11,7 +11,7 @@ import pandas.tseries.tools as tools
 import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip
 from pandas.tseries.index import bdate_range, date_range
-from pandas.types.dtypes import DatetimeTZDtype
+from pandas.core.typed.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
 from pandas import (Index, Series, DataFrame, isnull, Timestamp, NaT,
                     DatetimeIndex, to_datetime)

@@ -6,7 +6,7 @@ import pytest
 from warnings import catch_warnings
 import numpy as np
 
-from pandas.types.common import is_float_dtype
+from pandas.core.typed.common import is_float_dtype
 from pandas import Series, Index, isnull, notnull
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D

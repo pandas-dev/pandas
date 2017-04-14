@@ -10,15 +10,18 @@ from datetime import datetime, timedelta, date
 import numpy as np
 
 from pandas import Timedelta, Timestamp, DatetimeIndex
-from pandas.types.cast import (maybe_downcast_to_dtype,
-                               maybe_convert_objects,
-                               infer_dtype_from_scalar,
-                               infer_dtype_from_array,
-                               maybe_convert_string_to_object,
-                               maybe_convert_scalar,
-                               find_common_type)
-from pandas.types.dtypes import (CategoricalDtype,
-                                 DatetimeTZDtype, PeriodDtype)
+from pandas.core.typed.cast import (
+    maybe_downcast_to_dtype,
+    maybe_convert_objects,
+    infer_dtype_from_scalar,
+    infer_dtype_from_array,
+    maybe_convert_string_to_object,
+    maybe_convert_scalar,
+    find_common_type)
+from pandas.core.typed.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    PeriodDtype)
 from pandas.util import testing as tm
 
 

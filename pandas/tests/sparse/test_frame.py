@@ -9,10 +9,11 @@ import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range, Panel
-from pandas.types.common import (is_bool_dtype,
-                                 is_float_dtype,
-                                 is_object_dtype,
-                                 is_float)
+from pandas.core.typed.common import (
+    is_bool_dtype,
+    is_float_dtype,
+    is_object_dtype,
+    is_float)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm

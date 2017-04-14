@@ -1,8 +1,8 @@
 import numpy as np
 
 from pandas import compat
-from pandas.types.missing import isnull, array_equivalent
-from pandas.types.common import is_dtype_equal
+from pandas.core.typed.missing import isnull, array_equivalent
+from pandas.core.typed.common import is_dtype_equal
 
 cdef NUMERIC_TYPES = (
     bool,

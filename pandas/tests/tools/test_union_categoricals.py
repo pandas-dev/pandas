@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from pandas import Categorical, Series, CategoricalIndex
-from pandas.types.concat import union_categoricals
+from pandas.core.typed.concat import union_categoricals
 from pandas.util import testing as tm
 
 

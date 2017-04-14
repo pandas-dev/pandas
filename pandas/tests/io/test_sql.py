@@ -31,8 +31,9 @@ import pandas as pd
 
 from datetime import datetime, date, time
 
-from pandas.types.common import (is_object_dtype, is_datetime64_dtype,
-                                 is_datetime64tz_dtype)
+from pandas.core.typed.common import (
+    is_object_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype)
 from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
