@@ -43,7 +43,7 @@ from pandas.compat import (
     StringIO, PY3
 )
 
-from pandas.computation import expressions as expr
+from pandas.core.computation import expressions as expr
 
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
@@ -402,8 +402,9 @@ def _incompat_bottleneck_version(method):
 
 
 def skip_if_no_ne(engine='numexpr'):
-    from pandas.computation.expressions import (_USE_NUMEXPR,
-                                                _NUMEXPR_INSTALLED)
+    from pandas.core.computation.expressions import (
+        _USE_NUMEXPR,
+        _NUMEXPR_INSTALLED)
 
     if engine == 'numexpr':
         if not _USE_NUMEXPR:

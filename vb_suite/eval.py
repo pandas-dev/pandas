@@ -10,7 +10,7 @@ df4 = DataFrame(np.random.randn(20000, 100))
 """
 
 setup = common_setup + """
-import pandas.computation.expressions as expr
+import pandas.core.computation.expressions as expr
 expr.set_numexpr_threads(1)
 """
 

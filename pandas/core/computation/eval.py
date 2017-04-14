@@ -6,11 +6,11 @@
 import warnings
 import tokenize
 from pandas.formats.printing import pprint_thing
-from pandas.computation import _NUMEXPR_INSTALLED
-from pandas.computation.expr import Expr, _parsers, tokenize_string
-from pandas.computation.scope import _ensure_scope
+from pandas.core.computation import _NUMEXPR_INSTALLED
+from pandas.core.computation.expr import Expr, _parsers, tokenize_string
+from pandas.core.computation.scope import _ensure_scope
 from pandas.compat import string_types
-from pandas.computation.engines import _engines
+from pandas.core.computation.engines import _engines
 from pandas.util.validators import validate_bool_kwarg
 
 

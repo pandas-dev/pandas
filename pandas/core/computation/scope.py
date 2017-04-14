@@ -15,7 +15,7 @@ import pandas
 import pandas as pd  # noqa
 from pandas.compat import DeepChainMap, map, StringIO
 from pandas.core.base import StringMixin
-import pandas.computation as compu
+import pandas.core.computation as compu
 
 
 def _ensure_scope(level, global_dict=None, local_dict=None, resolvers=(),

@@ -13,8 +13,8 @@ from pandas.compat import PY3, string_types, text_type
 import pandas.core.common as com
 from pandas.formats.printing import pprint_thing, pprint_thing_encoded
 from pandas.core.base import StringMixin
-from pandas.computation.common import _ensure_decoded, _result_type_many
-from pandas.computation.scope import _DEFAULT_GLOBALS
+from pandas.core.computation.common import _ensure_decoded, _result_type_many
+from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
 
 _reductions = 'sum', 'prod'

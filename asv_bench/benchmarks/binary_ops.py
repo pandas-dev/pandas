@@ -1,5 +1,5 @@
 from .pandas_vb_common import *
-import pandas.computation.expressions as expr
+import pandas.core.computation.expressions as expr
 
 
 class Ops(object):

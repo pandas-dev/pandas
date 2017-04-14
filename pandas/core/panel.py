@@ -14,7 +14,7 @@ from pandas.core.typed.common import (
     is_string_like, is_scalar)
 from pandas.core.typed.missing import notnull
 
-import pandas.computation.expressions as expressions
+import pandas.core.computation.expressions as expressions
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.missing as missing

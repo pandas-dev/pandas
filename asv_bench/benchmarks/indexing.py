@@ -1,6 +1,6 @@
 from .pandas_vb_common import *
 try:
-    import pandas.computation.expressions as expr
+    import pandas.core.computation.expressions as expr
 except:
     expr = None
 

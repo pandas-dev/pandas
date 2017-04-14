@@ -43,7 +43,7 @@ from pandas.core.api import *
 from pandas.sparse.api import *
 from pandas.stats.api import *
 from pandas.tseries.api import *
-from pandas.computation.api import *
+from pandas.core.computation.api import *
 
 from pandas.tools.concat import concat
 from pandas.tools.merge import (merge, ordered_merge,

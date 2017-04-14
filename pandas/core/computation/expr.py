@@ -14,12 +14,13 @@ from pandas.core.base import StringMixin
 from pandas.core import common as com
 import pandas.formats.printing as printing
 from pandas.tools.util import compose
-from pandas.computation.ops import (_cmp_ops_syms, _bool_ops_syms,
-                                    _arith_ops_syms, _unary_ops_syms, is_term)
-from pandas.computation.ops import _reductions, _mathops, _LOCAL_TAG
-from pandas.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
-from pandas.computation.ops import UndefinedVariableError, FuncNode
-from pandas.computation.scope import Scope
+from pandas.core.computation.ops import (
+    _cmp_ops_syms, _bool_ops_syms,
+    _arith_ops_syms, _unary_ops_syms, is_term)
+from pandas.core.computation.ops import _reductions, _mathops, _LOCAL_TAG
+from pandas.core.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
+from pandas.core.computation.ops import UndefinedVariableError, FuncNode
+from pandas.core.computation.scope import Scope
 
 
 def tokenize_string(source):

@@ -9,7 +9,7 @@ Offer fast expression evaluation through numexpr
 import warnings
 import numpy as np
 from pandas.core.common import _values_from_object
-from pandas.computation import _NUMEXPR_INSTALLED
+from pandas.core.computation import _NUMEXPR_INSTALLED
 
 if _NUMEXPR_INSTALLED:
     import numexpr as ne

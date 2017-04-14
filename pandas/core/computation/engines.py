@@ -7,9 +7,10 @@ import abc
 from pandas import compat
 from pandas.compat import map
 import pandas.formats.printing as printing
-from pandas.computation.align import _align, _reconstruct_object
-from pandas.computation.ops import (UndefinedVariableError,
-                                    _mathops, _reductions)
+from pandas.core.computation.align import _align, _reconstruct_object
+from pandas.core.computation.ops import (
+    UndefinedVariableError,
+    _mathops, _reductions)
 
 
 _ne_builtins = frozenset(_mathops + _reductions)

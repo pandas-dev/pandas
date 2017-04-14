@@ -11,7 +11,7 @@ import pandas as pd
 from pandas import compat
 from pandas.errors import PerformanceWarning
 from pandas.core.common import flatten
-from pandas.computation.common import _result_type_many
+from pandas.core.computation.common import _result_type_many
 
 
 def _align_core_single_unary_op(term):

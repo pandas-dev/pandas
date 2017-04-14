@@ -4,15 +4,15 @@ from distutils.version import LooseVersion
 import pandas as pd
 from pandas.util import testing as tm
 
-from pandas.computation.engines import _engines
-import pandas.computation.expr as expr
-from pandas.computation import _MIN_NUMEXPR_VERSION
+from pandas.core.computation.engines import _engines
+import pandas.core.computation.expr as expr
+from pandas.core.computation import _MIN_NUMEXPR_VERSION
 
 
 def test_compat():
     # test we have compat with our version of nu
 
-    from pandas.computation import _NUMEXPR_INSTALLED
+    from pandas.core.computation import _NUMEXPR_INSTALLED
     try:
         import numexpr as ne
         ver = ne.__version__

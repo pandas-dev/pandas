@@ -63,7 +63,7 @@ from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement
 
-import pandas.computation.expressions as expressions
+import pandas.core.computation.expressions as expressions
 from pandas.util.decorators import cache_readonly
 from pandas.util.validators import validate_bool_kwarg
 

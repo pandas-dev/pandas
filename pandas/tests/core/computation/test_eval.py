@@ -15,16 +15,18 @@ from pandas.errors import PerformanceWarning
 from pandas import DataFrame, Series, Panel, date_range
 from pandas.util.testing import makeCustomDataframe as mkdf
 
-from pandas.computation import pytables
-from pandas.computation.engines import _engines, NumExprClobberingError
-from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
-from pandas.computation.expressions import _USE_NUMEXPR, _NUMEXPR_INSTALLED
-from pandas.computation.ops import (_binary_ops_dict,
-                                    _special_case_arith_ops_syms,
-                                    _arith_ops_syms, _bool_ops_syms,
-                                    _unary_math_ops, _binary_math_ops)
+from pandas.core.computation import pytables
+from pandas.core.computation.engines import _engines, NumExprClobberingError
+from pandas.core.computation.expr import PythonExprVisitor, PandasExprVisitor
+from pandas.core.computation.expressions import (
+    _USE_NUMEXPR, _NUMEXPR_INSTALLED)
+from pandas.core.computation.ops import (
+    _binary_ops_dict,
+    _special_case_arith_ops_syms,
+    _arith_ops_syms, _bool_ops_syms,
+    _unary_math_ops, _binary_math_ops)
 
-import pandas.computation.expr as expr
+import pandas.core.computation.expr as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp, assert_numpy_array_equal,

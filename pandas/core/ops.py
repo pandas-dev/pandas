@@ -16,7 +16,7 @@ from pandas._libs import (lib, index as libindex,
 
 from pandas import compat
 from pandas.util.decorators import Appender
-import pandas.computation.expressions as expressions
+import pandas.core.computation.expressions as expressions
 
 from pandas.compat import bind_method
 import pandas.core.missing as missing

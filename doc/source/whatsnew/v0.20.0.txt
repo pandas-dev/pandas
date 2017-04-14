@@ -1043,6 +1043,7 @@ If indicated, a deprecation warning will be issued if you reference that module.
     "pandas.tslib", "pandas._libs.tslib", "X"
     "pandas._join", "pandas._libs.join", ""
     "pandas._period", "pandas._libs.period", ""
+    "pandas.computation", "pandas.core.computation", ""
     "pandas.msgpack", "pandas.io.msgpack", ""
     "pandas.index", "pandas._libs.index", ""
     "pandas.algos", "pandas._libs.algos", ""
