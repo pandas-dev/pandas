@@ -10,8 +10,8 @@ from pandas.compat import range, lrange, lmap, zip
 from pandas.formats.printing import pprint_thing
 
 
-from pandas.plotting.style import _get_standard_colors
-from pandas.plotting.tools import _subplots, _set_ticks_props
+from pandas.plotting._style import _get_standard_colors
+from pandas.plotting._tools import _subplots, _set_ticks_props
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,

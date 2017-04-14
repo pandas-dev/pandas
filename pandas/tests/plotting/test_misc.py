@@ -84,7 +84,7 @@ class TestDataFramePlots(TestPlotBase):
             _check_plot_works(scat, facecolor='rgb')
 
         def scat2(x, y, by=None, ax=None, figsize=None):
-            return plotting.scatter_plot(df, x, y, by, ax, figsize=None)
+            return plotting._core.scatter_plot(df, x, y, by, ax, figsize=None)
 
         _check_plot_works(scat2, x=0, y=1)
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)

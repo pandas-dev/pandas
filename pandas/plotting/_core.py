@@ -26,14 +26,14 @@ import pandas.compat as compat
 from pandas.formats.printing import pprint_thing
 from pandas.util.decorators import Appender
 
-from pandas.plotting.compat import (_mpl_ge_1_3_1,
-                                    _mpl_ge_1_5_0)
-from pandas.plotting.style import (mpl_stylesheet, plot_params,
-                                   _get_standard_colors)
-from pandas.plotting.tools import (_subplots, _flatten, table,
-                                   _handle_shared_axes, _get_all_lines,
-                                   _get_xlim, _set_ticks_props,
-                                   format_date_labels)
+from pandas.plotting._compat import (_mpl_ge_1_3_1,
+                                     _mpl_ge_1_5_0)
+from pandas.plotting._style import (mpl_stylesheet, plot_params,
+                                    _get_standard_colors)
+from pandas.plotting._tools import (_subplots, _flatten, table,
+                                    _handle_shared_axes, _get_all_lines,
+                                    _get_xlim, _set_ticks_props,
+                                    format_date_labels)
 
 
 if _mpl_ge_1_5_0():
@@ -900,12 +900,12 @@ class LinePlot(MPLPlot):
         return not self.x_compat and self.use_index and self._use_dynamic_x()
 
     def _use_dynamic_x(self):
-        from pandas.plotting.timeseries import _use_dynamic_x
+        from pandas.plotting._timeseries import _use_dynamic_x
         return _use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self):
         if self._is_ts_plot():
-            from pandas.plotting.timeseries import _maybe_convert_index
+            from pandas.plotting._timeseries import _maybe_convert_index
             data = _maybe_convert_index(self._get_ax(0), self.data)
 
             x = data.index      # dummy, not used
@@ -955,9 +955,9 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _ts_plot(cls, ax, x, data, style=None, **kwds):
-        from pandas.plotting.timeseries import (_maybe_resample,
-                                                _decorate_axes,
-                                                format_dateaxis)
+        from pandas.plotting._timeseries import (_maybe_resample,
+                                                 _decorate_axes,
+                                                 format_dateaxis)
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose

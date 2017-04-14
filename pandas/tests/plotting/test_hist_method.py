@@ -9,7 +9,7 @@ from pandas.util.testing import slow
 import numpy as np
 from numpy.random import randn
 
-import pandas.plotting as plotting
+from pandas.plotting._core import grouped_hist
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
@@ -260,7 +260,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df['C'] = np.random.randint(0, 4, 500)
         df['D'] = ['X'] * 500
 
-        axes = plotting.grouped_hist(df.A, by=df.C)
+        axes = grouped_hist(df.A, by=df.C)
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
@@ -277,10 +277,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # make sure kwargs to hist are handled
         xf, yf = 20, 18
         xrot, yrot = 30, 40
-        axes = plotting.grouped_hist(df.A, by=df.C, normed=True,
-                                     cumulative=True, bins=4,
-                                     xlabelsize=xf, xrot=xrot,
-                                     ylabelsize=yf, yrot=yrot)
+        axes = grouped_hist(df.A, by=df.C, normed=True, cumulative=True,
+                            bins=4, xlabelsize=xf, xrot=xrot,
+                            ylabelsize=yf, yrot=yrot)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
@@ -290,14 +289,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                 ylabelsize=yf, yrot=yrot)
 
         tm.close()
-        axes = plotting.grouped_hist(df.A, by=df.C, log=True)
+        axes = grouped_hist(df.A, by=df.C, log=True)
         # scale of y must be 'log'
         self._check_ax_scales(axes, yaxis='log')
 
         tm.close()
         # propagate attr exception from matplotlib.Axes.hist
         with tm.assertRaises(AttributeError):
-            plotting.grouped_hist(df.A, by=df.C, foo='bar')
+            grouped_hist(df.A, by=df.C, foo='bar')
 
         with tm.assert_produces_warning(FutureWarning):
             df.hist(by='C', figsize='default')

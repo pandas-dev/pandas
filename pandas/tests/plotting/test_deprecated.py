@@ -48,15 +48,6 @@ class TestDeprecatedNameSpace(TestPlotBase):
                              by='indic')
 
     @slow
-    def test_grouped_hist_legacy(self):
-        df = pd.DataFrame(randn(500, 2), columns=['A', 'B'])
-        df['C'] = np.random.randint(0, 4, 500)
-        df['D'] = ['X'] * 500
-
-        with tm.assert_produces_warning(FutureWarning):
-            plotting.grouped_hist(df.A, by=df.C)
-
-    @slow
     def test_radviz_deprecated(self):
         df = self.iris
         with tm.assert_produces_warning(FutureWarning):

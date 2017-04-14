@@ -622,8 +622,8 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_kind_both_ways(self):
         s = Series(range(3))
-        kinds = (plotting.core._common_kinds +
-                 plotting.core._series_kinds)
+        kinds = (plotting._core._common_kinds +
+                 plotting._core._series_kinds)
         for kind in kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
@@ -633,7 +633,7 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_invalid_plot_data(self):
         s = Series(list('abcd'))
-        for kind in plotting.core._common_kinds:
+        for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
             with tm.assertRaises(TypeError):
@@ -642,14 +642,14 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_valid_object_plot(self):
         s = Series(lrange(10), dtype=object)
-        for kind in plotting.core._common_kinds:
+        for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
             _check_plot_works(s.plot, kind=kind)
 
     def test_partially_invalid_plot_data(self):
         s = Series(['a', 'b', 1.0, 2])
-        for kind in plotting.core._common_kinds:
+        for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
             with tm.assertRaises(TypeError):
@@ -720,12 +720,12 @@ class TestSeriesPlots(TestPlotBase):
     def test_series_grid_settings(self):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         self._check_grid_settings(Series([1, 2, 3]),
-                                  plotting.core._series_kinds +
-                                  plotting.core._common_kinds)
+                                  plotting._core._series_kinds +
+                                  plotting._core._common_kinds)
 
     @slow
     def test_standard_colors(self):
-        from pandas.plotting.style import _get_standard_colors
+        from pandas.plotting._style import _get_standard_colors
 
         for c in ['r', 'red', 'green', '#FF0000']:
             result = _get_standard_colors(1, color=c)
@@ -743,7 +743,7 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_standard_colors_all(self):
         import matplotlib.colors as colors
-        from pandas.plotting.style import _get_standard_colors
+        from pandas.plotting._style import _get_standard_colors
 
         # multiple colors like mediumaquamarine
         for c in colors.cnames:
