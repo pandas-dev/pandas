@@ -2094,16 +2094,14 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         >>> s = pd.Series([1, 2, 3, np.nan])
 
-        >>> s2 = s.map(lambda x: 'this is a string {}'.format(x),
-                       na_action=None)
+        >>> s2 = s.map('this is a string {}'.format, na_action=None)
         0    this is a string 1.0
         1    this is a string 2.0
         2    this is a string 3.0
         3    this is a string nan
         dtype: object
 
-        >>> s3 = s.map(lambda x: 'this is a string {}'.format(x),
-                       na_action='ignore')
+        >>> s3 = s.map('this is a string {}'.format, na_action='ignore')
         0    this is a string 1.0
         1    this is a string 2.0
         2    this is a string 3.0
