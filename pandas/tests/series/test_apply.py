@@ -428,6 +428,25 @@ class TestSeriesMap(TestData, tm.TestCase):
         expected = Series(['stuff', 'blank', 'blank'], index=['a', 'b', 'c'])
         assert_series_equal(result, expected)
 
+    def test_map_dict_subclass_with_missing(self):
+        class DictWithMissing(dict):
+            def __missing__(self, key):
+                return 'missing'
+        s = Series([1, 2, 3])
+        dictionary = DictWithMissing({3: 'three'})
+        result = s.map(dictionary)
+        expected = Series(['missing', 'missing', 'three'])
+        assert_series_equal(result, expected)
+
+    def test_map_dict_subclass_without_missing(self):
+        class DictWithoutMissing(dict):
+            pass
+        s = Series([1, 2, 3])
+        dictionary = DictWithoutMissing({3: 'three'})
+        result = s.map(dictionary)
+        expected = Series([np.nan, np.nan, 'three'])
+        assert_series_equal(result, expected)
+
     def test_map_box(self):
         vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
         s = pd.Series(vals)
