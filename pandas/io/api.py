@@ -29,8 +29,8 @@ except:
     @_add_metaclass(_UnSubclassable)
     class Styler(object):
         msg = ("pandas.io.api.Styler requires jinja2. "
-               "Please install with `conda install Jinja2` "
-               "or `pip install Jinaj2`")
+               "Please install with `conda install jinja2` "
+               "or `pip install jinja2`")
         def __init__(self, *args, **kargs):
             raise ImportError(self.msg)
 
