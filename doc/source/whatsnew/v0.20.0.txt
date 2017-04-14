@@ -482,7 +482,7 @@ Other Enhancements
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
 - ``pd.read_html()`` will parse multiple header rows, creating a multiindex header. (:issue:`13434`).
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
-- ``pd.io.api.Styler`` template now has blocks for easier extension (:issue:`15649`)
+- ``pd.io.api.Styler`` template now has blocks for easier extension, :ref:`see the example notebook <style.ipynb#Subclassing>` (:issue:`15649`)
 - ``pd.io.api.Styler.render`` now accepts ``**kwargs`` to allow user-defined variables in the template (:issue:`15649`)
 
 
