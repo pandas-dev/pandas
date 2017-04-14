@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, DataFrame, isnull, date_range,
-                    MultiIndex, Index, Timestamp, NaT)
+                    MultiIndex, Index, Timestamp, NaT, IntervalIndex)
 from pandas.compat import range
 from pandas._libs.tslib import iNaT
 from pandas.util.testing import assert_series_equal, assert_frame_equal
@@ -555,6 +555,15 @@ class TestSeriesMissingData(TestData, tm.TestCase):
             s2 = s.copy()
             s2.dropna(inplace=True)
             self.assert_series_equal(s2, s)
+
+    def test_dropna_intervals(self):
+        s = Series([np.nan, 1, 2, 3], IntervalIndex.from_arrays(
+            [np.nan, 0, 1, 2],
+            [np.nan, 1, 2, 3]))
+
+        result = s.dropna()
+        expected = s.iloc[1:]
+        assert_series_equal(result, expected)
 
     def test_valid(self):
         ts = self.ts.copy()

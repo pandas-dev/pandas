@@ -14,7 +14,7 @@ import numpy as np
 from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex)
+                    PeriodIndex, isnull)
 from pandas.core.index import _get_combined_index
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
@@ -504,7 +504,7 @@ class TestIndex(Base, tm.TestCase):
     def test_asof(self):
         d = self.dateIndex[0]
         self.assertEqual(self.dateIndex.asof(d), d)
-        self.assertTrue(np.isnan(self.dateIndex.asof(d - timedelta(1))))
+        self.assertTrue(isnull(self.dateIndex.asof(d - timedelta(1))))
 
         d = self.dateIndex[-1]
         self.assertEqual(self.dateIndex.asof(d + timedelta(1)), d)

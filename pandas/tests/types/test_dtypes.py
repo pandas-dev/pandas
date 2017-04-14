@@ -3,14 +3,15 @@ from itertools import product
 
 import numpy as np
 import pandas as pd
-from pandas import Series, Categorical, date_range
+from pandas import Series, Categorical, IntervalIndex, date_range
 
-from pandas.types.dtypes import DatetimeTZDtype, PeriodDtype, CategoricalDtype
+from pandas.types.dtypes import (DatetimeTZDtype, PeriodDtype,
+                                 IntervalDtype, CategoricalDtype)
 from pandas.types.common import (is_categorical_dtype, is_categorical,
                                  is_datetime64tz_dtype, is_datetimetz,
                                  is_period_dtype, is_period,
                                  is_dtype_equal, is_datetime64_ns_dtype,
-                                 is_datetime64_dtype,
+                                 is_datetime64_dtype, is_interval_dtype,
                                  is_datetime64_any_dtype, is_string_dtype,
                                  _coerce_to_dtype)
 import pandas.util.testing as tm
@@ -351,3 +352,114 @@ class TestPeriodDtype(Base, tm.TestCase):
     def test_not_string(self):
         # though PeriodDtype has object kind, it cannot be string
         self.assertFalse(is_string_dtype(PeriodDtype('D')))
+
+
+class TestIntervalDtype(Base, tm.TestCase):
+
+    # TODO: placeholder
+    def setUp(self):
+        self.dtype = IntervalDtype('int64')
+
+    def test_construction(self):
+        with tm.assertRaises(ValueError):
+            IntervalDtype('xx')
+
+        for s in ['interval[int64]', 'Interval[int64]', 'int64']:
+            i = IntervalDtype(s)
+            self.assertEqual(i.subtype, np.dtype('int64'))
+            self.assertTrue(is_interval_dtype(i))
+
+    def test_construction_generic(self):
+        # generic
+        i = IntervalDtype('interval')
+        self.assertIs(i.subtype, None)
+        self.assertTrue(is_interval_dtype(i))
+        self.assertTrue(str(i) == 'interval')
+
+        i = IntervalDtype()
+        self.assertIs(i.subtype, None)
+        self.assertTrue(is_interval_dtype(i))
+        self.assertTrue(str(i) == 'interval')
+
+    def test_subclass(self):
+        a = IntervalDtype('interval[int64]')
+        b = IntervalDtype('interval[int64]')
+
+        self.assertTrue(issubclass(type(a), type(a)))
+        self.assertTrue(issubclass(type(a), type(b)))
+
+    def test_is_dtype(self):
+        self.assertTrue(IntervalDtype.is_dtype(self.dtype))
+        self.assertTrue(IntervalDtype.is_dtype('interval'))
+        self.assertTrue(IntervalDtype.is_dtype(IntervalDtype('float64')))
+        self.assertTrue(IntervalDtype.is_dtype(IntervalDtype('int64')))
+        self.assertTrue(IntervalDtype.is_dtype(IntervalDtype(np.int64)))
+
+        self.assertFalse(IntervalDtype.is_dtype('D'))
+        self.assertFalse(IntervalDtype.is_dtype('3D'))
+        self.assertFalse(IntervalDtype.is_dtype('U'))
+        self.assertFalse(IntervalDtype.is_dtype('S'))
+        self.assertFalse(IntervalDtype.is_dtype('foo'))
+        self.assertFalse(IntervalDtype.is_dtype(np.object_))
+        self.assertFalse(IntervalDtype.is_dtype(np.int64))
+        self.assertFalse(IntervalDtype.is_dtype(np.float64))
+
+    def test_identity(self):
+        self.assertEqual(IntervalDtype('interval[int64]'),
+                         IntervalDtype('interval[int64]'))
+
+    def test_coerce_to_dtype(self):
+        self.assertEqual(_coerce_to_dtype('interval[int64]'),
+                         IntervalDtype('interval[int64]'))
+
+    def test_construction_from_string(self):
+        result = IntervalDtype('interval[int64]')
+        self.assertTrue(is_dtype_equal(self.dtype, result))
+        result = IntervalDtype.construct_from_string('interval[int64]')
+        self.assertTrue(is_dtype_equal(self.dtype, result))
+        with tm.assertRaises(TypeError):
+            IntervalDtype.construct_from_string('foo')
+        with tm.assertRaises(TypeError):
+            IntervalDtype.construct_from_string('interval[foo]')
+        with tm.assertRaises(TypeError):
+            IntervalDtype.construct_from_string('foo[int64]')
+
+    def test_equality(self):
+        self.assertTrue(is_dtype_equal(self.dtype, 'interval[int64]'))
+        self.assertTrue(is_dtype_equal(self.dtype, IntervalDtype('int64')))
+        self.assertTrue(is_dtype_equal(self.dtype, IntervalDtype('int64')))
+        self.assertTrue(is_dtype_equal(IntervalDtype('int64'),
+                                       IntervalDtype('int64')))
+
+        self.assertFalse(is_dtype_equal(self.dtype, 'int64'))
+        self.assertFalse(is_dtype_equal(IntervalDtype('int64'),
+                                        IntervalDtype('float64')))
+
+    def test_basic(self):
+        self.assertTrue(is_interval_dtype(self.dtype))
+
+        ii = IntervalIndex.from_breaks(range(3))
+
+        self.assertTrue(is_interval_dtype(ii.dtype))
+        self.assertTrue(is_interval_dtype(ii))
+
+        s = Series(ii, name='A')
+
+        # dtypes
+        # series results in object dtype currently,
+        self.assertFalse(is_interval_dtype(s.dtype))
+        self.assertFalse(is_interval_dtype(s))
+
+    def test_basic_dtype(self):
+        self.assertTrue(is_interval_dtype('interval[int64]'))
+        self.assertTrue(is_interval_dtype(IntervalIndex.from_tuples([(0, 1)])))
+        self.assertTrue(is_interval_dtype
+                        (IntervalIndex.from_breaks(np.arange(4))))
+        self.assertTrue(is_interval_dtype(
+            IntervalIndex.from_breaks(date_range('20130101', periods=3))))
+        self.assertFalse(is_interval_dtype('U'))
+        self.assertFalse(is_interval_dtype('S'))
+        self.assertFalse(is_interval_dtype('foo'))
+        self.assertFalse(is_interval_dtype(np.object_))
+        self.assertFalse(is_interval_dtype(np.int64))
+        self.assertFalse(is_interval_dtype(np.float64))

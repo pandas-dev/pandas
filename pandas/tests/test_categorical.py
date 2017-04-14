@@ -21,7 +21,8 @@ from pandas import (Categorical, Index, Series, DataFrame,
                     Timestamp, CategoricalIndex, isnull,
                     date_range, DatetimeIndex,
                     period_range, PeriodIndex,
-                    timedelta_range, TimedeltaIndex, NaT)
+                    timedelta_range, TimedeltaIndex, NaT,
+                    Interval, IntervalIndex)
 from pandas.compat import range, lrange, u, PY3
 from pandas.core.config import option_context
 
@@ -120,6 +121,16 @@ class TestCategorical(tm.TestCase):
         # this however will raise as cannot be sorted
         self.assertRaises(
             TypeError, lambda: Categorical(arr, ordered=True))
+
+    def test_constructor_interval(self):
+        result = Categorical([Interval(1, 2), Interval(2, 3), Interval(3, 6)],
+                             ordered=True)
+        ii = IntervalIndex.from_intervals([Interval(1, 2),
+                                           Interval(2, 3),
+                                           Interval(3, 6)])
+        exp = Categorical(ii, ordered=True)
+        self.assert_categorical_equal(result, exp)
+        tm.assert_index_equal(result.categories, ii)
 
     def test_is_equal_dtype(self):
 
@@ -1598,10 +1609,11 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         df = DataFrame({'value': np.random.randint(0, 10000, 100)})
         labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        cat_labels = Categorical(labels, labels)
 
         df = df.sort_values(by=['value'], ascending=True)
-        df['value_group'] = pd.cut(df.value, range(0, 10500, 500), right=False,
-                                   labels=labels)
+        df['value_group'] = pd.cut(df.value, range(0, 10500, 500),
+                                   right=False, labels=cat_labels)
         self.cat = df
 
     def test_dtypes(self):
@@ -2008,9 +2020,10 @@ class TestCategoricalAsBlock(tm.TestCase):
 
     def test_assignment_to_dataframe(self):
         # assignment
-        df = DataFrame({'value': np.array(np.random.randint(0, 10000, 100),
-                                          dtype='int32')})
-        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        df = DataFrame({'value': np.array(
+            np.random.randint(0, 10000, 100), dtype='int32')})
+        labels = Categorical(["{0} - {1}".format(i, i + 499)
+                              for i in range(0, 10000, 500)])
 
         df = df.sort_values(by=['value'], ascending=True)
         s = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
@@ -3007,7 +3020,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # GH 9603
         df = pd.DataFrame({'a': [1, 0, 0, 0]})
-        c = pd.cut(df.a, [0, 1, 2, 3, 4])
+        c = pd.cut(df.a, [0, 1, 2, 3, 4], labels=pd.Categorical(list('abcd')))
         result = df.groupby(c).apply(len)
 
         exp_index = pd.CategoricalIndex(c.values.categories,
@@ -3124,7 +3137,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df = DataFrame({'value': (np.arange(100) + 1).astype('int64')})
         df['D'] = pd.cut(df.value, bins=[0, 25, 50, 75, 100])
 
-        expected = Series([11, '(0, 25]'], index=['value', 'D'], name=10)
+        expected = Series([11, Interval(0, 25)], index=['value', 'D'], name=10)
         result = df.iloc[10]
         tm.assert_series_equal(result, expected)
 
@@ -3134,7 +3147,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         result = df.iloc[10:20]
         tm.assert_frame_equal(result, expected)
 
-        expected = Series([9, '(0, 25]'], index=['value', 'D'], name=8)
+        expected = Series([9, Interval(0, 25)], index=['value', 'D'], name=8)
         result = df.loc[8]
         tm.assert_series_equal(result, expected)
 

@@ -33,6 +33,10 @@ cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
 
 
+cpdef bint is_interval(object obj):
+    return isinstance(obj, Interval)
+
+
 cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
@@ -428,6 +432,10 @@ def infer_dtype(object value):
     elif is_period(val):
         if is_period_array(values):
             return 'period'
+
+    elif is_interval(val):
+        if is_interval_array(values):
+            return 'interval'
 
     for i in range(n):
         val = util.get_value_1d(values, i)
@@ -876,6 +884,23 @@ cpdef bint is_period_array(ndarray[object] values):
             if util._checknull(v):
                 null_count += 1
         elif not is_period(v):
+            return False
+    return null_count != n
+
+
+cpdef bint is_interval_array(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values), null_count = 0
+        object v
+
+    if n == 0:
+        return False
+    for i in range(n):
+        v = values[i]
+        if util._checknull(v):
+            null_count += 1
+            continue
+        if not is_interval(v):
             return False
     return null_count != n
 

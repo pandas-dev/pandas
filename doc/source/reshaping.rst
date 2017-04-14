@@ -517,7 +517,15 @@ Alternatively we can specify custom bin-edges:
 
 .. ipython:: python
 
-   pd.cut(ages, bins=[0, 18, 35, 70])
+   c = pd.cut(ages, bins=[0, 18, 35, 70])
+   c
+
+.. versionadded:: 0.20.0
+
+If the ``bins`` keyword is an ``IntervalIndex``, then these will be
+used to bin the passed data.
+
+   pd.cut([25, 20, 50], bins=c.categories)
 
 
 .. _reshaping.dummies:

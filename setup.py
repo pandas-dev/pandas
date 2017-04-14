@@ -119,6 +119,7 @@ _pxi_dep_template = {
                    '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],
     'sparse': ['sparse/sparse_op_helper.pxi.in'],
+    'interval': ['_libs/intervaltree.pxi.in']
 }
 
 _pxifiles = []
@@ -335,6 +336,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/index.pyx',
                  'pandas/_libs/algos.pyx',
                  'pandas/_libs/join.pyx',
+                 'pandas/_libs/interval.pyx',
                  'pandas/core/window.pyx',
                  'pandas/sparse/sparse.pyx',
                  'pandas/util/testing.pyx',
@@ -508,6 +510,9 @@ ext_data = {
                    'depends': _pxi_dep['join']},
     '_libs.reshape': {'pyxfile': '_libs/reshape',
                       'depends': _pxi_dep['reshape']},
+    '_libs.interval': {'pyxfile': '_libs/interval',
+                       'pxdfiles': ['_libs/hashtable'],
+                       'depends': _pxi_dep['interval']},
     'core.libwindow': {'pyxfile': 'core/window',
                        'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
                        'depends': ['pandas/_libs/src/skiplist.pyx',

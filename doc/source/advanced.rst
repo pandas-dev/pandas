@@ -850,6 +850,39 @@ Of course if you need integer based selection, then use ``iloc``
 
    dfir.iloc[0:5]
 
+.. _indexing.intervallindex:
+
+IntervalIndex
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+.. warning::
+
+   These indexing behaviors are provisional and may change in a future version of pandas.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': [1, 2, 3, 4]},
+                      index=pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4]))
+   df
+
+Label based indexing via ``.loc`` along the edges of an interval works as you would expect,
+selecting that particular interval.
+
+.. ipython:: python
+
+   df.loc[2]
+   df.loc[[2, 3]]
+
+If you select a lable *contained* within an interval, this will also select the interval.
+
+.. ipython:: python
+
+   df.loc[2.5]
+   df.loc[[2.5, 3.5]]
+
+
 Miscellaneous indexing FAQ
 --------------------------
 

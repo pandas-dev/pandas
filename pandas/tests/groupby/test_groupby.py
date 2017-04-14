@@ -864,11 +864,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         bins = [0, 5, 10, 15]
         g = d.groupby(pd.cut(d[0], bins))
 
-        result = g.get_group('(0, 5]')
+        # TODO: should prob allow a str of Interval work as well
+        # IOW '(0, 5]'
+        result = g.get_group(pd.Interval(0, 5))
         expected = DataFrame([3, 1], index=[0, 1])
         assert_frame_equal(result, expected)
 
-        self.assertRaises(KeyError, lambda: g.get_group('(10, 15]'))
+        self.assertRaises(KeyError, lambda: g.get_group(pd.Interval(10, 15)))
 
     def test_get_group_grouped_by_tuple(self):
         # GH 8121

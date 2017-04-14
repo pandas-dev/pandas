@@ -13,6 +13,7 @@ Highlights include:
 - ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
 - Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
 - Improved support for UInt64 dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
+- Addition of an ``IntervalIndex`` and ``Interval`` scalar type, see :ref:`here <whatsnew_0200.enhancements.intervalindex>`
 - A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
 - Window Binary Corr/Cov operations return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
@@ -313,6 +314,63 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 .. ipython:: python
 
    sdf.to_coo()
+
+.. _whatsnew_0200.enhancements.intervalindex:
+
+IntervalIndex
+^^^^^^^^^^^^^
+
+pandas has gained an ``IntervalIndex`` with its own dtype, ``interval`` as well as the ``Interval`` scalar type. These allow first-class support for interval
+notation, specifically as a return type for the categories in ``pd.cut`` and ``pd.qcut``. The ``IntervalIndex`` allows some unique indexing, see the
+:ref:`docs <indexing.intervallindex>`. (:issue:`7640`, :issue:`8625`)
+
+Previous behavior:
+
+.. code-block:: ipython
+
+   In [2]: pd.cut(range(3), 2)
+   Out[2]:
+   [(-0.002, 1], (-0.002, 1], (1, 2]]
+   Categories (2, object): [(-0.002, 1] < (1, 2]]
+
+   # the returned categories are strings, representing Intervals
+   In [3]: pd.cut(range(3), 2).categories
+   Out[3]: Index(['(-0.002, 1]', '(1, 2]'], dtype='object')
+
+New behavior:
+
+.. ipython:: python
+
+   c = pd.cut(range(4), bins=2)
+   c
+   c.categories
+
+Furthermore, this allows one to bin *other* data with these same bins. ``NaN`` represents a missing
+value similar to other dtypes.
+
+.. ipython:: python
+
+   pd.cut([0, 3, 1, 1], bins=c.categories)
+
+These can also used in ``Series`` and ``DataFrame``, and indexed.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': range(4),
+                      'B': pd.cut([0, 3, 1, 1], bins=c.categories)}
+                    ).set_index('B')
+
+Selecting a specific interval
+
+.. ipython:: python
+
+   df.loc[pd.Interval(1.5, 3.0)]
+
+Selecting via a scalar value that is contained in the intervals.
+
+.. ipython:: python
+
+   df.loc[0]
 
 .. _whatsnew_0200.enhancements.other:
 

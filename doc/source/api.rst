@@ -1405,6 +1405,27 @@ Categorical Components
    CategoricalIndex.as_ordered
    CategoricalIndex.as_unordered
 
+.. _api.intervalindex:
+
+IntervalIndex
+-------------
+
+.. autosummary::
+   :toctree: generated/
+
+   IntervalIndex
+
+IntervalIndex Components
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   IntervalIndex.from_arrays
+   IntervalIndex.from_tuples
+   IntervalIndex.from_breaks
+   IntervalIndex.from_intervals
+
 .. _api.multiindex:
 
 MultiIndex

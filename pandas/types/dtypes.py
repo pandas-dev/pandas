@@ -367,3 +367,112 @@ class PeriodDtype(ExtensionDtype):
             else:
                 return False
         return super(PeriodDtype, cls).is_dtype(dtype)
+
+
+class IntervalDtypeType(type):
+    """
+    the type of IntervalDtype, this metaclass determines subclass ability
+    """
+    pass
+
+
+class IntervalDtype(ExtensionDtype):
+    __metaclass__ = IntervalDtypeType
+    """
+    A Interval duck-typed class, suitable for holding an interval
+
+    THIS IS NOT A REAL NUMPY DTYPE
+    """
+    type = IntervalDtypeType
+    kind = None
+    str = '|O08'
+    base = np.dtype('O')
+    num = 103
+    _metadata = ['subtype']
+    _match = re.compile("(I|i)nterval\[(?P<subtype>.+)\]")
+    _cache = {}
+
+    def __new__(cls, subtype=None):
+        """
+        Parameters
+        ----------
+        subtype : the dtype of the Interval
+        """
+
+        if isinstance(subtype, IntervalDtype):
+            return subtype
+        elif subtype is None or (isinstance(subtype, compat.string_types) and
+                                 subtype == 'interval'):
+            subtype = None
+        else:
+            if isinstance(subtype, compat.string_types):
+                m = cls._match.search(subtype)
+                if m is not None:
+                    subtype = m.group('subtype')
+
+            from pandas.types.common import pandas_dtype
+            try:
+                subtype = pandas_dtype(subtype)
+            except TypeError:
+                raise ValueError("could not construct IntervalDtype")
+
+        try:
+            return cls._cache[str(subtype)]
+        except KeyError:
+            u = object.__new__(cls)
+            u.subtype = subtype
+            cls._cache[str(subtype)] = u
+            return u
+
+    @classmethod
+    def construct_from_string(cls, string):
+        """
+        attempt to construct this type from a string, raise a TypeError
+        if its not possible
+        """
+        if isinstance(string, compat.string_types):
+            try:
+                return cls(string)
+            except ValueError:
+                pass
+        raise TypeError("could not construct IntervalDtype")
+
+    def __unicode__(self):
+        if self.subtype is None:
+            return "interval"
+        return "interval[{subtype}]".format(subtype=self.subtype)
+
+    @property
+    def name(self):
+        return str(self)
+
+    def __hash__(self):
+        # make myself hashable
+        return hash(str(self))
+
+    def __eq__(self, other):
+        if isinstance(other, compat.string_types):
+            return other == self.name or other == self.name.title()
+
+        return (isinstance(other, IntervalDtype) and
+                self.subtype == other.subtype)
+
+    @classmethod
+    def is_dtype(cls, dtype):
+        """
+        Return a boolean if we if the passed type is an actual dtype that we
+        can match (via string or type)
+        """
+
+        if isinstance(dtype, compat.string_types):
+            if dtype.lower().startswith('interval'):
+                try:
+                    if cls.construct_from_string(dtype) is not None:
+                        return True
+                    else:
+                        return False
+                except ValueError:
+                    return False
+            else:
+                return False
+        return super(IntervalDtype, cls).is_dtype(dtype)

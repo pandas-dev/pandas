@@ -1087,10 +1087,10 @@ class _NDFrameIndexer(object):
             return self.obj.take(inds, axis=axis, convert=False)
         else:
             # Have the index compute an indexer or return None
-            # if it cannot handle
+            # if it cannot handle; we only act on all found values
             indexer, keyarr = labels._convert_listlike_indexer(
                 key, kind=self.name)
-            if indexer is not None:
+            if indexer is not None and (indexer != -1).all():
                 return self.obj.take(indexer, axis=axis)
 
             # existing labels are unique and indexer are unique
@@ -1429,7 +1429,7 @@ class _LocIndexer(_LocationIndexer):
 
             try:
                 key = self._convert_scalar_indexer(key, axis)
-                if key not in ax:
+                if not ax.contains(key):
                     error()
             except TypeError as e:
 
@@ -1897,7 +1897,7 @@ def convert_to_index_sliceable(obj, key):
     elif isinstance(key, compat.string_types):
 
         # we are an actual column
-        if key in obj._data.items:
+        if obj._data.items.contains(key):
             return None
 
         # We might have a datetimelike string that we can translate to a

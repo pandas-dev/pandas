@@ -55,6 +55,14 @@ class TestIsNull(tm.TestCase):
         self.assertFalse(isnull(np.array(0.0, dtype=object)))
         self.assertFalse(isnull(np.array(0, dtype=object)))
 
+    def test_empty_object(self):
+
+        for shape in [(4, 0), (4,)]:
+            arr = np.empty(shape=shape, dtype=object)
+            result = isnull(arr)
+            expected = np.ones(shape=shape, dtype=bool)
+            tm.assert_numpy_array_equal(result, expected)
+
     def test_isnull(self):
         self.assertFalse(isnull(1.))
         self.assertTrue(isnull(None))

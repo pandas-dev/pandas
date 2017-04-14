@@ -7,7 +7,8 @@ import numpy as np
 
 from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, notnull, isnull)
+                    TimedeltaIndex, PeriodIndex, IntervalIndex,
+                    notnull, isnull)
 from pandas.types.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
 from pandas._libs.tslib import iNaT
@@ -255,16 +256,19 @@ class Base(object):
             tm.assert_numpy_array_equal(index.values, result.values,
                                         check_same='copy')
 
-            if not isinstance(index, PeriodIndex):
-                result = index_type(index.values, copy=False, **init_kwargs)
-                tm.assert_numpy_array_equal(index.values, result.values,
-                                            check_same='same')
-                tm.assert_numpy_array_equal(index._values, result._values,
-                                            check_same='same')
-            else:
+            if isinstance(index, PeriodIndex):
                 # .values an object array of Period, thus copied
                 result = index_type(ordinal=index.asi8, copy=False,
                                     **init_kwargs)
+                tm.assert_numpy_array_equal(index._values, result._values,
+                                            check_same='same')
+            elif isinstance(index, IntervalIndex):
+                # checked in test_interval.py
+                pass
+            else:
+                result = index_type(index.values, copy=False, **init_kwargs)
+                tm.assert_numpy_array_equal(index.values, result.values,
+                                            check_same='same')
                 tm.assert_numpy_array_equal(index._values, result._values,
                                             check_same='same')
 
@@ -377,8 +381,9 @@ class Base(object):
                 result2 = index.memory_usage()
                 result3 = index.memory_usage(deep=True)
 
-                # RangeIndex doesn't use a hashtable engine
-                if not isinstance(index, RangeIndex):
+                # RangeIndex, IntervalIndex
+                # don't have engines
+                if not isinstance(index, (RangeIndex, IntervalIndex)):
                     self.assertTrue(result2 > result)
 
                 if index.inferred_type == 'object':

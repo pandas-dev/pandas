@@ -61,6 +61,8 @@ from tslib cimport (convert_to_tsobject, convert_to_timedelta64,
                     _check_all_nulls)
 import tslib
 from tslib import NaT, Timestamp, Timedelta
+import interval
+from interval import Interval
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -245,6 +247,7 @@ cpdef bint isscalar(object val):
     - instances of datetime.timedelta
     - Period
     - instances of decimal.Decimal
+    - Interval
 
     """
 
@@ -258,7 +261,8 @@ cpdef bint isscalar(object val):
             or PyDelta_Check(val)
             or PyTime_Check(val)
             or util.is_period_object(val)
-            or is_decimal(val))
+            or is_decimal(val)
+            or is_interval(val))
 
 
 def item_from_zerodim(object val):
