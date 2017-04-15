@@ -429,6 +429,10 @@ class TestSeriesMap(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
     def test_map_dict_subclass_with_missing(self):
+        """
+        Test Series.map with a dictionary subclass that defines __missing__,
+        i.e. sets a default value (GH #15999).
+        """
         class DictWithMissing(dict):
             def __missing__(self, key):
                 return 'missing'
