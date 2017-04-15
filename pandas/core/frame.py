@@ -23,38 +23,40 @@ from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
-from pandas.types.cast import (maybe_upcast, infer_dtype_from_scalar,
-                               maybe_cast_to_datetime,
-                               maybe_infer_to_datetimelike,
-                               maybe_convert_platform,
-                               maybe_downcast_to_dtype,
-                               invalidate_string_dtypes,
-                               coerce_to_dtypes,
-                               maybe_upcast_putmask,
-                               find_common_type)
-from pandas.types.common import (is_categorical_dtype,
-                                 is_object_dtype,
-                                 is_extension_type,
-                                 is_datetimetz,
-                                 is_datetime64_any_dtype,
-                                 is_datetime64tz_dtype,
-                                 is_bool_dtype,
-                                 is_integer_dtype,
-                                 is_float_dtype,
-                                 is_integer,
-                                 is_scalar,
-                                 is_dtype_equal,
-                                 needs_i8_conversion,
-                                 _get_dtype_from_object,
-                                 _ensure_float,
-                                 _ensure_float64,
-                                 _ensure_int64,
-                                 _ensure_platform_int,
-                                 is_list_like,
-                                 is_iterator,
-                                 is_sequence,
-                                 is_named_tuple)
-from pandas.types.missing import isnull, notnull
+from pandas.core.dtypes.cast import (
+    maybe_upcast, infer_dtype_from_scalar,
+    maybe_cast_to_datetime,
+    maybe_infer_to_datetimelike,
+    maybe_convert_platform,
+    maybe_downcast_to_dtype,
+    invalidate_string_dtypes,
+    coerce_to_dtypes,
+    maybe_upcast_putmask,
+    find_common_type)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+    is_extension_type,
+    is_datetimetz,
+    is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
+    is_bool_dtype,
+    is_integer_dtype,
+    is_float_dtype,
+    is_integer,
+    is_scalar,
+    is_dtype_equal,
+    needs_i8_conversion,
+    _get_dtype_from_object,
+    _ensure_float,
+    _ensure_float64,
+    _ensure_int64,
+    _ensure_platform_int,
+    is_list_like,
+    is_iterator,
+    is_sequence,
+    is_named_tuple)
+from pandas.core.dtypes.missing import isnull, notnull
 
 from pandas.core.common import (_try_sort,
                                 _default_index,
@@ -70,9 +72,9 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
-import pandas.computation.expressions as expressions
+import pandas.core.computation.expressions as expressions
 import pandas.core.algorithms as algorithms
-from pandas.computation.eval import eval as _eval
+from pandas.core.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
@@ -1269,7 +1271,7 @@ class DataFrame(NDFrame):
         -------
         y : SparseDataFrame
         """
-        from pandas.core.sparse import SparseDataFrame
+        from pandas.core.sparse.frame import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)

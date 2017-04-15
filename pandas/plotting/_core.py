@@ -11,11 +11,12 @@ import numpy as np
 
 from pandas.util.decorators import cache_readonly
 from pandas.core.base import PandasObject
-from pandas.types.common import (is_list_like,
-                                 is_integer,
-                                 is_number,
-                                 is_hashable,
-                                 is_iterator)
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_integer,
+    is_number,
+    is_hashable,
+    is_iterator)
 from pandas.core.common import AbstractMethodError, isnull, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex

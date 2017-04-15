@@ -13,7 +13,7 @@ import numpy as np
 import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 
-from pandas.types.common import is_integer_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 from pandas.compat import (lmap, long, zip, range, lrange, lzip,
                            OrderedDict, is_platform_little_endian)
 from pandas import compat

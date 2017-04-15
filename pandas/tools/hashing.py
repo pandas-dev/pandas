@@ -7,10 +7,14 @@ import numpy as np
 from pandas import Series, factorize, Categorical, Index, MultiIndex
 from pandas.tools import libhashing as _hash
 from pandas._libs.lib import is_bool_array
-from pandas.types.generic import ABCIndexClass, ABCSeries, ABCDataFrame
-from pandas.types.common import (is_categorical_dtype, is_numeric_dtype,
-                                 is_datetime64_dtype, is_timedelta64_dtype,
-                                 is_list_like)
+from pandas.core.dtypes.generic import (
+    ABCIndexClass,
+    ABCSeries,
+    ABCDataFrame)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_numeric_dtype,
+    is_datetime64_dtype, is_timedelta64_dtype,
+    is_list_like)
 
 # 16 byte long hashing key
 _default_hash_key = '0123456789123456'

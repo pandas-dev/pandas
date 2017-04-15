@@ -7,19 +7,20 @@ import re
 
 import numpy as np
 
-from pandas.types.common import (_ensure_platform_int,
-                                 is_list_like, is_bool_dtype,
-                                 needs_i8_conversion)
-from pandas.types.cast import maybe_promote
-from pandas.types.missing import notnull
-import pandas.types.concat as _concat
+from pandas.core.dtypes.common import (
+    _ensure_platform_int,
+    is_list_like, is_bool_dtype,
+    needs_i8_conversion)
+from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.missing import notnull
+import pandas.core.dtypes.concat as _concat
 
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
-from pandas.core.sparse import SparseDataFrame, SparseSeries
-from pandas.sparse.array import SparseArray
-from pandas.sparse.libsparse import IntIndex
+from pandas.core.sparse.api import SparseDataFrame, SparseSeries
+from pandas.core.sparse.array import SparseArray
+from pandas.core.sparse.libsparse import IntIndex
 
 from pandas.core.categorical import Categorical, _factorize_from_iterable
 from pandas.core.sorting import (get_group_index, get_compressed_ids,

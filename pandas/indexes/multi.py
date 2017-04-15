@@ -12,13 +12,14 @@ from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
-from pandas.types.common import (_ensure_int64,
-                                 _ensure_platform_int,
-                                 is_object_dtype,
-                                 is_iterator,
-                                 is_list_like,
-                                 is_scalar)
-from pandas.types.missing import isnull, array_equivalent
+from pandas.core.dtypes.common import (
+    _ensure_int64,
+    _ensure_platform_int,
+    is_object_dtype,
+    is_iterator,
+    is_list_like,
+    is_scalar)
+from pandas.core.dtypes.missing import isnull, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,

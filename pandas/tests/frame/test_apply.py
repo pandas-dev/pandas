@@ -10,7 +10,7 @@ import numpy as np
 from pandas import (notnull, DataFrame, Series, MultiIndex, date_range,
                     Timestamp, compat)
 import pandas as pd
-from pandas.types.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm

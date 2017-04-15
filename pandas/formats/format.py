@@ -10,20 +10,21 @@ from distutils.version import LooseVersion
 
 import sys
 
-from pandas.types.missing import isnull, notnull
-from pandas.types.common import (is_categorical_dtype,
-                                 is_float_dtype,
-                                 is_period_arraylike,
-                                 is_integer_dtype,
-                                 is_interval_dtype,
-                                 is_datetimetz,
-                                 is_integer,
-                                 is_float,
-                                 is_numeric_dtype,
-                                 is_datetime64_dtype,
-                                 is_timedelta64_dtype,
-                                 is_list_like)
-from pandas.types.generic import ABCSparseArray
+from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_float_dtype,
+    is_period_arraylike,
+    is_integer_dtype,
+    is_interval_dtype,
+    is_datetimetz,
+    is_integer,
+    is_float,
+    is_numeric_dtype,
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
+    is_list_like)
+from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat

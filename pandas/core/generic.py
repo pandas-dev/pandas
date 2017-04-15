@@ -10,22 +10,23 @@ import numpy as np
 import pandas as pd
 
 from pandas._libs import tslib, lib
-from pandas.types.common import (_coerce_to_dtype,
-                                 _ensure_int64,
-                                 needs_i8_conversion,
-                                 is_scalar,
-                                 is_integer, is_bool,
-                                 is_bool_dtype,
-                                 is_numeric_dtype,
-                                 is_datetime64_dtype,
-                                 is_timedelta64_dtype,
-                                 is_datetime64tz_dtype,
-                                 is_list_like,
-                                 is_dict_like,
-                                 is_re_compilable)
-from pandas.types.cast import maybe_promote, maybe_upcast_putmask
-from pandas.types.missing import isnull, notnull
-from pandas.types.generic import ABCSeries, ABCPanel
+from pandas.core.dtypes.common import (
+    _coerce_to_dtype,
+    _ensure_int64,
+    needs_i8_conversion,
+    is_scalar,
+    is_integer, is_bool,
+    is_bool_dtype,
+    is_numeric_dtype,
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
+    is_datetime64tz_dtype,
+    is_list_like,
+    is_dict_like,
+    is_re_compilable)
+from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.generic import ABCSeries, ABCPanel
 
 from pandas.core.common import (_values_from_object,
                                 _maybe_box_datetimelike,

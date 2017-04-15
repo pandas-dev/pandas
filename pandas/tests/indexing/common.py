@@ -5,7 +5,7 @@ from warnings import catch_warnings
 import numpy as np
 
 from pandas.compat import lrange
-from pandas.types.common import is_scalar
+from pandas.core.dtypes.common import is_scalar
 from pandas import Series, DataFrame, Panel, date_range, UInt64Index
 from pandas.util import testing as tm
 from pandas.formats.printing import pprint_thing

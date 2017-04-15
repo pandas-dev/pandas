@@ -15,26 +15,27 @@ from pandas import compat
 from pandas.compat.numpy import function as nv, _np_version_under1p8
 from pandas.compat import set_function_name
 
-from pandas.types.common import (is_numeric_dtype,
-                                 is_timedelta64_dtype, is_datetime64_dtype,
-                                 is_categorical_dtype,
-                                 is_interval_dtype,
-                                 is_datetimelike,
-                                 is_datetime64_any_dtype,
-                                 is_bool, is_integer_dtype,
-                                 is_complex_dtype,
-                                 is_bool_dtype,
-                                 is_scalar,
-                                 is_list_like,
-                                 needs_i8_conversion,
-                                 _ensure_float64,
-                                 _ensure_platform_int,
-                                 _ensure_int64,
-                                 _ensure_object,
-                                 _ensure_categorical,
-                                 _ensure_float)
-from pandas.types.cast import maybe_downcast_to_dtype
-from pandas.types.missing import isnull, notnull, _maybe_fill
+from pandas.core.dtypes.common import (
+    is_numeric_dtype,
+    is_timedelta64_dtype, is_datetime64_dtype,
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_datetimelike,
+    is_datetime64_any_dtype,
+    is_bool, is_integer_dtype,
+    is_complex_dtype,
+    is_bool_dtype,
+    is_scalar,
+    is_list_like,
+    needs_i8_conversion,
+    _ensure_float64,
+    _ensure_platform_int,
+    _ensure_int64,
+    _ensure_object,
+    _ensure_categorical,
+    _ensure_float)
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.missing import isnull, notnull, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
                                 _default_index)
@@ -4079,7 +4080,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def count(self):
         """ Compute count of group, excluding missing values """
         from functools import partial
-        from pandas.types.missing import _isnull_ndarraylike as isnull
+        from pandas.core.dtypes.missing import _isnull_ndarraylike as isnull
 
         data, _ = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info

@@ -7,10 +7,11 @@ from warnings import warn, catch_warnings
 import numpy as np
 
 from pandas import compat, _np_version_under1p8
-from pandas.types.cast import maybe_promote
-from pandas.types.generic import (ABCSeries, ABCIndex,
-                                  ABCIndexClass, ABCCategorical)
-from pandas.types.common import (
+from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCIndex,
+    ABCIndexClass, ABCCategorical)
+from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype, is_signed_integer_dtype,
     is_integer_dtype, is_complex_dtype,
     is_categorical_dtype, is_sparse,
@@ -25,9 +26,9 @@ from pandas.types.common import (
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
-from pandas.types.missing import isnull
+from pandas.core.dtypes.missing import isnull
 
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.compat import string_types
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT

@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from pandas.types.common import is_float_dtype
+from pandas.core.dtypes.common import is_float_dtype
 from pandas import (Series, DataFrame, Index, date_range, isnull, notnull,
                     pivot, MultiIndex)
 from pandas.core.nanops import nanall, nanany
