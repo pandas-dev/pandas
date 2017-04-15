@@ -2089,20 +2089,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         two   B
         three C
 
-        Values in Series that are not in the dictionary (as keys) are converted
-        to ``NaN``. However, if the dictionary is a ``dict`` subclass that
-        defines ``__missing__`` (i.e. provides a method for default values),
-        then this default is used rather than ``NaN``:
-
-        >>> from collections import Counter
-        >>> counter = Counter()
-        >>> counter['bar'] += 1
-        >>> y.map(counter)
-        1    0
-        2    1
-        3    0
-        dtype: int64
-
         Use na_action to control whether NA values are affected by the mapping
         function.
 
@@ -2127,6 +2113,23 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         Series.apply: For applying more complex functions on a Series
         DataFrame.apply: Apply a function row-/column-wise
         DataFrame.applymap: Apply a function elementwise on a whole DataFrame
+
+        Notes
+        -----
+        When `arg` is a dictionary, values in Series that are not in the
+        dictionary (as keys) are converted to ``NaN``. However, if the
+        dictionary is a ``dict`` subclass that defines ``__missing__`` (i.e.
+        provides a method for default values), then this default is used
+        rather than ``NaN``:
+
+        >>> from collections import Counter
+        >>> counter = Counter()
+        >>> counter['bar'] += 1
+        >>> y.map(counter)
+        1    0
+        2    1
+        3    0
+        dtype: int64
         """
 
         if is_extension_type(self.dtype):
