@@ -40,7 +40,7 @@ from datetime import datetime
 import pandas.core.config_init
 
 from pandas.core.api import *
-from pandas.sparse.api import *
+from pandas.core.sparse.api import *
 from pandas.stats.api import *
 from pandas.tseries.api import *
 from pandas.core.computation.api import *

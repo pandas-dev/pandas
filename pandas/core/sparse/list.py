@@ -4,9 +4,9 @@ from pandas.core.base import PandasObject
 from pandas.formats.printing import pprint_thing
 
 from pandas.core.dtypes.common import is_scalar
-from pandas.sparse.array import SparseArray
+from pandas.core.sparse.array import SparseArray
 from pandas.util.validators import validate_bool_kwarg
-import pandas.sparse.libsparse as splib
+from pandas.core.sparse import libsparse as splib
 
 
 class SparseList(PandasObject):

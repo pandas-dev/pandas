@@ -30,7 +30,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, Index,
                     DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
 from pandas.io.common import _stringify_path
-from pandas.sparse.array import BlockIndex, IntIndex
+from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning

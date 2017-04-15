@@ -69,7 +69,7 @@ def _get_series_result_type(result):
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(is_sparse(c) for c in compat.itervalues(result)):
-            from pandas.sparse.api import SparseDataFrame
+            from pandas.core.sparse.api import SparseDataFrame
             return SparseDataFrame
         else:
             from pandas.core.frame import DataFrame
@@ -77,7 +77,7 @@ def _get_series_result_type(result):
 
     elif is_sparse(result):
         # concat Series with axis 1
-        from pandas.sparse.api import SparseSeries
+        from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     else:
         from pandas.core.series import Series
@@ -91,7 +91,7 @@ def _get_frame_result_type(result, objs):
     otherwise, return 1st obj
     """
     if any(b.is_sparse for b in result.blocks):
-        from pandas.sparse.api import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
         return objs[0]
@@ -438,7 +438,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     a single array, preserving the combined dtypes
     """
 
-    from pandas.sparse.array import SparseArray, _make_index
+    from pandas.core.sparse.array import SparseArray, _make_index
 
     def convert_sparse(x, axis):
         # coerce to native type

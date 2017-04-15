@@ -29,8 +29,8 @@ from pandas.core.dtypes.cast import (
     astype_nansafe, find_common_type)
 from pandas.core.dtypes.missing import isnull, notnull, na_value_for_dtype
 
-from pandas.sparse import libsparse as splib
-from pandas.sparse.libsparse import SparseIndex, BlockIndex, IntIndex
+from pandas.core.sparse import libsparse as splib
+from pandas.core.sparse.libsparse import SparseIndex, BlockIndex, IntIndex
 from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
 import pandas.core.ops as ops

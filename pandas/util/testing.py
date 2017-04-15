@@ -1541,10 +1541,10 @@ def assert_sp_array_equal(left, right, check_dtype=True):
                              check_dtype=check_dtype)
 
     # SparseIndex comparison
-    assertIsInstance(left.sp_index,
-                     pd.sparse.libsparse.SparseIndex, '[SparseIndex]')
-    assertIsInstance(right.sp_index,
-                     pd.sparse.libsparse.SparseIndex, '[SparseIndex]')
+    assertIsInstance(
+        left.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
+    assertIsInstance(
+        right.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
 
     if not left.sp_index.equals(right.sp_index):
         raise_assert_detail('SparseArray.index', 'index are not equal',

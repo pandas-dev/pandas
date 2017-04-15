@@ -1,5 +1,5 @@
 from .pandas_vb_common import *
-import pandas.sparse.series
+import pandas.core.sparse.series
 import scipy.sparse
 from pandas.core.sparse import SparseSeries, SparseDataFrame
 from pandas.core.sparse import SparseDataFrame
@@ -37,7 +37,7 @@ class sparse_series_from_coo(object):
         self.A = scipy.sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(100, 100))
 
     def time_sparse_series_from_coo(self):
-        self.ss = pandas.sparse.series.SparseSeries.from_coo(self.A)
+        self.ss = pandas.core.sparse.series.SparseSeries.from_coo(self.A)
 
 
 class sparse_series_to_coo(object):

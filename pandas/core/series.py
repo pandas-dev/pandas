@@ -257,7 +257,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                    fastpath=False):
         # return a sparse series here
         if isinstance(arr, ABCSparseArray):
-            from pandas.sparse.series import SparseSeries
+            from pandas.core.sparse.series import SparseSeries
             cls = SparseSeries
 
         return cls(arr, index=index, name=name, dtype=dtype, copy=copy,
@@ -1132,7 +1132,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         -------
         sp : SparseSeries
         """
-        from pandas.core.sparse import SparseSeries
+        from pandas.core.sparse.series import SparseSeries
         return SparseSeries(self, kind=kind,
                             fill_value=fill_value).__finalize__(self)
 

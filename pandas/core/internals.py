@@ -58,7 +58,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.formats.printing import pprint_thing
 
 import pandas.core.missing as missing
-from pandas.sparse.array import _maybe_to_sparse, SparseArray
+from pandas.core.sparse.array import _maybe_to_sparse, SparseArray
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement

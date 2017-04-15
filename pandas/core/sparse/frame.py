@@ -24,8 +24,8 @@ import pandas.core.algorithms as algos
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays)
 import pandas.core.generic as generic
-from pandas.sparse.series import SparseSeries, SparseArray
-from pandas.sparse.libsparse import BlockIndex, get_blocks
+from pandas.core.sparse.series import SparseSeries, SparseArray
+from pandas.core.sparse.libsparse import BlockIndex, get_blocks
 from pandas.util.decorators import Appender
 import pandas.core.ops as ops
 

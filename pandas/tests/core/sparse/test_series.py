@@ -14,10 +14,10 @@ from pandas.compat import range
 from pandas import compat
 from pandas.tools.util import cartesian_product
 
-import pandas.sparse.frame as spf
+import pandas.core.sparse.frame as spf
 
-from pandas.sparse.libsparse import BlockIndex, IntIndex
-from pandas.sparse.api import SparseSeries
+from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas.core.sparse.api import SparseSeries
 from pandas.tests.series.test_api import SharedWithSparse
 
 

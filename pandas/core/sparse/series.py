@@ -23,13 +23,15 @@ import pandas.core.ops as ops
 import pandas._libs.index as _index
 from pandas.util.decorators import Appender
 
-from pandas.sparse.array import (make_sparse, _sparse_array_op, SparseArray,
-                                 _make_index)
-from pandas.sparse.libsparse import BlockIndex, IntIndex
-import pandas.sparse.libsparse as splib
+from pandas.core.sparse.array import (
+    make_sparse, _sparse_array_op, SparseArray,
+    _make_index)
+from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+import pandas.core.sparse.libsparse as splib
 
-from pandas.sparse.scipy_sparse import (_sparse_series_to_coo,
-                                        _coo_to_sparse_series)
+from pandas.core.sparse.scipy_sparse import (
+    _sparse_series_to_coo,
+    _coo_to_sparse_series)
 
 
 _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
@@ -264,7 +266,7 @@ class SparseSeries(Series):
 
     @property
     def _constructor_expanddim(self):
-        from pandas.sparse.api import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
 
     @property

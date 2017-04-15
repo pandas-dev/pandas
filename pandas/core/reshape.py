@@ -18,9 +18,9 @@ import pandas.core.dtypes.concat as _concat
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
-from pandas.core.sparse import SparseDataFrame, SparseSeries
-from pandas.sparse.array import SparseArray
-from pandas.sparse.libsparse import IntIndex
+from pandas.core.sparse.api import SparseDataFrame, SparseSeries
+from pandas.core.sparse.array import SparseArray
+from pandas.core.sparse.libsparse import IntIndex
 
 from pandas.core.categorical import Categorical, _factorize_from_iterable
 from pandas.core.sorting import (get_group_index, get_compressed_ids,

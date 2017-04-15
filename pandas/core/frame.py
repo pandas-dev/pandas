@@ -1271,7 +1271,7 @@ class DataFrame(NDFrame):
         -------
         y : SparseDataFrame
         """
-        from pandas.core.sparse import SparseDataFrame
+        from pandas.core.sparse.frame import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)

@@ -1867,7 +1867,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
     def test_iloc_sparse_propegate_fill_value(self):
-        from pandas.sparse.api import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         df = SparseDataFrame({'A': [999, 1]}, default_fill_value=999)
         self.assertTrue(len(df['A'].sp_values) == len(df.iloc[:, 0].sp_values))
 

@@ -37,8 +37,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isnull
 from pandas.util import testing as tm
 
-from pandas.tests.sparse.test_frame import spmatrix  # noqa: F401
-
 
 def test_is_sequence():
     is_seq = inference.is_sequence

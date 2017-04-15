@@ -16,16 +16,14 @@ from pandas.core.dtypes.common import (
     is_float)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.offsets import BDay
-import pandas.util.testing as tm
+from pandas.util import testing as tm
 from pandas.compat import lrange
 from pandas import compat
-import pandas.sparse.frame as spf
+from pandas.core.sparse import frame as spf
 
-from pandas.sparse.libsparse import BlockIndex, IntIndex
-from pandas.sparse.api import SparseSeries, SparseDataFrame, SparseArray
+from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas.core.sparse.api import SparseSeries, SparseDataFrame, SparseArray
 from pandas.tests.frame.test_api import SharedWithSparse
-
-from pandas.tests.sparse.common import spmatrix  # noqa: F401
 
 
 class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
