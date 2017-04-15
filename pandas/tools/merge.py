@@ -14,7 +14,7 @@ import pandas as pd
 from pandas import (Categorical, Series, DataFrame,
                     Index, MultiIndex, Timedelta)
 from pandas.core.frame import _merge_doc
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetime64_dtype,
     needs_i8_conversion,
@@ -32,7 +32,7 @@ from pandas.core.typed.common import (
     _ensure_float64,
     _ensure_object,
     _get_dtype)
-from pandas.core.typed.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import na_value_for_dtype
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution

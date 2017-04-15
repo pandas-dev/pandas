@@ -15,14 +15,14 @@ import numpy as np
 from pandas import compat
 from pandas.compat import (range, lrange, StringIO, lzip,
                            zip, string_types, map, u)
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_integer, _ensure_object,
     is_list_like, is_integer_dtype,
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
     is_scalar, is_categorical_dtype)
-from pandas.core.typed.missing import isnull
-from pandas.core.typed.cast import astype_nansafe
+from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import Index, MultiIndex, RangeIndex
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame

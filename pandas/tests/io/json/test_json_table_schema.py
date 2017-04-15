@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from pandas import DataFrame
-from pandas.core.typed.dtypes import (
+from pandas.core.dtypes.dtypes import (
     PeriodDtype, CategoricalDtype, DatetimeTZDtype)
 import pandas.util.testing as tm
 from pandas.io.json.table_schema import (

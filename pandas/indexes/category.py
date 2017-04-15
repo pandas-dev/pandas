@@ -3,15 +3,15 @@ from pandas._libs import index as libindex
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.core.typed.generic import ABCCategorical, ABCSeries
-from pandas.core.typed.common import (
+from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
+from pandas.core.dtypes.common import (
     is_categorical_dtype,
     _ensure_platform_int,
     is_list_like,
     is_interval_dtype,
     is_scalar)
 from pandas.core.common import _asarray_tuplesafe
-from pandas.core.typed.missing import array_equivalent
+from pandas.core.dtypes.missing import array_equivalent
 
 
 from pandas.util.decorators import Appender, cache_readonly

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas._libs.lib as lib
 
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_datetime_or_timedelta_dtype,
@@ -10,7 +10,7 @@ from pandas.core.typed.common import (
     is_decimal,
     is_scalar as isscalar)
 
-from pandas.core.typed.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
 import pandas as pd
 from pandas.compat import reduce

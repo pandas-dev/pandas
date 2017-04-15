@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range, Panel
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_float_dtype,
     is_object_dtype,

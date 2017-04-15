@@ -8,7 +8,7 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64tz_dtype)
 from pandas import (Index, Series, isnull, date_range,

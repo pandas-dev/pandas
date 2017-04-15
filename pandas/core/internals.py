@@ -9,10 +9,10 @@ import numpy as np
 
 from pandas.core.base import PandasObject
 
-from pandas.core.typed.dtypes import (
+from pandas.core.dtypes.dtypes import (
     ExtensionDtype, DatetimeTZDtype,
     CategoricalDtype)
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     _TD_DTYPE, _NS_DTYPE,
     _ensure_int64, _ensure_platform_int,
     is_integer,
@@ -31,7 +31,7 @@ from pandas.core.typed.common import (
     is_re_compilable,
     is_scalar,
     _get_dtype)
-from pandas.core.typed.cast import (
+from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
     maybe_convert_string_to_object,
     maybe_upcast,
@@ -41,13 +41,13 @@ from pandas.core.typed.cast import (
     maybe_convert_objects,
     astype_nansafe,
     find_common_type)
-from pandas.core.typed.missing import (
+from pandas.core.dtypes.missing import (
     isnull, array_equivalent,
     _is_na_compat,
     is_null_datelike_scalar)
-import pandas.core.typed.concat as _concat
+import pandas.core.dtypes.concat as _concat
 
-from pandas.core.typed.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.common import is_null_slice
 import pandas.core.algorithms as algos
 

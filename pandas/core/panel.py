@@ -6,13 +6,13 @@ from __future__ import division
 
 import numpy as np
 import warnings
-from pandas.core.typed.cast import (
+from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     maybe_cast_item)
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_integer, is_list_like,
     is_string_like, is_scalar)
-from pandas.core.typed.missing import notnull
+from pandas.core.dtypes.missing import notnull
 
 import pandas.core.computation.expressions as expressions
 import pandas.core.common as com

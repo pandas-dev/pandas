@@ -11,7 +11,7 @@ from datetime import datetime, date
 import pandas as pd
 from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
                     bdate_range)
-from pandas.core.typed.api import is_list_like
+from pandas.core.dtypes.api import is_list_like
 from pandas.compat import range, lrange, lmap, lzip, u, zip, PY3
 from pandas.formats.printing import pprint_thing
 import pandas.util.testing as tm

@@ -11,8 +11,8 @@ from pandas.compat import u
 from pandas._libs.tslib import iNaT
 from pandas import (NaT, Float64Index, Series,
                     DatetimeIndex, TimedeltaIndex, date_range)
-from pandas.core.typed.dtypes import DatetimeTZDtype
-from pandas.core.typed.missing import (
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.missing import (
     array_equivalent, isnull, notnull,
     na_value_for_dtype)
 

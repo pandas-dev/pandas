@@ -7,7 +7,7 @@ import pandas as pd
 
 from pandas import (Index, Series, _np_version_under1p9)
 from pandas.tseries.index import Timestamp
-from pandas.core.typed.common import is_integer
+from pandas.core.dtypes.common import is_integer
 import pandas.util.testing as tm
 
 from .common import TestData

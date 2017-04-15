@@ -3,11 +3,11 @@
 import numpy as np
 from pandas.compat import long
 from pandas.core.categorical import Categorical
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     _ensure_platform_int,
     _ensure_int64,
     is_categorical_dtype)
-from pandas.core.typed.missing import isnull
+from pandas.core.dtypes.missing import isnull
 import pandas.core.algorithms as algorithms
 from pandas._libs import lib, algos, hashtable
 from pandas._libs.hashtable import unique_label_indices

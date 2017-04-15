@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 import pandas._libs.index as _index
-from pandas.core.typed.common import is_integer, is_scalar
+from pandas.core.dtypes.common import is_integer, is_scalar
 from pandas import (Index, Series, DataFrame, isnull,
                     date_range, NaT, MultiIndex,
                     Timestamp, DatetimeIndex, Timedelta)

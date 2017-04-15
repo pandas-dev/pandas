@@ -10,7 +10,7 @@ import os
 import abc
 import numpy as np
 
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool, is_list_like)
 

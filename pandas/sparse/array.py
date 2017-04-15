@@ -14,9 +14,9 @@ from pandas import compat
 from pandas.compat import range
 from pandas.compat.numpy import function as nv
 
-from pandas.core.typed.generic import (
+from pandas.core.dtypes.generic import (
     ABCSparseArray, ABCSparseSeries)
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_float, is_integer,
     is_integer_dtype,
@@ -24,10 +24,10 @@ from pandas.core.typed.common import (
     is_list_like,
     is_string_dtype,
     is_scalar, is_dtype_equal)
-from pandas.core.typed.cast import (
+from pandas.core.dtypes.cast import (
     maybe_convert_platform, maybe_promote,
     astype_nansafe, find_common_type)
-from pandas.core.typed.missing import isnull, notnull, na_value_for_dtype
+from pandas.core.dtypes.missing import isnull, notnull, na_value_for_dtype
 
 from pandas.sparse import libsparse as splib
 from pandas.sparse.libsparse import SparseIndex, BlockIndex, IntIndex

@@ -3,7 +3,7 @@ Module that contains many useful utilities
 for validating data or function arguments
 """
 
-from pandas.core.typed.common import is_bool
+from pandas.core.dtypes.common import is_bool
 
 
 def _check_arg_length(fname, args, max_fname_arg_count, compat_args):

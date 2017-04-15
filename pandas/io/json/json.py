@@ -12,7 +12,7 @@ from pandas.core.common import AbstractMethodError
 from pandas.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema
-from pandas.core.typed.common import is_period_dtype
+from pandas.core.dtypes.common import is_period_dtype
 
 loads = libjson.loads
 dumps = libjson.dumps

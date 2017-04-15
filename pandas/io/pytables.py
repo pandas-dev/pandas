@@ -12,7 +12,7 @@ import itertools
 import warnings
 import os
 
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_list_like,
     is_categorical_dtype,
     is_timedelta64_dtype,
@@ -21,7 +21,7 @@ from pandas.core.typed.common import (
     _ensure_object,
     _ensure_int64,
     _ensure_platform_int)
-from pandas.core.typed.missing import array_equivalent
+from pandas.core.dtypes.missing import array_equivalent
 
 import numpy as np
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,

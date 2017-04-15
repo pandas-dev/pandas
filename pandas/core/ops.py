@@ -23,8 +23,8 @@ import pandas.core.missing as missing
 
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _values_from_object, _maybe_match_name
-from pandas.core.typed.missing import notnull, isnull
-from pandas.core.typed.common import (
+from pandas.core.dtypes.missing import notnull, isnull
+from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_datetimelike_v_numeric,
     is_integer_dtype, is_categorical_dtype,
@@ -34,8 +34,8 @@ from pandas.core.typed.common import (
     is_list_like,
     is_scalar,
     _ensure_object)
-from pandas.core.typed.cast import maybe_upcast_putmask, find_common_type
-from pandas.core.typed.generic import ABCSeries, ABCIndex, ABCPeriodIndex
+from pandas.core.dtypes.cast import maybe_upcast_putmask, find_common_type
+from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCPeriodIndex
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory

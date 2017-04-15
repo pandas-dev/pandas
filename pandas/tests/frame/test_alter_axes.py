@@ -9,7 +9,7 @@ import numpy as np
 from pandas.compat import lrange
 from pandas import (DataFrame, Series, Index, MultiIndex,
                     RangeIndex, date_range, IntervalIndex)
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_object_dtype,
     is_categorical_dtype,
     is_interval_dtype)

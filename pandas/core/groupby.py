@@ -15,7 +15,7 @@ from pandas import compat
 from pandas.compat.numpy import function as nv, _np_version_under1p8
 from pandas.compat import set_function_name
 
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_timedelta64_dtype, is_datetime64_dtype,
     is_categorical_dtype,
@@ -34,8 +34,8 @@ from pandas.core.typed.common import (
     _ensure_object,
     _ensure_categorical,
     _ensure_float)
-from pandas.core.typed.cast import maybe_downcast_to_dtype
-from pandas.core.typed.missing import isnull, notnull, _maybe_fill
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.missing import isnull, notnull, _maybe_fill
 
 from pandas.core.common import (_values_from_object, AbstractMethodError,
                                 _default_index)
@@ -4080,7 +4080,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def count(self):
         """ Compute count of group, excluding missing values """
         from functools import partial
-        from pandas.core.typed.missing import _isnull_ndarraylike as isnull
+        from pandas.core.dtypes.missing import _isnull_ndarraylike as isnull
 
         data, _ = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info

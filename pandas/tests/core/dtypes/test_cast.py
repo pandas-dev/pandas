@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, date
 import numpy as np
 
 from pandas import Timedelta, Timestamp, DatetimeIndex
-from pandas.core.typed.cast import (
+from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
     maybe_convert_objects,
     infer_dtype_from_scalar,
@@ -18,7 +18,7 @@ from pandas.core.typed.cast import (
     maybe_convert_string_to_object,
     maybe_convert_scalar,
     find_common_type)
-from pandas.core.typed.dtypes import (
+from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     PeriodDtype)

@@ -13,12 +13,12 @@ from pandas._libs import lib, tslib
 from pandas import compat
 from pandas.compat import long, zip, iteritems
 from pandas.core.config import get_option
-from pandas.core.typed.generic import ABCSeries
-from pandas.core.typed.common import _NS_DTYPE
-from pandas.core.typed.inference import _iterable_not_string
-from pandas.core.typed.missing import isnull
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.common import _NS_DTYPE
+from pandas.core.dtypes.inference import _iterable_not_string
+from pandas.core.dtypes.missing import isnull
 from pandas.api import types
-from pandas.core.typed import common
+from pandas.core.dtypes import common
 
 # compat
 from pandas.errors import (  # noqa
@@ -73,7 +73,7 @@ for t in ['is_datetime_arraylike',
 def array_equivalent(*args, **kwargs):
     warnings.warn("'pandas.core.common.array_equivalent' is deprecated and "
                   "is no longer public API", DeprecationWarning, stacklevel=2)
-    from pandas.core.typed import missing
+    from pandas.core.dtypes import missing
     return missing.array_equivalent(*args, **kwargs)
 
 

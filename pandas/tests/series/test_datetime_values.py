@@ -6,7 +6,7 @@ from datetime import datetime, date
 import numpy as np
 import pandas as pd
 
-from pandas.core.typed.common import is_integer_dtype, is_list_like
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range,
                     PeriodIndex, Timestamp, DatetimeIndex, TimedeltaIndex)

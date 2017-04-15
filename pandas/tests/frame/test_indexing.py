@@ -20,7 +20,7 @@ import pandas as pd
 
 from pandas._libs.tslib import iNaT
 from pandas.tseries.offsets import BDay
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_scalar)

@@ -415,7 +415,7 @@ use_inf_as_null_doc = """
 
 
 def use_inf_as_null_cb(key):
-    from pandas.core.typed.missing import _use_inf_as_null
+    from pandas.core.dtypes.missing import _use_inf_as_null
     _use_inf_as_null(key)
 
 

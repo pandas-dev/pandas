@@ -2,7 +2,7 @@ import warnings
 
 from pandas.compat import lrange
 import numpy as np
-from pandas.core.typed.common import _ensure_platform_int
+from pandas.core.dtypes.common import _ensure_platform_int
 from pandas.core.frame import DataFrame
 import pandas.core.algorithms as algorithms
 

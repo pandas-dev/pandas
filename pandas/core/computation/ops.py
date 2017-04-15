@@ -7,7 +7,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas.core.typed.common import is_list_like, is_scalar
+from pandas.core.dtypes.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.compat import PY3, string_types, text_type
 import pandas.core.common as com

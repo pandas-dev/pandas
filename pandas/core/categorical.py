@@ -8,14 +8,14 @@ from pandas import compat
 from pandas.compat import u, lzip
 from pandas._libs import lib, algos as libalgos
 
-from pandas.core.typed.generic import (
+from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCCategoricalIndex)
-from pandas.core.typed.missing import isnull, notnull
-from pandas.core.typed.cast import (
+from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
     coerce_indexer_dtype)
-from pandas.core.typed.dtypes import CategoricalDtype
-from pandas.core.typed.common import (
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
     _ensure_platform_int,
@@ -1218,7 +1218,7 @@ class Categorical(PandasObject):
 
         """
         from numpy import bincount
-        from pandas.core.typed.missing import isnull
+        from pandas.core.dtypes.missing import isnull
         from pandas.core.series import Series
         from pandas.core.index import CategoricalIndex
 

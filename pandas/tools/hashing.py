@@ -7,10 +7,11 @@ import numpy as np
 from pandas import Series, factorize, Categorical, Index, MultiIndex
 from pandas.tools import libhashing as _hash
 from pandas._libs.lib import is_bool_array
-from pandas.core.typed.generic import (ABCIndexClass,
-                                       ABCSeries,
-                                       ABCDataFrame)
-from pandas.core.typed.common import (
+from pandas.core.dtypes.generic import (
+    ABCIndexClass,
+    ABCSeries,
+    ABCDataFrame)
+from pandas.core.dtypes.common import (
     is_categorical_dtype, is_numeric_dtype,
     is_datetime64_dtype, is_timedelta64_dtype,
     is_list_like)

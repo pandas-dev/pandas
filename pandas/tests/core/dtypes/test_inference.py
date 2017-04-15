@@ -18,8 +18,8 @@ from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical)
 from pandas.compat import u, PY2, PY3, StringIO, lrange
-from pandas.core.typed import inference
-from pandas.core.typed.common import (
+from pandas.core.dtypes import inference
+from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     is_datetime64_dtype,
@@ -34,7 +34,7 @@ from pandas.core.typed.common import (
     is_scipy_sparse,
     _ensure_int32,
     _ensure_categorical)
-from pandas.core.typed.missing import isnull
+from pandas.core.dtypes.missing import isnull
 from pandas.util import testing as tm
 
 from pandas.tests.sparse.test_frame import spmatrix  # noqa: F401

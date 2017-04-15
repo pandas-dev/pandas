@@ -4,7 +4,7 @@ import operator
 import numpy as np
 from pandas._libs import index as libindex
 
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_int64_dtype)

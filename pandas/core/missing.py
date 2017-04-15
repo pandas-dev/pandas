@@ -8,7 +8,7 @@ from distutils.version import LooseVersion
 from pandas._libs import algos, lib
 
 from pandas.compat import range, string_types
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_numeric_v_string_like,
     is_float_dtype,
     is_datetime64_dtype,
@@ -19,8 +19,8 @@ from pandas.core.typed.common import (
     needs_i8_conversion,
     _ensure_float64)
 
-from pandas.core.typed.cast import infer_dtype_from_array
-from pandas.core.typed.missing import isnull
+from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.missing import isnull
 
 
 def mask_missing(arr, values_to_mask):

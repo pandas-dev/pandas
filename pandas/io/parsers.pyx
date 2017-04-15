@@ -39,7 +39,7 @@ cimport util
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_categorical_dtype, CategoricalDtype,
     is_integer_dtype, is_float_dtype,
     is_bool_dtype, is_object_dtype,
@@ -47,7 +47,7 @@ from pandas.core.typed.common import (
     pandas_dtype)
 from pandas.core.categorical import Categorical
 from pandas.core.algorithms import take_1d
-from pandas.core.typed.concat import union_categoricals
+from pandas.core.dtypes.concat import union_categoricals
 from pandas import Index
 
 import time

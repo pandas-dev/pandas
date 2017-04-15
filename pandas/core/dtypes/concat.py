@@ -5,7 +5,7 @@ Utility functions related to concat
 import numpy as np
 import pandas._libs.tslib as tslib
 from pandas import compat
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_sparse,
     is_datetimetz,
@@ -17,7 +17,7 @@ from pandas.core.typed.common import (
     is_dtype_equal,
     _NS_DTYPE,
     _TD_DTYPE)
-from pandas.core.typed.generic import (
+from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCTimedeltaIndex,
     ABCPeriodIndex)
 

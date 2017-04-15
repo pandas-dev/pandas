@@ -7,7 +7,7 @@ from datetime import timedelta
 import numpy as np
 from pandas.core.base import _shared_docs
 
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     _NS_DTYPE, _INT64_DTYPE,
     is_object_dtype, is_datetime64_dtype,
     is_datetimetz, is_dtype_equal,
@@ -21,11 +21,11 @@ from pandas.core.typed.common import (
     is_scalar,
     pandas_dtype,
     _ensure_int64)
-from pandas.core.typed.generic import ABCSeries
-from pandas.core.typed.dtypes import DatetimeTZDtype
-from pandas.core.typed.missing import isnull
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.missing import isnull
 
-import pandas.core.typed.concat as _concat
+import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _values_from_object, _maybe_box
 

@@ -5,7 +5,7 @@ from functools import partial
 import numpy as np
 import pandas as pd
 
-from pandas.core.typed.common import is_list_like
+from pandas.core.dtypes.common import is_list_like
 import pandas.core.common as com
 from pandas.compat import u, string_types, DeepChainMap
 from pandas.core.base import StringMixin

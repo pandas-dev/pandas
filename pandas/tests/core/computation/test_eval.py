@@ -8,7 +8,7 @@ import pytest
 from numpy.random import randn, rand, randint
 import numpy as np
 
-from pandas.core.typed.common import is_list_like, is_scalar
+from pandas.core.dtypes.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.core import common as com
 from pandas.errors import PerformanceWarning

@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 from pandas import (Series, DataFrame, Panel, Index, isnull,
                     notnull, Timestamp)
 
-from pandas.core.typed.generic import ABCSeries, ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError
 from pandas.errors import UnsupportedFunctionCall

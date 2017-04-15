@@ -23,8 +23,8 @@ import pytest
 import numpy as np
 
 import pandas as pd
-from pandas.core.typed.missing import array_equivalent
-from pandas.core.typed.common import (
+from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_datetimelike_v_object,
     is_number, is_bool,

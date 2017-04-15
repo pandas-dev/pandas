@@ -13,7 +13,7 @@ from numpy import nan, ndarray
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     _coerce_to_dtype, is_categorical_dtype,
     is_bool,
     is_integer, is_integer_dtype,
@@ -29,12 +29,12 @@ from pandas.core.typed.common import (
     is_scalar,
     _is_unorderable_exception,
     _ensure_platform_int)
-from pandas.core.typed.generic import ABCSparseArray, ABCDataFrame
-from pandas.core.typed.cast import (
+from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
+from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable)
-from pandas.core.typed.missing import isnull, notnull
+from pandas.core.dtypes.missing import isnull, notnull
 
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,

@@ -6,7 +6,7 @@ from __future__ import division
 
 import warnings
 import numpy as np
-from pandas.core.typed.common import is_scalar
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.api import DataFrame, Series
 from pandas.util.decorators import Substitution, Appender
 

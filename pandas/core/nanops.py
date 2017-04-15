@@ -11,7 +11,7 @@ except ImportError:  # pragma: no cover
 
 from pandas import compat
 from pandas._libs import tslib, algos, lib
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     _get_dtype,
     is_float, is_scalar,
     is_integer, is_complex, is_float_dtype,
@@ -21,8 +21,8 @@ from pandas.core.typed.common import (
     is_datetime64_dtype, is_timedelta64_dtype,
     is_datetime_or_timedelta_dtype,
     is_int_or_datetime_dtype, is_any_int_dtype)
-from pandas.core.typed.cast import _int64_max, maybe_upcast_putmask
-from pandas.core.typed.missing import isnull, notnull
+from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
+from pandas.core.dtypes.missing import isnull, notnull
 
 from pandas.core.common import _values_from_object
 

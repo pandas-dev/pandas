@@ -4,8 +4,8 @@ import warnings
 import numpy as np
 from pandas.compat import range, zip
 import pandas.compat as compat
-from pandas.core.typed.generic import ABCDataFrame, ABCPanel, ABCSeries
-from pandas.core.typed.common import (
+from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
+from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_integer, is_float,
     is_list_like,
@@ -15,7 +15,7 @@ from pandas.core.typed.common import (
     is_sparse,
     _is_unorderable_exception,
     _ensure_platform_int)
-from pandas.core.typed.missing import isnull, _infer_fill_value
+from pandas.core.dtypes.missing import isnull, _infer_fill_value
 
 from pandas.core.index import Index, MultiIndex
 

@@ -13,9 +13,9 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 
-from pandas.core.typed.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
-from pandas.core.typed.missing import isnull, array_equivalent
-from pandas.core.typed.common import (
+from pandas.core.dtypes.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
+from pandas.core.dtypes.missing import isnull, array_equivalent
+from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
     _ensure_categorical,
@@ -45,7 +45,7 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 from pandas.indexes.frozen import FrozenList
 import pandas.core.common as com
-import pandas.core.typed.concat as _concat
+import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
 from pandas.formats.printing import pprint_thing

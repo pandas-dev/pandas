@@ -1,6 +1,6 @@
 from .pandas_vb_common import *
 try:
-    from pandas.core.typed.concat import union_categoricals
+    from pandas.core.dtypes.concat import union_categoricals
 except ImportError:
     pass
 

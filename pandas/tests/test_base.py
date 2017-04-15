@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.compat as compat
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_object_dtype, is_datetimetz,
     needs_i8_conversion)
 import pandas.util.testing as tm

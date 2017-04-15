@@ -4,7 +4,7 @@ datetimelike delegation
 
 import numpy as np
 
-from pandas.core.typed.common import (
+from pandas.core.dtypes.common import (
     is_period_arraylike,
     is_datetime_arraylike, is_integer_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype,
