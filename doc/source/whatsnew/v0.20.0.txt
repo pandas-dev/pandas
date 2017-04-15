@@ -21,8 +21,11 @@ Highlights include:
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
-- The ``pandas.tools.plotting`` module has been deprecated, moved to ``pandas.plotting``. See :ref:`here <whatsnew_0200.api_breaking.plotting>`
 
+.. warning::
+
+  Pandas has changed the internal structure and layout of the codebase.
+  This can affect imports that are not from the top-level ``pandas.*`` namespace, please see the changes :ref:`here <whatsnew_0200.privacy>`.
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
@@ -489,7 +492,7 @@ Other Enhancements
 
 
 - ``TimedeltaIndex`` now has a custom datetick formatter specifically designed for nanosecond level precision (:issue:`8711`)
-- ``pd.types.concat.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
+- ``pd.api.types.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
 - ``DataFrame.to_latex()`` and ``DataFrame.to_string()`` now allow optional header aliases. (:issue:`15536`)
 - Re-enable the ``parse_dates`` keyword of ``pd.read_excel()`` to parse string columns as dates (:issue:`14326`)
 - Added ``.empty`` property to subclasses of ``Index``. (:issue:`15270`)
@@ -556,31 +559,6 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
 .. ipython:: python
 
   df.iloc[[0, 2], df.columns.get_loc('A')]
-
-
-.. _whatsnew_0200.api_breaking.deprecate_plotting
-
-Deprecate .plotting
-^^^^^^^^^^^^^^^^^^^
-
-The ``pandas.tools.plotting`` module has been deprecated,  in favor of the top level ``pandas.plotting`` module. All the public plotting functions are now available
-from ``pandas.plotting`` (:issue:`12548`).
-
-Furthermore, the top-level ``pandas.scatter_matrix`` and ``pandas.plot_params`` are deprecated.
-Users can import these from ``pandas.plotting`` as well.
-
-Previous script:
-
-.. code-block:: python
-
-   pd.tools.plotting.scatter_matrix(df)
-   pd.scatter_matrix(df)
-
-Should be changed to:
-
-.. code-block:: python
-
-    pd.plotting.scatter_matrix(df)
 
 
 .. _whatsnew_0200.api_breaking.deprecate_panel:
@@ -1026,34 +1004,6 @@ New Behavior:
    In [11]: index.memory_usage(deep=True)
    Out[11]: 260
 
-.. _whatsnew_0200.api_breaking.extensions:
-
-Extension Modules Moved
-^^^^^^^^^^^^^^^^^^^^^^^
-
-Some formerly public c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
-If indicated, a deprecation warning will be issued if you reference that module. (:issue:`12588`)
-
-.. csv-table::
-    :header: "Previous Location", "New Location", "Deprecated"
-    :widths: 30, 30, 4
-
-    "pandas.lib", "pandas._libs.lib", "X"
-    "pandas.tslib", "pandas._libs.tslib", "X"
-    "pandas._join", "pandas._libs.join", ""
-    "pandas._period", "pandas._libs.period", ""
-    "pandas.msgpack", "pandas.io.msgpack", ""
-    "pandas.index", "pandas._libs.index", ""
-    "pandas.algos", "pandas._libs.algos", ""
-    "pandas.hashtable", "pandas._libs.hashtable", ""
-    "pandas.json", "pandas.io.json.libjson", "X"
-    "pandas.parser", "pandas.io.libparsers", "X"
-    "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
-    "pandas._testing", "pandas.util.libtesting", ""
-    "pandas._sparse", "pandas.sparse.libsparse", ""
-    "pandas._hash", "pandas.tools.libhash", ""
-    "pandas._window", "pandas.core.libwindow", ""
-
 .. _whatsnew_0200.api_breaking.sort_index:
 
 DataFrame.sort_index changes
@@ -1354,10 +1304,74 @@ Other API Changes
 - ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandas.core.common.PandasError``, if called with scalar inputs and not axes; The exception ``PandasError`` is removed as well. (:issue:`15541`)
 - The exception ``pandas.core.common.AmbiguousIndexError`` is removed as it is not referenced (:issue:`15541`)
 
-.. _whatsnew_0200.develop:
+.. _whatsnew_0200.privacy:
 
-Development Changes
-~~~~~~~~~~~~~~~~~~~
+Privacy Changes
+~~~~~~~~~~~~~~~
+
+.. _whatsnew_0200.privacy.extensions:
+
+Modules Privacy Has Changed
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some formerly public python/c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
+Furthermore, the ``pandas.core``, ``pandas.io``, and ``pandas.util`` top-level modules are now considered to be PRIVATE.
+If indicated, a deprecation warning will be issued if you reference theses modules. (:issue:`12588`)
+
+.. csv-table::
+    :header: "Previous Location", "New Location", "Deprecated"
+    :widths: 30, 30, 4
+
+    "pandas.lib", "pandas._libs.lib", "X"
+    "pandas.tslib", "pandas._libs.tslib", "X"
+    "pandas.computation", "pandas.core.computation", ""
+    "pandas.msgpack", "pandas.io.msgpack", ""
+    "pandas.index", "pandas._libs.index", ""
+    "pandas.algos", "pandas._libs.algos", ""
+    "pandas.hashtable", "pandas._libs.hashtable", ""
+    "pandas.json", "pandas.io.json.libjson", "X"
+    "pandas.parser", "pandas.io.libparsers", "X"
+    "pandas.sparse", "pandas.core.sparse", ""
+    "pandas.types", "pandas.core.dtypes", ""
+    "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
+    "pandas._join", "pandas._libs.join", ""
+    "pandas._hash", "pandas.tools.libhash", ""
+    "pandas._period", "pandas._libs.period", ""
+    "pandas._sparse", "pandas.core.sparse.libsparse", ""
+    "pandas._testing", "pandas.util.libtesting", ""
+    "pandas._window", "pandas.core.libwindow", ""
+
+- The function :func:`~pandas.api.type.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
+
+.. _whatsnew_0200.privacy.deprecate_plotting
+
+Deprecate .plotting
+^^^^^^^^^^^^^^^^^^^
+
+The ``pandas.tools.plotting`` module has been deprecated,  in favor of the top level ``pandas.plotting`` module. All the public plotting functions are now available
+from ``pandas.plotting`` (:issue:`12548`).
+
+Furthermore, the top-level ``pandas.scatter_matrix`` and ``pandas.plot_params`` are deprecated.
+Users can import these from ``pandas.plotting`` as well.
+
+Previous script:
+
+.. code-block:: python
+
+   pd.tools.plotting.scatter_matrix(df)
+   pd.scatter_matrix(df)
+
+Should be changed to:
+
+.. code-block:: python
+
+    pd.plotting.scatter_matrix(df)
+
+
+.. _whatsnew_0200.privacy.development:
+
+Other Developement Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)

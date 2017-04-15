@@ -3,7 +3,7 @@
 from numpy import nan
 import numpy as np
 
-from pandas.types.common import _ensure_int64
+from pandas.core.dtypes.common import _ensure_int64
 from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm

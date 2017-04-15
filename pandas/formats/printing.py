@@ -2,7 +2,7 @@
 printing tools
 """
 
-from pandas.types.inference import is_sequence
+from pandas.core.dtypes.inference import is_sequence
 from pandas import compat
 from pandas.compat import u
 from pandas.core.config import get_option

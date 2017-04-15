@@ -12,8 +12,8 @@ from pandas.compat import lrange, lzip
 from pandas.tools.concat import concat
 from pandas.tools.merge import merge, MergeError
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-from pandas.types.dtypes import CategoricalDtype
-from pandas.types.common import is_categorical_dtype, is_object_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas import DataFrame, Index, MultiIndex, Series, Categorical
 import pandas.util.testing as tm
 

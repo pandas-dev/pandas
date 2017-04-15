@@ -6,11 +6,12 @@ import warnings
 
 import numpy as np
 
-from pandas.types.generic import ABCSeries
-from pandas.types.common import (is_integer,
-                                 is_period_arraylike,
-                                 is_timedelta64_dtype,
-                                 is_datetime64_dtype)
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_period_arraylike,
+    is_timedelta64_dtype,
+    is_datetime64_dtype)
 
 import pandas.core.algorithms as algos
 from pandas.core.algorithms import unique

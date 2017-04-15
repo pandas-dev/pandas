@@ -12,7 +12,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
 
 from pandas.core.common import UnsortedIndexError
-from pandas.types.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.compat import (range, lrange, StringIO, lzip, u, product as

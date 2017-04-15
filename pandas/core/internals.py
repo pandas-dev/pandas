@@ -9,41 +9,45 @@ import numpy as np
 
 from pandas.core.base import PandasObject
 
-from pandas.types.dtypes import (ExtensionDtype, DatetimeTZDtype,
-                                 CategoricalDtype)
-from pandas.types.common import (_TD_DTYPE, _NS_DTYPE,
-                                 _ensure_int64, _ensure_platform_int,
-                                 is_integer,
-                                 is_dtype_equal,
-                                 is_timedelta64_dtype,
-                                 is_datetime64_dtype, is_datetimetz, is_sparse,
-                                 is_categorical, is_categorical_dtype,
-                                 is_integer_dtype,
-                                 is_datetime64tz_dtype,
-                                 is_object_dtype,
-                                 is_datetimelike_v_numeric,
-                                 is_float_dtype, is_numeric_dtype,
-                                 is_numeric_v_string_like, is_extension_type,
-                                 is_list_like,
-                                 is_re,
-                                 is_re_compilable,
-                                 is_scalar,
-                                 _get_dtype)
-from pandas.types.cast import (maybe_downcast_to_dtype,
-                               maybe_convert_string_to_object,
-                               maybe_upcast,
-                               maybe_convert_scalar, maybe_promote,
-                               infer_dtype_from_scalar,
-                               soft_convert_objects,
-                               maybe_convert_objects,
-                               astype_nansafe,
-                               find_common_type)
-from pandas.types.missing import (isnull, array_equivalent,
-                                  _is_na_compat,
-                                  is_null_datelike_scalar)
-import pandas.types.concat as _concat
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype, DatetimeTZDtype,
+    CategoricalDtype)
+from pandas.core.dtypes.common import (
+    _TD_DTYPE, _NS_DTYPE,
+    _ensure_int64, _ensure_platform_int,
+    is_integer,
+    is_dtype_equal,
+    is_timedelta64_dtype,
+    is_datetime64_dtype, is_datetimetz, is_sparse,
+    is_categorical, is_categorical_dtype,
+    is_integer_dtype,
+    is_datetime64tz_dtype,
+    is_object_dtype,
+    is_datetimelike_v_numeric,
+    is_float_dtype, is_numeric_dtype,
+    is_numeric_v_string_like, is_extension_type,
+    is_list_like,
+    is_re,
+    is_re_compilable,
+    is_scalar,
+    _get_dtype)
+from pandas.core.dtypes.cast import (
+    maybe_downcast_to_dtype,
+    maybe_convert_string_to_object,
+    maybe_upcast,
+    maybe_convert_scalar, maybe_promote,
+    infer_dtype_from_scalar,
+    soft_convert_objects,
+    maybe_convert_objects,
+    astype_nansafe,
+    find_common_type)
+from pandas.core.dtypes.missing import (
+    isnull, array_equivalent,
+    _is_na_compat,
+    is_null_datelike_scalar)
+import pandas.core.dtypes.concat as _concat
 
-from pandas.types.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.common import is_null_slice
 import pandas.core.algorithms as algos
 
@@ -54,12 +58,12 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.formats.printing import pprint_thing
 
 import pandas.core.missing as missing
-from pandas.sparse.array import _maybe_to_sparse, SparseArray
+from pandas.core.sparse.array import _maybe_to_sparse, SparseArray
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement
 
-import pandas.computation.expressions as expressions
+import pandas.core.computation.expressions as expressions
 from pandas.util.decorators import cache_readonly
 from pandas.util.validators import validate_bool_kwarg
 

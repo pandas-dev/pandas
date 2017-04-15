@@ -15,8 +15,9 @@ import sys
 import struct
 from dateutil.relativedelta import relativedelta
 
-from pandas.types.common import (is_categorical_dtype, is_datetime64_dtype,
-                                 _ensure_object)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_datetime64_dtype,
+    _ensure_object)
 
 from pandas.core.base import StringMixin
 from pandas.core.categorical import Categorical

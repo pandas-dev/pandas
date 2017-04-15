@@ -5,21 +5,22 @@ import warnings
 
 
 from pandas.core import common as com
-from pandas.types.common import (is_integer,
-                                 is_float,
-                                 is_object_dtype,
-                                 is_integer_dtype,
-                                 is_float_dtype,
-                                 is_scalar,
-                                 is_datetime64_dtype,
-                                 is_datetime64tz_dtype,
-                                 is_timedelta64_dtype,
-                                 is_period_dtype,
-                                 is_bool_dtype,
-                                 pandas_dtype,
-                                 _ensure_object)
-from pandas.types.dtypes import PeriodDtype
-from pandas.types.generic import ABCSeries
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_float,
+    is_object_dtype,
+    is_integer_dtype,
+    is_float_dtype,
+    is_scalar,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_timedelta64_dtype,
+    is_period_dtype,
+    is_bool_dtype,
+    pandas_dtype,
+    _ensure_object)
+from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc

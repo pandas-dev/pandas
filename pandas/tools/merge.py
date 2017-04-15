@@ -14,24 +14,25 @@ import pandas as pd
 from pandas import (Categorical, Series, DataFrame,
                     Index, MultiIndex, Timedelta)
 from pandas.core.frame import _merge_doc
-from pandas.types.common import (is_datetime64tz_dtype,
-                                 is_datetime64_dtype,
-                                 needs_i8_conversion,
-                                 is_int64_dtype,
-                                 is_categorical_dtype,
-                                 is_integer_dtype,
-                                 is_float_dtype,
-                                 is_numeric_dtype,
-                                 is_integer,
-                                 is_int_or_datetime_dtype,
-                                 is_dtype_equal,
-                                 is_bool,
-                                 is_list_like,
-                                 _ensure_int64,
-                                 _ensure_float64,
-                                 _ensure_object,
-                                 _get_dtype)
-from pandas.types.missing import na_value_for_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_datetime64_dtype,
+    needs_i8_conversion,
+    is_int64_dtype,
+    is_categorical_dtype,
+    is_integer_dtype,
+    is_float_dtype,
+    is_numeric_dtype,
+    is_integer,
+    is_int_or_datetime_dtype,
+    is_dtype_equal,
+    is_bool,
+    is_list_like,
+    _ensure_int64,
+    _ensure_float64,
+    _ensure_object,
+    _get_dtype)
+from pandas.core.dtypes.missing import na_value_for_dtype
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util.decorators import Appender, Substitution

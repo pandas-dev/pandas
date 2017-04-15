@@ -12,20 +12,22 @@ import numpy as np
 from collections import defaultdict
 from datetime import timedelta
 
-from pandas.types.generic import (ABCSeries,
-                                  ABCDataFrame,
-                                  ABCDatetimeIndex,
-                                  ABCTimedeltaIndex,
-                                  ABCPeriodIndex)
-from pandas.types.common import (is_integer,
-                                 is_bool,
-                                 is_float_dtype,
-                                 is_integer_dtype,
-                                 needs_i8_conversion,
-                                 is_timedelta64_dtype,
-                                 is_list_like,
-                                 _ensure_float64,
-                                 is_scalar)
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCDataFrame,
+    ABCDatetimeIndex,
+    ABCTimedeltaIndex,
+    ABCPeriodIndex)
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_bool,
+    is_float_dtype,
+    is_integer_dtype,
+    needs_i8_conversion,
+    is_timedelta64_dtype,
+    is_list_like,
+    _ensure_float64,
+    is_scalar)
 import pandas as pd
 
 from pandas.core.base import (PandasObject, SelectionMixin,

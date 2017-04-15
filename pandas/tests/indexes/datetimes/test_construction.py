@@ -12,21 +12,36 @@ from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
 
 class TestDatetimeIndex(tm.TestCase):
 
+    def test_construction_caching(self):
+
+        df = pd.DataFrame({'dt': pd.date_range('20130101', periods=3),
+                           'dttz': pd.date_range('20130101', periods=3,
+                                                 tz='US/Eastern'),
+                           'dt_with_null': [pd.Timestamp('20130101'), pd.NaT,
+                                            pd.Timestamp('20130103')],
+                           'dtns': pd.date_range('20130101', periods=3,
+                                                 freq='ns')})
+        assert df.dttz.dtype.tz.zone == 'US/Eastern'
+
     def test_construction_with_alt(self):
 
         i = pd.date_range('20130101', periods=5, freq='H', tz='US/Eastern')
         i2 = DatetimeIndex(i, dtype=i.dtype)
         self.assert_index_equal(i, i2)
+        assert i.tz.zone == 'US/Eastern'
 
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz=i.dtype.tz)
         self.assert_index_equal(i, i2)
+        assert i.tz.zone == 'US/Eastern'
 
         i2 = DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype)
         self.assert_index_equal(i, i2)
+        assert i.tz.zone == 'US/Eastern'
 
         i2 = DatetimeIndex(
             i.tz_localize(None).asi8, dtype=i.dtype, tz=i.dtype.tz)
         self.assert_index_equal(i, i2)
+        assert i.tz.zone == 'US/Eastern'
 
         # localize into the provided tz
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz='UTC')

@@ -2,6 +2,7 @@ import pytest
 
 import numpy
 import pandas
+import pandas.util.testing as tm
 
 
 def pytest_addoption(parser):
@@ -30,3 +31,10 @@ def pytest_runtest_setup(item):
 def add_imports(doctest_namespace):
     doctest_namespace['np'] = numpy
     doctest_namespace['pd'] = pandas
+
+
+@pytest.fixture(params=['bsr', 'coo', 'csc', 'csr', 'dia', 'dok', 'lil'])
+def spmatrix(request):
+    tm._skip_if_no_scipy()
+    from scipy import sparse
+    return getattr(sparse, request.param + '_matrix')

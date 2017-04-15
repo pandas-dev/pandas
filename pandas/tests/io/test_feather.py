@@ -11,6 +11,7 @@ from feather import FeatherError
 from pandas.util.testing import assert_frame_equal, ensure_clean
 
 
+@pytest.mark.single
 class TestFeather(object):
 
     def check_error_on_write(self, df, exc):
@@ -52,6 +53,7 @@ class TestFeather(object):
                            'dtns': pd.date_range('20130101', periods=3,
                                                  freq='ns')})
 
+        assert df.dttz.dtype.tz.zone == 'US/Eastern'
         self.check_round_trip(df)
 
     def test_strided_data_issues(self):

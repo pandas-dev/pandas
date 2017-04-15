@@ -7,7 +7,7 @@ from math import ceil
 
 import numpy as np
 
-from pandas.types.common import is_list_like
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.index import Index
 from pandas.core.series import Series
 from pandas.compat import range

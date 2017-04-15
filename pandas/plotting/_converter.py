@@ -11,12 +11,12 @@ from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
 
-from pandas.types.common import (is_float, is_integer,
-                                 is_integer_dtype,
-                                 is_float_dtype,
-                                 is_datetime64_ns_dtype,
-                                 is_period_arraylike,
-                                 )
+from pandas.core.dtypes.common import (
+    is_float, is_integer,
+    is_integer_dtype,
+    is_float_dtype,
+    is_datetime64_ns_dtype,
+    is_period_arraylike)
 
 from pandas.compat import lrange
 import pandas.compat as compat

@@ -30,10 +30,10 @@ class TestPDApi(Base, tm.TestCase):
     ignored = ['tests', 'locale', 'conftest']
 
     # top-level sub-packages
-    lib = ['api', 'compat', 'computation', 'core',
-           'indexes', 'formats', 'errors', 'pandas', 'plotting',
-           'test', 'tools', 'tseries', 'sparse',
-           'types', 'util', 'options', 'io']
+    lib = ['api', 'compat', 'core',
+           'indexes', 'formats', 'errors', 'pandas',
+           'plotting', 'test', 'tools', 'tseries',
+           'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
     deprecated_modules = ['stats', 'datetools', 'parser',

@@ -55,11 +55,11 @@ sparse_series_to_coo = Benchmark(stmt, setup, name="sparse_series_to_coo",
 
 setup = common_setup + """
 import scipy.sparse
-import pandas.sparse.series
+import pandas.core.sparse.series
 A = scipy.sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(100, 100))
 """
 
-stmt = "ss = pandas.sparse.series.SparseSeries.from_coo(A)"
+stmt = "ss = pandas.core.sparse.series.SparseSeries.from_coo(A)"
 
 sparse_series_from_coo = Benchmark(stmt, setup, name="sparse_series_from_coo",
                                start_date=datetime(2015, 1, 3))

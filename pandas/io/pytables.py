@@ -12,15 +12,16 @@ import itertools
 import warnings
 import os
 
-from pandas.types.common import (is_list_like,
-                                 is_categorical_dtype,
-                                 is_timedelta64_dtype,
-                                 is_datetime64tz_dtype,
-                                 is_datetime64_dtype,
-                                 _ensure_object,
-                                 _ensure_int64,
-                                 _ensure_platform_int)
-from pandas.types.missing import array_equivalent
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_categorical_dtype,
+    is_timedelta64_dtype,
+    is_datetime64tz_dtype,
+    is_datetime64_dtype,
+    _ensure_object,
+    _ensure_int64,
+    _ensure_platform_int)
+from pandas.core.dtypes.missing import array_equivalent
 
 import numpy as np
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
@@ -29,7 +30,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, Index,
                     DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
 from pandas.io.common import _stringify_path
-from pandas.sparse.array import BlockIndex, IntIndex
+from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning
@@ -43,7 +44,7 @@ from pandas.core.index import _ensure_index
 from pandas import compat
 from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option
-from pandas.computation.pytables import Expr, maybe_expression
+from pandas.core.computation.pytables import Expr, maybe_expression
 
 from pandas._libs import tslib, algos, lib
 

@@ -6,7 +6,7 @@ from functools import partial
 import warnings
 import numpy as np
 from pandas import Series, isnull, _np_version_under1p9
-from pandas.types.common import is_integer_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
