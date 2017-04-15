@@ -1451,6 +1451,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in ``Index`` power operations with reversed operands (:issue:`14973`)
+- Bug in sparse array indexing in which indices were not being validated (:issue:`15863`)
 - Bug in ``DataFrame.sort_values()`` when sorting by multiple columns where one column is of type ``int64`` and contains ``NaT`` (:issue:`14922`)
 - Bug in ``DataFrame.reindex()`` in which ``method`` was ignored when passing ``columns`` (:issue:`14992`)
 - Bug in ``DataFrame.loc`` with indexing a ``MultiIndex`` with a ``Series`` indexer (:issue:`14730`, :issue:`15424`)
