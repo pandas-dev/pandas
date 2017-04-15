@@ -704,7 +704,8 @@ setup(name=DISTNAME,
                                         'data/html_encoding/*.html',
                                         'json/data/*.json'],
                     'pandas.tests.tools': ['data/*.csv'],
-                    'pandas.tests.tseries': ['data/*.pickle']
+                    'pandas.tests.tseries': ['data/*.pickle'],
+                    'pandas.formats': ['templates/*.tpl']
                     },
       ext_modules=extensions,
       maintainer_email=EMAIL,

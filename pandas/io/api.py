@@ -17,6 +17,23 @@ from pandas.io.stata import read_stata
 from pandas.io.pickle import read_pickle, to_pickle
 from pandas.io.packers import read_msgpack, to_msgpack
 from pandas.io.gbq import read_gbq
+try:
+    from pandas.formats.style import Styler
+except ImportError:
+    from pandas.compat import add_metaclass as _add_metaclass
+    from pandas.util.importing import _UnSubclassable
+
+    # We want to *not* raise an ImportError upon importing this module
+    # We *do* want to raise an ImportError with a custom message
+    # when the class is instantiated or subclassed.
+    @_add_metaclass(_UnSubclassable)
+    class Styler(object):
+        msg = ("pandas.io.api.Styler requires jinja2. "
+               "Please install with `conda install jinja2` "
+               "or `pip install jinja2`")
+        def __init__(self, *args, **kargs):
+            raise ImportError(self.msg)
+
 
 # deprecation, xref #13790
 def Term(*args, **kwargs):

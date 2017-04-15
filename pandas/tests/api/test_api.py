@@ -49,7 +49,8 @@ class TestPDApi(Base, tm.TestCase):
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
                'Series', 'SparseArray', 'SparseDataFrame',
                'SparseSeries', 'TimeGrouper', 'Timedelta',
-               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
+               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex',
+               'Styler']
 
     # these are already deprecated; awaiting removal
     deprecated_classes = ['WidePanel', 'Panel4D',
