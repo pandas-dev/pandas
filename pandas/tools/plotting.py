@@ -1599,8 +1599,11 @@ class PlanePlot(MPLPlot):
 
     _layout_type = 'single'
 
-    def __init__(self, data, x, y, **kwargs):
-        MPLPlot.__init__(self, data, **kwargs)
+    def __init__(self, data, x, y, sharex=False, **kwargs):
+        if sharex is None:
+            # Fix x axis color bar problems
+            sharex = False
+        MPLPlot.__init__(self, data, sharex=sharex, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + ' requires and x and y column')
         if is_integer(x) and not self.data.columns.holds_integer():
@@ -1632,6 +1635,31 @@ class ScatterPlot(PlanePlot):
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
         self.c = c
+
+    def _compute_plot_data(self):
+        data = self.data
+
+        if isinstance(data, Series):
+            label = self.label
+            if label is None and data.name is None:
+                label = 'None'
+            data = data.to_frame(name=label)
+
+        numeric_dt__data = data._convert(datetime=True)._get_numeric_data()
+        time_data = data._convert(datetime=True)._get_datetime_data()
+        numeric_dt__data = numeric_dt__data.join(time_data)
+
+        try:
+            is_empty = numeric_dt__data.empty
+        except AttributeError:
+            is_empty = not len(numeric_dt__data)
+
+        # no empty frames or series allowed
+        if is_empty:
+            raise TypeError('Empty {0!r}: no numeric data to '
+                            'plot'.format(numeric_dt__data.__class__.__name__))
+
+        self.data = numeric_dt__data
 
     def _make_plot(self):
         x, y, c, data = self.x, self.y, self.c, self.data

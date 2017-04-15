@@ -3087,6 +3087,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def _get_bool_data(self):
         return self._constructor(self._data.get_bool_data()).__finalize__(self)
 
+    def _get_datetime_data(self):
+        return self._constructor(
+            self._data.get_datetime_data()).__finalize__(self)
+
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
