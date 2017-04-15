@@ -4159,7 +4159,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         return results
 
 
-from pandas.tools.plotting import boxplot_frame_groupby  # noqa
+from pandas.plotting._core import boxplot_frame_groupby  # noqa
 DataFrameGroupBy.boxplot = boxplot_frame_groupby
 
 
