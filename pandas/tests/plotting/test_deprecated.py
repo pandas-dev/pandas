@@ -1,13 +1,11 @@
 # coding: utf-8
 
-import nose
 import string
 
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import slow
 
-import numpy as np
 from numpy.random import randn
 
 import pandas.tools.plotting as plotting
@@ -58,8 +56,3 @@ class TestDeprecatedNameSpace(TestPlotBase):
 
         with tm.assert_produces_warning(FutureWarning):
             pd.plot_params['xaxis.compat'] = True
-
-
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   exit=False)

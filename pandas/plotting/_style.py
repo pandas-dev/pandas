@@ -4,12 +4,14 @@ from __future__ import division
 
 import warnings
 from contextlib import contextmanager
+import re
 
 import numpy as np
 
 from pandas.types.common import is_list_like
 from pandas.compat import range, lrange, lmap
 import pandas.compat as compat
+from pandas.plotting._compat import _mpl_ge_2_0_0
 
 
 # Extracted from https://gist.github.com/huyng/816622
