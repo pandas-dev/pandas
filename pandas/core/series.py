@@ -65,7 +65,7 @@ import pandas.core.algorithms as algorithms
 
 import pandas.core.common as com
 import pandas.core.nanops as nanops
-import pandas.formats.format as fmt
+import pandas.core.formats.format as fmt
 from pandas.util.decorators import Appender, deprecate_kwarg, Substitution
 from pandas.util.validators import validate_bool_kwarg
 

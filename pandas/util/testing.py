@@ -32,7 +32,7 @@ from pandas.types.common import (is_datetimelike_v_numeric,
                                  is_interval_dtype,
                                  is_sequence,
                                  is_list_like)
-from pandas.formats.printing import pprint_thing
+from pandas.core.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
 import pandas.compat as compat

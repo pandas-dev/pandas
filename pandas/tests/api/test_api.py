@@ -31,13 +31,16 @@ class TestPDApi(Base, tm.TestCase):
 
     # top-level sub-packages
     lib = ['api', 'compat', 'computation', 'core',
-           'indexes', 'formats', 'errors', 'pandas',
+           'indexes', 'errors', 'pandas',
            'test', 'tools', 'tseries', 'sparse',
            'types', 'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
     deprecated_modules = ['stats', 'datetools', 'parser',
                           'json', 'lib', 'tslib']
+
+    # decide if we need to deprecate these
+    to_be_deprecated_modules = ['formats']
 
     # misc
     misc = ['IndexSlice', 'NaT']

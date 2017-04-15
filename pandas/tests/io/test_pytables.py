@@ -17,7 +17,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
                     isnull)
 
 from pandas.compat import is_platform_windows, PY3, PY35
-from pandas.formats.printing import pprint_thing
+from pandas.core.formats.printing import pprint_thing
 
 tables = pytest.importorskip('tables')
 from pandas.io.pytables import TableIterator

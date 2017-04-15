@@ -685,12 +685,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @cache_readonly
     def _is_dates_only(self):
-        from pandas.formats.format import _is_dates_only
+        from pandas.core.formats.format import _is_dates_only
         return _is_dates_only(self.values)
 
     @property
     def _formatter_func(self):
-        from pandas.formats.format import _get_format_datetime64
+        from pandas.core.formats.format import _get_format_datetime64
         formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
         return lambda x: "'%s'" % formatter(x, tz=self.tz)
 
@@ -829,7 +829,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self.astype('O') + offset
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
-        from pandas.formats.format import _get_format_datetime64_from_values
+        from pandas.core.formats.format import (
+            _get_format_datetime64_from_values)
         format = _get_format_datetime64_from_values(self, date_format)
 
         return libts.format_array_from_datetime(self.asi8,

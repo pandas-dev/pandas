@@ -1612,7 +1612,7 @@ class Categorical(PandasObject):
         """ return the base repr for the categories """
         max_categories = (10 if get_option("display.max_categories") == 0 else
                           get_option("display.max_categories"))
-        from pandas.formats import format as fmt
+        from pandas.core.formats import format as fmt
         if len(self.categories) > max_categories:
             num = max_categories // 2
             head = fmt.format_array(self.categories[:num], None)
@@ -1660,7 +1660,7 @@ class Categorical(PandasObject):
         return u('Length: %d\n%s') % (len(self), self._repr_categories_info())
 
     def _get_repr(self, length=True, na_rep='NaN', footer=True):
-        from pandas.formats import format as fmt
+        from pandas.core.formats import format as fmt
         formatter = fmt.CategoricalFormatter(self, length=length,
                                              na_rep=na_rep, footer=footer)
         result = formatter.to_string()

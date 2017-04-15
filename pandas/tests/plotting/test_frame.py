@@ -13,7 +13,7 @@ from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
                     bdate_range)
 from pandas.types.api import is_list_like
 from pandas.compat import range, lrange, lmap, lzip, u, zip, PY3
-from pandas.formats.printing import pprint_thing
+from pandas.core.formats.printing import pprint_thing
 import pandas.util.testing as tm
 from pandas.util.testing import slow
 

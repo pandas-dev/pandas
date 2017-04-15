@@ -9,7 +9,7 @@ from pandas.tseries.index import Timestamp
 
 from pandas.compat import range
 from pandas import compat
-import pandas.formats.printing as printing
+import pandas.core.formats.printing as printing
 from pandas.util.testing import (assert_series_equal,
                                  ensure_clean)
 import pandas.util.testing as tm

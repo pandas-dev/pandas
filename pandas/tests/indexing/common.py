@@ -8,7 +8,7 @@ from pandas.compat import lrange
 from pandas.types.common import is_scalar
 from pandas import Series, DataFrame, Panel, date_range, UInt64Index
 from pandas.util import testing as tm
-from pandas.formats.printing import pprint_thing
+from pandas.core.formats.printing import pprint_thing
 
 _verbose = False
 
