@@ -1026,39 +1026,6 @@ New Behavior:
    In [11]: index.memory_usage(deep=True)
    Out[11]: 260
 
-.. _whatsnew_0200.api_breaking.privacy:
-
-Modules Privacy Has Changed
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Some formerly public python/c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
-Further more, the ``pandas.core``, ``pandas.io``, and ``pandas.util`` top-level modules are now considered to be PRIVATE.
-If indicated, a deprecation warning will be issued if you reference that module. (:issue:`12588`)
-
-.. csv-table::
-    :header: "Previous Location", "New Location", "Deprecated"
-    :widths: 30, 30, 4
-
-    "pandas.lib", "pandas._libs.lib", "X"
-    "pandas.tslib", "pandas._libs.tslib", "X"
-    "pandas._join", "pandas._libs.join", ""
-    "pandas._period", "pandas._libs.period", ""
-    "pandas.computation", "pandas.core.computation", ""
-    "pandas.msgpack", "pandas.io.msgpack", ""
-    "pandas.index", "pandas._libs.index", ""
-    "pandas.algos", "pandas._libs.algos", ""
-    "pandas.hashtable", "pandas._libs.hashtable", ""
-    "pandas.json", "pandas.io.json.libjson", "X"
-    "pandas.parser", "pandas.io.libparsers", "X"
-    "pandas.types", "pandas.core.typed", ""
-    "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
-    "pandas._testing", "pandas.util.libtesting", ""
-    "pandas._sparse", "pandas.sparse.libsparse", ""
-    "pandas._hash", "pandas.tools.libhash", ""
-    "pandas._window", "pandas.core.libwindow", ""
-
-- The function :func:`~pandas.api.type.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
-
 .. _whatsnew_0200.api_breaking.sort_index:
 
 DataFrame.sort_index changes
@@ -1363,6 +1330,44 @@ Other API Changes
 
 Development Changes
 ~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0200.develop.privacy:
+
+Modules Privacy Has Changed
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some formerly public python/c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
+Further more, the ``pandas.core``, ``pandas.io``, and ``pandas.util`` top-level modules are now considered to be PRIVATE.
+If indicated, a deprecation warning will be issued if you reference that module. (:issue:`12588`)
+
+.. csv-table::
+    :header: "Previous Location", "New Location", "Deprecated"
+    :widths: 30, 30, 4
+
+    "pandas.lib", "pandas._libs.lib", "X"
+    "pandas.tslib", "pandas._libs.tslib", "X"
+    "pandas._join", "pandas._libs.join", ""
+    "pandas._period", "pandas._libs.period", ""
+    "pandas.computation", "pandas.core.computation", ""
+    "pandas.msgpack", "pandas.io.msgpack", ""
+    "pandas.index", "pandas._libs.index", ""
+    "pandas.algos", "pandas._libs.algos", ""
+    "pandas.hashtable", "pandas._libs.hashtable", ""
+    "pandas.json", "pandas.io.json.libjson", "X"
+    "pandas.parser", "pandas.io.libparsers", "X"
+    "pandas.types", "pandas.core.typed", ""
+    "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
+    "pandas._testing", "pandas.util.libtesting", ""
+    "pandas._sparse", "pandas.sparse.libsparse", ""
+    "pandas._hash", "pandas.tools.libhash", ""
+    "pandas._window", "pandas.core.libwindow", ""
+
+- The function :func:`~pandas.api.type.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
+
+.. _whatsnew_0200.develop.other:
+
+Other Changes
+^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
