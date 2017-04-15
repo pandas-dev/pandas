@@ -3789,6 +3789,8 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         return self(kind='pie', **kwds)
 
+SeriesPlotMethods.__doc__ = _shared_docs['plot'] % _shared_doc_series_kwargs
+
 
 class FramePlotMethods(BasePlotMethods):
     """DataFrame plotting accessor and method
@@ -4030,3 +4032,5 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
+
+FramePlotMethods.__doc__ = _shared_docs['plot'] % _shared_doc_df_kwargs
