@@ -146,8 +146,8 @@ Commonly called 'unix epoch' or POSIX time. This was the previous default, so th
 
 .. _whatsnew_0200.enhancements.errors:
 
-pandas errors
-^^^^^^^^^^^^^
+``pandas.errors``
+^^^^^^^^^^^^^^^^^
 
 We are adding a standard public module for all pandas exceptions & warnings ``pandas.errors``. (:issue:`14800`). Previously
 these exceptions & warnings could be imported from ``pandas.core.common`` or ``pandas.io.common``. These exceptions and warnings
@@ -165,6 +165,21 @@ The following are now part of this API:
     'PerformanceWarning',
     'UnsortedIndexError',
     'UnsupportedFunctionCall']
+
+
+.. _whatsnew_0200.enhancements.testing:
+
+``pandas.testing``
+^^^^^^^^^^^^^^^^^^
+
+We are adding a standard module that exposes the public testing functions in ``pandas.testing``(:issue:`9895`). Those functions can be used when writing tests for functionality using pandas objects.
+
+The following testing functions are now part of this API:
+
+- :func:`testing.assert_frame_equal`
+- :func:`testing.assert_series_equal`
+- :func:`testing.assert_index_equal`
+
 
 .. _whatsnew_0200.enhancements.groupby_access:
 
