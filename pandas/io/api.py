@@ -19,7 +19,7 @@ from pandas.io.packers import read_msgpack, to_msgpack
 from pandas.io.gbq import read_gbq
 try:
     from pandas.formats.style import Styler
-except:
+except ImportError:
     from pandas.compat import add_metaclass as _add_metaclass
     from pandas.util.importing import _UnSubclassable
 
