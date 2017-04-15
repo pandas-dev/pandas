@@ -21,7 +21,7 @@ Highlights include:
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
-- The ``pandas.tools.plotting`` module has been deprecated, moved to ``pandas.plotting``. See :ref:`here <whatsnew_0200.api_breaking.plotting>` (:issue:`12548`)
+- The ``pandas.tools.plotting`` module has been deprecated, moved to ``pandas.plotting``. See :ref:`here <whatsnew_0200.api_breaking.plotting>`
 
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
@@ -564,9 +564,9 @@ Deprecate .plotting
 ^^^^^^^^^^^^^^^^^^^
 
 The ``pandas.tools.plotting`` module has been deprecated,  in favor of the top level ``pandas.plotting`` module. All the public plotting functions are now available
-from ``pandas.plotting``.
+from ``pandas.plotting`` (:issue:`12548`).
 
-Further, the top-level ``pandas.scatter_matrix`` and ``pandas.plot_params`` are also deprecated.
+Furthermore, the top-level ``pandas.scatter_matrix`` and ``pandas.plot_params`` are deprecated.
 Users can import these from ``pandas.plotting`` as well.
 
 Previous script:

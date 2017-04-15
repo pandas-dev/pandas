@@ -70,7 +70,6 @@ class TestPDApi(Base, tm.TestCase):
              'merge', 'merge_ordered', 'merge_asof',
              'period_range',
              'pivot', 'pivot_table', 'qcut',
-             'scatter_matrix',
              'show_versions', 'timedelta_range', 'unique',
              'value_counts', 'wide_to_long']
 
@@ -103,7 +102,8 @@ class TestPDApi(Base, tm.TestCase):
                         'rolling_median', 'rolling_min', 'rolling_quantile',
                         'rolling_skew', 'rolling_std', 'rolling_sum',
                         'rolling_var', 'rolling_window', 'ordered_merge',
-                        'pnow', 'match', 'groupby', 'get_store', 'plot_params']
+                        'pnow', 'match', 'groupby', 'get_store',
+                        'plot_params', 'scatter_matrix']
 
     def test_api(self):
 

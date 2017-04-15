@@ -51,6 +51,14 @@ def _mpl_ge_2_0_0():
         return False
 
 
+def _mpl_le_2_0_0():
+    try:
+        import matplotlib
+        return matplotlib.compare_versions('2.0.0', matplotlib.__version__)
+    except ImportError:
+        return False
+
+
 def _mpl_ge_2_0_1():
     try:
         import matplotlib

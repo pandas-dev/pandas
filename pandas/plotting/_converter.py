@@ -31,6 +31,8 @@ import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.tseries.period import Period, PeriodIndex
 
+from pandas.plotting._compat import _mpl_le_2_0_0
+
 # constants
 HOURS_PER_DAY = 24.
 MIN_PER_HOUR = 60.
@@ -40,14 +42,6 @@ SEC_PER_HOUR = SEC_PER_MIN * MIN_PER_HOUR
 SEC_PER_DAY = SEC_PER_HOUR * HOURS_PER_DAY
 
 MUSEC_PER_DAY = 1e6 * SEC_PER_DAY
-
-
-def _mpl_le_2_0_0():
-    try:
-        import matplotlib
-        return matplotlib.compare_versions('2.0.0', matplotlib.__version__)
-    except ImportError:
-        return False
 
 
 def register():
