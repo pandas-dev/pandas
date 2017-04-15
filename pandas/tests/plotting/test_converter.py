@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas.tseries.offsets import Second, Milli, Micro, Day
 from pandas.compat.numpy import np_datetime64_compat
 
-converter = pytest.importorskip('pandas.tseries.converter')
+converter = pytest.importorskip('pandas.plotting._converter')
 
 
 def test_timtetonum_accepts_unicode():

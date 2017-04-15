@@ -14,7 +14,7 @@ import numpy as np
 from numpy import random
 from numpy.random import randn
 
-import pandas.tools.plotting as plotting
+import pandas.plotting as plotting
 
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
@@ -54,7 +54,8 @@ class TestDataFramePlots(TestPlotBase):
             _check_plot_works(df.boxplot, by='indic')
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by=['indic', 'indic2'])
-        _check_plot_works(plotting.boxplot, data=df['one'], return_type='dict')
+        _check_plot_works(plotting._core.boxplot, data=df['one'],
+                          return_type='dict')
         _check_plot_works(df.boxplot, notch=1, return_type='dict')
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by='indic', notch=1)

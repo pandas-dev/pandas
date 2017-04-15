@@ -16,7 +16,8 @@ from pandas.util.testing import (ensure_clean,
 import numpy as np
 from numpy import random
 
-import pandas.tools.plotting as plotting
+import pandas.plotting as plotting
+from pandas.plotting._tools import _flatten
 
 
 """
@@ -48,12 +49,12 @@ class TestPlotBase(tm.TestCase):
         import matplotlib as mpl
         mpl.rcdefaults()
 
-        self.mpl_le_1_2_1 = plotting._mpl_le_1_2_1()
-        self.mpl_ge_1_3_1 = plotting._mpl_ge_1_3_1()
-        self.mpl_ge_1_4_0 = plotting._mpl_ge_1_4_0()
-        self.mpl_ge_1_5_0 = plotting._mpl_ge_1_5_0()
-        self.mpl_ge_2_0_0 = plotting._mpl_ge_2_0_0()
-        self.mpl_ge_2_0_1 = plotting._mpl_ge_2_0_1()
+        self.mpl_le_1_2_1 = plotting._compat._mpl_le_1_2_1()
+        self.mpl_ge_1_3_1 = plotting._compat._mpl_ge_1_3_1()
+        self.mpl_ge_1_4_0 = plotting._compat._mpl_ge_1_4_0()
+        self.mpl_ge_1_5_0 = plotting._compat._mpl_ge_1_5_0()
+        self.mpl_ge_2_0_0 = plotting._compat._mpl_ge_2_0_0()
+        self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
 
         if self.mpl_ge_1_4_0:
             self.bp_n_objects = 7
@@ -73,7 +74,8 @@ class TestPlotBase(tm.TestCase):
         self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
         # common test data
         from pandas import read_csv
-        path = os.path.join(os.path.dirname(curpath()), 'data', 'iris.csv')
+        base = os.path.join(os.path.dirname(curpath()), os.pardir)
+        path = os.path.join(base, 'tests', 'data', 'iris.csv')
         self.iris = read_csv(path)
 
         n = 100
@@ -353,7 +355,7 @@ class TestPlotBase(tm.TestCase):
                 self.assertTrue(len(ax.get_children()) > 0)
 
         if layout is not None:
-            result = self._get_axes_layout(plotting._flatten(axes))
+            result = self._get_axes_layout(_flatten(axes))
             self.assertEqual(result, layout)
 
         self.assert_numpy_array_equal(
@@ -379,7 +381,7 @@ class TestPlotBase(tm.TestCase):
         axes : matplotlib Axes object, or its list-like
 
         """
-        axes = plotting._flatten(axes)
+        axes = _flatten(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
 

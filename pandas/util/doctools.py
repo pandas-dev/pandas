@@ -131,7 +131,7 @@ class TablePlotter(object):
             ax.set_visible(False)
             return
 
-        import pandas.tools.plotting as plotting
+        import pandas.plotting as plotting
 
         idx_nlevels = df.index.nlevels
         col_nlevels = df.columns.nlevels
