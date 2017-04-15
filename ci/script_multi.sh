@@ -24,7 +24,7 @@ if [ "$BUILD_TEST" ]; then
     pwd
     conda list pandas
     echo "running"
-    python -c "import pandas; pandas.test(['-n 2', '--skip-slow', '--skip-network'])"
+    python -c "import pandas; pandas.test(['-n 2'])"
 elif [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
 elif [ "$COVERAGE" ]; then
