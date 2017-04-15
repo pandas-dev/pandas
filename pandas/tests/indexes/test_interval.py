@@ -413,24 +413,24 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
-        expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='int64')
+        expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(self.index)
-        expected = np.array([0, 1], dtype='int64')
+        expected = np.array([0, 1], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
         index = IntervalIndex.from_breaks([0, 1, 2], closed='left')
         actual = index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
-        expected = np.array([-1, 0, 0, 1, 1, -1, -1], dtype='int64')
+        expected = np.array([-1, 0, 0, 1, 1, -1, -1], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(index[:1])
-        expected = np.array([0], dtype='int64')
+        expected = np.array([0], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(index)
-        expected = np.array([-1, 1], dtype='int64')
+        expected = np.array([-1, 1], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
     def test_get_indexer_subintervals(self):
@@ -439,21 +439,21 @@ class TestIntervalIndex(Base, tm.TestCase):
         # return indexers for wholly contained subintervals
         target = IntervalIndex.from_breaks(np.linspace(0, 2, 5))
         actual = self.index.get_indexer(target)
-        expected = np.array([0, 0, 1, 1], dtype='int64')
+        expected = np.array([0, 0, 1, 1], dtype='p')
         self.assert_numpy_array_equal(actual, expected)
 
         target = IntervalIndex.from_breaks([0, 0.67, 1.33, 2])
         actual = self.index.get_indexer(target)
-        expected = np.array([0, 0, 1, 1], dtype='int64')
+        expected = np.array([0, 0, 1, 1], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(target[[0, -1]])
-        expected = np.array([0, 1], dtype='int64')
+        expected = np.array([0, 1], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
         target = IntervalIndex.from_breaks([0, 0.33, 0.67, 1], closed='left')
         actual = self.index.get_indexer(target)
-        expected = np.array([0, 0, 0], dtype='int64')
+        expected = np.array([0, 0, 0], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
     def test_contains(self):
@@ -505,7 +505,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         index = IntervalIndex.from_tuples([(0, 1), (2, 3)])
         target = [0.5, 1.5, 2.5]
         actual = index.get_indexer(target)
-        expected = np.array([0, -1, 1], dtype='int64')
+        expected = np.array([0, -1, 1], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
         self.assertNotIn(1.5, index)
@@ -655,7 +655,7 @@ class TestIntervalIndex(Base, tm.TestCase):
 
         target = pd.date_range('1999-12-31T12:00', periods=7, freq='12H')
         actual = idx.get_indexer(target)
-        expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='int64')
+        expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
         self.assert_numpy_array_equal(actual, expected)
 
     def test_append(self):
@@ -779,9 +779,9 @@ class TestIntervalTree(tm.TestCase):
                                                   np.array([0], dtype='int64'))
 
     def test_get_indexer_closed(self):
-        x = np.arange(1000, dtype='int64')
+        x = np.arange(1000, dtype='intp')
         found = x
-        not_found = (-1 * np.ones(1000)).astype('int64')
+        not_found = (-1 * np.ones(1000)).astype('intp')
         for leaf_size in [1, 10, 100, 10000]:
             for closed in ['left', 'right', 'both', 'neither']:
                 tree = IntervalTree(x, x + 0.5, closed=closed,
