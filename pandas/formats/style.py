@@ -10,7 +10,9 @@ import copy
 from collections import defaultdict, MutableMapping
 
 try:
-    from jinja2 import Template
+    from jinja2 import (
+        PackageLoader, Environment, ChoiceLoader, FileSystemLoader
+    )
 except ImportError:
     msg = "pandas.Styler requires jinja2. "\
           "Please install with `conda install Jinja2`\n"\
@@ -68,7 +70,9 @@ class Styler(object):
 
     Attributes
     ----------
-    template: Jinja Template
+    env : Jinja2 Environment
+    template: Jinja2 Template
+    loader : Jinja2 Loader
 
     Notes
     -----
@@ -103,56 +107,12 @@ class Styler(object):
     --------
     pandas.DataFrame.style
     """
-    template = Template("""
-        <style  type="text/css" >
-        {% for s in table_styles %}
-            #T_{{uuid}} {{s.selector}} {
-            {% for p,val in s.props %}
-                {{p}}: {{val}};
-            {% endfor %}
-            }
-        {% endfor %}
-        {% for s in cellstyle %}
-            #T_{{uuid}}{{s.selector}} {
-            {% for p,val in s.props %}
-                {{p}}: {{val}};
-            {% endfor %}
-            }
-        {% endfor %}
-        </style>
-
-        <table id="T_{{uuid}}" {{ table_attributes }}>
-        {% if caption %}
-            <caption>{{caption}}</caption>
-        {% endif %}
-
-        <thead>
-            {% for r in head %}
-            <tr>
-                {% for c in r %}
-                {% if c.is_visible != False %}
-                <{{c.type}} class="{{c.class}}" {{ c.attributes|join(" ") }}>
-                  {{c.value}}
-                {% endif %}
-                {% endfor %}
-            </tr>
-            {% endfor %}
-        </thead>
-        <tbody>
-            {% for r in body %}
-            <tr>
-                {% for c in r %}
-                {% if c.is_visible != False %}
-                <{{c.type}} id="T_{{uuid}}{{c.id}}"
-                 class="{{c.class}}" {{ c.attributes|join(" ") }}>
-                    {{ c.display_value }}
-                {% endif %}
-                {% endfor %}
-            </tr>
-            {% endfor %}
-        </tbody>
-        </table>
-        """)
+    loader = PackageLoader("pandas", "formats/templates")
+    env = Environment(
+        loader=loader,
+        trim_blocks=True,
+    )
+    template = env.get_template("html.tpl")
 
     def __init__(self, data, precision=None, table_styles=None, uuid=None,
                  caption=None, table_attributes=None):
@@ -400,11 +360,21 @@ class Styler(object):
                 self._display_funcs[(i, j)] = formatter
         return self
 
-    def render(self):
-        """
+    def render(self, **kwargs):
+        r"""
         Render the built up styles to HTML
 
         .. versionadded:: 0.17.1
+
+        Parameters
+        ----------
+        **kwargs:
+            Any additional keyword arguments are passed through
+            to ``self.template.render``. This is useful when you
+            need to provide additional variables for a custom
+            template.
+
+            .. versionadded:: 0.20
 
         Returns
         -------
@@ -418,8 +388,22 @@ class Styler(object):
         last item in a Notebook cell. When calling ``Styler.render()``
         directly, wrap the result in ``IPython.display.HTML`` to view
         the rendered HTML in the notebook.
+
+        Pandas uses the following keys in render. Arguments passed
+        in ``**kwargs`` take precedence, so think carefuly if you want
+        to override them:
+
+        * head
+        * cellstyle
+        * body
+        * uuid
+        * precision
+        * table_styles
+        * caption
+        * table_attributes
         """
         self._compute()
+        # TODO: namespace all the pandas keys
         d = self._translate()
         # filter out empty styles, every cell will have a class
         # but the list of props may just be [['', '']].
@@ -427,6 +411,7 @@ class Styler(object):
         trimmed = [x for x in d['cellstyle']
                    if any(any(y) for y in x['props'])]
         d['cellstyle'] = trimmed
+        d.update(kwargs)
         return self.template.render(**d)
 
     def _update_ctx(self, attrs):
@@ -960,6 +945,35 @@ class Styler(object):
                 extrema = data == data.min().min()
             return pd.DataFrame(np.where(extrema, attr, ''),
                                 index=data.index, columns=data.columns)
+
+    @classmethod
+    def from_custom_template(cls, searchpath, name):
+        """
+        Factory function for creating a subclass of ``Styler``
+        with a custom template and Jinja environment.
+
+        Parameters
+        ----------
+        searchpath : str or list
+            Path or paths of directories containing the templates
+        name : str
+            Name of your custom template to use for rendering
+
+        Returns
+        -------
+        MyStyler : subclass of Styler
+            has the correct ``env`` and ``template`` class attributes set.
+        """
+        loader = ChoiceLoader([
+            FileSystemLoader(searchpath),
+            cls.loader,
+        ])
+
+        class MyStyler(cls):
+            env = Environment(loader=loader)
+            template = env.get_template(name)
+
+        return MyStyler
 
 
 def _is_visible(idx_row, idx_col, lengths):
