@@ -19,8 +19,12 @@ export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 429496
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
 if [ "$BUILD_TEST" ]; then
+    echo "build-test"
     cd /tmp
-    python -c "import pandas; pandas.test(['-n 2'])"
+    pwd
+    conda list pandas
+    echo "running"
+    python -c "import pandas; pandas.test(['-n 2', '--skip-slow', '--skip-network'])"
 elif [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
 elif [ "$COVERAGE" ]; then

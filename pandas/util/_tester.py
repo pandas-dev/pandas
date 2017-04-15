@@ -15,7 +15,7 @@ else:
             if not isinstance(extra_args, list):
                 extra_args = [extra_args]
             cmd = extra_args
-        cmd += ['--pyargs pandas']
+        cmd += ['--pyargs', 'pandas']
         print("running: pytest {}".format(' '.join(cmd)))
         sys.exit(pytest.main(cmd))
 
