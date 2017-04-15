@@ -1,6 +1,7 @@
 """
 Entrypoint for testing from the top-level namespace
 """
+import sys
 
 try:
     import pytest
