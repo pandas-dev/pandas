@@ -25,7 +25,7 @@ class FromDicts(object):
 
         self.data2 = dict(
             ((i, dict(((j, float(j)) for j in range(100)))) for i in
-             xrange(2000)))
+             range(2000)))
 
     def time_frame_ctor_list_of_dict(self):
         DataFrame(self.dict_list)
