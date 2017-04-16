@@ -390,7 +390,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_pickle(self):
         def _test_roundtrip(series):
-            unpickled = self.round_trip_pickle(series)
+            unpickled = tm.round_trip_pickle(series)
             tm.assert_sp_series_equal(series, unpickled)
             tm.assert_series_equal(series.to_dense(), unpickled.to_dense())
 

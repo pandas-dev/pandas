@@ -92,9 +92,6 @@ class TestCase(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
-    def round_trip_pickle(self, obj, path=None):
-        return round_trip_pickle(obj, path=path)
-
     # https://docs.python.org/3/library/unittest.html#deprecated-aliases
     def assertEquals(self, *args, **kwargs):
         return deprecate('assertEquals',
@@ -126,6 +123,22 @@ def reset_display_options():
 
 
 def round_trip_pickle(obj, path=None):
+    """
+    Pickle an object and then read it again.
+
+    Parameters
+    ----------
+    obj : pandas object
+        The object to pickle and then re-read.
+    path : str, default None
+        The path where the pickled object is written and then read.
+
+    Returns
+    -------
+    round_trip_pickled_object : pandas object
+        The original object that was pickled and then re-read.
+    """
+
     if path is None:
         path = u('__%s__.pickle' % rands(10))
     with ensure_clean(path) as path:

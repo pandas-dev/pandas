@@ -134,7 +134,7 @@ class TestSeriesIO(TestData, tm.TestCase):
         from pandas import period_range
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
         ts = Series(np.random.randn(len(prng)), prng)
-        new_ts = self.round_trip_pickle(ts)
+        new_ts = tm.round_trip_pickle(ts)
         self.assertEqual(new_ts.index.freq, 'M')
 
     def test_pickle_preserve_name(self):

@@ -1044,7 +1044,7 @@ class TestMultiIndex(Base, tm.TestCase):
             [[1, 2], ['a', 'b'], date_range('20130101', periods=3,
                                             tz='US/Eastern')
              ], names=['one', 'two', 'three'])
-        unpickled = self.round_trip_pickle(index)
+        unpickled = tm.round_trip_pickle(index)
         self.assertTrue(index.equal_levels(unpickled))
 
     def test_from_tuples_index_values(self):
