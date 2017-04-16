@@ -20,7 +20,7 @@ class FromDicts(object):
             self.data = self.frame.to_dict()
         except:
             self.data = self.frame.toDict()
-        self.some_dict = self.data.values()[0]
+        self.some_dict = list(self.data.values())[0]
         self.dict_list = [dict(zip(self.columns, row)) for row in self.frame.values]
 
         self.data2 = dict(
