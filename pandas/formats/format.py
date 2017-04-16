@@ -618,8 +618,6 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-        if not self.index:
-            text = text.replace('\n ', '\n').strip()
         self.buf.writelines(text)
 
         if self.should_show_dimensions:
@@ -753,7 +751,7 @@ class DataFrameFormatter(TableFormatter):
             fmt_columns = columns.format()
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-            str_columns = [[' ' + x if not self._get_formatter(i) and
+            str_columns = [[x if not self._get_formatter(i) and
                             need_leadsp[x] else x]
                            for i, (col, x) in enumerate(zip(columns,
                                                             fmt_columns))]
@@ -2121,11 +2119,11 @@ class GenericArrayFormatter(object):
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
-                fmt_values.append(' %s' % _format(v))
+                fmt_values.append('%s' % _format(v))
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
-                fmt_values.append(' %s' % _format(v))
+                fmt_values.append('%s' % _format(v))
 
         return fmt_values
 
@@ -2268,7 +2266,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 class IntArrayFormatter(GenericArrayFormatter):
 
     def _format_strings(self):
-        formatter = self.formatter or (lambda x: '% d' % x)
+        formatter = self.formatter or (lambda x: '%d' % x)
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
