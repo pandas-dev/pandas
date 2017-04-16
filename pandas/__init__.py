@@ -74,8 +74,11 @@ json = _DeprecatedModule(deprmod='pandas.json',
 parser = _DeprecatedModule(deprmod='pandas.parser',
                            removals=['na_values'],
                            moved={'CParserError': 'pandas.errors.ParserError'})
-lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto='pandas._libs.lib',
-                        moved={'infer_dtype': 'pandas.api.lib.infer_dtype'})
+lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto=False,
+                        moved={'Timestamp': 'pandas.Timestamp',
+                               'Timedelta': 'pandas.Timedelta',
+                               'NaT': 'pandas.NaT',
+                               'infer_dtype': 'pandas.api.lib.infer_dtype'})
 tslib = _DeprecatedModule(deprmod='pandas.tslib',
                           moved={'Timestamp': 'pandas.Timestamp',
                                  'Timedelta': 'pandas.Timedelta',
