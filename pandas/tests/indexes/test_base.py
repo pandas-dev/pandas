@@ -1851,22 +1851,22 @@ class TestMixedIntIndex(Base, tm.TestCase):
         second = first.__class__(first, copy=False)
 
         # Even though "copy=False", we want a new object.
-        self.assertIsNot(first, second)
+        assert first is not second
         # Not using tm.assert_index_equal() since names differ:
-        self.assertTrue(idx.equals(first))
+        assert idx.equals(first)
 
-        self.assertEqual(first.name, 'mario')
-        self.assertEqual(second.name, 'mario')
+        assert first.name == 'mario'
+        assert second.name == 'mario'
 
         s1 = Series(2, index=first)
         s2 = Series(3, index=second[:-1])
-        if PY3:
-            with tm.assert_produces_warning(RuntimeWarning):
-                # unorderable types
-                s3 = s1 * s2
-        else:
+
+        warning_type = RuntimeWarning if PY3 else None
+        with tm.assert_produces_warning(warning_type):
+            # Python 3: Unorderable types
             s3 = s1 * s2
-        self.assertEqual(s3.index.name, 'mario')
+
+        assert s3.index.name == 'mario'
 
     def test_copy_name2(self):
         # Check that adding a "name" parameter to the copy is honored

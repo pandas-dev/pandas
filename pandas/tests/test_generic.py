@@ -687,7 +687,7 @@ class Generic(object):
                          lambda x: x.copy(deep=False),
                          lambda x: x.copy(deep=True)]:
                 obj_copy = func(obj)
-                self.assertIsNot(obj_copy, obj)
+                assert obj_copy is not obj
                 self._compare(obj_copy, obj)
 
 

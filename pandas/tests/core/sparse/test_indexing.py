@@ -1,6 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
-import pytest  # noqa
+import pytest
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -578,7 +578,7 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         exp = orig.reindex(['A'], level=0).to_sparse()
         tm.assert_sp_series_equal(res, exp)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             # Incomplete keys are not accepted for reindexing:
             sparse.reindex(['A', 'C'])
 
@@ -586,7 +586,7 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         res = sparse.reindex(sparse.index, copy=True)
         exp = orig.reindex(orig.index, copy=True).to_sparse()
         tm.assert_sp_series_equal(res, exp)
-        self.assertIsNot(sparse, res)
+        assert sparse is not res
 
 
 class TestSparseDataFrameIndexing(tm.TestCase):

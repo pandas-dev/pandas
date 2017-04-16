@@ -240,25 +240,25 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         daily_ts = ts.asfreq('B')
         monthly_ts = daily_ts.asfreq('BM')
-        assert_series_equal(monthly_ts, ts)
+        tm.assert_series_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq('B', method='pad')
         monthly_ts = daily_ts.asfreq('BM')
-        assert_series_equal(monthly_ts, ts)
+        tm.assert_series_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(BDay())
         monthly_ts = daily_ts.asfreq(BMonthEnd())
-        assert_series_equal(monthly_ts, ts)
+        tm.assert_series_equal(monthly_ts, ts)
 
         result = ts[:0].asfreq('M')
-        self.assertEqual(len(result), 0)
-        self.assertIsNot(result, ts)
+        assert len(result) == 0
+        assert result is not ts
 
         daily_ts = ts.asfreq('D', fill_value=-1)
         result = daily_ts.value_counts().sort_index()
         expected = Series([60, 1, 1, 1],
                           index=[-1.0, 2.0, 1.0, 0.0]).sort_index()
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_asfreq_datetimeindex_empty_series(self):
         # GH 14320

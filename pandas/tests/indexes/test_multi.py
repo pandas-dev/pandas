@@ -584,21 +584,20 @@ class TestMultiIndex(Base, tm.TestCase):
                 self.index.copy().labels = [[0, 0, 0, 0], [0, 0]]
 
     def assert_multiindex_copied(self, copy, original):
-        # levels should be (at least, shallow copied)
-        assert_copy(copy.levels, original.levels)
+        # Levels should be (at least, shallow copied)
+        tm.assert_copy(copy.levels, original.levels)
+        tm.assert_almost_equal(copy.labels, original.labels)
 
-        assert_almost_equal(copy.labels, original.labels)
+        # Labels doesn't matter which way copied
+        tm.assert_almost_equal(copy.labels, original.labels)
+        assert copy.labels is not original.labels
 
-        # labels doesn't matter which way copied
-        assert_almost_equal(copy.labels, original.labels)
-        self.assertIsNot(copy.labels, original.labels)
+        # Names doesn't matter which way copied
+        assert copy.names == original.names
+        assert copy.names is not original.names
 
-        # names doesn't matter which way copied
-        self.assertEqual(copy.names, original.names)
-        self.assertIsNot(copy.names, original.names)
-
-        # sort order should be copied
-        self.assertEqual(copy.sortorder, original.sortorder)
+        # Sort order should be copied
+        assert copy.sortorder == original.sortorder
 
     def test_copy(self):
         i_copy = self.index.copy()

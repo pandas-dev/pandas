@@ -672,19 +672,19 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         self.assertEqual(dm[2].dtype, np.object_)
 
     def test_setitem_clear_caches(self):
-        # GH #304
+        # see gh-304
         df = DataFrame({'x': [1.1, 2.1, 3.1, 4.1], 'y': [5.1, 6.1, 7.1, 8.1]},
                        index=[0, 1, 2, 3])
         df.insert(2, 'z', np.nan)
 
         # cache it
         foo = df['z']
-
         df.loc[df.index[2:], 'z'] = 42
 
         expected = Series([np.nan, np.nan, 42, 42], index=df.index, name='z')
-        self.assertIsNot(df['z'], foo)
-        assert_series_equal(df['z'], expected)
+
+        assert df['z'] is not foo
+        tm.assert_series_equal(df['z'], expected)
 
     def test_setitem_None(self):
         # GH #766

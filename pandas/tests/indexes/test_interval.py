@@ -165,11 +165,11 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_copy(self):
         actual = self.index.copy()
-        self.assertTrue(actual.equals(self.index))
+        assert actual.equals(self.index)
 
         actual = self.index.copy(deep=True)
-        self.assertTrue(actual.equals(self.index))
-        self.assertIsNot(actual.left, self.index.left)
+        assert actual.equals(self.index)
+        assert actual.left is not self.index.left
 
     def test_ensure_copied_data(self):
         # exercise the copy flag in the constructor

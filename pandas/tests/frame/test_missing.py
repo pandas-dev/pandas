@@ -403,18 +403,18 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         df[3][-4:] = np.nan
 
         expected = df.fillna(value=0)
-        self.assertIsNot(expected, df)
+        assert expected is not df
 
         df.fillna(value=0, inplace=True)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         df[1][:4] = np.nan
         df[3][-4:] = np.nan
         expected = df.fillna(method='ffill')
-        self.assertIsNot(expected, df)
+        assert expected is not df
 
         df.fillna(method='ffill', inplace=True)
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_fillna_dict_series(self):
         df = DataFrame({'a': [nan, 1, 2, nan, nan],

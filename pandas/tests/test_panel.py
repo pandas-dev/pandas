@@ -883,20 +883,20 @@ class CheckIndexing(object):
                 for mjr in self.panel.major_axis[::2]:
                     for mnr in self.panel.minor_axis:
                         self.panel.set_value(item, mjr, mnr, 1.)
-                        assert_almost_equal(self.panel[item][mnr][mjr], 1.)
+                        tm.assert_almost_equal(self.panel[item][mnr][mjr], 1.)
 
             # resize
             res = self.panel.set_value('ItemE', 'foo', 'bar', 1.5)
-            tm.assertIsInstance(res, Panel)
-            self.assertIsNot(res, self.panel)
-            self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
+            assert isinstance(res, Panel)
+            assert res is not self.panel
+            assert res.get_value('ItemE', 'foo', 'bar') == 1.5
 
             res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
-            self.assertTrue(is_float_dtype(res3['ItemE'].values))
-            with tm.assertRaisesRegexp(TypeError,
-                                       "There must be an argument "
-                                       "for each axis"
-                                       " plus the value provided"):
+            assert is_float_dtype(res3['ItemE'].values)
+
+            msg = ("There must be an argument for each "
+                   "axis plus the value provided")
+            with tm.assertRaisesRegexp(TypeError, msg):
                 self.panel.set_value('a')
 
 

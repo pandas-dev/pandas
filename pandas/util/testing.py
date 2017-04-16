@@ -1043,12 +1043,6 @@ def assertIs(first, second, msg=''):
     assert a is b, "%s: %r is not %r" % (msg.format(a, b), a, b)
 
 
-def assertIsNot(first, second, msg=''):
-    """Checks that 'first' is not 'second'"""
-    a, b = first, second
-    assert a is not b, "%s: %r is %r" % (msg.format(a, b), a, b)
-
-
 def assertIn(first, second, msg=''):
     """Checks that 'first' is in 'second'"""
     a, b = first, second
@@ -1068,7 +1062,7 @@ def assertIsNone(expr, msg=''):
 
 def assertIsNotNone(expr, msg=''):
     """Checks that 'expr' is not None"""
-    return assertIsNot(expr, None, msg)
+    assert expr is not None, msg
 
 
 def assertIsInstance(obj, cls, msg=''):
@@ -1178,10 +1172,17 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     def _get_base(obj):
         return obj.base if getattr(obj, 'base', None) is not None else obj
 
+    left_base = _get_base(left)
+    right_base = _get_base(right)
+
     if check_same == 'same':
-        assertIs(_get_base(left), _get_base(right))
+        if left_base is not right_base:
+            msg = "%r is not %r" % (left_base, right_base)
+            raise AssertionError(msg)
     elif check_same == 'copy':
-        assertIsNot(_get_base(left), _get_base(right))
+        if left_base is right_base:
+            msg = "%r is %r" % (left_base, right_base)
+            raise AssertionError(msg)
 
     def _raise(left, right, err_msg):
         if err_msg is None:
