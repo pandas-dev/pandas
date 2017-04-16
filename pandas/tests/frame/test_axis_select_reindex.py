@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime
 
 from numpy import random
@@ -409,33 +411,35 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
     def test_align(self):
         af, bf = self.frame.align(self.frame)
-        self.assertIsNot(af._data, self.frame._data)
+        assert af._data is not self.frame._data
 
         af, bf = self.frame.align(self.frame, copy=False)
-        self.assertIs(af._data, self.frame._data)
+        assert af._data is self.frame._data
 
         # axis = 0
         other = self.frame.iloc[:-5, :3]
         af, bf = self.frame.align(other, axis=0, fill_value=-1)
-        self.assert_index_equal(bf.columns, other.columns)
+
+        tm.assert_index_equal(bf.columns, other.columns)
+
         # test fill value
         join_idx = self.frame.index.join(other.index)
         diff_a = self.frame.index.difference(join_idx)
         diff_b = other.index.difference(join_idx)
         diff_a_vals = af.reindex(diff_a).values
         diff_b_vals = bf.reindex(diff_b).values
-        self.assertTrue((diff_a_vals == -1).all())
+        assert (diff_a_vals == -1).all()
 
         af, bf = self.frame.align(other, join='right', axis=0)
-        self.assert_index_equal(bf.columns, other.columns)
-        self.assert_index_equal(bf.index, other.index)
-        self.assert_index_equal(af.index, other.index)
+        tm.assert_index_equal(bf.columns, other.columns)
+        tm.assert_index_equal(bf.index, other.index)
+        tm.assert_index_equal(af.index, other.index)
 
         # axis = 1
         other = self.frame.iloc[:-5, :3].copy()
         af, bf = self.frame.align(other, axis=1)
-        self.assert_index_equal(bf.columns, self.frame.columns)
-        self.assert_index_equal(bf.index, other.index)
+        tm.assert_index_equal(bf.columns, self.frame.columns)
+        tm.assert_index_equal(bf.index, other.index)
 
         # test fill value
         join_idx = self.frame.index.join(other.index)
@@ -446,42 +450,42 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         # TODO(wesm): unused?
         diff_b_vals = bf.reindex(diff_b).values  # noqa
 
-        self.assertTrue((diff_a_vals == -1).all())
+        assert (diff_a_vals == -1).all()
 
         af, bf = self.frame.align(other, join='inner', axis=1)
-        self.assert_index_equal(bf.columns, other.columns)
+        tm.assert_index_equal(bf.columns, other.columns)
 
         af, bf = self.frame.align(other, join='inner', axis=1, method='pad')
-        self.assert_index_equal(bf.columns, other.columns)
+        tm.assert_index_equal(bf.columns, other.columns)
 
         # test other non-float types
         af, bf = self.intframe.align(other, join='inner', axis=1, method='pad')
-        self.assert_index_equal(bf.columns, other.columns)
+        tm.assert_index_equal(bf.columns, other.columns)
 
         af, bf = self.mixed_frame.align(self.mixed_frame,
                                         join='inner', axis=1, method='pad')
-        self.assert_index_equal(bf.columns, self.mixed_frame.columns)
+        tm.assert_index_equal(bf.columns, self.mixed_frame.columns)
 
         af, bf = self.frame.align(other.iloc[:, 0], join='inner', axis=1,
                                   method=None, fill_value=None)
-        self.assert_index_equal(bf.index, Index([]))
+        tm.assert_index_equal(bf.index, Index([]))
 
         af, bf = self.frame.align(other.iloc[:, 0], join='inner', axis=1,
                                   method=None, fill_value=0)
-        self.assert_index_equal(bf.index, Index([]))
+        tm.assert_index_equal(bf.index, Index([]))
 
         # mixed floats/ints
         af, bf = self.mixed_float.align(other.iloc[:, 0], join='inner', axis=1,
                                         method=None, fill_value=0)
-        self.assert_index_equal(bf.index, Index([]))
+        tm.assert_index_equal(bf.index, Index([]))
 
         af, bf = self.mixed_int.align(other.iloc[:, 0], join='inner', axis=1,
                                       method=None, fill_value=0)
-        self.assert_index_equal(bf.index, Index([]))
+        tm.assert_index_equal(bf.index, Index([]))
 
-        # try to align dataframe to series along bad axis
-        self.assertRaises(ValueError, self.frame.align, af.iloc[0, :3],
-                          join='inner', axis=2)
+        # Try to align DataFrame to Series along bad axis
+        with pytest.raises(ValueError):
+            self.frame.align(af.iloc[0, :3], join='inner', axis=2)
 
         # align dataframe to series with broadcast or not
         idx = self.frame.index
@@ -490,7 +494,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         left, right = self.frame.align(s, axis=0)
         tm.assert_index_equal(left.index, self.frame.index)
         tm.assert_index_equal(right.index, self.frame.index)
-        self.assertTrue(isinstance(right, Series))
+        assert isinstance(right, Series)
 
         left, right = self.frame.align(s, broadcast_axis=1)
         tm.assert_index_equal(left.index, self.frame.index)
@@ -499,17 +503,17 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
             expected[c] = s
         expected = DataFrame(expected, index=self.frame.index,
                              columns=self.frame.columns)
-        assert_frame_equal(right, expected)
+        tm.assert_frame_equal(right, expected)
 
-        # GH 9558
+        # see gh-9558
         df = DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
         result = df[df['a'] == 2]
         expected = DataFrame([[2, 5]], index=[1], columns=['a', 'b'])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.where(df['a'] == 2, 0)
         expected = DataFrame({'a': [0, 2, 0], 'b': [0, 5, 0]})
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def _check_align(self, a, b, axis, fill_axis, how, method, limit=None):
         aa, ab = a.align(b, axis=axis, join=how, method=method, limit=limit,

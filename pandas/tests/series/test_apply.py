@@ -18,11 +18,11 @@ class TestSeriesApply(TestData, tm.TestCase):
 
     def test_apply(self):
         with np.errstate(all='ignore'):
-            assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
+            tm.assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
 
-            # elementwise-apply
+            # element-wise apply
             import math
-            assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
+            tm.assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
 
         # empty series
         s = Series(dtype=object, name='foo', index=pd.Index([], name='bar'))
@@ -30,10 +30,10 @@ class TestSeriesApply(TestData, tm.TestCase):
         tm.assert_series_equal(s, rs)
 
         # check all metadata (GH 9322)
-        self.assertIsNot(s, rs)
-        self.assertIs(s.index, rs.index)
-        self.assertEqual(s.dtype, rs.dtype)
-        self.assertEqual(s.name, rs.name)
+        assert s is not rs
+        assert s.index is rs.index
+        assert s.dtype == rs.dtype
+        assert s.name == rs.name
 
         # index but no data
         s = Series(index=[1, 2, 3])

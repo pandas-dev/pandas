@@ -12,8 +12,7 @@ from pandas import (DataFrame, concat,
                     DatetimeIndex)
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
-                                 makeCustomDataframe as mkdf,
-                                 assert_almost_equal)
+                                 makeCustomDataframe as mkdf)
 
 import pytest
 
@@ -708,25 +707,25 @@ class TestAppend(ConcatenateBase):
         end_frame = self.frame.reindex(end_index)
 
         appended = begin_frame.append(end_frame)
-        assert_almost_equal(appended['A'], self.frame['A'])
+        tm.assert_almost_equal(appended['A'], self.frame['A'])
 
         del end_frame['A']
         partial_appended = begin_frame.append(end_frame)
-        self.assertIn('A', partial_appended)
+        assert 'A' in partial_appended
 
         partial_appended = end_frame.append(begin_frame)
-        self.assertIn('A', partial_appended)
+        assert 'A' in partial_appended
 
         # mixed type handling
         appended = self.mixed_frame[:5].append(self.mixed_frame[5:])
-        assert_frame_equal(appended, self.mixed_frame)
+        tm.assert_frame_equal(appended, self.mixed_frame)
 
         # what to test here
         mixed_appended = self.mixed_frame[:5].append(self.frame[5:])
         mixed_appended2 = self.frame[:5].append(self.mixed_frame[5:])
 
         # all equal except 'foo' column
-        assert_frame_equal(
+        tm.assert_frame_equal(
             mixed_appended.reindex(columns=['A', 'B', 'C', 'D']),
             mixed_appended2.reindex(columns=['A', 'B', 'C', 'D']))
 
@@ -734,25 +733,24 @@ class TestAppend(ConcatenateBase):
         empty = DataFrame({})
 
         appended = self.frame.append(empty)
-        assert_frame_equal(self.frame, appended)
-        self.assertIsNot(appended, self.frame)
+        tm.assert_frame_equal(self.frame, appended)
+        assert appended is not self.frame
 
         appended = empty.append(self.frame)
-        assert_frame_equal(self.frame, appended)
-        self.assertIsNot(appended, self.frame)
+        tm.assert_frame_equal(self.frame, appended)
+        assert appended is not self.frame
 
-        # overlap
-        self.assertRaises(ValueError, self.frame.append, self.frame,
-                          verify_integrity=True)
+        # Overlap
+        with pytest.raises(ValueError):
+            self.frame.append(self.frame, verify_integrity=True)
 
-        # new columns
-        # GH 6129
+        # see gh-6129: new columns
         df = DataFrame({'a': {'x': 1, 'y': 2}, 'b': {'x': 3, 'y': 4}})
         row = Series([5, 6, 7], index=['a', 'b', 'c'], name='z')
         expected = DataFrame({'a': {'x': 1, 'y': 2, 'z': 5}, 'b': {
                              'x': 3, 'y': 4, 'z': 6}, 'c': {'z': 7}})
         result = df.append(row)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_append_length0_frame(self):
         df = DataFrame(columns=['A', 'B', 'C'])

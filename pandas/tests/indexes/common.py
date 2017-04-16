@@ -214,8 +214,9 @@ class Base(object):
                 hash(ind)
 
     def test_copy_name(self):
-        # Check that "name" argument passed at initialization is honoured
-        # GH12309
+        # gh-12309: Check that the "name" argument
+        # passed at initialization is honored.
+
         for name, index in compat.iteritems(self.indices):
             if isinstance(index, MultiIndex):
                 continue
@@ -224,18 +225,21 @@ class Base(object):
             second = first.__class__(first, copy=False)
 
             # Even though "copy=False", we want a new object.
-            self.assertIsNot(first, second)
-            # Not using tm.assert_index_equal() since names differ:
-            self.assertTrue(index.equals(first))
+            assert first is not second
 
-            self.assertEqual(first.name, 'mario')
-            self.assertEqual(second.name, 'mario')
+            # Not using tm.assert_index_equal() since names differ.
+            assert index.equals(first)
+
+            assert first.name == 'mario'
+            assert second.name == 'mario'
 
             s1 = Series(2, index=first)
             s2 = Series(3, index=second[:-1])
-            if not isinstance(index, CategoricalIndex):  # See GH13365
+
+            if not isinstance(index, CategoricalIndex):
+                # See gh-13365
                 s3 = s1 * s2
-                self.assertEqual(s3.index.name, 'mario')
+                assert s3.index.name == 'mario'
 
     def test_ensure_copied_data(self):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -283,11 +287,11 @@ class Base(object):
 
             for func in (copy, deepcopy):
                 idx_copy = func(ind)
-                self.assertIsNot(idx_copy, ind)
-                self.assertTrue(idx_copy.equals(ind))
+                assert idx_copy is not ind
+                assert idx_copy.equals(ind)
 
             new_copy = ind.copy(deep=True, name="banana")
-            self.assertEqual(new_copy.name, "banana")
+            assert new_copy.name == "banana"
 
     def test_duplicates(self):
         for ind in self.indices.values():
