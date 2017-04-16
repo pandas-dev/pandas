@@ -1392,7 +1392,7 @@ class TestMultiIndex(Base, tm.TestCase):
         result = self.index.format()
         self.assertEqual(result[1], 'foo  two')
 
-        self.reset_display_options()
+        tm.reset_display_options()
 
         warnings.filters = warn_filters
 

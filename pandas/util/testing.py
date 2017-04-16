@@ -92,10 +92,6 @@ class TestCase(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
-    def reset_display_options(self):
-        # reset the display options
-        pd.reset_option('^display.', silent=True)
-
     def round_trip_pickle(self, obj, path=None):
         return round_trip_pickle(obj, path=path)
 
@@ -119,6 +115,14 @@ class TestCase(unittest.TestCase):
     def assertNotAlmostEquals(self, *args, **kwargs):
         return deprecate('assertNotAlmostEquals',
                          self.assertNotAlmostEqual)(*args, **kwargs)
+
+
+def reset_display_options():
+    """
+    Reset the display options for printing and representing objects.
+    """
+
+    pd.reset_option('^display.', silent=True)
 
 
 def round_trip_pickle(obj, path=None):

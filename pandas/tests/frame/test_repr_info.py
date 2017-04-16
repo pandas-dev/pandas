@@ -118,7 +118,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         fmt.set_option('display.max_rows', 1000, 'display.max_columns', 1000)
         repr(self.frame)
 
-        self.reset_display_options()
+        tm.reset_display_options()
 
         warnings.filters = warn_filters
 
