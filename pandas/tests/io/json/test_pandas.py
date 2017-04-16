@@ -420,7 +420,7 @@ class TestPandasContainer(tm.TestCase):
         # GH 7445
         result = pd.DataFrame({'test': []}, index=[]).to_json(orient='columns')
         expected = '{"test":{}}'
-        tm.assert_equal(result, expected)
+        assert result == expected
 
     def test_frame_empty_mixedtype(self):
         # mixed type

@@ -3516,7 +3516,7 @@ class TestHDFStore(Base, tm.TestCase):
             results = [s for s in store.select(
                 'df', where=where, chunksize=chunksize)]
 
-            tm.assert_equal(1, len(results))
+            assert len(results) == 1
             result = concat(results)
             rexpected = expected[expected.index <= end_dt]
             tm.assert_frame_equal(rexpected, result)
@@ -3527,7 +3527,7 @@ class TestHDFStore(Base, tm.TestCase):
                 'df', where=where, chunksize=chunksize)]
 
             # should be 1, is 10
-            tm.assert_equal(1, len(results))
+            assert len(results) == 1
             result = concat(results)
             rexpected = expected[(expected.index >= beg_dt) &
                                  (expected.index <= end_dt)]
@@ -3545,7 +3545,7 @@ class TestHDFStore(Base, tm.TestCase):
                 'df', where=where, chunksize=chunksize)]
 
             # should be []
-            tm.assert_equal(0, len(results))
+            assert len(results) == 0
 
     def test_retain_index_attributes(self):
 

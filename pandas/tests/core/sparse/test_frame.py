@@ -1183,7 +1183,7 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
 
     # Assert spmatrices equal
-    tm.assert_equal(dict(sdf.to_coo().todok()), dict(spm.todok()))
+    assert dict(sdf.to_coo().todok()) == dict(spm.todok())
 
     # Ensure dtype is preserved if possible
     was_upcast = ((fill_value is None or is_float(fill_value)) and
@@ -1193,11 +1193,11 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
                  float if was_upcast else
                  dtype)
     tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
-    tm.assert_equal(sdf.to_coo().dtype, res_dtype)
+    assert sdf.to_coo().dtype == res_dtype
 
     # However, adding a str column results in an upcast to object
     sdf['strings'] = np.arange(len(sdf)).astype(str)
-    tm.assert_equal(sdf.to_coo().dtype, np.object_)
+    assert sdf.to_coo().dtype == np.object_
 
 
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])  # noqa: F811
@@ -1237,12 +1237,12 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
 
     # Assert spmatrices equal
-    tm.assert_equal(dict(sdf.to_coo().todok()), dict(spm.todok()))
+    assert dict(sdf.to_coo().todok()) == dict(spm.todok())
 
     # Ensure dtype is preserved if possible
     res_dtype = object
     tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
-    tm.assert_equal(sdf.to_coo().dtype, res_dtype)
+    assert sdf.to_coo().dtype == res_dtype
 
 
 class TestSparseDataFrameArithmetic(tm.TestCase):

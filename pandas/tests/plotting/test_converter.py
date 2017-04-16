@@ -153,8 +153,7 @@ class TestPeriodConverter(tm.TestCase):
     def test_convert_accepts_unicode(self):
         r1 = self.pc.convert("2012-1-1", None, self.axis)
         r2 = self.pc.convert(u("2012-1-1"), None, self.axis)
-        self.assert_equal(r1, r2,
-                          "PeriodConverter.convert should accept unicode")
+        assert r1 == r2
 
     def test_conversion(self):
         rs = self.pc.convert(['2012-1-1'], None, self.axis)[0]

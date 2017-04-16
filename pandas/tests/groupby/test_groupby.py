@@ -3275,7 +3275,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         # we expect 2 zeros because we call ``f`` once to see if a faster route
         # can be used.
         expected_names = [0, 0, 1, 2]
-        tm.assert_equal(names, expected_names)
+        assert names == expected_names
 
     def test_no_dummy_key_names(self):
         # GH #1291
@@ -3987,7 +3987,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         result = gr.grouper.groupings[0].__repr__()
         expected = "Grouping(('A', 'a'))"
-        tm.assert_equal(result, expected)
+        assert result == expected
 
     def test_group_shift_with_null_key(self):
         # This test is designed to replicate the segfault in issue #13813.

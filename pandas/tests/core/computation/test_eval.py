@@ -1020,7 +1020,7 @@ class TestAlignment(object):
                                       parser=parser)
                 else:
                     res = pd.eval('df2 + s + df', engine=engine, parser=parser)
-                tm.assert_equal(res.shape, expected.shape)
+                assert res.shape == expected.shape
                 assert_frame_equal(res, expected)
 
     def test_performance_warning_for_poor_alignment(self, engine, parser):
@@ -1057,13 +1057,13 @@ class TestAlignment(object):
             pd.eval('df + s', engine=engine, parser=parser)
 
             if not is_python_engine:
-                tm.assert_equal(len(w), 1)
+                assert len(w) == 1
                 msg = str(w[0].message)
                 expected = ("Alignment difference on axis {0} is larger"
                             " than an order of magnitude on term {1!r}, "
                             "by more than {2:.4g}; performance may suffer"
                             "".format(1, 'df', np.log10(s.size - df.shape[1])))
-                tm.assert_equal(msg, expected)
+                assert msg == expected
 
 
 # ------------------------------------
@@ -1104,17 +1104,17 @@ class TestOperationsNumExprPandas(tm.TestCase):
             else:
                 expec = _eval_single_bin(1, op, 1, self.engine)
                 x = self.eval(ex, engine=self.engine, parser=self.parser)
-                tm.assert_equal(x, expec)
+                assert x == expec
 
                 expec = _eval_single_bin(x, op, 1, self.engine)
                 y = self.eval(ex2, local_dict={'x': x}, engine=self.engine,
                               parser=self.parser)
-                tm.assert_equal(y, expec)
+                assert y == expec
 
                 expec = _eval_single_bin(1, op, x + 1, self.engine)
                 y = self.eval(ex3, local_dict={'x': x},
                               engine=self.engine, parser=self.parser)
-                tm.assert_equal(y, expec)
+                assert y == expec
 
     def test_simple_bool_ops(self):
         for op, lhs, rhs in product(expr._bool_ops_syms, (True, False),
@@ -1149,7 +1149,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     def test_constant(self):
         x = self.eval('1')
-        tm.assert_equal(x, 1)
+        assert x == 1
 
     def test_single_variable(self):
         df = DataFrame(randn(10, 2))
@@ -1508,7 +1508,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         expr = ' * '.join('a' * 33)
         expected = 1
         res = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_equal(res, expected)
+        assert res == expected
 
     def test_fails_and(self):
         df = DataFrame(np.random.randn(5, 3))
@@ -1736,14 +1736,14 @@ class TestScope(object):
         pd.eval('x + 1', local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
         lcls2.pop('lcls')
-        tm.assert_equal(lcls, lcls2)
+        assert lcls == lcls2
 
     def test_no_new_globals(self, engine, parser):
         x = 1  # noqa
         gbls = globals().copy()
         pd.eval('x + 1', engine=engine, parser=parser)
         gbls2 = globals().copy()
-        tm.assert_equal(gbls, gbls2)
+        assert gbls == gbls2
 
 
 def test_invalid_engine():
@@ -1810,7 +1810,7 @@ def test_numexpr_builtin_raises(engine, parser):
             pd.eval('sin + dotted_line', engine=engine, parser=parser)
     else:
         res = pd.eval('sin + dotted_line', engine=engine, parser=parser)
-        tm.assert_equal(res, sin + dotted_line)
+        assert res == sin + dotted_line
 
 
 def test_bad_resolver_raises(engine, parser):
@@ -1854,7 +1854,7 @@ def test_inf(engine, parser):
     s = 'inf + 1'
     expected = np.inf
     result = pd.eval(s, engine=engine, parser=parser)
-    tm.assert_equal(result, expected)
+    assert result == expected
 
 
 def test_negate_lt_eq_le(engine, parser):
