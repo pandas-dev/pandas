@@ -25,7 +25,7 @@ class Constructors2(object):
     def setup(self):
         self.data_frames = {}
         for x in range(100):
-            self.dr = np.asarray(DatetimeIndex(start=datetime(1990, 1, 1), end=datetime(2012, 1, 1), freq=datetools.Day(1)))
+            self.dr = np.asarray(DatetimeIndex(start=datetime(1990, 1, 1), end=datetime(2012, 1, 1), freq='D'))
             self.df = DataFrame({'a': ([0] * len(self.dr)), 'b': ([1] * len(self.dr)), 'c': ([2] * len(self.dr)), }, index=self.dr)
             self.data_frames[x] = self.df
 
@@ -37,7 +37,7 @@ class Constructors3(object):
     goal_time = 0.2
 
     def setup(self):
-        self.dr = np.asarray(DatetimeIndex(start=datetime(1990, 1, 1), end=datetime(2012, 1, 1), freq=datetools.Day(1)))
+        self.dr = np.asarray(DatetimeIndex(start=datetime(1990, 1, 1), end=datetime(2012, 1, 1), freq='D'))
         self.data_frames = {}
         for x in range(100):
             self.df = DataFrame({'a': ([0] * len(self.dr)), 'b': ([1] * len(self.dr)), 'c': ([2] * len(self.dr)), }, index=self.dr)
