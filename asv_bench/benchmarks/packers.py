@@ -153,12 +153,14 @@ class packers_read_stata_with_validation(_Packers):
 class packers_read_sas(_Packers):
 
     def setup(self):
-        self.f = os.path.join(os.path.dirname(__file__), '..', '..',
-                              'pandas', 'io', 'tests', 'sas', 'data',
-                              'test1.sas7bdat')
-        self.f2 = os.path.join(os.path.dirname(__file__), '..', '..',
-                               'pandas', 'io', 'tests', 'sas', 'data',
-                               'paxraw_d_short.xpt')
+
+        testdir = os.path.join(os.path.dirname(__file__), '..', '..',
+                               'pandas', 'tests', 'io', 'sas')
+        if not os.path.exists(testdir):
+            testdir = os.path.join(os.path.dirname(__file__), '..', '..',
+                                   'pandas', 'io', 'tests', 'sas')
+        self.f = os.path.join(testdir, 'data', 'test1.sas7bdat')
+        self.f2 = os.path.join(testdir, 'sas', 'data', 'paxraw_d_short.xpt')
 
     def time_read_sas7bdat(self):
         pd.read_sas(self.f, format='sas7bdat')
