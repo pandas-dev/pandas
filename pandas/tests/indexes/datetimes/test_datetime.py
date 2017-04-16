@@ -106,7 +106,7 @@ class TestDatetimeIndex(tm.TestCase):
         # GH 8367
         # round-trip of timezone
         index = date_range('20130101', periods=3, tz='US/Eastern', name='foo')
-        unpickled = self.round_trip_pickle(index)
+        unpickled = tm.round_trip_pickle(index)
         self.assert_index_equal(index, unpickled)
 
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):

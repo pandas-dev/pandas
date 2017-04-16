@@ -350,18 +350,18 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         self.assertIsNot(copy._data, self.mixed_frame._data)
 
     def test_pickle(self):
-        unpickled = self.round_trip_pickle(self.mixed_frame)
+        unpickled = tm.round_trip_pickle(self.mixed_frame)
         assert_frame_equal(self.mixed_frame, unpickled)
 
         # buglet
         self.mixed_frame._data.ndim
 
         # empty
-        unpickled = self.round_trip_pickle(self.empty)
+        unpickled = tm.round_trip_pickle(self.empty)
         repr(unpickled)
 
         # tz frame
-        unpickled = self.round_trip_pickle(self.tzframe)
+        unpickled = tm.round_trip_pickle(self.tzframe)
         assert_frame_equal(self.tzframe, unpickled)
 
     def test_consolidate_datetime64(self):

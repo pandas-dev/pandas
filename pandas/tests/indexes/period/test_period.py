@@ -58,7 +58,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
     def test_pickle_round_trip(self):
         for freq in ['D', 'M', 'Y']:
             idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
-            result = self.round_trip_pickle(idx)
+            result = tm.round_trip_pickle(idx)
             tm.assert_index_equal(result, idx)
 
     def test_get_loc(self):
@@ -761,7 +761,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
     def test_pickle_freq(self):
         # GH2891
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
-        new_prng = self.round_trip_pickle(prng)
+        new_prng = tm.round_trip_pickle(prng)
         self.assertEqual(new_prng.freq, offsets.MonthEnd())
         self.assertEqual(new_prng.freqstr, 'M')
 

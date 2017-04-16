@@ -278,7 +278,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
     def test_pickle(self):
 
         def _test_roundtrip(frame, orig):
-            result = self.round_trip_pickle(frame)
+            result = tm.round_trip_pickle(frame)
             tm.assert_sp_frame_equal(frame, result)
             tm.assert_frame_equal(result.to_dense(), orig, check_dtype=False)
 

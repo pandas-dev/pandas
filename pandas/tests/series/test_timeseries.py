@@ -827,11 +827,11 @@ class TestTimeSeries(TestData, tm.TestCase):
     def test_pickle(self):
 
         # GH4606
-        p = self.round_trip_pickle(NaT)
+        p = tm.round_trip_pickle(NaT)
         self.assertTrue(p is NaT)
 
         idx = pd.to_datetime(['2013-01-01', NaT, '2014-01-06'])
-        idx_p = self.round_trip_pickle(idx)
+        idx_p = tm.round_trip_pickle(idx)
         self.assertTrue(idx_p[0] == idx[0])
         self.assertTrue(idx_p[1] is NaT)
         self.assertTrue(idx_p[2] == idx[2])
@@ -839,7 +839,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         # GH11002
         # don't infer freq
         idx = date_range('1750-1-1', '2050-1-1', freq='7D')
-        idx_p = self.round_trip_pickle(idx)
+        idx_p = tm.round_trip_pickle(idx)
         tm.assert_index_equal(idx, idx_p)
 
     def test_setops_preserve_freq(self):

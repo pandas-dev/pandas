@@ -40,7 +40,7 @@ class Base(object):
         self.assertNotEqual(np.str_, self.dtype)
 
     def test_pickle(self):
-        result = self.round_trip_pickle(self.dtype)
+        result = tm.round_trip_pickle(self.dtype)
         self.assertEqual(result, self.dtype)
 
 

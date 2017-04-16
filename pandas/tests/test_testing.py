@@ -746,26 +746,6 @@ class TestRNGContext(unittest.TestCase):
             self.assertEqual(np.random.randn(), expected0)
 
 
-class TestDeprecatedTests(tm.TestCase):
-
-    def test_warning(self):
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertEquals(1, 1)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertNotEquals(1, 2)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assert_(True)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertAlmostEquals(1.0, 1.0000000001)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertNotAlmostEquals(1, 2)
-
-
 class TestLocale(tm.TestCase):
 
     def test_locale(self):

@@ -38,7 +38,7 @@ class TestEngFormatter(tm.TestCase):
                     '3    1E+06')
         self.assertEqual(result, expected)
 
-        self.reset_display_options()
+        tm.reset_display_options()
 
     def compare(self, formatter, input, output):
         formatted_input = formatter(input)
@@ -185,7 +185,7 @@ class TestEngFormatter(tm.TestCase):
         fmt.set_eng_float_format(accuracy=1)
         result = pt.to_string()
         self.assertTrue('NaN' in result)
-        self.reset_display_options()
+        tm.reset_display_options()
 
     def test_inf(self):
         # Issue #11981

@@ -179,7 +179,7 @@ class TestMultiLevel(Base, tm.TestCase):
 
     def test_pickle(self):
         def _test_roundtrip(frame):
-            unpickled = self.round_trip_pickle(frame)
+            unpickled = tm.round_trip_pickle(frame)
             tm.assert_frame_equal(frame, unpickled)
 
         _test_roundtrip(self.frame)

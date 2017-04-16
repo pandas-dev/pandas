@@ -28,7 +28,7 @@ class Base(object):
             setattr(self, name, idx)
 
     def verify_pickle(self, index):
-        unpickled = self.round_trip_pickle(index)
+        unpickled = tm.round_trip_pickle(index)
         self.assertTrue(index.equals(unpickled))
 
     def test_pickle_compat_construction(self):

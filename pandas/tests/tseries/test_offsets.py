@@ -1906,7 +1906,7 @@ class TestCustomBusinessDay(Base):
 
     def test_roundtrip_pickle(self):
         def _check_roundtrip(obj):
-            unpickled = self.round_trip_pickle(obj)
+            unpickled = tm.round_trip_pickle(obj)
             self.assertEqual(unpickled, obj)
 
         _check_roundtrip(self.offset)
@@ -1967,7 +1967,7 @@ class CustomBusinessMonthBase(object):
 
     def test_roundtrip_pickle(self):
         def _check_roundtrip(obj):
-            unpickled = self.round_trip_pickle(obj)
+            unpickled = tm.round_trip_pickle(obj)
             self.assertEqual(unpickled, obj)
 
         _check_roundtrip(self._object())

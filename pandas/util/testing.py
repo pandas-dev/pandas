@@ -50,7 +50,6 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
 
-from pandas.util.decorators import deprecate
 from pandas.util import libtesting
 from pandas.io.common import urlopen
 slow = pytest.mark.slow
@@ -83,6 +82,14 @@ set_testing_mode()
 
 
 class TestCase(unittest.TestCase):
+    """
+    The test case class that we originally used when using the
+    nosetests framework. Under the new pytest framework, we are
+    moving away from this class.
+
+    Do not create new test classes derived from this one. Rather,
+    they should inherit from object directly.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -92,36 +99,32 @@ class TestCase(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
-    def reset_display_options(self):
-        # reset the display options
-        pd.reset_option('^display.', silent=True)
 
-    def round_trip_pickle(self, obj, path=None):
-        return round_trip_pickle(obj, path=path)
+def reset_display_options():
+    """
+    Reset the display options for printing and representing objects.
+    """
 
-    # https://docs.python.org/3/library/unittest.html#deprecated-aliases
-    def assertEquals(self, *args, **kwargs):
-        return deprecate('assertEquals',
-                         self.assertEqual)(*args, **kwargs)
-
-    def assertNotEquals(self, *args, **kwargs):
-        return deprecate('assertNotEquals',
-                         self.assertNotEqual)(*args, **kwargs)
-
-    def assert_(self, *args, **kwargs):
-        return deprecate('assert_',
-                         self.assertTrue)(*args, **kwargs)
-
-    def assertAlmostEquals(self, *args, **kwargs):
-        return deprecate('assertAlmostEquals',
-                         self.assertAlmostEqual)(*args, **kwargs)
-
-    def assertNotAlmostEquals(self, *args, **kwargs):
-        return deprecate('assertNotAlmostEquals',
-                         self.assertNotAlmostEqual)(*args, **kwargs)
+    pd.reset_option('^display.', silent=True)
 
 
 def round_trip_pickle(obj, path=None):
+    """
+    Pickle an object and then read it again.
+
+    Parameters
+    ----------
+    obj : pandas object
+        The object to pickle and then re-read.
+    path : str, default None
+        The path where the pickled object is written and then read.
+
+    Returns
+    -------
+    round_trip_pickled_object : pandas object
+        The original object that was pickled and then re-read.
+    """
+
     if path is None:
         path = u('__%s__.pickle' % rands(10))
     with ensure_clean(path) as path:

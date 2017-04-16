@@ -1121,7 +1121,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         self.assertFalse(comp[9])
 
     def test_pickle_unpickle(self):
-        unpickled = self.round_trip_pickle(self.rng)
+        unpickled = tm.round_trip_pickle(self.rng)
         self.assertIsNotNone(unpickled.offset)
 
     def test_copy(self):
@@ -1272,7 +1272,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
             self.assertEqual(shifted[0], rng[0] + CDay())
 
     def test_pickle_unpickle(self):
-        unpickled = self.round_trip_pickle(self.rng)
+        unpickled = tm.round_trip_pickle(self.rng)
         self.assertIsNotNone(unpickled.offset)
 
     def test_summary(self):
