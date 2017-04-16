@@ -11,7 +11,7 @@ These are used for:
 import numpy as np
 from pandas.core.base import PandasObject
 from pandas.core.dtypes.cast import coerce_indexer_dtype
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 
 class FrozenList(PandasObject, list):

@@ -18,7 +18,7 @@ from pandas import (compat, isnull, notnull, DataFrame, Series,
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
-import pandas.formats.printing as printing
+import pandas.io.formats.printing as printing
 
 import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData

@@ -302,7 +302,7 @@ class Float64Index(NumericIndex):
 
     def _format_native_types(self, na_rep='', float_format=None, decimal='.',
                              quoting=None, **kwargs):
-        from pandas.formats.format import FloatArrayFormatter
+        from pandas.io.formats.format import FloatArrayFormatter
         formatter = FloatArrayFormatter(self.values, na_rep=na_rep,
                                         float_format=float_format,
                                         decimal=decimal, quoting=quoting,

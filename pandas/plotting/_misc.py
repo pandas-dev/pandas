@@ -7,7 +7,7 @@ import numpy as np
 from pandas.util.decorators import deprecate_kwarg
 from pandas.core.dtypes.missing import notnull
 from pandas.compat import range, lrange, lmap, zip
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 
 from pandas.plotting._style import _get_standard_colors

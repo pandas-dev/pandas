@@ -290,7 +290,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     @property
     def _formatter_func(self):
-        from pandas.formats.format import _get_format_timedelta64
+        from pandas.io.formats.format import _get_format_timedelta64
         return _get_format_timedelta64(self, box=True)
 
     def __setstate__(self, state):
@@ -366,7 +366,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
-        from pandas.formats.format import Timedelta64Formatter
+        from pandas.io.formats.format import Timedelta64Formatter
         return Timedelta64Formatter(values=self,
                                     nat_rep=na_rep,
                                     justify='all').get_result()

@@ -9,7 +9,7 @@ import pandas.tseries.frequencies as frequencies
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.period import PeriodIndex
 from pandas.tseries.tdi import TimedeltaIndex
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 import pandas.compat as compat
 
 from pandas.plotting._converter import (TimeSeries_DateLocator,

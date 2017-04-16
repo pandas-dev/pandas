@@ -107,7 +107,7 @@ class Styler(object):
     --------
     pandas.DataFrame.style
     """
-    loader = PackageLoader("pandas", "formats/templates")
+    loader = PackageLoader("pandas", "io/formats/templates")
     env = Environment(
         loader=loader,
         trim_blocks=True,

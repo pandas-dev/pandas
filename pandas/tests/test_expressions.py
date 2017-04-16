@@ -17,7 +17,7 @@ from pandas import compat, _np_version_under1p11
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_panel4d_equal, slow)
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
 

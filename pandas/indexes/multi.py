@@ -31,7 +31,7 @@ from pandas.util.decorators import (Appender, cache_readonly,
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 from pandas.core.config import get_option
 
@@ -935,7 +935,7 @@ class MultiIndex(Index):
                                       sentinel=sentinel)
 
         if adjoin:
-            from pandas.formats.format import _get_adjustment
+            from pandas.io.formats.format import _get_adjustment
             adj = _get_adjustment()
             return adj.adjoin(space, *result_levels).split('\n')
         else:

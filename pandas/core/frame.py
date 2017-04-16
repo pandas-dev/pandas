@@ -90,8 +90,8 @@ import pandas.core.base as base
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
-import pandas.formats.format as fmt
-from pandas.formats.printing import pprint_thing
+import pandas.io.formats.format as fmt
+from pandas.io.formats.printing import pprint_thing
 import pandas.plotting._core as gfx
 
 from pandas._libs import lib, algos as libalgos
@@ -636,9 +636,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.formats.style.Styler
+        pandas.io.formats.style.Styler
         """
-        from pandas.formats.style import Styler
+        from pandas.io.formats.style import Styler
         return Styler(self)
 
     def iteritems(self):
@@ -1724,7 +1724,7 @@ it is assumed to be aliases for the column names.')
             - If False, never show counts.
 
         """
-        from pandas.formats.format import _put_lines
+        from pandas.io.formats.format import _put_lines
 
         if buf is None:  # pragma: no cover
             buf = sys.stdout

@@ -25,8 +25,8 @@ from pandas.compat import (range, zip, lrange, StringIO, PY3,
                            is_platform_32bit)
 import pandas.compat as compat
 
-import pandas.formats.format as fmt
-import pandas.formats.printing as printing
+import pandas.io.formats.format as fmt
+import pandas.io.formats.printing as printing
 
 import pandas.util.testing as tm
 from pandas.util.terminal import get_terminal_size
@@ -889,7 +889,7 @@ class TestDataFrameFormatting(tm.TestCase):
         fmt.set_option('display.max_rows', 200)
 
     def test_pprint_thing(self):
-        from pandas.formats.printing import pprint_thing as pp_t
+        from pandas.io.formats.printing import pprint_thing as pp_t
 
         if PY3:
             pytest.skip("doesn't work on Python 3")
