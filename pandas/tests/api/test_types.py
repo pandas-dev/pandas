@@ -30,7 +30,7 @@ class TestTypes(Base, tm.TestCase):
                'is_dict_like', 'is_iterator', 'is_file_like',
                'is_list_like', 'is_hashable',
                'is_named_tuple', 'is_sequence',
-               'pandas_dtype', 'union_categoricals']
+               'pandas_dtype', 'union_categoricals', 'infer_dtype']
 
     def test_types(self):
 
