@@ -75,15 +75,22 @@ class _DeprecatedModule(object):
                 FutureWarning, stacklevel=2)
         else:
             deprmodto = self.deprmodto
-            if deprmodto is None:
-                deprmodto = "{modname}.{name}".format(
-                    modname=obj.__module__, name=name)
-            # The object is actually located in another module.
-            warnings.warn(
-                "{deprmod}.{name} is deprecated. Please use "
-                "{deprmodto}.{name} instead.".format(
-                    deprmod=self.deprmod, name=name, deprmodto=deprmodto),
-                FutureWarning, stacklevel=2)
+            if deprmodto is False:
+                warnings.warn(
+                    "{deprmod}.{name} is deprecated and will be removed in "
+                    "a future version.".format(
+                        deprmod=self.deprmod, name=name),
+                    FutureWarning, stacklevel=2)
+            else:
+                if deprmodto is None:
+                    deprmodto = "{modname}.{name}".format(
+                        modname=obj.__module__, name=name)
+                # The object is actually located in another module.
+                warnings.warn(
+                    "{deprmod}.{name} is deprecated. Please use "
+                    "{deprmodto}.{name} instead.".format(
+                        deprmod=self.deprmod, name=name, deprmodto=deprmodto),
+                    FutureWarning, stacklevel=2)
 
         return obj
 
