@@ -14,8 +14,7 @@ from pandas import (DataFrame, Series, Index,
 import pandas as pd
 import pandas.tseries.offsets as offsets
 
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
+from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp)
 
@@ -355,7 +354,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         offset_monthly = self.tsframe.asfreq(offsets.BMonthEnd())
         rule_monthly = self.tsframe.asfreq('BM')
 
-        assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
+        tm.assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
 
         filled = rule_monthly.asfreq('B', method='pad')  # noqa
         # TODO: actually check that this worked.
@@ -366,7 +365,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         # test does not blow up on length-0 DataFrame
         zero_length = self.tsframe.reindex([])
         result = zero_length.asfreq('BM')
-        self.assertIsNot(result, zero_length)
+        assert result is not zero_length
 
     def test_asfreq_datetimeindex(self):
         df = DataFrame({'A': [1, 2, 3]},

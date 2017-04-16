@@ -422,24 +422,24 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_set_value(self):
 
-        # ok as the index gets conver to object
+        # ok, as the index gets converted to object
         frame = self.frame.copy()
         res = frame.set_value('foobar', 'B', 1.5)
-        self.assertEqual(res.index.dtype, 'object')
+        assert res.index.dtype == 'object'
 
         res = self.frame
         res.index = res.index.astype(object)
 
         res = self.frame.set_value('foobar', 'B', 1.5)
-        self.assertIsNot(res, self.frame)
-        self.assertEqual(res.index[-1], 'foobar')
-        self.assertEqual(res.get_value('foobar', 'B'), 1.5)
+        assert res is not self.frame
+        assert res.index[-1] == 'foobar'
+        assert res.get_value('foobar', 'B') == 1.5
 
         res2 = res.set_value('foobar', 'qux', 1.5)
-        self.assertIsNot(res2, res)
-        self.assert_index_equal(res2.columns,
-                                pd.Index(list(self.frame.columns) + ['qux']))
-        self.assertEqual(res2.get_value('foobar', 'qux'), 1.5)
+        assert res2 is not res
+        tm.assert_index_equal(res2.columns,
+                              pd.Index(list(self.frame.columns) + ['qux']))
+        assert res2.get_value('foobar', 'qux') == 1.5
 
     def test_fancy_index_misc(self):
         # axis = 0

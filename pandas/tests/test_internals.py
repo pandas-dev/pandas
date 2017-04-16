@@ -248,7 +248,7 @@ class TestBlock(tm.TestCase):
 
     def test_copy(self):
         cop = self.fblock.copy()
-        self.assertIsNot(cop, self.fblock)
+        assert cop is not self.fblock
         assert_block_equal(self.fblock, cop)
 
     def test_reindex_index(self):
