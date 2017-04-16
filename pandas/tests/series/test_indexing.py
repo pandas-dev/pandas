@@ -1873,14 +1873,14 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         rb[:2] = 5
         self.assertTrue((b[:2] == 5).all())
 
-    def test_align_sameindex(self):
+    def test_align_same_index(self):
         a, b = self.ts.align(self.ts, copy=False)
-        self.assertIs(a.index, self.ts.index)
-        self.assertIs(b.index, self.ts.index)
+        assert a.index is self.ts.index
+        assert b.index is self.ts.index
 
-        # a, b = self.ts.align(self.ts, copy=True)
-        # self.assertIsNot(a.index, self.ts.index)
-        # self.assertIsNot(b.index, self.ts.index)
+        a, b = self.ts.align(self.ts, copy=True)
+        assert a.index is not self.ts.index
+        assert b.index is not self.ts.index
 
     def test_align_multiindex(self):
         # GH 10665

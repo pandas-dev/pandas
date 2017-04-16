@@ -917,25 +917,25 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         with catch_warnings(record=True):
             # with BlockManager
             wp = Panel(self.panel._data)
-            self.assertIs(wp._data, self.panel._data)
+            assert wp._data is self.panel._data
 
             wp = Panel(self.panel._data, copy=True)
-            self.assertIsNot(wp._data, self.panel._data)
-            assert_panel_equal(wp, self.panel)
+            assert wp._data is not self.panel._data
+            tm.assert_panel_equal(wp, self.panel)
 
             # strings handled prop
             wp = Panel([[['foo', 'foo', 'foo', ], ['foo', 'foo', 'foo']]])
-            self.assertEqual(wp.values.dtype, np.object_)
+            assert wp.values.dtype == np.object_
 
             vals = self.panel.values
 
             # no copy
             wp = Panel(vals)
-            self.assertIs(wp.values, vals)
+            assert wp.values is vals
 
             # copy
             wp = Panel(vals, copy=True)
-            self.assertIsNot(wp.values, vals)
+            assert wp.values is not vals
 
             # GH #8285, test when scalar data is used to construct a Panel
             # if dtype is not passed, it should be inferred
@@ -946,7 +946,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                            minor_axis=range(4))
                 vals = np.empty((2, 3, 4), dtype=dtype)
                 vals.fill(val)
-                assert_panel_equal(wp, Panel(vals, dtype=dtype))
+
+                tm.assert_panel_equal(wp, Panel(vals, dtype=dtype))
 
             # test the case when dtype is passed
             wp = Panel(1, items=range(2), major_axis=range(3),
@@ -954,7 +955,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                        dtype='float32')
             vals = np.empty((2, 3, 4), dtype='float32')
             vals.fill(1)
-            assert_panel_equal(wp, Panel(vals, dtype='float32'))
+
+            tm.assert_panel_equal(wp, Panel(vals, dtype='float32'))
 
     def test_constructor_cast(self):
         with catch_warnings(record=True):
