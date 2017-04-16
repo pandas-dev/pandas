@@ -1129,14 +1129,14 @@ class TestStata(tm.TestCase):
                                'a': 'City Rank',
                                'b': 'City Exponent',
                                'c': 'City'}
-            tm.assert_equal(read_labels, expected_labels)
+            assert read_labels == expected_labels
 
         variable_labels['index'] = 'The Index'
         with tm.ensure_clean() as path:
             original.to_stata(path, variable_labels=variable_labels)
             with StataReader(path) as sr:
                 read_labels = sr.variable_labels()
-            tm.assert_equal(read_labels, variable_labels)
+            assert read_labels == variable_labels
 
     def test_write_variable_label_errors(self):
         original = pd.DataFrame({'a': [1, 2, 3, 4],

@@ -833,23 +833,6 @@ def equalContents(arr1, arr2):
     return frozenset(arr1) == frozenset(arr2)
 
 
-def assert_equal(a, b, msg=""):
-    """asserts that a equals b, like nose's assert_equal,
-    but allows custom message to start. Passes a and b to
-    format string as well. So you can use '{0}' and '{1}'
-    to display a and b.
-
-    Examples
-    --------
-    >>> assert_equal(2, 2, "apples")
-    >>> assert_equal(5.2, 1.2, "{0} was really a dead parrot")
-    Traceback (most recent call last):
-        ...
-    AssertionError: 5.2 was really a dead parrot: 5.2 != 1.2
-    """
-    assert a == b, "%s: %r != %r" % (msg.format(a, b), a, b)
-
-
 def assert_index_equal(left, right, exact='equiv', check_names=True,
                        check_less_precise=False, check_exact=True,
                        check_categorical=True, obj='Index'):
@@ -862,7 +845,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     exact : bool / string {'equiv'}, default False
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
-        Int64Index as well
+        Int64Index as well.
     check_names : bool, default True
         Whether to check the names attribute.
     check_less_precise : bool or int, default False

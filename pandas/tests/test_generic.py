@@ -1810,12 +1810,12 @@ class TestNDFrame(tm.TestCase):
 
         # axis argument
         df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
-        tm.assert_equal(df.shape, (1, 1))
+        assert df.shape == (1, 1)
         tm.assert_series_equal(df.squeeze(axis=0), df.iloc[0])
         tm.assert_series_equal(df.squeeze(axis='index'), df.iloc[0])
         tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
         tm.assert_series_equal(df.squeeze(axis='columns'), df.iloc[:, 0])
-        tm.assert_equal(df.squeeze(), df.iloc[0, 0])
+        assert df.squeeze() == df.iloc[0, 0]
         tm.assertRaises(ValueError, df.squeeze, axis=2)
         tm.assertRaises(ValueError, df.squeeze, axis='x')
 

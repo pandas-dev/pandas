@@ -50,8 +50,8 @@ def compare_element(result, expected, typ, version=None):
         if expected is pd.NaT:
             assert result is pd.NaT
         else:
-            tm.assert_equal(result, expected)
-            tm.assert_equal(result.freq, expected.freq)
+            assert result == expected
+            assert result.freq == expected.freq
     else:
         comparator = getattr(tm, "assert_%s_equal" %
                              typ, tm.assert_almost_equal)
@@ -102,21 +102,21 @@ def compare_sp_series_ts(res, exp, typ, version):
 def compare_series_ts(result, expected, typ, version):
     # GH 7748
     tm.assert_series_equal(result, expected)
-    tm.assert_equal(result.index.freq, expected.index.freq)
-    tm.assert_equal(result.index.freq.normalize, False)
+    assert result.index.freq == expected.index.freq
+    assert not result.index.freq.normalize
     tm.assert_series_equal(result > 0, expected > 0)
 
     # GH 9291
     freq = result.index.freq
-    tm.assert_equal(freq + Day(1), Day(2))
+    assert freq + Day(1) == Day(2)
 
     res = freq + pandas.Timedelta(hours=1)
-    tm.assert_equal(isinstance(res, pandas.Timedelta), True)
-    tm.assert_equal(res, pandas.Timedelta(days=1, hours=1))
+    assert isinstance(res, pandas.Timedelta)
+    assert res == pandas.Timedelta(days=1, hours=1)
 
     res = freq + pandas.Timedelta(nanoseconds=1)
-    tm.assert_equal(isinstance(res, pandas.Timedelta), True)
-    tm.assert_equal(res, pandas.Timedelta(days=1, nanoseconds=1))
+    assert isinstance(res, pandas.Timedelta)
+    assert res == pandas.Timedelta(days=1, nanoseconds=1)
 
 
 def compare_series_dt_tz(result, expected, typ, version):
@@ -170,8 +170,8 @@ def compare_frame_cat_and_float(result, expected, typ, version):
 def compare_index_period(result, expected, typ, version):
     tm.assert_index_equal(result, expected)
     tm.assertIsInstance(result.freq, MonthEnd)
-    tm.assert_equal(result.freq, MonthEnd())
-    tm.assert_equal(result.freqstr, 'M')
+    assert result.freq == MonthEnd()
+    assert result.freqstr == 'M'
     tm.assert_index_equal(result.shift(2), expected.shift(2))
 
 

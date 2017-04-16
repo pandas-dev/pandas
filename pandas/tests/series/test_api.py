@@ -344,7 +344,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
     def test_empty_method(self):
         s_empty = pd.Series()
-        tm.assert_equal(s_empty.empty, True)
+        assert s_empty.empty
 
         for full_series in [pd.Series([1]), pd.Series(index=[1])]:
-            tm.assert_equal(full_series.empty, False)
+            assert not full_series.empty

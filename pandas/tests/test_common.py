@@ -142,12 +142,12 @@ def test_random_state():
     import numpy.random as npr
     # Check with seed
     state = com._random_state(5)
-    tm.assert_equal(state.uniform(), npr.RandomState(5).uniform())
+    assert state.uniform() == npr.RandomState(5).uniform()
 
     # Check with random state object
     state2 = npr.RandomState(10)
-    tm.assert_equal(
-        com._random_state(state2).uniform(), npr.RandomState(10).uniform())
+    assert (com._random_state(state2).uniform() ==
+            npr.RandomState(10).uniform())
 
     # check with no arg random state
     assert com._random_state() is np.random

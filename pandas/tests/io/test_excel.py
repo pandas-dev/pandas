@@ -412,7 +412,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_contains_all(expected_keys, dfs.keys())
         # Issue 9930
         # Ensure sheet order is preserved
-        tm.assert_equal(expected_keys, list(dfs.keys()))
+        assert expected_keys == list(dfs.keys())
 
     def test_reading_multiple_specific_sheets(self):
         # Test reading specific sheetnames by specifying a mixed list
