@@ -34,7 +34,7 @@ from pandas.core.sparse.libsparse import SparseIndex, BlockIndex, IntIndex
 from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
 import pandas.core.ops as ops
-import pandas.formats.printing as printing
+import pandas.io.formats.printing as printing
 from pandas.util.decorators import Appender
 from pandas.indexes.base import _index_shared_docs
 

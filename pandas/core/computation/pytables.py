@@ -9,7 +9,7 @@ from pandas.core.dtypes.common import is_list_like
 import pandas.core.common as com
 from pandas.compat import u, string_types, DeepChainMap
 from pandas.core.base import StringMixin
-from pandas.formats.printing import pprint_thing, pprint_thing_encoded
+from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 from pandas.core.computation import expr, ops
 from pandas.core.computation.ops import is_term, UndefinedVariableError
 from pandas.core.computation.expr import BaseExprVisitor

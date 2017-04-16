@@ -21,7 +21,7 @@ from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas import Series
 from pandas.core.common import AbstractMethodError
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 _IMPORTS = False
 _HAS_BS4 = False

@@ -26,7 +26,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _get_combined_index)
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from pandas.core.indexing import maybe_droplevels
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,

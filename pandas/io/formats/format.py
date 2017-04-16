@@ -33,7 +33,7 @@ from pandas.compat import (StringIO, lzip, range, map, zip, reduce, u,
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
-from pandas.formats.printing import adjoin, justify, pprint_thing
+from pandas.io.formats.printing import adjoin, justify, pprint_thing
 import pandas.core.common as com
 import pandas._libs.lib as lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,

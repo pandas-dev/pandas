@@ -32,7 +32,7 @@ from pandas.core import config
 from pandas.io.common import _stringify_path
 from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
-from pandas.formats.printing import adjoin, pprint_thing
+from pandas.io.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.algorithms import match, unique

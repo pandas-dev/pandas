@@ -24,7 +24,7 @@ from pandas.core.series import Series, remove_na
 from pandas.tseries.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from pandas.util.decorators import Appender
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,

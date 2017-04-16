@@ -31,7 +31,7 @@ class TestPDApi(Base, tm.TestCase):
 
     # top-level sub-packages
     lib = ['api', 'compat', 'core',
-           'indexes', 'formats', 'errors', 'pandas',
+           'indexes', 'errors', 'pandas',
            'plotting', 'test', 'tools', 'tseries',
            'util', 'options', 'io']
 

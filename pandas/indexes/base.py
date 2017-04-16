@@ -48,7 +48,7 @@ import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
 from pandas.core.config import get_option
@@ -831,7 +831,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        from pandas.formats.format import get_console_size, _get_adjustment
+        from pandas.io.formats.format import get_console_size, _get_adjustment
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80
@@ -1842,7 +1842,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _format_with_header(self, header, na_rep='NaN', **kwargs):
         values = self.values
 
-        from pandas.formats.format import format_array
+        from pandas.io.formats.format import format_array
 
         if is_categorical_dtype(values.dtype):
             values = np.array(values)

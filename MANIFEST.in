@@ -25,4 +25,4 @@ global-exclude *.png
 # recursive-include LICENSES *
 include versioneer.py
 include pandas/_version.py
-include pandas/formats/templates/*.tpl
+include pandas/io/formats/templates/*.tpl
