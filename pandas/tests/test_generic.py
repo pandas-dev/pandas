@@ -11,12 +11,12 @@ from numpy import nan
 import pandas as pd
 
 from distutils.version import LooseVersion
-from pandas.types.common import is_scalar
+from pandas.core.dtypes.common import is_scalar
 from pandas import (Index, Series, DataFrame, Panel, isnull,
                     date_range, period_range, Panel4D)
 from pandas.core.index import MultiIndex
 
-import pandas.formats.printing as printing
+import pandas.io.formats.printing as printing
 
 from pandas.compat import range, zip, PY3
 from pandas import compat

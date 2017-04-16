@@ -12,7 +12,7 @@ from pandas.core.categorical import (_factorize_from_iterable,
 from pandas.core.internals import concatenate_block_managers
 from pandas.core import common as com
 from pandas.core.generic import NDFrame
-import pandas.types.concat as _concat
+import pandas.core.dtypes.concat as _concat
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects

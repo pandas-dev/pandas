@@ -13,26 +13,28 @@ from numpy import nan, ndarray
 import numpy as np
 import numpy.ma as ma
 
-from pandas.types.common import (_coerce_to_dtype, is_categorical_dtype,
-                                 is_bool,
-                                 is_integer, is_integer_dtype,
-                                 is_float_dtype,
-                                 is_extension_type, is_datetimetz,
-                                 is_datetimelike,
-                                 is_datetime64tz_dtype,
-                                 is_timedelta64_dtype,
-                                 is_list_like,
-                                 is_hashable,
-                                 is_iterator,
-                                 is_dict_like,
-                                 is_scalar,
-                                 _is_unorderable_exception,
-                                 _ensure_platform_int)
-from pandas.types.generic import ABCSparseArray, ABCDataFrame
-from pandas.types.cast import (maybe_upcast, infer_dtype_from_scalar,
-                               maybe_convert_platform,
-                               maybe_cast_to_datetime, maybe_castable)
-from pandas.types.missing import isnull, notnull
+from pandas.core.dtypes.common import (
+    _coerce_to_dtype, is_categorical_dtype,
+    is_bool,
+    is_integer, is_integer_dtype,
+    is_float_dtype,
+    is_extension_type, is_datetimetz,
+    is_datetimelike,
+    is_datetime64tz_dtype,
+    is_timedelta64_dtype,
+    is_list_like,
+    is_hashable,
+    is_iterator,
+    is_dict_like,
+    is_scalar,
+    _is_unorderable_exception,
+    _ensure_platform_int)
+from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
+from pandas.core.dtypes.cast import (
+    maybe_upcast, infer_dtype_from_scalar,
+    maybe_convert_platform,
+    maybe_cast_to_datetime, maybe_castable)
+from pandas.core.dtypes.missing import isnull, notnull
 
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
@@ -65,7 +67,7 @@ import pandas.core.algorithms as algorithms
 
 import pandas.core.common as com
 import pandas.core.nanops as nanops
-import pandas.formats.format as fmt
+import pandas.io.formats.format as fmt
 from pandas.util.decorators import Appender, deprecate_kwarg, Substitution
 from pandas.util.validators import validate_bool_kwarg
 
@@ -255,7 +257,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                    fastpath=False):
         # return a sparse series here
         if isinstance(arr, ABCSparseArray):
-            from pandas.sparse.series import SparseSeries
+            from pandas.core.sparse.series import SparseSeries
             cls = SparseSeries
 
         return cls(arr, index=index, name=name, dtype=dtype, copy=copy,
@@ -1130,7 +1132,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         -------
         sp : SparseSeries
         """
-        from pandas.core.sparse import SparseSeries
+        from pandas.core.sparse.series import SparseSeries
         return SparseSeries(self, kind=kind,
                             fill_value=fill_value).__finalize__(self)
 
@@ -2079,8 +2081,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         two   bar
         three baz
 
-        Mapping a dictionary keys on the index labels works similar as
-        with a `Series`:
+        If `arg` is a dictionary, return a new Series with values converted
+        according to the dictionary's mapping:
 
         >>> z = {1: 'A', 2: 'B', 3: 'C'}
 
@@ -2094,16 +2096,14 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         >>> s = pd.Series([1, 2, 3, np.nan])
 
-        >>> s2 = s.map(lambda x: 'this is a string {}'.format(x),
-                       na_action=None)
+        >>> s2 = s.map('this is a string {}'.format, na_action=None)
         0    this is a string 1.0
         1    this is a string 2.0
         2    this is a string 3.0
         3    this is a string nan
         dtype: object
 
-        >>> s3 = s.map(lambda x: 'this is a string {}'.format(x),
-                       na_action='ignore')
+        >>> s3 = s.map('this is a string {}'.format, na_action='ignore')
         0    this is a string 1.0
         1    this is a string 2.0
         2    this is a string 3.0
@@ -2115,6 +2115,23 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         Series.apply: For applying more complex functions on a Series
         DataFrame.apply: Apply a function row-/column-wise
         DataFrame.applymap: Apply a function elementwise on a whole DataFrame
+
+        Notes
+        -----
+        When `arg` is a dictionary, values in Series that are not in the
+        dictionary (as keys) are converted to ``NaN``. However, if the
+        dictionary is a ``dict`` subclass that defines ``__missing__`` (i.e.
+        provides a method for default values), then this default is used
+        rather than ``NaN``:
+
+        >>> from collections import Counter
+        >>> counter = Counter()
+        >>> counter['bar'] += 1
+        >>> y.map(counter)
+        1    0
+        2    1
+        3    0
+        dtype: int64
         """
 
         if is_extension_type(self.dtype):
@@ -2132,13 +2149,23 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             else:
                 map_f = lib.map_infer
 
-        if isinstance(arg, (dict, Series)):
-            if isinstance(arg, dict):
+        if isinstance(arg, dict):
+            if hasattr(arg, '__missing__'):
+                # If a dictionary subclass defines a default value method,
+                # convert arg to a lookup function (GH #15999).
+                dict_with_default = arg
+                arg = lambda x: dict_with_default[x]
+            else:
+                # Dictionary does not have a default. Thus it's safe to
+                # convert to an indexed series for efficiency.
                 arg = self._constructor(arg, index=arg.keys())
 
+        if isinstance(arg, Series):
+            # arg is a Series
             indexer = arg.index.get_indexer(values)
             new_values = algorithms.take_1d(arg._values, indexer)
         else:
+            # arg is a function
             new_values = map_f(values, arg)
 
         return self._constructor(new_values,
@@ -2842,8 +2869,6 @@ def _sanitize_index(data, index, copy=False):
         data = data.asobject
     elif isinstance(data, DatetimeIndex):
         data = data._to_embed(keep_tz=True)
-        if copy:
-            data = data.copy()
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
@@ -3001,7 +3026,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 # ----------------------------------------------------------------------
 # Add plotting methods to Series
 
-import pandas.tools.plotting as _gfx  # noqa
+import pandas.plotting._core as _gfx  # noqa
 
 Series.plot = base.AccessorProperty(_gfx.SeriesPlotMethods,
                                     _gfx.SeriesPlotMethods)

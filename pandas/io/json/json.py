@@ -9,10 +9,10 @@ from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime
 from pandas.io.common import get_filepath_or_buffer, _get_handle
 from pandas.core.common import AbstractMethodError
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema
-from pandas.types.common import is_period_dtype
+from pandas.core.dtypes.common import is_period_dtype
 
 loads = libjson.loads
 dumps = libjson.dumps

@@ -6,8 +6,9 @@
 from warnings import catch_warnings
 from datetime import datetime
 
-from pandas.types.common import (is_integer_dtype,
-                                 is_float_dtype)
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_float_dtype)
 from pandas.compat import range, lrange, lzip, StringIO
 import numpy as np
 

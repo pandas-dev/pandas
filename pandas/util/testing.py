@@ -23,16 +23,17 @@ import pytest
 import numpy as np
 
 import pandas as pd
-from pandas.types.missing import array_equivalent
-from pandas.types.common import (is_datetimelike_v_numeric,
-                                 is_datetimelike_v_object,
-                                 is_number, is_bool,
-                                 needs_i8_conversion,
-                                 is_categorical_dtype,
-                                 is_interval_dtype,
-                                 is_sequence,
-                                 is_list_like)
-from pandas.formats.printing import pprint_thing
+from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.common import (
+    is_datetimelike_v_numeric,
+    is_datetimelike_v_object,
+    is_number, is_bool,
+    needs_i8_conversion,
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_sequence,
+    is_list_like)
+from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
 import pandas.compat as compat
@@ -42,7 +43,7 @@ from pandas.compat import (
     StringIO, PY3
 )
 
-from pandas.computation import expressions as expr
+from pandas.core.computation import expressions as expr
 
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
@@ -401,8 +402,9 @@ def _incompat_bottleneck_version(method):
 
 
 def skip_if_no_ne(engine='numexpr'):
-    from pandas.computation.expressions import (_USE_NUMEXPR,
-                                                _NUMEXPR_INSTALLED)
+    from pandas.core.computation.expressions import (
+        _USE_NUMEXPR,
+        _NUMEXPR_INSTALLED)
 
     if engine == 'numexpr':
         if not _USE_NUMEXPR:
@@ -1539,10 +1541,10 @@ def assert_sp_array_equal(left, right, check_dtype=True):
                              check_dtype=check_dtype)
 
     # SparseIndex comparison
-    assertIsInstance(left.sp_index,
-                     pd.sparse.libsparse.SparseIndex, '[SparseIndex]')
-    assertIsInstance(right.sp_index,
-                     pd.sparse.libsparse.SparseIndex, '[SparseIndex]')
+    assertIsInstance(
+        left.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
+    assertIsInstance(
+        right.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
 
     if not left.sp_index.equals(right.sp_index):
         raise_assert_detail('SparseArray.index', 'index are not equal',

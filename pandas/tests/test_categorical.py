@@ -9,10 +9,11 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.types.dtypes import CategoricalDtype
-from pandas.types.common import (is_categorical_dtype,
-                                 is_float_dtype,
-                                 is_integer_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_float_dtype,
+    is_integer_dtype)
 
 import pandas as pd
 import pandas.compat as compat

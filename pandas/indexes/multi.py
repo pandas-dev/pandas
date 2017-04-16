@@ -12,13 +12,14 @@ from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
-from pandas.types.common import (_ensure_int64,
-                                 _ensure_platform_int,
-                                 is_object_dtype,
-                                 is_iterator,
-                                 is_list_like,
-                                 is_scalar)
-from pandas.types.missing import isnull, array_equivalent
+from pandas.core.dtypes.common import (
+    _ensure_int64,
+    _ensure_platform_int,
+    is_object_dtype,
+    is_iterator,
+    is_list_like,
+    is_scalar)
+from pandas.core.dtypes.missing import isnull, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.common import (_values_from_object,
                                 is_bool_indexer,
@@ -30,7 +31,7 @@ from pandas.util.decorators import (Appender, cache_readonly,
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 from pandas.core.config import get_option
 
@@ -934,7 +935,7 @@ class MultiIndex(Index):
                                       sentinel=sentinel)
 
         if adjoin:
-            from pandas.formats.format import _get_adjustment
+            from pandas.io.formats.format import _get_adjustment
             adj = _get_adjustment()
             return adj.adjoin(space, *result_levels).split('\n')
         else:

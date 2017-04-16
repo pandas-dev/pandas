@@ -6,11 +6,12 @@ import numpy as np
 import pandas as pd
 import pandas._libs.tslib as tslib
 
-from pandas.types.common import (_ensure_object,
-                                 is_integer_dtype,
-                                 is_timedelta64_dtype,
-                                 is_list_like)
-from pandas.types.generic import ABCSeries, ABCIndexClass
+from pandas.core.dtypes.common import (
+    _ensure_object,
+    is_integer_dtype,
+    is_timedelta64_dtype,
+    is_list_like)
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 
 
 def to_timedelta(arg, unit='ns', box=True, errors='raise'):

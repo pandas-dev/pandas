@@ -30,10 +30,10 @@ class TestPDApi(Base, tm.TestCase):
     ignored = ['tests', 'locale', 'conftest']
 
     # top-level sub-packages
-    lib = ['api', 'compat', 'computation', 'core',
-           'indexes', 'formats', 'errors', 'pandas',
-           'test', 'tools', 'tseries', 'sparse',
-           'types', 'util', 'options', 'io', 'testing']
+    lib = ['api', 'compat', 'core',
+           'indexes', 'errors', 'pandas',
+           'plotting', 'test', 'testing', 'tools', 'tseries',
+           'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
     deprecated_modules = ['stats', 'datetools', 'parser',
@@ -49,7 +49,8 @@ class TestPDApi(Base, tm.TestCase):
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
                'Series', 'SparseArray', 'SparseDataFrame',
                'SparseSeries', 'TimeGrouper', 'Timedelta',
-               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
+               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex',
+               'Styler']
 
     # these are already deprecated; awaiting removal
     deprecated_classes = ['WidePanel', 'Panel4D',
@@ -69,8 +70,7 @@ class TestPDApi(Base, tm.TestCase):
              'melt', 'notnull', 'offsets',
              'merge', 'merge_ordered', 'merge_asof',
              'period_range',
-             'pivot', 'pivot_table', 'plot_params', 'qcut',
-             'scatter_matrix',
+             'pivot', 'pivot_table', 'qcut',
              'show_versions', 'timedelta_range', 'unique',
              'value_counts', 'wide_to_long']
 
@@ -103,7 +103,8 @@ class TestPDApi(Base, tm.TestCase):
                         'rolling_median', 'rolling_min', 'rolling_quantile',
                         'rolling_skew', 'rolling_std', 'rolling_sum',
                         'rolling_var', 'rolling_window', 'ordered_merge',
-                        'pnow', 'match', 'groupby', 'get_store']
+                        'pnow', 'match', 'groupby', 'get_store',
+                        'plot_params', 'scatter_matrix']
 
     def test_api(self):
 

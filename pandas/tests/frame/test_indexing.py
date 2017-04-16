@@ -20,9 +20,10 @@ import pandas as pd
 
 from pandas._libs.tslib import iNaT
 from pandas.tseries.offsets import BDay
-from pandas.types.common import (is_float_dtype,
-                                 is_integer,
-                                 is_scalar)
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer,
+    is_scalar)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_numpy_array_equal,
                                  assert_series_equal,
@@ -1866,7 +1867,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
     def test_iloc_sparse_propegate_fill_value(self):
-        from pandas.sparse.api import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         df = SparseDataFrame({'A': [999, 1]}, default_fill_value=999)
         self.assertTrue(len(df['A'].sp_values) == len(df.iloc[:, 0].sp_values))
 

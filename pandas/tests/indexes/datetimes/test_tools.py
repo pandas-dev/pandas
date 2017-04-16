@@ -14,7 +14,7 @@ from pandas.tseries import tools
 from pandas.tseries.tools import normalize_date
 from pandas.compat import lmap
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.types.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 from pandas import (isnull, to_datetime, Timestamp, Series, DataFrame,

@@ -4,19 +4,21 @@ from collections import MutableMapping
 
 from pandas._libs import lib, tslib
 
-from pandas.types.common import (_ensure_object,
-                                 is_datetime64_ns_dtype,
-                                 is_datetime64_dtype,
-                                 is_datetime64tz_dtype,
-                                 is_integer_dtype,
-                                 is_integer,
-                                 is_float,
-                                 is_list_like,
-                                 is_scalar,
-                                 is_numeric_dtype)
-from pandas.types.generic import (ABCIndexClass, ABCSeries,
-                                  ABCDataFrame)
-from pandas.types.missing import notnull
+from pandas.core.dtypes.common import (
+    _ensure_object,
+    is_datetime64_ns_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_integer_dtype,
+    is_integer,
+    is_float,
+    is_list_like,
+    is_scalar,
+    is_numeric_dtype)
+from pandas.core.dtypes.generic import (
+    ABCIndexClass, ABCSeries,
+    ABCDataFrame)
+from pandas.core.dtypes.missing import notnull
 from pandas.core import algorithms
 
 import pandas.compat as compat

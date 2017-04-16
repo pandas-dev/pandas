@@ -13,27 +13,28 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 
-from pandas.types.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
-from pandas.types.missing import isnull, array_equivalent
-from pandas.types.common import (_ensure_int64,
-                                 _ensure_object,
-                                 _ensure_categorical,
-                                 _ensure_platform_int,
-                                 is_integer,
-                                 is_float,
-                                 is_dtype_equal,
-                                 is_object_dtype,
-                                 is_categorical_dtype,
-                                 is_interval_dtype,
-                                 is_bool_dtype,
-                                 is_signed_integer_dtype,
-                                 is_unsigned_integer_dtype,
-                                 is_integer_dtype, is_float_dtype,
-                                 is_datetime64_any_dtype,
-                                 is_timedelta64_dtype,
-                                 needs_i8_conversion,
-                                 is_iterator, is_list_like,
-                                 is_scalar)
+from pandas.core.dtypes.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
+from pandas.core.dtypes.missing import isnull, array_equivalent
+from pandas.core.dtypes.common import (
+    _ensure_int64,
+    _ensure_object,
+    _ensure_categorical,
+    _ensure_platform_int,
+    is_integer,
+    is_float,
+    is_dtype_equal,
+    is_object_dtype,
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_bool_dtype,
+    is_signed_integer_dtype,
+    is_unsigned_integer_dtype,
+    is_integer_dtype, is_float_dtype,
+    is_datetime64_any_dtype,
+    is_timedelta64_dtype,
+    needs_i8_conversion,
+    is_iterator, is_list_like,
+    is_scalar)
 from pandas.core.common import (is_bool_indexer,
                                 _values_from_object,
                                 _asarray_tuplesafe)
@@ -44,10 +45,10 @@ from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
 from pandas.indexes.frozen import FrozenList
 import pandas.core.common as com
-import pandas.types.concat as _concat
+import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
 from pandas.core.config import get_option
@@ -830,7 +831,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        from pandas.formats.format import get_console_size, _get_adjustment
+        from pandas.io.formats.format import get_console_size, _get_adjustment
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80
@@ -1841,7 +1842,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
     def _format_with_header(self, header, na_rep='NaN', **kwargs):
         values = self.values
 
-        from pandas.formats.format import format_array
+        from pandas.io.formats.format import format_array
 
         if is_categorical_dtype(values.dtype):
             values = np.array(values)

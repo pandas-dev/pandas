@@ -15,7 +15,7 @@ import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
                                 is_one_of_factory, get_default_val,
                                 is_callable)
-from pandas.formats.format import detect_console_encoding
+from pandas.io.formats.format import detect_console_encoding
 
 #
 # options from the "display" namespace
@@ -285,7 +285,7 @@ def mpl_style_cb(key):
                   stacklevel=5)
 
     import sys
-    from pandas.tools.plotting import mpl_stylesheet
+    from pandas.plotting._style import mpl_stylesheet
     global style_backup
 
     val = cf.get_option(key)
@@ -415,7 +415,7 @@ use_inf_as_null_doc = """
 
 
 def use_inf_as_null_cb(key):
-    from pandas.types.missing import _use_inf_as_null
+    from pandas.core.dtypes.missing import _use_inf_as_null
     _use_inf_as_null(key)
 
 

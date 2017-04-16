@@ -6,9 +6,9 @@ from pandas import compat
 from pandas.compat import builtins
 import numpy as np
 
-from pandas.types.missing import isnull
-from pandas.types.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.types.common import is_object_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
 from pandas.util.validators import validate_bool_kwarg
 
 from pandas.core import common as com
@@ -725,7 +725,7 @@ pandas.DataFrame.%(name)s
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
 
-            from pandas.types.cast import is_nested_object
+            from pandas.core.dtypes.cast import is_nested_object
             from pandas import Series
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):

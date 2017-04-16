@@ -8,21 +8,24 @@ from pandas import compat
 from pandas.compat import u, lzip
 from pandas._libs import lib, algos as libalgos
 
-from pandas.types.generic import ABCSeries, ABCIndexClass, ABCCategoricalIndex
-from pandas.types.missing import isnull, notnull
-from pandas.types.cast import (maybe_infer_to_datetimelike,
-                               coerce_indexer_dtype)
-from pandas.types.dtypes import CategoricalDtype
-from pandas.types.common import (_ensure_int64,
-                                 _ensure_object,
-                                 _ensure_platform_int,
-                                 is_dtype_equal,
-                                 is_datetimelike,
-                                 is_categorical,
-                                 is_categorical_dtype,
-                                 is_integer_dtype, is_bool,
-                                 is_list_like, is_sequence,
-                                 is_scalar)
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCIndexClass, ABCCategoricalIndex)
+from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.cast import (
+    maybe_infer_to_datetimelike,
+    coerce_indexer_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.common import (
+    _ensure_int64,
+    _ensure_object,
+    _ensure_platform_int,
+    is_dtype_equal,
+    is_datetimelike,
+    is_categorical,
+    is_categorical_dtype,
+    is_integer_dtype, is_bool,
+    is_list_like, is_sequence,
+    is_scalar)
 from pandas.core.common import is_null_slice
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
@@ -1215,7 +1218,7 @@ class Categorical(PandasObject):
 
         """
         from numpy import bincount
-        from pandas.types.missing import isnull
+        from pandas.core.dtypes.missing import isnull
         from pandas.core.series import Series
         from pandas.core.index import CategoricalIndex
 
@@ -1612,7 +1615,7 @@ class Categorical(PandasObject):
         """ return the base repr for the categories """
         max_categories = (10 if get_option("display.max_categories") == 0 else
                           get_option("display.max_categories"))
-        from pandas.formats import format as fmt
+        from pandas.io.formats import format as fmt
         if len(self.categories) > max_categories:
             num = max_categories // 2
             head = fmt.format_array(self.categories[:num], None)
@@ -1660,7 +1663,7 @@ class Categorical(PandasObject):
         return u('Length: %d\n%s') % (len(self), self._repr_categories_info())
 
     def _get_repr(self, length=True, na_rep='NaN', footer=True):
-        from pandas.formats import format as fmt
+        from pandas.io.formats import format as fmt
         formatter = fmt.CategoricalFormatter(self, length=length,
                                              na_rep=na_rep, footer=footer)
         result = formatter.to_string()

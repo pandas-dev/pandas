@@ -141,7 +141,7 @@ indexing_dataframe_boolean = \
 
 setup = common_setup + """
 try:
-    import pandas.computation.expressions as expr
+    import pandas.core.computation.expressions as expr
 except:
     expr = None
 
@@ -159,7 +159,7 @@ indexing_dataframe_boolean_st = \
 
 setup = common_setup + """
 try:
-    import pandas.computation.expressions as expr
+    import pandas.core.computation.expressions as expr
 except:
     expr = None
 

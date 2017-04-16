@@ -673,7 +673,7 @@ will be the union of the categories being combined.
 
 .. ipython:: python
 
-    from pandas.types.concat import union_categoricals
+    from pandas.api.types import union_categoricals
     a = pd.Categorical(["b", "c"])
     b = pd.Categorical(["a", "b"])
     union_categoricals([a, b])

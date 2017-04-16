@@ -9,18 +9,20 @@ from pandas import compat
 from pandas.compat.numpy import function as nv
 
 import numpy as np
-from pandas.types.common import (is_integer, is_float,
-                                 is_bool_dtype, _ensure_int64,
-                                 is_scalar, is_dtype_equal,
-                                 is_list_like)
-from pandas.types.generic import (ABCIndex, ABCSeries,
-                                  ABCPeriodIndex, ABCIndexClass)
-from pandas.types.missing import isnull
+from pandas.core.dtypes.common import (
+    is_integer, is_float,
+    is_bool_dtype, _ensure_int64,
+    is_scalar, is_dtype_equal,
+    is_list_like)
+from pandas.core.dtypes.generic import (
+    ABCIndex, ABCSeries,
+    ABCPeriodIndex, ABCIndexClass)
+from pandas.core.dtypes.missing import isnull
 from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
 
-import pandas.formats.printing as printing
+import pandas.io.formats.printing as printing
 from pandas._libs import (tslib as libts, lib,
                           Timedelta, Timestamp, iNaT, NaT)
 from pandas._libs.period import Period
@@ -28,7 +30,7 @@ from pandas._libs.period import Period
 from pandas.core.index import Index
 from pandas.indexes.base import _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
-import pandas.types.concat as _concat
+import pandas.core.dtypes.concat as _concat
 import pandas.tseries.frequencies as frequencies
 
 import pandas.indexes.base as ibase

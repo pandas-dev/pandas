@@ -17,7 +17,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
                     isnull)
 
 from pandas.compat import is_platform_windows, PY3, PY35
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 tables = pytest.importorskip('tables')
 from pandas.io.pytables import TableIterator
@@ -150,20 +150,23 @@ class TestHDFStore(Base, tm.TestCase):
     def test_factory_fun(self):
         path = create_tempfile(self.path)
         try:
-            with get_store(path) as tbl:
-                raise ValueError('blah')
+            with catch_warnings(record=True):
+                with get_store(path) as tbl:
+                    raise ValueError('blah')
         except ValueError:
             pass
         finally:
             safe_remove(path)
 
         try:
-            with get_store(path) as tbl:
-                tbl['a'] = tm.makeDataFrame()
+            with catch_warnings(record=True):
+                with get_store(path) as tbl:
+                    tbl['a'] = tm.makeDataFrame()
 
-            with get_store(path) as tbl:
-                self.assertEqual(len(tbl), 1)
-                self.assertEqual(type(tbl['a']), DataFrame)
+            with catch_warnings(record=True):
+                with get_store(path) as tbl:
+                    self.assertEqual(len(tbl), 1)
+                    self.assertEqual(type(tbl['a']), DataFrame)
         finally:
             safe_remove(self.path)
 
@@ -348,7 +351,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             pandas.set_option('io.hdf.default_format', 'fixed')
             df.to_hdf(path, 'df')
-            with get_store(path) as store:
+            with HDFStore(path) as store:
                 self.assertFalse(store.get_storer('df').is_table)
             self.assertRaises(ValueError, df.to_hdf, path, 'df2', append=True)
 
