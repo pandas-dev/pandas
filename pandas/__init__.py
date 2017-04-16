@@ -79,7 +79,7 @@ lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto=False,
                         moved={'Timestamp': 'pandas.Timestamp',
                                'Timedelta': 'pandas.Timedelta',
                                'NaT': 'pandas.NaT',
-                               'infer_dtype': 'pandas.api.lib.infer_dtype'})
+                               'infer_dtype': 'pandas.api.types.infer_dtype'})
 tslib = _DeprecatedModule(deprmod='pandas.tslib',
                           moved={'Timestamp': 'pandas.Timestamp',
                                  'Timedelta': 'pandas.Timedelta',
