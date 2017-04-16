@@ -232,7 +232,7 @@ class nogil_datetime_fields(object):
 
     def setup(self):
         self.N = 100000000
-        self.dti = pd.date_range('1900-01-01', periods=self.N, freq='D')
+        self.dti = pd.date_range('1900-01-01', periods=self.N, freq='T')
         self.period = self.dti.to_period('D')
         if (not have_real_test_parallel):
             raise NotImplementedError
