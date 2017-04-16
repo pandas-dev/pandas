@@ -22,7 +22,7 @@ from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
 
-import pandas.formats.printing as printing
+import pandas.io.formats.printing as printing
 from pandas._libs import (tslib as libts, lib,
                           Timedelta, Timestamp, iNaT, NaT)
 from pandas._libs.period import Period

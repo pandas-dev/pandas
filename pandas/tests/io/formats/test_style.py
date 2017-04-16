@@ -9,7 +9,7 @@ from pandas.util.testing import TestCase
 import pandas.util.testing as tm
 
 jinja2 = pytest.importorskip('jinja2')
-from pandas.formats.style import Styler, _get_level_lengths  # noqa
+from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
 
 
 class TestStyler(TestCase):

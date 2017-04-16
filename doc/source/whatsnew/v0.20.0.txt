@@ -1331,6 +1331,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
     "pandas.hashtable", "pandas._libs.hashtable", ""
     "pandas.json", "pandas.io.json.libjson", "X"
     "pandas.parser", "pandas.io.libparsers", "X"
+    "pandas.formats", "pandas.io.formats", ""
     "pandas.sparse", "pandas.core.sparse", ""
     "pandas.types", "pandas.core.dtypes", ""
     "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""

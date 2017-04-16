@@ -55,7 +55,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.categorical import Categorical, maybe_to_categorical
 from pandas.tseries.index import DatetimeIndex
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 import pandas.core.missing as missing
 from pandas.core.sparse.array import _maybe_to_sparse, SparseArray
@@ -1614,7 +1614,7 @@ class FloatBlock(FloatOrComplexBlock):
             values[mask] = na_rep
             return values
 
-        from pandas.formats.format import FloatArrayFormatter
+        from pandas.io.formats.format import FloatArrayFormatter
         formatter = FloatArrayFormatter(values, na_rep=na_rep,
                                         float_format=float_format,
                                         decimal=decimal, quoting=quoting,
@@ -2328,7 +2328,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if slicer is not None:
             values = values[..., slicer]
 
-        from pandas.formats.format import _get_format_datetime64_from_values
+        from pandas.io.formats.format import _get_format_datetime64_from_values
         format = _get_format_datetime64_from_values(values, date_format)
 
         result = tslib.format_array_from_datetime(

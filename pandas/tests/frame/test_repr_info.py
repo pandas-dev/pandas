@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas import (DataFrame, compat, option_context)
 from pandas.compat import StringIO, lrange, u
-import pandas.formats.format as fmt
+import pandas.io.formats.format as fmt
 import pandas as pd
 
 import pandas.util.testing as tm

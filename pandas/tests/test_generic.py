@@ -16,7 +16,7 @@ from pandas import (Index, Series, DataFrame, Panel, isnull,
                     date_range, period_range, Panel4D)
 from pandas.core.index import MultiIndex
 
-import pandas.formats.printing as printing
+import pandas.io.formats.printing as printing
 
 from pandas.compat import range, zip, PY3
 from pandas import compat

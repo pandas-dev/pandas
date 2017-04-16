@@ -43,8 +43,8 @@ from pandas.core.internals import BlockManager
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.missing as missing
-from pandas.formats.printing import pprint_thing
-from pandas.formats.format import format_percentiles
+from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.format import format_percentiles
 from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv

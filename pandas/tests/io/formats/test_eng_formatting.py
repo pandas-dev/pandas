@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from pandas.compat import u
-import pandas.formats.format as fmt
+import pandas.io.formats.format as fmt
 from pandas.util import testing as tm
 
 

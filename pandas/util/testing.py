@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_sequence,
     is_list_like)
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
 import pandas.compat as compat
