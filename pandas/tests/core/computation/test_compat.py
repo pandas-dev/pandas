@@ -30,7 +30,7 @@ def test_invalid_numexpr_version(engine, parser):
     def testit():
         a, b = 1, 2  # noqa
         res = pd.eval('a + b', engine=engine, parser=parser)
-        tm.assert_equal(res, 3)
+        assert res == 3
 
     if engine == 'numexpr':
         try:

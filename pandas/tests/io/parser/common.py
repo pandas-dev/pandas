@@ -1332,9 +1332,9 @@ eight,1,2,3"""
             'C': [5, 10.]
         })
 
-        tm.assert_equal(expected.A.dtype, 'int64')
-        tm.assert_equal(expected.B.dtype, 'float')
-        tm.assert_equal(expected.C.dtype, 'float')
+        assert expected.A.dtype == 'int64'
+        assert expected.B.dtype == 'float'
+        assert expected.C.dtype == 'float'
 
         df = self.read_csv(StringIO(data), sep='|', thousands=',', decimal='.')
         tm.assert_frame_equal(df, expected)

@@ -229,9 +229,9 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
                                  tm.SubclassedSparseDataFrame(rows[:2]))
         tm.assert_sp_frame_equal(ssdf[:2],
                                  tm.SubclassedSparseDataFrame(rows[:2]))
-        tm.assert_equal(ssdf.loc[:2].testattr, "testattr")
-        tm.assert_equal(ssdf.iloc[:2].testattr, "testattr")
-        tm.assert_equal(ssdf[:2].testattr, "testattr")
+        assert ssdf.loc[:2].testattr == "testattr"
+        assert ssdf.iloc[:2].testattr == "testattr"
+        assert ssdf[:2].testattr == "testattr"
 
         tm.assert_sp_series_equal(ssdf.loc[1],
                                   tm.SubclassedSparseSeries(rows[1]),

@@ -27,9 +27,9 @@ def test_repr_binary_type():
         raw = btype(letters)
     b = compat.text_type(compat.bytes_to_str(raw))
     res = printing.pprint_thing(b, quote_strings=True)
-    tm.assert_equal(res, repr(b))
+    assert res == repr(b)
     res = printing.pprint_thing(b, quote_strings=False)
-    tm.assert_equal(res, b)
+    assert res == b
 
 
 class TestFormattBase(tm.TestCase):

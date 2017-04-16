@@ -213,7 +213,7 @@ class TestValidateKwargs(tm.TestCase):
                     validate_bool_kwarg(value, name)
 
             for value in valid_values:
-                tm.assert_equal(validate_bool_kwarg(value, name), value)
+                assert validate_bool_kwarg(value, name) == value
 
 
 class TestValidateKwargsAndArgs(tm.TestCase):
@@ -400,4 +400,4 @@ def test_numpy_errstate_is_default():
     import numpy as np
     from pandas.compat import numpy  # noqa
     # The errstate should be unchanged after that import.
-    tm.assert_equal(np.geterr(), expected)
+    assert np.geterr() == expected

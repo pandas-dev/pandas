@@ -50,7 +50,7 @@ class TestCartesianProduct(tm.TestCase):
         # empty product (empty input):
         result = cartesian_product([])
         expected = []
-        tm.assert_equal(result, expected)
+        assert result == expected
 
     def test_invalid_input(self):
         invalid_inputs = [1, [1], [1, 2], [[1], 2],
@@ -482,4 +482,4 @@ class TestToNumeric(tm.TestCase):
 
         for dtype, downcast, min_max in dtype_downcast_min_max:
             series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
-            tm.assert_equal(series.dtype, dtype)
+            assert series.dtype == dtype
