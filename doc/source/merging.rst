@@ -268,6 +268,12 @@ need to be:
    returns nothing, ``append`` here **does not** modify ``df1`` and
    returns its copy with ``df2`` appended.
 
+.. note::
+
+   Unlike `list.append` method, which appends to the original list and
+   returns nothing, ``append`` here **does not** modify ``df1`` and
+   returns its copy with ``df2`` appended.
+
 .. _merging.ignore_index:
 
 Ignoring indexes on the concatenation axis
