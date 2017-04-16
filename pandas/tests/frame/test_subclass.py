@@ -85,7 +85,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
 
         # GH10553
-        unpickled = self.round_trip_pickle(df)
+        unpickled = tm.round_trip_pickle(df)
         tm.assert_frame_equal(df, unpickled)
         self.assertEqual(df._metadata, unpickled._metadata)
         self.assertEqual(df.testattr, unpickled.testattr)

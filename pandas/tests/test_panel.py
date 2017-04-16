@@ -43,7 +43,7 @@ class PanelTests(object):
 
     def test_pickle(self):
         with catch_warnings(record=True):
-            unpickled = self.round_trip_pickle(self.panel)
+            unpickled = tm.round_trip_pickle(self.panel)
             assert_frame_equal(unpickled['ItemA'], self.panel['ItemA'])
 
     def test_rank(self):

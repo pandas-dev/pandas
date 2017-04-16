@@ -138,7 +138,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         fmt.set_eng_float_format(accuracy=0)
         repr(self.frame)
-        self.reset_display_options()
+        tm.reset_display_options()
 
     def test_show_null_counts(self):
 
@@ -1197,7 +1197,7 @@ class TestDataFrameFormatting(tm.TestCase):
         self.assertEqual(df_s, expected)
 
     def test_to_string_float_formatting(self):
-        self.reset_display_options()
+        tm.reset_display_options()
         fmt.set_option('display.precision', 5, 'display.column_space', 12,
                        'display.notebook_repr_html', False)
 
@@ -1226,7 +1226,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = ('          x\n' '0  3234.000\n' '1     0.253')
         self.assertEqual(df_s, expected)
 
-        self.reset_display_options()
+        tm.reset_display_options()
         self.assertEqual(get_option("display.precision"), 6)
 
         df = DataFrame({'x': [1e9, 0.2512]})
@@ -1310,14 +1310,14 @@ c  10  11  12  13  14\
         self.assertEqual(rs, xp)
 
     def test_to_string_left_justify_cols(self):
-        self.reset_display_options()
+        tm.reset_display_options()
         df = DataFrame({'x': [3234, 0.253]})
         df_s = df.to_string(justify='left')
         expected = ('   x       \n' '0  3234.000\n' '1     0.253')
         self.assertEqual(df_s, expected)
 
     def test_to_string_format_na(self):
-        self.reset_display_options()
+        tm.reset_display_options()
         df = DataFrame({'A': [np.nan, -1, -2.1234, 3, 4],
                         'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
         result = df.to_string()
@@ -1380,7 +1380,7 @@ c  10  11  12  13  14\
         fmt.set_option('display.notebook_repr_html', False)
         self.frame._repr_html_()
 
-        self.reset_display_options()
+        tm.reset_display_options()
 
         df = DataFrame([[1, 2], [3, 4]])
         fmt.set_option('display.show_dimensions', True)
@@ -1388,7 +1388,7 @@ c  10  11  12  13  14\
         fmt.set_option('display.show_dimensions', False)
         self.assertFalse('2 rows' in df._repr_html_())
 
-        self.reset_display_options()
+        tm.reset_display_options()
 
     def test_repr_html_wide(self):
         max_cols = get_option('display.max_columns')
@@ -1552,7 +1552,7 @@ c  10  11  12  13  14\
         repstr = self.frame._repr_html_()
         self.assertIn('class', repstr)  # info fallback
 
-        self.reset_display_options()
+        tm.reset_display_options()
 
     def test_pprint_pathological_object(self):
         """
