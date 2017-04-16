@@ -779,8 +779,8 @@ class TestIntervalTree(tm.TestCase):
                                                   np.array([0], dtype='int64'))
 
     def test_get_indexer_closed(self):
-        x = np.arange(1000, dtype='intp')
-        found = x
+        x = np.arange(1000, dtype='float64')
+        found = x.astype('intp')
         not_found = (-1 * np.ones(1000)).astype('intp')
         for leaf_size in [1, 10, 100, 10000]:
             for closed in ['left', 'right', 'both', 'neither']:
