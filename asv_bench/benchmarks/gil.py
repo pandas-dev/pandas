@@ -7,6 +7,11 @@ except ImportError:
     from io import StringIO
 
 try:
+    from pandas._libs import algos
+except ImportError:
+    from pandas import algos
+
+try:
     from pandas.util.testing import test_parallel
 
     have_real_test_parallel = True

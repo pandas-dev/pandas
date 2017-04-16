@@ -56,7 +56,7 @@ class Reindex(object):
         self.df.ix[(self.idx, self.idx)]
 
     def time_reindex_upcast(self):
-        self.df2.reindex(permutation(range(1200)))
+        self.df2.reindex(np.random.permutation(range(1200)))
 
 
 #----------------------------------------------------------------------
