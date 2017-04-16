@@ -1886,3 +1886,13 @@ Working with options
    get_option
    set_option
    option_context
+
+Testing functions
+~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   testing.assert_frame_equal
+   testing.assert_series_equal
+   testing.assert_index_equal

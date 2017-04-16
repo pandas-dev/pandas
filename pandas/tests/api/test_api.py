@@ -32,7 +32,7 @@ class TestPDApi(Base, tm.TestCase):
     # top-level sub-packages
     lib = ['api', 'compat', 'core',
            'indexes', 'errors', 'pandas',
-           'plotting', 'test', 'tools', 'tseries',
+           'plotting', 'test', 'testing', 'tools', 'tseries',
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
@@ -126,6 +126,17 @@ class TestApi(Base, tm.TestCase):
     def test_api(self):
 
         self.check(api, self.allowed)
+
+
+class TestTesting(Base):
+
+    funcs = ['assert_frame_equal', 'assert_series_equal',
+             'assert_index_equal']
+
+    def test_testing(self):
+
+        from pandas import testing
+        self.check(testing, self.funcs)
 
 
 class TestDatetoolsDeprecation(tm.TestCase):

@@ -64,6 +64,7 @@ from pandas.core.reshape import melt
 from pandas.util.print_versions import show_versions
 from pandas.io.api import *
 from pandas.util._tester import test
+import pandas.testing
 
 # extension module deprecations
 from pandas.util.depr_module import _DeprecatedModule
