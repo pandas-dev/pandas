@@ -50,7 +50,6 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
 
-from pandas.util.decorators import deprecate
 from pandas.util import libtesting
 from pandas.io.common import urlopen
 slow = pytest.mark.slow
@@ -83,6 +82,14 @@ set_testing_mode()
 
 
 class TestCase(unittest.TestCase):
+    """
+    The test case class that we originally used when using the
+    nosetests framework. Under the new pytest framework, we are
+    moving away from this class.
+
+    Do not create new test classes derived from this one. Rather,
+    they should inherit from object directly.
+    """
 
     @classmethod
     def setUpClass(cls):
