@@ -1,4 +1,7 @@
-from pandas.tseries.converter import DatetimeConverter
+try:
+    from pandas.plotting._converter import DatetimeConverter
+except ImportError:
+    from pandas.tseries.converter import DatetimeConverter
 from .pandas_vb_common import *
 import pandas as pd
 from datetime import timedelta
