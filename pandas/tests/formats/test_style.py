@@ -505,37 +505,37 @@ class TestStyler(TestCase):
         ctx = df.style.format({"a": "{:0.1f}", "b": "{0:.2%}"},
                               subset=pd.IndexSlice[0, :])._translate()
         expected = '0.1'
+        precise_11 = '1.123400'  # with the default precision
         self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][1][1]['display_value'], '1.1234')
+        self.assertEqual(ctx['body'][1][1]['display_value'], precise_11)
         self.assertEqual(ctx['body'][0][2]['display_value'], '12.34%')
 
-        raw_11 = '1.1234'
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice[0, :])._translate()
         self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][1][1]['display_value'], raw_11)
+        self.assertEqual(ctx['body'][1][1]['display_value'], precise_11)
 
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice[0, :])._translate()
         self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][1][1]['display_value'], raw_11)
+        self.assertEqual(ctx['body'][1][1]['display_value'], precise_11)
 
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice['a'])._translate()
         self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][0][2]['display_value'], '0.1234')
+        self.assertEqual(ctx['body'][0][2]['display_value'], '0.123400')
 
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice[0, 'a'])._translate()
         self.assertEqual(ctx['body'][0][1]['display_value'], expected)
-        self.assertEqual(ctx['body'][1][1]['display_value'], raw_11)
+        self.assertEqual(ctx['body'][1][1]['display_value'], precise_11)
 
         ctx = df.style.format("{:0.1f}",
                               subset=pd.IndexSlice[[0, 1], ['a']])._translate()
         self.assertEqual(ctx['body'][0][1]['display_value'], expected)
         self.assertEqual(ctx['body'][1][1]['display_value'], '1.1')
-        self.assertEqual(ctx['body'][0][2]['display_value'], '0.1234')
-        self.assertEqual(ctx['body'][1][2]['display_value'], '1.1234')
+        self.assertEqual(ctx['body'][0][2]['display_value'], '0.123400')
+        self.assertEqual(ctx['body'][1][2]['display_value'], '1.123400')
 
     def test_display_dict(self):
         df = pd.DataFrame([[.1234, .1234], [1.1234, 1.1234]],
