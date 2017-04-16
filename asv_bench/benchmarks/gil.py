@@ -1,5 +1,6 @@
 from .pandas_vb_common import *
-from pandas.core import common as com
+
+from pandas.core.algorithms import take_1d
 
 try:
     from cStringIO import StringIO
@@ -172,11 +173,11 @@ class nogil_take1d_float64(object):
 
     @test_parallel(num_threads=2)
     def take_1d_pg2_int64(self):
-        com.take_1d(self.df.int64.values, self.indexer)
+        take_1d(self.df.int64.values, self.indexer)
 
     @test_parallel(num_threads=2)
     def take_1d_pg2_float64(self):
-        com.take_1d(self.df.float64.values, self.indexer)
+        take_1d(self.df.float64.values, self.indexer)
 
 
 class nogil_take1d_int64(object):
@@ -198,11 +199,11 @@ class nogil_take1d_int64(object):
 
     @test_parallel(num_threads=2)
     def take_1d_pg2_int64(self):
-        com.take_1d(self.df.int64.values, self.indexer)
+        take_1d(self.df.int64.values, self.indexer)
 
     @test_parallel(num_threads=2)
     def take_1d_pg2_float64(self):
-        com.take_1d(self.df.float64.values, self.indexer)
+        take_1d(self.df.float64.values, self.indexer)
 
 
 class nogil_kth_smallest(object):
