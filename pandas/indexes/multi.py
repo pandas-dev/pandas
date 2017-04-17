@@ -8,7 +8,7 @@ from sys import getsizeof
 import numpy as np
 from pandas._libs import index as libindex, lib, Timestamp
 
-from pandas.compat import range, zip, lrange, lzip, map
+from pandas.compat import range, zip, lrange, lzip, map, zip_longest, ABC
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
@@ -1065,19 +1065,24 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        MultiIndex.from_tuples : Convert sequence of tuples to MultiIndex
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
+        try:
+            arrays = list(arrays)
+        except:
+            raise ValueError('arrays must be iterable/sequence')
+
         if len(arrays) == 1:
             name = None if names is None else names[0]
             return Index(arrays[0], name=name)
 
         # Check if lengths of all arrays are equal or not,
         # raise ValueError, if not
-        for i in range(1, len(arrays)):
-            if len(arrays[i]) != len(arrays[i - 1]):
-                raise ValueError('all arrays must be same length')
+        _len_first = len(arrays[0])
+        if not all(len(x) == _len_first for x in arrays):
+            raise ValueError('all arrays must be same length')
 
         from pandas.core.categorical import _factorize_from_iterables
 
@@ -1091,7 +1096,7 @@ class MultiIndex(Index):
     @classmethod
     def from_tuples(cls, tuples, sortorder=None, names=None):
         """
-        Convert list of tuples to MultiIndex
+        Convert sequence of tuples to MultiIndex
 
         Parameters
         ----------
@@ -1113,24 +1118,18 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
+        MultiIndex.from_arrays : Convert sequence of arrays to MultiIndex
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if len(tuples) == 0:
-            # I think this is right? Not quite sure...
-            raise TypeError('Cannot infer number of levels from empty list')
+        if isinstance(tuples, Index):
+            tuples = tuples._values
 
-        if isinstance(tuples, (np.ndarray, Index)):
-            if isinstance(tuples, Index):
-                tuples = tuples._values
-
-            arrays = list(lib.tuples_to_object_array(tuples).T)
-        elif isinstance(tuples, list):
-            arrays = list(lib.to_object_array_tuples(tuples).T)
+        if isinstance(tuples, np.ndarray):
+            arrays = lib.tuples_to_object_array(tuples).T
         else:
-            arrays = lzip(*tuples)
-
+            arrays = zip_longest(*tuples)
+            
         return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
