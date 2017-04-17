@@ -1,9 +1,7 @@
 from pandas import *
 import pandas as pd
-from datetime import timedelta
 from numpy.random import randn
 from numpy.random import randint
-from numpy.random import permutation
 import pandas.util.testing as tm
 import random
 import numpy as np
@@ -18,7 +16,7 @@ except ImportError:
 np.random.seed(1234)
 
 # try em until it works!
-for imp in ['pandas_tseries', 'pandas.lib', 'pandas._libs.lib']:
+for imp in ['pandas._libs.lib', 'pandas.lib', 'pandas_tseries']:
     try:
         lib = import_module(imp)
         break
