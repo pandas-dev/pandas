@@ -1122,7 +1122,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
-        self.assertIsNotNone(unpickled.offset)
+        assert unpickled.offset is not None
 
     def test_copy(self):
         cp = self.rng.copy()
@@ -1273,7 +1273,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
-        self.assertIsNotNone(unpickled.offset)
+        assert unpickled.offset is not None
 
     def test_summary(self):
         self.rng.summary()

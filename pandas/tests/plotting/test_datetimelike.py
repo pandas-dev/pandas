@@ -296,12 +296,14 @@ class TestTSPlot(TestPlotBase):
 
         fig = plt.gcf()
         plt.clf()
+
         ax = fig.add_subplot(211)
+
         ret = ser.plot()
-        self.assertIsNotNone(ret)
+        assert ret is not None
 
         for rs, xp in zip(ax.get_lines()[0].get_xdata(), ser.index):
-            self.assertEqual(rs, xp)
+            assert rs == xp
 
     def test_business_freq(self):
         import matplotlib.pyplot as plt  # noqa
