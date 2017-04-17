@@ -1363,7 +1363,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
     "pandas._testing", "pandas.util.libtesting", ""
     "pandas._window", "pandas.core.libwindow", ""
 
-- The function :func:`~pandas.api.type.union_categoricals` is now importable from ``pandas.api.types``, formerly from ```pandas.types.concat`` (:issue:`15998`)
+- The function :func:`~pandas.api.types.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
 
 .. _whatsnew_0200.privacy.deprecate_plotting:
 
