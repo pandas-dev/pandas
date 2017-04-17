@@ -43,7 +43,7 @@ from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.base as base
 from pandas.util.decorators import (Appender, Substitution, cache_readonly,
                                     deprecate, deprecate_kwarg)
-from pandas.indexes.frozen import FrozenList
+from pandas.core.indexes.frozen import FrozenList
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
@@ -1675,7 +1675,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
         if self.is_categorical():
             # if calling index is category, don't check dtype of others
-            from pandas.indexes.category import CategoricalIndex
+            from pandas.core.indexes.category import CategoricalIndex
             return CategoricalIndex._append_same_dtype(self, to_concat, name)
 
         typs = _concat.get_dtype_kinds(to_concat)

@@ -30,7 +30,7 @@ from pandas.errors import PerformanceWarning
 from pandas.core.common import _values_from_object, _maybe_box
 
 from pandas.core.index import Index, Int64Index, Float64Index
-from pandas.indexes.base import _index_shared_docs
+from pandas.core.indexes.base import _index_shared_docs
 import pandas.compat as compat
 from pandas.tseries.frequencies import (
     to_offset, get_period_alias,

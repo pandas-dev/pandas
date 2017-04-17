@@ -1,7 +1,7 @@
 import numpy as np
 from pandas.util import testing as tm
 from pandas.tests.test_base import CheckImmutable, CheckStringMixin
-from pandas.indexes.frozen import FrozenList, FrozenNDArray
+from pandas.core.indexes.frozen import FrozenList, FrozenNDArray
 from pandas.compat import u
 
 

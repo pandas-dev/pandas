@@ -12,11 +12,11 @@ from pandas.core.dtypes.common import (
 from pandas import compat
 from pandas.compat import lrange, range
 from pandas.compat.numpy import function as nv
-from pandas.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
-import pandas.indexes.base as ibase
+import pandas.core.indexes.base as ibase
 
-from pandas.indexes.numeric import Int64Index
+from pandas.core.indexes.numeric import Int64Index
 
 
 class RangeIndex(Int64Index):
