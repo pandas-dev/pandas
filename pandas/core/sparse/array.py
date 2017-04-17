@@ -36,7 +36,7 @@ import pandas.core.algorithms as algos
 import pandas.core.ops as ops
 import pandas.io.formats.printing as printing
 from pandas.util.decorators import Appender
-from pandas.indexes.base import _index_shared_docs
+from pandas.core.indexes.base import _index_shared_docs
 
 
 _sparray_doc_kwargs = dict(klass='SparseArray')

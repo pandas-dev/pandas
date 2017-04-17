@@ -16,20 +16,22 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_scalar,
     is_integer)
-from pandas.indexes.base import (Index, _ensure_index,
-                                 default_pprint, _index_shared_docs)
+from pandas.core.indexes.base import (
+    Index, _ensure_index,
+    default_pprint, _index_shared_docs)
 
 from pandas._libs import Timestamp, Timedelta
-from pandas._libs.interval import (Interval, IntervalMixin, IntervalTree,
-                                   intervals_to_interval_bounds)
+from pandas._libs.interval import (
+    Interval, IntervalMixin, IntervalTree,
+    intervals_to_interval_bounds)
 
-from pandas.indexes.multi import MultiIndex
+from pandas.core.indexes.multi import MultiIndex
 from pandas.compat.numpy import function as nv
 from pandas.core import common as com
 from pandas.util.decorators import cache_readonly, Appender
 from pandas.core.config import get_option
 
-import pandas.indexes.base as ibase
+import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',

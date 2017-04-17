@@ -35,11 +35,13 @@ from pandas.io.formats.printing import pprint_thing
 
 from pandas.core.config import get_option
 
-from pandas.indexes.base import (Index, _ensure_index,
-                                 _get_na_value, InvalidIndexError,
-                                 _index_shared_docs)
-from pandas.indexes.frozen import FrozenNDArray, FrozenList, _ensure_frozen
-import pandas.indexes.base as ibase
+from pandas.core.indexes.base import (
+    Index, _ensure_index,
+    _get_na_value, InvalidIndexError,
+    _index_shared_docs)
+from pandas.core.indexes.frozen import (
+    FrozenNDArray, FrozenList, _ensure_frozen)
+import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='MultiIndex',

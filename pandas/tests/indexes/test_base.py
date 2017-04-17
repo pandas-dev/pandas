@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 
 import pandas.util.testing as tm
-from pandas.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,

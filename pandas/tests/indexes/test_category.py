@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pandas.util.testing as tm
-from pandas.indexes.api import Index, CategoricalIndex
+from pandas.core.indexes.api import Index, CategoricalIndex
 from .common import Base
 
 from pandas.compat import range, PY3

@@ -9,9 +9,10 @@ from pandas.core.common import _asarray_tuplesafe, _values_from_object
 
 from pandas import compat
 from pandas.core import algorithms
-from pandas.indexes.base import Index, InvalidIndexError, _index_shared_docs
+from pandas.core.indexes.base import (
+    Index, InvalidIndexError, _index_shared_docs)
 from pandas.util.decorators import Appender, cache_readonly
-import pandas.indexes.base as ibase
+import pandas.core.indexes.base as ibase
 
 
 _num_index_shared_docs = dict()
