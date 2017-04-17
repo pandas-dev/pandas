@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_datetime64_ns_dtype,
     is_period_arraylike,
-    is_list_like,
     is_nested_list_like
 )
 
