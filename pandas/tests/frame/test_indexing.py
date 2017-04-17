@@ -10,6 +10,8 @@ from pandas import compat
 
 from numpy import nan
 from numpy.random import randn
+
+import pytest
 import numpy as np
 
 import pandas.core.common as com
@@ -25,7 +27,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar)
 from pandas.util.testing import (assert_almost_equal,
-                                 assert_numpy_array_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp,
@@ -40,30 +41,33 @@ from pandas.tests.frame.common import TestData
 class TestDataFrameIndexing(tm.TestCase, TestData):
 
     def test_getitem(self):
-        # slicing
+        # Slicing
         sl = self.frame[:20]
-        self.assertEqual(20, len(sl.index))
+        assert len(sl.index) == 20
 
-        # column access
-
+        # Column access
         for _, series in compat.iteritems(sl):
-            self.assertEqual(20, len(series.index))
-            self.assertTrue(tm.equalContents(series.index, sl.index))
+            assert len(series.index) == 20
+            assert tm.equalContents(series.index, sl.index)
 
         for key, _ in compat.iteritems(self.frame._series):
-            self.assertIsNotNone(self.frame[key])
+            assert self.frame[key] is not None
 
-        self.assertNotIn('random', self.frame)
+        assert 'random' not in self.frame
         with assertRaisesRegexp(KeyError, 'random'):
             self.frame['random']
 
         df = self.frame.copy()
         df['$10'] = randn(len(df))
+
         ad = randn(len(df))
         df['@awesome_domain'] = ad
-        self.assertRaises(KeyError, df.__getitem__, 'df["$10"]')
+
+        with pytest.raises(KeyError):
+            df.__getitem__('df["$10"]')
+
         res = df['@awesome_domain']
-        assert_numpy_array_equal(ad, res.values)
+        tm.assert_numpy_array_equal(ad, res.values)
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
@@ -648,10 +652,10 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         self.assertEqual(df.loc[1, 'cruft'], 0)
 
     def test_setitem_ambig(self):
-        # difficulties with mixed-type data
+        # Difficulties with mixed-type data
         from decimal import Decimal
 
-        # created as float type
+        # Created as float type
         dm = DataFrame(index=lrange(3), columns=lrange(3))
 
         coercable_series = Series([Decimal(1) for _ in range(3)],
@@ -659,17 +663,14 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         uncoercable_series = Series(['foo', 'bzr', 'baz'], index=lrange(3))
 
         dm[0] = np.ones(3)
-        self.assertEqual(len(dm.columns), 3)
-        # self.assertIsNone(dm.objects)
+        assert len(dm.columns) == 3
 
         dm[1] = coercable_series
-        self.assertEqual(len(dm.columns), 3)
-        # self.assertIsNone(dm.objects)
+        assert len(dm.columns) == 3
 
         dm[2] = uncoercable_series
-        self.assertEqual(len(dm.columns), 3)
-        # self.assertIsNotNone(dm.objects)
-        self.assertEqual(dm[2].dtype, np.object_)
+        assert len(dm.columns) == 3
+        assert dm[2].dtype == np.object_
 
     def test_setitem_clear_caches(self):
         # see gh-304

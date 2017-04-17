@@ -304,26 +304,28 @@ class TestIndexOps(Ops):
     def test_ndarray_compat_properties(self):
 
         for o in self.objs:
+            # Check that we work.
+            for p in ['shape', 'dtype', 'flags', 'T',
+                      'strides', 'itemsize', 'nbytes']:
+                assert getattr(o, p, None) is not None
 
-            # check that we work
-            for p in ['shape', 'dtype', 'flags', 'T', 'strides', 'itemsize',
-                      'nbytes']:
-                self.assertIsNotNone(getattr(o, p, None))
-            self.assertTrue(hasattr(o, 'base'))
+            assert hasattr(o, 'base')
 
-            # if we have a datetimelike dtype then needs a view to work
+            # If we have a datetime-like dtype then needs a view to work
             # but the user is responsible for that
             try:
-                self.assertIsNotNone(o.data)
+                assert o.data is not None
             except ValueError:
                 pass
 
-            self.assertRaises(ValueError, o.item)  # len > 1
-            self.assertEqual(o.ndim, 1)
-            self.assertEqual(o.size, len(o))
+            with pytest.raises(ValueError):
+                o.item()  # len > 1
 
-        self.assertEqual(Index([1]).item(), 1)
-        self.assertEqual(Series([1]).item(), 1)
+            assert o.ndim == 1
+            assert o.size == len(o)
+
+        assert Index([1]).item() == 1
+        assert Series([1]).item() == 1
 
     def test_ops(self):
         for op in ['max', 'min']:

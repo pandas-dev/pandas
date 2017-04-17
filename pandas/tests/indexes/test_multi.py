@@ -393,39 +393,46 @@ class TestMultiIndex(Base, tm.TestCase):
         levels = [['a', 'b', 'c'], [4]]
         levels2 = [[1, 2, 3], ['a']]
         labels = [[0, 1, 0, 2, 2, 0], [0, 0, 0, 0, 0, 0]]
+
         mi1 = MultiIndex(levels=levels, labels=labels)
         mi2 = MultiIndex(levels=levels2, labels=labels)
         vals = mi1.values.copy()
         vals2 = mi2.values.copy()
-        self.assertIsNotNone(mi1._tuples)
 
-        # make sure level setting works
+        assert mi1._tuples is not None
+
+        # Make sure level setting works
         new_vals = mi1.set_levels(levels2).values
-        assert_almost_equal(vals2, new_vals)
-        # non-inplace doesn't kill _tuples [implementation detail]
-        assert_almost_equal(mi1._tuples, vals)
-        # and values is still same too
-        assert_almost_equal(mi1.values, vals)
+        tm.assert_almost_equal(vals2, new_vals)
 
-        # inplace should kill _tuples
+        # Non-inplace doesn't kill _tuples [implementation detail]
+        tm.assert_almost_equal(mi1._tuples, vals)
+
+        # ...and values is still same too
+        tm.assert_almost_equal(mi1.values, vals)
+
+        # Inplace should kill _tuples
         mi1.set_levels(levels2, inplace=True)
-        assert_almost_equal(mi1.values, vals2)
+        tm.assert_almost_equal(mi1.values, vals2)
 
-        # make sure label setting works too
+        # Make sure label setting works too
         labels2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
         exp_values = np.empty((6, ), dtype=object)
         exp_values[:] = [(long(1), 'a')] * 6
-        # must be 1d array of tuples
-        self.assertEqual(exp_values.shape, (6, ))
-        new_values = mi2.set_labels(labels2).values
-        # not inplace shouldn't change
-        assert_almost_equal(mi2._tuples, vals2)
-        # should have correct values
-        assert_almost_equal(exp_values, new_values)
 
-        # and again setting inplace should kill _tuples, etc
+        # Must be 1d array of tuples
+        assert exp_values.shape == (6, )
+        new_values = mi2.set_labels(labels2).values
+
+        # Not inplace shouldn't change
+        tm.assert_almost_equal(mi2._tuples, vals2)
+
+        # Should have correct values
+        tm.assert_almost_equal(exp_values, new_values)
+
+        # ...and again setting inplace should kill _tuples, etc
         mi2.set_labels(labels2, inplace=True)
-        assert_almost_equal(mi2.values, new_values)
+        tm.assert_almost_equal(mi2.values, new_values)
 
     def test_copy_in_constructor(self):
         levels = np.array(["a", "b", "c"])

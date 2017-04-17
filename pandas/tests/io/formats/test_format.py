@@ -1546,12 +1546,12 @@ c  10  11  12  13  14\
                                {'parent_appname': 'ipython-qtconsole'}}}
 
         repstr = self.frame._repr_html_()
-        self.assertIsNotNone(repstr)
+        assert repstr is not None
 
         fmt.set_option('display.max_rows', 5, 'display.max_columns', 2)
         repstr = self.frame._repr_html_()
-        self.assertIn('class', repstr)  # info fallback
 
+        assert 'class' in repstr  # info fallback
         tm.reset_display_options()
 
     def test_pprint_pathological_object(self):
