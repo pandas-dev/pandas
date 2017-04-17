@@ -138,6 +138,13 @@ class TestDateTimeConverter(tm.TestCase):
         _assert_less(ts, ts + Milli())
         _assert_less(ts, ts + Micro(50))
 
+    def test_convert_nested(self):
+        inner = [Timestamp('2017-01-01', Timestamp('2017-01-02'))]
+        data = [inner, inner]
+        result = self.dtc.convert(data, None, None)
+        expected = [self.dtc.convert(x, None, None) for x in data]
+        assert result == expected
+
 
 class TestPeriodConverter(tm.TestCase):
 
@@ -196,3 +203,9 @@ class TestPeriodConverter(tm.TestCase):
         rs = self.pc.convert([0, 1], None, self.axis)
         xp = [0, 1]
         self.assertEqual(rs, xp)
+
+    def test_convert_nested(self):
+        data = ['2012-1-1', '2012-1-2']
+        r1 = self.pc.convert(data, None, self.axis)
+        r2 = [self.pc.convert(x, None, self.axis) for x in data]
+        assert r1 == r2

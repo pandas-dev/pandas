@@ -11,6 +11,7 @@ import re
 from datetime import datetime, date, timedelta, time
 import numpy as np
 import pytz
+import pytest
 
 import pandas as pd
 from pandas._libs import tslib, lib
@@ -64,6 +65,27 @@ def test_is_list_like():
 
     for f in fails:
         assert not inference.is_list_like(f)
+
+
+@pytest.mark.parametrize('inner', [
+    [], [1], (1, ), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
+    Series([]), Series(['a']).str, (x for x in range(5))
+])
+@pytest.mark.parametrize('outer', [
+    list, Series, np.array, tuple
+])
+def test_is_nested_list_like_passes(inner, outer):
+    result = outer([inner for _ in range(5)])
+    assert inference.is_list_like(result)
+
+
+@pytest.mark.parametrize('obj', [
+    'abc', [], [1], (1,), ['a'], 'a', {'a'},
+    [1, 2, 3], Series([1]), DataFrame({"A": [1]}),
+    ([1, 2] for _ in range(5)),
+])
+def test_is_nested_list_like_fails(obj):
+    assert not inference.is_nested_list_like(obj)
 
 
 def test_is_dict_like():

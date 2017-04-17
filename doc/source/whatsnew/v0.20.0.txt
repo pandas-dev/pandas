@@ -1565,6 +1565,7 @@ Plotting
 
 - Bug in ``DataFrame.hist`` where ``plt.tight_layout`` caused an ``AttributeError``  (use ``matplotlib >= 2.0.1``) (:issue:`9351`)
 - Bug in ``DataFrame.boxplot`` where ``fontsize`` was not applied to the tick labels on both axes (:issue:`15108`)
+- Bug in the date and time converters pandas registers with matplotlib not handling multiple dimensions (:issue:`16026`)
 - Bug in ``pd.scatter_matrix()`` could accept either ``color`` or ``c``, but not both (:issue:`14855`)
 
 Groupby/Resample/Rolling
