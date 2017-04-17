@@ -52,7 +52,9 @@ try:
     BytesIO = StringIO
     import cPickle
     import httplib
+    from inspect import signature
 except ImportError:
+    from inspect import getargspec
     import builtins
     from io import StringIO, BytesIO
     cStringIO = StringIO
