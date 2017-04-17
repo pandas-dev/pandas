@@ -3509,7 +3509,7 @@ class NDFrameGroupBy(GroupBy):
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         from pandas.core.index import _all_indexes_same
-        from pandas.core.reshape.util import to_numeric
+        from pandas.core.dtypes.cast import to_numeric
 
         if len(keys) == 0:
             return DataFrame(index=keys)

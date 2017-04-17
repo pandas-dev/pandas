@@ -10,7 +10,6 @@ import numpy as np
 from pandas.compat import range, lzip, zip, map, filter
 import pandas.compat as compat
 
-import pandas as pd
 from pandas import (Categorical, Series, DataFrame,
                     Index, MultiIndex, Timedelta)
 from pandas.core.frame import _merge_doc
