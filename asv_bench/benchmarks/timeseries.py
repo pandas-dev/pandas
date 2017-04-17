@@ -4,7 +4,6 @@ except ImportError:
     from pandas.tseries.converter import DatetimeConverter
 from .pandas_vb_common import *
 import pandas as pd
-from datetime import timedelta
 import datetime as dt
 try:
     import pandas.tseries.holiday
@@ -57,7 +56,7 @@ class DatetimeIndex(object):
         self.a = self.rng7[:50000].append(self.rng7[50002:])
 
     def time_add_timedelta(self):
-        (self.rng + timedelta(minutes=2))
+        (self.rng + dt.timedelta(minutes=2))
 
     def time_add_offset_delta(self):
         (self.rng + self.delta_offset)

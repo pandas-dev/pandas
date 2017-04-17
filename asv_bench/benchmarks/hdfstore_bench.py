@@ -31,16 +31,12 @@ class HDF5(object):
         self.remove(self.f)
 
         self.store = HDFStore(self.f)
-        self.store.put('df1', self.df)
-        self.store.put('df_mixed', self.df_mixed)
-
-        self.store.append('df5', self.df_mixed)
-        self.store.append('df7', self.df)
-
-        self.store.append('df9', self.df_wide)
-
-        self.store.append('df11', self.df_wide2)
-        self.store.append('df12', self.df2)
+        self.store.put('fixed', self.df)
+        self.store.put('fixed_mixed', self.df_mixed)
+        self.store.append('table', self.df2)
+        self.store.append('table_mixed', self.df_mixed)
+        self.store.append('table_wide', self.df_wide)
+        self.store.append('table_wide2', self.df_wide2)
 
     def teardown(self):
         self.store.close()
@@ -52,45 +48,47 @@ class HDF5(object):
             pass
 
     def time_read_store(self):
-        self.store.get('df1')
+        self.store.get('fixed')
 
     def time_read_store_mixed(self):
-        self.store.get('df_mixed')
+        self.store.get('fixed_mixed')
 
     def time_write_store(self):
-        self.store.put('df2', self.df)
+        self.store.put('fixed_write', self.df)
 
     def time_write_store_mixed(self):
-        self.store.put('df_mixed2', self.df_mixed)
+        self.store.put('fixed_mixed_write', self.df_mixed)
 
     def time_read_store_table_mixed(self):
-        self.store.select('df5')
+        self.store.select('table_mixed')
 
     def time_write_store_table_mixed(self):
-        self.store.append('df6', self.df_mixed)
+        self.store.append('table_mixed_write', self.df_mixed)
 
     def time_read_store_table(self):
-        self.store.select('df7')
+        self.store.select('table')
 
     def time_write_store_table(self):
-        self.store.append('df8', self.df)
+        self.store.append('table_write', self.df)
 
     def time_read_store_table_wide(self):
-        self.store.select('df9')
+        self.store.select('table_wide')
 
     def time_write_store_table_wide(self):
-        self.store.append('df10', self.df_wide)
+        self.store.append('table_wide_write', self.df_wide)
 
     def time_write_store_table_dc(self):
-        self.store.append('df15', self.df, data_columns=True)
+        self.store.append('table_dc_write', self.df_dc, data_columns=True)
 
     def time_query_store_table_wide(self):
-        self.store.select('df11', [('index', '>', self.df_wide2.index[10000]),
-                                   ('index', '<', self.df_wide2.index[15000])])
+        start = self.df_wide2.index[10000]
+        stop = self.df_wide2.index[15000]
+        self.store.select('table_wide', where="index > start and index < stop")
 
     def time_query_store_table(self):
-        self.store.select('df12', [('index', '>', self.df2.index[10000]),
-                                   ('index', '<', self.df2.index[15000])])
+        start = self.df2.index[10000]
+        stop = self.df2.index[15000]
+        self.store.select('table', where="index > start and index < stop")
 
 
 class HDF5Panel(object):
