@@ -1170,7 +1170,7 @@ class MultiIndex(Index):
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex
         """
         from pandas.core.categorical import _factorize_from_iterables
-        from pandas.tools.util import cartesian_product
+        from pandas.core.reshape.util import cartesian_product
 
         labels, levels = _factorize_from_iterables(iterables)
         labels = cartesian_product(labels)

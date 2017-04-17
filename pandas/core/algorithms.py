@@ -605,7 +605,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     if bins is not None:
         try:
-            from pandas.tools.tile import cut
+            from pandas.core.reshape.tile import cut
             values = Series(values)
             ii = cut(values, bins, include_lowest=True)
         except TypeError:

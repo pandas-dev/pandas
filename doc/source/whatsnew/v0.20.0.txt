@@ -1335,7 +1335,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
 
 .. csv-table::
     :header: "Previous Location", "New Location", "Deprecated"
-    :widths: 30, 30, 4
+    :widths: 30, 30, 20
 
     "pandas.lib", "pandas._libs.lib", "X"
     "pandas.tslib", "pandas._libs.tslib", "X"
@@ -1349,6 +1349,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
     "pandas.parser", "pandas.io.libparsers", "X"
     "pandas.formats", "pandas.io.formats", ""
     "pandas.sparse", "pandas.core.sparse", ""
+    "pandas.tools", "pandas.core.tools", "pandas.tools.plotting"
     "pandas.types", "pandas.core.dtypes", ""
     "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
     "pandas._join", "pandas._libs.join", ""

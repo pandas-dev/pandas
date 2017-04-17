@@ -3956,7 +3956,7 @@ it is assumed to be aliases for the column names.')
 
 
         """
-        from pandas.core.reshape import pivot
+        from pandas.core.reshape.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
 
     def stack(self, level=-1, dropna=True):
@@ -3992,7 +3992,7 @@ it is assumed to be aliases for the column names.')
         -------
         stacked : DataFrame or Series
         """
-        from pandas.core.reshape import stack, stack_multiple
+        from pandas.core.reshape.reshape import stack, stack_multiple
 
         if isinstance(level, (tuple, list)):
             return stack_multiple(self, level, dropna=dropna)
@@ -4057,7 +4057,7 @@ it is assumed to be aliases for the column names.')
         -------
         unstacked : DataFrame or Series
         """
-        from pandas.core.reshape import unstack
+        from pandas.core.reshape.reshape import unstack
         return unstack(self, level, fill_value)
 
     _shared_docs['melt'] = ("""
@@ -4159,7 +4159,7 @@ it is assumed to be aliases for the column names.')
                    other='melt'))
     def melt(self, id_vars=None, value_vars=None, var_name=None,
              value_name='value', col_level=None):
-        from pandas.core.reshape import melt
+        from pandas.core.reshape.reshape import melt
         return melt(self, id_vars=id_vars, value_vars=value_vars,
                     var_name=var_name, value_name=value_name,
                     col_level=col_level)
@@ -4609,7 +4609,7 @@ it is assumed to be aliases for the column names.')
             if (self.columns.get_indexer(other.columns) >= 0).all():
                 other = other.loc[:, self.columns]
 
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.concat import concat
         if isinstance(other, (list, tuple)):
             to_concat = [self] + other
         else:
@@ -4741,8 +4741,8 @@ it is assumed to be aliases for the column names.')
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
-        from pandas.tools.merge import merge
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.merge import merge
+        from pandas.core.reshape.concat import concat
 
         if isinstance(other, Series):
             if other.name is None:
@@ -4786,7 +4786,7 @@ it is assumed to be aliases for the column names.')
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=False,
               suffixes=('_x', '_y'), copy=True, indicator=False):
-        from pandas.tools.merge import merge
+        from pandas.core.reshape.merge import merge
         return merge(self, right, how=how, on=on, left_on=left_on,
                      right_on=right_on, left_index=left_index,
                      right_index=right_index, sort=sort, suffixes=suffixes,
@@ -4846,7 +4846,7 @@ it is assumed to be aliases for the column names.')
         Series.round
 
         """
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.concat import concat
 
         def _dict_round(df, decimals):
             for col, vals in df.iteritems():
@@ -5523,7 +5523,7 @@ it is assumed to be aliases for the column names.')
         """
         if isinstance(values, dict):
             from collections import defaultdict
-            from pandas.tools.concat import concat
+            from pandas.core.reshape.concat import concat
             values = defaultdict(list, values)
             return concat((self.iloc[:, [i]].isin(values[col])
                            for i, col in enumerate(self.columns)), axis=1)

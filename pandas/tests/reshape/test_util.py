@@ -10,7 +10,7 @@ from numpy import iinfo
 import pandas as pd
 from pandas import (date_range, Index, _np_version_under1p9)
 import pandas.util.testing as tm
-from pandas.tools.util import cartesian_product, to_numeric
+from pandas.core.reshape.util import cartesian_product, to_numeric
 
 CURRENT_LOCALE = locale.getlocale()
 LOCALE_OVERRIDE = os.environ.get('LOCALE_OVERRIDE', None)

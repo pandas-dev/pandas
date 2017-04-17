@@ -1557,7 +1557,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
 
         """
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
             to_concat = [self] + to_append
@@ -2035,7 +2035,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         -------
         unstacked : DataFrame
         """
-        from pandas.core.reshape import unstack
+        from pandas.core.reshape.reshape import unstack
         return unstack(self, level, fill_value)
 
     # ----------------------------------------------------------------------

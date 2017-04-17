@@ -2584,7 +2584,7 @@ class TestLongPanel(tm.TestCase):
                               wp.major_axis[2])
 
     def test_axis_dummies(self):
-        from pandas.core.reshape import make_axis_dummies
+        from pandas.core.reshape.reshape import make_axis_dummies
 
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
         self.assertEqual(len(minor_dummies.columns),
@@ -2604,7 +2604,7 @@ class TestLongPanel(tm.TestCase):
         # TODO: test correctness
 
     def test_get_dummies(self):
-        from pandas.core.reshape import get_dummies, make_axis_dummies
+        from pandas.core.reshape.reshape import get_dummies, make_axis_dummies
 
         self.panel['Label'] = self.panel.index.labels[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
@@ -2655,7 +2655,7 @@ class TestLongPanel(tm.TestCase):
 
     def test_pivot(self):
         with catch_warnings(record=True):
-            from pandas.core.reshape import _slow_pivot
+            from pandas.core.reshape.reshape import _slow_pivot
 
             one, two, three = (np.array([1, 2, 3, 4, 5]),
                                np.array(['a', 'b', 'c', 'd', 'e']),
