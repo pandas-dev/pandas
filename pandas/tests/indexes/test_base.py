@@ -1892,6 +1892,30 @@ class TestMixedIntIndex(Base, tm.TestCase):
         self.assertEqual(idx3.name, 'NewName')
         self.assertEqual(idx3.names, ['NewName'])
 
+    def test_copy_name2(self):
+        # Check that adding a "name" parameter to the copy is honored
+        # GH14302
+        idx = pd.Index([1, 2], name='MyName')
+        idx1 = idx.copy()
+
+        self.assertTrue(idx.equals(idx1))
+        self.assertEqual(idx.name, 'MyName')
+        self.assertEqual(idx1.name, 'MyName')
+
+        idx2 = idx.copy(name='NewName')
+
+        self.assertTrue(idx.equals(idx2))
+        self.assertEqual(idx.name, 'MyName')
+        self.assertEqual(idx2.name, 'NewName')
+
+        idx3 = idx.copy(names=['NewName'])
+
+        self.assertTrue(idx.equals(idx3))
+        self.assertEqual(idx.name, 'MyName')
+        self.assertEqual(idx.names, ['MyName'])
+        self.assertEqual(idx3.name, 'NewName')
+        self.assertEqual(idx3.names, ['NewName'])
+
     def test_union_base(self):
         idx = self.create_index()
         first = idx[3:]
