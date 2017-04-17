@@ -275,6 +275,30 @@ class TestMultiIndexBasic(tm.TestCase):
             xp = mi_int.ix[4]
         tm.assert_frame_equal(rs, xp)
 
+    def test_getitem_partial_int(self):
+        # GH 12416
+        # with single item
+        l1 = [10, 20]
+        l2 = ['a', 'b']
+        df = DataFrame(index=range(2),
+                       columns=pd.MultiIndex.from_product([l1, l2]))
+        expected = DataFrame(index=range(2),
+                             columns=l2)
+        result = df[20]
+        tm.assert_frame_equal(result, expected)
+
+        # with list
+        expected = DataFrame(index=range(2),
+                             columns=pd.MultiIndex.from_product([l1[1:], l2]))
+        result = df[[20]]
+        tm.assert_frame_equal(result, expected)
+
+        # missing item:
+        with tm.assertRaisesRegexp(KeyError, '1'):
+            df[1]
+        with tm.assertRaisesRegexp(KeyError, "'\[1\] not in index'"):
+            df[[1]]
+
     def test_loc_multiindex_indexer_none(self):
 
         # GH6788
