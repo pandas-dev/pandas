@@ -291,17 +291,15 @@ def is_nested_list_like(obj):
 
     Examples
     --------
-    >>> is_list_like([1, 2, 3])
+    >>> is_nested_list_like([[1, 2, 3]])
     True
-    >>> is_list_like({1, 2, 3})
+    >>> is_nested_list_like([{1, 2, 3}, {1, 2, 3}])
     True
-    >>> is_list_like(datetime(2017, 1, 1))
+    >>> is_nested_list_like(["foo"])
     False
-    >>> is_list_like("foo")
+    >>> is_nested_list_like([])
     False
-    >>> is_list_like(1)
-    False
-    >>> is_list_like([])
+    >>> is_nested_list_like([[1, 2, 3], 1])
     False
 
     Notes
@@ -316,7 +314,7 @@ def is_nested_list_like(obj):
     is_list_like
     """
     return (is_list_like(obj) and hasattr(obj, '__len__') and
-            len(obj) and all(is_list_like(item) for item in obj))
+            len(obj) > 0 and all(is_list_like(item) for item in obj))
 
 
 def is_dict_like(obj):
