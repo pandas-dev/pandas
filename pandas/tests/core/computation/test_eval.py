@@ -1308,16 +1308,17 @@ class TestOperationsNumExprPandas(tm.TestCase):
         assert_series_equal(result, expected)
 
     def assignment_not_inplace(self):
-        # GH 9297
+        # see gh-9297
         df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
 
         actual = df.eval('c = a + b', inplace=False)
-        self.assertIsNotNone(actual)
+        assert actual is not None
+
         expected = df.copy()
         expected['c'] = expected['a'] + expected['b']
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
-        # default for inplace will change
+        # Default for inplace will change
         with tm.assert_produces_warnings(FutureWarning):
             df.eval('c = a + b')
 

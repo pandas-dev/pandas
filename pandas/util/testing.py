@@ -1060,11 +1060,6 @@ def assertIsNone(expr, msg=''):
     return assertIs(expr, None, msg)
 
 
-def assertIsNotNone(expr, msg=''):
-    """Checks that 'expr' is not None"""
-    assert expr is not None, msg
-
-
 def assertIsInstance(obj, cls, msg=''):
     """Test that obj is an instance of cls
     (which can be a class or a tuple of classes,

@@ -170,13 +170,15 @@ class TestTableSchemaRepr(tm.TestCase):
         df = pd.DataFrame({"A": [1, 2]})
         with pd.option_context("display.html.table_schema", True):
             result = df._repr_table_schema_()
-        self.assertIsNotNone(result)
+
+        assert result is not None
 
     def test_config_default_off(self):
         df = pd.DataFrame({"A": [1, 2]})
         with pd.option_context("display.html.table_schema", False):
             result = df._repr_table_schema_()
-        self.assertIsNone(result)
+
+        assert result is None
 
 
 # TODO: fix this broken test

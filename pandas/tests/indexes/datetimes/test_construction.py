@@ -53,15 +53,14 @@ class TestDatetimeIndex(tm.TestCase):
             i.tz_localize(None).asi8, dtype=i.dtype, tz='US/Pacific'))
 
     def test_construction_index_with_mixed_timezones(self):
-        # GH 11488
-        # no tz results in DatetimeIndex
+        # gh-11488: no tz results in DatetimeIndex
         result = Index([Timestamp('2011-01-01'),
                         Timestamp('2011-01-02')], name='idx')
         exp = DatetimeIndex([Timestamp('2011-01-01'),
                              Timestamp('2011-01-02')], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNone(result.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is None
 
         # same tz results in DatetimeIndex
         result = Index([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
@@ -70,10 +69,10 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex(
             [Timestamp('2011-01-01 10:00'), Timestamp('2011-01-02 10:00')
              ], tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
         # same tz results in DatetimeIndex (DST)
         result = Index([Timestamp('2011-01-01 10:00', tz='US/Eastern'),
@@ -82,20 +81,20 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00'),
                              Timestamp('2011-08-01 10:00')],
                             tz='US/Eastern', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
-        # different tz results in Index(dtype=object)
+        # Different tz results in Index(dtype=object)
         result = Index([Timestamp('2011-01-01 10:00'),
                         Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                        name='idx')
         exp = Index([Timestamp('2011-01-01 10:00'),
                      Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                     dtype='object', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertFalse(isinstance(result, DatetimeIndex))
+        tm.assert_index_equal(result, exp, exact=True)
+        assert not isinstance(result, DatetimeIndex)
 
         result = Index([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                         Timestamp('2011-01-02 10:00', tz='US/Eastern')],
@@ -103,37 +102,37 @@ class TestDatetimeIndex(tm.TestCase):
         exp = Index([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                      Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                     dtype='object', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertFalse(isinstance(result, DatetimeIndex))
+        tm.assert_index_equal(result, exp, exact=True)
+        assert not isinstance(result, DatetimeIndex)
 
         # length = 1
         result = Index([Timestamp('2011-01-01')], name='idx')
         exp = DatetimeIndex([Timestamp('2011-01-01')], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNone(result.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is None
 
         # length = 1 with tz
         result = Index(
             [Timestamp('2011-01-01 10:00', tz='Asia/Tokyo')], name='idx')
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00')], tz='Asia/Tokyo',
                             name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
     def test_construction_index_with_mixed_timezones_with_NaT(self):
-        # GH 11488
+        # see gh-11488
         result = Index([pd.NaT, Timestamp('2011-01-01'),
                         pd.NaT, Timestamp('2011-01-02')], name='idx')
         exp = DatetimeIndex([pd.NaT, Timestamp('2011-01-01'),
                              pd.NaT, Timestamp('2011-01-02')], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNone(result.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is None
 
-        # same tz results in DatetimeIndex
+        # Same tz results in DatetimeIndex
         result = Index([pd.NaT, Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                         pd.NaT, Timestamp('2011-01-02 10:00',
                                           tz='Asia/Tokyo')],
@@ -141,10 +140,10 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([pd.NaT, Timestamp('2011-01-01 10:00'),
                              pd.NaT, Timestamp('2011-01-02 10:00')],
                             tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
         # same tz results in DatetimeIndex (DST)
         result = Index([Timestamp('2011-01-01 10:00', tz='US/Eastern'),
@@ -154,10 +153,10 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00'), pd.NaT,
                              Timestamp('2011-08-01 10:00')],
                             tz='US/Eastern', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
         # different tz results in Index(dtype=object)
         result = Index([pd.NaT, Timestamp('2011-01-01 10:00'),
@@ -167,8 +166,8 @@ class TestDatetimeIndex(tm.TestCase):
         exp = Index([pd.NaT, Timestamp('2011-01-01 10:00'),
                      pd.NaT, Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                     dtype='object', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertFalse(isinstance(result, DatetimeIndex))
+        tm.assert_index_equal(result, exp, exact=True)
+        assert not isinstance(result, DatetimeIndex)
 
         result = Index([pd.NaT, Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                         pd.NaT, Timestamp('2011-01-02 10:00',
@@ -176,23 +175,24 @@ class TestDatetimeIndex(tm.TestCase):
         exp = Index([pd.NaT, Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                      pd.NaT, Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                     dtype='object', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertFalse(isinstance(result, DatetimeIndex))
+        tm.assert_index_equal(result, exp, exact=True)
+        assert not isinstance(result, DatetimeIndex)
 
         # all NaT
         result = Index([pd.NaT, pd.NaT], name='idx')
         exp = DatetimeIndex([pd.NaT, pd.NaT], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNone(result.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is None
 
         # all NaT with tz
         result = Index([pd.NaT, pd.NaT], tz='Asia/Tokyo', name='idx')
         exp = DatetimeIndex([pd.NaT, pd.NaT], tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
     def test_construction_dti_with_mixed_timezones(self):
         # GH 11488 (not changed, added explicit tests)

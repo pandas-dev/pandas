@@ -510,18 +510,19 @@ class CheckIndexing(object):
     def test_xs(self):
         l1 = self.panel4d.xs('l1', axis=0)
         expected = self.panel4d['l1']
-        assert_panel_equal(l1, expected)
+        tm.assert_panel_equal(l1, expected)
 
-        # view if possible
+        # View if possible
         l1_view = self.panel4d.xs('l1', axis=0)
         l1_view.values[:] = np.nan
-        self.assertTrue(np.isnan(self.panel4d['l1'].values).all())
+        assert np.isnan(self.panel4d['l1'].values).all()
 
-        # mixed-type
+        # Mixed-type
         self.panel4d['strings'] = 'foo'
         with catch_warnings(record=True):
             result = self.panel4d.xs('D', axis=3)
-        self.assertIsNotNone(result.is_copy)
+
+        assert result.is_copy is not None
 
     def test_getitem_fancy_labels(self):
         with catch_warnings(record=True):

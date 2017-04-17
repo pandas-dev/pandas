@@ -411,12 +411,12 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         masked = rng[mask]
         expected = rng[10:20]
-        self.assertIsNotNone(expected.freq)
+        assert expected.freq is not None
         assert_range_equal(masked, expected)
 
         mask[22] = True
         masked = rng[mask]
-        self.assertIsNone(masked.freq)
+        assert masked.freq is None
 
     def test_to_datetime_unit(self):
 
