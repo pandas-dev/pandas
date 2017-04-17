@@ -70,9 +70,9 @@ class Styler(object):
 
     Attributes
     ----------
-    env
-    template
-    loader
+    env : Jinja2 Environment
+    template : Jinja2 Template
+    loader : Jinja2 Loader
 
     Notes
     -----
@@ -107,30 +107,12 @@ class Styler(object):
     --------
     pandas.DataFrame.style
     """
-    _loader = PackageLoader("pandas", "io/formats/templates")
-    _env = Environment(
-        loader=_loader,
+    loader = PackageLoader("pandas", "io/formats/templates")
+    env = Environment(
+        loader=loader,
         trim_blocks=True,
     )
-    _template = _env.get_template("html.tpl")
-
-    @property
-    def template(self):
-        """Jinja2 template
-
-        See :ref:`see the example notebook <style.ipynb#Subclassing>` for more
-        """
-        return self._template
-
-    @property
-    def loader(self):
-        """Jinja2 Loader to load the templates shipped with pandas"""
-        return self._loader
-
-    @property
-    def env(self):
-        """Jinja2 Environment with the loader for pandas' templates"""
-        return self._env
+    template = env.get_template("html.tpl")
 
     def __init__(self, data, precision=None, table_styles=None, uuid=None,
                  caption=None, table_attributes=None):
