@@ -4,7 +4,8 @@ import pytest
 import numpy as np
 
 from pandas import (Interval, IntervalIndex, Index, isnull,
-                    interval_range, Timestamp, Timedelta)
+                    interval_range, Timestamp, Timedelta,
+                    compat)
 from pandas._libs.interval import IntervalTree
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
@@ -778,6 +779,8 @@ class TestIntervalTree(tm.TestCase):
                     self.assert_numpy_array_equal(tree.get_loc(p),
                                                   np.array([0], dtype='int64'))
 
+    @pytest.mark.skipif(compat.is_platform_32bit(),
+                        reason="int type mistmach on 32bit")
     def test_get_indexer_closed(self):
         x = np.arange(1000, dtype='float64')
         found = x.astype('intp')
