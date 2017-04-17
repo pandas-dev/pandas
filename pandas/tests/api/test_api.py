@@ -30,8 +30,7 @@ class TestPDApi(Base, tm.TestCase):
     ignored = ['tests', 'locale', 'conftest']
 
     # top-level sub-packages
-    lib = ['api', 'compat', 'core',
-           'indexes', 'errors', 'pandas',
+    lib = ['api', 'compat', 'core', 'errors', 'pandas',
            'plotting', 'test', 'testing', 'tools', 'tseries',
            'util', 'options', 'io']
 

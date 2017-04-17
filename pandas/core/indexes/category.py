@@ -16,10 +16,10 @@ from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.util.decorators import Appender, cache_readonly
 from pandas.core.config import get_option
-from pandas.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs
 import pandas.core.base as base
 import pandas.core.missing as missing
-import pandas.indexes.base as ibase
+import pandas.core.indexes.base as ibase
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))

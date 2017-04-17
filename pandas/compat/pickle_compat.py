@@ -59,9 +59,9 @@ _class_locations_map = {
 
     # 15477
     ('pandas.core.base', 'FrozenNDArray'):
-        ('pandas.indexes.frozen', 'FrozenNDArray'),
+        ('pandas.core.indexes.frozen', 'FrozenNDArray'),
     ('pandas.core.base', 'FrozenList'):
-        ('pandas.indexes.frozen', 'FrozenList'),
+        ('pandas.core.indexes.frozen', 'FrozenList'),
 
     # 10890
     ('pandas.core.series', 'TimeSeries'):
@@ -84,7 +84,17 @@ _class_locations_map = {
     ('pandas.sparse.series', 'SparseSeries'):
         ('pandas.core.sparse.series', 'SparseSeries'),
     ('pandas.sparse.frame', 'SparseDataFrame'):
-        ('pandas.core.sparse.frame', 'SparseDataFrame')
+        ('pandas.core.sparse.frame', 'SparseDataFrame'),
+    ('pandas.indexes.base', '_new_Index'):
+        ('pandas.core.indexes.base', '_new_Index'),
+    ('pandas.indexes.base', 'Index'):
+        ('pandas.core.indexes.base', 'Index'),
+    ('pandas.indexes.numeric', 'Int64Index'):
+        ('pandas.core.indexes.numeric', 'Int64Index'),
+    ('pandas.indexes.range', 'RangeIndex'):
+        ('pandas.core.indexes.range', 'RangeIndex'),
+    ('pandas.indexes.multi', 'MultiIndex'):
+        ('pandas.core.indexes.multi', 'MultiIndex')
 }
 
 

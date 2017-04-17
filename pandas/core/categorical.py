@@ -2128,7 +2128,7 @@ def _factorize_from_iterable(values):
         If `values` has a categorical dtype, then `categories` is
         a CategoricalIndex keeping the categories and order of `values`.
     """
-    from pandas.indexes.category import CategoricalIndex
+    from pandas.core.indexes.category import CategoricalIndex
 
     if not is_list_like(values):
         raise TypeError("Input must be list-like")

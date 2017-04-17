@@ -23,7 +23,7 @@ from pandas.compat import u
 from pandas.tseries.frequencies import to_offset
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.base import _shared_docs
-from pandas.indexes.base import _index_shared_docs
+from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg

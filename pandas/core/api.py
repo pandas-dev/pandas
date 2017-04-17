@@ -12,7 +12,7 @@ from pandas.io.formats.format import set_eng_float_format
 from pandas.core.index import (Index, CategoricalIndex, Int64Index,
                                UInt64Index, RangeIndex, Float64Index,
                                MultiIndex, IntervalIndex)
-from pandas.indexes.interval import Interval, interval_range
+from pandas.core.indexes.interval import Interval, interval_range
 
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame

@@ -419,7 +419,7 @@ class Base(object):
             # pandas compatibility input validation - the
             # rest already perform separate (or no) such
             # validation via their 'values' attribute as
-            # defined in pandas.indexes/base.py - they
+            # defined in pandas.core.indexes/base.py - they
             # cannot be changed at the moment due to
             # backwards compatibility concerns
             if isinstance(type(ind), (CategoricalIndex, RangeIndex)):

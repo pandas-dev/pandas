@@ -28,12 +28,12 @@ from pandas._libs import (tslib as libts, lib,
 from pandas._libs.period import Period
 
 from pandas.core.index import Index
-from pandas.indexes.base import _index_shared_docs
+from pandas.core.indexes.base import _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.tseries.frequencies as frequencies
 
-import pandas.indexes.base as ibase
+import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 

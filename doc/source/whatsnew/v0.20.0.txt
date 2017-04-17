@@ -1344,6 +1344,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
     "pandas.index", "pandas._libs.index", ""
     "pandas.algos", "pandas._libs.algos", ""
     "pandas.hashtable", "pandas._libs.hashtable", ""
+    "pandas.indexes", "pandas.core.indexes", ""
     "pandas.json", "pandas.io.json.libjson", "X"
     "pandas.parser", "pandas.io.libparsers", "X"
     "pandas.formats", "pandas.io.formats", ""
