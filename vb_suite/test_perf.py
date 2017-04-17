@@ -113,6 +113,9 @@ parser.add_argument('-r', '--regex',
                     dest='regex',
                     default="",
                     help='Regex pat, only tests whose name matches the regext will be run.')
+parser.add_argument('-e', '--extra-benchmarks', metavar='EXTRA',
+                    dest='extras', action='append',
+                    help='Extra modules to collect benchmarks from')
 parser.add_argument('-s', '--seed',
                     metavar="SEED",
                     dest='seed',
@@ -442,6 +445,7 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
     if args.stats :
         try:
             pd.options.display.expand_frame_repr=False
+            pd.set_option('display.max_rows', None)
         except:
             pass
         stats_footer += str(df.T.describe().T) + "\n\n"
@@ -461,10 +465,7 @@ def print_report(df,h_head=None,h_msg="",h_baseline=None,b_msg=""):
             args.log_file)
 
 
-
 def main():
-    from suite import benchmarks
-
     if not args.log_file:
         args.log_file = os.path.abspath(
             os.path.join(REPO_PATH, 'vb_suite.log'))
@@ -509,7 +510,14 @@ def main():
     # surprises
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    benchmarks = [x for x in benchmarks if re.search(args.regex,x.name)]
+    from suite import discover_benchmarks, benchmarks
+
+    benchmarks = [b for b in benchmarks]
+    if args.extras:
+        benchmarks.extend(discover_benchmarks(args.extras, return_as='list'))
+
+    benchmarks = [bm for bm in benchmarks
+                  if re.search(args.regex, bm.name)]
 
     for b in benchmarks:
         b.repeat = args.repeats
