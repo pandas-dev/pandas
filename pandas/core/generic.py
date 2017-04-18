@@ -645,6 +645,9 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace : boolean, default False
             Whether to return a new %(klass)s. If True then value of copy is
             ignored.
+        level : int or level name, default None
+            In case of a MultiIndex, only rename labels in the specified
+            level.
 
         Returns
         -------
@@ -701,6 +704,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
+        level = kwargs.pop('level', None)
 
         if kwargs:
             raise TypeError('rename() got an unexpected keyword '
@@ -734,7 +738,10 @@ class NDFrame(PandasObject, SelectionMixin):
             f = _get_rename_function(v)
 
             baxis = self._get_block_manager_axis(axis)
-            result._data = result._data.rename_axis(f, axis=baxis, copy=copy)
+            if level is not None:
+                level = self.axes[axis]._get_level_number(level)
+            result._data = result._data.rename_axis(f, axis=baxis, copy=copy,
+                                                    level=level)
             result._clear_item_cache()
 
         if inplace:
