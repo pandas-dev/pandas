@@ -261,12 +261,18 @@ def _wrap_results(result, dtype):
 
 def nanany(values, axis=None, skipna=True):
     values, mask, dtype, _ = _get_values(values, skipna, False, copy=skipna)
-    return values.any(axis)
+    if is_object_dtype(dtype):
+        return any(values)
+    else:
+        return values.any(axis)
 
 
 def nanall(values, axis=None, skipna=True):
     values, mask, dtype, _ = _get_values(values, skipna, True, copy=skipna)
-    return values.all(axis)
+    if is_object_dtype(dtype):
+        return all(values)
+    else:
+        return values.all(axis)
 
 
 @disallow('M8')

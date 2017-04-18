@@ -674,6 +674,7 @@ Bug Fixes
 - Bug in ``.pivot_table`` when ``dropna=False`` where table index/column names disappear (:issue:`12133`)
 - Bug in ``pd.crosstab()`` when ``margins=True`` and ``dropna=False`` which raised (:issue:`12642`)
 
+- Bug in ``Series.any`` and ``Series.all`` for dtype object (:issue:`12863`)
 - Bug in ``Series.name`` when ``name`` attribute can be a hashable type (:issue:`12610`)
 
 - Bug in ``.describe()`` resets categorical columns information (:issue:`11558`)

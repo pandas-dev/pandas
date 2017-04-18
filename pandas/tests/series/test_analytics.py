@@ -649,16 +649,31 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         # Alternative types, with implicit 'object' dtype.
         s = Series(['abc', True])
-        self.assertEqual('abc', s.any())  # 'abc' || True => 'abc'
+        self.assertEqual(True, s.any())
+        self.assertEqual(True, s.all())
+        s = Series(['abc', False])
+        self.assertEqual(True, s.any())
+        self.assertEqual(False, s.all())
 
     def test_all_any_params(self):
         # Check skipna, with implicit 'object' dtype.
         s1 = Series([np.nan, True])
         s2 = Series([np.nan, False])
-        self.assertTrue(s1.all(skipna=False))  # nan && True => True
-        self.assertTrue(s1.all(skipna=True))
-        self.assertTrue(np.isnan(s2.any(skipna=False)))  # nan || False => nan
+        self.assertTrue(s1.all(skipna=False))
+        self.assertFalse(s2.all(skipna=False))
+        self.assertTrue(s2.any(skipna=False))
         self.assertFalse(s2.any(skipna=True))
+        self.assertFalse(s2.all(skipna=True))
+        s1 = Series([None, True])
+        s2 = Series([None, False])
+        self.assertFalse(s1.all(skipna=False))
+        self.assertTrue(s1.any(skipna=False))
+        self.assertFalse(s2.all(skipna=False))
+        self.assertFalse(s2.any(skipna=False))
+        self.assertTrue(s1.all(skipna=True))
+        self.assertFalse(s2.all(skipna=True))
+        self.assertFalse(s2.any(skipna=False))
+
 
         # Check level.
         s = pd.Series([False, False, True, True, False, True],
