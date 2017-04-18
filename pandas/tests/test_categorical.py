@@ -2088,7 +2088,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         a = pd.Series(pd.Categorical(["a", "b"] * 25))
         exp = u("0     a\n1     b\n" + "     ..\n" + "48    a\n49    b\n" +
-                "dtype: category\nCategories (2, object): [a, b]")
+                "Length: 50, dtype: category\nCategories (2, object): [a, b]")
         with option_context("display.max_rows", 5):
             self.assertEqual(exp, repr(a))
 

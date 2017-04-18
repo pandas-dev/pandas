@@ -2093,6 +2093,7 @@ class TestSeriesFormatting(tm.TestCase):
         self.assertEqual(getndots(strrepr), 3)
 
     def test_show_dimensions(self):
+        # gh-7117
         s = Series(range(5))
 
         assert 'Length' not in repr(s)
