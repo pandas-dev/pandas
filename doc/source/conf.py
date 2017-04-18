@@ -231,7 +231,7 @@ html_static_path = ['_static']
 moved_api_pages = [
     'pandas.core.common.isnull', 'pandas.core.common.notnull', 'pandas.core.reshape.get_dummies',
     'pandas.tools.merge.concat', 'pandas.tools.merge.merge', 'pandas.tools.pivot.pivot_table',
-    'pandas.core.tools.datetimes.to_datetime', 'pandas.io.clipboard.read_clipboard', 'pandas.io.excel.ExcelFile.parse',
+    'pandas.tseries.tools.to_datetime', 'pandas.io.clipboard.read_clipboard', 'pandas.io.excel.ExcelFile.parse',
     'pandas.io.excel.read_excel', 'pandas.io.html.read_html', 'pandas.io.json.read_json',
     'pandas.io.parsers.read_csv', 'pandas.io.parsers.read_fwf', 'pandas.io.parsers.read_table',
     'pandas.io.pickle.read_pickle', 'pandas.io.pytables.HDFStore.append', 'pandas.io.pytables.HDFStore.get',
