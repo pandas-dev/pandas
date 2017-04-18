@@ -518,6 +518,8 @@ Other Enhancements
 - :method:`~MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
 - ``pd.read_csv()`` will now raise a ``ParserError`` error whenever any parsing error occurs (:issue:`15913`, :issue:`15925`)
 - ``pd.read_csv()`` now supports the ``error_bad_lines`` and ``warn_bad_lines`` arguments for the Python parser (:issue:`15925`)
+- The ``display.show_dimensions`` option can now also be used to specify
+  whether the length of a ``Series`` should be shown in its repr (:issue:`7117`).
 - ``parallel_coordinates()`` has gained a ``sort_labels`` keyword arg that sorts class labels and the colours assigned to them (:issue:`15908`)
 
 
@@ -1560,6 +1562,7 @@ I/O
 - Bug in ``pd.read_hdf()`` passing a ``Timestamp`` to the ``where`` parameter with a non date column (:issue:`15492`)
 - Bug in ``DataFrame.to_stata()`` and ``StataWriter`` which produces incorrectly formatted files to be produced for some locales (:issue:`13856`)
 - Bug in ``StataReader`` and ``StataWriter`` which allows invalid encodings (:issue:`15723`)
+- Bug in the ``Series`` repr not showing the length when the output was truncated (:issue:`15962`).
 
 Plotting
 ^^^^^^^^
