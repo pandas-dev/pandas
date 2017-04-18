@@ -9,7 +9,8 @@ import numpy as np
 
 from pandas.util.testing import assert_frame_equal
 
-from pandas.core.reshape import (melt, lreshape, get_dummies, wide_to_long)
+from pandas.core.reshape.reshape import (
+    melt, lreshape, get_dummies, wide_to_long)
 import pandas.util.testing as tm
 from pandas.compat import range, u
 
@@ -662,7 +663,7 @@ class TestMakeAxisDummies(tm.TestCase):
             expected = DataFrame([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
                                  index=midx, columns=cidx)
 
-            from pandas.core.reshape import make_axis_dummies
+            from pandas.core.reshape.reshape import make_axis_dummies
             result = make_axis_dummies(df)
             tm.assert_frame_equal(result, expected)
 

@@ -1353,6 +1353,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
     "pandas.parser", "pandas.io.libparsers", "X"
     "pandas.formats", "pandas.io.formats", ""
     "pandas.sparse", "pandas.core.sparse", ""
+    "pandas.tools", "pandas.core.reshape", ""
     "pandas.types", "pandas.core.dtypes", ""
     "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
     "pandas._join", "pandas._libs.join", ""

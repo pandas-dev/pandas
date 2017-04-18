@@ -2317,7 +2317,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1,
                             right=0.9, wspace=0.2)
     else:
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.concat import concat
         keys, frames = zip(*grouped)
         if grouped.axis == 0:
             df = concat(frames, keys=keys, axis=1)
