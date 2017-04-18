@@ -94,7 +94,13 @@ _class_locations_map = {
     ('pandas.indexes.range', 'RangeIndex'):
         ('pandas.core.indexes.range', 'RangeIndex'),
     ('pandas.indexes.multi', 'MultiIndex'):
-        ('pandas.core.indexes.multi', 'MultiIndex')
+        ('pandas.core.indexes.multi', 'MultiIndex'),
+    ('pandas.tseries.index', '_new_DatetimeIndex'):
+        ('pandas.core.indexes.datetimes', '_new_DatetimeIndex'),
+    ('pandas.tseries.index', 'DatetimeIndex'):
+        ('pandas.core.indexes.datetimes', 'DatetimeIndex'),
+    ('pandas.tseries.period', 'PeriodIndex'):
+        ('pandas.core.indexes.period', 'PeriodIndex')
 }
 
 

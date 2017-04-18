@@ -27,8 +27,7 @@ from pandas._libs import (tslib as libts, lib,
                           Timedelta, Timestamp, iNaT, NaT)
 from pandas._libs.period import Period
 
-from pandas.core.index import Index
-from pandas.core.indexes.base import _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util.decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.tseries.frequencies as frequencies
@@ -639,7 +638,7 @@ class DatetimeIndexOpsMixin(object):
 
         def __add__(self, other):
             from pandas.core.index import Index
-            from pandas.tseries.tdi import TimedeltaIndex
+            from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
             if isinstance(other, TimedeltaIndex):
                 return self._add_delta(other)
@@ -666,8 +665,8 @@ class DatetimeIndexOpsMixin(object):
 
         def __sub__(self, other):
             from pandas.core.index import Index
-            from pandas.tseries.index import DatetimeIndex
-            from pandas.tseries.tdi import TimedeltaIndex
+            from pandas.core.indexes.datetimes import DatetimeIndex
+            from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
             if isinstance(other, TimedeltaIndex):
                 return self._add_delta(-other)

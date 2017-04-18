@@ -13,8 +13,8 @@ import pandas as pd
 from pandas import (Series, Categorical, DataFrame, isnull, notnull,
                     bdate_range, date_range, _np_version_under1p10)
 from pandas.core.index import MultiIndex
-from pandas.tseries.index import Timestamp
-from pandas.tseries.tdi import Timedelta
+from pandas.core.indexes.datetimes import Timestamp
+from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.config as cf
 
 import pandas.core.nanops as nanops

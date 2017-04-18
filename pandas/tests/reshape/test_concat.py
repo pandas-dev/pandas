@@ -1503,7 +1503,7 @@ class TestConcatenate(ConcatenateBase):
         self.assertRaises(ValueError, concat, [None, None])
 
     def test_concat_datetime64_block(self):
-        from pandas.tseries.index import date_range
+        from pandas.core.indexes.datetimes import date_range
 
         rng = date_range('1/1/2000', periods=10)
 

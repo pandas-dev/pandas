@@ -8,11 +8,11 @@ from pandas.compat import lrange, zip
 import numpy as np
 from pandas import Index, Series, DataFrame
 from pandas.compat import is_platform_mac
-from pandas.tseries.index import date_range, bdate_range
-from pandas.tseries.tdi import timedelta_range
+from pandas.core.indexes.datetimes import date_range, bdate_range
+from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tseries.offsets import DateOffset
-from pandas.tseries.period import period_range, Period, PeriodIndex
-from pandas.tseries.resample import DatetimeIndex
+from pandas.core.indexes.period import period_range, Period, PeriodIndex
+from pandas.core.resample import DatetimeIndex
 
 from pandas.util.testing import assert_series_equal, ensure_clean, slow
 import pandas.util.testing as tm

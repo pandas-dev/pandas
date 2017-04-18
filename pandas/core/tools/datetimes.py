@@ -336,7 +336,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     2    1960-01-04
 
     """
-    from pandas.tseries.index import DatetimeIndex
+    from pandas.core.indexes.datetimes import DatetimeIndex
 
     tz = 'utc' if utc else None
 

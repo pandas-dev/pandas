@@ -24,10 +24,10 @@ from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
-from pandas.tseries.index import DatetimeIndex, Int64Index, Index
-from pandas.tseries.tdi import TimedeltaIndex
-from pandas.tseries.base import DatelikeOps, DatetimeIndexOpsMixin
-from pandas.tseries.tools import parse_time_string
+from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
+from pandas.core.tools.datetimes import parse_time_string
 import pandas.tseries.offsets as offsets
 
 from pandas._libs.lib import infer_dtype
@@ -528,17 +528,17 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         --------
         >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='A')
         >>> pidx
-        <class 'pandas.tseries.period.PeriodIndex'>
+        <class 'pandas.core.indexes.period.PeriodIndex'>
         [2010, ..., 2015]
         Length: 6, Freq: A-DEC
 
         >>> pidx.asfreq('M')
-        <class 'pandas.tseries.period.PeriodIndex'>
+        <class 'pandas.core.indexes.period.PeriodIndex'>
         [2010-12, ..., 2015-12]
         Length: 6, Freq: M
 
         >>> pidx.asfreq('M', how='S')
-        <class 'pandas.tseries.period.PeriodIndex'>
+        <class 'pandas.core.indexes.period.PeriodIndex'>
         [2010-01, ..., 2015-01]
         Length: 6, Freq: M
         """
@@ -1154,7 +1154,7 @@ def pnow(freq=None):
     # deprecation, xref #13790
     import warnings
 
-    warnings.warn("pd.pnow() and pandas.tseries.period.pnow() "
+    warnings.warn("pd.pnow() and pandas.core.indexes.period.pnow() "
                   "are deprecated. Please use Period.now()",
                   FutureWarning, stacklevel=2)
     return Period.now(freq=freq)

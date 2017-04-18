@@ -18,7 +18,7 @@ from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
 from pandas.compat import StringIO
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
-from pandas.tseries.base import DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas._libs.tslib import iNaT
 
 

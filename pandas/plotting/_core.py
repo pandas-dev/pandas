@@ -21,7 +21,7 @@ from pandas.core.common import AbstractMethodError, isnull, _try_sort
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series, remove_na
-from pandas.tseries.period import PeriodIndex
+from pandas.core.indexes.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
 from pandas.io.formats.printing import pprint_thing

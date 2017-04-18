@@ -2,7 +2,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.tseries.period as period
+import pandas.core.indexes.period as period
 from pandas.compat import lrange, PY3, text_type, lmap
 from pandas import (Period, PeriodIndex, period_range, offsets, date_range,
                     Series, Index)

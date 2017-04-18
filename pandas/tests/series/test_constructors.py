@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype)
 from pandas import (Index, Series, isnull, date_range,
                     NaT, period_range, MultiIndex, IntervalIndex)
-from pandas.tseries.index import Timestamp, DatetimeIndex
+from pandas.core.indexes.datetimes import Timestamp, DatetimeIndex
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT

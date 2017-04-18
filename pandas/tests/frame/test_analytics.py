@@ -873,7 +873,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         mixed['F'] = Timestamp('20130101')
 
         # results in an object array
-        from pandas.tseries.timedeltas import (
+        from pandas.core.tools.timedeltas import (
             _coerce_scalar_to_timedelta_type as _coerce)
 
         result = mixed.min()

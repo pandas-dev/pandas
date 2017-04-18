@@ -91,7 +91,7 @@ def _new_Index(cls, d):
     # required for backward compat, because PI can't be instantiated with
     # ordinals through __new__ GH #13277
     if issubclass(cls, ABCPeriodIndex):
-        from pandas.tseries.period import _new_PeriodIndex
+        from pandas.core.indexes.period import _new_PeriodIndex
         return _new_PeriodIndex(cls, **d)
     return cls.__new__(cls, **d)
 
@@ -184,7 +184,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if (is_datetime64_any_dtype(data) or
                 (dtype is not None and is_datetime64_any_dtype(dtype)) or
                     'tz' in kwargs):
-                from pandas.tseries.index import DatetimeIndex
+                from pandas.core.indexes.datetimes import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name,
                                        dtype=dtype, **kwargs)
                 if dtype is not None and is_dtype_equal(_o_dtype, dtype):
@@ -194,7 +194,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             elif (is_timedelta64_dtype(data) or
                   (dtype is not None and is_timedelta64_dtype(dtype))):
-                from pandas.tseries.tdi import TimedeltaIndex
+                from pandas.core.indexes.timedeltas import TimedeltaIndex
                 result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
                     return Index(result.to_pytimedelta(), dtype=_o_dtype)
@@ -250,8 +250,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         raise
 
             # maybe coerce to a sub-class
-            from pandas.tseries.period import (PeriodIndex,
-                                               IncompatibleFrequency)
+            from pandas.core.indexes.period import (
+                PeriodIndex, IncompatibleFrequency)
             if isinstance(data, PeriodIndex):
                 return PeriodIndex(data, copy=copy, name=name, **kwargs)
             if is_signed_integer_dtype(data.dtype):
@@ -299,7 +299,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         if (lib.is_datetime_with_singletz_array(subarr) or
                                 'tz' in kwargs):
                             # only when subarr has the same tz
-                            from pandas.tseries.index import DatetimeIndex
+                            from pandas.core.indexes.datetimes import (
+                                DatetimeIndex)
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
@@ -307,7 +308,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                 pass
 
                     elif inferred.startswith('timedelta'):
-                        from pandas.tseries.tdi import TimedeltaIndex
+                        from pandas.core.indexes.timedeltas import (
+                            TimedeltaIndex)
                         return TimedeltaIndex(subarr, copy=copy, name=name,
                                               **kwargs)
                     elif inferred == 'period':
@@ -1009,7 +1011,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         warnings.warn("to_datetime is deprecated. Use pd.to_datetime(...)",
                       FutureWarning, stacklevel=2)
 
-        from pandas.tseries.index import DatetimeIndex
+        from pandas.core.indexes.datetimes import DatetimeIndex
         if self.inferred_type == 'string':
             from dateutil.parser import parse
             parser = lambda x: parse(x, dayfirst=dayfirst)
@@ -2664,7 +2666,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _maybe_promote(self, other):
         # A hack, but it works
-        from pandas.tseries.index import DatetimeIndex
+        from pandas.core.indexes.datetimes import DatetimeIndex
         if self.inferred_type == 'date' and isinstance(other, DatetimeIndex):
             return DatetimeIndex(self), other
         elif self.inferred_type == 'boolean':

@@ -1761,7 +1761,7 @@ The following methods are available only for ``DataFrameGroupBy`` objects.
 
 Resampling
 ----------
-.. currentmodule:: pandas.tseries.resample
+.. currentmodule:: pandas.core.resample
 
 Resampler objects are returned by resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
 

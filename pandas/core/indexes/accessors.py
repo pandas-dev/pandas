@@ -12,10 +12,10 @@ from pandas.core.dtypes.common import (
     is_list_like)
 
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
-from pandas.tseries.index import DatetimeIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas._libs.period import IncompatibleFrequency  # noqa
-from pandas.tseries.period import PeriodIndex
-from pandas.tseries.tdi import TimedeltaIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.algorithms import take_1d
 
 

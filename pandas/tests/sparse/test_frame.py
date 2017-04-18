@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_object_dtype,
     is_float)
-from pandas.tseries.index import DatetimeIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.tseries.offsets import BDay
 from pandas.util import testing as tm
 from pandas.compat import lrange

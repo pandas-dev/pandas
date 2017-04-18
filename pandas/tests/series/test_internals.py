@@ -7,7 +7,7 @@ from numpy import nan
 import numpy as np
 
 from pandas import Series
-from pandas.tseries.index import Timestamp
+from pandas.core.indexes.datetimes import Timestamp
 import pandas._libs.lib as lib
 
 from pandas.util.testing import assert_series_equal

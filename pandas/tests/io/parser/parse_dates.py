@@ -15,7 +15,7 @@ from pandas._libs.lib import Timestamp
 
 import pandas as pd
 import pandas.io.parsers as parsers
-import pandas.tseries.tools as tools
+import pandas.core.tools.datetimes as tools
 import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
@@ -23,7 +23,7 @@ from pandas import DataFrame, Series, Index, DatetimeIndex, MultiIndex
 from pandas import compat
 from pandas.compat import parse_date, StringIO, lrange
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.tseries.index import date_range
+from pandas.core.indexes.datetimes import date_range
 
 
 class ParseDatesTests(object):

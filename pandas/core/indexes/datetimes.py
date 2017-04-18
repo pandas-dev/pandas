@@ -29,21 +29,23 @@ import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _values_from_object, _maybe_box
 
-from pandas.core.index import Index, Int64Index, Float64Index
-from pandas.core.indexes.base import _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.numeric import Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.tseries.frequencies import (
     to_offset, get_period_alias,
     Resolution)
-from pandas.tseries.base import DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import (
+    DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
-from pandas.tseries.tools import parse_time_string, normalize_date, to_time
-from pandas.tseries.timedeltas import to_timedelta
+from pandas.core.tools.datetimes import (
+    parse_time_string, normalize_date, to_time)
+from pandas.core.tools.timedeltas import to_timedelta
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
-import pandas.tseries.tools as tools
+import pandas.core.tools.datetimes as tools
 
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
@@ -927,7 +929,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Cast to PeriodIndex at a particular frequency
         """
-        from pandas.tseries.period import PeriodIndex
+        from pandas.core.indexes.period import PeriodIndex
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq

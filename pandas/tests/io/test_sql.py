@@ -38,7 +38,7 @@ from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import range, lrange, string_types, PY36
-from pandas.tseries.tools import format as date_format
+from pandas.core.tools.datetimes import format as date_format
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_table, read_sql_query

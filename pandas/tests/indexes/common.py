@@ -9,6 +9,7 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
                     TimedeltaIndex, PeriodIndex, IntervalIndex,
                     notnull, isnull)
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
 from pandas._libs.tslib import iNaT
@@ -789,7 +790,7 @@ class Base(object):
                          np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,
                          np.arcsinh, np.arccosh, np.arctanh, np.deg2rad,
                          np.rad2deg]:
-                if isinstance(idx, pd.tseries.base.DatetimeIndexOpsMixin):
+                if isinstance(idx, DatetimeIndexOpsMixin):
                     # raise TypeError or ValueError (PeriodIndex)
                     # PeriodIndex behavior should be changed in future version
                     with tm.assertRaises(Exception):
@@ -812,7 +813,7 @@ class Base(object):
                                 func(idx)
 
             for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
-                if isinstance(idx, pd.tseries.base.DatetimeIndexOpsMixin):
+                if isinstance(idx, DatetimeIndexOpsMixin):
                     # raise TypeError or ValueError (PeriodIndex)
                     with tm.assertRaises(Exception):
                         func(idx)
@@ -847,7 +848,7 @@ class Base(object):
 
                 if len(index) == 0:
                     continue
-                elif isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
+                elif isinstance(index, DatetimeIndexOpsMixin):
                     values[1] = iNaT
                 elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
@@ -887,7 +888,7 @@ class Base(object):
                 idx = index.copy()
                 values = idx.values
 
-                if isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
+                if isinstance(index, DatetimeIndexOpsMixin):
                     values[1] = iNaT
                 elif isinstance(index, (Int64Index, UInt64Index)):
                     continue

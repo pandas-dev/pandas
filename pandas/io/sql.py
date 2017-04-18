@@ -22,7 +22,7 @@ from pandas.compat import (map, zip, raise_with_traceback,
                            string_types, text_type)
 from pandas.core.api import DataFrame, Series
 from pandas.core.base import PandasObject
-from pandas.tseries.tools import to_datetime
+from pandas.core.tools.datetimes import to_datetime
 
 from contextlib import contextmanager
 

@@ -7,16 +7,21 @@ from pandas.core.indexes.interval import IntervalIndex  # noqa
 from pandas.core.indexes.numeric import (NumericIndex, Float64Index,  # noqa
                                     Int64Index, UInt64Index)
 from pandas.core.indexes.range import RangeIndex  # noqa
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
 
 import pandas.core.common as com
-import pandas._libs.lib as lib
+from pandas._libs import lib
+from pandas._libs.tslib import NaT
 
 # TODO: there are many places that rely on these private methods existing in
 # pandas.core.index
 __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            'CategoricalIndex', 'IntervalIndex', 'RangeIndex', 'UInt64Index',
-           'InvalidIndexError',
-           '_new_Index',
+           'InvalidIndexError', 'TimedeltaIndex',
+           'PeriodIndex', 'DatetimeIndex',
+           '_new_Index', 'NaT',
            '_ensure_index', '_get_na_value', '_get_combined_index',
            '_get_distinct_indexes', '_union_indexes',
            '_get_consensus_names',

@@ -1452,7 +1452,7 @@ class PandasJSONTests(TestCase):
         tm.assert_index_equal(i, outp)
 
     def test_datetimeindex(self):
-        from pandas.tseries.index import date_range
+        from pandas.core.indexes.datetimes import date_range
 
         rng = date_range('1/1/2000', periods=20)
 

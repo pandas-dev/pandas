@@ -4,7 +4,7 @@
 
 import warnings
 
-from pandas.tseries.tools import *
+from pandas.core.tools.datetimes import *
 from pandas.tseries.offsets import *
 from pandas.tseries.frequencies import *
 
