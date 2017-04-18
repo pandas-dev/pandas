@@ -4363,7 +4363,7 @@ class NDFrame(PandasObject, SelectionMixin):
         To learn more about the frequency strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """
-        from pandas.tseries.resample import asfreq
+        from pandas.core.resample import asfreq
         return asfreq(self, freq, method=method, how=how, normalize=normalize,
                       fill_value=fill_value)
 
@@ -4573,8 +4573,8 @@ class NDFrame(PandasObject, SelectionMixin):
         2000-01-01 00:00:00  0  6  12  18
         2000-01-01 00:03:00  0  4   8  12
         """
-        from pandas.tseries.resample import (resample,
-                                             _maybe_process_deprecations)
+        from pandas.core.resample import (resample,
+                                          _maybe_process_deprecations)
         axis = self._get_axis_number(axis)
         r = resample(self, freq=rule, label=label, closed=closed,
                      axis=axis, kind=kind, loffset=loffset,

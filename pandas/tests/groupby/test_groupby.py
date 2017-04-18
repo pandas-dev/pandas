@@ -3559,7 +3559,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         index = pd.DatetimeIndex(())
         data = ()
         series = pd.Series(data, index)
-        grouper = pd.tseries.resample.TimeGrouper('D')
+        grouper = pd.core.resample.TimeGrouper('D')
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 

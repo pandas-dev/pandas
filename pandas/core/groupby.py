@@ -232,7 +232,7 @@ class Grouper(object):
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('freq') is not None:
-            from pandas.tseries.resample import TimeGrouper
+            from pandas.core.resample import TimeGrouper
             cls = TimeGrouper
         return super(Grouper, cls).__new__(cls)
 
@@ -1227,7 +1227,7 @@ class GroupBy(_GroupBy):
         Provide resampling when using a TimeGrouper
         Return a new grouper with our resampler appended
         """
-        from pandas.tseries.resample import get_resampler_for_grouping
+        from pandas.core.resample import get_resampler_for_grouping
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
 
     @Substitution(name='groupby')
