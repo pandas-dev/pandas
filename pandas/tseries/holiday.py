@@ -23,15 +23,16 @@ def next_monday(dt):
 def next_monday_or_tuesday(dt):
     """
     For second holiday of two adjacent ones!
-    If holiday falls on Saturday, use following Monday instead;
-    if holiday falls on Sunday or Monday, use following Tuesday instead
-    (because Monday is already taken by adjacent holiday on the day before)
+    1. The first holiday falls on Friday, the second on Saturday. The one
+       on Saturday moves to next Monday
+    2. The first holiday falls on Saturday, the second on Sunday. The first one
+       moves to next Monday and the second one moves to Tuesday.
+    3. The first holiday falls on Sunday and the second on Monday. The first
+       one moves to Tuesday.
     """
     dow = dt.weekday()
     if dow == 5 or dow == 6:
         return dt + timedelta(2)
-    elif dow == 0:
-        return dt + timedelta(1)
     return dt
 
 
