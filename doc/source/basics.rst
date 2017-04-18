@@ -494,6 +494,8 @@ For more details please see :ref:`this note <stats.moments.expanding.note>`.
 
    df.cumsum()
 
+Please see :ref:`expanding <stats.moments.expanding>`
+
 Here is a quick reference summary table of common functions. Each also takes an
 optional ``level`` parameter which applies only if the object has a
 :ref:`hierarchical index<advanced.hierarchical>`.
