@@ -4400,7 +4400,10 @@ class NDFrame(PandasObject, SelectionMixin):
                 include_end=include_end)
             return self.take(indexer, convert=False)
         except AttributeError:
-            raise TypeError('Index must be DatetimeIndex')
+            if self.empty:
+                return self
+            else:
+                raise TypeError('Index must be DatetimeIndex')
 
     def resample(self, rule, how=None, axis=0, fill_method=None, closed=None,
                  label=None, convention='start', kind=None, loffset=None,
