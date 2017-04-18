@@ -1334,6 +1334,14 @@ class TestTSPlot(TestPlotBase):
         s = Series(np.random.randn(len(index)), index)
         _check_plot_works(s.plot)
 
+    def test_hist(self):
+        # https://github.com/matplotlib/matplotlib/issues/8459
+        rng = date_range('1/1/2011', periods=10, freq='H')
+        x = rng
+        w1 = np.arange(0, 1, .1)
+        w2 = np.arange(0, 1, .1)[::-1]
+        self.plt.hist([x, x], weights=[w1, w2])
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
