@@ -23,7 +23,8 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_list_like,
     is_dict_like,
-    is_re_compilable)
+    is_re_compilable,
+    pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isnull, notnull
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel
@@ -165,12 +166,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if dtype is not None:
             dtype = _coerce_to_dtype(dtype)
+            # This would raise an error if an invalid dtype was passed
+            dtype = pandas_dtype(dtype)
 
             # a compound dtype
             if dtype.kind == 'V':
                 raise NotImplementedError("compound dtypes are not implemented"
                                           "in the {0} constructor"
                                           .format(self.__class__.__name__))
+
         return dtype
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):

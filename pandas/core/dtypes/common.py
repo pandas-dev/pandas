@@ -737,5 +737,7 @@ def pandas_dtype(dtype):
             pass
     elif isinstance(dtype, ExtensionDtype):
         return dtype
+    elif np.dtype(dtype).kind == 'O':
+        raise TypeError("data type {0} not understood".format(dtype))
 
     return np.dtype(dtype)
