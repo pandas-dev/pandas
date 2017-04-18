@@ -5,7 +5,8 @@ import numpy as np
 from numpy import nan
 
 import pandas as pd
-from pandas import DataFrame, date_range, Index, Series, MultiIndex, Timestamp
+from pandas import (DataFrame, date_range, Index,
+                    Series, MultiIndex, Timestamp, DatetimeIndex)
 from pandas.compat import StringIO
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -361,7 +362,6 @@ class TestGroupBy(tm.TestCase):
 
     def test_groupby_groups_datetimeindex(self):
         # #1430
-        from pandas.tseries.api import DatetimeIndex
         periods = 1000
         ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
         df = DataFrame({'high': np.arange(periods),

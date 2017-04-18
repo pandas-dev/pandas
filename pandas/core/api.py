@@ -11,7 +11,12 @@ from pandas.core.groupby import Grouper
 from pandas.io.formats.format import set_eng_float_format
 from pandas.core.index import (Index, CategoricalIndex, Int64Index,
                                UInt64Index, RangeIndex, Float64Index,
-                               MultiIndex, IntervalIndex)
+                               MultiIndex, IntervalIndex,
+                               TimedeltaIndex, DatetimeIndex,
+                               PeriodIndex, NaT)
+from pandas.core.indexes.period import Period, period_range, pnow
+from pandas.core.indexes.timedeltas import Timedelta, timedelta_range
+from pandas.core.indexes.datetimes import Timestamp, date_range, bdate_range
 from pandas.core.indexes.interval import Interval, interval_range
 
 from pandas.core.series import Series
@@ -26,10 +31,6 @@ from pandas.core.indexing import IndexSlice
 from pandas.core.dtypes.cast import to_numeric
 from pandas.tseries.offsets import DateOffset
 from pandas.tseries.tools import to_datetime
-from pandas.core.indexes.datetimes import (DatetimeIndex, Timestamp,
-                                  date_range, bdate_range)
-from pandas.core.indexes.timedeltas import TimedeltaIndex, Timedelta
-from pandas.core.indexes.period import Period, PeriodIndex
 from pandas.core.resample import TimeGrouper
 
 # see gh-14094.

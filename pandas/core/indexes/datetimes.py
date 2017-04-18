@@ -29,8 +29,8 @@ import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _values_from_object, _maybe_box
 
-from pandas.core.index import Index, Int64Index, Float64Index
-from pandas.core.indexes.base import _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.numeric import Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.tseries.frequencies import (
     to_offset, get_period_alias,
