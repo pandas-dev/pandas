@@ -82,6 +82,8 @@ def _ensure_categorical(arr):
 
 
 def is_object_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.object_)
 
@@ -120,6 +122,8 @@ def is_period(array):
 
 
 def is_datetime64_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
     except TypeError:
@@ -128,23 +132,33 @@ def is_datetime64_dtype(arr_or_dtype):
 
 
 def is_datetime64tz_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     return DatetimeTZDtype.is_dtype(arr_or_dtype)
 
 
 def is_timedelta64_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.timedelta64)
 
 
 def is_period_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     return PeriodDtype.is_dtype(arr_or_dtype)
 
 
 def is_interval_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     return IntervalDtype.is_dtype(arr_or_dtype)
 
 
 def is_categorical_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     return CategoricalDtype.is_dtype(arr_or_dtype)
 
 
@@ -178,6 +192,8 @@ def is_string_dtype(arr_or_dtype):
 
     # TODO: gh-15585: consider making the checks stricter.
 
+    if arr_or_dtype is None:
+        return False
     try:
         dtype = _get_dtype(arr_or_dtype)
         return dtype.kind in ('O', 'S', 'U') and not is_period_dtype(dtype)
@@ -224,45 +240,61 @@ def is_dtype_equal(source, target):
 
 
 def is_any_int_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.integer)
 
 
 def is_integer_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.integer) and
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 
 def is_signed_integer_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.signedinteger) and
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 
 def is_unsigned_integer_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.unsignedinteger) and
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 
 def is_int64_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.int64)
 
 
 def is_int_or_datetime_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, np.integer) or
             issubclass(tipo, (np.datetime64, np.timedelta64)))
 
 
 def is_datetime64_any_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     return (is_datetime64_dtype(arr_or_dtype) or
             is_datetime64tz_dtype(arr_or_dtype))
 
 
 def is_datetime64_ns_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     try:
         tipo = _get_dtype(arr_or_dtype)
     except TypeError:
@@ -303,6 +335,8 @@ def is_timedelta64_ns_dtype(arr_or_dtype):
     False
     """
 
+    if arr_or_dtype is None:
+        return False
     try:
         tipo = _get_dtype(arr_or_dtype)
         return tipo == _TD_DTYPE
@@ -311,6 +345,8 @@ def is_timedelta64_ns_dtype(arr_or_dtype):
 
 
 def is_datetime_or_timedelta_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
@@ -398,12 +434,16 @@ def is_datetimelike_v_object(a, b):
 
 
 def needs_i8_conversion(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     return (is_datetime_or_timedelta_dtype(arr_or_dtype) or
             is_datetime64tz_dtype(arr_or_dtype) or
             is_period_dtype(arr_or_dtype))
 
 
 def is_numeric_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return (issubclass(tipo, (np.number, np.bool_)) and
             not issubclass(tipo, (np.datetime64, np.timedelta64)))
@@ -438,6 +478,8 @@ def is_string_like_dtype(arr_or_dtype):
     False
     """
 
+    if arr_or_dtype is None:
+        return False
     try:
         dtype = _get_dtype(arr_or_dtype)
         return dtype.kind in ('S', 'U')
@@ -446,16 +488,22 @@ def is_string_like_dtype(arr_or_dtype):
 
 
 def is_float_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.floating)
 
 
 def is_floating_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return isinstance(tipo, np.floating)
 
 
 def is_bool_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
     except ValueError:
@@ -479,6 +527,8 @@ def is_extension_type(value):
 
 
 def is_complex_dtype(arr_or_dtype):
+    if arr_or_dtype is None:
+        return False
     tipo = _get_dtype_type(arr_or_dtype)
     return issubclass(tipo, np.complexfloating)
 
