@@ -194,7 +194,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
             elif (is_timedelta64_dtype(data) or
                   (dtype is not None and is_timedelta64_dtype(dtype))):
-                from pandas.tseries.tdi import TimedeltaIndex
+                from pandas.core.indexes.timedeltas import TimedeltaIndex
                 result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
                     return Index(result.to_pytimedelta(), dtype=_o_dtype)
@@ -307,7 +307,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                 pass
 
                     elif inferred.startswith('timedelta'):
-                        from pandas.tseries.tdi import TimedeltaIndex
+                        from pandas.core.indexes.timedeltas import (
+                            TimedeltaIndex)
                         return TimedeltaIndex(subarr, copy=copy, name=name,
                                               **kwargs)
                     elif inferred == 'period':

@@ -639,7 +639,7 @@ class DatetimeIndexOpsMixin(object):
 
         def __add__(self, other):
             from pandas.core.index import Index
-            from pandas.tseries.tdi import TimedeltaIndex
+            from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
             if isinstance(other, TimedeltaIndex):
                 return self._add_delta(other)
@@ -667,7 +667,7 @@ class DatetimeIndexOpsMixin(object):
         def __sub__(self, other):
             from pandas.core.index import Index
             from pandas.tseries.index import DatetimeIndex
-            from pandas.tseries.tdi import TimedeltaIndex
+            from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
             if isinstance(other, TimedeltaIndex):
                 return self._add_delta(-other)

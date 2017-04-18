@@ -24,7 +24,7 @@ from pandas.tseries.offsets import Minute, BDay
 from pandas.core.indexes.period import period_range, PeriodIndex, Period
 from pandas.core.resample import (DatetimeIndex, TimeGrouper,
                                   DatetimeIndexResampler)
-from pandas.tseries.tdi import timedelta_range, TimedeltaIndex
+from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
 from pandas._libs.period import IncompatibleFrequency

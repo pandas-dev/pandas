@@ -28,7 +28,7 @@ from pandas.tseries.offsets import DateOffset
 from pandas.tseries.tools import to_datetime
 from pandas.tseries.index import (DatetimeIndex, Timestamp,
                                   date_range, bdate_range)
-from pandas.tseries.tdi import TimedeltaIndex, Timedelta
+from pandas.core.indexes.timedeltas import TimedeltaIndex, Timedelta
 from pandas.core.indexes.period import Period, PeriodIndex
 from pandas.core.resample import TimeGrouper
 
