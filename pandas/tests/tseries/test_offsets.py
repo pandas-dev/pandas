@@ -28,8 +28,9 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Milli, Nano, Easter, FY5253Quarter,
                                     LastWeekOfMonth, CacheableOffset)
-from pandas.tseries.tools import (format, ole2datetime, parse_time_string,
-                                  to_datetime, DateParseError)
+from pandas.core.tools.datetimes import (
+    format, ole2datetime, parse_time_string,
+    to_datetime, DateParseError)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslib import normalize_date, NaT, Timestamp, Timedelta

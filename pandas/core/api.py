@@ -30,7 +30,8 @@ from pandas.core.reshape.reshape import (
 from pandas.core.indexing import IndexSlice
 from pandas.core.dtypes.cast import to_numeric
 from pandas.tseries.offsets import DateOffset
-from pandas.tseries.tools import to_datetime
+from pandas.core.tools.datetimes import to_datetime
+from pandas.core.tools.timedeltas import to_timedelta
 from pandas.core.resample import TimeGrouper
 
 # see gh-14094.

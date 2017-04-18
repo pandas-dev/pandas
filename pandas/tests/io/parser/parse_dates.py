@@ -15,7 +15,7 @@ from pandas._libs.lib import Timestamp
 
 import pandas as pd
 import pandas.io.parsers as parsers
-import pandas.tseries.tools as tools
+import pandas.core.tools.datetimes as tools
 import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv

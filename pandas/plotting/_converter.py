@@ -27,7 +27,7 @@ from pandas.core.index import Index
 
 from pandas.core.series import Series
 from pandas.core.indexes.datetimes import date_range
-import pandas.tseries.tools as tools
+import pandas.core.tools.datetimes as tools
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex

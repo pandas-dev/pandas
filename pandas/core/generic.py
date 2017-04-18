@@ -5361,7 +5361,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
         if ax.is_all_dates:
-            from pandas.tseries.tools import to_datetime
+            from pandas.core.tools.datetimes import to_datetime
             before = to_datetime(before)
             after = to_datetime(after)
 

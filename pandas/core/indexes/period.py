@@ -27,7 +27,7 @@ from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
-from pandas.tseries.tools import parse_time_string
+from pandas.core.tools.datetimes import parse_time_string
 import pandas.tseries.offsets as offsets
 
 from pandas._libs.lib import infer_dtype

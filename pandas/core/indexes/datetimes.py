@@ -38,13 +38,14 @@ from pandas.tseries.frequencies import (
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
-from pandas.tseries.tools import parse_time_string, normalize_date, to_time
-from pandas.tseries.timedeltas import to_timedelta
+from pandas.core.tools.datetimes import (
+    parse_time_string, normalize_date, to_time)
+from pandas.core.tools.timedeltas import to_timedelta
 from pandas.util.decorators import (Appender, cache_readonly,
                                     deprecate_kwarg, Substitution)
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
-import pandas.tseries.tools as tools
+import pandas.core.tools.datetimes as tools
 
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,

@@ -548,7 +548,7 @@ def coerce_to_dtypes(result, dtypes):
     if len(result) != len(dtypes):
         raise AssertionError("_coerce_to_dtypes requires equal len arrays")
 
-    from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type
+    from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 
     def conv(r, dtype):
         try:
@@ -670,7 +670,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
     if convert_timedeltas and values.dtype == np.object_:
 
         if convert_timedeltas == 'coerce':
-            from pandas.tseries.timedeltas import to_timedelta
+            from pandas.core.tools.timedeltas import to_timedelta
             new_values = to_timedelta(values, coerce=True)
 
             # if we are all nans then leave me alone
@@ -872,8 +872,8 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
     """ try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
-    from pandas.tseries.timedeltas import to_timedelta
-    from pandas.tseries.tools import to_datetime
+    from pandas.core.tools.timedeltas import to_timedelta
+    from pandas.core.tools.datetimes import to_datetime
 
     if dtype is not None:
         if isinstance(dtype, string_types):

@@ -379,7 +379,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             self.assertFalse(hasattr(s, 'dt'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
-        from pandas.tseries.timedeltas import to_timedelta
+        from pandas.core.tools.timedeltas import to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
         b = datetime(1993, 6, 22, 13, 30)

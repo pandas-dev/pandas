@@ -35,7 +35,7 @@ from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
                               _get_handle, UnicodeReader, UTF8Recoder,
                               BaseIterator,
                               _NA_VALUES, _infer_compression)
-from pandas.tseries import tools
+from pandas.core.tools import datetimes as tools
 
 from pandas.util.decorators import Appender
 

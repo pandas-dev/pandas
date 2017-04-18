@@ -10,8 +10,8 @@ from distutils.version import LooseVersion
 
 import pandas as pd
 from pandas._libs import tslib, lib
-from pandas.tseries import tools
-from pandas.tseries.tools import normalize_date
+from pandas.core.tools import datetimes as tools
+from pandas.core.tools.datetimes import normalize_date
 from pandas.compat import lmap
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
