@@ -28,7 +28,7 @@ from pandas.core.reshape.reshape import (
     lreshape, wide_to_long)
 
 from pandas.core.indexing import IndexSlice
-from pandas.core.dtypes.cast import to_numeric
+from pandas.core.tools.numeric import to_numeric
 from pandas.tseries.offsets import DateOffset
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.tools.timedeltas import to_timedelta

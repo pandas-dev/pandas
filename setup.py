@@ -676,6 +676,7 @@ setup(name=DISTNAME,
                 'pandas.tests.scalar',
                 'pandas.tests.tseries',
                 'pandas.tests.plotting',
+                'pandas.tests.tools',
                 'pandas.tools',
                 'pandas.tseries',
                 'pandas.util.clipboard'
