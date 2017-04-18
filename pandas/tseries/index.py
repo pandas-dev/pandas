@@ -1432,7 +1432,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             try:
                 stamp = Timestamp(key, tz=self.tz)
                 return Index.get_loc(self, stamp, method, tolerance)
-            except (KeyError, ValueError):
+            except (KeyError, ValueError, SystemError):
                 raise KeyError(key)
 
     def _maybe_cast_slice_bound(self, label, side, kind):
