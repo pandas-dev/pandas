@@ -1183,6 +1183,8 @@ class HTMLFormatter(TableFormatter):
 
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="%d" halign="left"'
+            if 'pandas_notebook' in self.classes:
+                template += ' class="pandas_notebook"'
 
             if self.fmt.sparsify:
                 # GH3547
@@ -1252,6 +1254,8 @@ class HTMLFormatter(TableFormatter):
                         if records[i] > 1:
                             tags[j] = template % records[i]
                     else:
+                        if 'pandas_notebook' in self.classes:
+                            tags[j] = 'class="pandas_notebook"'
                         continue
                     j += 1
                     row.append(v)
