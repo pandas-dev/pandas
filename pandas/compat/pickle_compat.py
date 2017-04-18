@@ -94,7 +94,9 @@ _class_locations_map = {
     ('pandas.indexes.range', 'RangeIndex'):
         ('pandas.core.indexes.range', 'RangeIndex'),
     ('pandas.indexes.multi', 'MultiIndex'):
-        ('pandas.core.indexes.multi', 'MultiIndex')
+        ('pandas.core.indexes.multi', 'MultiIndex'),
+    ('pandas.tseries.period', 'PeriodIndex'):
+        ('pandas.core.indexes.period', 'PeriodIndex')
 }
 
 
