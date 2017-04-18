@@ -11,7 +11,6 @@ import pandas as pd
 
 from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
-    _coerce_to_dtype,
     _ensure_int64,
     needs_i8_conversion,
     is_scalar,
@@ -165,7 +164,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """ validate the passed dtype """
 
         if dtype is not None:
-            dtype = _coerce_to_dtype(dtype)
             # This would raise an error if an invalid dtype was passed
             dtype = pandas_dtype(dtype)
 
