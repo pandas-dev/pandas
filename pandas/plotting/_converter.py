@@ -10,13 +10,14 @@ import matplotlib.dates as dates
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
-
 from pandas.core.dtypes.common import (
     is_float, is_integer,
     is_integer_dtype,
     is_float_dtype,
     is_datetime64_ns_dtype,
-    is_period_arraylike)
+    is_period_arraylike,
+    is_nested_list_like
+)
 
 from pandas.compat import lrange
 import pandas.compat as compat
@@ -127,6 +128,15 @@ class PeriodConverter(dates.DateConverter):
 
     @staticmethod
     def convert(values, units, axis):
+        if is_nested_list_like(values):
+            values = [PeriodConverter._convert_1d(v, units, axis)
+                      for v in values]
+        else:
+            values = PeriodConverter._convert_1d(values, units, axis)
+        return values
+
+    @staticmethod
+    def _convert_1d(values, units, axis):
         if not hasattr(axis, 'freq'):
             raise TypeError('Axis must have `freq` set to convert to Periods')
         valid_types = (compat.string_types, datetime,
@@ -178,6 +188,16 @@ class DatetimeConverter(dates.DateConverter):
 
     @staticmethod
     def convert(values, unit, axis):
+        # values might be a 1-d array, or a list-like of arrays.
+        if is_nested_list_like(values):
+            values = [DatetimeConverter._convert_1d(v, unit, axis)
+                      for v in values]
+        else:
+            values = DatetimeConverter._convert_1d(values, unit, axis)
+        return values
+
+    @staticmethod
+    def _convert_1d(values, unit, axis):
         def try_parse(values):
             try:
                 return _dt_to_float_ordinal(tools.to_datetime(values))
