@@ -33,7 +33,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
             # GH 10560
             result = repr(s)
             exp = ("0    1.0\n    ... \n4    NaN\n"
-                   "dtype: float64\nBlockIndex\n"
+                   "Length: 5, dtype: float64\nBlockIndex\n"
                    "Block locations: array([0, 3]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dfm))
             self.assertEqual(result, exp)
@@ -52,7 +52,8 @@ class TestSparseSeriesFormatting(tm.TestCase):
                "Block lengths: array([1, 1]{0})".format(dfm))
         self.assertEqual(result, exp)
 
-        with option_context("display.max_rows", 3):
+        with option_context("display.max_rows", 3,
+                            "display.show_dimensions", False):
             # GH 13144
             result = repr(s)
             exp = ("A  0    1.0\n       ... \nC  2    NaN\n"
@@ -77,7 +78,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
         with option_context("display.max_rows", 3):
             result = repr(s)
             exp = ("0     True\n     ...  \n5    False\n"
-                   "dtype: bool\nBlockIndex\n"
+                   "Length: 6, dtype: bool\nBlockIndex\n"
                    "Block locations: array([0, 3]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dtype))
             self.assertEqual(result, exp)
@@ -94,7 +95,8 @@ class TestSparseSeriesFormatting(tm.TestCase):
                "Block lengths: array([1, 1]{0})".format(dtype))
         self.assertEqual(result, exp)
 
-        with option_context("display.max_rows", 3):
+        with option_context("display.max_rows", 3,
+                            "display.show_dimensions", False):
             result = repr(s)
             exp = ("0    0\n    ..\n5    0\n"
                    "dtype: int64\nBlockIndex\n"

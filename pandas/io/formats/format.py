@@ -199,7 +199,8 @@ class SeriesFormatter(object):
                                        escape_chars=('\t', '\r', '\n'))
             footer += ("Name: %s" % series_name) if name is not None else ""
 
-        if self.length:
+        if (self.length is True or
+                (self.length == 'truncate' and self.truncate_v)):
             if footer:
                 footer += ', '
             footer += 'Length: %d' % len(self.series)

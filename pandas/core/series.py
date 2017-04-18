@@ -980,9 +980,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         width, height = get_terminal_size()
         max_rows = (height if get_option("display.max_rows") == 0 else
                     get_option("display.max_rows"))
+        show_dimensions = get_option("display.show_dimensions")
 
         self.to_string(buf=buf, name=self.name, dtype=self.dtype,
-                       max_rows=max_rows)
+                       max_rows=max_rows, length=show_dimensions)
         result = buf.getvalue()
 
         return result
@@ -1021,31 +1022,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         formatted : string (if not buffer passed)
         """
 
-        the_repr = self._get_repr(float_format=float_format, na_rep=na_rep,
-                                  header=header, index=index, length=length,
-                                  dtype=dtype, name=name, max_rows=max_rows)
-
-        # catch contract violations
-        if not isinstance(the_repr, compat.text_type):
-            raise AssertionError("result must be of type unicode, type"
-                                 " of result is {0!r}"
-                                 "".format(the_repr.__class__.__name__))
-
-        if buf is None:
-            return the_repr
-        else:
-            try:
-                buf.write(the_repr)
-            except AttributeError:
-                with open(buf, 'w') as f:
-                    f.write(the_repr)
-
-    def _get_repr(self, name=False, header=True, index=True, length=True,
-                  dtype=True, na_rep='NaN', float_format=None, max_rows=None):
-        """
-
-        Internal function, should always return unicode string
-        """
         formatter = fmt.SeriesFormatter(self, name=name, length=length,
                                         header=header, index=index,
                                         dtype=dtype, na_rep=na_rep,
@@ -1053,12 +1029,20 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
                                         max_rows=max_rows)
         result = formatter.to_string()
 
-        # TODO: following check prob. not neces.
+        # catch contract violations
         if not isinstance(result, compat.text_type):
             raise AssertionError("result must be of type unicode, type"
                                  " of result is {0!r}"
                                  "".format(result.__class__.__name__))
-        return result
+
+        if buf is None:
+            return result
+        else:
+            try:
+                buf.write(result)
+            except AttributeError:
+                with open(buf, 'w') as f:
+                    f.write(result)
 
     def __iter__(self):
         """ provide iteration over the values of the Series
