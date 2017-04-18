@@ -490,6 +490,8 @@ Other Enhancements
 - ``DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
 - ``DataFrame.plot`` can pass the matplotlib 2.0 default color cycle as a single string as color parameter, see `here <http://matplotlib.org/2.0.0/users/colors.html#cn-color-selection>`__. (:issue:`15516`)
 - ``Series.interpolate()`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
+- Addition of a ``level`` keyword to ``DataFrame/Series.rename`` to rename
+  labels in the specified level of a MultiIndex (:issue:`4160`).
 - ``Timedelta.isoformat`` method added for formatting Timedeltas as an `ISO 8601 duration`_. See the :ref:`Timedelta docs <timedeltas.isoformat>` (:issue:`15136`)
 - ``.select_dtypes()`` now allows the string ``datetimetz`` to generically select datetimes with tz (:issue:`14910`)
 - The ``.to_latex()`` method will now accept ``multicolumn`` and ``multirow`` arguments to use the accompanying LaTeX enhancements

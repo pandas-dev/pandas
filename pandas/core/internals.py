@@ -2837,7 +2837,7 @@ class BlockManager(PandasObject):
 
         self.axes[axis] = new_labels
 
-    def rename_axis(self, mapper, axis, copy=True):
+    def rename_axis(self, mapper, axis, copy=True, level=None):
         """
         Rename one of axes.
 
@@ -2846,10 +2846,11 @@ class BlockManager(PandasObject):
         mapper : unary callable
         axis : int
         copy : boolean, default True
+        level : int, default None
 
         """
         obj = self.copy(deep=copy)
-        obj.set_axis(axis, _transform_index(self.axes[axis], mapper))
+        obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level))
         return obj
 
     def add_prefix(self, prefix):
@@ -4735,15 +4736,20 @@ def _safe_reshape(arr, new_shape):
     return arr
 
 
-def _transform_index(index, func):
+def _transform_index(index, func, level=None):
     """
     Apply function to all values found in index.
 
     This includes transforming multiindex entries separately.
+    Only apply function to one level of the MultiIndex if level is specified.
 
     """
     if isinstance(index, MultiIndex):
-        items = [tuple(func(y) for y in x) for x in index]
+        if level is not None:
+            items = [tuple(func(y) if i == level else y
+                           for i, y in enumerate(x)) for x in index]
+        else:
+            items = [tuple(func(y) for y in x) for x in index]
         return MultiIndex.from_tuples(items, names=index.names)
     else:
         items = [func(x) for x in index]
