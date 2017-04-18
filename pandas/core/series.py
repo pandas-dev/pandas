@@ -52,7 +52,7 @@ from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
 import pandas.core.strings as strings
-from pandas.tseries.common import (maybe_to_datetimelike,
+from pandas.core.indexes.accessors import (maybe_to_datetimelike,
                                    CombinedDatetimelikeProperties)
 from pandas.tseries.index import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex

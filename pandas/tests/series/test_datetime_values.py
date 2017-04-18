@@ -364,7 +364,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
     def test_dt_accessor_api(self):
         # GH 9322
-        from pandas.tseries.common import (CombinedDatetimelikeProperties,
+        from pandas.core.indexes.accessors import (CombinedDatetimelikeProperties,
                                            DatetimeProperties)
         self.assertIs(Series.dt, CombinedDatetimelikeProperties)
 
