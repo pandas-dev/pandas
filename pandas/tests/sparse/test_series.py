@@ -12,7 +12,7 @@ from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import range
 from pandas import compat
-from pandas.tools.util import cartesian_product
+from pandas.core.reshape.util import cartesian_product
 
 import pandas.core.sparse.frame as spf
 

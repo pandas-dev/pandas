@@ -1151,7 +1151,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     --------
     Series.str.get_dummies
     """
-    from pandas.tools.concat import concat
+    from pandas.core.reshape.concat import concat
     from itertools import cycle
 
     if isinstance(data, DataFrame):

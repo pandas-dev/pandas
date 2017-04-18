@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from pandas import (merge_asof, read_csv,
                     to_datetime, Timedelta)
-from pandas.tools.merge import MergeError
+from pandas.core.reshape.merge import MergeError
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal
 

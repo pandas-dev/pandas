@@ -6,7 +6,7 @@ from collections import OrderedDict
 import pandas as pd
 from pandas import (DataFrame, Series, Index, MultiIndex,
                     Grouper, date_range, concat)
-from pandas.tools.pivot import pivot_table, crosstab
+from pandas.core.reshape.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm
 from pandas.tseries.util import pivot_annual, isleapyear

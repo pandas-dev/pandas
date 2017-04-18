@@ -2,9 +2,10 @@
 
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
-from pandas import Series, DataFrame, MultiIndex, Index, concat
+from pandas.core.reshape.concat import concat
+from pandas import Series, DataFrame, MultiIndex, Index
 from pandas.core.groupby import Grouper
-from pandas.tools.util import cartesian_product
+from pandas.core.reshape.util import cartesian_product
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com

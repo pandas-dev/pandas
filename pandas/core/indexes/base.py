@@ -3064,7 +3064,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                   "implemented")
 
     def _join_non_unique(self, other, how='left', return_indexers=False):
-        from pandas.tools.merge import _get_join_indexers
+        from pandas.core.reshape.merge import _get_join_indexers
 
         left_idx, right_idx = _get_join_indexers([self.values],
                                                  [other._values], how=how,

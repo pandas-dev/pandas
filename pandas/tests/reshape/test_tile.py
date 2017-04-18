@@ -10,7 +10,7 @@ from pandas import (Series, Index, isnull,
 import pandas.util.testing as tm
 
 from pandas.core.algorithms import quantile
-import pandas.tools.tile as tmod
+import pandas.core.reshape.tile as tmod
 
 
 class TestCut(tm.TestCase):

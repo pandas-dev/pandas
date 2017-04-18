@@ -583,7 +583,7 @@ class TestValueCounts(tm.TestCase):
 
     def test_value_counts(self):
         np.random.seed(1234)
-        from pandas.tools.tile import cut
+        from pandas.core.reshape.tile import cut
 
         arr = np.random.randn(4)
         factor = cut(arr, 4)

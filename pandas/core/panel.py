@@ -33,7 +33,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
-from pandas.tools.util import cartesian_product
+from pandas.core.reshape.util import cartesian_product
 from pandas.util.decorators import (deprecate, Appender)
 
 _shared_doc_kwargs = dict(
@@ -1294,7 +1294,7 @@ class Panel(NDFrame):
         -------
         joined : Panel
         """
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.concat import concat
 
         if isinstance(other, Panel):
             join_major, join_minor = self._get_join_index(other, how)

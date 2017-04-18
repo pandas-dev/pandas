@@ -522,7 +522,7 @@ pandas.DataFrame.%(name)s
                         len(obj.columns.intersection(keys)) != len(keys)):
                     nested_renaming_depr()
 
-            from pandas.tools.concat import concat
+            from pandas.core.reshape.concat import concat
 
             def _agg_1dim(name, how, subset=None):
                 """
@@ -671,7 +671,7 @@ pandas.DataFrame.%(name)s
         return result, True
 
     def _aggregate_multiple_funcs(self, arg, _level, _axis):
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.concat import concat
 
         if _axis != 0:
             raise NotImplementedError("axis other than 0 is not supported")
