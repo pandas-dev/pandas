@@ -712,6 +712,7 @@ they are implemented in pandas such that the following two calls are equivalent:
    df.expanding(min_periods=1).mean()[:5]
 
 These have a similar set of methods to ``.rolling`` methods.
+Please see the :ref:`cumsum, cummax, cummin, cumprod <basics.stats>`
 
 Method Summary
 ~~~~~~~~~~~~~~
