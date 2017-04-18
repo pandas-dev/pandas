@@ -8,7 +8,8 @@ import numpy as np
 
 from pandas.compat import lrange
 from pandas import (DataFrame, Series, Index, MultiIndex,
-                    RangeIndex, date_range, IntervalIndex)
+                    RangeIndex, date_range, IntervalIndex,
+                    to_datetime)
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_categorical_dtype,
@@ -202,8 +203,8 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH 6032
         i = (pd.DatetimeIndex(
-            pd.tseries.tools.to_datetime(['2013-1-1 13:00',
-                                          '2013-1-2 14:00'], errors="raise"))
+            to_datetime(['2013-1-1 13:00',
+                         '2013-1-2 14:00'], errors="raise"))
              .tz_localize('US/Pacific'))
         df = DataFrame(np.random.randn(2, 1), columns=['A'])
 

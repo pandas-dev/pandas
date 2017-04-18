@@ -26,11 +26,11 @@ import pandas.core.common as com
 from pandas.core.index import Index
 
 from pandas.core.series import Series
-from pandas.tseries.index import date_range
-import pandas.tseries.tools as tools
+from pandas.core.indexes.datetimes import date_range
+import pandas.core.tools.datetimes as tools
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
-from pandas.tseries.period import Period, PeriodIndex
+from pandas.core.indexes.period import Period, PeriodIndex
 
 from pandas.plotting._compat import _mpl_le_2_0_0
 

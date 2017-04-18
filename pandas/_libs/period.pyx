@@ -34,7 +34,7 @@ from tslib cimport (
 )
 
 from pandas.tseries import offsets
-from pandas.tseries.tools import parse_time_string
+from pandas.core.tools.datetimes import parse_time_string
 from pandas.tseries import frequencies
 
 cdef int64_t NPY_NAT = util.get_nat()

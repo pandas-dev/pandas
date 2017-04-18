@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
+from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
                     to_timedelta, compat)
 from pandas._libs.tslib import iNaT, NaTType

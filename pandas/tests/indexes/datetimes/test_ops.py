@@ -8,7 +8,7 @@ import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.errors import PerformanceWarning
-from pandas.tseries.index import cdate_range
+from pandas.core.indexes.datetimes import cdate_range
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
                     datetime, Float64Index, offsets, bdate_range)

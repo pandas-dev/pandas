@@ -8,7 +8,7 @@ from numpy import nan
 
 from pandas import (date_range, bdate_range, Timestamp,
                     isnull, Index, MultiIndex, DataFrame, Series,
-                    concat, Panel)
+                    concat, Panel, DatetimeIndex)
 from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
@@ -3305,7 +3305,6 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_series_equal(result, mseries_result.sort_index())
 
     def test_groupby_reindex_inside_function(self):
-        from pandas.tseries.api import DatetimeIndex
 
         periods = 1000
         ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
@@ -3559,7 +3558,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         index = pd.DatetimeIndex(())
         data = ()
         series = pd.Series(data, index)
-        grouper = pd.tseries.resample.TimeGrouper('D')
+        grouper = pd.core.resample.TimeGrouper('D')
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 

@@ -7,10 +7,10 @@ from datetime import datetime, timedelta, tzinfo, date
 from pytz import NonExistentTimeError
 
 import pandas.util.testing as tm
-import pandas.tseries.tools as tools
+import pandas.core.tools.datetimes as tools
 import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip
-from pandas.tseries.index import bdate_range, date_range
+from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
 from pandas import (Index, Series, DataFrame, isnull, Timestamp, NaT,

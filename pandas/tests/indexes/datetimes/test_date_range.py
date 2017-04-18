@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, time
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import compat
-from pandas.tseries.index import bdate_range, cdate_range
+from pandas.core.indexes.datetimes import bdate_range, cdate_range
 from pandas import date_range, offsets, DatetimeIndex, Timestamp
 from pandas.tseries.offsets import (generate_range, CDay, BDay,
                                     DateOffset, MonthEnd)

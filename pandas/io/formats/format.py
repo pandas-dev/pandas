@@ -38,8 +38,8 @@ import pandas.core.common as com
 import pandas._libs.lib as lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
-from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.period import PeriodIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import PeriodIndex
 import pandas as pd
 import numpy as np
 
@@ -2314,7 +2314,7 @@ class IntervalArrayFormatter(GenericArrayFormatter):
 class PeriodArrayFormatter(IntArrayFormatter):
 
     def _format_strings(self):
-        from pandas.tseries.period import IncompatibleFrequency
+        from pandas.core.indexes.period import IncompatibleFrequency
         try:
             values = PeriodIndex(self.values).to_native_types()
         except IncompatibleFrequency:

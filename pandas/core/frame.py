@@ -82,9 +82,9 @@ from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, Substitution
 from pandas.util.validators import validate_bool_kwarg
 
-from pandas.tseries.period import PeriodIndex
-from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.tdi import TimedeltaIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 import pandas.core.base as base
 import pandas.core.common as com

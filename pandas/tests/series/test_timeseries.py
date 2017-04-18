@@ -8,8 +8,8 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas._libs.tslib import iNaT
 from pandas.compat import lrange, StringIO, product
-from pandas.tseries.tdi import TimedeltaIndex
-from pandas.tseries.index import DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.tseries.offsets import BDay, BMonthEnd
 from pandas import (Index, Series, date_range, NaT, concat, DataFrame,
                     Timestamp, to_datetime, offsets,
@@ -739,7 +739,7 @@ class TestTimeSeries(TestData, tm.TestCase):
                              "%s - %s" % time_string)
 
     def test_to_period(self):
-        from pandas.tseries.period import period_range
+        from pandas.core.indexes.period import period_range
 
         ts = _simple_ts('1/1/2000', '1/1/2001')
 

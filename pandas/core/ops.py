@@ -442,7 +442,7 @@ class _TimeOp(_Op):
 
     def _convert_to_array(self, values, name=None, other=None):
         """converts values to ndarray"""
-        from pandas.tseries.timedeltas import to_timedelta
+        from pandas.core.tools.timedeltas import to_timedelta
 
         ovalues = values
         supplied_dtype = None
@@ -508,7 +508,7 @@ class _TimeOp(_Op):
         return values
 
     def _convert_for_datetime(self, lvalues, rvalues):
-        from pandas.tseries.timedeltas import to_timedelta
+        from pandas.core.tools.timedeltas import to_timedelta
 
         mask = isnull(lvalues) | isnull(rvalues)
 

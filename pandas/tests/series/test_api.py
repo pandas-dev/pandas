@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import Index, Series, DataFrame, date_range
-from pandas.tseries.index import Timestamp
+from pandas.core.indexes.datetimes import Timestamp
 
 from pandas.compat import range
 from pandas import compat
