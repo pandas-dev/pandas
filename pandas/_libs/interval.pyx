@@ -52,7 +52,7 @@ cdef class Interval(IntervalMixin):
 
     .. versionadded:: 0.20.0
 
-    Properties
+    Attributes
     ----------
     left, right : values
         Left and right bounds for each interval.

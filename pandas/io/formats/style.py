@@ -71,7 +71,7 @@ class Styler(object):
     Attributes
     ----------
     env : Jinja2 Environment
-    template: Jinja2 Template
+    template : Jinja2 Template
     loader : Jinja2 Loader
 
     Notes

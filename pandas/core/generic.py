@@ -4217,14 +4217,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        by : mapping function / list of functions, dict, Series, ndarray,
-                or tuple / list of column names or index level names or
-                Series or ndarrays
-            Called on each element of the object index to determine the groups.
-            If a dict or Series is passed, the Series or dict VALUES will be
-            used to determine the groups (the Series' values are first
-            aligned; see ``.align()`` method). If ndarray is passed, the
-            values as-is determine the groups.
+        by : mapping, function, str, or iterable
+            Used to determine the groups for the groupby.
+            If ``by`` is a function, it's called on each value of the object's
+            index. If a dict or Series is passed, the Series or dict VALUES
+            will be used to determine the groups (the Series' values are first
+            aligned; see ``.align()`` method). If an ndarray is passed, the
+            values are used as-is determine the groups. A str or list of strs
+            may be passed to group by the columns in ``self``
         axis : int, default 0
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular

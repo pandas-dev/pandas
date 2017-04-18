@@ -176,7 +176,7 @@ The following are now part of this API:
 ``pandas.testing``
 ^^^^^^^^^^^^^^^^^^
 
-We are adding a standard module that exposes the public testing functions in ``pandas.testing``(:issue:`9895`). Those functions can be used when writing tests for functionality using pandas objects.
+We are adding a standard module that exposes the public testing functions in ``pandas.testing`` (:issue:`9895`). Those functions can be used when writing tests for functionality using pandas objects.
 
 The following testing functions are now part of this API:
 
@@ -517,7 +517,7 @@ Other Enhancements
 - ``pandas.io.json.json_normalize()`` gained the option ``errors='ignore'|'raise'``; the default is ``errors='raise'`` which is backward compatible. (:issue:`14583`)
 - ``pandas.io.json.json_normalize()`` with an empty ``list`` will return an empty ``DataFrame`` (:issue:`15534`)
 - ``pandas.io.json.json_normalize()`` has gained a ``sep`` option that accepts ``str`` to separate joined fields; the default is ".", which is backward compatible. (:issue:`14883`)
-- :method:`~MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
+- :meth:`~MultiIndex.remove_unused_levels` has been added to facilitate :ref:`removing unused levels <advanced.shown_levels>`. (:issue:`15694`)
 - ``pd.read_csv()`` will now raise a ``ParserError`` error whenever any parsing error occurs (:issue:`15913`, :issue:`15925`)
 - ``pd.read_csv()`` now supports the ``error_bad_lines`` and ``warn_bad_lines`` arguments for the Python parser (:issue:`15925`)
 - The ``display.show_dimensions`` option can now also be used to specify
@@ -620,8 +620,8 @@ However, ``.agg(..)`` can *also* accept a dict that allows 'renaming' of the res
 between ``Series`` and ``DataFrame``. We are deprecating this 'renaming' functionaility.
 
 - We are deprecating passing a dict to a grouped/rolled/resampled ``Series``. This allowed
-one to ``rename`` the resulting aggregation, but this had a completely different
-meaning than passing a dictionary to a grouped ``DataFrame``, which accepts column-to-aggregations.
+  one to ``rename`` the resulting aggregation, but this had a completely different
+  meaning than passing a dictionary to a grouped ``DataFrame``, which accepts column-to-aggregations.
 - We are deprecating passing a dict-of-dicts to a grouped/rolled/resampled ``DataFrame`` in a similar manner.
 
 This is an illustrative example:
@@ -1363,9 +1363,9 @@ If indicated, a deprecation warning will be issued if you reference theses modul
     "pandas._testing", "pandas.util.libtesting", ""
     "pandas._window", "pandas.core.libwindow", ""
 
-- The function :func:`~pandas.api.type.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
+- The function :func:`~pandas.api.types.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
 
-.. _whatsnew_0200.privacy.deprecate_plotting
+.. _whatsnew_0200.privacy.deprecate_plotting:
 
 Deprecate .plotting
 ^^^^^^^^^^^^^^^^^^^
