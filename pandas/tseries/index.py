@@ -35,7 +35,7 @@ import pandas.compat as compat
 from pandas.tseries.frequencies import (
     to_offset, get_period_alias,
     Resolution)
-from pandas.tseries.base import DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.tseries.tools import parse_time_string, normalize_date, to_time
 from pandas.tseries.timedeltas import to_timedelta

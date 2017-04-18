@@ -27,7 +27,7 @@ from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
-from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import TimelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.timedeltas import (to_timedelta,
                                        _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
