@@ -56,7 +56,7 @@ from pandas.tseries.common import (maybe_to_datetimelike,
                                    CombinedDatetimelikeProperties)
 from pandas.tseries.index import DatetimeIndex
 from pandas.tseries.tdi import TimedeltaIndex
-from pandas.tseries.period import PeriodIndex
+from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO

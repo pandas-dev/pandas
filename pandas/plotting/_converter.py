@@ -30,7 +30,7 @@ from pandas.tseries.index import date_range
 import pandas.tseries.tools as tools
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
-from pandas.tseries.period import Period, PeriodIndex
+from pandas.core.indexes.period import Period, PeriodIndex
 
 from pandas.plotting._compat import _mpl_le_2_0_0
 

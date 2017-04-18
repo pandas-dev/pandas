@@ -10,7 +10,7 @@ import pandas.tseries.frequencies as frequencies
 from pandas.tseries.tools import to_datetime
 
 import pandas.tseries.offsets as offsets
-from pandas.tseries.period import PeriodIndex
+from pandas.core.indexes.period import PeriodIndex
 import pandas.compat as compat
 from pandas.compat import is_platform_windows
 

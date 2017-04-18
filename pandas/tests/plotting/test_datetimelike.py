@@ -11,7 +11,7 @@ from pandas.compat import is_platform_mac
 from pandas.tseries.index import date_range, bdate_range
 from pandas.tseries.tdi import timedelta_range
 from pandas.tseries.offsets import DateOffset
-from pandas.tseries.period import period_range, Period, PeriodIndex
+from pandas.core.indexes.period import period_range, Period, PeriodIndex
 from pandas.core.resample import DatetimeIndex
 
 from pandas.util.testing import assert_series_equal, ensure_clean, slow

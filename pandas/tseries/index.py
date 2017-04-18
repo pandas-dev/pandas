@@ -927,7 +927,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Cast to PeriodIndex at a particular frequency
         """
-        from pandas.tseries.period import PeriodIndex
+        from pandas.core.indexes.period import PeriodIndex
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq

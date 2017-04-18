@@ -13,7 +13,7 @@ from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.tseries.index import DatetimeIndex, date_range
 from pandas.tseries.tdi import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
-from pandas.tseries.period import PeriodIndex, period_range
+from pandas.core.indexes.period import PeriodIndex, period_range
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 

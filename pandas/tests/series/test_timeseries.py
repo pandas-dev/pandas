@@ -739,7 +739,7 @@ class TestTimeSeries(TestData, tm.TestCase):
                              "%s - %s" % time_string)
 
     def test_to_period(self):
-        from pandas.tseries.period import period_range
+        from pandas.core.indexes.period import period_range
 
         ts = _simple_ts('1/1/2000', '1/1/2001')
 

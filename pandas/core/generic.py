@@ -38,7 +38,7 @@ from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                InvalidIndexError)
 import pandas.core.indexing as indexing
 from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.period import PeriodIndex, Period
+from pandas.core.indexes.period import PeriodIndex, Period
 from pandas.core.internals import BlockManager
 import pandas.core.algorithms as algos
 import pandas.core.common as com

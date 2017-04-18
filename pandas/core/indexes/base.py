@@ -91,7 +91,7 @@ def _new_Index(cls, d):
     # required for backward compat, because PI can't be instantiated with
     # ordinals through __new__ GH #13277
     if issubclass(cls, ABCPeriodIndex):
-        from pandas.tseries.period import _new_PeriodIndex
+        from pandas.core.indexes.period import _new_PeriodIndex
         return _new_PeriodIndex(cls, **d)
     return cls.__new__(cls, **d)
 
@@ -250,8 +250,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         raise
 
             # maybe coerce to a sub-class
-            from pandas.tseries.period import (PeriodIndex,
-                                               IncompatibleFrequency)
+            from pandas.core.indexes.period import (
+                PeriodIndex, IncompatibleFrequency)
             if isinstance(data, PeriodIndex):
                 return PeriodIndex(data, copy=copy, name=name, **kwargs)
             if is_signed_integer_dtype(data.dtype):

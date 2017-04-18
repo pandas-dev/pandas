@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.tseries.period as period
+import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
 from pandas.compat.numpy import np_datetime64_compat
 
