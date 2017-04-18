@@ -2,6 +2,7 @@
 
 import pytest
 import numpy as np
+import pandas as pd
 
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype, PeriodDtype, CategoricalDtype)
@@ -12,6 +13,15 @@ import pandas.util.testing as tm
 
 
 class TestPandasDtype(tm.TestCase):
+
+    # Passing invalid dtype, both as a string or object, must raise TypeError
+    def test_invalid_dtype_error(self):
+        msg = 'not understood'
+        with tm.assertRaisesRegexp(TypeError, msg):
+            pandas_dtype(pd.Timestamp)
+
+        with tm.assertRaisesRegexp(TypeError, msg):
+            pandas_dtype('time')
 
     def test_numpy_dtype(self):
         for dtype in ['M8[ns]', 'm8[ns]', 'object', 'float64', 'int64']:
