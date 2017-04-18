@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 from pandas._libs.tslib import iNaT
 from pandas.compat import lrange, StringIO, product
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tseries.index import DatetimeIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.tseries.offsets import BDay, BMonthEnd
 from pandas import (Index, Series, date_range, NaT, concat, DataFrame,
                     Timestamp, to_datetime, offsets,

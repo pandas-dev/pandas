@@ -10,7 +10,7 @@ from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
                                  SeriesGroupBy, groupby, PanelGroupBy)
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
-from pandas.tseries.index import DatetimeIndex, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex, period_range

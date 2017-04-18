@@ -23,7 +23,7 @@ from pandas import DataFrame, Series, Index, DatetimeIndex, MultiIndex
 from pandas import compat
 from pandas.compat import parse_date, StringIO, lrange
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.tseries.index import date_range
+from pandas.core.indexes.datetimes import date_range
 
 
 class ParseDatesTests(object):

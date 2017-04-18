@@ -21,7 +21,7 @@ from pandas.compat.numpy import np_datetime64_compat
 
 import pandas.core.config as cf
 
-from pandas.tseries.index import _to_m8
+from pandas.core.indexes.datetimes import _to_m8
 
 import pandas as pd
 from pandas._libs.lib import Timestamp

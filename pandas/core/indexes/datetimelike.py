@@ -666,7 +666,7 @@ class DatetimeIndexOpsMixin(object):
 
         def __sub__(self, other):
             from pandas.core.index import Index
-            from pandas.tseries.index import DatetimeIndex
+            from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
             if isinstance(other, TimedeltaIndex):

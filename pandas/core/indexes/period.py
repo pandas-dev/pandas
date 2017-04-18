@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
-from pandas.tseries.index import DatetimeIndex, Int64Index, Index
+from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.tseries.tools import parse_time_string

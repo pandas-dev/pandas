@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Index, Series, _np_version_under1p9)
-from pandas.tseries.index import Timestamp
+from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.dtypes.common import is_integer
 import pandas.util.testing as tm
 

@@ -19,7 +19,7 @@ from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.index import date_range
+from pandas.core.indexes.datetimes import date_range
 from pandas.tseries.offsets import Minute, BDay
 from pandas.core.indexes.period import period_range, PeriodIndex, Period
 from pandas.core.resample import (DatetimeIndex, TimeGrouper,

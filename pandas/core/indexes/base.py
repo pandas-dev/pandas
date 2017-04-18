@@ -184,7 +184,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if (is_datetime64_any_dtype(data) or
                 (dtype is not None and is_datetime64_any_dtype(dtype)) or
                     'tz' in kwargs):
-                from pandas.tseries.index import DatetimeIndex
+                from pandas.core.indexes.datetimes import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name,
                                        dtype=dtype, **kwargs)
                 if dtype is not None and is_dtype_equal(_o_dtype, dtype):
@@ -299,7 +299,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                         if (lib.is_datetime_with_singletz_array(subarr) or
                                 'tz' in kwargs):
                             # only when subarr has the same tz
-                            from pandas.tseries.index import DatetimeIndex
+                            from pandas.core.indexes.datetimes import (
+                                DatetimeIndex)
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
@@ -1010,7 +1011,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         warnings.warn("to_datetime is deprecated. Use pd.to_datetime(...)",
                       FutureWarning, stacklevel=2)
 
-        from pandas.tseries.index import DatetimeIndex
+        from pandas.core.indexes.datetimes import DatetimeIndex
         if self.inferred_type == 'string':
             from dateutil.parser import parse
             parser = lambda x: parse(x, dayfirst=dayfirst)
@@ -2665,7 +2666,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
     def _maybe_promote(self, other):
         # A hack, but it works
-        from pandas.tseries.index import DatetimeIndex
+        from pandas.core.indexes.datetimes import DatetimeIndex
         if self.inferred_type == 'date' and isinstance(other, DatetimeIndex):
             return DatetimeIndex(self), other
         elif self.inferred_type == 'boolean':

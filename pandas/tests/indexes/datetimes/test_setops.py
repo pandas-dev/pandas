@@ -4,7 +4,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.tseries.index import cdate_range
+from pandas.core.indexes.datetimes import cdate_range
 from pandas import (DatetimeIndex, date_range, Series, bdate_range, DataFrame,
                     Int64Index, Index, to_datetime)
 from pandas.tseries.offsets import Minute, BMonthEnd, MonthEnd

@@ -364,8 +364,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
     def test_dt_accessor_api(self):
         # GH 9322
-        from pandas.core.indexes.accessors import (CombinedDatetimelikeProperties,
-                                           DatetimeProperties)
+        from pandas.core.indexes.accessors import (
+            CombinedDatetimelikeProperties, DatetimeProperties)
         self.assertIs(Series.dt, CombinedDatetimelikeProperties)
 
         s = Series(date_range('2000-01-01', periods=3))

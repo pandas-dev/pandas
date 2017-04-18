@@ -6,7 +6,7 @@ from matplotlib import pylab
 from pandas.core.indexes.period import Period
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.frequencies as frequencies
-from pandas.tseries.index import DatetimeIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.io.formats.printing import pprint_thing
