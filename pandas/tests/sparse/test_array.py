@@ -7,8 +7,8 @@ from numpy import nan
 import numpy as np
 
 from pandas import _np_version_under1p8
-from pandas.sparse.api import SparseArray, SparseSeries
-from pandas.sparse.libsparse import IntIndex
+from pandas.core.sparse.api import SparseArray, SparseSeries
+from pandas.core.sparse.libsparse import IntIndex
 from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
 
@@ -562,7 +562,7 @@ class TestSparseArray(tm.TestCase):
 
     def test_pickle(self):
         def _check_roundtrip(obj):
-            unpickled = self.round_trip_pickle(obj)
+            unpickled = tm.round_trip_pickle(obj)
             tm.assert_sp_array_equal(unpickled, obj)
 
         _check_roundtrip(self.arr)

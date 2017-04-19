@@ -9,15 +9,16 @@ import numpy as np
 
 import pandas as pd
 import pandas.compat as compat
-from pandas.types.common import (is_object_dtype, is_datetimetz,
-                                 needs_i8_conversion)
+from pandas.core.dtypes.common import (
+    is_object_dtype, is_datetimetz,
+    needs_i8_conversion)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex, PeriodIndex,
-                    Timedelta)
+                    Timedelta, IntervalIndex, Interval)
 from pandas.compat import StringIO
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.base import PandasDelegate, NoNewAttributesMixin
-from pandas.tseries.base import DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas._libs.tslib import iNaT
 
 
@@ -303,26 +304,28 @@ class TestIndexOps(Ops):
     def test_ndarray_compat_properties(self):
 
         for o in self.objs:
+            # Check that we work.
+            for p in ['shape', 'dtype', 'flags', 'T',
+                      'strides', 'itemsize', 'nbytes']:
+                assert getattr(o, p, None) is not None
 
-            # check that we work
-            for p in ['shape', 'dtype', 'flags', 'T', 'strides', 'itemsize',
-                      'nbytes']:
-                self.assertIsNotNone(getattr(o, p, None))
-            self.assertTrue(hasattr(o, 'base'))
+            assert hasattr(o, 'base')
 
-            # if we have a datetimelike dtype then needs a view to work
+            # If we have a datetime-like dtype then needs a view to work
             # but the user is responsible for that
             try:
-                self.assertIsNotNone(o.data)
+                assert o.data is not None
             except ValueError:
                 pass
 
-            self.assertRaises(ValueError, o.item)  # len > 1
-            self.assertEqual(o.ndim, 1)
-            self.assertEqual(o.size, len(o))
+            with pytest.raises(ValueError):
+                o.item()  # len > 1
 
-        self.assertEqual(Index([1]).item(), 1)
-        self.assertEqual(Series([1]).item(), 1)
+            assert o.ndim == 1
+            assert o.size == len(o)
+
+        assert Index([1]).item() == 1
+        assert Series([1]).item() == 1
 
     def test_ops(self):
         for op in ['max', 'min']:
@@ -575,10 +578,10 @@ class TestIndexOps(Ops):
 
             s1 = Series([1, 1, 2, 3])
             res1 = s1.value_counts(bins=1)
-            exp1 = Series({0.998: 4})
+            exp1 = Series({Interval(0.997, 3.0): 4})
             tm.assert_series_equal(res1, exp1)
             res1n = s1.value_counts(bins=1, normalize=True)
-            exp1n = Series({0.998: 1.0})
+            exp1n = Series({Interval(0.997, 3.0): 1.0})
             tm.assert_series_equal(res1n, exp1n)
 
             if isinstance(s1, Index):
@@ -589,18 +592,20 @@ class TestIndexOps(Ops):
 
             self.assertEqual(s1.nunique(), 3)
 
-            res4 = s1.value_counts(bins=4)
-            exp4 = Series({0.998: 2,
-                           1.5: 1,
-                           2.0: 0,
-                           2.5: 1}, index=[0.998, 2.5, 1.5, 2.0])
+            # these return the same
+            res4 = s1.value_counts(bins=4, dropna=True)
+            intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+            exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
             tm.assert_series_equal(res4, exp4)
+
+            res4 = s1.value_counts(bins=4, dropna=False)
+            intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+            exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
+            tm.assert_series_equal(res4, exp4)
+
             res4n = s1.value_counts(bins=4, normalize=True)
-            exp4n = Series(
-                {0.998: 0.5,
-                 1.5: 0.25,
-                 2.0: 0.0,
-                 2.5: 0.25}, index=[0.998, 2.5, 1.5, 2.0])
+            exp4n = Series([0.5, 0.25, 0.25, 0],
+                           index=intervals.take([0, 3, 1, 2]))
             tm.assert_series_equal(res4n, exp4n)
 
             # handle NA's properly

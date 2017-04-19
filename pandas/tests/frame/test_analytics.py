@@ -18,7 +18,7 @@ from pandas import (compat, isnull, notnull, DataFrame, Series,
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
-import pandas.formats.printing as printing
+import pandas.io.formats.printing as printing
 
 import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
@@ -873,7 +873,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         mixed['F'] = Timestamp('20130101')
 
         # results in an object array
-        from pandas.tseries.timedeltas import (
+        from pandas.core.tools.timedeltas import (
             _coerce_scalar_to_timedelta_type as _coerce)
 
         result = mixed.min()

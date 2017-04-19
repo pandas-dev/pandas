@@ -454,7 +454,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     def test_pickle(self):
 
         rng = timedelta_range('1 days', periods=10)
-        rng_p = self.round_trip_pickle(rng)
+        rng_p = tm.round_trip_pickle(rng)
         tm.assert_index_equal(rng, rng_p)
 
     def test_hash_error(self):

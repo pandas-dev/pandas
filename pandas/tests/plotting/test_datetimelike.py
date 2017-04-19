@@ -8,11 +8,11 @@ from pandas.compat import lrange, zip
 import numpy as np
 from pandas import Index, Series, DataFrame
 from pandas.compat import is_platform_mac
-from pandas.tseries.index import date_range, bdate_range
-from pandas.tseries.tdi import timedelta_range
+from pandas.core.indexes.datetimes import date_range, bdate_range
+from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tseries.offsets import DateOffset
-from pandas.tseries.period import period_range, Period, PeriodIndex
-from pandas.tseries.resample import DatetimeIndex
+from pandas.core.indexes.period import period_range, Period, PeriodIndex
+from pandas.core.resample import DatetimeIndex
 
 from pandas.util.testing import assert_series_equal, ensure_clean, slow
 import pandas.util.testing as tm
@@ -144,7 +144,7 @@ class TestTSPlot(TestPlotBase):
             _check_plot_works(ser.plot)
 
     def test_get_datevalue(self):
-        from pandas.tseries.converter import get_datevalue
+        from pandas.plotting._converter import get_datevalue
         self.assertIsNone(get_datevalue(None, 'D'))
         self.assertEqual(get_datevalue(1987, 'A'), 1987)
         self.assertEqual(get_datevalue(Period(1987, 'A'), 'M'),
@@ -243,7 +243,7 @@ class TestTSPlot(TestPlotBase):
 
     @slow
     def test_uhf(self):
-        import pandas.tseries.converter as conv
+        import pandas.plotting._converter as conv
         import matplotlib.pyplot as plt
         fig = plt.gcf()
         plt.clf()
@@ -296,12 +296,14 @@ class TestTSPlot(TestPlotBase):
 
         fig = plt.gcf()
         plt.clf()
+
         ax = fig.add_subplot(211)
+
         ret = ser.plot()
-        self.assertIsNotNone(ret)
+        assert ret is not None
 
         for rs, xp in zip(ax.get_lines()[0].get_xdata(), ser.index):
-            self.assertEqual(rs, xp)
+            assert rs == xp
 
     def test_business_freq(self):
         import matplotlib.pyplot as plt  # noqa
@@ -387,7 +389,7 @@ class TestTSPlot(TestPlotBase):
             _test(ax)
 
     def test_get_finder(self):
-        import pandas.tseries.converter as conv
+        import pandas.plotting._converter as conv
 
         self.assertEqual(conv.get_finder('B'), conv._daily_finder)
         self.assertEqual(conv.get_finder('D'), conv._daily_finder)
@@ -1331,6 +1333,14 @@ class TestTSPlot(TestPlotBase):
                                 periods=10, freq='1 ns')
         s = Series(np.random.randn(len(index)), index)
         _check_plot_works(s.plot)
+
+    def test_hist(self):
+        # https://github.com/matplotlib/matplotlib/issues/8459
+        rng = date_range('1/1/2011', periods=10, freq='H')
+        x = rng
+        w1 = np.arange(0, 1, .1)
+        w2 = np.arange(0, 1, .1)[::-1]
+        self.plt.hist([x, x], weights=[w1, w2])
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

@@ -11,9 +11,9 @@ from datetime import datetime, date
 import pandas as pd
 from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
                     bdate_range)
-from pandas.types.api import is_list_like
+from pandas.core.dtypes.api import is_list_like
 from pandas.compat import range, lrange, lmap, lzip, u, zip, PY3
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 from pandas.util.testing import slow
 
@@ -22,7 +22,7 @@ from pandas.core.config import set_option
 import numpy as np
 from numpy.random import rand, randn
 
-import pandas.tools.plotting as plotting
+import pandas.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
@@ -141,6 +141,22 @@ class TestDataFramePlots(TestPlotBase):
             result = ax.get_axes()  # deprecated
         self.assertIs(result, axes[0])
 
+    # GH 15516
+    def test_mpl2_color_cycle_str(self):
+        # test CN mpl 2.0 color cycle
+        if self.mpl_ge_2_0_0:
+            colors = ['C' + str(x) for x in range(10)]
+            df = DataFrame(randn(10, 3), columns=['a', 'b', 'c'])
+            for c in colors:
+                _check_plot_works(df.plot, color=c)
+        else:
+            pytest.skip("not supported in matplotlib < 2.0.0")
+
+    def test_color_empty_string(self):
+        df = DataFrame(randn(10, 2))
+        with tm.assertRaises(ValueError):
+            df.plot(color='')
+
     def test_color_and_style_arguments(self):
         df = DataFrame({'x': [1, 2], 'y': [3, 4]})
         # passing both 'color' and 'style' arguments should be allowed
@@ -224,13 +240,13 @@ class TestDataFramePlots(TestPlotBase):
         self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
-        pd.plot_params['xaxis.compat'] = True
+        pd.plotting.plot_params['xaxis.compat'] = True
         ax = df.plot()
         lines = ax.get_lines()
         self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
-        pd.plot_params['x_compat'] = False
+        pd.plotting.plot_params['x_compat'] = False
         ax = df.plot()
         lines = ax.get_lines()
         self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
@@ -238,7 +254,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
         # useful if you're plotting a bunch together
-        with pd.plot_params.use('x_compat', True):
+        with pd.plotting.plot_params.use('x_compat', True):
             ax = df.plot()
             lines = ax.get_lines()
             self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
@@ -1963,7 +1979,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_kind_both_ways(self):
         df = DataFrame({'x': [1, 2, 3]})
-        for kind in plotting._common_kinds:
+        for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
             df.plot(kind=kind)
@@ -1974,7 +1990,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_all_invalid_plot_data(self):
         df = DataFrame(list('abcd'))
-        for kind in plotting._common_kinds:
+        for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
             with tm.assertRaises(TypeError):
@@ -1985,7 +2001,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.RNGContext(42):
             df = DataFrame(randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = 'a'
-            for kind in plotting._common_kinds:
+            for kind in plotting._core._common_kinds:
                 if not _ok_for_gaussian_kde(kind):
                     continue
                 with tm.assertRaises(TypeError):
@@ -2438,7 +2454,7 @@ class TestDataFramePlots(TestPlotBase):
         import gc
 
         results = {}
-        for kind in plotting._plot_klass.keys():
+        for kind in plotting._core._plot_klass.keys():
             if not _ok_for_gaussian_kde(kind):
                 continue
             args = {}
@@ -2637,7 +2653,7 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure plot defaults to rcParams['axes.grid'] setting, GH 9792
         self._check_grid_settings(
             DataFrame({'a': [1, 2, 3], 'b': [2, 3, 4]}),
-            plotting._dataframe_kinds, kws={'x': 'a', 'y': 'b'})
+            plotting._core._dataframe_kinds, kws={'x': 'a', 'y': 'b'})
 
     def test_option_mpl_style(self):
         with tm.assert_produces_warning(FutureWarning,

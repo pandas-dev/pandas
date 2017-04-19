@@ -23,38 +23,40 @@ from numpy import nan as NA
 import numpy as np
 import numpy.ma as ma
 
-from pandas.types.cast import (maybe_upcast, infer_dtype_from_scalar,
-                               maybe_cast_to_datetime,
-                               maybe_infer_to_datetimelike,
-                               maybe_convert_platform,
-                               maybe_downcast_to_dtype,
-                               invalidate_string_dtypes,
-                               coerce_to_dtypes,
-                               maybe_upcast_putmask,
-                               find_common_type)
-from pandas.types.common import (is_categorical_dtype,
-                                 is_object_dtype,
-                                 is_extension_type,
-                                 is_datetimetz,
-                                 is_datetime64_any_dtype,
-                                 is_datetime64tz_dtype,
-                                 is_bool_dtype,
-                                 is_integer_dtype,
-                                 is_float_dtype,
-                                 is_integer,
-                                 is_scalar,
-                                 is_dtype_equal,
-                                 needs_i8_conversion,
-                                 _get_dtype_from_object,
-                                 _ensure_float,
-                                 _ensure_float64,
-                                 _ensure_int64,
-                                 _ensure_platform_int,
-                                 is_list_like,
-                                 is_iterator,
-                                 is_sequence,
-                                 is_named_tuple)
-from pandas.types.missing import isnull, notnull
+from pandas.core.dtypes.cast import (
+    maybe_upcast, infer_dtype_from_scalar,
+    maybe_cast_to_datetime,
+    maybe_infer_to_datetimelike,
+    maybe_convert_platform,
+    maybe_downcast_to_dtype,
+    invalidate_string_dtypes,
+    coerce_to_dtypes,
+    maybe_upcast_putmask,
+    find_common_type)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+    is_extension_type,
+    is_datetimetz,
+    is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
+    is_bool_dtype,
+    is_integer_dtype,
+    is_float_dtype,
+    is_integer,
+    is_scalar,
+    is_dtype_equal,
+    needs_i8_conversion,
+    _get_dtype_from_object,
+    _ensure_float,
+    _ensure_float64,
+    _ensure_int64,
+    _ensure_platform_int,
+    is_list_like,
+    is_iterator,
+    is_sequence,
+    is_named_tuple)
+from pandas.core.dtypes.missing import isnull, notnull
 
 from pandas.core.common import (_try_sort,
                                 _default_index,
@@ -70,9 +72,9 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.categorical import Categorical
-import pandas.computation.expressions as expressions
+import pandas.core.computation.expressions as expressions
 import pandas.core.algorithms as algorithms
-from pandas.computation.eval import eval as _eval
+from pandas.core.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
@@ -80,17 +82,17 @@ from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, Substitution
 from pandas.util.validators import validate_bool_kwarg
 
-from pandas.tseries.period import PeriodIndex
-from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.tdi import TimedeltaIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 import pandas.core.base as base
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
-import pandas.formats.format as fmt
-from pandas.formats.printing import pprint_thing
-import pandas.tools.plotting as gfx
+import pandas.io.formats.format as fmt
+from pandas.io.formats.printing import pprint_thing
+import pandas.plotting._core as gfx
 
 from pandas._libs import lib, algos as libalgos
 
@@ -634,9 +636,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.formats.style.Styler
+        pandas.io.formats.style.Styler
         """
-        from pandas.formats.style import Styler
+        from pandas.io.formats.style import Styler
         return Styler(self)
 
     def iteritems(self):
@@ -1269,7 +1271,7 @@ class DataFrame(NDFrame):
         -------
         y : SparseDataFrame
         """
-        from pandas.core.sparse import SparseDataFrame
+        from pandas.core.sparse.frame import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)
@@ -1418,7 +1420,7 @@ class DataFrame(NDFrame):
                  merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
                  freeze_panes=None):
 
-        from pandas.formats.excel import ExcelFormatter
+        from pandas.io.formats.excel import ExcelFormatter
         formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
                                    header=header,
                                    float_format=float_format, index=index,
@@ -1711,7 +1713,7 @@ it is assumed to be aliases for the column names.')
             - If False, never show counts.
 
         """
-        from pandas.formats.format import _put_lines
+        from pandas.io.formats.format import _put_lines
 
         if buf is None:  # pragma: no cover
             buf = sys.stdout
@@ -3943,7 +3945,7 @@ it is assumed to be aliases for the column names.')
 
 
         """
-        from pandas.core.reshape import pivot
+        from pandas.core.reshape.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
 
     def stack(self, level=-1, dropna=True):
@@ -3979,7 +3981,7 @@ it is assumed to be aliases for the column names.')
         -------
         stacked : DataFrame or Series
         """
-        from pandas.core.reshape import stack, stack_multiple
+        from pandas.core.reshape.reshape import stack, stack_multiple
 
         if isinstance(level, (tuple, list)):
             return stack_multiple(self, level, dropna=dropna)
@@ -4044,7 +4046,7 @@ it is assumed to be aliases for the column names.')
         -------
         unstacked : DataFrame or Series
         """
-        from pandas.core.reshape import unstack
+        from pandas.core.reshape.reshape import unstack
         return unstack(self, level, fill_value)
 
     _shared_docs['melt'] = ("""
@@ -4146,7 +4148,7 @@ it is assumed to be aliases for the column names.')
                    other='melt'))
     def melt(self, id_vars=None, value_vars=None, var_name=None,
              value_name='value', col_level=None):
-        from pandas.core.reshape import melt
+        from pandas.core.reshape.reshape import melt
         return melt(self, id_vars=id_vars, value_vars=value_vars,
                     var_name=var_name, value_name=value_name,
                     col_level=col_level)
@@ -4177,6 +4179,42 @@ it is assumed to be aliases for the column names.')
 
     # ----------------------------------------------------------------------
     # Function application
+
+    def _gotitem(self, key, ndim, subset=None):
+        """
+        sub-classes to define
+        return a sliced object
+
+        Parameters
+        ----------
+        key : string / list of selections
+        ndim : 1,2
+            requested ndim of result
+        subset : object, default None
+            subset to act on
+        """
+        if subset is None:
+            subset = self
+
+        # TODO: _shallow_copy(subset)?
+        return self[key]
+
+    @Appender(_shared_docs['aggregate'] % _shared_doc_kwargs)
+    def aggregate(self, func, axis=0, *args, **kwargs):
+        axis = self._get_axis_number(axis)
+
+        # TODO: flipped axis
+        result = None
+        if axis == 0:
+            try:
+                result, how = self._aggregate(func, axis=0, *args, **kwargs)
+            except TypeError:
+                pass
+        if result is None:
+            return self.apply(func, axis=axis, args=args, **kwargs)
+        return result
+
+    agg = aggregate
 
     def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
               args=(), **kwds):
@@ -4233,21 +4271,34 @@ it is assumed to be aliases for the column names.')
         See also
         --------
         DataFrame.applymap: For elementwise operations
+        DataFrame.agg: only perform aggregating type operations
+        DataFrame.transform: only perform transformating type operations
 
         Returns
         -------
         applied : Series or DataFrame
         """
         axis = self._get_axis_number(axis)
-        if kwds or args and not isinstance(func, np.ufunc):
+        ignore_failures = kwds.pop('ignore_failures', False)
 
+        # dispatch to agg
+        if axis == 0 and isinstance(func, (list, dict)):
+            return self.aggregate(func, axis=axis, *args, **kwds)
+
+        if len(self.columns) == 0 and len(self.index) == 0:
+            return self._apply_empty_result(func, axis, reduce, *args, **kwds)
+
+        # if we are a string, try to dispatch
+        if isinstance(func, compat.string_types):
+            if axis:
+                kwds['axis'] = axis
+            return getattr(self, func)(*args, **kwds)
+
+        if kwds or args and not isinstance(func, np.ufunc):
             def f(x):
                 return func(x, *args, **kwds)
         else:
             f = func
-
-        if len(self.columns) == 0 and len(self.index) == 0:
-            return self._apply_empty_result(func, axis, reduce, *args, **kwds)
 
         if isinstance(f, np.ufunc):
             with np.errstate(all='ignore'):
@@ -4265,7 +4316,10 @@ it is assumed to be aliases for the column names.')
                 else:
                     if reduce is None:
                         reduce = True
-                    return self._apply_standard(f, axis, reduce=reduce)
+                    return self._apply_standard(
+                        f, axis,
+                        reduce=reduce,
+                        ignore_failures=ignore_failures)
             else:
                 return self._apply_broadcast(f, axis)
 
@@ -4544,7 +4598,7 @@ it is assumed to be aliases for the column names.')
             if (self.columns.get_indexer(other.columns) >= 0).all():
                 other = other.loc[:, self.columns]
 
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.concat import concat
         if isinstance(other, (list, tuple)):
             to_concat = [self] + other
         else:
@@ -4676,8 +4730,8 @@ it is assumed to be aliases for the column names.')
 
     def _join_compat(self, other, on=None, how='left', lsuffix='', rsuffix='',
                      sort=False):
-        from pandas.tools.merge import merge
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.merge import merge
+        from pandas.core.reshape.concat import concat
 
         if isinstance(other, Series):
             if other.name is None:
@@ -4721,7 +4775,7 @@ it is assumed to be aliases for the column names.')
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=False,
               suffixes=('_x', '_y'), copy=True, indicator=False):
-        from pandas.tools.merge import merge
+        from pandas.core.reshape.merge import merge
         return merge(self, right, how=how, on=on, left_on=left_on,
                      right_on=right_on, left_index=left_index,
                      right_index=right_index, sort=sort, suffixes=suffixes,
@@ -4781,7 +4835,7 @@ it is assumed to be aliases for the column names.')
         Series.round
 
         """
-        from pandas.tools.concat import concat
+        from pandas.core.reshape.concat import concat
 
         def _dict_round(df, decimals):
             for col, vals in df.iteritems():
@@ -5074,7 +5128,13 @@ it is assumed to be aliases for the column names.')
                         # this can end up with a non-reduction
                         # but not always. if the types are mixed
                         # with datelike then need to make sure a series
-                        result = self.apply(f, reduce=False)
+
+                        # we only end up here if we have not specified
+                        # numeric_only and yet we have tried a
+                        # column-by-column reduction, where we have mixed type.
+                        # So let's just do what we can
+                        result = self.apply(f, reduce=False,
+                                            ignore_failures=True)
                         if result.ndim == self.ndim:
                             result = result.iloc[0]
                         return result
@@ -5452,7 +5512,7 @@ it is assumed to be aliases for the column names.')
         """
         if isinstance(values, dict):
             from collections import defaultdict
-            from pandas.tools.concat import concat
+            from pandas.core.reshape.concat import concat
             values = defaultdict(list, values)
             return concat((self.iloc[:, [i]].isin(values[col])
                            for i, col in enumerate(self.columns)), axis=1)
@@ -5840,11 +5900,11 @@ DataFrame.hist = gfx.hist_frame
 @Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
 def boxplot(self, column=None, by=None, ax=None, fontsize=None, rot=0,
             grid=True, figsize=None, layout=None, return_type=None, **kwds):
-    import pandas.tools.plotting as plots
+    from pandas.plotting._core import boxplot
     import matplotlib.pyplot as plt
-    ax = plots.boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
-                       grid=grid, rot=rot, figsize=figsize, layout=layout,
-                       return_type=return_type, **kwds)
+    ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
+                 grid=grid, rot=rot, figsize=figsize, layout=layout,
+                 return_type=return_type, **kwds)
     plt.draw_if_interactive()
     return ax
 

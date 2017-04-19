@@ -165,6 +165,7 @@ Data manipulations
    concat
    get_dummies
    factorize
+   unique
    wide_to_long
 
 Top-level missing data
@@ -313,6 +314,8 @@ Function application, GroupBy & Window
    :toctree: generated/
 
    Series.apply
+   Series.aggregate
+   Series.transform
    Series.map
    Series.groupby
    Series.rolling
@@ -652,7 +655,7 @@ adding ordering information or special categories is need at creation time of th
    Categorical.from_codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a numpy array, so levels and order information is not preserved!
+the Categorical back to a numpy array, so categories and order information is not preserved!
 
 .. autosummary::
    :toctree: generated/
@@ -830,6 +833,8 @@ Function application, GroupBy & Window
 
    DataFrame.apply
    DataFrame.applymap
+   DataFrame.aggregate
+   DataFrame.transform
    DataFrame.groupby
    DataFrame.rolling
    DataFrame.expanding
@@ -1404,6 +1409,27 @@ Categorical Components
    CategoricalIndex.as_ordered
    CategoricalIndex.as_unordered
 
+.. _api.intervalindex:
+
+IntervalIndex
+-------------
+
+.. autosummary::
+   :toctree: generated/
+
+   IntervalIndex
+
+IntervalIndex Components
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   IntervalIndex.from_arrays
+   IntervalIndex.from_tuples
+   IntervalIndex.from_breaks
+   IntervalIndex.from_intervals
+
 .. _api.multiindex:
 
 MultiIndex
@@ -1735,7 +1761,7 @@ The following methods are available only for ``DataFrameGroupBy`` objects.
 
 Resampling
 ----------
-.. currentmodule:: pandas.tseries.resample
+.. currentmodule:: pandas.core.resample
 
 Resampler objects are returned by resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
 
@@ -1795,7 +1821,7 @@ Computations / Descriptive Stats
 
 Style
 -----
-.. currentmodule:: pandas.formats.style
+.. currentmodule:: pandas.io.formats.style
 
 ``Styler`` objects are returned by :attr:`pandas.DataFrame.style`.
 
@@ -1860,3 +1886,13 @@ Working with options
    get_option
    set_option
    option_context
+
+Testing functions
+~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   testing.assert_frame_equal
+   testing.assert_series_equal
+   testing.assert_index_equal

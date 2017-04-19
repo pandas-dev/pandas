@@ -8,9 +8,9 @@ from contextlib import contextmanager, closing
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from pandas.core.common import AbstractMethodError
-from pandas.types.common import is_number, is_file_like
+from pandas.core.dtypes.common import is_number, is_file_like
 
 # compat
 from pandas.errors import (ParserError, DtypeWarning,  # noqa

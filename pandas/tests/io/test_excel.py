@@ -7,6 +7,7 @@ import os
 from distutils.version import LooseVersion
 
 import warnings
+from warnings import catch_warnings
 import operator
 import functools
 import pytest
@@ -16,7 +17,7 @@ import numpy as np
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex
-from pandas.formats.excel import ExcelFormatter
+from pandas.io.formats.excel import ExcelFormatter
 from pandas.io.parsers import read_csv
 from pandas.io.excel import (
     ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _Openpyxl1Writer,
@@ -412,7 +413,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_contains_all(expected_keys, dfs.keys())
         # Issue 9930
         # Ensure sheet order is preserved
-        tm.assert_equal(expected_keys, list(dfs.keys()))
+        assert expected_keys == list(dfs.keys())
 
     def test_reading_multiple_specific_sheets(self):
         # Test reading specific sheetnames by specifying a mixed list
@@ -2006,7 +2007,7 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
         self.assertEqual(kw['protection'], protection)
 
     def test_write_cells_merge_styled(self):
-        from pandas.formats.excel import ExcelCell
+        from pandas.io.formats.excel import ExcelCell
         from openpyxl import styles
 
         sheet_name = 'merge_styled'
@@ -2119,7 +2120,7 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
         if not openpyxl_compat.is_compat(major_ver=2):
             pytest.skip('incompatible openpyxl version')
 
-        from pandas.formats.excel import ExcelCell
+        from pandas.io.formats.excel import ExcelCell
 
         sheet_name = 'merge_styled'
 
@@ -2461,9 +2462,13 @@ class ExcelWriterEngineTests(tm.TestCase):
             writer = ExcelWriter('something.test')
             tm.assertIsInstance(writer, DummyClass)
             df = tm.makeCustomDataframe(1, 1)
-            panel = tm.makePanel()
-            func = lambda: df.to_excel('something.test')
-            check_called(func)
-            check_called(lambda: panel.to_excel('something.test'))
-            check_called(lambda: df.to_excel('something.xlsx'))
-            check_called(lambda: df.to_excel('something.xls', engine='dummy'))
+
+            with catch_warnings(record=True):
+                panel = tm.makePanel()
+                func = lambda: df.to_excel('something.test')
+                check_called(func)
+                check_called(lambda: panel.to_excel('something.test'))
+                check_called(lambda: df.to_excel('something.xlsx'))
+                check_called(
+                    lambda: df.to_excel(
+                        'something.xls', engine='dummy'))

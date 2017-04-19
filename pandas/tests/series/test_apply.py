@@ -1,13 +1,14 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+from collections import Counter, defaultdict, OrderedDict
 import numpy as np
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, isnull)
 from pandas.compat import lrange
 from pandas import compat
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -17,27 +18,22 @@ class TestSeriesApply(TestData, tm.TestCase):
 
     def test_apply(self):
         with np.errstate(all='ignore'):
-            assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
+            tm.assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
 
-            # elementwise-apply
+            # element-wise apply
             import math
-            assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
-
-            # how to handle Series result, #2316
-            result = self.ts.apply(lambda x: Series(
-                [x, x ** 2], index=['x', 'x^2']))
-            expected = DataFrame({'x': self.ts, 'x^2': self.ts ** 2})
-            tm.assert_frame_equal(result, expected)
+            tm.assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
 
         # empty series
         s = Series(dtype=object, name='foo', index=pd.Index([], name='bar'))
         rs = s.apply(lambda x: x)
         tm.assert_series_equal(s, rs)
+
         # check all metadata (GH 9322)
-        self.assertIsNot(s, rs)
-        self.assertIs(s.index, rs.index)
-        self.assertEqual(s.dtype, rs.dtype)
-        self.assertEqual(s.name, rs.name)
+        assert s is not rs
+        assert s.index is rs.index
+        assert s.dtype == rs.dtype
+        assert s.name == rs.name
 
         # index but no data
         s = Series(index=[1, 2, 3])
@@ -63,6 +59,13 @@ class TestSeriesApply(TestData, tm.TestCase):
         f = lambda x: x if x > 0 else np.nan
         result = s.apply(f, convert_dtype=False)
         self.assertEqual(result.dtype, object)
+
+    def test_with_string_args(self):
+
+        for arg in ['sum', 'mean', 'min', 'max', 'std']:
+            result = self.ts.apply(arg)
+            expected = getattr(self.ts, arg)()
+            self.assertEqual(result, expected)
 
     def test_apply_args(self):
         s = Series(['foo,bar'])
@@ -135,6 +138,170 @@ class TestSeriesApply(TestData, tm.TestCase):
         result = s.map(f)
         exp = pd.Series(['Asia/Tokyo'] * 25, name='XX')
         tm.assert_series_equal(result, exp)
+
+    def test_apply_dict_depr(self):
+
+        tsdf = pd.DataFrame(np.random.randn(10, 3),
+                            columns=['A', 'B', 'C'],
+                            index=pd.date_range('1/1/2000', periods=10))
+        with tm.assert_produces_warning(FutureWarning):
+            tsdf.A.agg({'foo': ['sum', 'mean']})
+
+
+class TestSeriesAggregate(TestData, tm.TestCase):
+
+    _multiprocess_can_split_ = True
+
+    def test_transform(self):
+        # transforming functions
+
+        with np.errstate(all='ignore'):
+
+            f_sqrt = np.sqrt(self.series)
+            f_abs = np.abs(self.series)
+
+            # ufunc
+            result = self.series.transform(np.sqrt)
+            expected = f_sqrt.copy()
+            assert_series_equal(result, expected)
+
+            result = self.series.apply(np.sqrt)
+            assert_series_equal(result, expected)
+
+            # list-like
+            result = self.series.transform([np.sqrt])
+            expected = f_sqrt.to_frame().copy()
+            expected.columns = ['sqrt']
+            assert_frame_equal(result, expected)
+
+            result = self.series.transform([np.sqrt])
+            assert_frame_equal(result, expected)
+
+            result = self.series.transform(['sqrt'])
+            assert_frame_equal(result, expected)
+
+            # multiple items in list
+            # these are in the order as if we are applying both functions per
+            # series and then concatting
+            expected = pd.concat([f_sqrt, f_abs], axis=1)
+            expected.columns = ['sqrt', 'absolute']
+            result = self.series.apply([np.sqrt, np.abs])
+            assert_frame_equal(result, expected)
+
+            result = self.series.transform(['sqrt', 'abs'])
+            expected.columns = ['sqrt', 'abs']
+            assert_frame_equal(result, expected)
+
+            # dict, provide renaming
+            expected = pd.concat([f_sqrt, f_abs], axis=1)
+            expected.columns = ['foo', 'bar']
+            expected = expected.unstack().rename('series')
+
+            result = self.series.apply({'foo': np.sqrt, 'bar': np.abs})
+            assert_series_equal(result.reindex_like(expected), expected)
+
+    def test_transform_and_agg_error(self):
+        # we are trying to transform with an aggregator
+        def f():
+            self.series.transform(['min', 'max'])
+        self.assertRaises(ValueError, f)
+
+        def f():
+            with np.errstate(all='ignore'):
+                self.series.agg(['sqrt', 'max'])
+        self.assertRaises(ValueError, f)
+
+        def f():
+            with np.errstate(all='ignore'):
+                self.series.transform(['sqrt', 'max'])
+        self.assertRaises(ValueError, f)
+
+        def f():
+            with np.errstate(all='ignore'):
+                self.series.agg({'foo': np.sqrt, 'bar': 'sum'})
+        self.assertRaises(ValueError, f)
+
+    def test_demo(self):
+        # demonstration tests
+        s = Series(range(6), dtype='int64', name='series')
+
+        result = s.agg(['min', 'max'])
+        expected = Series([0, 5], index=['min', 'max'], name='series')
+        tm.assert_series_equal(result, expected)
+
+        result = s.agg({'foo': 'min'})
+        expected = Series([0], index=['foo'], name='series')
+        tm.assert_series_equal(result, expected)
+
+        # nested renaming
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.agg({'foo': ['min', 'max']})
+
+        expected = DataFrame(
+            {'foo': [0, 5]},
+            index=['min', 'max']).unstack().rename('series')
+        tm.assert_series_equal(result, expected)
+
+    def test_multiple_aggregators_with_dict_api(self):
+
+        s = Series(range(6), dtype='int64', name='series')
+        # nested renaming
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.agg({'foo': ['min', 'max'], 'bar': ['sum', 'mean']})
+
+        expected = DataFrame(
+            {'foo': [5.0, np.nan, 0.0, np.nan],
+             'bar': [np.nan, 2.5, np.nan, 15.0]},
+            columns=['foo', 'bar'],
+            index=['max', 'mean',
+                   'min', 'sum']).unstack().rename('series')
+        tm.assert_series_equal(result.reindex_like(expected), expected)
+
+    def test_agg_apply_evaluate_lambdas_the_same(self):
+        # test that we are evaluating row-by-row first
+        # before vectorized evaluation
+        result = self.series.apply(lambda x: str(x))
+        expected = self.series.agg(lambda x: str(x))
+        tm.assert_series_equal(result, expected)
+
+        result = self.series.apply(str)
+        expected = self.series.agg(str)
+        tm.assert_series_equal(result, expected)
+
+    def test_with_nested_series(self):
+        # GH 2316
+        # .agg with a reducer and a transform, what to do
+        result = self.ts.apply(lambda x: Series(
+            [x, x ** 2], index=['x', 'x^2']))
+        expected = DataFrame({'x': self.ts, 'x^2': self.ts ** 2})
+        tm.assert_frame_equal(result, expected)
+
+        result = self.ts.agg(lambda x: Series(
+            [x, x ** 2], index=['x', 'x^2']))
+        tm.assert_frame_equal(result, expected)
+
+    def test_replicate_describe(self):
+        # this also tests a result set that is all scalars
+        expected = self.series.describe()
+        result = self.series.apply(OrderedDict(
+            [('count', 'count'),
+             ('mean', 'mean'),
+             ('std', 'std'),
+             ('min', 'min'),
+             ('25%', lambda x: x.quantile(0.25)),
+             ('50%', 'median'),
+             ('75%', lambda x: x.quantile(0.75)),
+             ('max', 'max')]))
+        assert_series_equal(result, expected)
+
+    def test_reduce(self):
+        # reductions with named functions
+        result = self.series.agg(['sum', 'mean'])
+        expected = Series([self.series.sum(),
+                           self.series.mean()],
+                          ['sum', 'mean'],
+                          name=self.series.name)
+        assert_series_equal(result, expected)
 
 
 class TestSeriesMap(TestData, tm.TestCase):
@@ -243,6 +410,46 @@ class TestSeriesMap(TestData, tm.TestCase):
         # All labels should be filled now
         tm.assert_series_equal(df['labels'], df['expected_labels'],
                                check_names=False)
+
+    def test_map_counter(self):
+        s = Series(['a', 'b', 'c'], index=[1, 2, 3])
+        counter = Counter()
+        counter['b'] = 5
+        counter['c'] += 1
+        result = s.map(counter)
+        expected = Series([0, 5, 1], index=[1, 2, 3])
+        assert_series_equal(result, expected)
+
+    def test_map_defaultdict(self):
+        s = Series([1, 2, 3], index=['a', 'b', 'c'])
+        default_dict = defaultdict(lambda: 'blank')
+        default_dict[1] = 'stuff'
+        result = s.map(default_dict)
+        expected = Series(['stuff', 'blank', 'blank'], index=['a', 'b', 'c'])
+        assert_series_equal(result, expected)
+
+    def test_map_dict_subclass_with_missing(self):
+        """
+        Test Series.map with a dictionary subclass that defines __missing__,
+        i.e. sets a default value (GH #15999).
+        """
+        class DictWithMissing(dict):
+            def __missing__(self, key):
+                return 'missing'
+        s = Series([1, 2, 3])
+        dictionary = DictWithMissing({3: 'three'})
+        result = s.map(dictionary)
+        expected = Series(['missing', 'missing', 'three'])
+        assert_series_equal(result, expected)
+
+    def test_map_dict_subclass_without_missing(self):
+        class DictWithoutMissing(dict):
+            pass
+        s = Series([1, 2, 3])
+        dictionary = DictWithoutMissing({3: 'three'})
+        result = s.map(dictionary)
+        expected = Series([np.nan, np.nan, 'three'])
+        assert_series_equal(result, expected)
 
     def test_map_box(self):
         vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]

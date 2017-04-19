@@ -40,22 +40,24 @@ from datetime import datetime
 import pandas.core.config_init
 
 from pandas.core.api import *
-from pandas.sparse.api import *
+from pandas.core.sparse.api import *
 from pandas.stats.api import *
 from pandas.tseries.api import *
-from pandas.computation.api import *
+from pandas.core.computation.api import *
+from pandas.core.reshape.api import *
 
-from pandas.tools.concat import concat
-from pandas.tools.merge import (merge, ordered_merge,
-                                merge_ordered, merge_asof)
-from pandas.tools.pivot import pivot_table, crosstab
-from pandas.tools.plotting import scatter_matrix, plot_params
-from pandas.tools.tile import cut, qcut
-from pandas.tools.util import to_numeric
-from pandas.core.reshape import melt
+# deprecate tools.plotting, plot_params and scatter_matrix on the top namespace
+import pandas.tools.plotting
+plot_params = pandas.plotting._style._Options(deprecated=True)
+# do not import deprecate to top namespace
+scatter_matrix = pandas.util.decorators.deprecate(
+    'pandas.scatter_matrix', pandas.plotting.scatter_matrix,
+    'pandas.plotting.scatter_matrix')
+
 from pandas.util.print_versions import show_versions
 from pandas.io.api import *
 from pandas.util._tester import test
+import pandas.testing
 
 # extension module deprecations
 from pandas.util.depr_module import _DeprecatedModule
@@ -66,8 +68,11 @@ json = _DeprecatedModule(deprmod='pandas.json',
 parser = _DeprecatedModule(deprmod='pandas.parser',
                            removals=['na_values'],
                            moved={'CParserError': 'pandas.errors.ParserError'})
-lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto='pandas._libs.lib',
-                        moved={'infer_dtype': 'pandas.api.lib.infer_dtype'})
+lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto=False,
+                        moved={'Timestamp': 'pandas.Timestamp',
+                               'Timedelta': 'pandas.Timedelta',
+                               'NaT': 'pandas.NaT',
+                               'infer_dtype': 'pandas.api.types.infer_dtype'})
 tslib = _DeprecatedModule(deprmod='pandas.tslib',
                           moved={'Timestamp': 'pandas.Timestamp',
                                  'Timedelta': 'pandas.Timedelta',

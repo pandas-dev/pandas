@@ -59,24 +59,48 @@ _class_locations_map = {
 
     # 15477
     ('pandas.core.base', 'FrozenNDArray'):
-        ('pandas.indexes.frozen', 'FrozenNDArray'),
+        ('pandas.core.indexes.frozen', 'FrozenNDArray'),
     ('pandas.core.base', 'FrozenList'):
-        ('pandas.indexes.frozen', 'FrozenList'),
+        ('pandas.core.indexes.frozen', 'FrozenList'),
 
     # 10890
     ('pandas.core.series', 'TimeSeries'):
         ('pandas.core.series', 'Series'),
     ('pandas.sparse.series', 'SparseTimeSeries'):
-        ('pandas.sparse.series', 'SparseSeries'),
+        ('pandas.core.sparse.series', 'SparseSeries'),
 
     # 12588, extensions moving
     ('pandas._sparse', 'BlockIndex'):
-        ('pandas.sparse.libsparse', 'BlockIndex'),
+        ('pandas.core.sparse.libsparse', 'BlockIndex'),
     ('pandas.tslib', 'Timestamp'):
         ('pandas._libs.tslib', 'Timestamp'),
     ('pandas.tslib', '__nat_unpickle'):
         ('pandas._libs.tslib', '__nat_unpickle'),
-    ('pandas._period', 'Period'): ('pandas._libs.period', 'Period')
+    ('pandas._period', 'Period'): ('pandas._libs.period', 'Period'),
+
+    # 15998 top-level dirs moving
+    ('pandas.sparse.array', 'SparseArray'):
+        ('pandas.core.sparse.array', 'SparseArray'),
+    ('pandas.sparse.series', 'SparseSeries'):
+        ('pandas.core.sparse.series', 'SparseSeries'),
+    ('pandas.sparse.frame', 'SparseDataFrame'):
+        ('pandas.core.sparse.frame', 'SparseDataFrame'),
+    ('pandas.indexes.base', '_new_Index'):
+        ('pandas.core.indexes.base', '_new_Index'),
+    ('pandas.indexes.base', 'Index'):
+        ('pandas.core.indexes.base', 'Index'),
+    ('pandas.indexes.numeric', 'Int64Index'):
+        ('pandas.core.indexes.numeric', 'Int64Index'),
+    ('pandas.indexes.range', 'RangeIndex'):
+        ('pandas.core.indexes.range', 'RangeIndex'),
+    ('pandas.indexes.multi', 'MultiIndex'):
+        ('pandas.core.indexes.multi', 'MultiIndex'),
+    ('pandas.tseries.index', '_new_DatetimeIndex'):
+        ('pandas.core.indexes.datetimes', '_new_DatetimeIndex'),
+    ('pandas.tseries.index', 'DatetimeIndex'):
+        ('pandas.core.indexes.datetimes', 'DatetimeIndex'),
+    ('pandas.tseries.period', 'PeriodIndex'):
+        ('pandas.core.indexes.period', 'PeriodIndex')
 }
 
 

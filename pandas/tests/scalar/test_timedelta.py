@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
+from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
                     to_timedelta, compat)
 from pandas._libs.tslib import iNaT, NaTType
@@ -559,7 +559,7 @@ class TestTimedeltas(tm.TestCase):
     def test_pickle(self):
 
         v = Timedelta('1 days 10:11:12.0123456')
-        v_p = self.round_trip_pickle(v)
+        v_p = tm.round_trip_pickle(v)
         self.assertEqual(v, v_p)
 
     def test_timedelta_hash_equality(self):

@@ -17,7 +17,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
                     isnull)
 
 from pandas.compat import is_platform_windows, PY3, PY35
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 tables = pytest.importorskip('tables')
 from pandas.io.pytables import TableIterator
@@ -150,20 +150,23 @@ class TestHDFStore(Base, tm.TestCase):
     def test_factory_fun(self):
         path = create_tempfile(self.path)
         try:
-            with get_store(path) as tbl:
-                raise ValueError('blah')
+            with catch_warnings(record=True):
+                with get_store(path) as tbl:
+                    raise ValueError('blah')
         except ValueError:
             pass
         finally:
             safe_remove(path)
 
         try:
-            with get_store(path) as tbl:
-                tbl['a'] = tm.makeDataFrame()
+            with catch_warnings(record=True):
+                with get_store(path) as tbl:
+                    tbl['a'] = tm.makeDataFrame()
 
-            with get_store(path) as tbl:
-                self.assertEqual(len(tbl), 1)
-                self.assertEqual(type(tbl['a']), DataFrame)
+            with catch_warnings(record=True):
+                with get_store(path) as tbl:
+                    self.assertEqual(len(tbl), 1)
+                    self.assertEqual(type(tbl['a']), DataFrame)
         finally:
             safe_remove(self.path)
 
@@ -348,7 +351,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             pandas.set_option('io.hdf.default_format', 'fixed')
             df.to_hdf(path, 'df')
-            with get_store(path) as store:
+            with HDFStore(path) as store:
                 self.assertFalse(store.get_storer('df').is_table)
             self.assertRaises(ValueError, df.to_hdf, path, 'df2', append=True)
 
@@ -3513,7 +3516,7 @@ class TestHDFStore(Base, tm.TestCase):
             results = [s for s in store.select(
                 'df', where=where, chunksize=chunksize)]
 
-            tm.assert_equal(1, len(results))
+            assert len(results) == 1
             result = concat(results)
             rexpected = expected[expected.index <= end_dt]
             tm.assert_frame_equal(rexpected, result)
@@ -3524,7 +3527,7 @@ class TestHDFStore(Base, tm.TestCase):
                 'df', where=where, chunksize=chunksize)]
 
             # should be 1, is 10
-            tm.assert_equal(1, len(results))
+            assert len(results) == 1
             result = concat(results)
             rexpected = expected[(expected.index >= beg_dt) &
                                  (expected.index <= end_dt)]
@@ -3542,7 +3545,7 @@ class TestHDFStore(Base, tm.TestCase):
                 'df', where=where, chunksize=chunksize)]
 
             # should be []
-            tm.assert_equal(0, len(results))
+            assert len(results) == 0
 
     def test_retain_index_attributes(self):
 
@@ -4664,7 +4667,7 @@ class TestHDFStore(Base, tm.TestCase):
 
         with ensure_clean_store(self.path) as store:
 
-            # basic
+            # Basic
             _maybe_remove(store, 's')
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[
                        'a', 'b', 'c', 'd'], ordered=False))
@@ -4680,12 +4683,13 @@ class TestHDFStore(Base, tm.TestCase):
             tm.assert_series_equal(s, result)
 
             _maybe_remove(store, 'df')
+
             df = DataFrame({"s": s, "vals": [1, 2, 3, 4, 5, 6]})
             store.append('df', df, format='table')
             result = store.select('df')
             tm.assert_frame_equal(result, df)
 
-            # dtypes
+            # Dtypes
             s = Series([1, 1, 2, 2, 3, 4, 5]).astype('category')
             store.append('si', s)
             result = store.select('si')
@@ -4696,17 +4700,17 @@ class TestHDFStore(Base, tm.TestCase):
             result = store.select('si2')
             tm.assert_series_equal(result, s)
 
-            # multiple
+            # Multiple
             df2 = df.copy()
             df2['s2'] = Series(list('abcdefg')).astype('category')
             store.append('df2', df2)
             result = store.select('df2')
             tm.assert_frame_equal(result, df2)
 
-            # make sure the metadata is ok
-            self.assertTrue('/df2   ' in str(store))
-            self.assertTrue('/df2/meta/values_block_0/meta' in str(store))
-            self.assertTrue('/df2/meta/values_block_1/meta' in str(store))
+            # Make sure the metadata is OK
+            assert '/df2   ' in str(store)
+            assert '/df2/meta/values_block_0/meta' in str(store)
+            assert '/df2/meta/values_block_1/meta' in str(store)
 
             # unordered
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[
@@ -4715,7 +4719,7 @@ class TestHDFStore(Base, tm.TestCase):
             result = store.select('s2')
             tm.assert_series_equal(result, s)
 
-            # query
+            # Query
             store.append('df3', df, data_columns=['s'])
             expected = df[df.s.isin(['b', 'c'])]
             result = store.select('df3', where=['s in ["b","c"]'])
@@ -4733,7 +4737,7 @@ class TestHDFStore(Base, tm.TestCase):
             result = store.select('df3', where=['s in ["f"]'])
             tm.assert_frame_equal(result, expected)
 
-            # appending with same categories is ok
+            # Appending with same categories is ok
             store.append('df3', df)
 
             df = concat([df, df])
@@ -4741,20 +4745,21 @@ class TestHDFStore(Base, tm.TestCase):
             result = store.select('df3', where=['s in ["b","c"]'])
             tm.assert_frame_equal(result, expected)
 
-            # appending must have the same categories
+            # Appending must have the same categories
             df3 = df.copy()
             df3['s'].cat.remove_unused_categories(inplace=True)
 
-            self.assertRaises(ValueError, lambda: store.append('df3', df3))
+            with pytest.raises(ValueError):
+                store.append('df3', df3)
 
-            # remove
-            # make sure meta data is removed (its a recursive removal so should
-            # be)
+            # Remove, and make sure meta data is removed (its a recursive
+            # removal so should be).
             result = store.select('df3/meta/s/meta')
-            self.assertIsNotNone(result)
+            assert result is not None
             store.remove('df3')
-            self.assertRaises(
-                KeyError, lambda: store.select('df3/meta/s/meta'))
+
+            with pytest.raises(KeyError):
+                store.select('df3/meta/s/meta')
 
     def test_categorical_conversion(self):
 

@@ -7,27 +7,29 @@ from warnings import warn, catch_warnings
 import numpy as np
 
 from pandas import compat, _np_version_under1p8
-from pandas.types.cast import maybe_promote
-from pandas.types.generic import (ABCSeries, ABCIndex,
-                                  ABCIndexClass, ABCCategorical)
-from pandas.types.common import (
+from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCIndex,
+    ABCIndexClass, ABCCategorical)
+from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype, is_signed_integer_dtype,
     is_integer_dtype, is_complex_dtype,
+    is_object_dtype,
     is_categorical_dtype, is_sparse,
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
     is_bool_dtype, needs_i8_conversion,
     is_categorical, is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype,
+    is_timedelta64_dtype, is_interval_dtype,
     is_scalar, is_list_like,
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
-from pandas.types.missing import isnull
+from pandas.core.dtypes.missing import isnull
 
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.compat import string_types
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
@@ -62,6 +64,35 @@ def _ensure_data(values, dtype=None):
 
     """
 
+    # we check some simple dtypes first
+    try:
+        if is_bool_dtype(values) or is_bool_dtype(dtype):
+            # we are actually coercing to uint64
+            # until our algos suppport uint8 directly (see TODO)
+            return np.asarray(values).astype('uint64'), 'bool', 'uint64'
+        elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
+            return _ensure_int64(values), 'int64', 'int64'
+        elif (is_unsigned_integer_dtype(values) or
+              is_unsigned_integer_dtype(dtype)):
+            return _ensure_uint64(values), 'uint64', 'uint64'
+        elif is_float_dtype(values) or is_float_dtype(dtype):
+            return _ensure_float64(values), 'float64', 'float64'
+        elif is_object_dtype(values) and dtype is None:
+            return _ensure_object(np.asarray(values)), 'object', 'object'
+        elif is_complex_dtype(values) or is_complex_dtype(dtype):
+
+            # ignore the fact that we are casting to float
+            # which discards complex parts
+            with catch_warnings(record=True):
+                values = _ensure_float64(values)
+            return values, 'float64', 'float64'
+
+    except (TypeError, ValueError):
+        # if we are trying to coerce to a dtype
+        # and it is incompat this will fall thru to here
+        return _ensure_object(values), 'object', 'object'
+
+    # datetimelike
     if (needs_i8_conversion(values) or
             is_period_dtype(dtype) or
             is_datetime64_any_dtype(dtype) or
@@ -93,43 +124,9 @@ def _ensure_data(values, dtype=None):
 
         return values, dtype, 'int64'
 
+    # we have failed, return object
     values = np.asarray(values)
-
-    try:
-        if is_bool_dtype(values) or is_bool_dtype(dtype):
-            # we are actually coercing to uint64
-            # until our algos suppport uint8 directly (see TODO)
-            values = values.astype('uint64')
-            dtype = 'bool'
-            ndtype = 'uint64'
-        elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
-            values = _ensure_int64(values)
-            ndtype = dtype = 'int64'
-        elif (is_unsigned_integer_dtype(values) or
-              is_unsigned_integer_dtype(dtype)):
-            values = _ensure_uint64(values)
-            ndtype = dtype = 'uint64'
-        elif is_complex_dtype(values) or is_complex_dtype(dtype):
-
-            # ignore the fact that we are casting to float
-            # which discards complex parts
-            with catch_warnings(record=True):
-                values = _ensure_float64(values)
-            ndtype = dtype = 'float64'
-        elif is_float_dtype(values) or is_float_dtype(dtype):
-            values = _ensure_float64(values)
-            ndtype = dtype = 'float64'
-        else:
-            values = _ensure_object(values)
-            ndtype = dtype = 'object'
-
-    except (TypeError, ValueError):
-        # if we are trying to coerce to a dtype
-        # and it is incompat this will fall thru to here
-        values = _ensure_object(values)
-        ndtype = dtype = 'object'
-
-    return values, dtype, ndtype
+    return _ensure_object(values), 'object', 'object'
 
 
 def _reconstruct_data(values, dtype, original):
@@ -267,11 +264,85 @@ def match(to_match, values, na_sentinel=-1):
     return result
 
 
-def unique1d(values):
+def unique(values):
     """
-    Hash table-based unique
+    Hash table-based unique. Uniques are returned in order
+    of appearance. This does NOT sort.
+
+    Significantly faster than numpy.unique. Includes NA values.
+
+    Parameters
+    ----------
+    values : 1d array-like
+
+    Returns
+    -------
+    unique values.
+      - If the input is an Index, the return is an Index
+      - If the input is a Categorical dtype, the return is a Categorical
+      - If the input is a Series/ndarray, the return will be an ndarray
+
+    Examples
+    --------
+    >>> pd.unique(pd.Series([2, 1, 3, 3]))
+    array([2, 1, 3])
+
+    >>> pd.unique(pd.Series([2] + [1] * 5))
+    array([2, 1])
+
+    >>> pd.unique(Series([pd.Timestamp('20160101'),
+    ...                   pd.Timestamp('20160101')]))
+    array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+
+    >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+    ...                      pd.Timestamp('20160101', tz='US/Eastern')]))
+    array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
+          dtype=object)
+
+    >>> pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+    ...                     pd.Timestamp('20160101', tz='US/Eastern')]))
+    DatetimeIndex(['2016-01-01 00:00:00-05:00'],
+    ...           dtype='datetime64[ns, US/Eastern]', freq=None)
+
+    >>> pd.unique(list('baabc'))
+    array(['b', 'a', 'c'], dtype=object)
+
+    An unordered Categorical will return categories in the
+    order of appearance.
+
+    >>> pd.unique(Series(pd.Categorical(list('baabc'))))
+    [b, a, c]
+    Categories (3, object): [b, a, c]
+
+    >>> pd.unique(Series(pd.Categorical(list('baabc'),
+    ...                                 categories=list('abc'))))
+    [b, a, c]
+    Categories (3, object): [b, a, c]
+
+    An ordered Categorical preserves the category ordering.
+
+    >>> pd.unique(Series(pd.Categorical(list('baabc'),
+    ...                                 categories=list('abc'),
+    ...                                 ordered=True)))
+    [b, a, c]
+    Categories (3, object): [a < b < c]
+
+    See Also
+    --------
+    pandas.Index.unique
+    pandas.Series.unique
+
     """
+
     values = _ensure_arraylike(values)
+
+    # categorical is a fast-path
+    # this will coerce Categorical, CategoricalIndex,
+    # and category dtypes Series to same return of Category
+    if is_categorical_dtype(values):
+        values = getattr(values, '.values', values)
+        return values.unique()
+
     original = values
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
 
@@ -279,10 +350,17 @@ def unique1d(values):
     uniques = table.unique(values)
     uniques = _reconstruct_data(uniques, dtype, original)
 
+    if isinstance(original, ABCSeries) and is_datetime64tz_dtype(dtype):
+        # we are special casing datetime64tz_dtype
+        # to return an object array of tz-aware Timestamps
+
+        # TODO: it must return DatetimeArray with tz in pandas 2.0
+        uniques = uniques.asobject.values
+
     return uniques
 
 
-unique = unique1d
+unique1d = unique
 
 
 def isin(comps, values):
@@ -383,7 +461,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     if not is_list_like(values):
         raise TypeError("Only list-like objects are allowed to be passed to"
                         "safe_sort as values")
-    values = np.array(values, copy=False)
+    values = np.asarray(values)
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
@@ -465,6 +543,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     PeriodIndex
     """
 
+    values = _ensure_arraylike(values)
     original = values
     values, dtype, _ = _ensure_data(values)
     (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
@@ -523,32 +602,40 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     if bins is not None:
         try:
-            from pandas.tools.tile import cut
-            values = Series(values).values
-            cat, bins = cut(values, bins, retbins=True)
+            from pandas.core.reshape.tile import cut
+            values = Series(values)
+            ii = cut(values, bins, include_lowest=True)
         except TypeError:
             raise TypeError("bins argument only works with numeric data.")
-        values = cat.codes
 
-    if is_categorical_dtype(values) or is_sparse(values):
+        # count, remove nulls (from the index), and but the bins
+        result = ii.value_counts(dropna=dropna)
+        result = result[result.index.notnull()]
+        result.index = result.index.astype('interval')
+        result = result.sort_index()
 
-        # handle Categorical and sparse,
-        result = Series(values).values.value_counts(dropna=dropna)
-        result.name = name
-        counts = result.values
+        # if we are dropna and we have NO values
+        if dropna and (result.values == 0).all():
+            result = result.iloc[0:0]
+
+        # normalizing is by len of all (regardless of dropna)
+        counts = np.array([len(ii)])
 
     else:
-        keys, counts = _value_counts_arraylike(values, dropna)
 
-        if not isinstance(keys, Index):
-            keys = Index(keys)
-        result = Series(counts, index=keys, name=name)
+        if is_categorical_dtype(values) or is_sparse(values):
 
-    if bins is not None:
-        # TODO: This next line should be more efficient
-        result = result.reindex(np.arange(len(cat.categories)),
-                                fill_value=0)
-        result.index = bins[:-1]
+            # handle Categorical and sparse,
+            result = Series(values).values.value_counts(dropna=dropna)
+            result.name = name
+            counts = result.values
+
+        else:
+            keys, counts = _value_counts_arraylike(values, dropna)
+
+            if not isinstance(keys, Index):
+                keys = Index(keys)
+            result = Series(counts, index=keys, name=name)
 
     if sort:
         result = result.sort_values(ascending=ascending)
@@ -651,7 +738,7 @@ def mode(values):
     if is_categorical_dtype(values):
 
         if isinstance(values, Series):
-            return Series(values.values.mode())
+            return Series(values.values.mode(), name=values.name)
         return values.mode()
 
     values, dtype, ndtype = _ensure_data(values)
@@ -1314,6 +1401,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         return arr.take_nd(indexer, fill_value=fill_value,
                            allow_fill=allow_fill)
     elif is_datetimetz(arr):
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+    elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if indexer is None:

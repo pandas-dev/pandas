@@ -3,28 +3,27 @@
 import operator
 
 import pytest
-
+from warnings import catch_warnings
 from numpy import nan
 import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range, Panel
-from pandas.types.common import (is_bool_dtype,
-                                 is_float_dtype,
-                                 is_object_dtype,
-                                 is_float)
-from pandas.tseries.index import DatetimeIndex
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_float_dtype,
+    is_object_dtype,
+    is_float)
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.tseries.offsets import BDay
-import pandas.util.testing as tm
+from pandas.util import testing as tm
 from pandas.compat import lrange
 from pandas import compat
-import pandas.sparse.frame as spf
+from pandas.core.sparse import frame as spf
 
-from pandas.sparse.libsparse import BlockIndex, IntIndex
-from pandas.sparse.api import SparseSeries, SparseDataFrame, SparseArray
-from pandas.tests.frame.test_misc_api import SharedWithSparse
-
-from pandas.tests.sparse.common import spmatrix  # noqa: F401
+from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas.core.sparse.api import SparseSeries, SparseDataFrame, SparseArray
+from pandas.tests.frame.test_api import SharedWithSparse
 
 
 class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
@@ -279,7 +278,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
     def test_pickle(self):
 
         def _test_roundtrip(frame, orig):
-            result = self.round_trip_pickle(frame)
+            result = tm.round_trip_pickle(frame)
             tm.assert_sp_frame_equal(frame, result)
             tm.assert_frame_equal(result.to_dense(), orig, check_dtype=False)
 
@@ -423,24 +422,24 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_set_value(self):
 
-        # ok as the index gets conver to object
+        # ok, as the index gets converted to object
         frame = self.frame.copy()
         res = frame.set_value('foobar', 'B', 1.5)
-        self.assertEqual(res.index.dtype, 'object')
+        assert res.index.dtype == 'object'
 
         res = self.frame
         res.index = res.index.astype(object)
 
         res = self.frame.set_value('foobar', 'B', 1.5)
-        self.assertIsNot(res, self.frame)
-        self.assertEqual(res.index[-1], 'foobar')
-        self.assertEqual(res.get_value('foobar', 'B'), 1.5)
+        assert res is not self.frame
+        assert res.index[-1] == 'foobar'
+        assert res.get_value('foobar', 'B') == 1.5
 
         res2 = res.set_value('foobar', 'qux', 1.5)
-        self.assertIsNot(res2, res)
-        self.assert_index_equal(res2.columns,
-                                pd.Index(list(self.frame.columns) + ['qux']))
-        self.assertEqual(res2.get_value('foobar', 'qux'), 1.5)
+        assert res2 is not res
+        tm.assert_index_equal(res2.columns,
+                              pd.Index(list(self.frame.columns) + ['qux']))
+        assert res2.get_value('foobar', 'qux') == 1.5
 
     def test_fancy_index_misc(self):
         # axis = 0
@@ -953,23 +952,25 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         self._check_all(_check)
 
     def test_stack_sparse_frame(self):
-        def _check(frame):
-            dense_frame = frame.to_dense()  # noqa
+        with catch_warnings(record=True):
 
-            wp = Panel.from_dict({'foo': frame})
-            from_dense_lp = wp.to_frame()
+            def _check(frame):
+                dense_frame = frame.to_dense()  # noqa
 
-            from_sparse_lp = spf.stack_sparse_frame(frame)
+                wp = Panel.from_dict({'foo': frame})
+                from_dense_lp = wp.to_frame()
 
-            self.assert_numpy_array_equal(from_dense_lp.values,
-                                          from_sparse_lp.values)
+                from_sparse_lp = spf.stack_sparse_frame(frame)
 
-        _check(self.frame)
-        _check(self.iframe)
+                self.assert_numpy_array_equal(from_dense_lp.values,
+                                              from_sparse_lp.values)
 
-        # for now
-        self.assertRaises(Exception, _check, self.zframe)
-        self.assertRaises(Exception, _check, self.fill_frame)
+            _check(self.frame)
+            _check(self.iframe)
+
+            # for now
+            self.assertRaises(Exception, _check, self.zframe)
+            self.assertRaises(Exception, _check, self.fill_frame)
 
     def test_transpose(self):
 
@@ -1182,7 +1183,7 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
 
     # Assert spmatrices equal
-    tm.assert_equal(dict(sdf.to_coo().todok()), dict(spm.todok()))
+    assert dict(sdf.to_coo().todok()) == dict(spm.todok())
 
     # Ensure dtype is preserved if possible
     was_upcast = ((fill_value is None or is_float(fill_value)) and
@@ -1192,11 +1193,11 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
                  float if was_upcast else
                  dtype)
     tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
-    tm.assert_equal(sdf.to_coo().dtype, res_dtype)
+    assert sdf.to_coo().dtype == res_dtype
 
     # However, adding a str column results in an upcast to object
     sdf['strings'] = np.arange(len(sdf)).astype(str)
-    tm.assert_equal(sdf.to_coo().dtype, np.object_)
+    assert sdf.to_coo().dtype == np.object_
 
 
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])  # noqa: F811
@@ -1236,12 +1237,12 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
 
     # Assert spmatrices equal
-    tm.assert_equal(dict(sdf.to_coo().todok()), dict(spm.todok()))
+    assert dict(sdf.to_coo().todok()) == dict(spm.todok())
 
     # Ensure dtype is preserved if possible
     res_dtype = object
     tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
-    tm.assert_equal(sdf.to_coo().dtype, res_dtype)
+    assert sdf.to_coo().dtype == res_dtype
 
 
 class TestSparseDataFrameArithmetic(tm.TestCase):

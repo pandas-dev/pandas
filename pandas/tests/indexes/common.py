@@ -7,8 +7,10 @@ import numpy as np
 
 from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, notnull, isnull)
-from pandas.types.common import needs_i8_conversion
+                    TimedeltaIndex, PeriodIndex, IntervalIndex,
+                    notnull, isnull)
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.util.testing import assertRaisesRegexp
 from pandas._libs.tslib import iNaT
 
@@ -27,7 +29,7 @@ class Base(object):
             setattr(self, name, idx)
 
     def verify_pickle(self, index):
-        unpickled = self.round_trip_pickle(index)
+        unpickled = tm.round_trip_pickle(index)
         self.assertTrue(index.equals(unpickled))
 
     def test_pickle_compat_construction(self):
@@ -37,6 +39,15 @@ class Base(object):
 
         # need an object to create with
         self.assertRaises(TypeError, self._holder)
+
+    def test_to_series(self):
+        # assert that we are creating a copy of the index
+
+        idx = self.create_index()
+        s = idx.to_series()
+        assert s.values is not idx.values
+        assert s.index is not idx
+        assert s.name == idx.name
 
     def test_shift(self):
 
@@ -204,8 +215,9 @@ class Base(object):
                 hash(ind)
 
     def test_copy_name(self):
-        # Check that "name" argument passed at initialization is honoured
-        # GH12309
+        # gh-12309: Check that the "name" argument
+        # passed at initialization is honored.
+
         for name, index in compat.iteritems(self.indices):
             if isinstance(index, MultiIndex):
                 continue
@@ -214,18 +226,21 @@ class Base(object):
             second = first.__class__(first, copy=False)
 
             # Even though "copy=False", we want a new object.
-            self.assertIsNot(first, second)
-            # Not using tm.assert_index_equal() since names differ:
-            self.assertTrue(index.equals(first))
+            assert first is not second
 
-            self.assertEqual(first.name, 'mario')
-            self.assertEqual(second.name, 'mario')
+            # Not using tm.assert_index_equal() since names differ.
+            assert index.equals(first)
+
+            assert first.name == 'mario'
+            assert second.name == 'mario'
 
             s1 = Series(2, index=first)
             s2 = Series(3, index=second[:-1])
-            if not isinstance(index, CategoricalIndex):  # See GH13365
+
+            if not isinstance(index, CategoricalIndex):
+                # See gh-13365
                 s3 = s1 * s2
-                self.assertEqual(s3.index.name, 'mario')
+                assert s3.index.name == 'mario'
 
     def test_ensure_copied_data(self):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -246,16 +261,19 @@ class Base(object):
             tm.assert_numpy_array_equal(index.values, result.values,
                                         check_same='copy')
 
-            if not isinstance(index, PeriodIndex):
-                result = index_type(index.values, copy=False, **init_kwargs)
-                tm.assert_numpy_array_equal(index.values, result.values,
-                                            check_same='same')
-                tm.assert_numpy_array_equal(index._values, result._values,
-                                            check_same='same')
-            else:
+            if isinstance(index, PeriodIndex):
                 # .values an object array of Period, thus copied
                 result = index_type(ordinal=index.asi8, copy=False,
                                     **init_kwargs)
+                tm.assert_numpy_array_equal(index._values, result._values,
+                                            check_same='same')
+            elif isinstance(index, IntervalIndex):
+                # checked in test_interval.py
+                pass
+            else:
+                result = index_type(index.values, copy=False, **init_kwargs)
+                tm.assert_numpy_array_equal(index.values, result.values,
+                                            check_same='same')
                 tm.assert_numpy_array_equal(index._values, result._values,
                                             check_same='same')
 
@@ -270,11 +288,11 @@ class Base(object):
 
             for func in (copy, deepcopy):
                 idx_copy = func(ind)
-                self.assertIsNot(idx_copy, ind)
-                self.assertTrue(idx_copy.equals(ind))
+                assert idx_copy is not ind
+                assert idx_copy.equals(ind)
 
             new_copy = ind.copy(deep=True, name="banana")
-            self.assertEqual(new_copy.name, "banana")
+            assert new_copy.name == "banana"
 
     def test_duplicates(self):
         for ind in self.indices.values():
@@ -368,8 +386,9 @@ class Base(object):
                 result2 = index.memory_usage()
                 result3 = index.memory_usage(deep=True)
 
-                # RangeIndex doesn't use a hashtable engine
-                if not isinstance(index, RangeIndex):
+                # RangeIndex, IntervalIndex
+                # don't have engines
+                if not isinstance(index, (RangeIndex, IntervalIndex)):
                     self.assertTrue(result2 > result)
 
                 if index.inferred_type == 'object':
@@ -401,7 +420,7 @@ class Base(object):
             # pandas compatibility input validation - the
             # rest already perform separate (or no) such
             # validation via their 'values' attribute as
-            # defined in pandas.indexes/base.py - they
+            # defined in pandas.core.indexes/base.py - they
             # cannot be changed at the moment due to
             # backwards compatibility concerns
             if isinstance(type(ind), (CategoricalIndex, RangeIndex)):
@@ -771,7 +790,7 @@ class Base(object):
                          np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,
                          np.arcsinh, np.arccosh, np.arctanh, np.deg2rad,
                          np.rad2deg]:
-                if isinstance(idx, pd.tseries.base.DatetimeIndexOpsMixin):
+                if isinstance(idx, DatetimeIndexOpsMixin):
                     # raise TypeError or ValueError (PeriodIndex)
                     # PeriodIndex behavior should be changed in future version
                     with tm.assertRaises(Exception):
@@ -794,7 +813,7 @@ class Base(object):
                                 func(idx)
 
             for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
-                if isinstance(idx, pd.tseries.base.DatetimeIndexOpsMixin):
+                if isinstance(idx, DatetimeIndexOpsMixin):
                     # raise TypeError or ValueError (PeriodIndex)
                     with tm.assertRaises(Exception):
                         func(idx)
@@ -829,7 +848,7 @@ class Base(object):
 
                 if len(index) == 0:
                     continue
-                elif isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
+                elif isinstance(index, DatetimeIndexOpsMixin):
                     values[1] = iNaT
                 elif isinstance(index, (Int64Index, UInt64Index)):
                     continue
@@ -869,7 +888,7 @@ class Base(object):
                 idx = index.copy()
                 values = idx.values
 
-                if isinstance(index, pd.tseries.base.DatetimeIndexOpsMixin):
+                if isinstance(index, DatetimeIndexOpsMixin):
                     values[1] = iNaT
                 elif isinstance(index, (Int64Index, UInt64Index)):
                     continue

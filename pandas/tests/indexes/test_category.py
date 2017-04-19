@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import pandas.util.testing as tm
-from pandas.indexes.api import Index, CategoricalIndex
+from pandas.core.indexes.api import Index, CategoricalIndex
 from .common import Base
 
 from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import Categorical, compat, notnull
+from pandas import Categorical, IntervalIndex, compat, notnull
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
 import pandas as pd
@@ -343,11 +343,26 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertIsInstance(result, Index)
         self.assertNotIsInstance(result, CategoricalIndex)
 
+        # interval
+        ii = IntervalIndex.from_arrays(left=[-0.001, 2.0],
+                                       right=[2, 4],
+                                       closed='right')
+
+        ci = CategoricalIndex(Categorical.from_codes(
+            [0, 1, -1], categories=ii, ordered=True))
+
+        result = ci.astype('interval')
+        expected = ii.take([0, 1, -1])
+        tm.assert_index_equal(result, expected)
+
+        result = IntervalIndex.from_intervals(result.values)
+        tm.assert_index_equal(result, expected)
+
     def test_reindex_base(self):
 
         # determined by cat ordering
         idx = self.create_index()
-        expected = np.array([4, 0, 1, 5, 2, 3], dtype=np.intp)
+        expected = np.arange(len(idx), dtype=np.intp)
 
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
@@ -521,18 +536,20 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(ci1.identical(ci2))
 
     def test_ensure_copied_data(self):
-        # Check the "copy" argument of each Index.__new__ is honoured
-        # GH12309
+        # gh-12309: Check the "copy" argument of each
+        # Index.__new__ is honored.
+        #
         # Must be tested separately from other indexes because
-        # self.value is not an ndarray
+        # self.value is not an ndarray.
         _base = lambda ar: ar if ar.base is None else ar.base
+
         for index in self.indices.values():
             result = CategoricalIndex(index.values, copy=True)
             tm.assert_index_equal(index, result)
-            self.assertIsNot(_base(index.values), _base(result.values))
+            assert _base(index.values) is not _base(result.values)
 
             result = CategoricalIndex(index.values, copy=False)
-            self.assertIs(_base(index.values), _base(result.values))
+            assert _base(index.values) is _base(result.values)
 
     def test_equals_categorical(self):
         ci1 = CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=True)

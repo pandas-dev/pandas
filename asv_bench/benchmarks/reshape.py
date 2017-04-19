@@ -1,5 +1,5 @@
 from .pandas_vb_common import *
-from pandas.core.reshape import melt, wide_to_long
+from pandas import melt, wide_to_long
 
 
 class melt_dataframe(object):

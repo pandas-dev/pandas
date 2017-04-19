@@ -12,13 +12,13 @@ from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import range
 from pandas import compat
-from pandas.tools.util import cartesian_product
+from pandas.core.reshape.util import cartesian_product
 
-import pandas.sparse.frame as spf
+import pandas.core.sparse.frame as spf
 
-from pandas.sparse.libsparse import BlockIndex, IntIndex
-from pandas.sparse.api import SparseSeries
-from pandas.tests.series.test_misc_api import SharedWithSparse
+from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas.core.sparse.api import SparseSeries
+from pandas.tests.series.test_api import SharedWithSparse
 
 
 def _test_data1():
@@ -314,9 +314,9 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_copy_astype(self):
         cop = self.bseries.astype(np.float64)
-        self.assertIsNot(cop, self.bseries)
-        self.assertIs(cop.sp_index, self.bseries.sp_index)
-        self.assertEqual(cop.dtype, np.float64)
+        assert cop is not self.bseries
+        assert cop.sp_index is self.bseries.sp_index
+        assert cop.dtype == np.float64
 
         cop2 = self.iseries.copy()
 
@@ -325,8 +325,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         # test that data is copied
         cop[:5] = 97
-        self.assertEqual(cop.sp_values[0], 97)
-        self.assertNotEqual(self.bseries.sp_values[0], 97)
+        assert cop.sp_values[0] == 97
+        assert self.bseries.sp_values[0] != 97
 
         # correct fill value
         zbcop = self.zbseries.copy()
@@ -338,7 +338,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # no deep copy
         view = self.bseries.copy(deep=False)
         view.sp_values[:5] = 5
-        self.assertTrue((self.bseries.sp_values[:5] == 5).all())
+        assert (self.bseries.sp_values[:5] == 5).all()
 
     def test_shape(self):
         # GH 10452
@@ -390,7 +390,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_pickle(self):
         def _test_roundtrip(series):
-            unpickled = self.round_trip_pickle(series)
+            unpickled = tm.round_trip_pickle(series)
             tm.assert_sp_series_equal(series, unpickled)
             tm.assert_series_equal(series.to_dense(), unpickled.to_dense())
 
@@ -639,7 +639,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # special cases
         same_index = self.bseries.reindex(self.bseries.index)
         tm.assert_sp_series_equal(self.bseries, same_index)
-        self.assertIsNot(same_index, self.bseries)
+        assert same_index is not self.bseries
 
         # corner cases
         sp = SparseSeries([], index=[])
@@ -650,7 +650,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # with copy=False
         reindexed = self.bseries.reindex(self.bseries.index, copy=True)
         reindexed.sp_values[:] = 1.
-        self.assertTrue((self.bseries.sp_values != 1.).all())
+        assert (self.bseries.sp_values != 1.).all()
 
         reindexed = self.bseries.reindex(self.bseries.index, copy=False)
         reindexed.sp_values[:] = 1.
@@ -824,7 +824,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         series = SparseSeries([nan, 1., 2., 3., nan, nan], index=np.arange(6))
 
         shifted = series.shift(0)
-        self.assertIsNot(shifted, series)
+        assert shifted is not series
         tm.assert_sp_series_equal(shifted, series)
 
         f = lambda s: s.shift(1)

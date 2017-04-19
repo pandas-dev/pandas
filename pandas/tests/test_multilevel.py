@@ -12,7 +12,7 @@ from pandas.core.index import Index, MultiIndex
 from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
 
 from pandas.core.common import UnsortedIndexError
-from pandas.types.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.compat import (range, lrange, StringIO, lzip, u, product as
@@ -179,7 +179,7 @@ class TestMultiLevel(Base, tm.TestCase):
 
     def test_pickle(self):
         def _test_roundtrip(frame):
-            unpickled = self.round_trip_pickle(frame)
+            unpickled = tm.round_trip_pickle(frame)
             tm.assert_frame_equal(frame, unpickled)
 
         _test_roundtrip(self.frame)
@@ -1253,14 +1253,15 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(swapped, exp)
 
     def test_swaplevel_panel(self):
-        panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
-        expected = panel.copy()
-        expected.major_axis = expected.major_axis.swaplevel(0, 1)
+        with catch_warnings(record=True):
+            panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
+            expected = panel.copy()
+            expected.major_axis = expected.major_axis.swaplevel(0, 1)
 
-        for result in (panel.swaplevel(axis='major'),
-                       panel.swaplevel(0, axis='major'),
-                       panel.swaplevel(0, 1, axis='major')):
-            tm.assert_panel_equal(result, expected)
+            for result in (panel.swaplevel(axis='major'),
+                           panel.swaplevel(0, axis='major'),
+                           panel.swaplevel(0, 1, axis='major')):
+                tm.assert_panel_equal(result, expected)
 
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(['month', 'day', 'year'])

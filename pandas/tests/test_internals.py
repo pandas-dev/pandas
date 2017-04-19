@@ -12,7 +12,7 @@ import itertools
 from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
                     Series, Categorical)
 from pandas.compat import OrderedDict, lrange
-from pandas.sparse.array import SparseArray
+from pandas.core.sparse.array import SparseArray
 from pandas.core.internals import (BlockPlacement, SingleBlockManager,
                                    make_block, BlockManager)
 import pandas.core.algorithms as algos
@@ -248,7 +248,7 @@ class TestBlock(tm.TestCase):
 
     def test_copy(self):
         cop = self.fblock.copy()
-        self.assertIsNot(cop, self.fblock)
+        assert cop is not self.fblock
         assert_block_equal(self.fblock, cop)
 
     def test_reindex_index(self):

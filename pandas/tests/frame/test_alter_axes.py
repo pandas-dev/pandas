@@ -8,7 +8,12 @@ import numpy as np
 
 from pandas.compat import lrange
 from pandas import (DataFrame, Series, Index, MultiIndex,
-                    RangeIndex, date_range)
+                    RangeIndex, date_range, IntervalIndex,
+                    to_datetime)
+from pandas.core.dtypes.common import (
+    is_object_dtype,
+    is_categorical_dtype,
+    is_interval_dtype)
 import pandas as pd
 
 from pandas.util.testing import (assert_series_equal,
@@ -198,8 +203,8 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH 6032
         i = (pd.DatetimeIndex(
-            pd.tseries.tools.to_datetime(['2013-1-1 13:00',
-                                          '2013-1-2 14:00'], errors="raise"))
+            to_datetime(['2013-1-1 13:00',
+                         '2013-1-2 14:00'], errors="raise"))
              .tz_localize('US/Pacific'))
         df = DataFrame(np.random.randn(2, 1), columns=['A'])
 
@@ -294,6 +299,17 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                               names=['index', 'a'])
         exp = pd.DataFrame({'b': [3, 4, 5]}, index=exp_index)
         tm.assert_frame_equal(res, exp)
+
+    def test_reset_index_with_intervals(self):
+        idx = pd.IntervalIndex.from_breaks(np.arange(11), name='x')
+        original = pd.DataFrame({'x': idx, 'y': np.arange(10)})[['x', 'y']]
+
+        result = original.set_index('x')
+        expected = pd.DataFrame({'y': np.arange(10)}, index=idx)
+        assert_frame_equal(result, expected)
+
+        result2 = result.reset_index()
+        assert_frame_equal(result2, original)
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([('foo', 1), ('foo', 2), ('bar', 1)])
@@ -400,15 +416,20 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                               pd.Index(['bar', 'foo'], name='name'))
         self.assertEqual(renamed.index.name, renamer.index.name)
 
-        # MultiIndex
+    def test_rename_multiindex(self):
+
         tuples_index = [('foo1', 'bar1'), ('foo2', 'bar2')]
         tuples_columns = [('fizz1', 'buzz1'), ('fizz2', 'buzz2')]
         index = MultiIndex.from_tuples(tuples_index, names=['foo', 'bar'])
         columns = MultiIndex.from_tuples(
             tuples_columns, names=['fizz', 'buzz'])
-        renamer = DataFrame([(0, 0), (1, 1)], index=index, columns=columns)
-        renamed = renamer.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
-                                 columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})
+        df = DataFrame([(0, 0), (1, 1)], index=index, columns=columns)
+
+        #
+        # without specifying level -> accross all levels
+
+        renamed = df.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
+                            columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})
         new_index = MultiIndex.from_tuples([('foo3', 'bar1'),
                                             ('foo2', 'bar3')],
                                            names=['foo', 'bar'])
@@ -417,8 +438,58 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                              names=['fizz', 'buzz'])
         self.assert_index_equal(renamed.index, new_index)
         self.assert_index_equal(renamed.columns, new_columns)
-        self.assertEqual(renamed.index.names, renamer.index.names)
-        self.assertEqual(renamed.columns.names, renamer.columns.names)
+        self.assertEqual(renamed.index.names, df.index.names)
+        self.assertEqual(renamed.columns.names, df.columns.names)
+
+        #
+        # with specifying a level (GH13766)
+
+        # dict
+        new_columns = MultiIndex.from_tuples([('fizz3', 'buzz1'),
+                                              ('fizz2', 'buzz2')],
+                                             names=['fizz', 'buzz'])
+        renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
+                            level=0)
+        self.assert_index_equal(renamed.columns, new_columns)
+        renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
+                            level='fizz')
+        self.assert_index_equal(renamed.columns, new_columns)
+
+        new_columns = MultiIndex.from_tuples([('fizz1', 'buzz1'),
+                                              ('fizz2', 'buzz3')],
+                                             names=['fizz', 'buzz'])
+        renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
+                            level=1)
+        self.assert_index_equal(renamed.columns, new_columns)
+        renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
+                            level='buzz')
+        self.assert_index_equal(renamed.columns, new_columns)
+
+        # function
+        func = str.upper
+        new_columns = MultiIndex.from_tuples([('FIZZ1', 'buzz1'),
+                                              ('FIZZ2', 'buzz2')],
+                                             names=['fizz', 'buzz'])
+        renamed = df.rename(columns=func, level=0)
+        self.assert_index_equal(renamed.columns, new_columns)
+        renamed = df.rename(columns=func, level='fizz')
+        self.assert_index_equal(renamed.columns, new_columns)
+
+        new_columns = MultiIndex.from_tuples([('fizz1', 'BUZZ1'),
+                                              ('fizz2', 'BUZZ2')],
+                                             names=['fizz', 'buzz'])
+        renamed = df.rename(columns=func, level=1)
+        self.assert_index_equal(renamed.columns, new_columns)
+        renamed = df.rename(columns=func, level='buzz')
+        self.assert_index_equal(renamed.columns, new_columns)
+
+        # index
+        new_index = MultiIndex.from_tuples([('foo3', 'bar1'),
+                                            ('foo2', 'bar2')],
+                                           names=['foo', 'bar'])
+        renamed = df.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
+                            level=0)
+        self.assert_index_equal(renamed.index, new_index)
 
     def test_rename_nocopy(self):
         renamed = self.frame.rename(columns={'C': 'foo'}, copy=False)
@@ -730,3 +801,53 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
             result = df.set_index(cols).reset_index()
             result = result.reindex(columns=df.columns)
             tm.assert_frame_equal(result, df)
+
+
+class TestIntervalIndex(tm.TestCase):
+
+    def test_setitem(self):
+
+        df = DataFrame({'A': range(10)})
+        s = pd.cut(df.A, 5)
+        self.assertIsInstance(s.cat.categories, IntervalIndex)
+
+        # B & D end up as Categoricals
+        # the remainer are converted to in-line objects
+        # contining an IntervalIndex.values
+        df['B'] = s
+        df['C'] = np.array(s)
+        df['D'] = s.values
+        df['E'] = np.array(s.values)
+
+        assert is_categorical_dtype(df['B'])
+        assert is_interval_dtype(df['B'].cat.categories)
+        assert is_categorical_dtype(df['D'])
+        assert is_interval_dtype(df['D'].cat.categories)
+
+        assert is_object_dtype(df['C'])
+        assert is_object_dtype(df['E'])
+
+        # they compare equal as Index
+        # when converted to numpy objects
+        c = lambda x: Index(np.array(x))
+        tm.assert_index_equal(c(df.B), c(df.B), check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.C), check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.D), check_names=False)
+        tm.assert_index_equal(c(df.B), c(df.D), check_names=False)
+
+        # B & D are the same Series
+        tm.assert_series_equal(df['B'], df['B'], check_names=False)
+        tm.assert_series_equal(df['B'], df['D'], check_names=False)
+
+        # C & E are the same Series
+        tm.assert_series_equal(df['C'], df['C'], check_names=False)
+        tm.assert_series_equal(df['C'], df['E'], check_names=False)
+
+    def test_set_reset_index(self):
+
+        df = DataFrame({'A': range(10)})
+        s = pd.cut(df.A, 5)
+        df['B'] = s
+        df = df.set_index('B')
+
+        df = df.reset_index()

@@ -974,7 +974,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
                            'out_augmented_MAY_2011.json',
                            'out_augmented_AUG_2011.json',
                            'out_augmented_JAN_2011.json'], columns=['fname'])
-        tm.assert_equal(set(df.fname.values), set(d['fname'].keys()))
+        assert set(df.fname.values) == set(d['fname'].keys())
         expected = DataFrame({'fname': [d['fname'][k]
                                         for k in df.fname.values]})
         result = df.replace(d)
@@ -997,7 +997,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
                            'out_augmented_MAY_2011.json',
                            'out_augmented_AUG_2011.json',
                            'out_augmented_JAN_2011.json'], columns=['fname'])
-        tm.assert_equal(set(df.fname.values), set(d['fname'].keys()))
+        assert set(df.fname.values) == set(d['fname'].keys())
         expected = DataFrame({'fname': [d['fname'][k]
                                         for k in df.fname.values]})
         result = df.replace(d)

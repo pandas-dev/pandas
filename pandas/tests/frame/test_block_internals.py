@@ -41,17 +41,18 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
     def test_consolidate(self):
         self.frame['E'] = 7.
         consolidated = self.frame._consolidate()
-        self.assertEqual(len(consolidated._data.blocks), 1)
+        assert len(consolidated._data.blocks) == 1
 
         # Ensure copy, do I want this?
         recons = consolidated._consolidate()
-        self.assertIsNot(recons, consolidated)
-        assert_frame_equal(recons, consolidated)
+        assert recons is not consolidated
+        tm.assert_frame_equal(recons, consolidated)
 
         self.frame['F'] = 8.
-        self.assertEqual(len(self.frame._data.blocks), 3)
+        assert len(self.frame._data.blocks) == 3
+
         self.frame._consolidate(inplace=True)
-        self.assertEqual(len(self.frame._data.blocks), 1)
+        assert len(self.frame._data.blocks) == 1
 
     def test_consolidate_deprecation(self):
         self.frame['E'] = 7
@@ -343,25 +344,25 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
     def test_copy(self):
         cop = self.frame.copy()
         cop['E'] = cop['A']
-        self.assertNotIn('E', self.frame)
+        assert 'E' not in self.frame
 
         # copy objects
         copy = self.mixed_frame.copy()
-        self.assertIsNot(copy._data, self.mixed_frame._data)
+        assert copy._data is not self.mixed_frame._data
 
     def test_pickle(self):
-        unpickled = self.round_trip_pickle(self.mixed_frame)
+        unpickled = tm.round_trip_pickle(self.mixed_frame)
         assert_frame_equal(self.mixed_frame, unpickled)
 
         # buglet
         self.mixed_frame._data.ndim
 
         # empty
-        unpickled = self.round_trip_pickle(self.empty)
+        unpickled = tm.round_trip_pickle(self.empty)
         repr(unpickled)
 
         # tz frame
-        unpickled = self.round_trip_pickle(self.tzframe)
+        unpickled = tm.round_trip_pickle(self.tzframe)
         assert_frame_equal(self.tzframe, unpickled)
 
     def test_consolidate_datetime64(self):

@@ -18,6 +18,7 @@ The SQL tests are broken down in different classes:
 """
 
 from __future__ import print_function
+from warnings import catch_warnings
 import pytest
 import unittest
 import sqlite3
@@ -30,13 +31,14 @@ import pandas as pd
 
 from datetime import datetime, date, time
 
-from pandas.types.common import (is_object_dtype, is_datetime64_dtype,
-                                 is_datetime64tz_dtype)
+from pandas.core.dtypes.common import (
+    is_object_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype)
 from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import range, lrange, string_types, PY36
-from pandas.tseries.tools import format as date_format
+from pandas.core.tools.datetimes import format as date_format
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_table, read_sql_query
@@ -586,9 +588,10 @@ class _TestSQLApi(PandasSQLTest):
         tm.assert_frame_equal(s.to_frame(), s2)
 
     def test_to_sql_panel(self):
-        panel = tm.makePanel()
-        self.assertRaises(NotImplementedError, sql.to_sql, panel,
-                          'test_panel', self.conn)
+        with catch_warnings(record=True):
+            panel = tm.makePanel()
+            self.assertRaises(NotImplementedError, sql.to_sql, panel,
+                              'test_panel', self.conn)
 
     def test_roundtrip(self):
         sql.to_sql(self.test_frame1, 'test_frame_roundtrip',

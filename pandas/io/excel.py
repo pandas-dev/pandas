@@ -10,20 +10,21 @@ import os
 import abc
 import numpy as np
 
-from pandas.types.common import (is_integer, is_float,
-                                 is_bool, is_list_like)
+from pandas.core.dtypes.common import (
+    is_integer, is_float,
+    is_bool, is_list_like)
 
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
 from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
                               get_filepath_or_buffer, _NA_VALUES)
-from pandas.tseries.period import Period
+from pandas.core.indexes.period import Period
 from pandas.io.json import libjson
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
                            string_types, OrderedDict)
 from pandas.core import config
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn

@@ -13,8 +13,8 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, isnull, bdate_range,
                     NaT, date_range, timedelta_range,
                     _np_version_under1p8)
-from pandas.tseries.index import Timestamp
-from pandas.tseries.tdi import Timedelta
+from pandas.core.indexes.datetimes import Timestamp
+from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
 
 from pandas.compat import range, zip

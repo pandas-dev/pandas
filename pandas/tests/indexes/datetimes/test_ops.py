@@ -8,7 +8,7 @@ import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.errors import PerformanceWarning
-from pandas.tseries.index import cdate_range
+from pandas.core.indexes.datetimes import cdate_range
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
                     datetime, Float64Index, offsets, bdate_range)
@@ -1121,8 +1121,8 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         self.assertFalse(comp[9])
 
     def test_pickle_unpickle(self):
-        unpickled = self.round_trip_pickle(self.rng)
-        self.assertIsNotNone(unpickled.offset)
+        unpickled = tm.round_trip_pickle(self.rng)
+        assert unpickled.offset is not None
 
     def test_copy(self):
         cp = self.rng.copy()
@@ -1272,8 +1272,8 @@ class TestCustomDatetimeIndex(tm.TestCase):
             self.assertEqual(shifted[0], rng[0] + CDay())
 
     def test_pickle_unpickle(self):
-        unpickled = self.round_trip_pickle(self.rng)
-        self.assertIsNotNone(unpickled.offset)
+        unpickled = tm.round_trip_pickle(self.rng)
+        assert unpickled.offset is not None
 
     def test_summary(self):
         self.rng.summary()

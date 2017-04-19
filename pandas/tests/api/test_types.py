@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from warnings import catch_warnings
 import numpy as np
 
+import pandas
 from pandas.core import common as com
 from pandas.api import types
 from pandas.util import testing as tm
@@ -23,11 +25,12 @@ class TestTypes(Base, tm.TestCase):
                'is_string_dtype', 'is_signed_integer_dtype',
                'is_timedelta64_dtype', 'is_timedelta64_ns_dtype',
                'is_unsigned_integer_dtype', 'is_period',
-               'is_period_dtype', 'is_re', 'is_re_compilable',
+               'is_period_dtype', 'is_interval', 'is_interval_dtype',
+               'is_re', 'is_re_compilable',
                'is_dict_like', 'is_iterator', 'is_file_like',
                'is_list_like', 'is_hashable',
                'is_named_tuple', 'is_sequence',
-               'pandas_dtype']
+               'pandas_dtype', 'union_categoricals', 'infer_dtype']
 
     def test_types(self):
 
@@ -60,7 +63,7 @@ class TestTypes(Base, tm.TestCase):
 
     def test_deprecation_core_common_moved(self):
 
-        # these are in pandas.types.common
+        # these are in pandas.core.dtypes.common
         l = ['is_datetime_arraylike',
              'is_datetime_or_timedelta_dtype',
              'is_datetimelike',
@@ -72,7 +75,7 @@ class TestTypes(Base, tm.TestCase):
              'is_string_like',
              'is_string_like_dtype']
 
-        from pandas.types import common as c
+        from pandas.core.dtypes import common as c
         for t in l:
             self.check_deprecation(getattr(com, t), getattr(c, t))
 
@@ -81,3 +84,10 @@ class TestTypes(Base, tm.TestCase):
         for t in ['is_null_datelike_scalar',
                   'ensure_float']:
             self.assertRaises(AttributeError, lambda: getattr(com, t))
+
+
+def test_moved_infer_dtype():
+
+    with catch_warnings(record=True):
+        e = pandas.lib.infer_dtype('foo')
+        assert e is not None

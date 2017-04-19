@@ -134,16 +134,18 @@ class TestApi(Base):
         expected.columns = ['mean', 'sum']
         tm.assert_frame_equal(result, expected)
 
-        result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
+        with catch_warnings(record=True):
+            result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
         expected = pd.concat([a_mean, a_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
                                                       ('A', 'sum')])
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = r.aggregate({'A': {'mean': 'mean',
-                                    'sum': 'sum'},
-                              'B': {'mean2': 'mean',
-                                    'sum2': 'sum'}})
+        with catch_warnings(record=True):
+            result = r.aggregate({'A': {'mean': 'mean',
+                                        'sum': 'sum'},
+                                  'B': {'mean2': 'mean',
+                                        'sum2': 'sum'}})
         expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
         exp_cols = [('A', 'mean'), ('A', 'sum'), ('B', 'mean2'), ('B', 'sum2')]
         expected.columns = pd.MultiIndex.from_tuples(exp_cols)
@@ -195,12 +197,14 @@ class TestApi(Base):
                               r['B'].std()], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
             'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
-        result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
-                                    'B': {'rb': ['mean', 'std']}})
+        with catch_warnings(record=True):
+            result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
+                                        'B': {'rb': ['mean', 'std']}})
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = r.agg({'A': {'ra': ['mean', 'std']},
-                        'B': {'rb': ['mean', 'std']}})
+        with catch_warnings(record=True):
+            result = r.agg({'A': {'ra': ['mean', 'std']},
+                            'B': {'rb': ['mean', 'std']}})
         expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
             'A', 'ra', 'std'), ('B', 'rb', 'mean'), ('B', 'rb', 'std')])
         tm.assert_frame_equal(result, expected, check_like=True)
@@ -430,6 +434,12 @@ class TestRolling(Base):
                                   getattr(r, func), 1, 2, 3)
             tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
                                   getattr(r, func), dtype=np.float64)
+
+    def test_closed(self):
+        df = DataFrame({'A': [0, 1, 2, 3, 4]})
+        # closed only allowed for datetimelike
+        with pytest.raises(ValueError):
+            df.rolling(window=3, closed='neither')
 
 
 class TestExpanding(Base):
@@ -3383,6 +3393,45 @@ class TestRollingTS(tm.TestCase):
 
         expected = df.rolling(2, min_periods=1).sum()
         result = df.rolling('2s', min_periods=1).sum()
+        tm.assert_frame_equal(result, expected)
+
+    def test_closed(self):
+
+        # xref GH13965
+
+        df = DataFrame({'A': [1] * 5},
+                       index=[pd.Timestamp('20130101 09:00:01'),
+                              pd.Timestamp('20130101 09:00:02'),
+                              pd.Timestamp('20130101 09:00:03'),
+                              pd.Timestamp('20130101 09:00:04'),
+                              pd.Timestamp('20130101 09:00:06')])
+
+        # closed must be 'right', 'left', 'both', 'neither'
+        with pytest.raises(ValueError):
+            self.regular.rolling(window='2s', closed="blabla")
+
+        expected = df.copy()
+        expected["A"] = [1.0, 2, 2, 2, 1]
+        result = df.rolling('2s', closed='right').sum()
+        tm.assert_frame_equal(result, expected)
+
+        # default should be 'right'
+        result = df.rolling('2s').sum()
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.copy()
+        expected["A"] = [1.0, 2, 3, 3, 2]
+        result = df.rolling('2s', closed='both').sum()
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.copy()
+        expected["A"] = [np.nan, 1.0, 2, 2, 1]
+        result = df.rolling('2s', closed='left').sum()
+        tm.assert_frame_equal(result, expected)
+
+        expected = df.copy()
+        expected["A"] = [np.nan, 1.0, 1, 1, np.nan]
+        result = df.rolling('2s', closed='neither').sum()
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_sum(self):

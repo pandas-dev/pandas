@@ -10,11 +10,11 @@ from distutils.version import LooseVersion
 
 import pandas as pd
 from pandas._libs import tslib, lib
-from pandas.tseries import tools
-from pandas.tseries.tools import normalize_date
+from pandas.core.tools import datetimes as tools
+from pandas.core.tools.datetimes import normalize_date
 from pandas.compat import lmap
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.types.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 from pandas import (isnull, to_datetime, Timestamp, Series, DataFrame,
@@ -1295,7 +1295,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
         res = tools.to_time(np.array(arg))
         self.assertIsInstance(res, list)
-        self.assert_equal(res, expected_arr)
+        assert res == expected_arr
 
     def test_parsers_monthfreq(self):
         cases = {'201101': datetime(2011, 1, 1, 0, 0),
@@ -1533,7 +1533,8 @@ def units_from_epochs():
     return list(range(5))
 
 
-@pytest.fixture(params=[epoch_1960(), epoch_1960().to_datetime(),
+@pytest.fixture(params=[epoch_1960(),
+                        epoch_1960().to_pydatetime(),
                         epoch_1960().to_datetime64(),
                         str(epoch_1960())])
 def epochs(request):

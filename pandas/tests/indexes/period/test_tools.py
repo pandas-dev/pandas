@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.tseries.period as period
+import pandas.core.indexes.period as period
 from pandas.compat import lrange
 from pandas.tseries.frequencies import get_freq, MONTHS
 from pandas._libs.period import period_ordinal, period_asfreq

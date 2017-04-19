@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from warnings import catch_warnings
 import numpy as np
 
 from pandas import DataFrame, Series, MultiIndex, Panel
@@ -84,7 +85,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
 
         # GH10553
-        unpickled = self.round_trip_pickle(df)
+        unpickled = tm.round_trip_pickle(df)
         tm.assert_frame_equal(df, unpickled)
         self.assertEqual(df._metadata, unpickled._metadata)
         self.assertEqual(df.testattr, unpickled.testattr)
@@ -128,24 +129,25 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
     def test_to_panel_expanddim(self):
         # GH 9762
 
-        class SubclassedFrame(DataFrame):
+        with catch_warnings(record=True):
+            class SubclassedFrame(DataFrame):
 
-            @property
-            def _constructor_expanddim(self):
-                return SubclassedPanel
+                @property
+                def _constructor_expanddim(self):
+                    return SubclassedPanel
 
-        class SubclassedPanel(Panel):
-            pass
+            class SubclassedPanel(Panel):
+                pass
 
-        index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
-        df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
-        result = df.to_panel()
-        self.assertTrue(isinstance(result, SubclassedPanel))
-        expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
-                                   items=['X', 'Y'], major_axis=[0],
-                                   minor_axis=[0, 1, 2],
-                                   dtype='int64')
-        tm.assert_panel_equal(result, expected)
+            index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
+            df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
+            result = df.to_panel()
+            self.assertTrue(isinstance(result, SubclassedPanel))
+            expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
+                                       items=['X', 'Y'], major_axis=[0],
+                                       minor_axis=[0, 1, 2],
+                                       dtype='int64')
+            tm.assert_panel_equal(result, expected)
 
     def test_subclass_attr_err_propagation(self):
         # GH 11808
@@ -227,9 +229,9 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
                                  tm.SubclassedSparseDataFrame(rows[:2]))
         tm.assert_sp_frame_equal(ssdf[:2],
                                  tm.SubclassedSparseDataFrame(rows[:2]))
-        tm.assert_equal(ssdf.loc[:2].testattr, "testattr")
-        tm.assert_equal(ssdf.iloc[:2].testattr, "testattr")
-        tm.assert_equal(ssdf[:2].testattr, "testattr")
+        assert ssdf.loc[:2].testattr == "testattr"
+        assert ssdf.iloc[:2].testattr == "testattr"
+        assert ssdf[:2].testattr == "testattr"
 
         tm.assert_sp_series_equal(ssdf.loc[1],
                                   tm.SubclassedSparseSeries(rows[1]),

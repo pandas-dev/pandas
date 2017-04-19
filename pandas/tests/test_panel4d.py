@@ -6,7 +6,7 @@ import pytest
 from warnings import catch_warnings
 import numpy as np
 
-from pandas.types.common import is_float_dtype
+from pandas.core.dtypes.common import is_float_dtype
 from pandas import Series, Index, isnull, notnull
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
@@ -510,18 +510,19 @@ class CheckIndexing(object):
     def test_xs(self):
         l1 = self.panel4d.xs('l1', axis=0)
         expected = self.panel4d['l1']
-        assert_panel_equal(l1, expected)
+        tm.assert_panel_equal(l1, expected)
 
-        # view if possible
+        # View if possible
         l1_view = self.panel4d.xs('l1', axis=0)
         l1_view.values[:] = np.nan
-        self.assertTrue(np.isnan(self.panel4d['l1'].values).all())
+        assert np.isnan(self.panel4d['l1'].values).all()
 
-        # mixed-type
+        # Mixed-type
         self.panel4d['strings'] = 'foo'
         with catch_warnings(record=True):
             result = self.panel4d.xs('D', axis=3)
-        self.assertIsNotNone(result.is_copy)
+
+        assert result.is_copy is not None
 
     def test_getitem_fancy_labels(self):
         with catch_warnings(record=True):
@@ -587,20 +588,20 @@ class CheckIndexing(object):
                     for mjr in self.panel4d.major_axis[::2]:
                         for mnr in self.panel4d.minor_axis:
                             self.panel4d.set_value(label, item, mjr, mnr, 1.)
-                            assert_almost_equal(
+                            tm.assert_almost_equal(
                                 self.panel4d[label][item][mnr][mjr], 1.)
 
             res3 = self.panel4d.set_value('l4', 'ItemE', 'foobar', 'baz', 5)
-            self.assertTrue(is_float_dtype(res3['l4'].values))
+            assert is_float_dtype(res3['l4'].values)
 
             # resize
             res = self.panel4d.set_value('l4', 'ItemE', 'foo', 'bar', 1.5)
-            tm.assertIsInstance(res, Panel4D)
-            self.assertIsNot(res, self.panel4d)
-            self.assertEqual(res.get_value('l4', 'ItemE', 'foo', 'bar'), 1.5)
+            assert isinstance(res, Panel4D)
+            assert res is not self.panel4d
+            assert res.get_value('l4', 'ItemE', 'foo', 'bar') == 1.5
 
             res3 = self.panel4d.set_value('l4', 'ItemE', 'foobar', 'baz', 5)
-            self.assertTrue(is_float_dtype(res3['l4'].values))
+            assert is_float_dtype(res3['l4'].values)
 
 
 class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
@@ -619,21 +620,21 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
         with catch_warnings(record=True):
             panel4d = Panel4D(self.panel4d._data)
-            self.assertIs(panel4d._data, self.panel4d._data)
+            assert panel4d._data is self.panel4d._data
 
             panel4d = Panel4D(self.panel4d._data, copy=True)
-            self.assertIsNot(panel4d._data, self.panel4d._data)
-            assert_panel4d_equal(panel4d, self.panel4d)
+            assert panel4d._data is not self.panel4d._data
+            tm.assert_panel4d_equal(panel4d, self.panel4d)
 
             vals = self.panel4d.values
 
             # no copy
             panel4d = Panel4D(vals)
-            self.assertIs(panel4d.values, vals)
+            assert panel4d.values is vals
 
             # copy
             panel4d = Panel4D(vals, copy=True)
-            self.assertIsNot(panel4d.values, vals)
+            assert panel4d.values is not vals
 
             # GH #8285, test when scalar data is used to construct a Panel4D
             # if dtype is not passed, it should be inferred
@@ -645,7 +646,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
                 vals = np.empty((2, 3, 4, 5), dtype=dtype)
                 vals.fill(val)
                 expected = Panel4D(vals, dtype=dtype)
-                assert_panel4d_equal(panel4d, expected)
+                tm.assert_panel4d_equal(panel4d, expected)
 
             # test the case when dtype is passed
             panel4d = Panel4D(1, labels=range(2), items=range(
@@ -654,7 +655,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             vals.fill(1)
 
             expected = Panel4D(vals, dtype='float32')
-            assert_panel4d_equal(panel4d, expected)
+            tm.assert_panel4d_equal(panel4d, expected)
 
     def test_constructor_cast(self):
         with catch_warnings(record=True):

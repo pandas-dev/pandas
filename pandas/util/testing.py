@@ -23,15 +23,17 @@ import pytest
 import numpy as np
 
 import pandas as pd
-from pandas.types.missing import array_equivalent
-from pandas.types.common import (is_datetimelike_v_numeric,
-                                 is_datetimelike_v_object,
-                                 is_number, is_bool,
-                                 needs_i8_conversion,
-                                 is_categorical_dtype,
-                                 is_sequence,
-                                 is_list_like)
-from pandas.formats.printing import pprint_thing
+from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.common import (
+    is_datetimelike_v_numeric,
+    is_datetimelike_v_object,
+    is_number, is_bool,
+    needs_i8_conversion,
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_sequence,
+    is_list_like)
+from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 
 import pandas.compat as compat
@@ -41,12 +43,13 @@ from pandas.compat import (
     StringIO, PY3
 )
 
-from pandas.computation import expressions as expr
+from pandas.core.computation import expressions as expr
 
-from pandas import (bdate_range, CategoricalIndex, Categorical, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, RangeIndex, Index, MultiIndex,
+from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
+                    DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
+                    Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
-from pandas.util.decorators import deprecate
+
 from pandas.util import libtesting
 from pandas.io.common import urlopen
 slow = pytest.mark.slow
@@ -79,6 +82,14 @@ set_testing_mode()
 
 
 class TestCase(unittest.TestCase):
+    """
+    The test case class that we originally used when using the
+    nosetests framework. Under the new pytest framework, we are
+    moving away from this class.
+
+    Do not create new test classes derived from this one. Rather,
+    they should inherit from object directly.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -88,36 +99,32 @@ class TestCase(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
-    def reset_display_options(self):
-        # reset the display options
-        pd.reset_option('^display.', silent=True)
 
-    def round_trip_pickle(self, obj, path=None):
-        return round_trip_pickle(obj, path=path)
+def reset_display_options():
+    """
+    Reset the display options for printing and representing objects.
+    """
 
-    # https://docs.python.org/3/library/unittest.html#deprecated-aliases
-    def assertEquals(self, *args, **kwargs):
-        return deprecate('assertEquals',
-                         self.assertEqual)(*args, **kwargs)
-
-    def assertNotEquals(self, *args, **kwargs):
-        return deprecate('assertNotEquals',
-                         self.assertNotEqual)(*args, **kwargs)
-
-    def assert_(self, *args, **kwargs):
-        return deprecate('assert_',
-                         self.assertTrue)(*args, **kwargs)
-
-    def assertAlmostEquals(self, *args, **kwargs):
-        return deprecate('assertAlmostEquals',
-                         self.assertAlmostEqual)(*args, **kwargs)
-
-    def assertNotAlmostEquals(self, *args, **kwargs):
-        return deprecate('assertNotAlmostEquals',
-                         self.assertNotAlmostEqual)(*args, **kwargs)
+    pd.reset_option('^display.', silent=True)
 
 
 def round_trip_pickle(obj, path=None):
+    """
+    Pickle an object and then read it again.
+
+    Parameters
+    ----------
+    obj : pandas object
+        The object to pickle and then re-read.
+    path : str, default None
+        The path where the pickled object is written and then read.
+
+    Returns
+    -------
+    round_trip_pickled_object : pandas object
+        The original object that was pickled and then re-read.
+    """
+
     if path is None:
         path = u('__%s__.pickle' % rands(10))
     with ensure_clean(path) as path:
@@ -398,8 +405,9 @@ def _incompat_bottleneck_version(method):
 
 
 def skip_if_no_ne(engine='numexpr'):
-    from pandas.computation.expressions import (_USE_NUMEXPR,
-                                                _NUMEXPR_INSTALLED)
+    from pandas.core.computation.expressions import (
+        _USE_NUMEXPR,
+        _NUMEXPR_INSTALLED)
 
     if engine == 'numexpr':
         if not _USE_NUMEXPR:
@@ -828,23 +836,6 @@ def equalContents(arr1, arr2):
     return frozenset(arr1) == frozenset(arr2)
 
 
-def assert_equal(a, b, msg=""):
-    """asserts that a equals b, like nose's assert_equal,
-    but allows custom message to start. Passes a and b to
-    format string as well. So you can use '{0}' and '{1}'
-    to display a and b.
-
-    Examples
-    --------
-    >>> assert_equal(2, 2, "apples")
-    >>> assert_equal(5.2, 1.2, "{0} was really a dead parrot")
-    Traceback (most recent call last):
-        ...
-    AssertionError: 5.2 was really a dead parrot: 5.2 != 1.2
-    """
-    assert a == b, "%s: %r != %r" % (msg.format(a, b), a, b)
-
-
 def assert_index_equal(left, right, exact='equiv', check_names=True,
                        check_less_precise=False, check_exact=True,
                        check_categorical=True, obj='Index'):
@@ -856,8 +847,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     right : Index
     exact : bool / string {'equiv'}, default False
         Whether to check the Index class, dtype and inferred_type
-        are identical. If 'equiv', then RangeIndex can be substitued for
-        Int64Index as well
+        are identical. If 'equiv', then RangeIndex can be substituted for
+        Int64Index as well.
     check_names : bool, default True
         Whether to check the names attribute.
     check_less_precise : bool or int, default False
@@ -943,6 +934,9 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         assert_attr_equal('names', left, right, obj=obj)
     if isinstance(left, pd.PeriodIndex) or isinstance(right, pd.PeriodIndex):
         assert_attr_equal('freq', left, right, obj=obj)
+    if (isinstance(left, pd.IntervalIndex) or
+            isinstance(right, pd.IntervalIndex)):
+        assert_attr_equal('closed', left, right, obj=obj)
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
@@ -1049,12 +1043,6 @@ def assertIs(first, second, msg=''):
     assert a is b, "%s: %r is not %r" % (msg.format(a, b), a, b)
 
 
-def assertIsNot(first, second, msg=''):
-    """Checks that 'first' is not 'second'"""
-    a, b = first, second
-    assert a is not b, "%s: %r is %r" % (msg.format(a, b), a, b)
-
-
 def assertIn(first, second, msg=''):
     """Checks that 'first' is in 'second'"""
     a, b = first, second
@@ -1070,11 +1058,6 @@ def assertNotIn(first, second, msg=''):
 def assertIsNone(expr, msg=''):
     """Checks that 'expr' is None"""
     return assertIs(expr, None, msg)
-
-
-def assertIsNotNone(expr, msg=''):
-    """Checks that 'expr' is not None"""
-    return assertIsNot(expr, None, msg)
 
 
 def assertIsInstance(obj, cls, msg=''):
@@ -1184,10 +1167,17 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     def _get_base(obj):
         return obj.base if getattr(obj, 'base', None) is not None else obj
 
+    left_base = _get_base(left)
+    right_base = _get_base(right)
+
     if check_same == 'same':
-        assertIs(_get_base(left), _get_base(right))
+        if left_base is not right_base:
+            msg = "%r is not %r" % (left_base, right_base)
+            raise AssertionError(msg)
     elif check_same == 'copy':
-        assertIsNot(_get_base(left), _get_base(right))
+        if left_base is right_base:
+            msg = "%r is %r" % (left_base, right_base)
+            raise AssertionError(msg)
 
     def _raise(left, right, err_msg):
         if err_msg is None:
@@ -1307,6 +1297,12 @@ def assert_series_equal(left, right, check_dtype=True,
         else:
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
+    elif is_interval_dtype(left) or is_interval_dtype(right):
+        # TODO: big hack here
+        l = pd.IntervalIndex(left)
+        r = pd.IntervalIndex(right)
+        assert_index_equal(l, r, obj='{0}.index'.format(obj))
+
     else:
         libtesting.assert_almost_equal(left.get_values(), right.get_values(),
                                        check_less_precise=check_less_precise,
@@ -1527,10 +1523,10 @@ def assert_sp_array_equal(left, right, check_dtype=True):
                              check_dtype=check_dtype)
 
     # SparseIndex comparison
-    assertIsInstance(left.sp_index,
-                     pd.sparse.libsparse.SparseIndex, '[SparseIndex]')
-    assertIsInstance(right.sp_index,
-                     pd.sparse.libsparse.SparseIndex, '[SparseIndex]')
+    assertIsInstance(
+        left.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
+    assertIsInstance(
+        right.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
 
     if not left.sp_index.equals(right.sp_index):
         raise_assert_detail('SparseArray.index', 'index are not equal',
@@ -1685,6 +1681,12 @@ def makeCategoricalIndex(k=10, n=3, name=None):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
     return CategoricalIndex(np.random.choice(x, k), name=name)
+
+
+def makeIntervalIndex(k=10, name=None):
+    """ make a length k IntervalIndex """
+    x = np.linspace(0, 100, num=(k + 1))
+    return IntervalIndex.from_breaks(x, name=name)
 
 
 def makeBoolIndex(k=10, name=None):
@@ -2213,6 +2215,7 @@ _network_error_messages = (
     'Temporary failure in name resolution',
     'Name or service not known',
     'Connection refused',
+    'certificate verify',
 )
 
 # or this e.errno/e.reason.errno

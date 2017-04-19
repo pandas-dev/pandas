@@ -9,14 +9,14 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from pandas.types.common import is_float_dtype
+from pandas.core.dtypes.common import is_float_dtype
 from pandas import (Series, DataFrame, Index, date_range, isnull, notnull,
                     pivot, MultiIndex)
 from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
 from pandas.core.series import remove_na
 
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from pandas import compat
 from pandas.compat import range, lrange, StringIO, OrderedDict, signature
 
@@ -43,7 +43,7 @@ class PanelTests(object):
 
     def test_pickle(self):
         with catch_warnings(record=True):
-            unpickled = self.round_trip_pickle(self.panel)
+            unpickled = tm.round_trip_pickle(self.panel)
             assert_frame_equal(unpickled['ItemA'], self.panel['ItemA'])
 
     def test_rank(self):
@@ -597,17 +597,18 @@ class CheckIndexing(object):
         with catch_warnings(record=True):
             itemA = self.panel.xs('ItemA', axis=0)
             expected = self.panel['ItemA']
-            assert_frame_equal(itemA, expected)
+            tm.assert_frame_equal(itemA, expected)
 
-            # get a view by default
+            # Get a view by default.
             itemA_view = self.panel.xs('ItemA', axis=0)
             itemA_view.values[:] = np.nan
-            self.assertTrue(np.isnan(self.panel['ItemA'].values).all())
 
-            # mixed-type yields a copy
+            assert np.isnan(self.panel['ItemA'].values).all()
+
+            # Mixed-type yields a copy.
             self.panel['strings'] = 'foo'
             result = self.panel.xs('D', axis=2)
-            self.assertIsNotNone(result.is_copy)
+            assert result.is_copy is not None
 
     def test_getitem_fancy_labels(self):
         with catch_warnings(record=True):
@@ -883,20 +884,20 @@ class CheckIndexing(object):
                 for mjr in self.panel.major_axis[::2]:
                     for mnr in self.panel.minor_axis:
                         self.panel.set_value(item, mjr, mnr, 1.)
-                        assert_almost_equal(self.panel[item][mnr][mjr], 1.)
+                        tm.assert_almost_equal(self.panel[item][mnr][mjr], 1.)
 
             # resize
             res = self.panel.set_value('ItemE', 'foo', 'bar', 1.5)
-            tm.assertIsInstance(res, Panel)
-            self.assertIsNot(res, self.panel)
-            self.assertEqual(res.get_value('ItemE', 'foo', 'bar'), 1.5)
+            assert isinstance(res, Panel)
+            assert res is not self.panel
+            assert res.get_value('ItemE', 'foo', 'bar') == 1.5
 
             res3 = self.panel.set_value('ItemE', 'foobar', 'baz', 5)
-            self.assertTrue(is_float_dtype(res3['ItemE'].values))
-            with tm.assertRaisesRegexp(TypeError,
-                                       "There must be an argument "
-                                       "for each axis"
-                                       " plus the value provided"):
+            assert is_float_dtype(res3['ItemE'].values)
+
+            msg = ("There must be an argument for each "
+                   "axis plus the value provided")
+            with tm.assertRaisesRegexp(TypeError, msg):
                 self.panel.set_value('a')
 
 
@@ -917,25 +918,25 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         with catch_warnings(record=True):
             # with BlockManager
             wp = Panel(self.panel._data)
-            self.assertIs(wp._data, self.panel._data)
+            assert wp._data is self.panel._data
 
             wp = Panel(self.panel._data, copy=True)
-            self.assertIsNot(wp._data, self.panel._data)
-            assert_panel_equal(wp, self.panel)
+            assert wp._data is not self.panel._data
+            tm.assert_panel_equal(wp, self.panel)
 
             # strings handled prop
             wp = Panel([[['foo', 'foo', 'foo', ], ['foo', 'foo', 'foo']]])
-            self.assertEqual(wp.values.dtype, np.object_)
+            assert wp.values.dtype == np.object_
 
             vals = self.panel.values
 
             # no copy
             wp = Panel(vals)
-            self.assertIs(wp.values, vals)
+            assert wp.values is vals
 
             # copy
             wp = Panel(vals, copy=True)
-            self.assertIsNot(wp.values, vals)
+            assert wp.values is not vals
 
             # GH #8285, test when scalar data is used to construct a Panel
             # if dtype is not passed, it should be inferred
@@ -946,7 +947,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                            minor_axis=range(4))
                 vals = np.empty((2, 3, 4), dtype=dtype)
                 vals.fill(val)
-                assert_panel_equal(wp, Panel(vals, dtype=dtype))
+
+                tm.assert_panel_equal(wp, Panel(vals, dtype=dtype))
 
             # test the case when dtype is passed
             wp = Panel(1, items=range(2), major_axis=range(3),
@@ -954,7 +956,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                        dtype='float32')
             vals = np.empty((2, 3, 4), dtype='float32')
             vals.fill(1)
-            assert_panel_equal(wp, Panel(vals, dtype='float32'))
+
+            tm.assert_panel_equal(wp, Panel(vals, dtype='float32'))
 
     def test_constructor_cast(self):
         with catch_warnings(record=True):
@@ -2581,7 +2584,7 @@ class TestLongPanel(tm.TestCase):
                               wp.major_axis[2])
 
     def test_axis_dummies(self):
-        from pandas.core.reshape import make_axis_dummies
+        from pandas.core.reshape.reshape import make_axis_dummies
 
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
         self.assertEqual(len(minor_dummies.columns),
@@ -2601,7 +2604,7 @@ class TestLongPanel(tm.TestCase):
         # TODO: test correctness
 
     def test_get_dummies(self):
-        from pandas.core.reshape import get_dummies, make_axis_dummies
+        from pandas.core.reshape.reshape import get_dummies, make_axis_dummies
 
         self.panel['Label'] = self.panel.index.labels[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
@@ -2652,7 +2655,7 @@ class TestLongPanel(tm.TestCase):
 
     def test_pivot(self):
         with catch_warnings(record=True):
-            from pandas.core.reshape import _slow_pivot
+            from pandas.core.reshape.reshape import _slow_pivot
 
             one, two, three = (np.array([1, 2, 3, 4, 5]),
                                np.array(['a', 'b', 'c', 'd', 'e']),

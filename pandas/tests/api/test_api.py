@@ -30,10 +30,9 @@ class TestPDApi(Base, tm.TestCase):
     ignored = ['tests', 'locale', 'conftest']
 
     # top-level sub-packages
-    lib = ['api', 'compat', 'computation', 'core',
-           'indexes', 'formats', 'errors', 'pandas',
-           'test', 'tools', 'tseries', 'sparse',
-           'types', 'util', 'options', 'io']
+    lib = ['api', 'compat', 'core', 'errors', 'pandas',
+           'plotting', 'test', 'testing', 'tools', 'tseries',
+           'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
     deprecated_modules = ['stats', 'datetools', 'parser',
@@ -49,7 +48,8 @@ class TestPDApi(Base, tm.TestCase):
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
                'Series', 'SparseArray', 'SparseDataFrame',
                'SparseSeries', 'TimeGrouper', 'Timedelta',
-               'TimedeltaIndex', 'Timestamp']
+               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex',
+               'Styler']
 
     # these are already deprecated; awaiting removal
     deprecated_classes = ['WidePanel', 'Panel4D',
@@ -63,14 +63,13 @@ class TestPDApi(Base, tm.TestCase):
 
     # top-level functions
     funcs = ['bdate_range', 'concat', 'crosstab', 'cut',
-             'date_range', 'eval',
+             'date_range', 'interval_range', 'eval',
              'factorize', 'get_dummies',
              'infer_freq', 'isnull', 'lreshape',
              'melt', 'notnull', 'offsets',
              'merge', 'merge_ordered', 'merge_asof',
              'period_range',
-             'pivot', 'pivot_table', 'plot_params', 'qcut',
-             'scatter_matrix',
+             'pivot', 'pivot_table', 'qcut',
              'show_versions', 'timedelta_range', 'unique',
              'value_counts', 'wide_to_long']
 
@@ -103,7 +102,8 @@ class TestPDApi(Base, tm.TestCase):
                         'rolling_median', 'rolling_min', 'rolling_quantile',
                         'rolling_skew', 'rolling_std', 'rolling_sum',
                         'rolling_var', 'rolling_window', 'ordered_merge',
-                        'pnow', 'match', 'groupby', 'get_store']
+                        'pnow', 'match', 'groupby', 'get_store',
+                        'plot_params', 'scatter_matrix']
 
     def test_api(self):
 
@@ -125,6 +125,17 @@ class TestApi(Base, tm.TestCase):
     def test_api(self):
 
         self.check(api, self.allowed)
+
+
+class TestTesting(Base):
+
+    funcs = ['assert_frame_equal', 'assert_series_equal',
+             'assert_index_equal']
+
+    def test_testing(self):
+
+        from pandas import testing
+        self.check(testing, self.funcs)
 
 
 class TestDatetoolsDeprecation(tm.TestCase):

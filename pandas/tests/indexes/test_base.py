@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 
 import pandas.util.testing as tm
-from pandas.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
@@ -14,14 +14,14 @@ import numpy as np
 from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex)
+                    PeriodIndex, isnull)
 from pandas.core.index import _get_combined_index
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
 import pandas.core.config as cf
 
-from pandas.tseries.index import _to_m8
+from pandas.core.indexes.datetimes import _to_m8
 
 import pandas as pd
 from pandas._libs.lib import Timestamp
@@ -504,7 +504,7 @@ class TestIndex(Base, tm.TestCase):
     def test_asof(self):
         d = self.dateIndex[0]
         self.assertEqual(self.dateIndex.asof(d), d)
-        self.assertTrue(np.isnan(self.dateIndex.asof(d - timedelta(1))))
+        self.assertTrue(isnull(self.dateIndex.asof(d - timedelta(1))))
 
         d = self.dateIndex[-1]
         self.assertEqual(self.dateIndex.asof(d + timedelta(1)), d)
@@ -1851,22 +1851,22 @@ class TestMixedIntIndex(Base, tm.TestCase):
         second = first.__class__(first, copy=False)
 
         # Even though "copy=False", we want a new object.
-        self.assertIsNot(first, second)
+        assert first is not second
         # Not using tm.assert_index_equal() since names differ:
-        self.assertTrue(idx.equals(first))
+        assert idx.equals(first)
 
-        self.assertEqual(first.name, 'mario')
-        self.assertEqual(second.name, 'mario')
+        assert first.name == 'mario'
+        assert second.name == 'mario'
 
         s1 = Series(2, index=first)
         s2 = Series(3, index=second[:-1])
-        if PY3:
-            with tm.assert_produces_warning(RuntimeWarning):
-                # unorderable types
-                s3 = s1 * s2
-        else:
+
+        warning_type = RuntimeWarning if PY3 else None
+        with tm.assert_produces_warning(warning_type):
+            # Python 3: Unorderable types
             s3 = s1 * s2
-        self.assertEqual(s3.index.name, 'mario')
+
+        assert s3.index.name == 'mario'
 
     def test_copy_name2(self):
         # Check that adding a "name" parameter to the copy is honored

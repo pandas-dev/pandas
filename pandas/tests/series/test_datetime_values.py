@@ -6,7 +6,7 @@ from datetime import datetime, date
 import numpy as np
 import pandas as pd
 
-from pandas.types.common import is_integer_dtype, is_list_like
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range,
                     PeriodIndex, Timestamp, DatetimeIndex, TimedeltaIndex)
@@ -364,8 +364,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
     def test_dt_accessor_api(self):
         # GH 9322
-        from pandas.tseries.common import (CombinedDatetimelikeProperties,
-                                           DatetimeProperties)
+        from pandas.core.indexes.accessors import (
+            CombinedDatetimelikeProperties, DatetimeProperties)
         self.assertIs(Series.dt, CombinedDatetimelikeProperties)
 
         s = Series(date_range('2000-01-01', periods=3))
@@ -379,7 +379,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             self.assertFalse(hasattr(s, 'dt'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
-        from pandas.tseries.timedeltas import to_timedelta
+        from pandas.core.tools.timedeltas import to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
         b = datetime(1993, 6, 22, 13, 30)

@@ -331,7 +331,7 @@ class groupby_multi(object):
 
     def get_test_data(self, ngroups=100, n=100000):
         self.unique_groups = range(self.ngroups)
-        self.arr = np.asarray(np.tile(self.unique_groups, (n / self.ngroups)), dtype=object)
+        self.arr = np.asarray(np.tile(self.unique_groups, int(n / self.ngroups)), dtype=object)
         if (len(self.arr) < n):
             self.arr = np.asarray((list(self.arr) + self.unique_groups[:(n - len(self.arr))]), dtype=object)
         random.shuffle(self.arr)

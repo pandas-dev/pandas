@@ -8,11 +8,12 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 
-from pandas.types.common import is_categorical_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_datetime64tz_dtype)
 from pandas import (Index, Series, isnull, date_range,
-                    period_range, NaT)
-from pandas.core.index import MultiIndex
-from pandas.tseries.index import Timestamp, DatetimeIndex
+                    NaT, period_range, MultiIndex, IntervalIndex)
+from pandas.core.indexes.datetimes import Timestamp, DatetimeIndex
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
@@ -543,6 +544,17 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         expected = Series(pd.DatetimeIndex(['NaT', 'NaT'], tz='US/Eastern'))
         assert_series_equal(s, expected)
 
+    def test_construction_interval(self):
+        # construction from interval & array of intervals
+        index = IntervalIndex.from_breaks(np.arange(3), closed='right')
+        result = Series(index)
+        repr(result)
+        str(result)
+        tm.assert_index_equal(Index(result.values), index)
+
+        result = Series(index.values)
+        tm.assert_index_equal(Index(result.values), index)
+
     def test_construction_consistency(self):
 
         # make sure that we are not re-localizing upon construction
@@ -839,3 +851,30 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         s = Series(date_range('1/1/2000', periods=10), dtype=object)
         exp = Series(date_range('1/1/2000', periods=10))
         tm.assert_series_equal(s, exp)
+
+    def test_constructor_generic_timestamp_deprecated(self):
+        # see gh-15524
+
+        with tm.assert_produces_warning(FutureWarning):
+            dtype = np.timedelta64
+            s = Series([], dtype=dtype)
+
+            assert s.empty
+            assert s.dtype == 'm8[ns]'
+
+        with tm.assert_produces_warning(FutureWarning):
+            dtype = np.datetime64
+            s = Series([], dtype=dtype)
+
+            assert s.empty
+            assert s.dtype == 'M8[ns]'
+
+        # These timestamps have the wrong frequencies,
+        # so an Exception should be raised now.
+        msg = "cannot convert timedeltalike"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Series([], dtype='m8[ps]')
+
+        msg = "cannot convert datetimelike"
+        with tm.assertRaisesRegexp(TypeError, msg):
+            Series([], dtype='M8[ps]')

@@ -1,4 +1,5 @@
 import warnings
+from warnings import catch_warnings
 import operator
 from itertools import product
 
@@ -7,23 +8,25 @@ import pytest
 from numpy.random import randn, rand, randint
 import numpy as np
 
-from pandas.types.common import is_list_like, is_scalar
+from pandas.core.dtypes.common import is_list_like, is_scalar
 import pandas as pd
 from pandas.core import common as com
 from pandas.errors import PerformanceWarning
 from pandas import DataFrame, Series, Panel, date_range
 from pandas.util.testing import makeCustomDataframe as mkdf
 
-from pandas.computation import pytables
-from pandas.computation.engines import _engines, NumExprClobberingError
-from pandas.computation.expr import PythonExprVisitor, PandasExprVisitor
-from pandas.computation.expressions import _USE_NUMEXPR, _NUMEXPR_INSTALLED
-from pandas.computation.ops import (_binary_ops_dict,
-                                    _special_case_arith_ops_syms,
-                                    _arith_ops_syms, _bool_ops_syms,
-                                    _unary_math_ops, _binary_math_ops)
+from pandas.core.computation import pytables
+from pandas.core.computation.engines import _engines, NumExprClobberingError
+from pandas.core.computation.expr import PythonExprVisitor, PandasExprVisitor
+from pandas.core.computation.expressions import (
+    _USE_NUMEXPR, _NUMEXPR_INSTALLED)
+from pandas.core.computation.ops import (
+    _binary_ops_dict,
+    _special_case_arith_ops_syms,
+    _arith_ops_syms, _bool_ops_syms,
+    _unary_math_ops, _binary_math_ops)
 
-import pandas.computation.expr as expr
+import pandas.core.computation.expr as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assertRaisesRegexp, assert_numpy_array_equal,
@@ -1017,7 +1020,7 @@ class TestAlignment(object):
                                       parser=parser)
                 else:
                     res = pd.eval('df2 + s + df', engine=engine, parser=parser)
-                tm.assert_equal(res.shape, expected.shape)
+                assert res.shape == expected.shape
                 assert_frame_equal(res, expected)
 
     def test_performance_warning_for_poor_alignment(self, engine, parser):
@@ -1054,13 +1057,13 @@ class TestAlignment(object):
             pd.eval('df + s', engine=engine, parser=parser)
 
             if not is_python_engine:
-                tm.assert_equal(len(w), 1)
+                assert len(w) == 1
                 msg = str(w[0].message)
                 expected = ("Alignment difference on axis {0} is larger"
                             " than an order of magnitude on term {1!r}, "
                             "by more than {2:.4g}; performance may suffer"
                             "".format(1, 'df', np.log10(s.size - df.shape[1])))
-                tm.assert_equal(msg, expected)
+                assert msg == expected
 
 
 # ------------------------------------
@@ -1101,17 +1104,17 @@ class TestOperationsNumExprPandas(tm.TestCase):
             else:
                 expec = _eval_single_bin(1, op, 1, self.engine)
                 x = self.eval(ex, engine=self.engine, parser=self.parser)
-                tm.assert_equal(x, expec)
+                assert x == expec
 
                 expec = _eval_single_bin(x, op, 1, self.engine)
                 y = self.eval(ex2, local_dict={'x': x}, engine=self.engine,
                               parser=self.parser)
-                tm.assert_equal(y, expec)
+                assert y == expec
 
                 expec = _eval_single_bin(1, op, x + 1, self.engine)
                 y = self.eval(ex3, local_dict={'x': x},
                               engine=self.engine, parser=self.parser)
-                tm.assert_equal(y, expec)
+                assert y == expec
 
     def test_simple_bool_ops(self):
         for op, lhs, rhs in product(expr._bool_ops_syms, (True, False),
@@ -1130,11 +1133,12 @@ class TestOperationsNumExprPandas(tm.TestCase):
             self.assertEqual(res, exp)
 
     def test_panel_fails(self):
-        x = Panel(randn(3, 4, 5))
-        y = Series(randn(10))
-        with pytest.raises(NotImplementedError):
-            self.eval('x + y',
-                      local_dict={'x': x, 'y': y})
+        with catch_warnings(record=True):
+            x = Panel(randn(3, 4, 5))
+            y = Series(randn(10))
+            with pytest.raises(NotImplementedError):
+                self.eval('x + y',
+                          local_dict={'x': x, 'y': y})
 
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
@@ -1145,7 +1149,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     def test_constant(self):
         x = self.eval('1')
-        tm.assert_equal(x, 1)
+        assert x == 1
 
     def test_single_variable(self):
         df = DataFrame(randn(10, 2))
@@ -1304,16 +1308,17 @@ class TestOperationsNumExprPandas(tm.TestCase):
         assert_series_equal(result, expected)
 
     def assignment_not_inplace(self):
-        # GH 9297
+        # see gh-9297
         df = DataFrame(np.random.randn(5, 2), columns=list('ab'))
 
         actual = df.eval('c = a + b', inplace=False)
-        self.assertIsNotNone(actual)
+        assert actual is not None
+
         expected = df.copy()
         expected['c'] = expected['a'] + expected['b']
-        assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
-        # default for inplace will change
+        # Default for inplace will change
         with tm.assert_produces_warnings(FutureWarning):
             df.eval('c = a + b')
 
@@ -1504,7 +1509,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         expr = ' * '.join('a' * 33)
         expected = 1
         res = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_equal(res, expected)
+        assert res == expected
 
     def test_fails_and(self):
         df = DataFrame(np.random.randn(5, 3))
@@ -1732,14 +1737,14 @@ class TestScope(object):
         pd.eval('x + 1', local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
         lcls2.pop('lcls')
-        tm.assert_equal(lcls, lcls2)
+        assert lcls == lcls2
 
     def test_no_new_globals(self, engine, parser):
         x = 1  # noqa
         gbls = globals().copy()
         pd.eval('x + 1', engine=engine, parser=parser)
         gbls2 = globals().copy()
-        tm.assert_equal(gbls, gbls2)
+        assert gbls == gbls2
 
 
 def test_invalid_engine():
@@ -1806,7 +1811,7 @@ def test_numexpr_builtin_raises(engine, parser):
             pd.eval('sin + dotted_line', engine=engine, parser=parser)
     else:
         res = pd.eval('sin + dotted_line', engine=engine, parser=parser)
-        tm.assert_equal(res, sin + dotted_line)
+        assert res == sin + dotted_line
 
 
 def test_bad_resolver_raises(engine, parser):
@@ -1850,7 +1855,7 @@ def test_inf(engine, parser):
     s = 'inf + 1'
     expected = np.inf
     result = pd.eval(s, engine=engine, parser=parser)
-    tm.assert_equal(result, expected)
+    assert result == expected
 
 
 def test_negate_lt_eq_le(engine, parser):

@@ -123,6 +123,7 @@ if [ "$BUILD_TEST" ]; then
 
     # build & install testing
     echo ["Starting installation test."]
+    rm -rf dist
     python setup.py clean
     python setup.py build_ext --inplace
     python setup.py sdist --formats=gztar

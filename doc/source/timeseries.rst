@@ -113,7 +113,7 @@ For example:
    pd.Period('2012-05', freq='D')
 
 ``Timestamp`` and ``Period`` can be the index. Lists of ``Timestamp`` and
-``Period`` are automatically coerce to ``DatetimeIndex`` and ``PeriodIndex``
+``Period`` are automatically coerced to ``DatetimeIndex`` and ``PeriodIndex``
 respectively.
 
 .. ipython:: python
@@ -1519,11 +1519,13 @@ We can instead only resample those groups where we have points as follows:
 
     ts.groupby(partial(round, freq='3T')).sum()
 
+.. _timeseries.aggregate:
+
 Aggregation
 ~~~~~~~~~~~
 
-Similar to :ref:`groupby aggregates <groupby.aggregate>` and the :ref:`window functions <stats.aggregate>`, a ``Resampler`` can be selectively
-resampled.
+Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and  the :ref:`window functions API <stats.aggregate>`,
+a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
 
@@ -1548,14 +1550,6 @@ You can pass a list or dict of functions to do aggregation with, outputting a Da
 .. ipython:: python
 
    r['A'].agg([np.sum, np.mean, np.std])
-
-If a dict is passed, the keys will be used to name the columns. Otherwise the
-function's name (stored in the function object) will be used.
-
-.. ipython:: python
-
-   r['A'].agg({'result1' : np.sum,
-               'result2' : np.mean})
 
 On a resampled DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:

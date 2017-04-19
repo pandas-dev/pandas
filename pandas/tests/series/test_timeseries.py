@@ -8,8 +8,8 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas._libs.tslib import iNaT
 from pandas.compat import lrange, StringIO, product
-from pandas.tseries.tdi import TimedeltaIndex
-from pandas.tseries.index import DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.tseries.offsets import BDay, BMonthEnd
 from pandas import (Index, Series, date_range, NaT, concat, DataFrame,
                     Timestamp, to_datetime, offsets,
@@ -240,25 +240,25 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         daily_ts = ts.asfreq('B')
         monthly_ts = daily_ts.asfreq('BM')
-        assert_series_equal(monthly_ts, ts)
+        tm.assert_series_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq('B', method='pad')
         monthly_ts = daily_ts.asfreq('BM')
-        assert_series_equal(monthly_ts, ts)
+        tm.assert_series_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(BDay())
         monthly_ts = daily_ts.asfreq(BMonthEnd())
-        assert_series_equal(monthly_ts, ts)
+        tm.assert_series_equal(monthly_ts, ts)
 
         result = ts[:0].asfreq('M')
-        self.assertEqual(len(result), 0)
-        self.assertIsNot(result, ts)
+        assert len(result) == 0
+        assert result is not ts
 
         daily_ts = ts.asfreq('D', fill_value=-1)
         result = daily_ts.value_counts().sort_index()
         expected = Series([60, 1, 1, 1],
                           index=[-1.0, 2.0, 1.0, 0.0]).sort_index()
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_asfreq_datetimeindex_empty_series(self):
         # GH 14320
@@ -411,12 +411,12 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         masked = rng[mask]
         expected = rng[10:20]
-        self.assertIsNotNone(expected.freq)
+        assert expected.freq is not None
         assert_range_equal(masked, expected)
 
         mask[22] = True
         masked = rng[mask]
-        self.assertIsNone(masked.freq)
+        assert masked.freq is None
 
     def test_to_datetime_unit(self):
 
@@ -739,7 +739,7 @@ class TestTimeSeries(TestData, tm.TestCase):
                              "%s - %s" % time_string)
 
     def test_to_period(self):
-        from pandas.tseries.period import period_range
+        from pandas.core.indexes.period import period_range
 
         ts = _simple_ts('1/1/2000', '1/1/2001')
 
@@ -827,11 +827,11 @@ class TestTimeSeries(TestData, tm.TestCase):
     def test_pickle(self):
 
         # GH4606
-        p = self.round_trip_pickle(NaT)
+        p = tm.round_trip_pickle(NaT)
         self.assertTrue(p is NaT)
 
         idx = pd.to_datetime(['2013-01-01', NaT, '2014-01-06'])
-        idx_p = self.round_trip_pickle(idx)
+        idx_p = tm.round_trip_pickle(idx)
         self.assertTrue(idx_p[0] == idx[0])
         self.assertTrue(idx_p[1] is NaT)
         self.assertTrue(idx_p[2] == idx[2])
@@ -839,7 +839,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         # GH11002
         # don't infer freq
         idx = date_range('1750-1-1', '2050-1-1', freq='7D')
-        idx_p = self.round_trip_pickle(idx)
+        idx_p = tm.round_trip_pickle(idx)
         tm.assert_index_equal(idx, idx_p)
 
     def test_setops_preserve_freq(self):

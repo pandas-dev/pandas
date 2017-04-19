@@ -13,7 +13,7 @@ import numpy as np
 import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 
-from pandas.types.common import is_integer_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 from pandas.compat import (lmap, long, zip, range, lrange, lzip,
                            OrderedDict, is_platform_little_endian)
 from pandas import compat
@@ -259,8 +259,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         # Dict with None value
         frame_none = DataFrame(dict(a=None), index=[0])
         frame_none_list = DataFrame(dict(a=[None]), index=[0])
-        tm.assert_equal(frame_none.get_value(0, 'a'), None)
-        tm.assert_equal(frame_none_list.get_value(0, 'a'), None)
+        assert frame_none.get_value(0, 'a') is None
+        assert frame_none_list.get_value(0, 'a') is None
         tm.assert_frame_equal(frame_none, frame_none_list)
 
         # GH10856

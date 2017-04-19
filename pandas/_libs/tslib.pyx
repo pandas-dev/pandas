@@ -502,7 +502,7 @@ class Timestamp(_Timestamp):
         """
         Return an period of which this timestamp is an observation.
         """
-        from pandas.tseries.period import Period
+        from pandas import Period
 
         if freq is None:
             freq = self.freq
@@ -1295,6 +1295,18 @@ cdef class _Timestamp(datetime):
                 result += '.%.6d' % self.microsecond
 
             return result
+
+    property _short_repr:
+        def __get__(self):
+            # format a Timestamp with only _date_repr if possible
+            # otherwise _repr_base
+            if (self.hour == 0 and
+                self.minute == 0 and
+                self.second == 0 and
+                self.microsecond == 0 and
+                self.nanosecond == 0):
+                return self._date_repr
+            return self._repr_base
 
     property asm8:
         def __get__(self):

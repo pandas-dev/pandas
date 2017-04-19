@@ -459,6 +459,48 @@ default of the index) in a DataFrame.
    dft
    dft.rolling('2s', on='foo').sum()
 
+.. _stats.rolling_window.endpoints:
+
+Rolling Window Endpoints
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
+parameter:
+
+.. csv-table::
+    :header: "``closed``", "Description", "Default for"
+    :widths: 20, 30, 30
+
+    ``right``, close right endpoint, time-based windows
+    ``left``, close left endpoint,
+    ``both``, close both endpoints, fixed windows
+    ``neither``, open endpoints,
+
+For example, having the right endpoint open is useful in many problems that require that there is no contamination
+from present information back to past information. This allows the rolling window to compute statistics
+"up to that point in time", but not including that point in time.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'x': 1},
+                     index = [pd.Timestamp('20130101 09:00:01'),
+                              pd.Timestamp('20130101 09:00:02'),
+                              pd.Timestamp('20130101 09:00:03'),
+                              pd.Timestamp('20130101 09:00:04'),
+                              pd.Timestamp('20130101 09:00:06')])
+
+   df["right"] = df.rolling('2s', closed='right').x.sum()  # default
+   df["both"] = df.rolling('2s', closed='both').x.sum()
+   df["left"] = df.rolling('2s', closed='left').x.sum()
+   df["neither"] = df.rolling('2s', closed='neither').x.sum()
+
+   df
+
+Currently, this feature is only implemented for time-based windows.
+For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
+
 .. _stats.moments.ts-versus-resampling:
 
 Time-aware Rolling vs. Resampling
@@ -575,7 +617,9 @@ Aggregation
 -----------
 
 Once the ``Rolling``, ``Expanding`` or ``EWM`` objects have been created, several methods are available to
-perform multiple computations on the data. This is very similar to a ``.groupby(...).agg`` seen :ref:`here <groupby.aggregate>`.
+perform multiple computations on the data. These operations are similar to the :ref:`aggregating API <basics.aggregate>`,
+:ref:`groupby API <groupby.aggregate>`, and :ref:`resample API <timeseries.aggregate>`.
+
 
 .. ipython:: python
 
@@ -600,23 +644,15 @@ columns if none are selected.
 
 .. _stats.aggregate.multifunc:
 
-Applying multiple functions at once
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Applying multiple functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With windowed Series you can also pass a list or dict of functions to do
+With windowed ``Series`` you can also pass a list of functions to do
 aggregation with, outputting a DataFrame:
 
 .. ipython:: python
 
    r['A'].agg([np.sum, np.mean, np.std])
-
-If a dict is passed, the keys will be used to name the columns. Otherwise the
-function's name (stored in the function object) will be used.
-
-.. ipython:: python
-
-   r['A'].agg({'result1' : np.sum,
-               'result2' : np.mean})
 
 On a widowed DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
@@ -632,7 +668,7 @@ Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By passing a dict to ``aggregate`` you can apply a different aggregation to the
-columns of a DataFrame:
+columns of a ``DataFrame``:
 
 .. ipython:: python
    :okexcept:
