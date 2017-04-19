@@ -150,12 +150,15 @@ class CSSResolver(object):
         # Default: medium only if solid
     })
 
-    def size_to_pt(self, val, em_pt=None, conversions=UNIT_RATIOS):
+    def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
+        def _error():
+            warnings.warn('Unhandled size: %r' % in_val, CSSWarning)
+            return self.size_to_pt('1!!default', conversions=conversions)
+
         try:
-            val, unit = re.match('(.*?)([a-zA-Z%!].*)', val).groups()
+            val, unit = re.match(r'^(\S*?)([a-zA-Z%!].*)', in_val).groups()
         except AttributeError:
-            warnings.warn('Unhandled font size: %r' % val, CSSWarning)
-            return
+            return _error()
         if val == '':
             # hack for 'large' etc.
             val = 1
@@ -163,9 +166,7 @@ class CSSResolver(object):
             try:
                 val = float(val)
             except ValueError:
-                warnings.warn('Unhandled size: %r' % val + unit,
-                              CSSWarning)
-                return self.size_to_pt('1!!default', conversions=conversions)
+                return _error()
 
         while unit != 'pt':
             if unit == 'em':
@@ -179,8 +180,7 @@ class CSSResolver(object):
             try:
                 unit, mul = conversions[unit]
             except KeyError:
-                warnings.warn('Unknown size unit: %r' % unit, CSSWarning)
-                return self.size_to_pt('1!!default', conversions=conversions)
+                return _error()
             val *= mul
 
         val = round(val, 5)
@@ -241,7 +241,8 @@ class CSSResolver(object):
             prop = prop.strip().lower()
             # TODO: don't lowercase case sensitive parts of values (strings)
             val = val.strip().lower()
-            if not sep:
+            if sep:
+                yield prop, val
+            else:
                 warnings.warn('Ill-formatted attribute: expected a colon '
                               'in %r' % decl, CSSWarning)
-            yield prop, val

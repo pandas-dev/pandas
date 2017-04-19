@@ -215,4 +215,6 @@ def test_css_to_excel_inherited(css, inherited, expected):
 @pytest.mark.xfail(reason='We are not currently warning for all unconverted '
                           'CSS, but possibly should')
 def test_css_to_excel_warns_when_not_supported():
-    pass  # TODO
+    convert = CSSToExcelConverter()
+    with pytest.warns(UserWarning):
+        convert('background: red')

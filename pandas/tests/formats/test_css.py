@@ -38,7 +38,7 @@ def test_css_parse_comments():
                              markers like !important, but we should
                              ignore them in the future''')
 def test_css_parse_specificity():
-    pass  # TODO
+    assert_same_resolution('font-weight: bold', 'font-weight: bold !important')
 
 
 @pytest.mark.xfail(reason='Splitting CSS declarations not yet sensitive to '
@@ -51,8 +51,36 @@ def test_css_parse_strings():
                     {'background-image': 'url("http://blah.com/foo?a;b=c")'})
 
 
-def test_css_parse_invalid():
-    pass  # TODO
+@pytest.mark.parametrize(
+    'invalid_css,remainder', [
+        # No colon
+        ('hello-world', ''),
+        ('border-style: solid; hello-world', 'border-style: solid'),
+        ('border-style: solid; hello-world; font-weight: bold',
+         'border-style: solid; font-weight: bold'),
+        # Unclosed string
+        pytest.mark.xfail(('background-image: "abc', ''),
+                          reason='Unclosed CSS strings not detected'),
+        pytest.mark.xfail(('font-family: "abc', ''),
+                          reason='Unclosed CSS strings not detected'),
+        pytest.mark.xfail(('background-image: \'abc', ''),
+                          reason='Unclosed CSS strings not detected'),
+        pytest.mark.xfail(('font-family: \'abc', ''),
+                          reason='Unclosed CSS strings not detected'),
+        # Invalid size
+        ('font-size: blah', 'font-size: 1em'),
+        ('font-size: 1a2b', 'font-size: 1em'),
+        ('font-size: 1e5pt', 'font-size: 1em'),
+        ('font-size: 1+6pt', 'font-size: 1em'),
+        ('font-size: 1unknownunit', 'font-size: 1em'),
+        ('font-size: 10', 'font-size: 1em'),
+        ('font-size: 10 pt', 'font-size: 1em'),
+    ])
+def test_css_parse_invalid(invalid_css, remainder):
+    with pytest.warns(CSSWarning):
+        assert_same_resolution(invalid_css, remainder)
+
+    # TODO: we should be checking that in other cases no warnings are raised
 
 
 @pytest.mark.parametrize(
@@ -226,7 +254,3 @@ def test_css_relative_font_size(size, relative_to, resolved):
         inherited = {'font-size': relative_to}
     assert_resolves('font-size: %s' % size, {'font-size': resolved},
                     inherited=inherited)
-
-
-def test_css_font_size_invalid():
-    pass  # TODO
