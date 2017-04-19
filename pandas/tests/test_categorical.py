@@ -3043,9 +3043,10 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             [Categorical(["a", "b", "z"], ordered=True),
              Categorical(["c", "d", "y"], ordered=True)],
             names=['A', 'B'])
-        expected = Series([1, 2, np.nan, 3, 4, np.nan, np.nan, np.nan, np.nan],
-                          index=exp_index, name='values')
-        tm.assert_series_equal(result, expected)
+        expected = DataFrame(
+            {'values': [1, 2, np.nan, 3, 4, np.nan, np.nan, np.nan, np.nan]},
+            index=exp_index)
+        tm.assert_frame_equal(result, expected)
 
     def test_count(self):
 
