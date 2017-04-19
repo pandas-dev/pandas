@@ -3352,7 +3352,8 @@ it is assumed to be aliases for the column names.')
             # make sure that the axis is lexsorted to start
             # if not we need to reconstruct to get the correct indexer
             labels = labels._sort_levels_monotonic()
-            indexer = lexsort_indexer(labels.labels, orders=ascending,
+            indexer = lexsort_indexer(labels._get_labels_for_sorting(),
+                                      orders=ascending,
                                       na_position=na_position)
         else:
             from pandas.core.sorting import nargsort
