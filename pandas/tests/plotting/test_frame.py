@@ -237,33 +237,34 @@ class TestDataFramePlots(TestPlotBase):
         df = self.tdf
         ax = df.plot(x_compat=True)
         lines = ax.get_lines()
-        self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
+        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
         pd.plotting.plot_params['xaxis.compat'] = True
         ax = df.plot()
         lines = ax.get_lines()
-        self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
+        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
         pd.plotting.plot_params['x_compat'] = False
+
         ax = df.plot()
         lines = ax.get_lines()
-        self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
-        self.assertIsInstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+        assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
 
         tm.close()
         # useful if you're plotting a bunch together
         with pd.plotting.plot_params.use('x_compat', True):
             ax = df.plot()
             lines = ax.get_lines()
-            self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
+            assert not isinstance(lines[0].get_xdata(), PeriodIndex)
 
         tm.close()
         ax = df.plot()
         lines = ax.get_lines()
-        self.assertNotIsInstance(lines[0].get_xdata(), PeriodIndex)
-        self.assertIsInstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+        assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
 
     def test_period_compat(self):
         # GH 9012

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 import pandas.util.testing as tm
 from pandas.core.indexes.api import Index, CategoricalIndex
 from .common import Base
@@ -37,62 +39,66 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         result = Index(ci)
         tm.assert_index_equal(result, ci, exact=True)
-        self.assertFalse(result.ordered)
+        assert not result.ordered
 
         result = Index(ci.values)
         tm.assert_index_equal(result, ci, exact=True)
-        self.assertFalse(result.ordered)
+        assert not result.ordered
 
         # empty
         result = CategoricalIndex(categories=categories)
-        self.assert_index_equal(result.categories, Index(categories))
+        tm.assert_index_equal(result.categories, Index(categories))
         tm.assert_numpy_array_equal(result.codes, np.array([], dtype='int8'))
-        self.assertFalse(result.ordered)
+        assert not result.ordered
 
         # passing categories
         result = CategoricalIndex(list('aabbca'), categories=categories)
-        self.assert_index_equal(result.categories, Index(categories))
+        tm.assert_index_equal(result.categories, Index(categories))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, 2, 0], dtype='int8'))
+                                    np.array([0, 0, 1,
+                                              1, 2, 0], dtype='int8'))
 
         c = pd.Categorical(list('aabbca'))
         result = CategoricalIndex(c)
-        self.assert_index_equal(result.categories, Index(list('abc')))
+        tm.assert_index_equal(result.categories, Index(list('abc')))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, 2, 0], dtype='int8'))
-        self.assertFalse(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, 2, 0], dtype='int8'))
+        assert not result.ordered
 
         result = CategoricalIndex(c, categories=categories)
-        self.assert_index_equal(result.categories, Index(categories))
+        tm.assert_index_equal(result.categories, Index(categories))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, 2, 0], dtype='int8'))
-        self.assertFalse(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, 2, 0], dtype='int8'))
+        assert not result.ordered
 
         ci = CategoricalIndex(c, categories=list('abcd'))
         result = CategoricalIndex(ci)
-        self.assert_index_equal(result.categories, Index(categories))
+        tm.assert_index_equal(result.categories, Index(categories))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, 2, 0], dtype='int8'))
-        self.assertFalse(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, 2, 0], dtype='int8'))
+        assert not result.ordered
 
         result = CategoricalIndex(ci, categories=list('ab'))
-        self.assert_index_equal(result.categories, Index(list('ab')))
+        tm.assert_index_equal(result.categories, Index(list('ab')))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, -1, 0],
-                                             dtype='int8'))
-        self.assertFalse(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, -1, 0], dtype='int8'))
+        assert not result.ordered
 
         result = CategoricalIndex(ci, categories=list('ab'), ordered=True)
-        self.assert_index_equal(result.categories, Index(list('ab')))
+        tm.assert_index_equal(result.categories, Index(list('ab')))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, -1, 0],
-                                             dtype='int8'))
-        self.assertTrue(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, -1, 0], dtype='int8'))
+        assert result.ordered
 
         # turn me to an Index
         result = Index(np.array(ci))
-        self.assertIsInstance(result, Index)
-        self.assertNotIsInstance(result, CategoricalIndex)
+        assert isinstance(result, Index)
+        assert not isinstance(result, CategoricalIndex)
 
     def test_construction_with_dtype(self):
 
@@ -325,9 +331,9 @@ class TestCategoricalIndex(Base, tm.TestCase):
         expected = CategoricalIndex(list('aabbc'), categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
-        with tm.assertRaises((IndexError, ValueError)):
-            # either depeidnig on numpy version
-            result = ci.delete(10)
+        with pytest.raises((IndexError, ValueError)):
+            # Either depending on NumPy version
+            ci.delete(10)
 
     def test_astype(self):
 
@@ -336,12 +342,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, ci, exact=True)
 
         result = ci.astype(object)
-        self.assert_index_equal(result, Index(np.array(ci)))
+        tm.assert_index_equal(result, Index(np.array(ci)))
 
         # this IS equal, but not the same class
-        self.assertTrue(result.equals(ci))
-        self.assertIsInstance(result, Index)
-        self.assertNotIsInstance(result, CategoricalIndex)
+        assert result.equals(ci)
+        assert isinstance(result, Index)
+        assert not isinstance(result, CategoricalIndex)
 
         # interval
         ii = IntervalIndex.from_arrays(left=[-0.001, 2.0],
