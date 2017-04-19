@@ -1164,11 +1164,10 @@ class GroupBy(_GroupBy):
 
             def first(x):
 
-                x = np.asarray(x)
                 x = x[notnull(x)]
                 if len(x) == 0:
                     return np.nan
-                return x[0]
+                return x.iloc[0]
 
             if isinstance(x, DataFrame):
                 return x.apply(first, axis=axis)
@@ -1179,11 +1178,10 @@ class GroupBy(_GroupBy):
 
             def last(x):
 
-                x = np.asarray(x)
                 x = x[notnull(x)]
                 if len(x) == 0:
                     return np.nan
-                return x[-1]
+                return x.iloc[-1]
 
             if isinstance(x, DataFrame):
                 return x.apply(last, axis=axis)
