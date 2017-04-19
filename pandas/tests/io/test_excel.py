@@ -2152,6 +2152,7 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
             self.assertEqual(xcell_a2.font, openpyxl_sty_merged)
 
     def test_styler_to_excel(self):
+        pytest.importorskip('jinja2')
         if not openpyxl_compat.is_compat(major_ver=2):
             pytest.skip('incompatible openpyxl version')
 
