@@ -213,7 +213,7 @@ def make_signature(func):
         defaults = ('',) * n_wo_defaults
     else:
         n_wo_defaults = len(spec.args) - len(spec.defaults)
-        defaults = ('',) * n_wo_defaults + spec.defaults
+        defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
     args = []
     for i, (var, default) in enumerate(zip(spec.args, defaults)):
         args.append(var if default == '' else var + '=' + repr(default))
