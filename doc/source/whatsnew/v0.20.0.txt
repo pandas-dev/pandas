@@ -416,11 +416,11 @@ For example, after running the following, ``styled.xlsx`` renders as below:
                                      columns=list('BCDE'))],
                    axis=1)
     df.iloc[0, 2] = np.nan
+    df
     styled = df.style.\
         applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black').\
         apply(lambda s: ['background-color: yellow' if v else ''
                          for v in s == s.max()])
-    styled
     styled.to_excel('styled.xlsx', engine='openpyxl')
 
 .. image:: _static/style-excel.png
