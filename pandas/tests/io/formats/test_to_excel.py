@@ -47,11 +47,11 @@ from pandas.io.formats.excel import CSSToExcelConverter
     # - italic
     # - underline
     ('text-decoration: underline',
-     {'font': {'underline': 'single', 'strike': False}}),
+     {'font': {'underline': 'single'}}),
     ('text-decoration: overline',
-     {'font': {'strike': False}}),
+     {}),
     ('text-decoration: none',
-     {'font': {'strike': False}}),
+     {}),
     # - strike
     ('text-decoration: line-through',
      {'font': {'strike': True}}),
@@ -184,8 +184,7 @@ def test_css_to_excel_multiple():
         vertical-align: top;
         unused: something;
     ''')
-    assert {"font": {"bold": True, "strike": False,
-                     "underline": "single", "color": "FF0000"},
+    assert {"font": {"bold": True, "underline": "single", "color": "FF0000"},
             "border": {"top": {"style": "thin"},
                        "right": {"style": "thin"},
                        "bottom": {"style": "thin"},

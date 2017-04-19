@@ -247,6 +247,8 @@ class CSSToExcelConverter(object):
         decoration = props.get('text-decoration')
         if decoration is not None:
             decoration = decoration.split()
+        else:
+            decoration = ()
 
         return {
             'name': font_names[0] if font_names else None,
@@ -255,11 +257,9 @@ class CSSToExcelConverter(object):
             'bold': self.BOLD_MAP.get(props.get('font-weight')),
             'italic': self.ITALIC_MAP.get(props.get('font-style')),
             'underline': ('single' if
-                          decoration is not None and
                           'underline' in decoration
                           else None),
-            'strike': (None if decoration is None
-                       else 'line-through' in decoration),
+            'strike': ('line-through' in decoration) or None,
             'color': self.color_to_excel(props.get('color')),
             # shadow if nonzero digit before shadow colour
             'shadow': (bool(re.search('^[^#(]*[1-9]',
