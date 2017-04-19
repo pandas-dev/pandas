@@ -2369,7 +2369,7 @@ def test_styler_to_excel(engine):
                           ['border-style: solid', '', ''],
                           ['', 'font-style: italic', ''],
                           ['', '', 'text-align: right'],
-                          (['', '', ''] if engine == 'xlwt' and False
+                          (['', '', ''] if engine == 'xlwt'
                            else ['background-color: red', '', '']),
                           ['', '', ''],
                           ['', '', ''],
