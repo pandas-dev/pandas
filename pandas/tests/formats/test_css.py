@@ -28,7 +28,7 @@ def test_css_parse_normalisation(name, norm, abnorm):
     assert_same_resolution(norm, abnorm)
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='CSS comments not yet stripped')
 def test_css_parse_comments():
     assert_same_resolution('hello: world',
                            'hello/* foo */:/* bar \n */ world /*;not:here*/')
@@ -41,7 +41,8 @@ def test_css_parse_specificity():
     pass  # TODO
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='Splitting CSS declarations not yet sensitive to '
+                          '; in CSS strings')
 def test_css_parse_strings():
     # semicolons in strings
     assert_resolves('background-image: url(\'http://blah.com/foo?a;b=c\')',
@@ -91,7 +92,7 @@ def test_css_side_shorthands(shorthand, expansions):
                         {})
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='CSS font shorthand not yet handled')
 @pytest.mark.parametrize('css,props', [
     ('font: italic bold 12pt helvetica,sans-serif',
      {'font-family': 'helvetica,sans-serif',
@@ -108,7 +109,7 @@ def test_css_font_shorthand(css, props):
     assert_resolves(css, props)
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='CSS background shorthand not yet handled')
 @pytest.mark.parametrize('css,props', [
     ('background: blue', {'background-color': 'blue'}),
     ('background: fixed blue',
@@ -118,7 +119,7 @@ def test_css_background_shorthand(css, props):
     assert_resolves(css, props)
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='CSS border shorthand not yet handled')
 @pytest.mark.parametrize('style,equiv', [
     ('border: 1px solid red',
      'border-width: 1px; border-style: solid; border-color: red'),

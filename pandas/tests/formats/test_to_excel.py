@@ -73,11 +73,14 @@ from pandas.formats.excel import CSSToExcelConverter
     ('text-shadow: 0px -0em 2px #CCC', {'font': {'shadow': True}}),
     ('text-shadow: 0px -0em 2px', {'font': {'shadow': True}}),
     ('text-shadow: 0px -2em', {'font': {'shadow': True}}),
-    # text-shadow with color first not yet implemented
     pytest.mark.xfail(('text-shadow: #CCC 3px 3px 3px',
-                       {'font': {'shadow': True}})),
+                       {'font': {'shadow': True}}),
+                      reason='text-shadow with color preceding width not yet '
+                             'identified as shadow'),
     pytest.mark.xfail(('text-shadow: #999 0px 0px 0px',
-                       {'font': {'shadow': False}})),
+                       {'font': {'shadow': False}}),
+                      reason='text-shadow with color preceding zero width not '
+                             'yet identified as non-shadow'),
     # FILL
     # - color, fillType
     ('background-color: red', {'fill': {'fgColor': 'FF0000',
@@ -209,6 +212,7 @@ def test_css_to_excel_inherited(css, inherited, expected):
     assert expected == convert(css)
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason='We are not currently warning for all unconverted '
+                          'CSS, but possibly should')
 def test_css_to_excel_warns_when_not_supported():
     pass  # TODO
