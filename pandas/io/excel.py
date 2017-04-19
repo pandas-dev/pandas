@@ -1469,37 +1469,6 @@ class _XlwtWriter(ExcelWriter):
                           val, style)
 
     @classmethod
-    def _tweak_style(cls, item):
-        item = item.copy()
-        for k in ['top', 'right', 'bottom', 'left']:
-            if k not in item:
-                continue
-            side = item[k]
-            if not hasattr(side, 'items'):
-                continue
-            color = side.get('color') or side.get('colour')
-            if color is not None:
-                item[k + '_color'] = color
-            if side.get('style'):
-                item[k] = side['style']
-        if 'fill' in item and 'pattern' not in item:
-            fill = item.pop('fill')
-            item['pattern'] = {}
-            for k in ['patternType', 'patterntype', 'fill_type']:
-                if k in fill:
-                    item['pattern']['pattern'] = fill[k]
-                    break
-            for k in ['fgColor', 'fgcolor', 'start_color']:
-                if k in fill:
-                    item['pattern']['fore_color'] = fill[k]
-                    break
-            for k in ['bgColor', 'bgcolor', 'end_color']:
-                if k in fill:
-                    item['pattern']['back_color'] = fill[k]
-                    break
-        return item
-
-    @classmethod
     def _style_to_xlwt(cls, item, firstlevel=True, field_sep=',',
                        line_sep=';'):
         """helper which recursively generate an xlwt easy style string
@@ -1507,19 +1476,16 @@ class _XlwtWriter(ExcelWriter):
 
             hstyle = {"font": {"bold": True},
             "border": {"top": "thin",
-                    "right": {"style": "thin", "color": "red"},
+                    "right": "thin",
                     "bottom": "thin",
                     "left": "thin"},
             "align": {"horiz": "center"}}
             will be converted to
             font: bold on; \
-                    border: top thin, right thin, right_color red, \
-                    bottom thin, left thin; \
+                    border: top thin, right thin, bottom thin, left thin; \
                     align: horiz center;
         """
         if hasattr(item, 'items'):
-            item = cls._tweak_style(item)
-
             if firstlevel:
                 it = ["%s: %s" % (key, cls._style_to_xlwt(value, False))
                       for key, value in item.items()]

@@ -2355,7 +2355,8 @@ class ExcelWriterEngineTests(tm.TestCase):
 
 
 @pytest.mark.parametrize('engine', [
-    'xlwt',
+    pytest.mark.xfail('xlwt', reason='xlwt does not support '
+                                     'openpyxl-compatible style dicts'),
     'xlsxwriter',
     'openpyxl',
 ])
@@ -2363,14 +2364,12 @@ def test_styler_to_excel(engine):
     def style(df):
         # XXX: RGB colors not supported in xlwt
         return DataFrame([['font-weight: bold', '', ''],
-                          (['', '', ''] if engine == 'xlwt'
-                           else ['', 'color: blue', '']),
+                          ['', 'color: blue', ''],
                           ['', '', 'text-decoration: underline'],
                           ['border-style: solid', '', ''],
                           ['', 'font-style: italic', ''],
                           ['', '', 'text-align: right'],
-                          (['', '', ''] if engine == 'xlwt'
-                           else ['background-color: red', '', '']),
+                          ['background-color: red', '', ''],
                           ['', '', ''],
                           ['', '', ''],
                           ['', '', '']],
