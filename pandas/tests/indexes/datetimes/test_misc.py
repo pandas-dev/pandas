@@ -61,7 +61,7 @@ class TestTimeSeries(tm.TestCase):
 
         expected = Index(rng.to_pydatetime(), dtype=object)
 
-        self.assert_numpy_array_equal(idx.values, expected.values)
+        tm.assert_numpy_array_equal(idx.values, expected.values)
 
     def test_range_edges(self):
         # GH 13672

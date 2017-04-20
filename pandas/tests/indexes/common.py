@@ -842,7 +842,7 @@ class Base(object):
 
                 # cases in indices doesn't include NaN
                 expected = np.array([False] * len(idx), dtype=bool)
-                self.assert_numpy_array_equal(idx._isnan, expected)
+                tm.assert_numpy_array_equal(idx._isnan, expected)
                 self.assertFalse(idx.hasnans)
 
                 idx = index.copy()
@@ -864,7 +864,7 @@ class Base(object):
 
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
-                self.assert_numpy_array_equal(idx._isnan, expected)
+                tm.assert_numpy_array_equal(idx._isnan, expected)
                 self.assertTrue(idx.hasnans)
 
     def test_fillna(self):
@@ -904,7 +904,7 @@ class Base(object):
 
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
-                self.assert_numpy_array_equal(idx._isnan, expected)
+                tm.assert_numpy_array_equal(idx._isnan, expected)
                 self.assertTrue(idx.hasnans)
 
     def test_nulls(self):
@@ -913,7 +913,7 @@ class Base(object):
 
         for name, index in self.indices.items():
             if len(index) == 0:
-                self.assert_numpy_array_equal(
+                tm.assert_numpy_array_equal(
                     index.isnull(), np.array([], dtype=bool))
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
@@ -923,14 +923,14 @@ class Base(object):
             else:
 
                 if not index.hasnans:
-                    self.assert_numpy_array_equal(
+                    tm.assert_numpy_array_equal(
                         index.isnull(), np.zeros(len(index), dtype=bool))
-                    self.assert_numpy_array_equal(
+                    tm.assert_numpy_array_equal(
                         index.notnull(), np.ones(len(index), dtype=bool))
                 else:
                     result = isnull(index)
-                    self.assert_numpy_array_equal(index.isnull(), result)
-                    self.assert_numpy_array_equal(index.notnull(), ~result)
+                    tm.assert_numpy_array_equal(index.isnull(), result)
+                    tm.assert_numpy_array_equal(index.notnull(), ~result)
 
     def test_empty(self):
         # GH 15270

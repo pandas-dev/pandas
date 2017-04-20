@@ -588,9 +588,8 @@ Freq: D"""
 
             ordered, indexer = idx.sort_values(return_indexer=True)
             tm.assert_index_equal(ordered, idx)
-            self.assert_numpy_array_equal(indexer,
-                                          np.array([0, 1, 2]),
-                                          check_dtype=False)
+            tm.assert_numpy_array_equal(indexer, np.array([0, 1, 2]),
+                                        check_dtype=False)
             self.assertEqual(ordered.freq, idx.freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
@@ -629,7 +628,7 @@ Freq: D"""
             tm.assert_index_equal(ordered, expected)
 
             exp = np.array([0, 4, 3, 1, 2])
-            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+            tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertIsNone(ordered.freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
@@ -637,7 +636,7 @@ Freq: D"""
             tm.assert_index_equal(ordered, expected[::-1])
 
             exp = np.array([2, 1, 3, 4, 0])
-            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+            tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertIsNone(ordered.freq)
 
     def test_getitem(self):
@@ -908,42 +907,42 @@ class TestTimedeltas(tm.TestCase):
         # timedelta, timedelta
         other = pd.to_timedelta(['1 day']).values
         expected = pd.to_timedelta(['2 days']).values
-        self.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(td + other, expected)
         if LooseVersion(np.__version__) >= '1.8':
-            self.assert_numpy_array_equal(other + td, expected)
+            tm.assert_numpy_array_equal(other + td, expected)
         self.assertRaises(TypeError, lambda: td + np.array([1]))
         self.assertRaises(TypeError, lambda: np.array([1]) + td)
 
         expected = pd.to_timedelta(['0 days']).values
-        self.assert_numpy_array_equal(td - other, expected)
+        tm.assert_numpy_array_equal(td - other, expected)
         if LooseVersion(np.__version__) >= '1.8':
-            self.assert_numpy_array_equal(-other + td, expected)
+            tm.assert_numpy_array_equal(-other + td, expected)
         self.assertRaises(TypeError, lambda: td - np.array([1]))
         self.assertRaises(TypeError, lambda: np.array([1]) - td)
 
         expected = pd.to_timedelta(['2 days']).values
-        self.assert_numpy_array_equal(td * np.array([2]), expected)
-        self.assert_numpy_array_equal(np.array([2]) * td, expected)
+        tm.assert_numpy_array_equal(td * np.array([2]), expected)
+        tm.assert_numpy_array_equal(np.array([2]) * td, expected)
         self.assertRaises(TypeError, lambda: td * other)
         self.assertRaises(TypeError, lambda: other * td)
 
-        self.assert_numpy_array_equal(td / other,
-                                      np.array([1], dtype=np.float64))
+        tm.assert_numpy_array_equal(td / other,
+                                    np.array([1], dtype=np.float64))
         if LooseVersion(np.__version__) >= '1.8':
-            self.assert_numpy_array_equal(other / td,
-                                          np.array([1], dtype=np.float64))
+            tm.assert_numpy_array_equal(other / td,
+                                        np.array([1], dtype=np.float64))
 
         # timedelta, datetime
         other = pd.to_datetime(['2000-01-01']).values
         expected = pd.to_datetime(['2000-01-02']).values
-        self.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(td + other, expected)
         if LooseVersion(np.__version__) >= '1.8':
-            self.assert_numpy_array_equal(other + td, expected)
+            tm.assert_numpy_array_equal(other + td, expected)
 
         expected = pd.to_datetime(['1999-12-31']).values
-        self.assert_numpy_array_equal(-td + other, expected)
+        tm.assert_numpy_array_equal(-td + other, expected)
         if LooseVersion(np.__version__) >= '1.8':
-            self.assert_numpy_array_equal(other - td, expected)
+            tm.assert_numpy_array_equal(other - td, expected)
 
     def test_ops_series(self):
         # regression test for GH8813
@@ -1203,7 +1202,7 @@ class TestTimedeltas(tm.TestCase):
         arr = np.array(periods)
         result = arr[0] > arr
         expected = np.array([False, False])
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestSlicing(tm.TestCase):

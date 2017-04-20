@@ -375,8 +375,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self._check_accum_op('cumprod')
 
     def test_cummin(self):
-        self.assert_numpy_array_equal(self.ts.cummin().values,
-                                      np.minimum.accumulate(np.array(self.ts)))
+        tm.assert_numpy_array_equal(self.ts.cummin().values,
+                                    np.minimum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummin()[1::2]
@@ -385,8 +385,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assert_series_equal(result, expected)
 
     def test_cummax(self):
-        self.assert_numpy_array_equal(self.ts.cummax().values,
-                                      np.maximum.accumulate(np.array(self.ts)))
+        tm.assert_numpy_array_equal(self.ts.cummax().values,
+                                    np.maximum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummax()[1::2]
@@ -564,9 +564,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
     def _check_accum_op(self, name, check_dtype=True):
         func = getattr(np, name)
-        self.assert_numpy_array_equal(func(self.ts).values,
-                                      func(np.array(self.ts)),
-                                      check_dtype=check_dtype)
+        tm.assert_numpy_array_equal(func(self.ts).values,
+                                    func(np.array(self.ts)),
+                                    check_dtype=check_dtype)
 
         # with missing values
         ts = self.ts.copy()
@@ -575,8 +575,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = func(ts)[1::2]
         expected = func(np.array(ts.valid()))
 
-        self.assert_numpy_array_equal(result.values, expected,
-                                      check_dtype=False)
+        tm.assert_numpy_array_equal(result.values, expected,
+                                    check_dtype=False)
 
     def test_compress(self):
         cond = [True, False, True, False, False]
@@ -900,7 +900,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series([1, 2, 3, None, None, None], dtype=object)
         result = s.unique()
         expected = np.array([1, 2, 3, None], dtype=object)
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_drop_duplicates(self):
         # check both int and object

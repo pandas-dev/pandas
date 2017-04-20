@@ -233,7 +233,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         result = df['C']
         comp = pd.DatetimeIndex(expected.values).copy()
         comp.tz = None
-        self.assert_numpy_array_equal(result.values, comp.values)
+        tm.assert_numpy_array_equal(result.values, comp.values)
 
         # list of datetimes with a tz
         df['D'] = i.to_pydatetime()

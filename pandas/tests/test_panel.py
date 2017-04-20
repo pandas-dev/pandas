@@ -845,19 +845,19 @@ class CheckIndexing(object):
 
                 # versus same index
                 result = func(p1, p2)
-                self.assert_numpy_array_equal(result.values,
-                                              func(p1.values, p2.values))
+                tm.assert_numpy_array_equal(result.values,
+                                            func(p1.values, p2.values))
 
                 # versus non-indexed same objs
-                self.assertRaises(Exception, func, p1, tp)
+                pytest.raises(Exception, func, p1, tp)
 
                 # versus different objs
-                self.assertRaises(Exception, func, p1, df)
+                pytest.raises(Exception, func, p1, df)
 
                 # versus scalar
                 result3 = func(self.panel, 0)
-                self.assert_numpy_array_equal(result3.values,
-                                              func(self.panel.values, 0))
+                tm.assert_numpy_array_equal(result3.values,
+                                            func(self.panel.values, 0))
 
             with np.errstate(invalid='ignore'):
                 test_comp(operator.eq)
@@ -2609,7 +2609,7 @@ class TestLongPanel(tm.TestCase):
         self.panel['Label'] = self.panel.index.labels[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
         dummies = get_dummies(self.panel['Label'])
-        self.assert_numpy_array_equal(dummies.values, minor_dummies.values)
+        tm.assert_numpy_array_equal(dummies.values, minor_dummies.values)
 
     def test_mean(self):
         with catch_warnings(record=True):

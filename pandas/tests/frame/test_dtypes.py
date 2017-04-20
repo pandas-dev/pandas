@@ -553,7 +553,7 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                               pd.NaT,
                               Timestamp('2013-01-03 00:00:00+0100', tz='CET')],
                              ['foo', 'foo', 'foo']], dtype=object).T
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # interleave with only datetime64[ns]
         result = self.tzframe.values
@@ -569,7 +569,7 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                               pd.NaT,
                               Timestamp('2013-01-03 00:00:00+0100',
                                         tz='CET')]], dtype=object).T
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_astype(self):
         # astype

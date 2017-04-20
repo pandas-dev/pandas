@@ -463,9 +463,9 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         # results in bool array
         res = cidx2.get_loc('d')
-        self.assert_numpy_array_equal(res, idx2.get_loc('d'))
-        self.assert_numpy_array_equal(res, np.array([False, False, False,
-                                                     True, False, True]))
+        tm.assert_numpy_array_equal(res, idx2.get_loc('d'))
+        tm.assert_numpy_array_equal(res, np.array([False, False, False,
+                                                   True, False, True]))
         # unique element results in scalar
         res = cidx2.get_loc('e')
         self.assertEqual(res, idx2.get_loc('e'))

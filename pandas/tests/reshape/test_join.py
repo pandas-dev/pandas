@@ -63,8 +63,8 @@ class TestJoin(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        self.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_right_outer_join(self):
         left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
@@ -89,8 +89,8 @@ class TestJoin(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        self.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_inner_join(self):
         left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
@@ -113,8 +113,8 @@ class TestJoin(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        self.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_left_outer_join(self):
         joined_key2 = merge(self.df, self.df2, on='key2')

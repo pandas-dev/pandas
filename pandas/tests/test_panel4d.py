@@ -445,18 +445,18 @@ class CheckIndexing(object):
 
             def test_comp(func):
                 result = func(p1, p2)
-                self.assert_numpy_array_equal(result.values,
-                                              func(p1.values, p2.values))
+                tm.assert_numpy_array_equal(result.values,
+                                            func(p1.values, p2.values))
 
                 # versus non-indexed same objs
-                self.assertRaises(Exception, func, p1, tp)
+                pytest.raises(Exception, func, p1, tp)
 
                 # versus different objs
-                self.assertRaises(Exception, func, p1, p)
+                pytest.raises(Exception, func, p1, p)
 
                 result3 = func(self.panel4d, 0)
-                self.assert_numpy_array_equal(result3.values,
-                                              func(self.panel4d.values, 0))
+                tm.assert_numpy_array_equal(result3.values,
+                                            func(self.panel4d.values, 0))
 
             with np.errstate(invalid='ignore'):
                 test_comp(operator.eq)

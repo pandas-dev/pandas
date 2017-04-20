@@ -1328,7 +1328,7 @@ class TestMoments(Base):
                 expected = get_result(
                     np.concatenate((arr, np.array([np.NaN] * 9))), 20)[9:]
 
-            self.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
         if test_stable:
             result = get_result(self.arr + 1e9, window)

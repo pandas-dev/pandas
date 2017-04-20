@@ -2204,7 +2204,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         result = grouped.apply(len)
         expected = grouped.count()['C']
         tm.assert_index_equal(result.index, expected.index)
-        self.assert_numpy_array_equal(result.values, expected.values)
+        tm.assert_numpy_array_equal(result.values, expected.values)
 
     def test_apply_frame_concat_series(self):
         def trans(group):
@@ -2963,7 +2963,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         }
 
         for k in grouped.indices:
-            self.assert_numpy_array_equal(grouped.indices[k], expected[k])
+            tm.assert_numpy_array_equal(grouped.indices[k], expected[k])
 
         tm.assert_frame_equal(
             grouped.get_group(Timestamp('2013-01-01')), df.iloc[[1, 7]])
@@ -3045,7 +3045,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         tmp = d.groupby(['group']).mean()
         res_values = np.array([[0, 1], [0, 1]], dtype=np.int64)
         tm.assert_index_equal(tmp.columns, Index(['zeros', 'ones']))
-        self.assert_numpy_array_equal(tmp.values, res_values)
+        tm.assert_numpy_array_equal(tmp.values, res_values)
 
     def test_int32_overflow(self):
         B = np.concatenate((np.arange(10000), np.arange(10000), np.arange(5000)
@@ -3070,17 +3070,17 @@ class TestGroupBy(MixIn, tm.TestCase):
         tups = lmap(tuple, df[['a', 'b', 'c']].values)
         tups = com._asarray_tuplesafe(tups)
         result = df.groupby(['a', 'b', 'c'], sort=True).sum()
-        self.assert_numpy_array_equal(result.index.values, tups[[1, 2, 0]])
+        tm.assert_numpy_array_equal(result.index.values, tups[[1, 2, 0]])
 
         tups = lmap(tuple, df[['c', 'a', 'b']].values)
         tups = com._asarray_tuplesafe(tups)
         result = df.groupby(['c', 'a', 'b'], sort=True).sum()
-        self.assert_numpy_array_equal(result.index.values, tups)
+        tm.assert_numpy_array_equal(result.index.values, tups)
 
         tups = lmap(tuple, df[['b', 'c', 'a']].values)
         tups = com._asarray_tuplesafe(tups)
         result = df.groupby(['b', 'c', 'a'], sort=True).sum()
-        self.assert_numpy_array_equal(result.index.values, tups[[2, 1, 0]])
+        tm.assert_numpy_array_equal(result.index.values, tups[[2, 1, 0]])
 
         df = DataFrame({'a': [0, 1, 2, 0, 1, 2],
                         'b': [0, 0, 0, 1, 1, 1],

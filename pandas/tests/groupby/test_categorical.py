@@ -376,7 +376,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         result = data.groupby("b").mean()
         result = result["a"].values
         exp = np.array([1, 2, 4, np.nan])
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_groupby_sort_categorical(self):
         # dataframe groupby sort was being ignored # GH 8868

@@ -415,7 +415,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         dates2 = np.array([d.date() for d in dates.to_pydatetime()],
                           dtype=object)
         series1 = Series(dates2, dates)
-        self.assert_numpy_array_equal(series1.values, dates2)
+        tm.assert_numpy_array_equal(series1.values, dates2)
         self.assertEqual(series1.dtype, object)
 
         # these will correctly infer a datetime

@@ -41,7 +41,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         idx = period_range('1990', '2009', freq='A')
         result = idx.astype('i8')
         tm.assert_index_equal(result, Index(idx.asi8))
-        self.assert_numpy_array_equal(result.values, idx.asi8)
+        tm.assert_numpy_array_equal(result.values, idx.asi8)
 
     def test_astype_raises(self):
         # GH 13149, GH 13209
@@ -442,11 +442,11 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         exp_idx = PeriodIndex(['2014-01', '2014-02', '2014-03'], freq='M')
 
         arr, idx = idx1.factorize()
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
         arr, idx = idx1.factorize(sort=True)
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
         idx2 = pd.PeriodIndex(['2014-03', '2014-03', '2014-02', '2014-01',
@@ -454,13 +454,13 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype=np.intp)
         arr, idx = idx2.factorize(sort=True)
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
         exp_arr = np.array([0, 0, 1, 2, 0, 2], dtype=np.intp)
         exp_idx = PeriodIndex(['2014-03', '2014-02', '2014-01'], freq='M')
         arr, idx = idx2.factorize()
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
     def test_asobject_like(self):
@@ -506,7 +506,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         result = idx < idx[10]
         exp = idx.values < idx.values[10]
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_contains(self):
         rng = period_range('2007-01', freq='M', periods=10)

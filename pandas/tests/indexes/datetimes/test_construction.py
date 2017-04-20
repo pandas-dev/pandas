@@ -360,7 +360,7 @@ class TestDatetimeIndex(tm.TestCase):
             expected_i8 = date_range('2013-01-01T00:00:00',
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='America/Lima')
-            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+            tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
             idx = date_range('2013-01-01T00:00:00+09:00',
                              '2016-01-01T23:59:59+09:00', freq=freq)
@@ -370,7 +370,7 @@ class TestDatetimeIndex(tm.TestCase):
             expected_i8 = date_range('2013-01-01T00:00:00',
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='Asia/Tokyo')
-            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+            tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
         tm._skip_if_no_dateutil()
 
@@ -385,7 +385,7 @@ class TestDatetimeIndex(tm.TestCase):
             expected_i8 = date_range('2013-01-01T00:00:00',
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='America/Lima')
-            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+            tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
             idx = date_range('2013/1/1 0:00:00+9:00',
                              '2016/1/1 23:59:59+09:00', freq=freq)
@@ -395,7 +395,7 @@ class TestDatetimeIndex(tm.TestCase):
             expected_i8 = date_range('2013-01-01T00:00:00',
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='Asia/Tokyo')
-            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+            tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
     def test_constructor_dtype(self):
 

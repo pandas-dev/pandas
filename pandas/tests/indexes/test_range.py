@@ -391,19 +391,19 @@ class TestRangeIndex(Numeric, tm.TestCase):
         target = RangeIndex(10)
         indexer = self.index.get_indexer(target)
         expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
-        self.assert_numpy_array_equal(indexer, expected)
+        tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_pad(self):
         target = RangeIndex(10)
         indexer = self.index.get_indexer(target, method='pad')
         expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
-        self.assert_numpy_array_equal(indexer, expected)
+        tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_backfill(self):
         target = RangeIndex(10)
         indexer = self.index.get_indexer(target, method='backfill')
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
-        self.assert_numpy_array_equal(indexer, expected)
+        tm.assert_numpy_array_equal(indexer, expected)
 
     def test_join_outer(self):
         # join with Int64Index
@@ -424,8 +424,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertIsInstance(res, Int64Index)
         self.assertFalse(isinstance(res, RangeIndex))
         tm.assert_index_equal(res, eres)
-        self.assert_numpy_array_equal(lidx, elidx)
-        self.assert_numpy_array_equal(ridx, eridx)
+        tm.assert_numpy_array_equal(lidx, elidx)
+        tm.assert_numpy_array_equal(ridx, eridx)
 
         # join with RangeIndex
         other = RangeIndex(25, 14, -1)
@@ -438,8 +438,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertIsInstance(res, Int64Index)
         self.assertFalse(isinstance(res, RangeIndex))
         tm.assert_index_equal(res, eres)
-        self.assert_numpy_array_equal(lidx, elidx)
-        self.assert_numpy_array_equal(ridx, eridx)
+        tm.assert_numpy_array_equal(lidx, elidx)
+        tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_inner(self):
         # Join with non-RangeIndex
@@ -460,8 +460,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         self.assertIsInstance(res, Int64Index)
         tm.assert_index_equal(res, eres)
-        self.assert_numpy_array_equal(lidx, elidx)
-        self.assert_numpy_array_equal(ridx, eridx)
+        tm.assert_numpy_array_equal(lidx, elidx)
+        tm.assert_numpy_array_equal(ridx, eridx)
 
         # Join two RangeIndex
         other = RangeIndex(25, 14, -1)
@@ -471,8 +471,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         self.assertIsInstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
-        self.assert_numpy_array_equal(lidx, elidx)
-        self.assert_numpy_array_equal(ridx, eridx)
+        tm.assert_numpy_array_equal(lidx, elidx)
+        tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_left(self):
         # Join with Int64Index
@@ -486,7 +486,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertIsInstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
         self.assertIsNone(lidx)
-        self.assert_numpy_array_equal(ridx, eridx)
+        tm.assert_numpy_array_equal(ridx, eridx)
 
         # Join withRangeIndex
         other = Int64Index(np.arange(25, 14, -1))
@@ -497,7 +497,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertIsInstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
         self.assertIsNone(lidx)
-        self.assert_numpy_array_equal(ridx, eridx)
+        tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_right(self):
         # Join with Int64Index
@@ -511,7 +511,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         self.assertIsInstance(other, Int64Index)
         tm.assert_index_equal(res, eres)
-        self.assert_numpy_array_equal(lidx, elidx)
+        tm.assert_numpy_array_equal(lidx, elidx)
         self.assertIsNone(ridx)
 
         # Join withRangeIndex
@@ -523,7 +523,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         self.assertIsInstance(other, RangeIndex)
         tm.assert_index_equal(res, eres)
-        self.assert_numpy_array_equal(lidx, elidx)
+        tm.assert_numpy_array_equal(lidx, elidx)
         self.assertIsNone(ridx)
 
     def test_join_non_int_index(self):
@@ -564,8 +564,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
                          dtype=np.intp)
 
         tm.assert_index_equal(res, eres)
-        self.assert_numpy_array_equal(lidx, elidx)
-        self.assert_numpy_array_equal(ridx, eridx)
+        tm.assert_numpy_array_equal(lidx, elidx)
+        tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_self(self):
         kinds = 'outer', 'inner', 'left', 'right'

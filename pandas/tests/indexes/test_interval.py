@@ -129,8 +129,8 @@ class TestIntervalIndex(Base, tm.TestCase):
         self.assertEqual(index.closed, 'right')
 
         expected = np.array([Interval(0, 1), Interval(1, 2)], dtype=object)
-        self.assert_numpy_array_equal(np.asarray(index), expected)
-        self.assert_numpy_array_equal(index.values, expected)
+        tm.assert_numpy_array_equal(np.asarray(index), expected)
+        tm.assert_numpy_array_equal(index.values, expected)
 
         # with nans
         index = self.index_with_nan
@@ -146,23 +146,23 @@ class TestIntervalIndex(Base, tm.TestCase):
 
         expected = np.array([Interval(0, 1), np.nan,
                              Interval(1, 2)], dtype=object)
-        self.assert_numpy_array_equal(np.asarray(index), expected)
-        self.assert_numpy_array_equal(index.values, expected)
+        tm.assert_numpy_array_equal(np.asarray(index), expected)
+        tm.assert_numpy_array_equal(index.values, expected)
 
     def test_with_nans(self):
         index = self.index
         self.assertFalse(index.hasnans)
-        self.assert_numpy_array_equal(index.isnull(),
-                                      np.array([False, False]))
-        self.assert_numpy_array_equal(index.notnull(),
-                                      np.array([True, True]))
+        tm.assert_numpy_array_equal(index.isnull(),
+                                    np.array([False, False]))
+        tm.assert_numpy_array_equal(index.notnull(),
+                                    np.array([True, True]))
 
         index = self.index_with_nan
         self.assertTrue(index.hasnans)
-        self.assert_numpy_array_equal(index.notnull(),
-                                      np.array([True, False, True]))
-        self.assert_numpy_array_equal(index.isnull(),
-                                      np.array([False, True, False]))
+        tm.assert_numpy_array_equal(index.notnull(),
+                                    np.array([True, False, True]))
+        tm.assert_numpy_array_equal(index.isnull(),
+                                    np.array([False, True, False]))
 
     def test_copy(self):
         actual = self.index.copy()
@@ -339,10 +339,10 @@ class TestIntervalIndex(Base, tm.TestCase):
         idx = IntervalIndex.from_tuples([(0, 2), (1, 3)])
         self.assertEqual(idx.get_loc(0.5), 0)
         self.assertEqual(idx.get_loc(1), 0)
-        self.assert_numpy_array_equal(idx.get_loc(1.5),
-                                      np.array([0, 1], dtype='int64'))
-        self.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
-                                      np.array([0, 1], dtype='int64'))
+        tm.assert_numpy_array_equal(idx.get_loc(1.5),
+                                    np.array([0, 1], dtype='int64'))
+        tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
+                                    np.array([0, 1], dtype='int64'))
         self.assertEqual(idx.get_loc(3), 1)
         self.assertRaises(KeyError, idx.get_loc, 3.5)
 
@@ -415,24 +415,24 @@ class TestIntervalIndex(Base, tm.TestCase):
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
         expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(self.index)
         expected = np.array([0, 1], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         index = IntervalIndex.from_breaks([0, 1, 2], closed='left')
         actual = index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
         expected = np.array([-1, 0, 0, 1, 1, -1, -1], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(index[:1])
         expected = np.array([0], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(index)
         expected = np.array([-1, 1], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
     def test_get_indexer_subintervals(self):
 
@@ -441,21 +441,21 @@ class TestIntervalIndex(Base, tm.TestCase):
         target = IntervalIndex.from_breaks(np.linspace(0, 2, 5))
         actual = self.index.get_indexer(target)
         expected = np.array([0, 0, 1, 1], dtype='p')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         target = IntervalIndex.from_breaks([0, 0.67, 1.33, 2])
         actual = self.index.get_indexer(target)
         expected = np.array([0, 0, 1, 1], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         actual = self.index.get_indexer(target[[0, -1]])
         expected = np.array([0, 1], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         target = IntervalIndex.from_breaks([0, 0.33, 0.67, 1], closed='left')
         actual = self.index.get_indexer(target)
         expected = np.array([0, 0, 0], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
     def test_contains(self):
         # only endpoints are valid
@@ -507,7 +507,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         target = [0.5, 1.5, 2.5]
         actual = index.get_indexer(target)
         expected = np.array([0, -1, 1], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         self.assertNotIn(1.5, index)
 
@@ -550,57 +550,57 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_isin(self):
         actual = self.index.isin(self.index)
-        self.assert_numpy_array_equal(np.array([True, True]), actual)
+        tm.assert_numpy_array_equal(np.array([True, True]), actual)
 
         actual = self.index.isin(self.index[:1])
-        self.assert_numpy_array_equal(np.array([True, False]), actual)
+        tm.assert_numpy_array_equal(np.array([True, False]), actual)
 
     def test_comparison(self):
         actual = Interval(0, 1) < self.index
         expected = np.array([False, True])
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         actual = Interval(0.5, 1.5) < self.index
         expected = np.array([False, True])
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
         actual = self.index > Interval(0.5, 1.5)
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         actual = self.index == self.index
         expected = np.array([True, True])
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
         actual = self.index <= self.index
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
         actual = self.index >= self.index
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         actual = self.index < self.index
         expected = np.array([False, False])
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
         actual = self.index > self.index
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         actual = self.index == IntervalIndex.from_breaks([0, 1, 2], 'left')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
         actual = self.index == self.index.values
-        self.assert_numpy_array_equal(actual, np.array([True, True]))
+        tm.assert_numpy_array_equal(actual, np.array([True, True]))
         actual = self.index.values == self.index
-        self.assert_numpy_array_equal(actual, np.array([True, True]))
+        tm.assert_numpy_array_equal(actual, np.array([True, True]))
         actual = self.index <= self.index.values
-        self.assert_numpy_array_equal(actual, np.array([True, True]))
+        tm.assert_numpy_array_equal(actual, np.array([True, True]))
         actual = self.index != self.index.values
-        self.assert_numpy_array_equal(actual, np.array([False, False]))
+        tm.assert_numpy_array_equal(actual, np.array([False, False]))
         actual = self.index > self.index.values
-        self.assert_numpy_array_equal(actual, np.array([False, False]))
+        tm.assert_numpy_array_equal(actual, np.array([False, False]))
         actual = self.index.values > self.index
-        self.assert_numpy_array_equal(actual, np.array([False, False]))
+        tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
         # invalid comparisons
         actual = self.index == 0
-        self.assert_numpy_array_equal(actual, np.array([False, False]))
+        tm.assert_numpy_array_equal(actual, np.array([False, False]))
         actual = self.index == self.index.left
-        self.assert_numpy_array_equal(actual, np.array([False, False]))
+        tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
         with self.assertRaisesRegexp(TypeError, 'unorderable types'):
             self.index > 0
@@ -619,8 +619,8 @@ class TestIntervalIndex(Base, tm.TestCase):
         with pytest.raises(ValueError):
             IntervalIndex.from_arrays([np.nan, 0, 1], np.array([0, 1, 2]))
 
-        self.assert_numpy_array_equal(isnull(idx),
-                                      np.array([True, False, False]))
+        tm.assert_numpy_array_equal(isnull(idx),
+                                    np.array([True, False, False]))
 
     def test_sort_values(self):
         expected = IntervalIndex.from_breaks([1, 2, 3, 4])
@@ -631,15 +631,15 @@ class TestIntervalIndex(Base, tm.TestCase):
         # nan
         idx = self.index_with_nan
         mask = idx.isnull()
-        self.assert_numpy_array_equal(mask, np.array([False, True, False]))
+        tm.assert_numpy_array_equal(mask, np.array([False, True, False]))
 
         result = idx.sort_values()
         mask = result.isnull()
-        self.assert_numpy_array_equal(mask, np.array([False, False, True]))
+        tm.assert_numpy_array_equal(mask, np.array([False, False, True]))
 
         result = idx.sort_values(ascending=False)
         mask = result.isnull()
-        self.assert_numpy_array_equal(mask, np.array([True, False, False]))
+        tm.assert_numpy_array_equal(mask, np.array([True, False, False]))
 
     def test_datetime(self):
         dates = pd.date_range('2000', periods=3)
@@ -657,7 +657,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         target = pd.date_range('1999-12-31T12:00', periods=7, freq='12H')
         actual = idx.get_indexer(target)
         expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
-        self.assert_numpy_array_equal(actual, expected)
+        tm.assert_numpy_array_equal(actual, expected)
 
     def test_append(self):
 
@@ -728,16 +728,16 @@ class TestIntervalTree(tm.TestCase):
 
     def test_get_loc(self):
         for dtype, tree in self.trees.items():
-            self.assert_numpy_array_equal(tree.get_loc(1),
-                                          np.array([0], dtype='int64'))
-            self.assert_numpy_array_equal(np.sort(tree.get_loc(2)),
-                                          np.array([0, 1], dtype='int64'))
-            with self.assertRaises(KeyError):
+            tm.assert_numpy_array_equal(tree.get_loc(1),
+                                        np.array([0], dtype='int64'))
+            tm.assert_numpy_array_equal(np.sort(tree.get_loc(2)),
+                                        np.array([0, 1], dtype='int64'))
+            with pytest.raises(KeyError):
                 tree.get_loc(-1)
 
     def test_get_indexer(self):
         for dtype, tree in self.trees.items():
-            self.assert_numpy_array_equal(
+            tm.assert_numpy_array_equal(
                 tree.get_indexer(np.array([1.0, 5.5, 6.5])),
                 np.array([0, 4, -1], dtype='int64'))
             with self.assertRaises(KeyError):
@@ -746,26 +746,26 @@ class TestIntervalTree(tm.TestCase):
     def test_get_indexer_non_unique(self):
         indexer, missing = self.tree.get_indexer_non_unique(
             np.array([1.0, 2.0, 6.5]))
-        self.assert_numpy_array_equal(indexer[:1],
-                                      np.array([0], dtype='int64'))
-        self.assert_numpy_array_equal(np.sort(indexer[1:3]),
-                                      np.array([0, 1], dtype='int64'))
-        self.assert_numpy_array_equal(np.sort(indexer[3:]),
-                                      np.array([-1], dtype='int64'))
-        self.assert_numpy_array_equal(missing, np.array([2], dtype='int64'))
+        tm.assert_numpy_array_equal(indexer[:1],
+                                    np.array([0], dtype='int64'))
+        tm.assert_numpy_array_equal(np.sort(indexer[1:3]),
+                                    np.array([0, 1], dtype='int64'))
+        tm.assert_numpy_array_equal(np.sort(indexer[3:]),
+                                    np.array([-1], dtype='int64'))
+        tm.assert_numpy_array_equal(missing, np.array([2], dtype='int64'))
 
     def test_duplicates(self):
         tree = IntervalTree([0, 0, 0], [1, 1, 1])
-        self.assert_numpy_array_equal(np.sort(tree.get_loc(0.5)),
-                                      np.array([0, 1, 2], dtype='int64'))
+        tm.assert_numpy_array_equal(np.sort(tree.get_loc(0.5)),
+                                    np.array([0, 1, 2], dtype='int64'))
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             tree.get_indexer(np.array([0.5]))
 
         indexer, missing = tree.get_indexer_non_unique(np.array([0.5]))
-        self.assert_numpy_array_equal(np.sort(indexer),
-                                      np.array([0, 1, 2], dtype='int64'))
-        self.assert_numpy_array_equal(missing, np.array([], dtype='int64'))
+        tm.assert_numpy_array_equal(np.sort(indexer),
+                                    np.array([0, 1, 2], dtype='int64'))
+        tm.assert_numpy_array_equal(missing, np.array([], dtype='int64'))
 
     def test_get_loc_closed(self):
         for closed in ['left', 'right', 'both', 'neither']:
@@ -773,29 +773,30 @@ class TestIntervalTree(tm.TestCase):
             for p, errors in [(0, tree.open_left),
                               (1, tree.open_right)]:
                 if errors:
-                    with self.assertRaises(KeyError):
+                    with pytest.raises(KeyError):
                         tree.get_loc(p)
                 else:
-                    self.assert_numpy_array_equal(tree.get_loc(p),
-                                                  np.array([0], dtype='int64'))
+                    tm.assert_numpy_array_equal(tree.get_loc(p),
+                                                np.array([0], dtype='int64'))
 
     @pytest.mark.skipif(compat.is_platform_32bit(),
-                        reason="int type mistmach on 32bit")
+                        reason="int type mismatch on 32bit")
     def test_get_indexer_closed(self):
         x = np.arange(1000, dtype='float64')
         found = x.astype('intp')
         not_found = (-1 * np.ones(1000)).astype('intp')
+
         for leaf_size in [1, 10, 100, 10000]:
             for closed in ['left', 'right', 'both', 'neither']:
                 tree = IntervalTree(x, x + 0.5, closed=closed,
                                     leaf_size=leaf_size)
-                self.assert_numpy_array_equal(found,
-                                              tree.get_indexer(x + 0.25))
+                tm.assert_numpy_array_equal(found,
+                                            tree.get_indexer(x + 0.25))
 
                 expected = found if tree.closed_left else not_found
-                self.assert_numpy_array_equal(expected,
-                                              tree.get_indexer(x + 0.0))
+                tm.assert_numpy_array_equal(expected,
+                                            tree.get_indexer(x + 0.0))
 
                 expected = found if tree.closed_right else not_found
-                self.assert_numpy_array_equal(expected,
-                                              tree.get_indexer(x + 0.5))
+                tm.assert_numpy_array_equal(expected,
+                                            tree.get_indexer(x + 0.5))

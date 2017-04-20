@@ -256,7 +256,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         result = rng == list(rng)
         exp = rng == rng
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_comparisons_nat(self):
 
@@ -285,72 +285,72 @@ class TestDatetimeIndex(tm.TestCase):
 
                 result = idx1 < idx2
                 expected = np.array([True, False, False, False, True, False])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx2 > idx1
                 expected = np.array([True, False, False, False, True, False])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx1 <= idx2
                 expected = np.array([True, False, False, False, True, True])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx2 >= idx1
                 expected = np.array([True, False, False, False, True, True])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx1 == idx2
                 expected = np.array([False, False, False, False, False, True])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx1 != idx2
                 expected = np.array([True, True, True, True, True, False])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
         with tm.assert_produces_warning(None):
             for idx1, val in [(fidx1, np.nan), (didx1, pd.NaT)]:
                 result = idx1 < val
                 expected = np.array([False, False, False, False, False, False])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
                 result = idx1 > val
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx1 <= val
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
                 result = idx1 >= val
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx1 == val
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx1 != val
                 expected = np.array([True, True, True, True, True, True])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
         # Check pd.NaT is handles as the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, val in [(fidx1, 3), (didx1, datetime(2014, 3, 1))]:
                 result = idx1 < val
                 expected = np.array([True, False, False, False, False, False])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
                 result = idx1 > val
                 expected = np.array([False, False, False, False, True, True])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx1 <= val
                 expected = np.array([True, False, True, False, False, False])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
                 result = idx1 >= val
                 expected = np.array([False, False, True, False, True, True])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx1 == val
                 expected = np.array([False, False, True, False, False, False])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
                 result = idx1 != val
                 expected = np.array([True, True, False, True, True, True])
-                self.assert_numpy_array_equal(result, expected)
+                tm.assert_numpy_array_equal(result, expected)
 
     def test_map(self):
         rng = date_range('1/1/2000', periods=10)
@@ -456,13 +456,11 @@ class TestDatetimeIndex(tm.TestCase):
 
         ordered, dexer = idx.sort_values(return_indexer=True)
         self.assertTrue(ordered.is_monotonic)
-        self.assert_numpy_array_equal(dexer,
-                                      np.array([1, 2, 0], dtype=np.intp))
+        tm.assert_numpy_array_equal(dexer, np.array([1, 2, 0], dtype=np.intp))
 
         ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
         self.assertTrue(ordered[::-1].is_monotonic)
-        self.assert_numpy_array_equal(dexer,
-                                      np.array([0, 2, 1], dtype=np.intp))
+        tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1], dtype=np.intp))
 
     def test_take(self):
         dates = [datetime(2010, 1, 1, 14), datetime(2010, 1, 1, 15),
@@ -657,11 +655,11 @@ class TestDatetimeIndex(tm.TestCase):
         exp_idx = DatetimeIndex(['2014-01', '2014-02', '2014-03'])
 
         arr, idx = idx1.factorize()
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
         arr, idx = idx1.factorize(sort=True)
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
         # tz must be preserved
@@ -669,7 +667,7 @@ class TestDatetimeIndex(tm.TestCase):
         exp_idx = exp_idx.tz_localize('Asia/Tokyo')
 
         arr, idx = idx1.factorize()
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
         idx2 = pd.DatetimeIndex(['2014-03', '2014-03', '2014-02', '2014-01',
@@ -678,20 +676,20 @@ class TestDatetimeIndex(tm.TestCase):
         exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype=np.intp)
         exp_idx = DatetimeIndex(['2014-01', '2014-02', '2014-03'])
         arr, idx = idx2.factorize(sort=True)
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
         exp_arr = np.array([0, 0, 1, 2, 0, 2], dtype=np.intp)
         exp_idx = DatetimeIndex(['2014-03', '2014-02', '2014-01'])
         arr, idx = idx2.factorize()
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
         # freq must be preserved
         idx3 = date_range('2000-01', periods=4, freq='M', tz='Asia/Tokyo')
         exp_arr = np.array([0, 1, 2, 3], dtype=np.intp)
         arr, idx = idx3.factorize()
-        self.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
     def test_factorize_tz(self):
@@ -704,7 +702,7 @@ class TestDatetimeIndex(tm.TestCase):
 
             for obj in [idx, pd.Series(idx)]:
                 arr, res = obj.factorize()
-                self.assert_numpy_array_equal(arr, exp_arr)
+                tm.assert_numpy_array_equal(arr, exp_arr)
                 tm.assert_index_equal(res, base)
 
     def test_factorize_dst(self):
@@ -714,7 +712,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
-            self.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
+            tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
             tm.assert_index_equal(res, idx)
 
         idx = pd.date_range('2016-06-13', freq='H', periods=12,
@@ -722,7 +720,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
-            self.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
+            tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
             tm.assert_index_equal(res, idx)
 
     def test_slice_with_negative_step(self):

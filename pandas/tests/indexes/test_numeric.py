@@ -207,7 +207,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
         index = Float64Index([1, 2, 3, 4, 5])
         self.assertIsInstance(index, Float64Index)
         expected = np.array([1, 2, 3, 4, 5], dtype='float64')
-        self.assert_numpy_array_equal(index.values, expected)
+        tm.assert_numpy_array_equal(index.values, expected)
         index = Float64Index(np.array([1, 2, 3, 4, 5]))
         self.assertIsInstance(index, Float64Index)
         index = Float64Index([1., 2, 3, 4, 5])

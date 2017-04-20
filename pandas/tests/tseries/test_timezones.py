@@ -87,7 +87,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         rng_eastern = rng.tz_convert(self.tz('US/Eastern'))
 
         # Values are unmodified
-        self.assert_numpy_array_equal(rng.asi8, rng_eastern.asi8)
+        tm.assert_numpy_array_equal(rng.asi8, rng_eastern.asi8)
 
         self.assertEqual(rng_eastern.tz, self.tz('US/Eastern'))
 
@@ -100,7 +100,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         converted = rng.tz_localize(self.tzstr('US/Eastern'))
         expected_naive = rng + offsets.Hour(5)
-        self.assert_numpy_array_equal(converted.asi8, expected_naive.asi8)
+        tm.assert_numpy_array_equal(converted.asi8, expected_naive.asi8)
 
         # DST ambiguity, this should fail
         rng = date_range('3/11/2012', '3/12/2012', freq='30T')
@@ -248,10 +248,10 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         dti_utc = DatetimeIndex(start='1/1/2005 05:00',
                                 end='1/1/2005 5:00:30.256', freq='L', tz='utc')
 
-        self.assert_numpy_array_equal(dti2.values, dti_utc.values)
+        tm.assert_numpy_array_equal(dti2.values, dti_utc.values)
 
         dti3 = dti2.tz_convert(self.tzstr('US/Pacific'))
-        self.assert_numpy_array_equal(dti3.values, dti_utc.values)
+        tm.assert_numpy_array_equal(dti3.values, dti_utc.values)
 
         dti = DatetimeIndex(start='11/6/2011 1:59', end='11/6/2011 2:00',
                             freq='L')
@@ -394,7 +394,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         fromdates = DatetimeIndex(strdates, tz=self.tzstr('US/Eastern'))
 
         self.assertEqual(conv.tz, fromdates.tz)
-        self.assert_numpy_array_equal(conv.values, fromdates.values)
+        tm.assert_numpy_array_equal(conv.values, fromdates.values)
 
     def test_field_access_localize(self):
         strdates = ['1/1/2012', '3/1/2012', '4/1/2012']
@@ -580,7 +580,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         # left dtype is  datetime64[ns, US/Eastern]
         # right is datetime64[ns, tzfile('/usr/share/zoneinfo/US/Eastern')]
-        self.assert_numpy_array_equal(di_test.values, localized.values)
+        tm.assert_numpy_array_equal(di_test.values, localized.values)
 
     def test_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
@@ -743,9 +743,9 @@ class TestTimeZoneSupportPytz(tm.TestCase):
                           datetime(2000, 1, 2, tzinfo=fixed_off),
                           datetime(2000, 1, 3, tzinfo=fixed_off)])
         result = to_datetime(dates).to_pydatetime()
-        self.assert_numpy_array_equal(dates, result)
+        tm.assert_numpy_array_equal(dates, result)
         result = to_datetime(dates)._mpl_repr()
-        self.assert_numpy_array_equal(dates, result)
+        tm.assert_numpy_array_equal(dates, result)
 
     def test_convert_tz_aware_datetime_datetime(self):
         # #1581
@@ -761,7 +761,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         converted = to_datetime(dates_aware, utc=True)
         ex_vals = np.array([Timestamp(x).value for x in dates_aware])
-        self.assert_numpy_array_equal(converted.asi8, ex_vals)
+        tm.assert_numpy_array_equal(converted.asi8, ex_vals)
         self.assertIs(converted.tz, pytz.utc)
 
     def test_to_datetime_utc(self):
@@ -1727,13 +1727,13 @@ class TestTslib(tm.TestCase):
             f = lambda x: tslib.tz_convert_single(x, 'UTC', tz_didx.tz)
             result = tslib.tz_convert(tz_didx.asi8, 'UTC', tz_didx.tz)
             result_single = np.vectorize(f)(tz_didx.asi8)
-            self.assert_numpy_array_equal(result, result_single)
+            tm.assert_numpy_array_equal(result, result_single)
 
         def compare_local_to_utc(tz_didx, utc_didx):
             f = lambda x: tslib.tz_convert_single(x, tz_didx.tz, 'UTC')
             result = tslib.tz_convert(utc_didx.asi8, tz_didx.tz, 'UTC')
             result_single = np.vectorize(f)(utc_didx.asi8)
-            self.assert_numpy_array_equal(result, result_single)
+            tm.assert_numpy_array_equal(result, result_single)
 
         for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'Europe/Moscow']:
             # US: 2014-03-09 - 2014-11-11
@@ -1759,11 +1759,11 @@ class TestTslib(tm.TestCase):
         result = tslib.tz_convert(np.array([], dtype=np.int64),
                                   tslib.maybe_get_tz('US/Eastern'),
                                   tslib.maybe_get_tz('Asia/Tokyo'))
-        self.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
 
         # Check all-NaT array
         result = tslib.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
                                   tslib.maybe_get_tz('US/Eastern'),
                                   tslib.maybe_get_tz('Asia/Tokyo'))
-        self.assert_numpy_array_equal(result, np.array(
+        tm.assert_numpy_array_equal(result, np.array(
             [tslib.iNaT], dtype=np.int64))

@@ -344,7 +344,7 @@ class TestSparseArray(tm.TestCase):
 
         for dense in [arr.to_dense(), arr.values]:
             self.assertEqual(dense.dtype, np.float32)
-            self.assert_numpy_array_equal(dense, data)
+            tm.assert_numpy_array_equal(dense, data)
 
     def test_astype(self):
         res = self.arr.astype('f8')

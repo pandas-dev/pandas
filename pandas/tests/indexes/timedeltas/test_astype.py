@@ -37,7 +37,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         result = rng.astype('i8')
         tm.assert_index_equal(result, Index(rng.asi8))
-        self.assert_numpy_array_equal(rng.asi8, result.values)
+        tm.assert_numpy_array_equal(rng.asi8, result.values)
 
     def test_astype_timedelta64(self):
         # GH 13149, GH 13209

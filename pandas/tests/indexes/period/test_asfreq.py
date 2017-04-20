@@ -73,9 +73,9 @@ class TestPeriodIndex(tm.TestCase):
         result1 = pi1.asfreq('3M')
         result2 = pi1.asfreq('M')
         expected = PeriodIndex(freq='M', start='2001-12', end='2001-12')
-        self.assert_numpy_array_equal(result1.asi8, expected.asi8)
+        tm.assert_numpy_array_equal(result1.asi8, expected.asi8)
         self.assertEqual(result1.freqstr, '3M')
-        self.assert_numpy_array_equal(result2.asi8, expected.asi8)
+        tm.assert_numpy_array_equal(result2.asi8, expected.asi8)
         self.assertEqual(result2.freqstr, 'M')
 
     def test_asfreq_nat(self):

@@ -19,8 +19,8 @@ class TestPeriodRepresentation(tm.TestCase):
     def _check_freq(self, freq, base_date):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)
         exp = np.arange(10, dtype=np.int64)
-        self.assert_numpy_array_equal(rng._values, exp)
-        self.assert_numpy_array_equal(rng.asi8, exp)
+        tm.assert_numpy_array_equal(rng._values, exp)
+        tm.assert_numpy_array_equal(rng.asi8, exp)
 
     def test_annual(self):
         self._check_freq('A', 1970)

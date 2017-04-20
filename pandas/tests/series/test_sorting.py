@@ -34,12 +34,12 @@ class TestSeriesSorting(TestData, tm.TestCase):
 
         result = ts.sort_values()
         self.assertTrue(np.isnan(result[-5:]).all())
-        self.assert_numpy_array_equal(result[:-5].values, np.sort(vals[5:]))
+        tm.assert_numpy_array_equal(result[:-5].values, np.sort(vals[5:]))
 
         # na_position
         result = ts.sort_values(na_position='first')
         self.assertTrue(np.isnan(result[:5]).all())
-        self.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
+        tm.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
 
         # something object-type
         ser = Series(['A', 'B'], [1, 2])

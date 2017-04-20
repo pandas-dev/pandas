@@ -1364,8 +1364,8 @@ class TestMultiIndex(Base, tm.TestCase):
         index = MultiIndex.from_product([np.arange(1000), np.arange(1000)],
                                         names=['one', 'two'])
         result = index.get_indexer(index.values)
-        self.assert_numpy_array_equal(result,
-                                      np.arange(len(index), dtype='intp'))
+        tm.assert_numpy_array_equal(result, np.arange(
+            len(index), dtype='intp'))
 
         for i in [0, 1, len(index) - 2, len(index) - 1]:
             result = index.get_loc(index[i])
@@ -2054,13 +2054,13 @@ class TestMultiIndex(Base, tm.TestCase):
         exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14], dtype=np.intp)
         exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.intp)
         tm.assert_index_equal(jidx, exp_idx)
-        self.assert_numpy_array_equal(lidx, exp_lidx)
-        self.assert_numpy_array_equal(ridx, exp_ridx)
+        tm.assert_numpy_array_equal(lidx, exp_lidx)
+        tm.assert_numpy_array_equal(ridx, exp_ridx)
         # flip
         jidx, ridx, lidx = idx.join(midx, how='inner', return_indexers=True)
         tm.assert_index_equal(jidx, exp_idx)
-        self.assert_numpy_array_equal(lidx, exp_lidx)
-        self.assert_numpy_array_equal(ridx, exp_ridx)
+        tm.assert_numpy_array_equal(lidx, exp_lidx)
+        tm.assert_numpy_array_equal(ridx, exp_ridx)
 
         # keep MultiIndex
         jidx, lidx, ridx = midx.join(idx, how='left', return_indexers=True)
@@ -2068,12 +2068,12 @@ class TestMultiIndex(Base, tm.TestCase):
                              1, -1], dtype=np.intp)
         tm.assert_index_equal(jidx, midx)
         self.assertIsNone(lidx)
-        self.assert_numpy_array_equal(ridx, exp_ridx)
+        tm.assert_numpy_array_equal(ridx, exp_ridx)
         # flip
         jidx, ridx, lidx = idx.join(midx, how='right', return_indexers=True)
         tm.assert_index_equal(jidx, midx)
         self.assertIsNone(lidx)
-        self.assert_numpy_array_equal(ridx, exp_ridx)
+        tm.assert_numpy_array_equal(ridx, exp_ridx)
 
     def test_reindex(self):
         result, indexer = self.index.reindex(list(self.index[:4]))

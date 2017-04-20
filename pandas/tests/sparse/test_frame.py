@@ -962,8 +962,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
                 from_sparse_lp = spf.stack_sparse_frame(frame)
 
-                self.assert_numpy_array_equal(from_dense_lp.values,
-                                              from_sparse_lp.values)
+                tm.assert_numpy_array_equal(from_dense_lp.values,
+                                            from_sparse_lp.values)
 
             _check(self.frame)
             _check(self.iframe)

@@ -201,7 +201,7 @@ class TestCut(tm.TestCase):
 
         mask = isnull(result)
         ex_mask = (arr < -1) | (arr > 1)
-        self.assert_numpy_array_equal(mask, ex_mask)
+        tm.assert_numpy_array_equal(mask, ex_mask)
 
     def test_cut_pass_labels(self):
         arr = [50, 5, 10, 15, 20, 30, 70]
@@ -494,9 +494,9 @@ class TestCut(tm.TestCase):
         result = cut(date_range('20130102', periods=5),
                      bins=date_range('20130101', periods=2))
         mask = result.categories.isnull()
-        self.assert_numpy_array_equal(mask, np.array([False]))
+        tm.assert_numpy_array_equal(mask, np.array([False]))
         mask = result.isnull()
-        self.assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             mask, np.array([False, True, True, True, True]))
 
 
