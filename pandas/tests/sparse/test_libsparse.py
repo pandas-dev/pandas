@@ -335,11 +335,11 @@ class TestSparseIndexCommon(tm.TestCase):
 
             res = idx.lookup_array(np.array([-1, 0, 2], dtype=np.int32))
             exp = np.array([-1, -1, 0], dtype=np.int32)
-            self.assert_numpy_array_equal(res, exp)
+            tm.assert_numpy_array_equal(res, exp)
 
             res = idx.lookup_array(np.array([4, 2, 1, 3], dtype=np.int32))
             exp = np.array([-1, 0, -1, 1], dtype=np.int32)
-            self.assert_numpy_array_equal(res, exp)
+            tm.assert_numpy_array_equal(res, exp)
 
             idx = _make_index(4, np.array([], dtype=np.int32), kind=kind)
             res = idx.lookup_array(np.array([-1, 0, 2, 4], dtype=np.int32))
@@ -349,21 +349,21 @@ class TestSparseIndexCommon(tm.TestCase):
                               kind=kind)
             res = idx.lookup_array(np.array([-1, 0, 2], dtype=np.int32))
             exp = np.array([-1, 0, 2], dtype=np.int32)
-            self.assert_numpy_array_equal(res, exp)
+            tm.assert_numpy_array_equal(res, exp)
 
             res = idx.lookup_array(np.array([4, 2, 1, 3], dtype=np.int32))
             exp = np.array([-1, 2, 1, 3], dtype=np.int32)
-            self.assert_numpy_array_equal(res, exp)
+            tm.assert_numpy_array_equal(res, exp)
 
             idx = _make_index(4, np.array([0, 2, 3], dtype=np.int32),
                               kind=kind)
             res = idx.lookup_array(np.array([2, 1, 3, 0], dtype=np.int32))
             exp = np.array([1, -1, 2, 0], dtype=np.int32)
-            self.assert_numpy_array_equal(res, exp)
+            tm.assert_numpy_array_equal(res, exp)
 
             res = idx.lookup_array(np.array([1, 4, 2, 5], dtype=np.int32))
             exp = np.array([-1, -1, 1, -1], dtype=np.int32)
-            self.assert_numpy_array_equal(res, exp)
+            tm.assert_numpy_array_equal(res, exp)
 
     def test_lookup_basics(self):
         def _check(index):

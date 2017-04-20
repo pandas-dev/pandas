@@ -184,7 +184,7 @@ class TestIX(tm.TestCase):
         key = 4.0, 2012
 
         # emits a PerformanceWarning, ok
-        with self.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning):
             tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok

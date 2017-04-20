@@ -118,7 +118,7 @@ class TestStringMethods(tm.TestCase):
         result = strings.str_cat(one, [two], na_rep='NA')
         exp = np.array(['aa', 'aNA', 'bb', 'bd', 'cfoo', 'NANA'],
                        dtype=np.object_)
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
         result = strings.str_cat(one, two)
         exp = np.array(['aa', NA, 'bb', 'bd', 'cfoo', NA], dtype=np.object_)

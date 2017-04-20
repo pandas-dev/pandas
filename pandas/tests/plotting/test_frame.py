@@ -570,7 +570,7 @@ class TestDataFramePlots(TestPlotBase):
         for nl, sl in zip(normal_lines, stacked_lines):
             base += nl.get_data()[1]  # get y coodinates
             sy = sl.get_data()[1]
-            self.assert_numpy_array_equal(base, sy)
+            tm.assert_numpy_array_equal(base, sy)
 
     def test_line_area_stacked(self):
         with tm.RNGContext(42):
@@ -620,31 +620,31 @@ class TestDataFramePlots(TestPlotBase):
             # remove nan for comparison purpose
 
             exp = np.array([1, 2, 3], dtype=np.float64)
-            self.assert_numpy_array_equal(np.delete(masked1.data, 2), exp)
+            tm.assert_numpy_array_equal(np.delete(masked1.data, 2), exp)
 
             exp = np.array([3, 2, 1], dtype=np.float64)
-            self.assert_numpy_array_equal(np.delete(masked2.data, 1), exp)
-            self.assert_numpy_array_equal(
+            tm.assert_numpy_array_equal(np.delete(masked2.data, 1), exp)
+            tm.assert_numpy_array_equal(
                 masked1.mask, np.array([False, False, True, False]))
-            self.assert_numpy_array_equal(
+            tm.assert_numpy_array_equal(
                 masked2.mask, np.array([False, True, False, False]))
 
             expected1 = np.array([1, 2, 0, 3], dtype=np.float64)
             expected2 = np.array([3, 0, 2, 1], dtype=np.float64)
 
             ax = _check_plot_works(d.plot, stacked=True)
-            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
-            self.assert_numpy_array_equal(ax.lines[1].get_ydata(),
-                                          expected1 + expected2)
+            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
+            tm.assert_numpy_array_equal(ax.lines[1].get_ydata(),
+                                        expected1 + expected2)
 
             ax = _check_plot_works(d.plot.area)
-            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
-            self.assert_numpy_array_equal(ax.lines[1].get_ydata(),
-                                          expected1 + expected2)
+            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
+            tm.assert_numpy_array_equal(ax.lines[1].get_ydata(),
+                                        expected1 + expected2)
 
             ax = _check_plot_works(d.plot.area, stacked=False)
-            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
-            self.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected2)
+            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
+            tm.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected2)
 
     def test_line_lim(self):
         df = DataFrame(rand(6, 3), columns=['x', 'y', 'z'])
@@ -1336,17 +1336,17 @@ class TestDataFramePlots(TestPlotBase):
         # dtype is depending on above values, no need to check
 
         if expected_y is not None:
-            self.assert_numpy_array_equal(result_y, expected_y,
-                                          check_dtype=False)
+            tm.assert_numpy_array_equal(result_y, expected_y,
+                                        check_dtype=False)
         if expected_h is not None:
-            self.assert_numpy_array_equal(result_height, expected_h,
-                                          check_dtype=False)
+            tm.assert_numpy_array_equal(result_height, expected_h,
+                                        check_dtype=False)
         if expected_x is not None:
-            self.assert_numpy_array_equal(result_x, expected_x,
-                                          check_dtype=False)
+            tm.assert_numpy_array_equal(result_x, expected_x,
+                                        check_dtype=False)
         if expected_w is not None:
-            self.assert_numpy_array_equal(result_width, expected_w,
-                                          check_dtype=False)
+            tm.assert_numpy_array_equal(result_width, expected_w,
+                                        check_dtype=False)
 
     @slow
     def test_hist_df_coord(self):

@@ -121,12 +121,12 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
                        columns=['c', 'b', 'a'])
 
         df.insert(0, 'foo', df['a'])
-        self.assert_index_equal(df.columns, Index(['foo', 'c', 'b', 'a']))
+        tm.assert_index_equal(df.columns, Index(['foo', 'c', 'b', 'a']))
         tm.assert_series_equal(df['a'], df['foo'], check_names=False)
 
         df.insert(2, 'bar', df['c'])
-        self.assert_index_equal(df.columns,
-                                Index(['foo', 'c', 'bar', 'b', 'a']))
+        tm.assert_index_equal(df.columns,
+                              Index(['foo', 'c', 'bar', 'b', 'a']))
         tm.assert_almost_equal(df['c'], df['bar'], check_names=False)
 
         # diff dtype

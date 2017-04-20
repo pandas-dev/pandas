@@ -128,12 +128,12 @@ class TestAssertAlmostEqual(tm.TestCase):
                                                 dtype=np.object_))
 
     def test_assert_almost_equal_pandas(self):
-        self.assert_almost_equal(pd.Index([1., 1.1]),
-                                 pd.Index([1., 1.100001]))
-        self.assert_almost_equal(pd.Series([1., 1.1]),
-                                 pd.Series([1., 1.100001]))
-        self.assert_almost_equal(pd.DataFrame({'a': [1., 1.1]}),
-                                 pd.DataFrame({'a': [1., 1.100001]}))
+        tm.assert_almost_equal(pd.Index([1., 1.1]),
+                               pd.Index([1., 1.100001]))
+        tm.assert_almost_equal(pd.Series([1., 1.1]),
+                               pd.Series([1., 1.100001]))
+        tm.assert_almost_equal(pd.DataFrame({'a': [1., 1.1]}),
+                               pd.DataFrame({'a': [1., 1.100001]}))
 
     def test_assert_almost_equal_object(self):
         a = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')]

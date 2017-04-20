@@ -373,11 +373,11 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         fig, axes = self.plt.subplots(2, 3)
         returned = df.hist(column=['height', 'weight', 'category'], ax=axes[0])
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[0])
+        tm.assert_numpy_array_equal(returned, axes[0])
         self.assertIs(returned[0].figure, fig)
         returned = df.hist(by='classroom', ax=axes[1])
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[1])
+        tm.assert_numpy_array_equal(returned, axes[1])
         self.assertIs(returned[0].figure, fig)
 
         with tm.assertRaises(ValueError):

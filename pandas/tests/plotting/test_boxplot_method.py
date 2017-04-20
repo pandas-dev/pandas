@@ -356,7 +356,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                   by='gender', return_type='axes', ax=axes[0])
         returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[0])
+        tm.assert_numpy_array_equal(returned, axes[0])
         self.assertIs(returned[0].figure, fig)
 
         # draw on second row
@@ -366,7 +366,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                 return_type='axes', ax=axes[1])
         returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[1])
+        tm.assert_numpy_array_equal(returned, axes[1])
         self.assertIs(returned[0].figure, fig)
 
         with tm.assertRaises(ValueError):

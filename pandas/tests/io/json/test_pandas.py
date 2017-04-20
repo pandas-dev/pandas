@@ -102,7 +102,7 @@ class TestPandasContainer(tm.TestCase):
         assert_frame_equal(df, read_json(df.to_json(orient='split'),
                                          orient='split'))
         unser = read_json(df.to_json(orient='records'), orient='records')
-        self.assert_index_equal(df.columns, unser.columns)
+        tm.assert_index_equal(df.columns, unser.columns)
         tm.assert_almost_equal(df.values, unser.values)
         unser = read_json(df.to_json(orient='values'), orient='values')
         tm.assert_numpy_array_equal(df.values, unser.values)
@@ -184,17 +184,17 @@ class TestPandasContainer(tm.TestCase):
                     unser.index.values.astype('i8') * 1e6)
             if orient == "records":
                 # index is not captured in this orientation
-                assert_almost_equal(df.values, unser.values,
-                                    check_dtype=check_numpy_dtype)
-                self.assert_index_equal(df.columns, unser.columns,
-                                        exact=check_column_type)
+                tm.assert_almost_equal(df.values, unser.values,
+                                       check_dtype=check_numpy_dtype)
+                tm.assert_index_equal(df.columns, unser.columns,
+                                      exact=check_column_type)
             elif orient == "values":
                 # index and cols are not captured in this orientation
                 if numpy is True and df.shape == (0, 0):
                     assert unser.shape[0] == 0
                 else:
-                    assert_almost_equal(df.values, unser.values,
-                                        check_dtype=check_numpy_dtype)
+                    tm.assert_almost_equal(df.values, unser.values,
+                                           check_dtype=check_numpy_dtype)
             elif orient == "split":
                 # index and col labels might not be strings
                 unser.index = [str(i) for i in unser.index]
@@ -202,16 +202,16 @@ class TestPandasContainer(tm.TestCase):
 
                 if sort is None:
                     unser = unser.sort_index()
-                assert_almost_equal(df.values, unser.values,
-                                    check_dtype=check_numpy_dtype)
+                tm.assert_almost_equal(df.values, unser.values,
+                                       check_dtype=check_numpy_dtype)
             else:
                 if convert_axes:
-                    assert_frame_equal(df, unser, check_dtype=check_dtype,
-                                       check_index_type=check_index_type,
-                                       check_column_type=check_column_type)
+                    tm.assert_frame_equal(df, unser, check_dtype=check_dtype,
+                                          check_index_type=check_index_type,
+                                          check_column_type=check_column_type)
                 else:
-                    assert_frame_equal(df, unser, check_less_precise=False,
-                                       check_dtype=check_dtype)
+                    tm.assert_frame_equal(df, unser, check_less_precise=False,
+                                          check_dtype=check_dtype)
 
         def _check_all_orients(df, dtype=None, convert_axes=True,
                                raise_ok=None, sort=None, check_index_type=True,

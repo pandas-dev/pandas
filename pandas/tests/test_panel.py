@@ -845,19 +845,19 @@ class CheckIndexing(object):
 
                 # versus same index
                 result = func(p1, p2)
-                self.assert_numpy_array_equal(result.values,
-                                              func(p1.values, p2.values))
+                tm.assert_numpy_array_equal(result.values,
+                                            func(p1.values, p2.values))
 
                 # versus non-indexed same objs
-                self.assertRaises(Exception, func, p1, tp)
+                pytest.raises(Exception, func, p1, tp)
 
                 # versus different objs
-                self.assertRaises(Exception, func, p1, df)
+                pytest.raises(Exception, func, p1, df)
 
                 # versus scalar
                 result3 = func(self.panel, 0)
-                self.assert_numpy_array_equal(result3.values,
-                                              func(self.panel.values, 0))
+                tm.assert_numpy_array_equal(result3.values,
+                                            func(self.panel.values, 0))
 
             with np.errstate(invalid='ignore'):
                 test_comp(operator.eq)
@@ -1071,12 +1071,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             # TODO: unused?
             wp3 = Panel.from_dict(d3)  # noqa
 
-            self.assert_index_equal(wp.major_axis, self.panel.major_axis)
+            tm.assert_index_equal(wp.major_axis, self.panel.major_axis)
             assert_panel_equal(wp, wp2)
 
             # intersect
             wp = Panel.from_dict(d, intersect=True)
-            self.assert_index_equal(wp.major_axis, itemb.index[5:])
+            tm.assert_index_equal(wp.major_axis, itemb.index[5:])
 
             # use constructor
             assert_panel_equal(Panel(d), Panel.from_dict(d))
@@ -1109,7 +1109,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             data = dict((k, v.values) for k, v in self.panel.iteritems())
             result = Panel(data)
             exp_major = Index(np.arange(len(self.panel.major_axis)))
-            self.assert_index_equal(result.major_axis, exp_major)
+            tm.assert_index_equal(result.major_axis, exp_major)
 
             result = Panel(data, items=self.panel.items,
                            major_axis=self.panel.major_axis,
@@ -2152,11 +2152,11 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             renamed = self.panel.rename_axis(mapper, axis=0)
             exp = Index(['foo', 'bar', 'baz'])
-            self.assert_index_equal(renamed.items, exp)
+            tm.assert_index_equal(renamed.items, exp)
 
             renamed = self.panel.rename_axis(str.lower, axis=2)
             exp = Index(['a', 'b', 'c', 'd'])
-            self.assert_index_equal(renamed.minor_axis, exp)
+            tm.assert_index_equal(renamed.minor_axis, exp)
 
             # don't copy
             renamed_nocopy = self.panel.rename_axis(mapper, axis=0, copy=False)
@@ -2599,7 +2599,7 @@ class TestLongPanel(tm.TestCase):
         transformed = make_axis_dummies(self.panel, 'minor',
                                         transform=mapping.get).astype(np.uint8)
         self.assertEqual(len(transformed.columns), 2)
-        self.assert_index_equal(transformed.columns, Index(['one', 'two']))
+        tm.assert_index_equal(transformed.columns, Index(['one', 'two']))
 
         # TODO: test correctness
 
@@ -2609,7 +2609,7 @@ class TestLongPanel(tm.TestCase):
         self.panel['Label'] = self.panel.index.labels[1]
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
         dummies = get_dummies(self.panel['Label'])
-        self.assert_numpy_array_equal(dummies.values, minor_dummies.values)
+        tm.assert_numpy_array_equal(dummies.values, minor_dummies.values)
 
     def test_mean(self):
         with catch_warnings(record=True):

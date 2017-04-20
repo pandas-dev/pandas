@@ -76,12 +76,10 @@ class TestTextReader(tm.TestCase):
                             header=None)
         result = reader.read()
 
-        self.assert_numpy_array_equal(result[0],
-                                      np.array(['a', 'a', 'a', 'a'],
-                                               dtype=np.object_))
-        self.assert_numpy_array_equal(result[1],
-                                      np.array(['b', 'b', 'b', 'b'],
-                                               dtype=np.object_))
+        tm.assert_numpy_array_equal(result[0], np.array(['a', 'a', 'a', 'a'],
+                                                        dtype=np.object_))
+        tm.assert_numpy_array_equal(result[1], np.array(['b', 'b', 'b', 'b'],
+                                                        dtype=np.object_))
 
     def test_parse_booleans(self):
         data = 'True\nFalse\nTrue\nTrue'
@@ -98,10 +96,10 @@ class TestTextReader(tm.TestCase):
                             header=None)
         result = reader.read()
 
-        self.assert_numpy_array_equal(result[0], np.array(['a', 'a', 'a'],
-                                                          dtype=np.object_))
-        self.assert_numpy_array_equal(result[1], np.array(['b', 'b', 'b'],
-                                                          dtype=np.object_))
+        tm.assert_numpy_array_equal(result[0], np.array(['a', 'a', 'a'],
+                                                        dtype=np.object_))
+        tm.assert_numpy_array_equal(result[1], np.array(['b', 'b', 'b'],
+                                                        dtype=np.object_))
 
     def test_embedded_newline(self):
         data = 'a\n"hello\nthere"\nthis'
@@ -110,7 +108,7 @@ class TestTextReader(tm.TestCase):
         result = reader.read()
 
         expected = np.array(['a', 'hello\nthere', 'this'], dtype=np.object_)
-        self.assert_numpy_array_equal(result[0], expected)
+        tm.assert_numpy_array_equal(result[0], expected)
 
     def test_euro_decimal(self):
         data = '12345,67\n345,678'

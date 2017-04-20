@@ -127,7 +127,7 @@ class TestSeriesIO(TestData, tm.TestCase):
         assert_frame_equal(rs, xp)
 
     def test_to_dict(self):
-        self.assert_series_equal(Series(self.ts.to_dict(), name='ts'), self.ts)
+        tm.assert_series_equal(Series(self.ts.to_dict(), name='ts'), self.ts)
 
     def test_timeseries_periodindex(self):
         # GH2891

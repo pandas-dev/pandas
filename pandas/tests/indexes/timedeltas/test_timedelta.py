@@ -35,13 +35,13 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
                                    '3 days 01:00:00',
                                    '4 days 01:00:00', '5 days 01:00:00'],
                                   freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = drange.shift(3, freq='2D 1s')
         expected = TimedeltaIndex(['6 days 01:00:03', '7 days 01:00:03',
                                    '8 days 01:00:03', '9 days 01:00:03',
                                    '10 days 01:00:03'], freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_get_loc(self):
         idx = pd.to_timedelta(['0 days', '1 days', '2 days'])
@@ -168,14 +168,14 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         idx = pd.TimedeltaIndex(['1 day', pd.NaT, '3 day'])
 
         exp = pd.TimedeltaIndex(['1 day', '2 day', '3 day'])
-        self.assert_index_equal(idx.fillna(pd.Timedelta('2 day')), exp)
+        tm.assert_index_equal(idx.fillna(pd.Timedelta('2 day')), exp)
 
         exp = pd.TimedeltaIndex(['1 day', '3 hour', '3 day'])
         idx.fillna(pd.Timedelta('3 hour'))
 
         exp = pd.Index(
             [pd.Timedelta('1 day'), 'x', pd.Timedelta('3 day')], dtype=object)
-        self.assert_index_equal(idx.fillna('x'), exp)
+        tm.assert_index_equal(idx.fillna('x'), exp)
 
     def test_difference_freq(self):
         # GH14323: Difference of TimedeltaIndex should not preserve frequency
@@ -204,7 +204,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         taken2 = idx[[2, 4, 10]]
 
         for taken in [taken1, taken2]:
-            self.assert_index_equal(taken, expected)
+            tm.assert_index_equal(taken, expected)
             tm.assertIsInstance(taken, TimedeltaIndex)
             self.assertIsNone(taken.freq)
             self.assertEqual(taken.name, expected.name)
@@ -261,19 +261,19 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         exp_idx = TimedeltaIndex(['1 day', '2 day', '3 day'])
 
         arr, idx = idx1.factorize()
-        self.assert_numpy_array_equal(arr, exp_arr)
-        self.assert_index_equal(idx, exp_idx)
+        tm.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_index_equal(idx, exp_idx)
 
         arr, idx = idx1.factorize(sort=True)
-        self.assert_numpy_array_equal(arr, exp_arr)
-        self.assert_index_equal(idx, exp_idx)
+        tm.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_index_equal(idx, exp_idx)
 
         # freq must be preserved
         idx3 = timedelta_range('1 day', periods=4, freq='s')
         exp_arr = np.array([0, 1, 2, 3], dtype=np.intp)
         arr, idx = idx3.factorize()
-        self.assert_numpy_array_equal(arr, exp_arr)
-        self.assert_index_equal(idx, idx3)
+        tm.assert_numpy_array_equal(arr, exp_arr)
+        tm.assert_index_equal(idx, idx3)
 
     def test_join_self(self):
 
@@ -306,22 +306,22 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         idx = TimedeltaIndex(['4d', '1d', '2d'])
 
         ordered = idx.sort_values()
-        self.assertTrue(ordered.is_monotonic)
+        assert ordered.is_monotonic
 
         ordered = idx.sort_values(ascending=False)
-        self.assertTrue(ordered[::-1].is_monotonic)
+        assert ordered[::-1].is_monotonic
 
         ordered, dexer = idx.sort_values(return_indexer=True)
-        self.assertTrue(ordered.is_monotonic)
-        self.assert_numpy_array_equal(dexer,
-                                      np.array([1, 2, 0]),
-                                      check_dtype=False)
+        assert ordered.is_monotonic
+
+        tm.assert_numpy_array_equal(dexer, np.array([1, 2, 0]),
+                                    check_dtype=False)
 
         ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
-        self.assertTrue(ordered[::-1].is_monotonic)
-        self.assert_numpy_array_equal(dexer,
-                                      np.array([0, 2, 1]),
-                                      check_dtype=False)
+        assert ordered[::-1].is_monotonic
+
+        tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1]),
+                                    check_dtype=False)
 
     def test_get_duplicates(self):
         idx = TimedeltaIndex(['1 day', '2 day', '2 day', '3 day', '3day',
@@ -329,7 +329,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         result = idx.get_duplicates()
         ex = TimedeltaIndex(['2 day', '3day'])
-        self.assert_index_equal(result, ex)
+        tm.assert_index_equal(result, ex)
 
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(['1 day 00:00:05', '1 day 00:00:01',
@@ -381,41 +381,41 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
             result = idx1 < idx2
             expected = np.array([True, False, False, False, True, False])
-            self.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
             result = idx2 > idx1
             expected = np.array([True, False, False, False, True, False])
-            self.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
             result = idx1 <= idx2
             expected = np.array([True, False, False, False, True, True])
-            self.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
             result = idx2 >= idx1
             expected = np.array([True, False, False, False, True, True])
-            self.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
             result = idx1 == idx2
             expected = np.array([False, False, False, False, False, True])
-            self.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
             result = idx1 != idx2
             expected = np.array([True, True, True, True, True, False])
-            self.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
     def test_comparisons_coverage(self):
         rng = timedelta_range('1 days', periods=10)
 
         result = rng < rng[3]
         exp = np.array([True, True, True] + [False] * 7)
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
         # raise TypeError for now
         self.assertRaises(TypeError, rng.__lt__, rng[3].value)
 
         result = rng == list(rng)
         exp = rng == rng
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_total_seconds(self):
         # GH 10939
@@ -449,7 +449,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         expected = Index(rng.to_pytimedelta(), dtype=object)
 
-        self.assert_numpy_array_equal(idx.values, expected.values)
+        tm.assert_numpy_array_equal(idx.values, expected.values)
 
     def test_pickle(self):
 
@@ -486,16 +486,16 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     def test_fields(self):
         rng = timedelta_range('1 days, 10:11:12.100123456', periods=2,
                               freq='s')
-        self.assert_index_equal(rng.days, Index([1, 1], dtype='int64'))
-        self.assert_index_equal(
+        tm.assert_index_equal(rng.days, Index([1, 1], dtype='int64'))
+        tm.assert_index_equal(
             rng.seconds,
             Index([10 * 3600 + 11 * 60 + 12, 10 * 3600 + 11 * 60 + 13],
                   dtype='int64'))
-        self.assert_index_equal(
+        tm.assert_index_equal(
             rng.microseconds,
             Index([100 * 1000 + 123, 100 * 1000 + 123], dtype='int64'))
-        self.assert_index_equal(rng.nanoseconds,
-                                Index([456, 456], dtype='int64'))
+        tm.assert_index_equal(rng.nanoseconds,
+                              Index([456, 456], dtype='int64'))
 
         self.assertRaises(AttributeError, lambda: rng.hours)
         self.assertRaises(AttributeError, lambda: rng.minutes)

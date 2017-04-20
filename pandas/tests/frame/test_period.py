@@ -113,8 +113,8 @@ class TestPeriodIndex(tm.TestCase):
         expected = pd.date_range('2001-01-01', '2009-01-01', freq='AS')
         self.assertTrue(isinstance(result1.columns, DatetimeIndex))
         self.assertTrue(isinstance(result2.columns, DatetimeIndex))
-        self.assert_numpy_array_equal(result1.columns.asi8, expected.asi8)
-        self.assert_numpy_array_equal(result2.columns.asi8, expected.asi8)
+        tm.assert_numpy_array_equal(result1.columns.asi8, expected.asi8)
+        tm.assert_numpy_array_equal(result2.columns.asi8, expected.asi8)
         # PeriodIndex.to_timestamp always use 'infer'
         self.assertEqual(result1.columns.freqstr, 'AS-JAN')
         self.assertEqual(result2.columns.freqstr, 'AS-JAN')

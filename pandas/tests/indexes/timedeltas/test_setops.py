@@ -14,7 +14,7 @@ class TestTimedeltaIndex(tm.TestCase):
         i2 = timedelta_range('3day', periods=5)
         result = i1.union(i2)
         expected = timedelta_range('1day', periods=7)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         i1 = Int64Index(np.arange(0, 20, 2))
         i2 = TimedeltaIndex(start='1 day', periods=10, freq='D')
@@ -26,10 +26,10 @@ class TestTimedeltaIndex(tm.TestCase):
         idx = TimedeltaIndex(['3d', '1d', '2d'])
         ordered = TimedeltaIndex(idx.sort_values(), freq='infer')
         result = ordered.union(idx)
-        self.assert_index_equal(result, ordered)
+        tm.assert_index_equal(result, ordered)
 
         result = ordered[:0].union(ordered)
-        self.assert_index_equal(result, ordered)
+        tm.assert_index_equal(result, ordered)
         self.assertEqual(result.freq, ordered.freq)
 
     def test_union_bug_1730(self):
@@ -39,7 +39,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         result = rng_a.union(rng_b)
         exp = TimedeltaIndex(sorted(set(list(rng_a)) | set(list(rng_b))))
-        self.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp)
 
     def test_union_bug_1745(self):
 
@@ -50,7 +50,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         result = left.union(right)
         exp = TimedeltaIndex(sorted(set(list(left)) | set(list(right))))
-        self.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp)
 
     def test_union_bug_4564(self):
 
@@ -59,7 +59,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         result = left.union(right)
         exp = TimedeltaIndex(sorted(set(list(left)) | set(list(right))))
-        self.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp)
 
     def test_intersection_bug_1708(self):
         index_1 = timedelta_range('1 day', periods=4, freq='h')

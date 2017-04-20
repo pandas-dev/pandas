@@ -677,13 +677,13 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         # not empty DataFrame
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             result = getattr(df, op)(const).get_dtype_counts()
-            self.assert_series_equal(result, Series([2], ['bool']))
+            tm.assert_series_equal(result, Series([2], ['bool']))
 
         # empty DataFrame
         empty = df.iloc[:0]
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             result = getattr(empty, op)(const).get_dtype_counts()
-            self.assert_series_equal(result, Series([2], ['bool']))
+            tm.assert_series_equal(result, Series([2], ['bool']))
 
     def test_dti_tz_convert_to_utc(self):
         base = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
@@ -775,7 +775,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         self.assertTrue(np.isnan(added['D']).all())
 
         self_added = self.frame + self.frame
-        self.assert_index_equal(self_added.index, self.frame.index)
+        tm.assert_index_equal(self_added.index, self.frame.index)
 
         added_rev = frame_copy + self.frame
         self.assertTrue(np.isnan(added['D']).all())
@@ -872,7 +872,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         smaller_frame = self.tsframe[:-5]
         smaller_added = smaller_frame.add(ts, axis='index')
 
-        self.assert_index_equal(smaller_added.index, self.tsframe.index)
+        tm.assert_index_equal(smaller_added.index, self.tsframe.index)
 
         smaller_ts = ts[:-5]
         smaller_added2 = self.tsframe.add(smaller_ts, axis='index')
@@ -897,12 +897,12 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
     def test_combineFunc(self):
         result = self.frame * 2
-        self.assert_numpy_array_equal(result.values, self.frame.values * 2)
+        tm.assert_numpy_array_equal(result.values, self.frame.values * 2)
 
         # vs mix
         result = self.mixed_float * 2
         for c, s in compat.iteritems(result):
-            self.assert_numpy_array_equal(
+            tm.assert_numpy_array_equal(
                 s.values, self.mixed_float[c].values * 2)
         _check_mixed_float(result, dtype=dict(C=None))
 
@@ -919,21 +919,23 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
         def test_comp(func):
             result = func(df1, df2)
-            self.assert_numpy_array_equal(result.values,
-                                          func(df1.values, df2.values))
-            with assertRaisesRegexp(ValueError, 'Wrong number of dimensions'):
+            tm.assert_numpy_array_equal(result.values,
+                                        func(df1.values, df2.values))
+            with tm.assertRaisesRegexp(ValueError,
+                                       'Wrong number of dimensions'):
                 func(df1, ndim_5)
 
             result2 = func(self.simple, row)
-            self.assert_numpy_array_equal(result2.values,
-                                          func(self.simple.values, row.values))
+            tm.assert_numpy_array_equal(result2.values,
+                                        func(self.simple.values, row.values))
 
             result3 = func(self.frame, 0)
-            self.assert_numpy_array_equal(result3.values,
-                                          func(self.frame.values, 0))
+            tm.assert_numpy_array_equal(result3.values,
+                                        func(self.frame.values, 0))
 
-            with assertRaisesRegexp(ValueError, 'Can only compare '
-                                    'identically-labeled DataFrame'):
+            with tm.assertRaisesRegexp(ValueError,
+                                       'Can only compare identically'
+                                       '-labeled DataFrame'):
                 func(self.simple, self.simple[:2])
 
         test_comp(operator.eq)
@@ -950,7 +952,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             expected = missing_df.values < 0
         with np.errstate(invalid='raise'):
             result = (missing_df < 0).values
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_string_comparison(self):
         df = DataFrame([{"a": 1, "b": "foo"}, {"a": 2, "b": "bar"}])

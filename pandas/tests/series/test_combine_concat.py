@@ -68,14 +68,14 @@ class TestSeriesCombine(TestData, tm.TestCase):
         # nothing used from the input
         combined = series.combine_first(series_copy)
 
-        self.assert_series_equal(combined, series)
+        tm.assert_series_equal(combined, series)
 
         # Holes filled from input
         combined = series_copy.combine_first(series)
         self.assertTrue(np.isfinite(combined).all())
 
-        self.assert_series_equal(combined[::2], series[::2])
-        self.assert_series_equal(combined[1::2], series_copy[1::2])
+        tm.assert_series_equal(combined[::2], series[::2])
+        tm.assert_series_equal(combined[1::2], series_copy[1::2])
 
         # mixed types
         index = tm.makeStringIndex(20)

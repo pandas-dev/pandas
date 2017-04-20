@@ -161,11 +161,11 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         index = self.frame.index
 
         df = DataFrame(rec)
-        self.assert_index_equal(df.columns, pd.Index(rec.dtype.names))
+        tm.assert_index_equal(df.columns, pd.Index(rec.dtype.names))
 
         df2 = DataFrame(rec, index=index)
-        self.assert_index_equal(df2.columns, pd.Index(rec.dtype.names))
-        self.assert_index_equal(df2.index, index)
+        tm.assert_index_equal(df2.columns, pd.Index(rec.dtype.names))
+        tm.assert_index_equal(df2.index, index)
 
         rng = np.arange(len(rec))[::-1]
         df3 = DataFrame(rec, index=rng, columns=['C', 'B'])
@@ -237,7 +237,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # Length-one dict micro-optimization
         frame = DataFrame({'A': {'1': 1, '2': 2}})
-        self.assert_index_equal(frame.index, pd.Index(['1', '2']))
+        tm.assert_index_equal(frame.index, pd.Index(['1', '2']))
 
         # empty dict plus index
         idx = Index([0, 1, 2])
@@ -253,7 +253,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # with dict of empty list and Series
         frame = DataFrame({'A': [], 'B': []}, columns=['A', 'B'])
-        self.assert_index_equal(frame.index, Index([], dtype=np.int64))
+        tm.assert_index_equal(frame.index, Index([], dtype=np.int64))
 
         # GH 14381
         # Dict with None value
@@ -555,14 +555,14 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # automatic labeling
         frame = DataFrame(mat)
-        self.assert_index_equal(frame.index, pd.Index(lrange(2)))
-        self.assert_index_equal(frame.columns, pd.Index(lrange(3)))
+        tm.assert_index_equal(frame.index, pd.Index(lrange(2)))
+        tm.assert_index_equal(frame.columns, pd.Index(lrange(3)))
 
         frame = DataFrame(mat, index=[1, 2])
-        self.assert_index_equal(frame.columns, pd.Index(lrange(3)))
+        tm.assert_index_equal(frame.columns, pd.Index(lrange(3)))
 
         frame = DataFrame(mat, columns=['A', 'B', 'C'])
-        self.assert_index_equal(frame.index, pd.Index(lrange(2)))
+        tm.assert_index_equal(frame.index, pd.Index(lrange(2)))
 
         # 0-length axis
         frame = DataFrame(empty((0, 3)))
@@ -1073,7 +1073,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         a = Series([1, 2, 3], index=['a', 'b', 'c'], name='x')
         df = DataFrame(a)
         self.assertEqual(df.columns[0], 'x')
-        self.assert_index_equal(df.index, a.index)
+        tm.assert_index_equal(df.index, a.index)
 
         # ndarray like
         arr = np.random.randn(10)
@@ -1123,7 +1123,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         df2 = DataFrame(s2, index=other_index)
         exp2 = DataFrame(s2.reindex(other_index))
         self.assertEqual(df2.columns[0], 0)
-        self.assert_index_equal(df2.index, other_index)
+        tm.assert_index_equal(df2.index, other_index)
         tm.assert_frame_equal(df2, exp2)
 
     def test_constructor_manager_resize(self):
@@ -1132,8 +1132,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         result = DataFrame(self.frame._data, index=index,
                            columns=columns)
-        self.assert_index_equal(result.index, Index(index))
-        self.assert_index_equal(result.columns, Index(columns))
+        tm.assert_index_equal(result.index, Index(index))
+        tm.assert_index_equal(result.columns, Index(columns))
 
     def test_constructor_from_items(self):
         items = [(c, self.frame[c]) for c in self.frame.columns]
@@ -1518,7 +1518,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         index = pd.Index(np.arange(len(arr))[::-1])
         indexed_frame = DataFrame.from_records(arr, index=index)
-        self.assert_index_equal(indexed_frame.index, index)
+        tm.assert_index_equal(indexed_frame.index, index)
 
         # without names, it should go to last ditch
         arr2 = np.zeros((2, 3))
@@ -1799,8 +1799,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         # empty case
         result = DataFrame.from_records([], columns=['foo', 'bar', 'baz'])
         self.assertEqual(len(result), 0)
-        self.assert_index_equal(result.columns,
-                                pd.Index(['foo', 'bar', 'baz']))
+        tm.assert_index_equal(result.columns,
+                              pd.Index(['foo', 'bar', 'baz']))
 
         result = DataFrame.from_records([])
         self.assertEqual(len(result), 0)

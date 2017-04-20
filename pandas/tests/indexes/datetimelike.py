@@ -9,7 +9,7 @@ class DatetimeLike(Base):
     def test_shift_identity(self):
 
         idx = self.create_index()
-        self.assert_index_equal(idx, idx.shift(0))
+        tm.assert_index_equal(idx, idx.shift(0))
 
     def test_str(self):
 

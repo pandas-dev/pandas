@@ -272,13 +272,13 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         rng1 = rng[10:]
         rng2 = rng[:25]
         the_union = rng1.union(rng2)
-        self.assert_index_equal(the_union, rng)
+        tm.assert_index_equal(the_union, rng)
 
         rng1 = rng[10:]
         rng2 = rng[15:35]
         the_union = rng1.union(rng2)
         expected = rng[10:]
-        self.assert_index_equal(the_union, expected)
+        tm.assert_index_equal(the_union, expected)
 
     def test_intersection(self):
         rng = date_range('1/1/2000', periods=50, freq=Minute())
@@ -286,24 +286,24 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         rng2 = rng[:25]
         the_int = rng1.intersection(rng2)
         expected = rng[10:25]
-        self.assert_index_equal(the_int, expected)
+        tm.assert_index_equal(the_int, expected)
         tm.assertIsInstance(the_int, DatetimeIndex)
         self.assertEqual(the_int.offset, rng.offset)
 
         the_int = rng1.intersection(rng2.view(DatetimeIndex))
-        self.assert_index_equal(the_int, expected)
+        tm.assert_index_equal(the_int, expected)
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
         expected = DatetimeIndex([])
-        self.assert_index_equal(the_int, expected)
+        tm.assert_index_equal(the_int, expected)
 
     def test_intersection_bug(self):
         # GH #771
         a = bdate_range('11/30/2011', '12/31/2011')
         b = bdate_range('12/10/2011', '12/20/2011')
         result = a.intersection(b)
-        self.assert_index_equal(result, b)
+        tm.assert_index_equal(result, b)
 
     def test_month_range_union_tz_pytz(self):
         tm._skip_if_no_pytz()
@@ -371,7 +371,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
         tm.assertIsInstance(the_union, DatetimeIndex)
 
         # order does not matter
-        self.assert_index_equal(right.union(left), the_union)
+        tm.assert_index_equal(right.union(left), the_union)
 
         # overlapping, but different offset
         rng = date_range(START, END, freq=BMonthEnd())
@@ -416,4 +416,4 @@ class TestCustomDatetimeIndex(tm.TestCase):
         a = cdate_range('11/30/2011', '12/31/2011')
         b = cdate_range('12/10/2011', '12/20/2011')
         result = a.intersection(b)
-        self.assert_index_equal(result, b)
+        tm.assert_index_equal(result, b)

@@ -61,7 +61,7 @@ class TestTimeSeries(tm.TestCase):
 
         expected = Index(rng.to_pydatetime(), dtype=object)
 
-        self.assert_numpy_array_equal(idx.values, expected.values)
+        tm.assert_numpy_array_equal(idx.values, expected.values)
 
     def test_range_edges(self):
         # GH 13672
@@ -337,5 +337,5 @@ class TestDatetime64(tm.TestCase):
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
 
-        self.assert_index_equal(dti.nanosecond,
-                                pd.Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(dti.nanosecond,
+                              pd.Index(np.arange(10, dtype=np.int64)))

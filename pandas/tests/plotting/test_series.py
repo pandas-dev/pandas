@@ -172,17 +172,17 @@ class TestSeriesPlots(TestPlotBase):
             masked = ax.lines[0].get_ydata()
             # remove nan for comparison purpose
             exp = np.array([1, 2, 3], dtype=np.float64)
-            self.assert_numpy_array_equal(np.delete(masked.data, 2), exp)
-            self.assert_numpy_array_equal(
+            tm.assert_numpy_array_equal(np.delete(masked.data, 2), exp)
+            tm.assert_numpy_array_equal(
                 masked.mask, np.array([False, False, True, False]))
 
             expected = np.array([1, 2, 0, 3], dtype=np.float64)
             ax = _check_plot_works(d.plot, stacked=True)
-            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
             ax = _check_plot_works(d.plot.area)
-            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
             ax = _check_plot_works(d.plot.area, stacked=False)
-            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
 
     def test_line_use_index_false(self):
         s = Series([1, 2, 3], index=['a', 'b', 'c'])

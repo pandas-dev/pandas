@@ -220,9 +220,9 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
                              [11, 12, 13, 14, 15]], dtype=np.int64)
         df = self.read_table(StringIO(data), sep=',')
         tm.assert_almost_equal(df.values, expected)
-        self.assert_index_equal(df.columns,
-                                Index(['A', 'B', 'C', 'Unnamed: 3',
-                                       'Unnamed: 4']))
+        tm.assert_index_equal(df.columns,
+                              Index(['A', 'B', 'C', 'Unnamed: 3',
+                                     'Unnamed: 4']))
 
     def test_duplicate_columns(self):
         # TODO: add test for condition 'mangle_dupe_cols=False'
@@ -261,7 +261,7 @@ c,4,5
         df = self.read_csv(self.csv1, index_col=0, parse_dates=True)
         df2 = self.read_table(self.csv1, sep=',', index_col=0,
                               parse_dates=True)
-        self.assert_index_equal(df.columns, pd.Index(['A', 'B', 'C', 'D']))
+        tm.assert_index_equal(df.columns, pd.Index(['A', 'B', 'C', 'D']))
         self.assertEqual(df.index.name, 'index')
         self.assertIsInstance(
             df.index[0], (datetime, np.datetime64, Timestamp))
@@ -272,8 +272,8 @@ c,4,5
         df = self.read_csv(self.csv2, index_col=0, parse_dates=True)
         df2 = self.read_table(self.csv2, sep=',', index_col=0,
                               parse_dates=True)
-        self.assert_index_equal(df.columns,
-                                pd.Index(['A', 'B', 'C', 'D', 'E']))
+        tm.assert_index_equal(df.columns,
+                              pd.Index(['A', 'B', 'C', 'D', 'E']))
         self.assertIsInstance(df.index[0],
                               (datetime, np.datetime64, Timestamp))
         self.assertEqual(df.loc[:, ['A', 'B', 'C', 'D']].values.dtype,

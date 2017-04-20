@@ -30,7 +30,7 @@ class TestSeriesPeriod(tm.TestCase):
         exp = pd.Series([pd.Period('2000-01-03', freq='D'),
                          pd.Period('2000-01-05', freq='D')],
                         index=[2, 4])
-        self.assert_series_equal(result, exp)
+        tm.assert_series_equal(result, exp)
         self.assertEqual(result.dtype, 'object')
 
     def test_isnull(self):

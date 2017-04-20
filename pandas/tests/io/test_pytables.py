@@ -5442,7 +5442,7 @@ class TestTimezones(Base, tm.TestCase):
         with ensure_clean_store(self.path) as store:
             store['frame'] = frame
             recons = store['frame']
-            self.assert_index_equal(recons.index, rng)
+            tm.assert_index_equal(recons.index, rng)
             self.assertEqual(rng.tz, recons.index.tz)
 
     def test_store_timezone(self):

@@ -49,19 +49,19 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         # errors = 'ignore'
         dropped = df.drop(['g'], errors='ignore')
         expected = Index(['a', 'b', 'c'], name='first')
-        self.assert_index_equal(dropped.index, expected)
+        tm.assert_index_equal(dropped.index, expected)
 
         dropped = df.drop(['b', 'g'], errors='ignore')
         expected = Index(['a', 'c'], name='first')
-        self.assert_index_equal(dropped.index, expected)
+        tm.assert_index_equal(dropped.index, expected)
 
         dropped = df.drop(['g'], axis=1, errors='ignore')
         expected = Index(['d', 'e', 'f'], name='second')
-        self.assert_index_equal(dropped.columns, expected)
+        tm.assert_index_equal(dropped.columns, expected)
 
         dropped = df.drop(['d', 'g'], axis=1, errors='ignore')
         expected = Index(['e', 'f'], name='second')
-        self.assert_index_equal(dropped.columns, expected)
+        tm.assert_index_equal(dropped.columns, expected)
 
     def test_drop_col_still_multiindex(self):
         arrays = [['a', 'b', 'c', 'top'],
@@ -221,7 +221,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
-        self.assert_index_equal(newFrame.index, self.ts1.index)
+        tm.assert_index_equal(newFrame.index, self.ts1.index)
 
         # copy with no axes
         result = self.frame.reindex()
@@ -866,7 +866,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         index = Index(['a', 'b', 'c'])
         dm = self.empty.reindex(index=[1, 2, 3])
         reindexed = dm.reindex(columns=index)
-        self.assert_index_equal(reindexed.columns, index)
+        tm.assert_index_equal(reindexed.columns, index)
 
         # ints are weird
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])

@@ -427,8 +427,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertTrue(idx.has_duplicates)
 
         expected = CategoricalIndex([0], name='foo')
-        self.assert_index_equal(idx.drop_duplicates(), expected)
-        self.assert_index_equal(idx.unique(), expected)
+        tm.assert_index_equal(idx.drop_duplicates(), expected)
+        tm.assert_index_equal(idx.unique(), expected)
 
     def test_get_indexer(self):
 
@@ -463,9 +463,9 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         # results in bool array
         res = cidx2.get_loc('d')
-        self.assert_numpy_array_equal(res, idx2.get_loc('d'))
-        self.assert_numpy_array_equal(res, np.array([False, False, False,
-                                                     True, False, True]))
+        tm.assert_numpy_array_equal(res, idx2.get_loc('d'))
+        tm.assert_numpy_array_equal(res, np.array([False, False, False,
+                                                   True, False, True]))
         # unique element results in scalar
         res = cidx2.get_loc('e')
         self.assertEqual(res, idx2.get_loc('e'))
@@ -803,7 +803,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         idx = CategoricalIndex([1.0, np.nan, 3.0, 1.0], name='x')
         # fill by value in categories
         exp = CategoricalIndex([1.0, 1.0, 3.0, 1.0], name='x')
-        self.assert_index_equal(idx.fillna(1.0), exp)
+        tm.assert_index_equal(idx.fillna(1.0), exp)
 
         # fill by value not in categories raises ValueError
         with tm.assertRaisesRegexp(ValueError,

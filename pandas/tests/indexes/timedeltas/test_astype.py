@@ -36,8 +36,8 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         rng = timedelta_range('1 days', periods=10)
 
         result = rng.astype('i8')
-        self.assert_index_equal(result, Index(rng.asi8))
-        self.assert_numpy_array_equal(rng.asi8, result.values)
+        tm.assert_index_equal(result, Index(rng.asi8))
+        tm.assert_numpy_array_equal(rng.asi8, result.values)
 
     def test_astype_timedelta64(self):
         # GH 13149, GH 13209
@@ -77,13 +77,13 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
                                    '3 days 01:00:00',
                                    '4 days 01:00:00', '5 days 01:00:00'],
                                   freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = drange.shift(3, freq='2D 1s')
         expected = TimedeltaIndex(['6 days 01:00:03', '7 days 01:00:03',
                                    '8 days 01:00:03', '9 days 01:00:03',
                                    '10 days 01:00:03'], freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_numeric_compat(self):
 

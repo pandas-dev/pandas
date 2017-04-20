@@ -174,13 +174,13 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
     def test_shift(self):
         # naive shift
         shiftedFrame = self.tsframe.shift(5)
-        self.assert_index_equal(shiftedFrame.index, self.tsframe.index)
+        tm.assert_index_equal(shiftedFrame.index, self.tsframe.index)
 
         shiftedSeries = self.tsframe['A'].shift(5)
         assert_series_equal(shiftedFrame['A'], shiftedSeries)
 
         shiftedFrame = self.tsframe.shift(-5)
-        self.assert_index_equal(shiftedFrame.index, self.tsframe.index)
+        tm.assert_index_equal(shiftedFrame.index, self.tsframe.index)
 
         shiftedSeries = self.tsframe['A'].shift(-5)
         assert_series_equal(shiftedFrame['A'], shiftedSeries)
@@ -208,8 +208,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         ps = tm.makePeriodFrame()
         shifted = ps.shift(1)
         unshifted = shifted.shift(-1)
-        self.assert_index_equal(shifted.index, ps.index)
-        self.assert_index_equal(unshifted.index, ps.index)
+        tm.assert_index_equal(shifted.index, ps.index)
+        tm.assert_index_equal(unshifted.index, ps.index)
         tm.assert_numpy_array_equal(unshifted.iloc[:, 0].valid().values,
                                     ps.iloc[:-1, 0].values)
 

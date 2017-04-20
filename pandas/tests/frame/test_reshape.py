@@ -79,7 +79,7 @@ class TestDataFrameReshape(tm.TestCase, TestData):
 
         result = df.pivot(index=1, columns=0, values=2)
         repr(result)
-        self.assert_index_equal(result.columns, Index(['A', 'B'], name=0))
+        tm.assert_index_equal(result.columns, Index(['A', 'B'], name=0))
 
     def test_pivot_index_none(self):
         # gh-3962

@@ -190,8 +190,8 @@ class TestGenRangeGeneration(tm.TestCase):
                                   freq='Q-DEC', tz=None)
         expected2 = DatetimeIndex(expected2_list, dtype='datetime64[ns]',
                                   freq='W-SUN', tz=None)
-        self.assert_index_equal(result1, expected1)
-        self.assert_index_equal(result2, expected2)
+        tm.assert_index_equal(result1, expected1)
+        tm.assert_index_equal(result2, expected2)
 
 
 class TestBusinessDateRange(tm.TestCase):
@@ -387,8 +387,8 @@ class TestBusinessDateRange(tm.TestCase):
             if begin == closed[0]:
                 expected_right = closed[1:]
 
-            self.assert_index_equal(expected_left, left)
-            self.assert_index_equal(expected_right, right)
+            tm.assert_index_equal(expected_left, left)
+            tm.assert_index_equal(expected_right, right)
 
     def test_range_closed_with_tz_aware_start_end(self):
         # GH12409, GH12684
@@ -407,8 +407,8 @@ class TestBusinessDateRange(tm.TestCase):
             if begin == closed[0]:
                 expected_right = closed[1:]
 
-            self.assert_index_equal(expected_left, left)
-            self.assert_index_equal(expected_right, right)
+            tm.assert_index_equal(expected_left, left)
+            tm.assert_index_equal(expected_right, right)
 
         begin = Timestamp('2011/1/1')
         end = Timestamp('2014/1/1')
@@ -430,8 +430,8 @@ class TestBusinessDateRange(tm.TestCase):
             if begintz == closed[0]:
                 expected_right = closed[1:]
 
-            self.assert_index_equal(expected_left, left)
-            self.assert_index_equal(expected_right, right)
+            tm.assert_index_equal(expected_left, left)
+            tm.assert_index_equal(expected_right, right)
 
     def test_range_closed_boundary(self):
         # GH 11804
@@ -452,9 +452,9 @@ class TestBusinessDateRange(tm.TestCase):
                 expected_right = both_boundary[1:]
                 expected_left = both_boundary[:-1]
 
-            self.assert_index_equal(right_boundary, expected_right)
-            self.assert_index_equal(left_boundary, expected_left)
-            self.assert_index_equal(both_boundary, expected_both)
+            tm.assert_index_equal(right_boundary, expected_right)
+            tm.assert_index_equal(left_boundary, expected_left)
+            tm.assert_index_equal(both_boundary, expected_both)
 
     def test_years_only(self):
         # GH 6961
@@ -476,8 +476,8 @@ class TestBusinessDateRange(tm.TestCase):
                                     '2005-01-13 15:45:00'],
                                    dtype='datetime64[ns]', freq='345T',
                                    tz=None)
-        self.assert_index_equal(result_1, expected_1)
-        self.assert_index_equal(result_2, expected_2)
+        tm.assert_index_equal(result_1, expected_1)
+        tm.assert_index_equal(result_2, expected_2)
 
 
 class TestCustomDateRange(tm.TestCase):
@@ -542,22 +542,22 @@ class TestCustomDateRange(tm.TestCase):
     def test_cdaterange(self):
         rng = cdate_range('2013-05-01', periods=3)
         xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-03'])
-        self.assert_index_equal(xp, rng)
+        tm.assert_index_equal(xp, rng)
 
     def test_cdaterange_weekmask(self):
         rng = cdate_range('2013-05-01', periods=3,
                           weekmask='Sun Mon Tue Wed Thu')
         xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-05'])
-        self.assert_index_equal(xp, rng)
+        tm.assert_index_equal(xp, rng)
 
     def test_cdaterange_holidays(self):
         rng = cdate_range('2013-05-01', periods=3, holidays=['2013-05-01'])
         xp = DatetimeIndex(['2013-05-02', '2013-05-03', '2013-05-06'])
-        self.assert_index_equal(xp, rng)
+        tm.assert_index_equal(xp, rng)
 
     def test_cdaterange_weekmask_and_holidays(self):
         rng = cdate_range('2013-05-01', periods=3,
                           weekmask='Sun Mon Tue Wed Thu',
                           holidays=['2013-05-01'])
         xp = DatetimeIndex(['2013-05-02', '2013-05-05', '2013-05-06'])
-        self.assert_index_equal(xp, rng)
+        tm.assert_index_equal(xp, rng)

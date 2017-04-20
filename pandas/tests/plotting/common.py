@@ -358,7 +358,7 @@ class TestPlotBase(tm.TestCase):
             result = self._get_axes_layout(_flatten(axes))
             self.assertEqual(result, layout)
 
-        self.assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             visible_axes[0].figure.get_size_inches(),
             np.array(figsize, dtype=np.float64))
 

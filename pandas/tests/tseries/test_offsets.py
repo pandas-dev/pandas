@@ -2831,7 +2831,7 @@ class TestSemiMonthEnd(Base):
 
     def test_vectorized_offset_addition(self):
         for klass, assert_func in zip([Series, DatetimeIndex],
-                                      [self.assert_series_equal,
+                                      [tm.assert_series_equal,
                                        tm.assert_index_equal]):
             s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                        Timestamp('2000-02-15', tz='US/Central')], name='a')
@@ -3006,7 +3006,7 @@ class TestSemiMonthBegin(Base):
 
     def test_vectorized_offset_addition(self):
         for klass, assert_func in zip([Series, DatetimeIndex],
-                                      [self.assert_series_equal,
+                                      [tm.assert_series_equal,
                                        tm.assert_index_equal]):
 
             s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),

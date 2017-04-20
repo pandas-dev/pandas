@@ -204,7 +204,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         self.assertIs(getkeys(), self.ts.index)
 
     def test_values(self):
-        self.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
+        tm.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
 
     def test_iteritems(self):
         for idx, val in compat.iteritems(self.series):
