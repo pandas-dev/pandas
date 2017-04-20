@@ -17,6 +17,7 @@ Highlights include:
 - Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
 - Improved support for ``UInt64`` dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
 - A new orient for JSON serialization, ``orient='table'``, that uses the :ref:`Table Schema spec <whatsnew_0200.enhancements.table_schema>`
+- Experimental support for exporting ``DataFrame.style`` formats to Excel , see :ref:`here <whatsnew_0200.enhancements.style_excel>`
 - Window Binary Corr/Cov operations now return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
@@ -397,6 +398,39 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 .. ipython:: python
 
    sdf.to_coo()
+
+.. _whatsnew_0200.enhancements.style_excel:
+
+Excel output for styled DataFrames
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Experimental support has been added to export ``DataFrame.style`` formats to Excel using the ``openpyxl`` engine. (:issue:`15530`)
+
+For example, after running the following, ``styled.xlsx`` renders as below:
+
+.. ipython:: python
+
+    np.random.seed(24)
+    df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
+    df = pd.concat([df, pd.DataFrame(np.random.RandomState(24).randn(10, 4),
+                                     columns=list('BCDE'))],
+                   axis=1)
+    df.iloc[0, 2] = np.nan
+    df
+    styled = df.style.\
+        applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black').\
+        apply(lambda s: ['background-color: yellow' if v else ''
+                         for v in s == s.max()])
+    styled.to_excel('styled.xlsx', engine='openpyxl')
+
+.. image:: _static/style-excel.png
+
+.. ipython:: python
+    :suppress:
+    import os
+    os.remove('styled.xlsx')
+
+See the :ref:`Style documentation <style>` for more detail.
 
 .. _whatsnew_0200.enhancements.intervalindex:
 

@@ -28,12 +28,13 @@ from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
-from pandas.compat import (StringIO, lzip, range, map, zip, reduce, u,
+from pandas.compat import (StringIO, lzip, range, map, zip, u,
                            OrderedDict, unichr)
 from pandas.util.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 from pandas.io.common import _get_handle, UnicodeWriter, _expand_user
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
+from pandas.io.formats.common import get_level_lengths
 import pandas.core.common as com
 import pandas._libs.lib as lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
@@ -1191,7 +1192,7 @@ class HTMLFormatter(TableFormatter):
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
                                          names=False)
-            level_lengths = _get_level_lengths(levels, sentinel)
+            level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
             for lnum, (records, values) in enumerate(zip(level_lengths,
                                                          levels)):
@@ -1357,7 +1358,7 @@ class HTMLFormatter(TableFormatter):
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
-            level_lengths = _get_level_lengths(levels, sentinel)
+            level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
             if truncate_v:
                 # Insert ... row and adjust idx_values and
@@ -1438,46 +1439,6 @@ class HTMLFormatter(TableFormatter):
                     row.insert(row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
-
-
-def _get_level_lengths(levels, sentinel=''):
-    """For each index in each level the function returns lengths of indexes.
-
-    Parameters
-    ----------
-    levels : list of lists
-        List of values on for level.
-    sentinel : string, optional
-        Value which states that no new index starts on there.
-
-    Returns
-    ----------
-    Returns list of maps. For each level returns map of indexes (key is index
-    in row and value is length of index).
-    """
-    if len(levels) == 0:
-        return []
-
-    control = [True for x in levels[0]]
-
-    result = []
-    for level in levels:
-        last_index = 0
-
-        lengths = {}
-        for i, key in enumerate(level):
-            if control[i] and key == sentinel:
-                pass
-            else:
-                control[i] = False
-                lengths[last_index] = i - last_index
-                last_index = i
-
-        lengths[last_index] = len(level) - last_index
-
-        result.append(lengths)
-
-    return result
 
 
 class CSVFormatter(object):
@@ -1729,298 +1690,6 @@ class CSVFormatter(object):
 
         lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
 
-# from collections import namedtuple
-# ExcelCell = namedtuple("ExcelCell",
-#                        'row, col, val, style, mergestart, mergeend')
-
-
-class ExcelCell(object):
-    __fields__ = ('row', 'col', 'val', 'style', 'mergestart', 'mergeend')
-    __slots__ = __fields__
-
-    def __init__(self, row, col, val, style=None, mergestart=None,
-                 mergeend=None):
-        self.row = row
-        self.col = col
-        self.val = val
-        self.style = style
-        self.mergestart = mergestart
-        self.mergeend = mergeend
-
-
-header_style = {"font": {"bold": True},
-                "borders": {"top": "thin",
-                            "right": "thin",
-                            "bottom": "thin",
-                            "left": "thin"},
-                "alignment": {"horizontal": "center",
-                              "vertical": "top"}}
-
-
-class ExcelFormatter(object):
-    """
-    Class for formatting a DataFrame to a list of ExcelCells,
-
-    Parameters
-    ----------
-    df : dataframe
-    na_rep: na representation
-    float_format : string, default None
-            Format string for floating point numbers
-    cols : sequence, optional
-        Columns to write
-    header : boolean or list of string, default True
-        Write out column names. If a list of string is given it is
-        assumed to be aliases for the column names
-    index : boolean, default True
-        output row names (index)
-    index_label : string or sequence, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.
-    merge_cells : boolean, default False
-            Format MultiIndex and Hierarchical Rows as merged cells.
-    inf_rep : string, default `'inf'`
-        representation for np.inf values (which aren't representable in Excel)
-        A `'-'` sign will be added in front of -inf.
-    """
-
-    def __init__(self, df, na_rep='', float_format=None, cols=None,
-                 header=True, index=True, index_label=None, merge_cells=False,
-                 inf_rep='inf'):
-        self.rowcounter = 0
-        self.na_rep = na_rep
-        self.df = df
-        if cols is not None:
-            self.df = df.loc[:, cols]
-        self.columns = self.df.columns
-        self.float_format = float_format
-        self.index = index
-        self.index_label = index_label
-        self.header = header
-        self.merge_cells = merge_cells
-        self.inf_rep = inf_rep
-
-    def _format_value(self, val):
-        if lib.checknull(val):
-            val = self.na_rep
-        elif is_float(val):
-            if lib.isposinf_scalar(val):
-                val = self.inf_rep
-            elif lib.isneginf_scalar(val):
-                val = '-%s' % self.inf_rep
-            elif self.float_format is not None:
-                val = float(self.float_format % val)
-        return val
-
-    def _format_header_mi(self):
-        if self.columns.nlevels > 1:
-            if not self.index:
-                raise NotImplementedError("Writing to Excel with MultiIndex"
-                                          " columns and no index "
-                                          "('index'=False) is not yet "
-                                          "implemented.")
-
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
-        if not (has_aliases or self.header):
-            return
-
-        columns = self.columns
-        level_strs = columns.format(sparsify=self.merge_cells, adjoin=False,
-                                    names=False)
-        level_lengths = _get_level_lengths(level_strs)
-        coloffset = 0
-        lnum = 0
-
-        if self.index and isinstance(self.df.index, MultiIndex):
-            coloffset = len(self.df.index[0]) - 1
-
-        if self.merge_cells:
-            # Format multi-index as a merged cells.
-            for lnum in range(len(level_lengths)):
-                name = columns.names[lnum]
-                yield ExcelCell(lnum, coloffset, name, header_style)
-
-            for lnum, (spans, levels, labels) in enumerate(zip(
-                    level_lengths, columns.levels, columns.labels)):
-                values = levels.take(labels)
-                for i in spans:
-                    if spans[i] > 1:
-                        yield ExcelCell(lnum, coloffset + i + 1, values[i],
-                                        header_style, lnum,
-                                        coloffset + i + spans[i])
-                    else:
-                        yield ExcelCell(lnum, coloffset + i + 1, values[i],
-                                        header_style)
-        else:
-            # Format in legacy format with dots to indicate levels.
-            for i, values in enumerate(zip(*level_strs)):
-                v = ".".join(map(pprint_thing, values))
-                yield ExcelCell(lnum, coloffset + i + 1, v, header_style)
-
-        self.rowcounter = lnum
-
-    def _format_header_regular(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
-        if has_aliases or self.header:
-            coloffset = 0
-
-            if self.index:
-                coloffset = 1
-                if isinstance(self.df.index, MultiIndex):
-                    coloffset = len(self.df.index[0])
-
-            colnames = self.columns
-            if has_aliases:
-                if len(self.header) != len(self.columns):
-                    raise ValueError('Writing %d cols but got %d aliases' %
-                                     (len(self.columns), len(self.header)))
-                else:
-                    colnames = self.header
-
-            for colindex, colname in enumerate(colnames):
-                yield ExcelCell(self.rowcounter, colindex + coloffset, colname,
-                                header_style)
-
-    def _format_header(self):
-        if isinstance(self.columns, MultiIndex):
-            gen = self._format_header_mi()
-        else:
-            gen = self._format_header_regular()
-
-        gen2 = ()
-        if self.df.index.names:
-            row = [x if x is not None else ''
-                   for x in self.df.index.names] + [''] * len(self.columns)
-            if reduce(lambda x, y: x and y, map(lambda x: x != '', row)):
-                gen2 = (ExcelCell(self.rowcounter, colindex, val, header_style)
-                        for colindex, val in enumerate(row))
-                self.rowcounter += 1
-        return itertools.chain(gen, gen2)
-
-    def _format_body(self):
-
-        if isinstance(self.df.index, MultiIndex):
-            return self._format_hierarchical_rows()
-        else:
-            return self._format_regular_rows()
-
-    def _format_regular_rows(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
-        if has_aliases or self.header:
-            self.rowcounter += 1
-
-        coloffset = 0
-        # output index and index_label?
-        if self.index:
-            # chek aliases
-            # if list only take first as this is not a MultiIndex
-            if (self.index_label and
-                    isinstance(self.index_label, (list, tuple, np.ndarray,
-                                                  Index))):
-                index_label = self.index_label[0]
-            # if string good to go
-            elif self.index_label and isinstance(self.index_label, str):
-                index_label = self.index_label
-            else:
-                index_label = self.df.index.names[0]
-
-            if isinstance(self.columns, MultiIndex):
-                self.rowcounter += 1
-
-            if index_label and self.header is not False:
-                yield ExcelCell(self.rowcounter - 1, 0, index_label,
-                                header_style)
-
-            # write index_values
-            index_values = self.df.index
-            if isinstance(self.df.index, PeriodIndex):
-                index_values = self.df.index.to_timestamp()
-
-            coloffset = 1
-            for idx, idxval in enumerate(index_values):
-                yield ExcelCell(self.rowcounter + idx, 0, idxval, header_style)
-
-        # Write the body of the frame data series by series.
-        for colidx in range(len(self.columns)):
-            series = self.df.iloc[:, colidx]
-            for i, val in enumerate(series):
-                yield ExcelCell(self.rowcounter + i, colidx + coloffset, val)
-
-    def _format_hierarchical_rows(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
-        if has_aliases or self.header:
-            self.rowcounter += 1
-
-        gcolidx = 0
-
-        if self.index:
-            index_labels = self.df.index.names
-            # check for aliases
-            if (self.index_label and
-                    isinstance(self.index_label, (list, tuple, np.ndarray,
-                                                  Index))):
-                index_labels = self.index_label
-
-            # MultiIndex columns require an extra row
-            # with index names (blank if None) for
-            # unambigous round-trip, unless not merging,
-            # in which case the names all go on one row Issue #11328
-            if isinstance(self.columns, MultiIndex) and self.merge_cells:
-                self.rowcounter += 1
-
-            # if index labels are not empty go ahead and dump
-            if (any(x is not None for x in index_labels) and
-                    self.header is not False):
-
-                for cidx, name in enumerate(index_labels):
-                    yield ExcelCell(self.rowcounter - 1, cidx, name,
-                                    header_style)
-
-            if self.merge_cells:
-                # Format hierarchical rows as merged cells.
-                level_strs = self.df.index.format(sparsify=True, adjoin=False,
-                                                  names=False)
-                level_lengths = _get_level_lengths(level_strs)
-
-                for spans, levels, labels in zip(level_lengths,
-                                                 self.df.index.levels,
-                                                 self.df.index.labels):
-
-                    values = levels.take(labels,
-                                         allow_fill=levels._can_hold_na,
-                                         fill_value=True)
-
-                    for i in spans:
-                        if spans[i] > 1:
-                            yield ExcelCell(self.rowcounter + i, gcolidx,
-                                            values[i], header_style,
-                                            self.rowcounter + i + spans[i] - 1,
-                                            gcolidx)
-                        else:
-                            yield ExcelCell(self.rowcounter + i, gcolidx,
-                                            values[i], header_style)
-                    gcolidx += 1
-
-            else:
-                # Format hierarchical rows with non-merged values.
-                for indexcolvals in zip(*self.df.index):
-                    for idx, indexcolval in enumerate(indexcolvals):
-                        yield ExcelCell(self.rowcounter + idx, gcolidx,
-                                        indexcolval, header_style)
-                    gcolidx += 1
-
-        # Write the body of the frame data series by series.
-        for colidx in range(len(self.columns)):
-            series = self.df.iloc[:, colidx]
-            for i, val in enumerate(series):
-                yield ExcelCell(self.rowcounter + i, gcolidx + colidx, val)
-
-    def get_formatted_cells(self):
-        for cell in itertools.chain(self._format_header(),
-                                    self._format_body()):
-            cell.val = self._format_value(cell.val)
-            yield cell
 
 # ----------------------------------------------------------------------
 # Array formatters
