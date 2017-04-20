@@ -1537,6 +1537,7 @@ Performance Improvements
   function used the ``.name`` attribute of the group DataFrame (:issue:`15062`).
 - Improved performance of ``iloc`` indexing with a list or array (:issue:`15504`).
 - Improved performance of ``Series.sort_index()`` with a monotonic index (:issue:`15694`)
+- Improved performance in ``pd.read_csv()`` on some platforms with buffered reads (:issue:`16039`)
 
 .. _whatsnew_0200.bug_fixes:
 
