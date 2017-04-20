@@ -477,6 +477,7 @@ Other Enhancements
 - The ``usecols`` argument in ``pd.read_csv()`` now accepts a callable function as a value  (:issue:`14154`)
 - The ``skiprows`` argument in ``pd.read_csv()`` now accepts a callable function as a value  (:issue:`10882`)
 - The ``nrows`` and ``chunksize`` arguments in ``pd.read_csv()`` are supported if both are passed (:issue:`6774`, :issue:`15755`)
+- ``pd.read_csv()`` now treats 'n/a' strings as missing values by default (:issue:`16078`)
 - ``DataFrame.plot`` now prints a title above each subplot if ``suplots=True`` and ``title`` is a list of strings (:issue:`14753`)
 - ``DataFrame.plot`` can pass the matplotlib 2.0 default color cycle as a single string as color parameter, see `here <http://matplotlib.org/2.0.0/users/colors.html#cn-color-selection>`__. (:issue:`15516`)
 - ``Series.interpolate()`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
