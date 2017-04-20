@@ -266,7 +266,7 @@ class TestTimeSeries(TestData, tm.TestCase):
             ["2016-09-29 11:00"])).asfreq('H')
         result = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]),
                         data=[3]).asfreq('H')
-        self.assert_index_equal(expected.index, result.index)
+        tm.assert_index_equal(expected.index, result.index)
 
     def test_diff(self):
         # Just run the function
@@ -528,7 +528,7 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         result = rng.get_indexer(ts2.index)
         expected = rng.get_indexer(ts_slice.index)
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_asfreq_normalize(self):
         rng = date_range('1/1/2000 09:30', periods=20)

@@ -80,8 +80,8 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         assert_series_equal(frame['foo'], original)
         self.assertTrue((frame['bar'] == 5).all())
         inp_frame2.dropna(subset=['bar'], inplace=True)
-        self.assert_index_equal(samesize_frame.index, self.frame.index)
-        self.assert_index_equal(inp_frame2.index, self.frame.index)
+        tm.assert_index_equal(samesize_frame.index, self.frame.index)
+        tm.assert_index_equal(inp_frame2.index, self.frame.index)
 
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))
@@ -324,7 +324,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
                                  'C': ['foo', 'bar', '?'],
                                  'D': ['foo2', 'bar2', '?']},
                                 index=date_range('20130110', periods=3))
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         df = pd.DataFrame({'A': [-1, -2, np.nan],
                            'B': [pd.Timestamp('2013-01-01'),
@@ -339,7 +339,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
                                  'C': ['foo', 'bar', '?'],
                                  'D': ['foo2', 'bar2', '?']},
                                 index=pd.date_range('20130110', periods=3))
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_ffill(self):
         self.tsframe['A'][:5] = nan

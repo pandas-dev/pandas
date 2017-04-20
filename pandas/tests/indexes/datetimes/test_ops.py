@@ -62,7 +62,7 @@ class TestDatetimeIndexOps(Ops):
         self.assertTrue(isinstance(result, Index))
 
         self.assertEqual(result.dtype, object)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -76,7 +76,7 @@ class TestDatetimeIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -89,7 +89,7 @@ class TestDatetimeIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -644,31 +644,30 @@ Freq: D"""
 
         for idx in [idx1, idx2]:
             ordered = idx.sort_values()
-            self.assert_index_equal(ordered, idx)
-            self.assertEqual(ordered.freq, idx.freq)
+            tm.assert_index_equal(ordered, idx)
+            assert ordered.freq == idx.freq
 
             ordered = idx.sort_values(ascending=False)
             expected = idx[::-1]
-            self.assert_index_equal(ordered, expected)
-            self.assertEqual(ordered.freq, expected.freq)
-            self.assertEqual(ordered.freq.n, -1)
+            tm.assert_index_equal(ordered, expected)
+            assert ordered.freq == expected.freq
+            assert ordered.freq.n == -1
 
             ordered, indexer = idx.sort_values(return_indexer=True)
-            self.assert_index_equal(ordered, idx)
-            self.assert_numpy_array_equal(indexer,
-                                          np.array([0, 1, 2]),
-                                          check_dtype=False)
-            self.assertEqual(ordered.freq, idx.freq)
+            tm.assert_index_equal(ordered, idx)
+            tm.assert_numpy_array_equal(indexer, np.array([0, 1, 2]),
+                                        check_dtype=False)
+            assert ordered.freq == idx.freq
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
             expected = idx[::-1]
-            self.assert_index_equal(ordered, expected)
-            self.assert_numpy_array_equal(indexer,
-                                          np.array([2, 1, 0]),
-                                          check_dtype=False)
-            self.assertEqual(ordered.freq, expected.freq)
-            self.assertEqual(ordered.freq.n, -1)
+            tm.assert_index_equal(ordered, expected)
+            tm.assert_numpy_array_equal(indexer,
+                                        np.array([2, 1, 0]),
+                                        check_dtype=False)
+            assert ordered.freq == expected.freq
+            assert ordered.freq.n == -1
 
         # without freq
         for tz in self.tz:
@@ -694,26 +693,26 @@ Freq: D"""
 
             for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
                 ordered = idx.sort_values()
-                self.assert_index_equal(ordered, expected)
+                tm.assert_index_equal(ordered, expected)
                 self.assertIsNone(ordered.freq)
 
                 ordered = idx.sort_values(ascending=False)
-                self.assert_index_equal(ordered, expected[::-1])
+                tm.assert_index_equal(ordered, expected[::-1])
                 self.assertIsNone(ordered.freq)
 
                 ordered, indexer = idx.sort_values(return_indexer=True)
-                self.assert_index_equal(ordered, expected)
+                tm.assert_index_equal(ordered, expected)
 
                 exp = np.array([0, 4, 3, 1, 2])
-                self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+                tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
                 self.assertIsNone(ordered.freq)
 
                 ordered, indexer = idx.sort_values(return_indexer=True,
                                                    ascending=False)
-                self.assert_index_equal(ordered, expected[::-1])
+                tm.assert_index_equal(ordered, expected[::-1])
 
                 exp = np.array([2, 1, 3, 4, 0])
-                self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+                tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
                 self.assertIsNone(ordered.freq)
 
     def test_getitem(self):
@@ -728,39 +727,39 @@ Freq: D"""
             result = idx[0:5]
             expected = pd.date_range('2011-01-01', '2011-01-05', freq='D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx[0:10:2]
             expected = pd.date_range('2011-01-01', '2011-01-09', freq='2D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx[-20:-5:3]
             expected = pd.date_range('2011-01-12', '2011-01-24', freq='3D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx[4::-1]
             expected = DatetimeIndex(['2011-01-05', '2011-01-04', '2011-01-03',
                                       '2011-01-02', '2011-01-01'],
                                      freq='-1D', tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
     def test_drop_duplicates_metadata(self):
         # GH 10115
         idx = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
         result = idx.drop_duplicates()
-        self.assert_index_equal(idx, result)
+        tm.assert_index_equal(idx, result)
         self.assertEqual(idx.freq, result.freq)
 
         idx_dup = idx.append(idx)
         self.assertIsNone(idx_dup.freq)  # freq is reset
         result = idx_dup.drop_duplicates()
-        self.assert_index_equal(idx, result)
+        tm.assert_index_equal(idx, result)
         self.assertIsNone(result.freq)
 
     def test_drop_duplicates(self):
@@ -797,33 +796,33 @@ Freq: D"""
             result = idx.take([0, 1, 2])
             expected = pd.date_range('2011-01-01', '2011-01-03', freq='D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.take([0, 2, 4])
             expected = pd.date_range('2011-01-01', '2011-01-05', freq='2D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.take([7, 4, 1])
             expected = pd.date_range('2011-01-08', '2011-01-02', freq='-3D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.take([3, 2, 5])
             expected = DatetimeIndex(['2011-01-04', '2011-01-03',
                                       '2011-01-06'],
                                      freq=None, tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertIsNone(result.freq)
 
             result = idx.take([-3, 2, 5])
             expected = DatetimeIndex(['2011-01-29', '2011-01-03',
                                       '2011-01-06'],
                                      freq=None, tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertIsNone(result.freq)
 
     def test_take_invalid_kwargs(self):
@@ -1127,7 +1126,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
-        self.assert_index_equal(cp, self.rng)
+        tm.assert_index_equal(cp, self.rng)
 
     def test_repr(self):
         # only really care that it works
@@ -1136,7 +1135,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
     def test_getitem(self):
         smaller = self.rng[:5]
         exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
-        self.assert_index_equal(smaller, exp)
+        tm.assert_index_equal(smaller, exp)
 
         self.assertEqual(smaller.offset, self.rng.offset)
 
@@ -1154,7 +1153,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
     def test_getitem_matplotlib_hackaround(self):
         values = self.rng[:, None]
         expected = self.rng.values[:, None]
-        self.assert_numpy_array_equal(values, expected)
+        tm.assert_numpy_array_equal(values, expected)
 
     def test_shift(self):
         shifted = self.rng.shift(5)
@@ -1223,7 +1222,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
-        self.assert_index_equal(cp, self.rng)
+        tm.assert_index_equal(cp, self.rng)
 
     def test_repr(self):
         # only really care that it works
@@ -1232,7 +1231,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
     def test_getitem(self):
         smaller = self.rng[:5]
         exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
-        self.assert_index_equal(smaller, exp)
+        tm.assert_index_equal(smaller, exp)
         self.assertEqual(smaller.offset, self.rng.offset)
 
         sliced = self.rng[::5]
@@ -1249,7 +1248,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
     def test_getitem_matplotlib_hackaround(self):
         values = self.rng[:, None]
         expected = self.rng.values[:, None]
-        self.assert_numpy_array_equal(values, expected)
+        tm.assert_numpy_array_equal(values, expected)
 
     def test_shift(self):
 

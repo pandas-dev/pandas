@@ -935,13 +935,13 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # unit test when have object data
         the_mean = self.mixed_frame.mean(axis=0)
         the_sum = self.mixed_frame.sum(axis=0, numeric_only=True)
-        self.assert_index_equal(the_sum.index, the_mean.index)
+        tm.assert_index_equal(the_sum.index, the_mean.index)
         self.assertTrue(len(the_mean.index) < len(self.mixed_frame.columns))
 
         # xs sum mixed type, just want to know it works...
         the_mean = self.mixed_frame.mean(axis=1)
         the_sum = self.mixed_frame.sum(axis=1, numeric_only=True)
-        self.assert_index_equal(the_sum.index, the_mean.index)
+        tm.assert_index_equal(the_sum.index, the_mean.index)
 
         # take mean of boolean column
         self.frame['bool'] = self.frame['A'] > 0
@@ -1758,7 +1758,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         dfs = pd.concat((df, df), axis=1)
         rounded = dfs.round()
-        self.assert_index_equal(rounded.index, dfs.index)
+        tm.assert_index_equal(rounded.index, dfs.index)
 
         decimals = pd.Series([1, 0, 2], index=['A', 'B', 'A'])
         self.assertRaises(ValueError, df.round, decimals)

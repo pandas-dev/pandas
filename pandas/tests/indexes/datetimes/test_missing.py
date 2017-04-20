@@ -12,34 +12,34 @@ class TestDatetimeIndex(tm.TestCase):
 
             exp = pd.DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00',
                                     '2011-01-01 11:00'])
-            self.assert_index_equal(
+            tm.assert_index_equal(
                 idx.fillna(pd.Timestamp('2011-01-01 10:00')), exp)
 
             # tz mismatch
             exp = pd.Index([pd.Timestamp('2011-01-01 09:00'),
                             pd.Timestamp('2011-01-01 10:00', tz=tz),
                             pd.Timestamp('2011-01-01 11:00')], dtype=object)
-            self.assert_index_equal(
+            tm.assert_index_equal(
                 idx.fillna(pd.Timestamp('2011-01-01 10:00', tz=tz)), exp)
 
             # object
             exp = pd.Index([pd.Timestamp('2011-01-01 09:00'), 'x',
                             pd.Timestamp('2011-01-01 11:00')], dtype=object)
-            self.assert_index_equal(idx.fillna('x'), exp)
+            tm.assert_index_equal(idx.fillna('x'), exp)
 
             idx = pd.DatetimeIndex(['2011-01-01 09:00', pd.NaT,
                                     '2011-01-01 11:00'], tz=tz)
 
             exp = pd.DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00',
                                     '2011-01-01 11:00'], tz=tz)
-            self.assert_index_equal(
+            tm.assert_index_equal(
                 idx.fillna(pd.Timestamp('2011-01-01 10:00', tz=tz)), exp)
 
             exp = pd.Index([pd.Timestamp('2011-01-01 09:00', tz=tz),
                             pd.Timestamp('2011-01-01 10:00'),
                             pd.Timestamp('2011-01-01 11:00', tz=tz)],
                            dtype=object)
-            self.assert_index_equal(
+            tm.assert_index_equal(
                 idx.fillna(pd.Timestamp('2011-01-01 10:00')), exp)
 
             # object
@@ -47,4 +47,4 @@ class TestDatetimeIndex(tm.TestCase):
                             'x',
                             pd.Timestamp('2011-01-01 11:00', tz=tz)],
                            dtype=object)
-            self.assert_index_equal(idx.fillna('x'), exp)
+            tm.assert_index_equal(idx.fillna('x'), exp)

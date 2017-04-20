@@ -517,8 +517,8 @@ starting,ending,measure
                         'd': [None, None, None],
                         'e': [3.14, 0.577, 2.773]})
 
-        self.assert_index_equal(df._get_numeric_data().columns,
-                                pd.Index(['a', 'b', 'e']))
+        tm.assert_index_equal(df._get_numeric_data().columns,
+                              pd.Index(['a', 'b', 'e']))
 
     def test_strange_column_corruption_issue(self):
         # (wesm) Unclear how exactly this is related to internal matters

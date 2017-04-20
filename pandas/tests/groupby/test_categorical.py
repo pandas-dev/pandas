@@ -113,14 +113,12 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         expc = Categorical.from_codes(np.arange(4).repeat(8),
                                       levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(0)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(1)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(1)), exp)
 
     def test_groupby_datetime_categorical(self):
         # GH9049: ensure backward compatibility
@@ -157,14 +155,12 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         expc = Categorical.from_codes(
             np.arange(4).repeat(8), levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(0)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(1)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(1)), exp)
 
     def test_groupby_categorical_index(self):
 
@@ -380,7 +376,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         result = data.groupby("b").mean()
         result = result["a"].values
         exp = np.array([1, 2, 4, np.nan])
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_groupby_sort_categorical(self):
         # dataframe groupby sort was being ignored # GH 8868

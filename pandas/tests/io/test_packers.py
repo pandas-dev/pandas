@@ -327,30 +327,30 @@ class TestIndex(TestPackers):
 
         for s, i in self.d.items():
             i_rec = self.encode_decode(i)
-            self.assert_index_equal(i, i_rec)
+            tm.assert_index_equal(i, i_rec)
 
         # datetime with no freq (GH5506)
         i = Index([Timestamp('20130101'), Timestamp('20130103')])
         i_rec = self.encode_decode(i)
-        self.assert_index_equal(i, i_rec)
+        tm.assert_index_equal(i, i_rec)
 
         # datetime with timezone
         i = Index([Timestamp('20130101 9:00:00'), Timestamp(
             '20130103 11:00:00')]).tz_localize('US/Eastern')
         i_rec = self.encode_decode(i)
-        self.assert_index_equal(i, i_rec)
+        tm.assert_index_equal(i, i_rec)
 
     def test_multi_index(self):
 
         for s, i in self.mi.items():
             i_rec = self.encode_decode(i)
-            self.assert_index_equal(i, i_rec)
+            tm.assert_index_equal(i, i_rec)
 
     def test_unicode(self):
         i = tm.makeUnicodeIndex(100)
 
         i_rec = self.encode_decode(i)
-        self.assert_index_equal(i, i_rec)
+        tm.assert_index_equal(i, i_rec)
 
     def categorical_index(self):
         # GH15487

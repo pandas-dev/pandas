@@ -818,7 +818,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         exp = s.fillna(0).add(2)
         res = s.add(2, fill_value=0)
-        self.assert_series_equal(res, exp)
+        tm.assert_series_equal(res, exp)
 
     def test_shift(self):
         series = SparseSeries([nan, 1., 2., 3., nan, nan], index=np.arange(6))

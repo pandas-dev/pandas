@@ -560,9 +560,9 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         result = idxr(s)[l]
                     if isinstance(s, Series):
-                        self.assert_series_equal(result, expected)
+                        tm.assert_series_equal(result, expected)
                     else:
-                        self.assert_frame_equal(result, expected)
+                        tm.assert_frame_equal(result, expected)
                     # setitem
                     s2 = s.copy()
                     with catch_warnings(record=True):

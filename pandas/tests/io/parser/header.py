@@ -48,9 +48,9 @@ MyColumn
                              [11, 12, 13, 14, 15]], dtype=np.int64)
         tm.assert_almost_equal(df_pref.values, expected)
 
-        self.assert_index_equal(df_pref.columns,
-                                Index(['Field0', 'Field1', 'Field2',
-                                       'Field3', 'Field4']))
+        tm.assert_index_equal(df_pref.columns,
+                              Index(['Field0', 'Field1', 'Field2',
+                                     'Field3', 'Field4']))
 
     def test_header_with_index_col(self):
         data = """foo,1,2,3
@@ -270,8 +270,8 @@ q,r,s,t,u,v
         tm.assert_almost_equal(df.values, expected)
         tm.assert_almost_equal(df.values, df2.values)
 
-        self.assert_index_equal(df_pref.columns,
-                                Index(['X0', 'X1', 'X2', 'X3', 'X4']))
-        self.assert_index_equal(df.columns, Index(lrange(5)))
+        tm.assert_index_equal(df_pref.columns,
+                              Index(['X0', 'X1', 'X2', 'X3', 'X4']))
+        tm.assert_index_equal(df.columns, Index(lrange(5)))
 
-        self.assert_index_equal(df2.columns, Index(names))
+        tm.assert_index_equal(df2.columns, Index(names))

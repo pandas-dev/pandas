@@ -151,9 +151,9 @@ class TestIndex(Base, tm.TestCase):
         s = Series([Timestamp('20110101'), Timestamp('20120101'),
                     Timestamp('20130101')])
         result = Index(s)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         result = DatetimeIndex(s)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # GH 6273
         # create from a series, passing a freq
@@ -162,19 +162,19 @@ class TestIndex(Base, tm.TestCase):
         result = DatetimeIndex(s, freq='MS')
         expected = DatetimeIndex(['1-1-1990', '2-1-1990', '3-1-1990',
                                   '4-1-1990', '5-1-1990'], freq='MS')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         df = pd.DataFrame(np.random.rand(5, 3))
         df['date'] = ['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990',
                       '5-1-1990']
         result = DatetimeIndex(df['date'], freq='MS')
         expected.name = 'date'
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(df['date'].dtype, object)
 
         exp = pd.Series(['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990',
                          '5-1-1990'], name='date')
-        self.assert_series_equal(df['date'], exp)
+        tm.assert_series_equal(df['date'], exp)
 
         # GH 6274
         # infer freq of same
@@ -197,7 +197,7 @@ class TestIndex(Base, tm.TestCase):
                       date_range('2000-01-01', periods=3).values]:
             expected = pd.Index(array)
             result = pd.Index(ArrayLike(array))
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
 
     def test_constructor_int_dtype_nan(self):
         # see gh-15187
@@ -268,15 +268,15 @@ class TestIndex(Base, tm.TestCase):
     def test_constructor_simple_new(self):
         idx = Index([1, 2, 3, 4, 5], name='int')
         result = idx._simple_new(idx, 'int')
-        self.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, idx)
 
         idx = Index([1.1, np.nan, 2.2, 3.0], name='float')
         result = idx._simple_new(idx, 'float')
-        self.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, idx)
 
         idx = Index(['A', 'B', 'C', np.nan], name='obj')
         result = idx._simple_new(idx, 'obj')
-        self.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, idx)
 
     def test_constructor_dtypes(self):
 
@@ -427,31 +427,31 @@ class TestIndex(Base, tm.TestCase):
         result = Index(['b', 'c', 'd'])
 
         # test 0th element
-        self.assert_index_equal(Index(['a', 'b', 'c', 'd']),
-                                result.insert(0, 'a'))
+        tm.assert_index_equal(Index(['a', 'b', 'c', 'd']),
+                              result.insert(0, 'a'))
 
         # test Nth element that follows Python list behavior
-        self.assert_index_equal(Index(['b', 'c', 'e', 'd']),
-                                result.insert(-1, 'e'))
+        tm.assert_index_equal(Index(['b', 'c', 'e', 'd']),
+                              result.insert(-1, 'e'))
 
         # test loc +/- neq (0, -1)
-        self.assert_index_equal(result.insert(1, 'z'), result.insert(-2, 'z'))
+        tm.assert_index_equal(result.insert(1, 'z'), result.insert(-2, 'z'))
 
         # test empty
         null_index = Index([])
-        self.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
+        tm.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
 
     def test_delete(self):
         idx = Index(['a', 'b', 'c', 'd'], name='idx')
 
         expected = Index(['b', 'c', 'd'], name='idx')
         result = idx.delete(0)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
 
         expected = Index(['a', 'b', 'c'], name='idx')
         result = idx.delete(-1)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
 
         with tm.assertRaises((IndexError, ValueError)):
@@ -613,14 +613,14 @@ class TestIndex(Base, tm.TestCase):
         idx2 = Index([3, 4, 5, 6, 7], name='idx')
         expected2 = Index([3, 4, 5], name='idx')
         result2 = idx1.intersection(idx2)
-        self.assert_index_equal(result2, expected2)
+        tm.assert_index_equal(result2, expected2)
         self.assertEqual(result2.name, expected2.name)
 
         # if target name is different, it will be reset
         idx3 = Index([3, 4, 5, 6, 7], name='other')
         expected3 = Index([3, 4, 5], name=None)
         result3 = idx1.intersection(idx3)
-        self.assert_index_equal(result3, expected3)
+        tm.assert_index_equal(result3, expected3)
         self.assertEqual(result3.name, expected3.name)
 
         # non monotonic
@@ -628,24 +628,24 @@ class TestIndex(Base, tm.TestCase):
         idx2 = Index([4, 7, 6, 5, 3], name='idx')
         expected = Index([5, 3, 4], name='idx')
         result = idx1.intersection(idx2)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         idx2 = Index([4, 7, 6, 5, 3], name='other')
         expected = Index([5, 3, 4], name=None)
         result = idx1.intersection(idx2)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # non-monotonic non-unique
         idx1 = Index(['A', 'B', 'A', 'C'])
         idx2 = Index(['B', 'D'])
         expected = Index(['B'], dtype='object')
         result = idx1.intersection(idx2)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         idx2 = Index(['B', 'D', 'A'])
         expected = Index(['A', 'B', 'A'], dtype='object')
         result = idx1.intersection(idx2)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # preserve names
         first = self.strIndex[5:20]
@@ -760,16 +760,16 @@ class TestIndex(Base, tm.TestCase):
     def test_add(self):
         idx = self.strIndex
         expected = Index(self.strIndex.values * 2)
-        self.assert_index_equal(idx + idx, expected)
-        self.assert_index_equal(idx + idx.tolist(), expected)
-        self.assert_index_equal(idx.tolist() + idx, expected)
+        tm.assert_index_equal(idx + idx, expected)
+        tm.assert_index_equal(idx + idx.tolist(), expected)
+        tm.assert_index_equal(idx.tolist() + idx, expected)
 
         # test add and radd
         idx = Index(list('abc'))
         expected = Index(['a1', 'b1', 'c1'])
-        self.assert_index_equal(idx + '1', expected)
+        tm.assert_index_equal(idx + '1', expected)
         expected = Index(['1a', '1b', '1c'])
-        self.assert_index_equal('1' + idx, expected)
+        tm.assert_index_equal('1' + idx, expected)
 
     def test_sub(self):
         idx = self.strIndex
@@ -825,11 +825,11 @@ class TestIndex(Base, tm.TestCase):
 
         foos = [index[:2], index[2:4], index[4:]]
         result = foos[0].append(foos[1:])
-        self.assert_index_equal(result, index)
+        tm.assert_index_equal(result, index)
 
         # empty
         result = index.append([])
-        self.assert_index_equal(result, index)
+        tm.assert_index_equal(result, index)
 
     def test_append_empty_preserve_name(self):
         left = Index([], name='foo')
@@ -1244,7 +1244,7 @@ class TestIndex(Base, tm.TestCase):
                                              in_slice.step)
             result = idx[s_start:s_stop:in_slice.step]
             expected = pd.Index(list(expected))
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
 
         for in_slice, expected in [
             (SLC[::-1], 'yxdcb'), (SLC['b':'y':-1], ''),
@@ -1266,7 +1266,7 @@ class TestIndex(Base, tm.TestCase):
         drop = self.strIndex[lrange(5, 10)]
         dropped = self.strIndex.drop(drop)
         expected = self.strIndex[lrange(5) + lrange(10, n)]
-        self.assert_index_equal(dropped, expected)
+        tm.assert_index_equal(dropped, expected)
 
         self.assertRaises(ValueError, self.strIndex.drop, ['foo', 'bar'])
         self.assertRaises(ValueError, self.strIndex.drop, ['1', 'bar'])
@@ -1275,31 +1275,31 @@ class TestIndex(Base, tm.TestCase):
         mixed = drop.tolist() + ['foo']
         dropped = self.strIndex.drop(mixed, errors='ignore')
         expected = self.strIndex[lrange(5) + lrange(10, n)]
-        self.assert_index_equal(dropped, expected)
+        tm.assert_index_equal(dropped, expected)
 
         dropped = self.strIndex.drop(['foo', 'bar'], errors='ignore')
         expected = self.strIndex[lrange(n)]
-        self.assert_index_equal(dropped, expected)
+        tm.assert_index_equal(dropped, expected)
 
         dropped = self.strIndex.drop(self.strIndex[0])
         expected = self.strIndex[1:]
-        self.assert_index_equal(dropped, expected)
+        tm.assert_index_equal(dropped, expected)
 
         ser = Index([1, 2, 3])
         dropped = ser.drop(1)
         expected = Index([2, 3])
-        self.assert_index_equal(dropped, expected)
+        tm.assert_index_equal(dropped, expected)
 
         # errors='ignore'
         self.assertRaises(ValueError, ser.drop, [3, 4])
 
         dropped = ser.drop(4, errors='ignore')
         expected = Index([1, 2, 3])
-        self.assert_index_equal(dropped, expected)
+        tm.assert_index_equal(dropped, expected)
 
         dropped = ser.drop([3, 4, 5], errors='ignore')
         expected = Index([1, 2])
-        self.assert_index_equal(dropped, expected)
+        tm.assert_index_equal(dropped, expected)
 
     def test_tuple_union_bug(self):
         import pandas
@@ -1319,13 +1319,13 @@ class TestIndex(Base, tm.TestCase):
         # needs to be 1d like idx1 and idx2
         expected = idx1[:4]  # pandas.Index(sorted(set(idx1) & set(idx2)))
         self.assertEqual(int_idx.ndim, 1)
-        self.assert_index_equal(int_idx, expected)
+        tm.assert_index_equal(int_idx, expected)
 
         # union broken
         union_idx = idx1.union(idx2)
         expected = idx2
         self.assertEqual(union_idx.ndim, 1)
-        self.assert_index_equal(union_idx, expected)
+        tm.assert_index_equal(union_idx, expected)
 
     def test_is_monotonic_incomparable(self):
         index = Index([5, datetime.now(), 7])
@@ -1417,7 +1417,7 @@ class TestIndex(Base, tm.TestCase):
 
     def test_get_level_values(self):
         result = self.strIndex.get_level_values(0)
-        self.assert_index_equal(result, self.strIndex)
+        tm.assert_index_equal(result, self.strIndex)
 
     def test_slice_keep_name(self):
         idx = Index(['a', 'b'], name='asdf')
@@ -1902,11 +1902,11 @@ class TestMixedIntIndex(Base, tm.TestCase):
                 # unorderable types
                 result = first.union(second)
                 expected = Index(['b', 2, 'c', 0, 'a', 1])
-                self.assert_index_equal(result, expected)
+                tm.assert_index_equal(result, expected)
         else:
             result = first.union(second)
             expected = Index(['b', 2, 'c', 0, 'a', 1])
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
 
         # GH 10149
         cases = [klass(second.values)
@@ -1928,7 +1928,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
         second = idx[:3]
         result = first.intersection(second)
         expected = Index([0, 'a', 1])
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # GH 10149
         cases = [klass(second.values)
@@ -1945,7 +1945,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
 
         result = first.difference(second)
         expected = Index([0, 1, 'a'])
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
@@ -1955,7 +1955,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
 
         result = first.symmetric_difference(second)
         expected = Index([0, 1, 2, 'a', 'c'])
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_logical_compat(self):
         idx = self.create_index()

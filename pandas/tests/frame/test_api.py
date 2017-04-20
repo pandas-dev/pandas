@@ -60,11 +60,11 @@ class SharedWithSparse(object):
     def test_add_prefix_suffix(self):
         with_prefix = self.frame.add_prefix('foo#')
         expected = pd.Index(['foo#%s' % c for c in self.frame.columns])
-        self.assert_index_equal(with_prefix.columns, expected)
+        tm.assert_index_equal(with_prefix.columns, expected)
 
         with_suffix = self.frame.add_suffix('#foo')
         expected = pd.Index(['%s#foo' % c for c in self.frame.columns])
-        self.assert_index_equal(with_suffix.columns, expected)
+        tm.assert_index_equal(with_suffix.columns, expected)
 
 
 class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):

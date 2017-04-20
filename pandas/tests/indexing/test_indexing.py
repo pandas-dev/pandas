@@ -108,7 +108,7 @@ class TestFancy(Base, tm.TestCase):
         df.columns = ['a', 'a', 'b']
         result = df[['b', 'a']].columns
         expected = Index(['b', 'a', 'a'])
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # across dtypes
         df = DataFrame([[1, 2, 1., 2., 3., 'foo', 'bar']],
@@ -534,7 +534,7 @@ class TestFancy(Base, tm.TestCase):
         index = df.index.copy()
 
         df['A'] = df['A'].astype(np.float64)
-        self.assert_index_equal(df.index, index)
+        tm.assert_index_equal(df.index, index)
 
         # TODO(wesm): unused variables
         # result = df.get_dtype_counts().sort_index()

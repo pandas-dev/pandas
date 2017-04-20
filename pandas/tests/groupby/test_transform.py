@@ -111,13 +111,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = self.ts.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
 
-        self.assert_index_equal(result.index, self.ts.index)
+        tm.assert_index_equal(result.index, self.ts.index)
         for _, gp in grouped:
             assert_fp_equal(result.reindex(gp.index), gp.mean())
 
         grouped = self.tsframe.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
-        self.assert_index_equal(result.index, self.tsframe.index)
+        tm.assert_index_equal(result.index, self.tsframe.index)
         for _, gp in grouped:
             agged = gp.mean()
             res = result.reindex(gp.index)
@@ -128,8 +128,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = self.tsframe.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
                                        axis=1)
         result = grouped.transform(np.mean)
-        self.assert_index_equal(result.index, self.tsframe.index)
-        self.assert_index_equal(result.columns, self.tsframe.columns)
+        tm.assert_index_equal(result.index, self.tsframe.index)
+        tm.assert_index_equal(result.columns, self.tsframe.columns)
         for _, gp in grouped:
             agged = gp.mean(1)
             res = result.reindex(columns=gp.columns)
@@ -429,8 +429,8 @@ class TestGroupBy(MixIn, tm.TestCase):
                 ans = np.zeros_like(data)
                 labels = np.array([0, 0, 0, 0], dtype=np.int64)
                 pd_op(ans, data, labels, is_datetimelike)
-                self.assert_numpy_array_equal(np_op(data), ans[:, 0],
-                                              check_dtype=False)
+                tm.assert_numpy_array_equal(np_op(data), ans[:, 0],
+                                            check_dtype=False)
 
         # with nans
         labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)
@@ -440,13 +440,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         actual.fill(np.nan)
         groupby.group_cumprod_float64(actual, data, labels, is_datetimelike)
         expected = np.array([1, 2, 6, np.nan, 24], dtype='float64')
-        self.assert_numpy_array_equal(actual[:, 0], expected)
+        tm.assert_numpy_array_equal(actual[:, 0], expected)
 
         actual = np.zeros_like(data)
         actual.fill(np.nan)
         groupby.group_cumsum(actual, data, labels, is_datetimelike)
         expected = np.array([1, 3, 6, np.nan, 10], dtype='float64')
-        self.assert_numpy_array_equal(actual[:, 0], expected)
+        tm.assert_numpy_array_equal(actual[:, 0], expected)
 
         # timedelta
         is_datetimelike = True
@@ -457,7 +457,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = np.array([np.timedelta64(1, 'ns'), np.timedelta64(
             2, 'ns'), np.timedelta64(3, 'ns'), np.timedelta64(4, 'ns'),
             np.timedelta64(5, 'ns')])
-        self.assert_numpy_array_equal(actual[:, 0].view('m8[ns]'), expected)
+        tm.assert_numpy_array_equal(actual[:, 0].view('m8[ns]'), expected)
 
     def test_cython_transform(self):
         # GH 4095

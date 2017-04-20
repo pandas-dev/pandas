@@ -639,7 +639,7 @@ class TestGroupByAggregate(tm.TestCase):
         result = self.df.groupby('A')['C'].agg(funcs)
         exp_cols = Index(['mean', 'max', 'min'])
 
-        self.assert_index_equal(result.columns, exp_cols)
+        tm.assert_index_equal(result.columns, exp_cols)
 
     def test_multiple_functions_tuples_and_non_tuples(self):
         # #1359

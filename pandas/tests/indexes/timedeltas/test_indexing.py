@@ -73,7 +73,7 @@ class TestTimedeltaIndex(tm.TestCase):
                  1: expected_1}
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
@@ -100,11 +100,11 @@ class TestTimedeltaIndex(tm.TestCase):
                  (3, 4, 5): expected_3_5}
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.delete(slice(n[0], n[-1] + 1))
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)

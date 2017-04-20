@@ -464,7 +464,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         subindex = self.frame.index[indexer]
         subframe = self.frame[indexer]
 
-        self.assert_index_equal(subindex, subframe.index)
+        tm.assert_index_equal(subindex, subframe.index)
         self.assertRaises(Exception, self.frame.__getitem__, indexer[:-1])
 
     def test_setitem(self):
@@ -962,8 +962,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
                 from_sparse_lp = spf.stack_sparse_frame(frame)
 
-                self.assert_numpy_array_equal(from_dense_lp.values,
-                                              from_sparse_lp.values)
+                tm.assert_numpy_array_equal(from_dense_lp.values,
+                                            from_sparse_lp.values)
 
             _check(self.frame)
             _check(self.iframe)

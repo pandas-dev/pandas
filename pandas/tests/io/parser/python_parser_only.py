@@ -44,8 +44,8 @@ bar|4|5|6
 baz|7|8|9
 """
         data = self.read_csv(StringIO(text), index_col=0, sep=None)
-        self.assert_index_equal(data.index,
-                                Index(['foo', 'bar', 'baz'], name='index'))
+        tm.assert_index_equal(data.index,
+                              Index(['foo', 'bar', 'baz'], name='index'))
 
         data2 = self.read_csv(StringIO(text), index_col=0, delimiter='|')
         tm.assert_frame_equal(data, data2)

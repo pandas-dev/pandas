@@ -238,16 +238,16 @@ class TestMerge(tm.TestCase):
         rkey = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on=lkey, right_on=rkey, how='outer')
-        self.assert_series_equal(merged['key_0'],
-                                 Series([1, 1, 1, 1, 2, 2, 3, 4, 5],
-                                        name='key_0'))
+        tm.assert_series_equal(merged['key_0'], Series([1, 1, 1, 1, 2,
+                                                        2, 3, 4, 5],
+                                                       name='key_0'))
 
         left = DataFrame({'value': lrange(3)})
         right = DataFrame({'rvalue': lrange(6)})
 
         key = np.array([0, 1, 1, 2, 2, 3], dtype=np.int64)
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
-        self.assert_series_equal(merged['key_0'], Series(key, name='key_0'))
+        tm.assert_series_equal(merged['key_0'], Series(key, name='key_0'))
 
     def test_no_overlap_more_informative_error(self):
         dt = datetime.now()

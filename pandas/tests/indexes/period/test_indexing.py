@@ -28,7 +28,7 @@ class TestGetItem(tm.TestCase):
             result = idx[0:5]
             expected = pd.period_range('2011-01-01', '2011-01-05', freq='D',
                                        name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
             self.assertEqual(result.freq, 'D')
 
@@ -37,7 +37,7 @@ class TestGetItem(tm.TestCase):
                                        '2011-01-05',
                                        '2011-01-07', '2011-01-09'],
                                       freq='D', name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
             self.assertEqual(result.freq, 'D')
 
@@ -46,7 +46,7 @@ class TestGetItem(tm.TestCase):
                                        '2011-01-18',
                                        '2011-01-21', '2011-01-24'],
                                       freq='D', name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
             self.assertEqual(result.freq, 'D')
 
@@ -54,7 +54,7 @@ class TestGetItem(tm.TestCase):
             expected = PeriodIndex(['2011-01-05', '2011-01-04', '2011-01-03',
                                     '2011-01-02', '2011-01-01'],
                                    freq='D', name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
             self.assertEqual(result.freq, 'D')
 
@@ -236,14 +236,14 @@ class TestIndexing(tm.TestCase):
             result = idx.take([0, 1, 2])
             expected = pd.period_range('2011-01-01', '2011-01-03', freq='D',
                                        name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, 'D')
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.take([0, 2, 4])
             expected = pd.PeriodIndex(['2011-01-01', '2011-01-03',
                                        '2011-01-05'], freq='D', name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
             self.assertEqual(result.freq, 'D')
 
@@ -251,21 +251,21 @@ class TestIndexing(tm.TestCase):
             expected = pd.PeriodIndex(['2011-01-08', '2011-01-05',
                                        '2011-01-02'],
                                       freq='D', name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
             self.assertEqual(result.freq, 'D')
 
             result = idx.take([3, 2, 5])
             expected = PeriodIndex(['2011-01-04', '2011-01-03', '2011-01-06'],
                                    freq='D', name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
             self.assertEqual(result.freq, 'D')
 
             result = idx.take([-3, 2, 5])
             expected = PeriodIndex(['2011-01-29', '2011-01-03', '2011-01-06'],
                                    freq='D', name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
             self.assertEqual(result.freq, 'D')
 

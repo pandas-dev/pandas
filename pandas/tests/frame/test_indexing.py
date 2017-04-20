@@ -239,7 +239,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         subindex = self.tsframe.index[indexer]
         subframe = self.tsframe[indexer]
 
-        self.assert_index_equal(subindex, subframe.index)
+        tm.assert_index_equal(subindex, subframe.index)
         with assertRaisesRegexp(ValueError, 'Item wrong length'):
             self.tsframe[indexer[:-1]]
 

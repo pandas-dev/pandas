@@ -40,10 +40,10 @@ class TestSorting(tm.TestCase):
         right = rg.sum()['values']
 
         exp_index, _ = left.index.sortlevel()
-        self.assert_index_equal(left.index, exp_index)
+        tm.assert_index_equal(left.index, exp_index)
 
         exp_index, _ = right.index.sortlevel(0)
-        self.assert_index_equal(right.index, exp_index)
+        tm.assert_index_equal(right.index, exp_index)
 
         tups = list(map(tuple, df[['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
                                    ]].values))

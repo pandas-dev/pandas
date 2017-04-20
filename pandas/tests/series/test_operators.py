@@ -34,12 +34,12 @@ class TestSeriesOperators(TestData, tm.TestCase):
         val = datetime(2000, 1, 4)
         result = series > val
         expected = Series([x > val for x in series])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         val = series[5]
         result = series > val
         expected = Series([x > val for x in series])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_comparisons(self):
         left = np.random.randn(10)
@@ -325,13 +325,13 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # GH 13006
         result = np.float64(0) > pd.Series([1, 2, 3])
         expected = 0.0 > pd.Series([1, 2, 3])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         result = pd.Series([1, 2, 3]) < np.float64(0)
         expected = pd.Series([1, 2, 3]) < 0.0
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         result = np.array([0, 1, 2])[0] > pd.Series([0, 1, 2])
         expected = 0.0 > pd.Series([1, 2, 3])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_timedeltas_with_DateOffset(self):
 
@@ -1311,13 +1311,13 @@ class TestSeriesOperators(TestData, tm.TestCase):
         const = 2
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             result = getattr(s, op)(const).get_dtype_counts()
-            self.assert_series_equal(result, Series([1], ['bool']))
+            tm.assert_series_equal(result, Series([1], ['bool']))
 
         # empty Series
         empty = s.iloc[:0]
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             result = getattr(empty, op)(const).get_dtype_counts()
-            self.assert_series_equal(result, Series([1], ['bool']))
+            tm.assert_series_equal(result, Series([1], ['bool']))
 
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
@@ -1480,7 +1480,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         added = self.ts + int_ts
         expected = Series(self.ts.values[:-5] + int_ts.values,
                           index=self.ts.index[:-5], name='ts')
-        self.assert_series_equal(added[:-5], expected)
+        tm.assert_series_equal(added[:-5], expected)
 
     def test_operators_reverse_object(self):
         # GH 56
