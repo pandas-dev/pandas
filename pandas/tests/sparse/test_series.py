@@ -764,12 +764,12 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         expected = expected[expected != 0]
         exp_arr = pd.SparseArray(expected.values, fill_value=0, kind='block')
         tm.assert_sp_array_equal(sp_valid.values, exp_arr)
-        self.assert_index_equal(sp_valid.index, expected.index)
-        self.assertEqual(len(sp_valid.sp_values), 2)
+        tm.assert_index_equal(sp_valid.index, expected.index)
+        assert len(sp_valid.sp_values) == 2
 
         result = self.bseries.dropna()
         expected = self.bseries.to_dense().dropna()
-        self.assertNotIsInstance(result, SparseSeries)
+        assert not isinstance(result, SparseSeries)
         tm.assert_series_equal(result, expected)
 
     def test_homogenize(self):

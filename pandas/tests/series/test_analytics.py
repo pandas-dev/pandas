@@ -639,7 +639,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
     def test_prod_numpy16_bug(self):
         s = Series([1., 1., 1.], index=lrange(3))
         result = s.prod()
-        self.assertNotIsInstance(result, Series)
+
+        assert not isinstance(result, Series)
 
     def test_all_any(self):
         ts = tm.makeTimeSeries()
@@ -1465,16 +1466,16 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         with tm.assert_produces_warning(FutureWarning):
             result = x.reshape((-1, 1))
-            self.assertNotIsInstance(result, Series)
+            assert not isinstance(result, Series)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result2 = np.reshape(x, (-1, 1))
-            self.assertNotIsInstance(result2, Series)
+            assert not isinstance(result2, Series)
 
         with tm.assert_produces_warning(FutureWarning):
             result = x[:, None]
             expected = x.reshape((-1, 1))
-            assert_almost_equal(result, expected)
+            tm.assert_almost_equal(result, expected)
 
     def test_reshape_bad_kwarg(self):
         a = Series([1, 2, 3, 4])

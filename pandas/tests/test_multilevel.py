@@ -115,24 +115,24 @@ class TestMultiLevel(Base, tm.TestCase):
                           index=[np.array(['a', 'a', 'b', 'b']),
                                  np.array(['x', 'y', 'x', 'y'])])
         tm.assertIsInstance(multi.index, MultiIndex)
-        self.assertNotIsInstance(multi.columns, MultiIndex)
+        assert not isinstance(multi.columns, MultiIndex)
 
         multi = DataFrame(np.random.randn(4, 4),
                           columns=[['a', 'a', 'b', 'b'],
                                    ['x', 'y', 'x', 'y']])
-        tm.assertIsInstance(multi.columns, MultiIndex)
+        assert isinstance(multi.columns, MultiIndex)
 
     def test_series_constructor(self):
         multi = Series(1., index=[np.array(['a', 'a', 'b', 'b']), np.array(
             ['x', 'y', 'x', 'y'])])
-        tm.assertIsInstance(multi.index, MultiIndex)
+        assert isinstance(multi.index, MultiIndex)
 
         multi = Series(1., index=[['a', 'a', 'b', 'b'], ['x', 'y', 'x', 'y']])
-        tm.assertIsInstance(multi.index, MultiIndex)
+        assert isinstance(multi.index, MultiIndex)
 
         multi = Series(lrange(4), index=[['a', 'a', 'b', 'b'],
                                          ['x', 'y', 'x', 'y']])
-        tm.assertIsInstance(multi.index, MultiIndex)
+        assert isinstance(multi.index, MultiIndex)
 
     def test_reindex_level(self):
         # axis=0

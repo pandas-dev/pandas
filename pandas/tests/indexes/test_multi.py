@@ -539,17 +539,17 @@ class TestMultiIndex(Base, tm.TestCase):
     def test_constructor_single_level(self):
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                                   labels=[[0, 1, 2, 3]], names=['first'])
-        tm.assertIsInstance(single_level, Index)
-        self.assertNotIsInstance(single_level, MultiIndex)
-        self.assertEqual(single_level.name, 'first')
+        assert isinstance(single_level, Index)
+        assert not isinstance(single_level, MultiIndex)
+        assert single_level.name == 'first'
 
         single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                                   labels=[[0, 1, 2, 3]])
-        self.assertIsNone(single_level.name)
+        assert single_level.name is None
 
     def test_constructor_no_levels(self):
-        assertRaisesRegexp(ValueError, "non-zero number of levels/labels",
-                           MultiIndex, levels=[], labels=[])
+        tm.assertRaisesRegexp(ValueError, "non-zero number of levels/labels",
+                              MultiIndex, levels=[], labels=[])
         both_re = re.compile('Must pass both levels and labels')
         with tm.assertRaisesRegexp(TypeError, both_re):
             MultiIndex(levels=[])

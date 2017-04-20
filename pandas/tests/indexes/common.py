@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 from pandas import compat
 from pandas.compat import PY3
 
@@ -793,7 +795,7 @@ class Base(object):
                 if isinstance(idx, DatetimeIndexOpsMixin):
                     # raise TypeError or ValueError (PeriodIndex)
                     # PeriodIndex behavior should be changed in future version
-                    with tm.assertRaises(Exception):
+                    with pytest.raises(Exception):
                         with np.errstate(all='ignore'):
                             func(idx)
                 elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
@@ -801,33 +803,33 @@ class Base(object):
                     with np.errstate(all='ignore'):
                         result = func(idx)
                         exp = Index(func(idx.values), name=idx.name)
-                    self.assert_index_equal(result, exp)
-                    self.assertIsInstance(result, pd.Float64Index)
+
+                    tm.assert_index_equal(result, exp)
+                    assert isinstance(result, pd.Float64Index)
                 else:
                     # raise AttributeError or TypeError
                     if len(idx) == 0:
                         continue
                     else:
-                        with tm.assertRaises(Exception):
+                        with pytest.raises(Exception):
                             with np.errstate(all='ignore'):
                                 func(idx)
 
             for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
                 if isinstance(idx, DatetimeIndexOpsMixin):
                     # raise TypeError or ValueError (PeriodIndex)
-                    with tm.assertRaises(Exception):
+                    with pytest.raises(Exception):
                         func(idx)
                 elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
-                    # results in bool array
+                    # Results in bool array
                     result = func(idx)
-                    exp = func(idx.values)
-                    self.assertIsInstance(result, np.ndarray)
-                    tm.assertNotIsInstance(result, Index)
+                    assert isinstance(result, np.ndarray)
+                    assert not isinstance(result, Index)
                 else:
                     if len(idx) == 0:
                         continue
                     else:
-                        with tm.assertRaises(Exception):
+                        with pytest.raises(Exception):
                             func(idx)
 
     def test_hasnans_isnans(self):

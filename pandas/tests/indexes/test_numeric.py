@@ -171,7 +171,7 @@ class Numeric(Base):
         # GH 9244
         index = self.create_index()
         expected = Index(index.values % 2)
-        self.assert_index_equal(index % 2, expected)
+        tm.assert_index_equal(index % 2, expected)
 
 
 class TestFloat64Index(Numeric, tm.TestCase):
@@ -190,14 +190,14 @@ class TestFloat64Index(Numeric, tm.TestCase):
             tm.assert_index_equal(eval(repr(ind)), ind)
 
     def check_is_index(self, i):
-        self.assertIsInstance(i, Index)
-        self.assertNotIsInstance(i, Float64Index)
+        assert isinstance(i, Index)
+        assert not isinstance(i, Float64Index)
 
     def check_coerce(self, a, b, is_float_index=True):
-        self.assertTrue(a.equals(b))
-        self.assert_index_equal(a, b, exact=False)
+        assert a.equals(b)
+        tm.assert_index_equal(a, b, exact=False)
         if is_float_index:
-            self.assertIsInstance(b, Float64Index)
+            assert isinstance(b, Float64Index)
         else:
             self.check_is_index(b)
 
