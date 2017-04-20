@@ -2393,6 +2393,10 @@ def test_styler_to_excel(engine):
     pytest.importorskip('jinja2')
     pytest.importorskip(engine)
 
+    if engine == 'openpyxl' and openpyxl_compat.is_compat(major_ver=1):
+        pytest.xfail('openpyxl1 does not support some openpyxl2-compatible '
+                     'style dicts')
+
     # Prepare spreadsheets
 
     df = DataFrame(np.random.randn(10, 3))
