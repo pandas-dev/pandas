@@ -211,12 +211,12 @@ class TestCut(tm.TestCase):
         result = cut(arr, bins, labels=labels)
         exp = Categorical(['Medium'] + 4 * ['Small'] + ['Medium', 'Large'],
                           ordered=True)
-        self.assert_categorical_equal(result, exp)
+        tm.assert_categorical_equal(result, exp)
 
         result = cut(arr, bins, labels=Categorical.from_codes([0, 1, 2],
                                                               labels))
         exp = Categorical.from_codes([1] + 4 * [0] + [1, 2], labels)
-        self.assert_categorical_equal(result, exp)
+        tm.assert_categorical_equal(result, exp)
 
     def test_qcut_include_lowest(self):
         values = np.arange(10)
@@ -241,7 +241,7 @@ class TestCut(tm.TestCase):
         result = qcut([0, 2], 2)
         expected = Index([Interval(-0.001, 1), Interval(1, 2)]).astype(
             'category')
-        self.assert_categorical_equal(result, expected)
+        tm.assert_categorical_equal(result, expected)
 
     def test_round_frac(self):
         # it works

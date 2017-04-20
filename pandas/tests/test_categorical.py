@@ -95,7 +95,7 @@ class TestCategorical(tm.TestCase):
         expected = Categorical(['c', 'b', 'b', 'a', 'a', 'c', 'c', 'c'],
                                ordered=True)
 
-        self.assert_categorical_equal(c, expected)
+        tm.assert_categorical_equal(c, expected)
 
     def test_setitem_listlike(self):
 
@@ -130,7 +130,7 @@ class TestCategorical(tm.TestCase):
                                            Interval(2, 3),
                                            Interval(3, 6)])
         exp = Categorical(ii, ordered=True)
-        self.assert_categorical_equal(result, exp)
+        tm.assert_categorical_equal(result, exp)
         tm.assert_index_equal(result.categories, ii)
 
     def test_is_equal_dtype(self):
@@ -955,14 +955,14 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # first inplace == False
         res = cat.reorder_categories(["c", "b", "a"])
         # cat must be the same as before
-        self.assert_categorical_equal(cat, old)
+        tm.assert_categorical_equal(cat, old)
         # only res is changed
-        self.assert_categorical_equal(res, new)
+        tm.assert_categorical_equal(res, new)
 
         # inplace == True
         res = cat.reorder_categories(["c", "b", "a"], inplace=True)
         self.assertIsNone(res)
-        self.assert_categorical_equal(cat, new)
+        tm.assert_categorical_equal(cat, new)
 
         # not all "old" included in "new"
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -992,16 +992,16 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         # first inplace == False
         res = cat.add_categories("d")
-        self.assert_categorical_equal(cat, old)
-        self.assert_categorical_equal(res, new)
+        tm.assert_categorical_equal(cat, old)
+        tm.assert_categorical_equal(res, new)
 
         res = cat.add_categories(["d"])
-        self.assert_categorical_equal(cat, old)
-        self.assert_categorical_equal(res, new)
+        tm.assert_categorical_equal(cat, old)
+        tm.assert_categorical_equal(res, new)
 
         # inplace == True
         res = cat.add_categories("d", inplace=True)
-        self.assert_categorical_equal(cat, new)
+        tm.assert_categorical_equal(cat, new)
         self.assertIsNone(res)
 
         # new is in old categories
@@ -1016,13 +1016,13 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
             list("abc"), categories=list("abcde"), ordered=True)
         # test with Series, np.array, index, list
         res = cat.add_categories(Series(["d", "e"]))
-        self.assert_categorical_equal(res, expected)
+        tm.assert_categorical_equal(res, expected)
         res = cat.add_categories(np.array(["d", "e"]))
-        self.assert_categorical_equal(res, expected)
+        tm.assert_categorical_equal(res, expected)
         res = cat.add_categories(Index(["d", "e"]))
-        self.assert_categorical_equal(res, expected)
+        tm.assert_categorical_equal(res, expected)
         res = cat.add_categories(["d", "e"])
-        self.assert_categorical_equal(res, expected)
+        tm.assert_categorical_equal(res, expected)
 
     def test_remove_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -1032,16 +1032,16 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         # first inplace == False
         res = cat.remove_categories("c")
-        self.assert_categorical_equal(cat, old)
-        self.assert_categorical_equal(res, new)
+        tm.assert_categorical_equal(cat, old)
+        tm.assert_categorical_equal(res, new)
 
         res = cat.remove_categories(["c"])
-        self.assert_categorical_equal(cat, old)
-        self.assert_categorical_equal(res, new)
+        tm.assert_categorical_equal(cat, old)
+        tm.assert_categorical_equal(res, new)
 
         # inplace == True
         res = cat.remove_categories("c", inplace=True)
-        self.assert_categorical_equal(cat, new)
+        tm.assert_categorical_equal(cat, new)
         self.assertIsNone(res)
 
         # removal is not in categories
@@ -1196,7 +1196,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         exp = Index(["a", "b"])
         res = cat.unique()
         tm.assert_index_equal(res.categories, exp)
-        self.assert_categorical_equal(res, cat)
+        tm.assert_categorical_equal(res, cat)
 
         cat = Categorical(["a", "b", "a", "a"], categories=["a", "b", "c"])
         res = cat.unique()
@@ -1413,18 +1413,18 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # shift forward
         sp1 = cat.shift(1)
         xp1 = pd.Categorical([np.nan, 'a', 'b', 'c', 'd'])
-        self.assert_categorical_equal(sp1, xp1)
-        self.assert_categorical_equal(cat[:-1], sp1[1:])
+        tm.assert_categorical_equal(sp1, xp1)
+        tm.assert_categorical_equal(cat[:-1], sp1[1:])
 
         # shift back
         sn2 = cat.shift(-2)
         xp2 = pd.Categorical(['c', 'd', 'a', np.nan, np.nan],
                              categories=['a', 'b', 'c', 'd'])
-        self.assert_categorical_equal(sn2, xp2)
-        self.assert_categorical_equal(cat[2:], sn2[:-2])
+        tm.assert_categorical_equal(sn2, xp2)
+        tm.assert_categorical_equal(cat[2:], sn2[:-2])
 
         # shift by zero
-        self.assert_categorical_equal(cat, cat.shift(0))
+        tm.assert_categorical_equal(cat, cat.shift(0))
 
     def test_nbytes(self):
         cat = pd.Categorical([1, 2, 3])
@@ -2048,7 +2048,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         result1 = df['D']
         result2 = df['E']
-        self.assert_categorical_equal(result1._data._block.values, d)
+        tm.assert_categorical_equal(result1._data._block.values, d)
 
         # sorting
         s.name = 'E'
@@ -3981,12 +3981,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         cat = pd.Categorical(["a", "b"], categories=["a", "b"])
         exp = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"])
         res = cat.repeat(2)
-        self.assert_categorical_equal(res, exp)
+        tm.assert_categorical_equal(res, exp)
 
     def test_numpy_repeat(self):
         cat = pd.Categorical(["a", "b"], categories=["a", "b"])
         exp = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"])
-        self.assert_categorical_equal(np.repeat(cat, 2), exp)
+        tm.assert_categorical_equal(np.repeat(cat, 2), exp)
 
         msg = "the 'axis' parameter is not supported"
         tm.assertRaisesRegexp(ValueError, msg, np.repeat, cat, 2, axis=1)
@@ -3997,19 +3997,19 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical([], categories=["a", "b"])
-            self.assert_categorical_equal(cat.reshape(0), cat)
+            tm.assert_categorical_equal(cat.reshape(0), cat)
 
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical([], categories=["a", "b"])
-            self.assert_categorical_equal(cat.reshape((5, -1)), cat)
+            tm.assert_categorical_equal(cat.reshape((5, -1)), cat)
 
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical(["a", "b"], categories=["a", "b"])
-            self.assert_categorical_equal(cat.reshape(cat.shape), cat)
+            tm.assert_categorical_equal(cat.reshape(cat.shape), cat)
 
         with tm.assert_produces_warning(FutureWarning):
             cat = pd.Categorical(["a", "b"], categories=["a", "b"])
-            self.assert_categorical_equal(cat.reshape(cat.size), cat)
+            tm.assert_categorical_equal(cat.reshape(cat.size), cat)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             msg = "can only specify one unknown dimension"
@@ -4019,7 +4019,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
     def test_numpy_reshape(self):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             cat = pd.Categorical(["a", "b"], categories=["a", "b"])
-            self.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
+            tm.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             msg = "the 'order' parameter is not supported"
