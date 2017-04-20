@@ -277,7 +277,7 @@ DEFAULT_CHUNKSIZE = 256 * 1024
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
 _NA_VALUES = [b'-1.#IND', b'1.#QNAN', b'1.#IND', b'-1.#QNAN',
-              b'#N/A N/A', b'NA', b'#NA', b'NULL', b'NaN',
+              b'#N/A N/A', b'n/a', b'NA', b'#NA', b'NULL', b'NaN',
               b'nan', b'']
 
 
