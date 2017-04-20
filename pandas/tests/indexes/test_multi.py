@@ -1858,7 +1858,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         # compare the results
         tm.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
-        with self.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning):
             tm.assert_index_equal(lexsorted_mi.drop('a'),
                                   not_lexsorted_mi.drop('a'))
 
