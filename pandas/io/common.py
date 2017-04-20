@@ -31,7 +31,7 @@ except ImportError:
 # '1.#INF','-1.#INF', '1.#INF000000',
 _NA_VALUES = set([
     '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
-    'N/A', 'NA', '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
+    'N/A', 'n/a', 'NA', '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
 ])
 
 try:
