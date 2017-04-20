@@ -24,7 +24,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         rng = date_range('1/1/2000', periods=10)
         result = rng.astype('i8')
-        self.assert_index_equal(result, Index(rng.asi8))
+        tm.assert_index_equal(result, Index(rng.asi8))
         self.assert_numpy_array_equal(result.values, rng.asi8)
 
     def test_astype_with_tz(self):

@@ -266,7 +266,7 @@ class TestTimeSeries(TestData, tm.TestCase):
             ["2016-09-29 11:00"])).asfreq('H')
         result = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]),
                         data=[3]).asfreq('H')
-        self.assert_index_equal(expected.index, result.index)
+        tm.assert_index_equal(expected.index, result.index)
 
     def test_diff(self):
         # Just run the function

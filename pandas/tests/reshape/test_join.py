@@ -255,7 +255,7 @@ class TestJoin(tm.TestCase):
 
         merged2 = self.target.join(self.source.reindex([]), on='C',
                                    how='inner')
-        self.assert_index_equal(merged2.columns, merged.columns)
+        tm.assert_index_equal(merged2.columns, merged.columns)
         self.assertEqual(len(merged2), 0)
 
     def test_join_on_inner(self):
@@ -270,7 +270,7 @@ class TestJoin(tm.TestCase):
                                  check_dtype=False)
         self.assert_series_equal(joined['value'], expected['value'],
                                  check_dtype=False)
-        self.assert_index_equal(joined.index, expected.index)
+        tm.assert_index_equal(joined.index, expected.index)
 
     def test_join_on_singlekey_list(self):
         df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
@@ -530,7 +530,7 @@ class TestJoin(tm.TestCase):
 
         # smoke test
         joined = left.join(right, on='key', sort=False)
-        self.assert_index_equal(joined.index, pd.Index(lrange(4)))
+        tm.assert_index_equal(joined.index, pd.Index(lrange(4)))
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index

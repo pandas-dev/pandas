@@ -76,8 +76,8 @@ class TestSeriesSorting(TestData, tm.TestCase):
         ts = self.ts.copy()
         ts.sort_values(ascending=False, inplace=True)
         self.assert_series_equal(ts, self.ts.sort_values(ascending=False))
-        self.assert_index_equal(ts.index,
-                                self.ts.sort_values(ascending=False).index)
+        tm.assert_index_equal(ts.index,
+                              self.ts.sort_values(ascending=False).index)
 
         # GH 5856/5853
         # Series.sort_values operating on a view

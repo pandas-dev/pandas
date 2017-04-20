@@ -113,14 +113,12 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         expc = Categorical.from_codes(np.arange(4).repeat(8),
                                       levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(0)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(1)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(1)), exp)
 
     def test_groupby_datetime_categorical(self):
         # GH9049: ensure backward compatibility
@@ -157,14 +155,12 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         expc = Categorical.from_codes(
             np.arange(4).repeat(8), levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(0)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(1)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(1)), exp)
 
     def test_groupby_categorical_index(self):
 

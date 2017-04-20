@@ -122,9 +122,9 @@ class TestIntervalIndex(Base, tm.TestCase):
         self.assertEqual(index.size, 2)
         self.assertEqual(index.shape, (2, ))
 
-        self.assert_index_equal(index.left, Index([0, 1]))
-        self.assert_index_equal(index.right, Index([1, 2]))
-        self.assert_index_equal(index.mid, Index([0.5, 1.5]))
+        tm.assert_index_equal(index.left, Index([0, 1]))
+        tm.assert_index_equal(index.right, Index([1, 2]))
+        tm.assert_index_equal(index.mid, Index([0.5, 1.5]))
 
         self.assertEqual(index.closed, 'right')
 
@@ -138,9 +138,9 @@ class TestIntervalIndex(Base, tm.TestCase):
         self.assertEqual(index.size, 3)
         self.assertEqual(index.shape, (3, ))
 
-        self.assert_index_equal(index.left, Index([0, np.nan, 1]))
-        self.assert_index_equal(index.right, Index([1, np.nan, 2]))
-        self.assert_index_equal(index.mid, Index([0.5, np.nan, 1.5]))
+        tm.assert_index_equal(index.left, Index([0, np.nan, 1]))
+        tm.assert_index_equal(index.right, Index([1, np.nan, 2]))
+        tm.assert_index_equal(index.mid, Index([0.5, np.nan, 1.5]))
 
         self.assertEqual(index.closed, 'right')
 

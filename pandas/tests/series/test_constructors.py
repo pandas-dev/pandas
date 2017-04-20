@@ -474,7 +474,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         exp = pd.DatetimeIndex(result)
         exp = exp.tz_localize('UTC').tz_convert(tz=s.dt.tz)
-        self.assert_index_equal(dr, exp)
+        tm.assert_index_equal(dr, exp)
 
         # indexing
         result = s.iloc[0]

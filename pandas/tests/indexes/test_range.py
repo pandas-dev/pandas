@@ -127,10 +127,10 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertTrue(result.identical(index))
 
         result = RangeIndex(index, copy=True)
-        self.assert_index_equal(result, index, exact=True)
+        tm.assert_index_equal(result, index, exact=True)
 
         result = RangeIndex(index)
-        self.assert_index_equal(result, index, exact=True)
+        tm.assert_index_equal(result, index, exact=True)
 
         self.assertRaises(TypeError,
                           lambda: RangeIndex(index, dtype='float64'))
@@ -141,24 +141,24 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = RangeIndex.from_range(range(5, 6))
         expected = RangeIndex(5, 6, 1)
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # an invalid range
         result = RangeIndex.from_range(range(5, 1))
         expected = RangeIndex(0, 0, 1)
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = RangeIndex.from_range(range(5))
         expected = RangeIndex(0, 5, 1)
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = Index(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         self.assertRaises(TypeError,
                           lambda: Index(range(1, 5, 2), dtype='float64'))
@@ -190,15 +190,15 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         result = idx * 2
         expected = RangeIndex(0, 20, 4)
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = idx + 2
         expected = RangeIndex(2, 12, 2)
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = idx - 2
         expected = RangeIndex(-2, 8, 2)
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # truediv under PY3
         result = idx / 2
@@ -207,11 +207,11 @@ class TestRangeIndex(Numeric, tm.TestCase):
             expected = RangeIndex(0, 5, 1).astype('float64')
         else:
             expected = RangeIndex(0, 5, 1)
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = idx / 4
         expected = RangeIndex(0, 10, 2) / 4
-        self.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = idx // 1
         expected = idx
@@ -246,7 +246,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = RangeIndex(1, 5)
         self.assertEqual(index.values.dtype, np.int64)
-        self.assert_index_equal(index, Index(arr))
+        tm.assert_index_equal(index, Index(arr))
 
         # non-int raise Exception
         self.assertRaises(TypeError, RangeIndex, '1', '10', '1')
@@ -275,7 +275,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertTrue(result, expected)
 
         result = eval(result)
-        self.assert_index_equal(result, i, exact=True)
+        tm.assert_index_equal(result, i, exact=True)
 
         i = RangeIndex(5, 0, -1)
         result = repr(i)
@@ -283,7 +283,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertEqual(result, expected)
 
         result = eval(result)
-        self.assert_index_equal(result, i, exact=True)
+        tm.assert_index_equal(result, i, exact=True)
 
     def test_insert(self):
 
@@ -291,19 +291,19 @@ class TestRangeIndex(Numeric, tm.TestCase):
         result = idx[1:4]
 
         # test 0th element
-        self.assert_index_equal(idx[0:4], result.insert(0, idx[0]))
+        tm.assert_index_equal(idx[0:4], result.insert(0, idx[0]))
 
     def test_delete(self):
 
         idx = RangeIndex(5, name='Foo')
         expected = idx[1:].astype(int)
         result = idx.delete(0)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
 
         expected = idx[:-1].astype(int)
         result = idx.delete(-1)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
 
         with tm.assertRaises((IndexError, ValueError)):
@@ -412,7 +412,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, how='outer',
                                           return_indexers=True)
         noidx_res = self.index.join(other, how='outer')
-        self.assert_index_equal(res, noidx_res)
+        tm.assert_index_equal(res, noidx_res)
 
         eres = Int64Index([0, 2, 4, 6, 8, 10, 12, 14, 15, 16, 17, 18, 19, 20,
                            21, 22, 23, 24, 25])
@@ -423,7 +423,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         self.assertIsInstance(res, Int64Index)
         self.assertFalse(isinstance(res, RangeIndex))
-        self.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres)
         self.assert_numpy_array_equal(lidx, elidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
@@ -433,11 +433,11 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, how='outer',
                                           return_indexers=True)
         noidx_res = self.index.join(other, how='outer')
-        self.assert_index_equal(res, noidx_res)
+        tm.assert_index_equal(res, noidx_res)
 
         self.assertIsInstance(res, Int64Index)
         self.assertFalse(isinstance(res, RangeIndex))
-        self.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres)
         self.assert_numpy_array_equal(lidx, elidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
@@ -459,7 +459,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         eridx = np.array([9, 7], dtype=np.intp)
 
         self.assertIsInstance(res, Int64Index)
-        self.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres)
         self.assert_numpy_array_equal(lidx, elidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
@@ -470,7 +470,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                                           return_indexers=True)
 
         self.assertIsInstance(res, RangeIndex)
-        self.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres)
         self.assert_numpy_array_equal(lidx, elidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
@@ -484,7 +484,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7], dtype=np.intp)
 
         self.assertIsInstance(res, RangeIndex)
-        self.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres)
         self.assertIsNone(lidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
@@ -495,7 +495,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                                           return_indexers=True)
 
         self.assertIsInstance(res, RangeIndex)
-        self.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres)
         self.assertIsNone(lidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
@@ -510,7 +510,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                          dtype=np.intp)
 
         self.assertIsInstance(other, Int64Index)
-        self.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres)
         self.assert_numpy_array_equal(lidx, elidx)
         self.assertIsNone(ridx)
 
@@ -522,7 +522,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         eres = other
 
         self.assertIsInstance(other, RangeIndex)
-        self.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres)
         self.assert_numpy_array_equal(lidx, elidx)
         self.assertIsNone(ridx)
 
@@ -532,26 +532,26 @@ class TestRangeIndex(Numeric, tm.TestCase):
         outer = self.index.join(other, how='outer')
         outer2 = other.join(self.index, how='outer')
         expected = Index([0, 2, 3, 4, 6, 7, 8, 10, 12, 14, 16, 18])
-        self.assert_index_equal(outer, outer2)
-        self.assert_index_equal(outer, expected)
+        tm.assert_index_equal(outer, outer2)
+        tm.assert_index_equal(outer, expected)
 
         inner = self.index.join(other, how='inner')
         inner2 = other.join(self.index, how='inner')
         expected = Index([6, 8, 10])
-        self.assert_index_equal(inner, inner2)
-        self.assert_index_equal(inner, expected)
+        tm.assert_index_equal(inner, inner2)
+        tm.assert_index_equal(inner, expected)
 
         left = self.index.join(other, how='left')
-        self.assert_index_equal(left, self.index.astype(object))
+        tm.assert_index_equal(left, self.index.astype(object))
 
         left2 = other.join(self.index, how='left')
-        self.assert_index_equal(left2, other)
+        tm.assert_index_equal(left2, other)
 
         right = self.index.join(other, how='right')
-        self.assert_index_equal(right, other)
+        tm.assert_index_equal(right, other)
 
         right2 = other.join(self.index, how='right')
-        self.assert_index_equal(right2, self.index.astype(object))
+        tm.assert_index_equal(right2, self.index.astype(object))
 
     def test_join_non_unique(self):
         other = Index([4, 4, 3, 3])
@@ -563,7 +563,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         eridx = np.array([-1, -1, 0, 1, -1, -1, -1, -1, -1, -1, -1],
                          dtype=np.intp)
 
-        self.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres)
         self.assert_numpy_array_equal(lidx, elidx)
         self.assert_numpy_array_equal(ridx, eridx)
 
@@ -579,26 +579,26 @@ class TestRangeIndex(Numeric, tm.TestCase):
         result = self.index.intersection(other)
         expected = Index(np.sort(np.intersect1d(self.index.values,
                                                 other.values)))
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = other.intersection(self.index)
         expected = Index(np.sort(np.asarray(np.intersect1d(self.index.values,
                                                            other.values))))
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # intersect with increasing RangeIndex
         other = RangeIndex(1, 6)
         result = self.index.intersection(other)
         expected = Index(np.sort(np.intersect1d(self.index.values,
                                                 other.values)))
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # intersect with decreasing RangeIndex
         other = RangeIndex(5, 0, -1)
         result = self.index.intersection(other)
         expected = Index(np.sort(np.intersect1d(self.index.values,
                                                 other.values)))
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         index = RangeIndex(5)
 
@@ -606,28 +606,28 @@ class TestRangeIndex(Numeric, tm.TestCase):
         other = RangeIndex(5, 10, 1)
         result = index.intersection(other)
         expected = RangeIndex(0, 0, 1)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         other = RangeIndex(-1, -5, -1)
         result = index.intersection(other)
         expected = RangeIndex(0, 0, 1)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # intersection of empty indices
         other = RangeIndex(0, 0, 1)
         result = index.intersection(other)
         expected = RangeIndex(0, 0, 1)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = other.intersection(index)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # intersection of non-overlapping values based on start value and gcd
         index = RangeIndex(1, 10, 2)
         other = RangeIndex(0, 10, 4)
         result = index.intersection(other)
         expected = RangeIndex(0, 0, 1)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_intersect_str_dates(self):
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
@@ -645,11 +645,11 @@ class TestRangeIndex(Numeric, tm.TestCase):
         other = Index([now + timedelta(i) for i in range(4)], dtype=object)
         result = self.index.union(other)
         expected = Index(np.concatenate((self.index, other)))
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = other.union(self.index)
         expected = Index(np.concatenate((other, self.index)))
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_union(self):
         RI = RangeIndex
@@ -856,43 +856,43 @@ class TestRangeIndex(Numeric, tm.TestCase):
         # slice value completion
         index = self.index[:]
         expected = self.index
-        self.assert_index_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
         # positive slice values
         index = self.index[7:10:2]
         expected = Index(np.array([14, 18]), name='foo')
-        self.assert_index_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
         # negative slice values
         index = self.index[-1:-5:-2]
         expected = Index(np.array([18, 14]), name='foo')
-        self.assert_index_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
         # stop overshoot
         index = self.index[2:100:4]
         expected = Index(np.array([4, 12]), name='foo')
-        self.assert_index_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
         # reverse
         index = self.index[::-1]
         expected = Index(self.index.values[::-1], name='foo')
-        self.assert_index_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
         index = self.index[-8::-1]
         expected = Index(np.array([4, 2, 0]), name='foo')
-        self.assert_index_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
         index = self.index[-40::-1]
         expected = Index(np.array([], dtype=np.int64), name='foo')
-        self.assert_index_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
         index = self.index[40::-1]
         expected = Index(self.index.values[40::-1], name='foo')
-        self.assert_index_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
         index = self.index[10::-1]
         expected = Index(self.index.values[::-1], name='foo')
-        self.assert_index_equal(index, expected)
+        tm.assert_index_equal(index, expected)
 
     def test_len_specialised(self):
 

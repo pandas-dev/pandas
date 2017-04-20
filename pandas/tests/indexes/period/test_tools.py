@@ -265,7 +265,7 @@ class TestPeriodIndex(tm.TestCase):
 
         result3 = result.to_period(freq='3M')
         exp = PeriodIndex(['NaT', '2011-01', '2011-02'], freq='3M', name='idx')
-        self.assert_index_equal(result3, exp)
+        tm.assert_index_equal(result3, exp)
         self.assertEqual(result3.freqstr, '3M')
 
         msg = ('Frequency must be positive, because it'
@@ -278,26 +278,26 @@ class TestPeriodIndex(tm.TestCase):
         result = idx.to_timestamp()
         expected = DatetimeIndex(
             ['2011-01-01', 'NaT', '2011-02-01'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         result = idx.to_timestamp(how='E')
         expected = DatetimeIndex(
             ['2011-02-28', 'NaT', '2011-03-31'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_combined(self):
         idx = PeriodIndex(start='2011', periods=2, freq='1D1H', name='idx')
         result = idx.to_timestamp()
         expected = DatetimeIndex(
             ['2011-01-01 00:00', '2011-01-02 01:00'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         result = idx.to_timestamp(how='E')
         expected = DatetimeIndex(
             ['2011-01-02 00:59:59', '2011-01-03 01:59:59'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         result = idx.to_timestamp(how='E', freq='H')
         expected = DatetimeIndex(
             ['2011-01-02 00:00', '2011-01-03 01:00'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_to_period_astype(self):
         idx = DatetimeIndex([pd.NaT, '2011-01-01', '2011-02-01'], name='idx')
@@ -308,7 +308,7 @@ class TestPeriodIndex(tm.TestCase):
 
         res = idx.astype('period[3M]')
         exp = PeriodIndex(['NaT', '2011-01', '2011-02'], freq='3M', name='idx')
-        self.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp)
 
     def test_dti_to_period(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')

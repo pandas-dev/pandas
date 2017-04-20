@@ -427,8 +427,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertTrue(idx.has_duplicates)
 
         expected = CategoricalIndex([0], name='foo')
-        self.assert_index_equal(idx.drop_duplicates(), expected)
-        self.assert_index_equal(idx.unique(), expected)
+        tm.assert_index_equal(idx.drop_duplicates(), expected)
+        tm.assert_index_equal(idx.unique(), expected)
 
     def test_get_indexer(self):
 
@@ -803,7 +803,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         idx = CategoricalIndex([1.0, np.nan, 3.0, 1.0], name='x')
         # fill by value in categories
         exp = CategoricalIndex([1.0, 1.0, 3.0, 1.0], name='x')
-        self.assert_index_equal(idx.fillna(1.0), exp)
+        tm.assert_index_equal(idx.fillna(1.0), exp)
 
         # fill by value not in categories raises ValueError
         with tm.assertRaisesRegexp(ValueError,

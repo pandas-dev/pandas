@@ -80,8 +80,8 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         assert_series_equal(frame['foo'], original)
         self.assertTrue((frame['bar'] == 5).all())
         inp_frame2.dropna(subset=['bar'], inplace=True)
-        self.assert_index_equal(samesize_frame.index, self.frame.index)
-        self.assert_index_equal(inp_frame2.index, self.frame.index)
+        tm.assert_index_equal(samesize_frame.index, self.frame.index)
+        tm.assert_index_equal(inp_frame2.index, self.frame.index)
 
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))

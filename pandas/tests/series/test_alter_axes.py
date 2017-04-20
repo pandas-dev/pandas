@@ -46,7 +46,7 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
         # partial dict
         s = Series(np.arange(4), index=['a', 'b', 'c', 'd'], dtype='int64')
         renamed = s.rename({'b': 'foo', 'd': 'bar'})
-        self.assert_index_equal(renamed.index, Index(['a', 'foo', 'c', 'bar']))
+        tm.assert_index_equal(renamed.index, Index(['a', 'foo', 'c', 'bar']))
 
         # index with name
         renamer = Series(np.arange(4),
@@ -136,7 +136,7 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
         self.assertEqual(len(rs.columns), 2)
 
         rs = s.reset_index(level=[0, 2], drop=True)
-        self.assert_index_equal(rs.index, Index(index.get_level_values(1)))
+        tm.assert_index_equal(rs.index, Index(index.get_level_values(1)))
         tm.assertIsInstance(rs, Series)
 
     def test_reset_index_range(self):

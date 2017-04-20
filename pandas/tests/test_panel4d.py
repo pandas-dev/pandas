@@ -708,7 +708,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             result = Panel4D(data)
 
             exp_major = Index(np.arange(len(self.panel4d.major_axis)))
-            self.assert_index_equal(result.major_axis, exp_major)
+            tm.assert_index_equal(result.major_axis, exp_major)
 
             result = Panel4D(data,
                              labels=self.panel4d.labels,
@@ -938,11 +938,11 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
             renamed = self.panel4d.rename_axis(mapper, axis=0)
             exp = Index(['foo', 'bar', 'baz'])
-            self.assert_index_equal(renamed.labels, exp)
+            tm.assert_index_equal(renamed.labels, exp)
 
             renamed = self.panel4d.rename_axis(str.lower, axis=3)
             exp = Index(['a', 'b', 'c', 'd'])
-            self.assert_index_equal(renamed.minor_axis, exp)
+            tm.assert_index_equal(renamed.minor_axis, exp)
 
             # don't copy
             renamed_nocopy = self.panel4d.rename_axis(mapper,

@@ -27,26 +27,26 @@ class TestDatetimeIndex(tm.TestCase):
 
         i = pd.date_range('20130101', periods=5, freq='H', tz='US/Eastern')
         i2 = DatetimeIndex(i, dtype=i.dtype)
-        self.assert_index_equal(i, i2)
+        tm.assert_index_equal(i, i2)
         assert i.tz.zone == 'US/Eastern'
 
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz=i.dtype.tz)
-        self.assert_index_equal(i, i2)
+        tm.assert_index_equal(i, i2)
         assert i.tz.zone == 'US/Eastern'
 
         i2 = DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype)
-        self.assert_index_equal(i, i2)
+        tm.assert_index_equal(i, i2)
         assert i.tz.zone == 'US/Eastern'
 
         i2 = DatetimeIndex(
             i.tz_localize(None).asi8, dtype=i.dtype, tz=i.dtype.tz)
-        self.assert_index_equal(i, i2)
+        tm.assert_index_equal(i, i2)
         assert i.tz.zone == 'US/Eastern'
 
         # localize into the provided tz
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz='UTC')
         expected = i.tz_localize(None).tz_localize('UTC')
-        self.assert_index_equal(i2, expected)
+        tm.assert_index_equal(i2, expected)
 
         # incompat tz/dtype
         self.assertRaises(ValueError, lambda: DatetimeIndex(
@@ -202,7 +202,7 @@ class TestDatetimeIndex(tm.TestCase):
             [Timestamp('2011-01-01'), Timestamp('2011-01-02')], name='idx')
         exp = DatetimeIndex(
             [Timestamp('2011-01-01'), Timestamp('2011-01-02')], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
+        tm.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
 
         # same tz results in DatetimeIndex
@@ -213,7 +213,7 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00'),
                              Timestamp('2011-01-02 10:00')],
                             tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
+        tm.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
 
         # same tz results in DatetimeIndex (DST)
@@ -224,7 +224,7 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00'),
                              Timestamp('2011-08-01 10:00')],
                             tz='US/Eastern', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
+        tm.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
 
         # different tz coerces tz-naive to tz-awareIndex(dtype=object)
@@ -234,7 +234,7 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 05:00'),
                              Timestamp('2011-01-02 10:00')],
                             tz='US/Eastern', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
+        tm.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
 
         # tz mismatch affecting to tz-aware raises TypeError/ValueError

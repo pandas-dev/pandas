@@ -253,8 +253,8 @@ class TestHoliday(tm.TestCase):
             Timestamp(self.start_date),
             Timestamp(self.end_date))
 
-        self.assert_index_equal(holidays, holidays_1)
-        self.assert_index_equal(holidays, holidays_2)
+        tm.assert_index_equal(holidays, holidays_1)
+        tm.assert_index_equal(holidays, holidays_2)
 
     def test_special_holidays(self):
         base_date = [datetime(2012, 5, 28)]

@@ -40,7 +40,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         idx = period_range('1990', '2009', freq='A')
         result = idx.astype('i8')
-        self.assert_index_equal(result, Index(idx.asi8))
+        tm.assert_index_equal(result, Index(idx.asi8))
         self.assert_numpy_array_equal(result.values, idx.asi8)
 
     def test_astype_raises(self):
@@ -163,7 +163,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         idx = pd.period_range('2000-01-01', periods=3, freq='D')
         res = idx.repeat(3)
         exp = PeriodIndex(idx.values.repeat(3), freq='D')
-        self.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp)
         self.assertEqual(res.freqstr, 'D')
 
     def test_period_index_indexer(self):
@@ -183,18 +183,18 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         exp = pd.PeriodIndex(['2011-01-01 09:00', '2011-01-01 10:00',
                               '2011-01-01 11:00'], freq='H')
-        self.assert_index_equal(
+        tm.assert_index_equal(
             idx.fillna(pd.Period('2011-01-01 10:00', freq='H')), exp)
 
         exp = pd.Index([pd.Period('2011-01-01 09:00', freq='H'), 'x',
                         pd.Period('2011-01-01 11:00', freq='H')], dtype=object)
-        self.assert_index_equal(idx.fillna('x'), exp)
+        tm.assert_index_equal(idx.fillna('x'), exp)
 
         exp = pd.Index([pd.Period('2011-01-01 09:00', freq='H'),
                         pd.Period('2011-01-01', freq='D'),
                         pd.Period('2011-01-01 11:00', freq='H')], dtype=object)
-        self.assert_index_equal(idx.fillna(pd.Period('2011-01-01', freq='D')),
-                                exp)
+        tm.assert_index_equal(idx.fillna(
+            pd.Period('2011-01-01', freq='D')), exp)
 
     def test_no_millisecond_field(self):
         with self.assertRaises(AttributeError):
@@ -565,14 +565,14 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
     def test_index_unique(self):
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq='A-JUN')
         expected = PeriodIndex([2000, 2007, 2009], freq='A-JUN')
-        self.assert_index_equal(idx.unique(), expected)
+        tm.assert_index_equal(idx.unique(), expected)
         self.assertEqual(idx.nunique(), 3)
 
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq='A-JUN',
                           tz='US/Eastern')
         expected = PeriodIndex([2000, 2007, 2009], freq='A-JUN',
                                tz='US/Eastern')
-        self.assert_index_equal(idx.unique(), expected)
+        tm.assert_index_equal(idx.unique(), expected)
         self.assertEqual(idx.nunique(), 3)
 
     def test_shift_gh8083(self):
@@ -583,7 +583,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         result = drange.shift(1)
         expected = PeriodIndex(['2013-01-02', '2013-01-03', '2013-01-04',
                                 '2013-01-05', '2013-01-06'], freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_shift(self):
         pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
@@ -592,32 +592,32 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         tm.assert_index_equal(pi1.shift(0), pi1)
 
         self.assertEqual(len(pi1), len(pi2))
-        self.assert_index_equal(pi1.shift(1), pi2)
+        tm.assert_index_equal(pi1.shift(1), pi2)
 
         pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         pi2 = PeriodIndex(freq='A', start='1/1/2000', end='12/1/2008')
         self.assertEqual(len(pi1), len(pi2))
-        self.assert_index_equal(pi1.shift(-1), pi2)
+        tm.assert_index_equal(pi1.shift(-1), pi2)
 
         pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
         pi2 = PeriodIndex(freq='M', start='2/1/2001', end='1/1/2010')
         self.assertEqual(len(pi1), len(pi2))
-        self.assert_index_equal(pi1.shift(1), pi2)
+        tm.assert_index_equal(pi1.shift(1), pi2)
 
         pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
         pi2 = PeriodIndex(freq='M', start='12/1/2000', end='11/1/2009')
         self.assertEqual(len(pi1), len(pi2))
-        self.assert_index_equal(pi1.shift(-1), pi2)
+        tm.assert_index_equal(pi1.shift(-1), pi2)
 
         pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
         pi2 = PeriodIndex(freq='D', start='1/2/2001', end='12/2/2009')
         self.assertEqual(len(pi1), len(pi2))
-        self.assert_index_equal(pi1.shift(1), pi2)
+        tm.assert_index_equal(pi1.shift(1), pi2)
 
         pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
         pi2 = PeriodIndex(freq='D', start='12/31/2000', end='11/30/2009')
         self.assertEqual(len(pi1), len(pi2))
-        self.assert_index_equal(pi1.shift(-1), pi2)
+        tm.assert_index_equal(pi1.shift(-1), pi2)
 
     def test_shift_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
@@ -661,9 +661,9 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
                            '2012-03', '2012-04'], freq='D', name='name')
 
         exp = Index([2011, 2011, -1, 2012, 2012], dtype=np.int64, name='name')
-        self.assert_index_equal(idx.year, exp)
+        tm.assert_index_equal(idx.year, exp)
         exp = Index([1, 2, -1, 3, 4], dtype=np.int64, name='name')
-        self.assert_index_equal(idx.month, exp)
+        tm.assert_index_equal(idx.month, exp)
 
     def test_pindex_qaccess(self):
         pi = PeriodIndex(['2Q05', '3Q05', '4Q05', '1Q06', '2Q06'], freq='Q')

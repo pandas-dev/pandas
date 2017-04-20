@@ -436,8 +436,8 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         new_columns = MultiIndex.from_tuples([('fizz3', 'buzz1'),
                                               ('fizz2', 'buzz3')],
                                              names=['fizz', 'buzz'])
-        self.assert_index_equal(renamed.index, new_index)
-        self.assert_index_equal(renamed.columns, new_columns)
+        tm.assert_index_equal(renamed.index, new_index)
+        tm.assert_index_equal(renamed.columns, new_columns)
         self.assertEqual(renamed.index.names, df.index.names)
         self.assertEqual(renamed.columns.names, df.columns.names)
 
@@ -450,20 +450,20 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                              names=['fizz', 'buzz'])
         renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
                             level=0)
-        self.assert_index_equal(renamed.columns, new_columns)
+        tm.assert_index_equal(renamed.columns, new_columns)
         renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
                             level='fizz')
-        self.assert_index_equal(renamed.columns, new_columns)
+        tm.assert_index_equal(renamed.columns, new_columns)
 
         new_columns = MultiIndex.from_tuples([('fizz1', 'buzz1'),
                                               ('fizz2', 'buzz3')],
                                              names=['fizz', 'buzz'])
         renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
                             level=1)
-        self.assert_index_equal(renamed.columns, new_columns)
+        tm.assert_index_equal(renamed.columns, new_columns)
         renamed = df.rename(columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'},
                             level='buzz')
-        self.assert_index_equal(renamed.columns, new_columns)
+        tm.assert_index_equal(renamed.columns, new_columns)
 
         # function
         func = str.upper
@@ -471,17 +471,17 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                               ('FIZZ2', 'buzz2')],
                                              names=['fizz', 'buzz'])
         renamed = df.rename(columns=func, level=0)
-        self.assert_index_equal(renamed.columns, new_columns)
+        tm.assert_index_equal(renamed.columns, new_columns)
         renamed = df.rename(columns=func, level='fizz')
-        self.assert_index_equal(renamed.columns, new_columns)
+        tm.assert_index_equal(renamed.columns, new_columns)
 
         new_columns = MultiIndex.from_tuples([('fizz1', 'BUZZ1'),
                                               ('fizz2', 'BUZZ2')],
                                              names=['fizz', 'buzz'])
         renamed = df.rename(columns=func, level=1)
-        self.assert_index_equal(renamed.columns, new_columns)
+        tm.assert_index_equal(renamed.columns, new_columns)
         renamed = df.rename(columns=func, level='buzz')
-        self.assert_index_equal(renamed.columns, new_columns)
+        tm.assert_index_equal(renamed.columns, new_columns)
 
         # index
         new_index = MultiIndex.from_tuples([('foo3', 'bar1'),
@@ -489,7 +489,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                            names=['foo', 'bar'])
         renamed = df.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
                             level=0)
-        self.assert_index_equal(renamed.index, new_index)
+        tm.assert_index_equal(renamed.index, new_index)
 
     def test_rename_nocopy(self):
         renamed = self.frame.rename(columns={'C': 'foo'}, copy=False)
@@ -601,8 +601,8 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         deleveled = self.frame.reset_index()
         self.assert_series_equal(deleveled['index'],
                                  pd.Series(self.frame.index))
-        self.assert_index_equal(deleveled.index,
-                                pd.Index(np.arange(len(deleveled))))
+        tm.assert_index_equal(deleveled.index,
+                              pd.Index(np.arange(len(deleveled))))
 
         # preserve column names
         self.frame.columns.name = 'columns'

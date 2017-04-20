@@ -91,8 +91,8 @@ class TestPeriodIndex(tm.TestCase):
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
-        self.assert_index_equal(pindex.year, pd.Index(years))
-        self.assert_index_equal(pindex.quarter, pd.Index(quarters))
+        tm.assert_index_equal(pindex.year, pd.Index(years))
+        tm.assert_index_equal(pindex.quarter, pd.Index(quarters))
 
     def test_constructor_invalid_quarters(self):
         self.assertRaises(ValueError, PeriodIndex, year=lrange(2000, 2004),
@@ -272,12 +272,12 @@ class TestPeriodIndex(tm.TestCase):
         result = idx._simple_new([pd.Period('2007-01', freq='M'),
                                   pd.Period('2007-02', freq='M')],
                                  'p', freq=idx.freq)
-        self.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, idx)
 
         result = idx._simple_new(np.array([pd.Period('2007-01', freq='M'),
                                            pd.Period('2007-02', freq='M')]),
                                  'p', freq=idx.freq)
-        self.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, idx)
 
     def test_constructor_simple_new_empty(self):
         # GH13079

@@ -427,7 +427,7 @@ class TestIndexOps(Ops):
             result = o.unique()
             if isinstance(o, Index):
                 self.assertTrue(isinstance(result, o.__class__))
-                self.assert_index_equal(result, orig)
+                tm.assert_index_equal(result, orig)
             elif is_datetimetz(o):
                 # datetimetz Series returns array of Timestamp
                 self.assertEqual(result[0], orig[0])
@@ -629,8 +629,7 @@ class TestIndexOps(Ops):
                                    check_index_type=False)
             # returned dtype differs depending on original
             if isinstance(s, Index):
-                self.assert_index_equal(s.unique(), Index([]),
-                                        exact=False)
+                tm.assert_index_equal(s.unique(), Index([]), exact=False)
             else:
                 self.assert_numpy_array_equal(s.unique(), np.array([]),
                                               check_dtype=False)
@@ -730,12 +729,12 @@ class TestIndexOps(Ops):
 
             self.assert_numpy_array_equal(labels, exp_arr)
             if isinstance(o, Series):
-                self.assert_index_equal(uniques, Index(orig),
-                                        check_names=False)
+                tm.assert_index_equal(uniques, Index(orig),
+                                      check_names=False)
             else:
                 # factorize explicitly resets name
-                self.assert_index_equal(uniques, exp_uniques,
-                                        check_names=False)
+                tm.assert_index_equal(uniques, exp_uniques,
+                                      check_names=False)
 
     def test_factorize_repeated(self):
         for orig in self.objs:
@@ -760,10 +759,10 @@ class TestIndexOps(Ops):
 
             self.assert_numpy_array_equal(labels, exp_arr)
             if isinstance(o, Series):
-                self.assert_index_equal(uniques, Index(orig).sort_values(),
-                                        check_names=False)
+                tm.assert_index_equal(uniques, Index(orig).sort_values(),
+                                      check_names=False)
             else:
-                self.assert_index_equal(uniques, o, check_names=False)
+                tm.assert_index_equal(uniques, o, check_names=False)
 
             exp_arr = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4],
                                np.intp)
@@ -772,10 +771,10 @@ class TestIndexOps(Ops):
 
             if isinstance(o, Series):
                 expected = Index(o.iloc[5:10].append(o.iloc[:5]))
-                self.assert_index_equal(uniques, expected, check_names=False)
+                tm.assert_index_equal(uniques, expected, check_names=False)
             else:
                 expected = o[5:10].append(o[:5])
-                self.assert_index_equal(uniques, expected, check_names=False)
+                tm.assert_index_equal(uniques, expected, check_names=False)
 
     def test_duplicated_drop_duplicates_index(self):
         # GH 4060
@@ -903,7 +902,7 @@ class TestIndexOps(Ops):
             # values will not be changed
             result = o.fillna(o.astype(object).values[0])
             if isinstance(o, Index):
-                self.assert_index_equal(o, result)
+                tm.assert_index_equal(o, result)
             else:
                 self.assert_series_equal(o, result)
             # check shallow_copied
@@ -937,7 +936,7 @@ class TestIndexOps(Ops):
 
                 result = o.fillna(fill_value)
                 if isinstance(o, Index):
-                    self.assert_index_equal(result, expected)
+                    tm.assert_index_equal(result, expected)
                 else:
                     self.assert_series_equal(result, expected)
                 # check shallow_copied

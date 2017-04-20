@@ -519,7 +519,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                          'Volume', 'Price', 'Chg', '% Chg'])
         nrows = 100
         self.assertEqual(df.shape[0], nrows)
-        self.assert_index_equal(df.columns, columns)
+        tm.assert_index_equal(df.columns, columns)
 
     @tm.slow
     def test_banklist_header(self):

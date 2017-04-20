@@ -312,7 +312,7 @@ class Base(object):
             idx.name = 'foo'
             result = idx.drop_duplicates()
             self.assertEqual(result.name, 'foo')
-            self.assert_index_equal(result, Index([ind[0]], name='foo'))
+            tm.assert_index_equal(result, Index([ind[0]], name='foo'))
 
     def test_get_unique_index(self):
         for ind in self.indices.values():
@@ -333,7 +333,7 @@ class Base(object):
 
             for dropna in [False, True]:
                 result = idx._get_unique_index(dropna=dropna)
-                self.assert_index_equal(result, idx_unique)
+                tm.assert_index_equal(result, idx_unique)
 
             # nans:
 
@@ -359,7 +359,7 @@ class Base(object):
                                         [idx_unique_nan, idx_unique]):
                 for i in [idx_nan, idx_unique_nan]:
                     result = i._get_unique_index(dropna=dropna)
-                    self.assert_index_equal(result, expected)
+                    tm.assert_index_equal(result, expected)
 
     def test_sort(self):
         for ind in self.indices.values():
@@ -880,7 +880,7 @@ class Base(object):
             else:
                 idx = index.copy()
                 result = idx.fillna(idx[0])
-                self.assert_index_equal(result, idx)
+                tm.assert_index_equal(result, idx)
                 self.assertFalse(result is idx)
 
                 msg = "'value' must be a scalar, passed: "

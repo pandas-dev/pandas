@@ -126,7 +126,7 @@ class TestPeriodIndex(tm.TestCase):
         df = pd.DataFrame({'s1': s1, 's2': s2})
 
         exp = pd.period_range('1/1/1980', '1/1/2012', freq='M')
-        self.assert_index_equal(df.index, exp)
+        tm.assert_index_equal(df.index, exp)
 
     def test_intersection(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')

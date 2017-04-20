@@ -775,7 +775,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         self.assertTrue(np.isnan(added['D']).all())
 
         self_added = self.frame + self.frame
-        self.assert_index_equal(self_added.index, self.frame.index)
+        tm.assert_index_equal(self_added.index, self.frame.index)
 
         added_rev = frame_copy + self.frame
         self.assertTrue(np.isnan(added['D']).all())
@@ -872,7 +872,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         smaller_frame = self.tsframe[:-5]
         smaller_added = smaller_frame.add(ts, axis='index')
 
-        self.assert_index_equal(smaller_added.index, self.tsframe.index)
+        tm.assert_index_equal(smaller_added.index, self.tsframe.index)
 
         smaller_ts = ts[:-5]
         smaller_added2 = self.tsframe.add(smaller_ts, axis='index')

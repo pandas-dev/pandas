@@ -1576,7 +1576,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         resampled = ts.resample('5min', base=2).mean()
         exp_rng = date_range('12/31/1999 23:57:00', '1/1/2000 01:57',
                              freq='5min')
-        self.assert_index_equal(resampled.index, exp_rng)
+        tm.assert_index_equal(resampled.index, exp_rng)
 
     def test_resample_base_with_timedeltaindex(self):
 
@@ -1590,8 +1590,8 @@ class TestDatetimeIndex(Base, tm.TestCase):
         exp_without_base = timedelta_range(start='0s', end='25s', freq='2s')
         exp_with_base = timedelta_range(start='5s', end='29s', freq='2s')
 
-        self.assert_index_equal(without_base.index, exp_without_base)
-        self.assert_index_equal(with_base.index, exp_with_base)
+        tm.assert_index_equal(without_base.index, exp_without_base)
+        tm.assert_index_equal(with_base.index, exp_with_base)
 
     def test_resample_categorical_data_with_timedeltaindex(self):
         # GH #12169
@@ -1622,7 +1622,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
         result = ts.resample('M', kind='period').mean()
         exp_index = period_range('Jan-2000', 'Dec-2000', freq='M')
-        self.assert_index_equal(result.index, exp_index)
+        tm.assert_index_equal(result.index, exp_index)
 
     def test_period_with_agg(self):
 
@@ -1785,7 +1785,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
         result = ts.resample('5t', closed='right', label='left').mean()
         ex_index = date_range('1999-12-31 23:55', periods=4, freq='5t')
-        self.assert_index_equal(result.index, ex_index)
+        tm.assert_index_equal(result.index, ex_index)
 
         len0pts = _simple_pts('2007-01', '2010-05', freq='M')[:0]
         # it works
@@ -2665,7 +2665,7 @@ class TestPeriodIndex(Base, tm.TestCase):
 
         ex_index = date_range(start='1/1/2012 9:30', freq='10min', periods=3)
 
-        self.assert_index_equal(result.index, ex_index)
+        tm.assert_index_equal(result.index, ex_index)
         assert_series_equal(result, exp)
 
     def test_quarterly_resampling(self):
@@ -3049,7 +3049,7 @@ class TestTimeGrouper(tm.TestCase):
 
         # it works!
         result = grouped.apply(f)
-        self.assert_index_equal(result.index, df.index)
+        tm.assert_index_equal(result.index, df.index)
 
     def test_panel_aggregation(self):
         ind = pd.date_range('1/1/2000', periods=100)

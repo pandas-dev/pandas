@@ -111,13 +111,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = self.ts.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
 
-        self.assert_index_equal(result.index, self.ts.index)
+        tm.assert_index_equal(result.index, self.ts.index)
         for _, gp in grouped:
             assert_fp_equal(result.reindex(gp.index), gp.mean())
 
         grouped = self.tsframe.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
-        self.assert_index_equal(result.index, self.tsframe.index)
+        tm.assert_index_equal(result.index, self.tsframe.index)
         for _, gp in grouped:
             agged = gp.mean()
             res = result.reindex(gp.index)
@@ -128,8 +128,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = self.tsframe.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
                                        axis=1)
         result = grouped.transform(np.mean)
-        self.assert_index_equal(result.index, self.tsframe.index)
-        self.assert_index_equal(result.columns, self.tsframe.columns)
+        tm.assert_index_equal(result.index, self.tsframe.index)
+        tm.assert_index_equal(result.columns, self.tsframe.columns)
         for _, gp in grouped:
             agged = gp.mean(1)
             res = result.reindex(columns=gp.columns)

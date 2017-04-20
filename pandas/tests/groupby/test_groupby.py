@@ -1719,7 +1719,7 @@ class TestGroupBy(MixIn, tm.TestCase):
                                 lambda x: x.day], axis=1)
 
         agged = grouped.agg(lambda x: x.sum())
-        self.assert_index_equal(agged.index, df.columns)
+        tm.assert_index_equal(agged.index, df.columns)
         assert_almost_equal(df.T.values, agged.values)
 
         agged = grouped.agg(lambda x: x.sum())
@@ -2183,7 +2183,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         result = grouped.apply(f)
 
         tm.assertIsInstance(result, DataFrame)
-        self.assert_index_equal(result.index, ts.index)
+        tm.assert_index_equal(result.index, ts.index)
 
     def test_apply_series_yield_constant(self):
         result = self.df.groupby(['A', 'B'])['C'].apply(len)
@@ -2203,7 +2203,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = self.df.groupby(['A', 'B'])
         result = grouped.apply(len)
         expected = grouped.count()['C']
-        self.assert_index_equal(result.index, expected.index)
+        tm.assert_index_equal(result.index, expected.index)
         self.assert_numpy_array_equal(result.values, expected.values)
 
     def test_apply_frame_concat_series(self):
@@ -2317,26 +2317,26 @@ class TestGroupBy(MixIn, tm.TestCase):
         df = DataFrame(np.random.randn(8, 4), index=index, columns=columns)
 
         result = df.groupby(level=0).mean()
-        self.assert_index_equal(result.columns, columns)
+        tm.assert_index_equal(result.columns, columns)
 
         result = df.groupby(level=0, axis=1).mean()
-        self.assert_index_equal(result.index, df.index)
+        tm.assert_index_equal(result.index, df.index)
 
         result = df.groupby(level=0).agg(np.mean)
-        self.assert_index_equal(result.columns, columns)
+        tm.assert_index_equal(result.columns, columns)
 
         result = df.groupby(level=0).apply(lambda x: x.mean())
-        self.assert_index_equal(result.columns, columns)
+        tm.assert_index_equal(result.columns, columns)
 
         result = df.groupby(level=0, axis=1).agg(lambda x: x.mean(1))
-        self.assert_index_equal(result.columns, Index(['A', 'B']))
-        self.assert_index_equal(result.index, df.index)
+        tm.assert_index_equal(result.columns, Index(['A', 'B']))
+        tm.assert_index_equal(result.index, df.index)
 
         # add a nuisance column
         sorted_columns, _ = columns.sortlevel(0)
         df['A', 'foo'] = 'bar'
         result = df.groupby(level=0).mean()
-        self.assert_index_equal(result.columns, df.columns[:-1])
+        tm.assert_index_equal(result.columns, df.columns[:-1])
 
     def test_pass_args_kwargs(self):
         from numpy import percentile
@@ -3023,18 +3023,18 @@ class TestGroupBy(MixIn, tm.TestCase):
 
             tm.assert_panel_equal(agged, agged2)
 
-            self.assert_index_equal(agged.items, Index([0, 1]))
+            tm.assert_index_equal(agged.items, Index([0, 1]))
 
             grouped = self.panel.groupby(lambda x: x.month, axis='major')
             agged = grouped.mean()
 
             exp = Index(sorted(list(set(self.panel.major_axis.month))))
-            self.assert_index_equal(agged.major_axis, exp)
+            tm.assert_index_equal(agged.major_axis, exp)
 
             grouped = self.panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
                                          axis='minor')
             agged = grouped.mean()
-            self.assert_index_equal(agged.minor_axis, Index([0, 1]))
+            tm.assert_index_equal(agged.minor_axis, Index([0, 1]))
 
     def test_groupby_2d_malformed(self):
         d = DataFrame(index=lrange(2))
@@ -3044,7 +3044,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         d['label'] = ['l1', 'l2']
         tmp = d.groupby(['group']).mean()
         res_values = np.array([[0, 1], [0, 1]], dtype=np.int64)
-        self.assert_index_equal(tmp.columns, Index(['zeros', 'ones']))
+        tm.assert_index_equal(tmp.columns, Index(['zeros', 'ones']))
         self.assert_numpy_array_equal(tmp.values, res_values)
 
     def test_int32_overflow(self):
