@@ -689,12 +689,6 @@ class TestIsInstance(tm.TestCase):
         with assertRaisesRegexp(AssertionError, expected):
             tm.assertIsInstance(1, pd.Series)
 
-    def test_notisinstance(self):
-
-        expected = "Input must not be type "
-        with assertRaisesRegexp(AssertionError, expected):
-            tm.assertNotIsInstance(pd.Series([1]), pd.Series)
-
 
 class TestAssertCategoricalEqual(unittest.TestCase):
 

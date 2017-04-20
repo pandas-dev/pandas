@@ -1069,15 +1069,6 @@ def assertIsInstance(obj, cls, msg=''):
         raise AssertionError(err_msg.format(msg, cls, type(obj)))
 
 
-def assertNotIsInstance(obj, cls, msg=''):
-    """Test that obj is not an instance of cls
-    (which can be a class or a tuple of classes,
-    as supported by isinstance())."""
-    if isinstance(obj, cls):
-        err_msg = "{0}Input must not be type {1}"
-        raise AssertionError(err_msg.format(msg, cls))
-
-
 def assert_categorical_equal(left, right, check_dtype=True,
                              obj='Categorical', check_category_order=True):
     """Test that categoricals are eqivalent

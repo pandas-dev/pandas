@@ -144,7 +144,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
                                parse_dates=[[0, 1]], date_parser=Timestamp)
 
         ex_val = Timestamp('05/31/2012 15:30:00.029')
-        self.assertEqual(result['0_1'][0], ex_val)
+        assert result['0_1'][0] == ex_val
 
     def test_multiple_date_cols_with_header(self):
         data = """\
@@ -157,7 +157,7 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
-        self.assertNotIsInstance(df.nominal[0], compat.string_types)
+        assert not isinstance(df.nominal[0], compat.string_types)
 
     ts_data = """\
 ID,date,nominalTime,actualTime,A,B,C,D,E
@@ -170,8 +170,8 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
 
     def test_multiple_date_col_name_collision(self):
-        self.assertRaises(ValueError, self.read_csv, StringIO(self.ts_data),
-                          parse_dates={'ID': [1, 2]})
+        with pytest.raises(ValueError):
+            self.read_csv(StringIO(self.ts_data), parse_dates={'ID': [1, 2]})
 
         data = """\
 date_NominalTime,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
@@ -182,8 +182,8 @@ KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""  # noqa
 
-        self.assertRaises(ValueError, self.read_csv, StringIO(data),
-                          parse_dates=[[1, 2]])
+        with pytest.raises(ValueError):
+            self.read_csv(StringIO(data), parse_dates=[[1, 2]])
 
     def test_date_parser_int_bug(self):
         # See gh-3071

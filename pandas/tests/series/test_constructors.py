@@ -32,12 +32,12 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         # Pass in scalar is disabled
         scalar = Series(0.5)
-        self.assertNotIsInstance(scalar, float)
+        assert not isinstance(scalar, float)
 
-        # coercion
-        self.assertEqual(float(Series([1.])), 1.0)
-        self.assertEqual(int(Series([1.])), 1)
-        self.assertEqual(long(Series([1.])), 1)
+        # Coercion
+        assert float(Series([1.])) == 1.0
+        assert int(Series([1.])) == 1
+        assert long(Series([1.])) == 1
 
     def test_constructor(self):
         self.assertTrue(self.ts.index.is_all_dates)
