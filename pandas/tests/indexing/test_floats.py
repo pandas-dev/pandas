@@ -562,7 +562,7 @@ class TestFloatIndexers(tm.TestCase):
                     if isinstance(s, Series):
                         tm.assert_series_equal(result, expected)
                     else:
-                        self.assert_frame_equal(result, expected)
+                        tm.assert_frame_equal(result, expected)
                     # setitem
                     s2 = s.copy()
                     with catch_warnings(record=True):

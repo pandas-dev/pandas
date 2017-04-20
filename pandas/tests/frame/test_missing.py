@@ -324,7 +324,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
                                  'C': ['foo', 'bar', '?'],
                                  'D': ['foo2', 'bar2', '?']},
                                 index=date_range('20130110', periods=3))
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         df = pd.DataFrame({'A': [-1, -2, np.nan],
                            'B': [pd.Timestamp('2013-01-01'),
@@ -339,7 +339,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
                                  'C': ['foo', 'bar', '?'],
                                  'D': ['foo2', 'bar2', '?']},
                                 index=pd.date_range('20130110', periods=3))
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_ffill(self):
         self.tsframe['A'][:5] = nan

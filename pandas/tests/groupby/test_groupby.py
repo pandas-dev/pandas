@@ -958,8 +958,8 @@ class TestGroupBy(MixIn, tm.TestCase):
              'c': 2}, index=[1])
         dfg_conversion_expected.index.name = 'a'
 
-        self.assert_frame_equal(dfg_no_conversion, dfg_no_conversion_expected)
-        self.assert_frame_equal(dfg_conversion, dfg_conversion_expected)
+        tm.assert_frame_equal(dfg_no_conversion, dfg_no_conversion_expected)
+        tm.assert_frame_equal(dfg_conversion, dfg_conversion_expected)
 
     def test_len(self):
         df = tm.makeTimeDataFrame()

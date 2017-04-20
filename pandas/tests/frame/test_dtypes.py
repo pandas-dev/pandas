@@ -613,7 +613,7 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                               ['2013-01-03', '2013-01-03 00:00:00-05:00',
                                '2013-01-03 00:00:00+01:00']],
                              columns=self.tzframe.columns)
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = str(self.tzframe)
         self.assertTrue('0 2013-01-01 2013-01-01 00:00:00-05:00 '
