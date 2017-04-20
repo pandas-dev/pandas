@@ -430,7 +430,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
     import os
     os.remove('styled.xlsx')
 
-See the :ref:`Style documentation <style>` for more detail.
+See the :ref:`Style documentation <style.ipynb>` for more detail.
 
 .. _whatsnew_0200.enhancements.intervalindex:
 
