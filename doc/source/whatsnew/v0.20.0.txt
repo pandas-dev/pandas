@@ -1523,7 +1523,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of ``pd.wide_to_long()`` (:issue:`14779`)
-- Improved performance of ``pd.factorize()`` by releasing the GIL with ``object`` dtype when inferred as strings (:issue:`14859`)
+- Improved performance of ``pd.factorize()`` by releasing the GIL with ``object`` dtype when inferred as strings (:issue:`14859`, :issue:`16057`)
 - Improved performance of timeseries plotting with an irregular DatetimeIndex
   (or with ``compat_x=True``) (:issue:`15073`).
 - Improved performance of ``groupby().cummin()`` and ``groupby().cummax()`` (:issue:`15048`, :issue:`15109`, :issue:`15561`, :issue:`15635`)
