@@ -731,13 +731,23 @@ def pandas_dtype(dtype):
             except TypeError:
                 pass
 
+        elif dtype == 'object':
+            return np.dtype(dtype)
+
         try:
             return CategoricalDtype.construct_from_string(dtype)
         except TypeError:
             pass
     elif isinstance(dtype, ExtensionDtype):
         return dtype
-    elif np.dtype(dtype).kind == 'O':
-        raise TypeError("data type {0} not understood".format(dtype))
+    else:
+        try:
+            np.dtype(dtype)
+        except (TypeError, ValueError):
+            raise
+        if dtype == object:
+            return np.dtype(dtype)
+        elif np.dtype(dtype).kind == 'O':
+            raise TypeError('dtype {0} not understood'.format(dtype))
 
     return np.dtype(dtype)
