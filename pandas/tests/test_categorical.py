@@ -2050,7 +2050,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         # sorting
         s.name = 'E'
-        self.assert_series_equal(result2.sort_index(), s.sort_index())
+        tm.assert_series_equal(result2.sort_index(), s.sort_index())
 
         cat = pd.Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
         df = pd.DataFrame(pd.Series(cat))
@@ -3104,7 +3104,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         res = df.sort_values(by=["sort"], ascending=False)
         exp = df.sort_values(by=["string"], ascending=True)
-        self.assert_series_equal(res["values"], exp["values"])
+        tm.assert_series_equal(res["values"], exp["values"])
         self.assertEqual(res["sort"].dtype, "category")
         self.assertEqual(res["unsort"].dtype, "category")
 
@@ -3762,8 +3762,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assertRaises(TypeError, lambda: "d" < cat)
         self.assertRaises(TypeError, lambda: "d" > cat)
 
-        self.assert_series_equal(cat == "d", Series([False, False, False]))
-        self.assert_series_equal(cat != "d", Series([True, True, True]))
+        tm.assert_series_equal(cat == "d", Series([False, False, False]))
+        tm.assert_series_equal(cat != "d", Series([True, True, True]))
 
         # And test NaN handling...
         cat = Series(Categorical(["a", "b", "c", np.nan]))

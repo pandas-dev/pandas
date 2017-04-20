@@ -81,7 +81,7 @@ class TimeConversionFormats(tm.TestCase):
         expected = Series([datetime(2012, 12, 31),
                            datetime(2014, 12, 31), datetime(9999, 12, 31)],
                           dtype=object)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = pd.to_datetime(s, format='%Y%m%d', errors='coerce')
         expected = Series(['20121231', '20141231', 'NaT'], dtype='M8[ns]')
@@ -948,8 +948,8 @@ class TestToDatetimeInferFormat(tm.TestCase):
 
             # Whether the format is explicitly passed, it is inferred, or
             # it is not inferred, the results should all be the same
-            self.assert_series_equal(with_format, no_infer)
-            self.assert_series_equal(no_infer, yes_infer)
+            tm.assert_series_equal(with_format, no_infer)
+            tm.assert_series_equal(no_infer, yes_infer)
 
     def test_to_datetime_infer_datetime_format_inconsistent_format(self):
         s = pd.Series(np.array(['01/01/2011 00:00:00',
@@ -1290,8 +1290,8 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         with tm.assertRaises(ValueError):
             tools.to_time(arg, format="%I:%M%p", errors="raise")
 
-        self.assert_series_equal(tools.to_time(Series(arg, name="test")),
-                                 Series(expected_arr, name="test"))
+        tm.assert_series_equal(tools.to_time(Series(arg, name="test")),
+                               Series(expected_arr, name="test"))
 
         res = tools.to_time(np.array(arg))
         self.assertIsInstance(res, list)

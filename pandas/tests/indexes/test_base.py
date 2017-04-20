@@ -174,7 +174,7 @@ class TestIndex(Base, tm.TestCase):
 
         exp = pd.Series(['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990',
                          '5-1-1990'], name='date')
-        self.assert_series_equal(df['date'], exp)
+        tm.assert_series_equal(df['date'], exp)
 
         # GH 6274
         # infer freq of same

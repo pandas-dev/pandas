@@ -26,7 +26,7 @@ class TestSeriesSorting(TestData, tm.TestCase):
         ser = Series([3, 2, 4, 1], ['A', 'B', 'C', 'D'])
         expected = Series([1, 2, 3, 4], ['D', 'B', 'A', 'C'])
         result = ser.sort_values()
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         ts = self.ts.copy()
         ts[:5] = np.NaN
@@ -75,7 +75,7 @@ class TestSeriesSorting(TestData, tm.TestCase):
         # inplace=True
         ts = self.ts.copy()
         ts.sort_values(ascending=False, inplace=True)
-        self.assert_series_equal(ts, self.ts.sort_values(ascending=False))
+        tm.assert_series_equal(ts, self.ts.sort_values(ascending=False))
         tm.assert_index_equal(ts.index,
                               self.ts.sort_values(ascending=False).index)
 

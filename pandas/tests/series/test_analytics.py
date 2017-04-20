@@ -320,19 +320,19 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                           name='int_data',
                           index=['count', 'mean', 'std', 'min', '25%',
                                  '50%', '75%', 'max'])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series([True, True, False, False, False], name='bool_data')
         result = s.describe()
         expected = Series([5, 2, False, 3], name='bool_data',
                           index=['count', 'unique', 'top', 'freq'])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series(['a', 'a', 'b', 'c', 'd'], name='str_data')
         result = s.describe()
         expected = Series([5, 4, 'a', 2], name='str_data',
                           index=['count', 'unique', 'top', 'freq'])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_argsort(self):
         self._check_accum_op('argsort', check_dtype=False)
@@ -362,11 +362,12 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         mexpected = np.argsort(s.values, kind='mergesort')
         qexpected = np.argsort(s.values, kind='quicksort')
 
-        self.assert_series_equal(mindexer, Series(mexpected),
-                                 check_dtype=False)
-        self.assert_series_equal(qindexer, Series(qexpected),
-                                 check_dtype=False)
-        self.assertFalse(np.array_equal(qindexer, mindexer))
+        tm.assert_series_equal(mindexer, Series(mexpected),
+                               check_dtype=False)
+        tm.assert_series_equal(qindexer, Series(qexpected),
+                               check_dtype=False)
+        pytest.raises(AssertionError, tm.assert_numpy_array_equal,
+                      qindexer, mindexer)
 
     def test_cumsum(self):
         self._check_accum_op('cumsum')
@@ -382,7 +383,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = ts.cummin()[1::2]
         expected = np.minimum.accumulate(ts.valid())
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_cummax(self):
         tm.assert_numpy_array_equal(self.ts.cummax().values,
@@ -392,7 +393,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = ts.cummax()[1::2]
         expected = np.maximum.accumulate(ts.valid())
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_cummin_datetime64(self):
         s = pd.Series(pd.to_datetime(['NaT', '2000-1-2', 'NaT', '2000-1-1',
@@ -401,13 +402,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = pd.Series(pd.to_datetime(['NaT', '2000-1-2', 'NaT',
                                              '2000-1-1', 'NaT', '2000-1-1']))
         result = s.cummin(skipna=True)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         expected = pd.Series(pd.to_datetime(
             ['NaT', '2000-1-2', '2000-1-2', '2000-1-1', '2000-1-1', '2000-1-1'
              ]))
         result = s.cummin(skipna=False)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
     def test_cummax_datetime64(self):
         s = pd.Series(pd.to_datetime(['NaT', '2000-1-2', 'NaT', '2000-1-1',
@@ -416,13 +417,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = pd.Series(pd.to_datetime(['NaT', '2000-1-2', 'NaT',
                                              '2000-1-2', 'NaT', '2000-1-3']))
         result = s.cummax(skipna=True)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         expected = pd.Series(pd.to_datetime(
             ['NaT', '2000-1-2', '2000-1-2', '2000-1-2', '2000-1-2', '2000-1-3'
              ]))
         result = s.cummax(skipna=False)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
     def test_cummin_timedelta64(self):
         s = pd.Series(pd.to_timedelta(['NaT',
@@ -439,7 +440,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                               'NaT',
                                               '1 min', ]))
         result = s.cummin(skipna=True)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         expected = pd.Series(pd.to_timedelta(['NaT',
                                               '2 min',
@@ -448,7 +449,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                               '1 min',
                                               '1 min', ]))
         result = s.cummin(skipna=False)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
     def test_cummax_timedelta64(self):
         s = pd.Series(pd.to_timedelta(['NaT',
@@ -465,7 +466,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                               'NaT',
                                               '3 min', ]))
         result = s.cummax(skipna=True)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         expected = pd.Series(pd.to_timedelta(['NaT',
                                               '2 min',
@@ -474,7 +475,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                               '2 min',
                                               '3 min', ]))
         result = s.cummax(skipna=False)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
     def test_npdiff(self):
         pytest.skip("skipping due to Series no longer being an "
@@ -629,12 +630,12 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series([1.123, 2.123, 3.123], index=lrange(3))
         result = round(s)
         expected_rounded0 = Series([1., 2., 3.], index=lrange(3))
-        self.assert_series_equal(result, expected_rounded0)
+        tm.assert_series_equal(result, expected_rounded0)
 
         decimals = 2
         expected_rounded = Series([1.12, 2.12, 3.12], index=lrange(3))
         result = round(s, decimals)
-        self.assert_series_equal(result, expected_rounded)
+        tm.assert_series_equal(result, expected_rounded)
 
     def test_prod_numpy16_bug(self):
         s = Series([1., 1., 1.], index=lrange(3))
@@ -1257,10 +1258,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = pd.Series([1, np.nan, 7, 3, 5, np.nan], index=mi)
 
         expected = pd.Series([6, 2], index=['a', 'b'], dtype=np.float64)
-        self.assert_series_equal(s.ptp(level=0), expected)
+        tm.assert_series_equal(s.ptp(level=0), expected)
 
         expected = pd.Series([np.nan, np.nan], index=['a', 'b'])
-        self.assert_series_equal(s.ptp(level=0, skipna=False), expected)
+        tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
         with self.assertRaises(ValueError):
             s.ptp(axis=1)

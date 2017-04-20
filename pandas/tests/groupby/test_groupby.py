@@ -2132,13 +2132,13 @@ class TestGroupBy(MixIn, tm.TestCase):
                           Index(range(1, 7), name='foo'))
 
         result = s.groupby(level=0).sum()
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         result = s.groupby(level=[0]).sum()
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         result = s.groupby(level=-1).sum()
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         result = s.groupby(level=[-1]).sum()
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         tm.assertRaises(ValueError, s.groupby, level=1)
         tm.assertRaises(ValueError, s.groupby, level=-2)

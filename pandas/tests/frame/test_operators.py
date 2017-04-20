@@ -677,13 +677,13 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         # not empty DataFrame
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             result = getattr(df, op)(const).get_dtype_counts()
-            self.assert_series_equal(result, Series([2], ['bool']))
+            tm.assert_series_equal(result, Series([2], ['bool']))
 
         # empty DataFrame
         empty = df.iloc[:0]
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             result = getattr(empty, op)(const).get_dtype_counts()
-            self.assert_series_equal(result, Series([2], ['bool']))
+            tm.assert_series_equal(result, Series([2], ['bool']))
 
     def test_dti_tz_convert_to_utc(self):
         base = pd.DatetimeIndex(['2011-01-01', '2011-01-02',

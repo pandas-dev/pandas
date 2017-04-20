@@ -498,7 +498,7 @@ class TestIndexOps(Ops):
                     tm.assert_numpy_array_equal(pd.isnull(o), nanloc)
                 else:
                     exp = pd.Series(nanloc, o.index, name='a')
-                    self.assert_series_equal(pd.isnull(o), exp)
+                    tm.assert_series_equal(pd.isnull(o), exp)
 
                 expected_s_na = Series(list(range(10, 2, -1)) + [3],
                                        index=expected_index[9:0:-1],
@@ -903,7 +903,7 @@ class TestIndexOps(Ops):
             if isinstance(o, Index):
                 tm.assert_index_equal(o, result)
             else:
-                self.assert_series_equal(o, result)
+                tm.assert_series_equal(o, result)
             # check shallow_copied
             self.assertFalse(o is result)
 
@@ -937,7 +937,7 @@ class TestIndexOps(Ops):
                 if isinstance(o, Index):
                     tm.assert_index_equal(result, expected)
                 else:
-                    self.assert_series_equal(result, expected)
+                    tm.assert_series_equal(result, expected)
                 # check shallow_copied
                 self.assertFalse(o is result)
 

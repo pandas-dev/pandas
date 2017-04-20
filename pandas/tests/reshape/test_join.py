@@ -167,10 +167,10 @@ class TestJoin(tm.TestCase):
         source = self.source
 
         merged = target.join(source, on='C')
-        self.assert_series_equal(merged['MergedA'], target['A'],
-                                 check_names=False)
-        self.assert_series_equal(merged['MergedD'], target['D'],
-                                 check_names=False)
+        tm.assert_series_equal(merged['MergedA'], target['A'],
+                               check_names=False)
+        tm.assert_series_equal(merged['MergedD'], target['D'],
+                               check_names=False)
 
         # join with duplicates (fix regression from DataFrame/Matrix merge)
         df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
@@ -266,10 +266,10 @@ class TestJoin(tm.TestCase):
 
         expected = df.join(df2, on='key')
         expected = expected[expected['value'].notnull()]
-        self.assert_series_equal(joined['key'], expected['key'],
-                                 check_dtype=False)
-        self.assert_series_equal(joined['value'], expected['value'],
-                                 check_dtype=False)
+        tm.assert_series_equal(joined['key'], expected['key'],
+                               check_dtype=False)
+        tm.assert_series_equal(joined['value'], expected['value'],
+                               check_dtype=False)
         tm.assert_index_equal(joined.index, expected.index)
 
     def test_join_on_singlekey_list(self):

@@ -587,20 +587,20 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         # default name assigned
         rdf = self.frame.reset_index()
         exp = pd.Series(self.frame.index.values, name='index')
-        self.assert_series_equal(rdf['index'], exp)
+        tm.assert_series_equal(rdf['index'], exp)
 
         # default name assigned, corner case
         df = self.frame.copy()
         df['index'] = 'foo'
         rdf = df.reset_index()
         exp = pd.Series(self.frame.index.values, name='level_0')
-        self.assert_series_equal(rdf['level_0'], exp)
+        tm.assert_series_equal(rdf['level_0'], exp)
 
         # but this is ok
         self.frame.index.name = 'index'
         deleveled = self.frame.reset_index()
-        self.assert_series_equal(deleveled['index'],
-                                 pd.Series(self.frame.index))
+        tm.assert_series_equal(deleveled['index'],
+                               pd.Series(self.frame.index))
         tm.assert_index_equal(deleveled.index,
                               pd.Index(np.arange(len(deleveled))))
 
