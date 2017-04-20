@@ -392,7 +392,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
         self.assertTrue(ser.index.is_all_dates)
-        self.assertIsInstance(ser.index, DatetimeIndex)
+        assert isinstance(ser.index, DatetimeIndex)
 
     def test_empty_series_ops(self):
         # see issue #13844
@@ -883,8 +883,8 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         the_min = rng2.min()
         the_max = rng2.max()
-        tm.assertIsInstance(the_min, Timestamp)
-        tm.assertIsInstance(the_max, Timestamp)
+        assert isinstance(the_min, Timestamp)
+        assert isinstance(the_max, Timestamp)
         self.assertEqual(the_min, rng[0])
         self.assertEqual(the_max, rng[-1])
 

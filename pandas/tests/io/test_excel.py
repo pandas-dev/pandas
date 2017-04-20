@@ -2306,12 +2306,12 @@ class ExcelWriterEngineTests(tm.TestCase):
 
         with ensure_clean('.xlsx') as path:
             writer = ExcelWriter(path)
-            tm.assertIsInstance(writer, writer_klass)
+            assert isinstance(writer, writer_klass)
 
         _skip_if_no_xlwt()
         with ensure_clean('.xls') as path:
             writer = ExcelWriter(path)
-            tm.assertIsInstance(writer, _XlwtWriter)
+            assert isinstance(writer, _XlwtWriter)
 
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
@@ -2340,7 +2340,7 @@ class ExcelWriterEngineTests(tm.TestCase):
         with pd.option_context('io.excel.xlsx.writer', 'dummy'):
             register_writer(DummyClass)
             writer = ExcelWriter('something.test')
-            tm.assertIsInstance(writer, DummyClass)
+            assert isinstance(writer, DummyClass)
             df = tm.makeCustomDataframe(1, 1)
 
             with catch_warnings(record=True):

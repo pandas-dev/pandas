@@ -117,7 +117,7 @@ class TestGroupByAggregate(tm.TestCase):
         prng = period_range('2012-1-1', freq='M', periods=3)
         df = DataFrame(np.random.randn(3, 2), index=prng)
         rs = df.groupby(level=0).sum()
-        tm.assertIsInstance(rs.index, PeriodIndex)
+        assert isinstance(rs.index, PeriodIndex)
 
         # GH 3579
         index = period_range(start='1999-01', periods=5, freq='M')
@@ -464,7 +464,7 @@ class TestGroupByAggregate(tm.TestCase):
             return ser.size
 
         result = DataFrame().groupby(self.df.A).agg(aggfun)
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
         self.assertEqual(len(result), 0)
 
     def test_agg_item_by_item_raise_typeerror(self):

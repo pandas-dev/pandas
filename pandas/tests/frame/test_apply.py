@@ -187,10 +187,10 @@ class TestDataFrameApply(tm.TestCase, TestData):
                 res = df.apply(f, axis=axis, raw=raw)
                 if is_reduction:
                     agg_axis = df._get_agg_axis(axis)
-                    tm.assertIsInstance(res, Series)
+                    assert isinstance(res, Series)
                     self.assertIs(res.index, agg_axis)
                 else:
-                    tm.assertIsInstance(res, DataFrame)
+                    assert isinstance(res, DataFrame)
 
             _checkit()
             _checkit(axis=1)
@@ -204,7 +204,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
             _check(no_index, lambda x: x.mean())
 
         result = no_cols.apply(lambda x: x.mean(), broadcast=True)
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
 
     def test_apply_with_args_kwds(self):
         def add_some(x, howmuch=0):
@@ -357,7 +357,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         s.index = MultiIndex.from_arrays([['a', 'a', 'b'], ['c', 'd', 'd']])
         s.columns = ['col1', 'col2']
         res = s.apply(lambda x: Series({'min': min(x), 'max': max(x)}), 1)
-        tm.assertIsInstance(res.index, MultiIndex)
+        assert isinstance(res.index, MultiIndex)
 
     def test_apply_dict(self):
 
@@ -385,7 +385,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
 
         # GH #465, function returning tuples
         result = self.frame.applymap(lambda x: (x, x))
-        tm.assertIsInstance(result['A'][0], tuple)
+        assert isinstance(result['A'][0], tuple)
 
         # GH 2909, object conversion to float in constructor?
         df = DataFrame(data=[1, 'a'])

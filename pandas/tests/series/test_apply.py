@@ -72,7 +72,7 @@ class TestSeriesApply(TestData, tm.TestCase):
 
         result = s.apply(str.split, args=(',', ))
         self.assertEqual(result[0], ['foo', 'bar'])
-        tm.assertIsInstance(result[0], list)
+        assert isinstance(result[0], list)
 
     def test_apply_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
@@ -387,7 +387,7 @@ class TestSeriesMap(TestData, tm.TestCase):
 
         result = self.series.map(lambda x: Decimal(str(x)))
         self.assertEqual(result.dtype, np.object_)
-        tm.assertIsInstance(result[0], Decimal)
+        assert isinstance(result[0], Decimal)
 
     def test_map_na_exclusion(self):
         s = Series([1.5, np.nan, 3, np.nan, 5])

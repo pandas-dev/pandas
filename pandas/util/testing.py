@@ -191,11 +191,35 @@ def assert_almost_equal(left, right, check_exact=False,
             **kwargs)
 
 
+def _check_isinstance(left, right, cls):
+    """
+    Helper method for our assert_* methods that ensures that
+    the two objects being compared have the right type before
+    proceeding with the comparison.
+
+    Parameters
+    ----------
+    left : The first object being compared.
+    right : The second object being compared.
+    cls : The class type to check against.
+
+    Raises
+    ------
+    AssertionError : Either `left` or `right` is not an instance of `cls`.
+    """
+
+    err_msg = "{0} Expected type {1}, found {2} instead"
+    cls_name = cls.__name__
+
+    if not isinstance(left, cls):
+        raise AssertionError(err_msg.format(cls_name, cls, type(left)))
+    if not isinstance(right, cls):
+        raise AssertionError(err_msg.format(cls_name, cls, type(right)))
+
+
 def assert_dict_equal(left, right, compare_keys=True):
 
-    assertIsInstance(left, dict, '[dict] ')
-    assertIsInstance(right, dict, '[dict] ')
-
+    _check_isinstance(left, right, dict)
     return libtesting.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
@@ -883,8 +907,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         return values
 
     # instance validation
-    assertIsInstance(left, Index, '[index] ')
-    assertIsInstance(right, Index, '[index] ')
+    _check_isinstance(left, right, Index)
 
     # class / dtype comparison
     _check_types(left, right, obj=obj)
@@ -1060,18 +1083,9 @@ def assertIsNone(expr, msg=''):
     return assertIs(expr, None, msg)
 
 
-def assertIsInstance(obj, cls, msg=''):
-    """Test that obj is an instance of cls
-    (which can be a class or a tuple of classes,
-    as supported by isinstance())."""
-    if not isinstance(obj, cls):
-        err_msg = "{0}Expected type {1}, found {2} instead"
-        raise AssertionError(err_msg.format(msg, cls, type(obj)))
-
-
 def assert_categorical_equal(left, right, check_dtype=True,
                              obj='Categorical', check_category_order=True):
-    """Test that categoricals are eqivalent
+    """Test that Categoricals are equivalent.
 
     Parameters
     ----------
@@ -1088,8 +1102,7 @@ def assert_categorical_equal(left, right, check_dtype=True,
         values are compared.  The ordered attribute is
         checked regardless.
     """
-    assertIsInstance(left, pd.Categorical, '[Categorical] ')
-    assertIsInstance(right, pd.Categorical, '[Categorical] ')
+    _check_isinstance(left, right, Categorical)
 
     if check_category_order:
         assert_index_equal(left.categories, right.categories,
@@ -1149,11 +1162,10 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     """
 
     # instance validation
-    # to show a detailed erorr message when classes are different
+    # Show a detailed error message when classes are different
     assert_class_equal(left, right, obj=obj)
     # both classes must be an np.ndarray
-    assertIsInstance(left, np.ndarray, '[ndarray] ')
-    assertIsInstance(right, np.ndarray, '[ndarray] ')
+    _check_isinstance(left, right, np.ndarray)
 
     def _get_base(obj):
         return obj.base if getattr(obj, 'base', None) is not None else obj
@@ -1241,13 +1253,12 @@ def assert_series_equal(left, right, check_dtype=True,
     """
 
     # instance validation
-    assertIsInstance(left, Series, '[Series] ')
-    assertIsInstance(right, Series, '[Series] ')
+    _check_isinstance(left, right, Series)
 
     if check_series_type:
         # ToDo: There are some tests using rhs is sparse
         # lhs is dense. Should use assert_class_equal in future
-        assertIsInstance(left, type(right))
+        assert isinstance(left, type(right))
         # assert_class_equal(left, right, obj=obj)
 
     # length comparison
@@ -1362,13 +1373,12 @@ def assert_frame_equal(left, right, check_dtype=True,
     """
 
     # instance validation
-    assertIsInstance(left, DataFrame, '[DataFrame] ')
-    assertIsInstance(right, DataFrame, '[DataFrame] ')
+    _check_isinstance(left, right, DataFrame)
 
     if check_frame_type:
         # ToDo: There are some tests using rhs is SparseDataFrame
         # lhs is DataFrame. Should use assert_class_equal in future
-        assertIsInstance(left, type(right))
+        assert isinstance(left, type(right))
         # assert_class_equal(left, right, obj=obj)
 
     # shape comparison
@@ -1507,17 +1517,14 @@ def assert_sp_array_equal(left, right, check_dtype=True):
         Whether to check the data dtype is identical.
     """
 
-    assertIsInstance(left, pd.SparseArray, '[SparseArray]')
-    assertIsInstance(right, pd.SparseArray, '[SparseArray]')
+    _check_isinstance(left, right, pd.SparseArray)
 
     assert_numpy_array_equal(left.sp_values, right.sp_values,
                              check_dtype=check_dtype)
 
     # SparseIndex comparison
-    assertIsInstance(
-        left.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
-    assertIsInstance(
-        right.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
+    assert isinstance(left.sp_index, pd.core.sparse.libsparse.SparseIndex)
+    assert isinstance(right.sp_index, pd.core.sparse.libsparse.SparseIndex)
 
     if not left.sp_index.equals(right.sp_index):
         raise_assert_detail('SparseArray.index', 'index are not equal',
@@ -1550,8 +1557,7 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
     """
-    assertIsInstance(left, pd.SparseSeries, '[SparseSeries]')
-    assertIsInstance(right, pd.SparseSeries, '[SparseSeries]')
+    _check_isinstance(left, right, pd.SparseSeries)
 
     if check_series_type:
         assert_class_equal(left, right, obj=obj)
@@ -1588,8 +1594,7 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
     """
-    assertIsInstance(left, pd.SparseDataFrame, '[SparseDataFrame]')
-    assertIsInstance(right, pd.SparseDataFrame, '[SparseDataFrame]')
+    _check_isinstance(left, right, pd.SparseDataFrame)
 
     if check_frame_type:
         assert_class_equal(left, right, obj=obj)
@@ -1620,8 +1625,8 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
 
 
 def assert_sp_list_equal(left, right):
-    assertIsInstance(left, pd.SparseList, '[SparseList]')
-    assertIsInstance(right, pd.SparseList, '[SparseList]')
+    assert isinstance(left, pd.SparseList)
+    assert isinstance(right, pd.SparseList)
 
     assert_sp_array_equal(left.to_array(), right.to_array())
 

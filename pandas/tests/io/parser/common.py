@@ -105,7 +105,7 @@ c,3
         expected = Series([1, 2, 3], name=1, index=idx)
         result = self.read_table(StringIO(data), sep=',', index_col=0,
                                  header=None, squeeze=True)
-        tm.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         tm.assert_series_equal(result, expected)
 
     def test_squeeze_no_view(self):
@@ -263,7 +263,7 @@ c,4,5
                               parse_dates=True)
         tm.assert_index_equal(df.columns, pd.Index(['A', 'B', 'C', 'D']))
         self.assertEqual(df.index.name, 'index')
-        self.assertIsInstance(
+        assert isinstance(
             df.index[0], (datetime, np.datetime64, Timestamp))
         self.assertEqual(df.values.dtype, np.float64)
         tm.assert_frame_equal(df, df2)
@@ -274,16 +274,14 @@ c,4,5
                               parse_dates=True)
         tm.assert_index_equal(df.columns,
                               pd.Index(['A', 'B', 'C', 'D', 'E']))
-        self.assertIsInstance(df.index[0],
-                              (datetime, np.datetime64, Timestamp))
-        self.assertEqual(df.loc[:, ['A', 'B', 'C', 'D']].values.dtype,
-                         np.float64)
+        assert isinstance(df.index[0], (datetime, np.datetime64, Timestamp))
+        assert df.loc[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64
         tm.assert_frame_equal(df, df2)
 
     def test_read_table_unicode(self):
         fin = BytesIO(u('\u0141aski, Jan;1').encode('utf-8'))
         df1 = self.read_table(fin, sep=";", encoding="utf-8", header=None)
-        tm.assertIsInstance(df1[0].values[0], compat.text_type)
+        assert isinstance(df1[0].values[0], compat.text_type)
 
     def test_read_table_wrong_num_columns(self):
         # too few!
@@ -520,7 +518,7 @@ bar,foo"""
 
         treader = self.read_table(StringIO(self.data1), sep=',', index_col=0,
                                   iterator=True)
-        tm.assertIsInstance(treader, TextFileReader)
+        assert isinstance(treader, TextFileReader)
 
         # gh-3967: stopping iteration when chunksize is specified
         data = """A,B,C

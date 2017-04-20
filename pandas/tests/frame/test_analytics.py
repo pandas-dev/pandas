@@ -399,10 +399,10 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # corner case
         frame = DataFrame()
         ct1 = frame.count(1)
-        tm.assertIsInstance(ct1, Series)
+        assert isinstance(ct1, Series)
 
         ct2 = frame.count(0)
-        tm.assertIsInstance(ct2, Series)
+        assert isinstance(ct2, Series)
 
         # GH #423
         df = DataFrame(index=lrange(10))
@@ -711,11 +711,11 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             df = DataFrame({'b': date_range('1/1/2001', periods=2)})
             _f = getattr(df, name)
             result = _f()
-            self.assertIsInstance(result, Series)
+            assert isinstance(result, Series)
 
             df['a'] = lrange(len(df))
             result = getattr(df, name)()
-            self.assertIsInstance(result, Series)
+            assert isinstance(result, Series)
             self.assertTrue(len(result))
 
         if has_skipna:
@@ -913,8 +913,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
     def test_sum_corner(self):
         axis0 = self.empty.sum(0)
         axis1 = self.empty.sum(1)
-        tm.assertIsInstance(axis0, Series)
-        tm.assertIsInstance(axis1, Series)
+        assert isinstance(axis0, Series)
+        assert isinstance(axis1, Series)
         self.assertEqual(len(axis0), 0)
         self.assertEqual(len(axis1), 0)
 

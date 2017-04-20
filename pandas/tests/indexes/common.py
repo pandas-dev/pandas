@@ -162,7 +162,7 @@ class Base(object):
     def test_dtype_str(self):
         for idx in self.indices.values():
             dtype = idx.dtype_str
-            self.assertIsInstance(dtype, compat.string_types)
+            assert isinstance(dtype, compat.string_types)
             self.assertEqual(dtype, str(idx.dtype))
 
     def test_repr_max_seq_item_setting(self):

@@ -76,7 +76,7 @@ class TestIsNull(tm.TestCase):
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
                   tm.makeObjectSeries(), tm.makeTimeSeries(),
                   tm.makePeriodSeries()]:
-            self.assertIsInstance(isnull(s), Series)
+            assert isinstance(isnull(s), Series)
 
         # frame
         for df in [tm.makeTimeDataFrame(), tm.makePeriodFrame(),

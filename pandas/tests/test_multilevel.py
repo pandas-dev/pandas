@@ -114,7 +114,7 @@ class TestMultiLevel(Base, tm.TestCase):
         multi = DataFrame(np.random.randn(4, 4),
                           index=[np.array(['a', 'a', 'b', 'b']),
                                  np.array(['x', 'y', 'x', 'y'])])
-        tm.assertIsInstance(multi.index, MultiIndex)
+        assert isinstance(multi.index, MultiIndex)
         assert not isinstance(multi.columns, MultiIndex)
 
         multi = DataFrame(np.random.randn(4, 4),
@@ -661,7 +661,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         s = dft['foo', 'two']
         dft['foo', 'two'] = s > s.median()
         tm.assert_series_equal(dft['foo', 'two'], s > s.median())
-        # tm.assertIsInstance(dft._data.blocks[1].items, MultiIndex)
+        # assert isinstance(dft._data.blocks[1].items, MultiIndex)
 
         reindexed = dft.reindex(columns=[('foo', 'two')])
         tm.assert_series_equal(reindexed['foo', 'two'], s > s.median())
@@ -728,12 +728,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assertEqual(len(deleveled.columns), len(self.ymd.columns))
 
         deleveled = self.series.reset_index()
-        tm.assertIsInstance(deleveled, DataFrame)
+        assert isinstance(deleveled, DataFrame)
         self.assertEqual(len(deleveled.columns),
                          len(self.series.index.levels) + 1)
 
         deleveled = self.series.reset_index(drop=True)
-        tm.assertIsInstance(deleveled, Series)
+        assert isinstance(deleveled, Series)
 
     def test_count_level(self):
         def _check_counts(frame, axis=0):
@@ -1285,7 +1285,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_insert_index(self):
         df = self.ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]
-        tm.assertIsInstance(df.columns, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
         self.assertTrue((df[2000, 1, 10] == df[2000, 1, 7]).all())
 
     def test_alignment(self):
@@ -1918,7 +1918,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         result = frame.iloc[:, 1]
         exp = frame.loc[:, ('Ohio', 'Red')]
-        tm.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         tm.assert_series_equal(result, exp)
 
     def test_nonunique_assignment_1750(self):
@@ -2073,8 +2073,8 @@ Thur,Lunch,Yes,51.51,17"""
         for d1, d2 in itertools.product(
                 [date1, date2, date3], [date1, date2, date3]):
             index = pd.MultiIndex.from_product([[d1], [d2]])
-            self.assertIsInstance(index.levels[0], pd.DatetimeIndex)
-            self.assertIsInstance(index.levels[1], pd.DatetimeIndex)
+            assert isinstance(index.levels[0], pd.DatetimeIndex)
+            assert isinstance(index.levels[1], pd.DatetimeIndex)
 
     def test_constructor_with_tz(self):
 

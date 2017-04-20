@@ -126,9 +126,9 @@ class TestDatetimeIndex(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assertIsInstance(converted, np.ndarray)
+            assert isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assertIsInstance(x, datetime)
+                assert isinstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -146,9 +146,9 @@ class TestDatetimeIndex(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assertIsInstance(converted, np.ndarray)
+            assert isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assertIsInstance(x, datetime)
+                assert isinstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -167,9 +167,9 @@ class TestDatetimeIndex(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assertIsInstance(converted, np.ndarray)
+            assert isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assertIsInstance(x, datetime)
+                assert isinstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 

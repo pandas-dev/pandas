@@ -198,7 +198,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                         'B': np.random.randn(1000)})
 
         idf = df.set_index('A')
-        tm.assertIsInstance(idf.index, pd.DatetimeIndex)
+        assert isinstance(idf.index, pd.DatetimeIndex)
 
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH 6032
@@ -740,7 +740,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         df = pd.DataFrame([[0, 0], [1, 1]], columns=['A', 'B'],
                           index=RangeIndex(stop=2))
         result = df.reset_index()
-        tm.assertIsInstance(result.index, RangeIndex)
+        assert isinstance(result.index, RangeIndex)
         expected = pd.DataFrame([[0, 0, 0], [1, 1, 1]],
                                 columns=['index', 'A', 'B'],
                                 index=RangeIndex(stop=2))
@@ -809,7 +809,7 @@ class TestIntervalIndex(tm.TestCase):
 
         df = DataFrame({'A': range(10)})
         s = pd.cut(df.A, 5)
-        self.assertIsInstance(s.cat.categories, IntervalIndex)
+        assert isinstance(s.cat.categories, IntervalIndex)
 
         # B & D end up as Categoricals
         # the remainer are converted to in-line objects

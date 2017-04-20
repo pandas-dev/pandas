@@ -184,11 +184,11 @@ class TestDatetimeIndex(tm.TestCase):
         empty = Index([])
 
         result = dti.union(empty)
-        tm.assertIsInstance(result, DatetimeIndex)
+        assert isinstance(result, DatetimeIndex)
         self.assertIs(result, result)
 
         result = dti.join(empty)
-        tm.assertIsInstance(result, DatetimeIndex)
+        assert isinstance(result, DatetimeIndex)
 
     def test_join_nonunique(self):
         idx1 = to_datetime(['2012-11-06 16:00:11.477563',
@@ -210,21 +210,21 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         right = self.rng[5:10]
 
         the_union = left.union(right)
-        tm.assertIsInstance(the_union, DatetimeIndex)
+        assert isinstance(the_union, DatetimeIndex)
 
         # non-overlapping, gap in middle
         left = self.rng[:5]
         right = self.rng[10:]
 
         the_union = left.union(right)
-        tm.assertIsInstance(the_union, Index)
+        assert isinstance(the_union, Index)
 
         # non-overlapping, no gap
         left = self.rng[:5]
         right = self.rng[5:10]
 
         the_union = left.union(right)
-        tm.assertIsInstance(the_union, DatetimeIndex)
+        assert isinstance(the_union, DatetimeIndex)
 
         # order does not matter
         tm.assert_index_equal(right.union(left), the_union)
@@ -233,7 +233,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         rng = date_range(START, END, freq=BMonthEnd())
 
         the_union = self.rng.union(rng)
-        tm.assertIsInstance(the_union, DatetimeIndex)
+        assert isinstance(the_union, DatetimeIndex)
 
     def test_outer_join(self):
         # should just behave as union
@@ -243,14 +243,14 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         right = self.rng[5:10]
 
         the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
+        assert isinstance(the_join, DatetimeIndex)
 
         # non-overlapping, gap in middle
         left = self.rng[:5]
         right = self.rng[10:]
 
         the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
+        assert isinstance(the_join, DatetimeIndex)
         self.assertIsNone(the_join.freq)
 
         # non-overlapping, no gap
@@ -258,13 +258,13 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         right = self.rng[5:10]
 
         the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
+        assert isinstance(the_join, DatetimeIndex)
 
         # overlapping, but different offset
         rng = date_range(START, END, freq=BMonthEnd())
 
         the_join = self.rng.join(rng, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
+        assert isinstance(the_join, DatetimeIndex)
         self.assertIsNone(the_join.freq)
 
     def test_union_not_cacheable(self):
@@ -287,7 +287,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         the_int = rng1.intersection(rng2)
         expected = rng[10:25]
         tm.assert_index_equal(the_int, expected)
-        tm.assertIsInstance(the_int, DatetimeIndex)
+        assert isinstance(the_int, DatetimeIndex)
         self.assertEqual(the_int.offset, rng.offset)
 
         the_int = rng1.intersection(rng2.view(DatetimeIndex))
@@ -354,21 +354,21 @@ class TestCustomDatetimeIndex(tm.TestCase):
         right = self.rng[5:10]
 
         the_union = left.union(right)
-        tm.assertIsInstance(the_union, DatetimeIndex)
+        assert isinstance(the_union, DatetimeIndex)
 
         # non-overlapping, gap in middle
         left = self.rng[:5]
         right = self.rng[10:]
 
         the_union = left.union(right)
-        tm.assertIsInstance(the_union, Index)
+        assert isinstance(the_union, Index)
 
         # non-overlapping, no gap
         left = self.rng[:5]
         right = self.rng[5:10]
 
         the_union = left.union(right)
-        tm.assertIsInstance(the_union, DatetimeIndex)
+        assert isinstance(the_union, DatetimeIndex)
 
         # order does not matter
         tm.assert_index_equal(right.union(left), the_union)
@@ -377,7 +377,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
         rng = date_range(START, END, freq=BMonthEnd())
 
         the_union = self.rng.union(rng)
-        tm.assertIsInstance(the_union, DatetimeIndex)
+        assert isinstance(the_union, DatetimeIndex)
 
     def test_outer_join(self):
         # should just behave as union
@@ -387,14 +387,14 @@ class TestCustomDatetimeIndex(tm.TestCase):
         right = self.rng[5:10]
 
         the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
+        assert isinstance(the_join, DatetimeIndex)
 
         # non-overlapping, gap in middle
         left = self.rng[:5]
         right = self.rng[10:]
 
         the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
+        assert isinstance(the_join, DatetimeIndex)
         self.assertIsNone(the_join.freq)
 
         # non-overlapping, no gap
@@ -402,13 +402,13 @@ class TestCustomDatetimeIndex(tm.TestCase):
         right = self.rng[5:10]
 
         the_join = left.join(right, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
+        assert isinstance(the_join, DatetimeIndex)
 
         # overlapping, but different offset
         rng = date_range(START, END, freq=BMonthEnd())
 
         the_join = self.rng.join(rng, how='outer')
-        tm.assertIsInstance(the_join, DatetimeIndex)
+        assert isinstance(the_join, DatetimeIndex)
         self.assertIsNone(the_join.freq)
 
     def test_intersection_bug(self):

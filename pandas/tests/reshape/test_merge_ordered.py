@@ -69,7 +69,7 @@ class TestOrderedMerge(tm.TestCase):
         nad = NotADataFrame(self.left)
         result = nad.merge(self.right, on='key')
 
-        tm.assertIsInstance(result, NotADataFrame)
+        assert isinstance(result, NotADataFrame)
 
     def test_empty_sequence_concat(self):
         # GH 9157
