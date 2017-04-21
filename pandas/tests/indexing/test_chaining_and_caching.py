@@ -353,7 +353,7 @@ class TestChaining(tm.TestCase):
         # 0.12
         def check(result, expected):
             tm.assert_numpy_array_equal(result, expected)
-            tm.assertIsInstance(result, np.ndarray)
+            assert isinstance(result, np.ndarray)
 
         df = DataFrame({'A': 5 * [np.zeros(3)], 'B': 5 * [np.ones(3)]})
         expected = df['A'].iloc[2]

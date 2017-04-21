@@ -185,7 +185,7 @@ class TestPeriodIndex(tm.TestCase):
 
     def test_constructor_empty(self):
         idx = pd.PeriodIndex([], freq='M')
-        tm.assertIsInstance(idx, PeriodIndex)
+        assert isinstance(idx, PeriodIndex)
         self.assertEqual(len(idx), 0)
         self.assertEqual(idx.freq, 'M')
 
@@ -463,7 +463,7 @@ class TestPeriodIndex(tm.TestCase):
             res = index.map(t)
 
             # should return an Index
-            tm.assertIsInstance(res, Index)
+            assert isinstance(res, Index)
 
             # preserve element types
             self.assertTrue(all(isinstance(resi, t) for resi in res))

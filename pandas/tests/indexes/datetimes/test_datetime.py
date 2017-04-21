@@ -161,13 +161,13 @@ class TestDatetimeIndex(tm.TestCase):
 
         delta = np.timedelta64(1, 'D')
         for result in [idx + delta, np.add(idx, delta)]:
-            tm.assertIsInstance(result, DatetimeIndex)
+            assert isinstance(result, DatetimeIndex)
             exp = date_range('2011-01-02', periods=3, freq='2D', name='x')
             tm.assert_index_equal(result, exp)
             self.assertEqual(result.freq, '2D')
 
         for result in [idx - delta, np.subtract(idx, delta)]:
-            tm.assertIsInstance(result, DatetimeIndex)
+            assert isinstance(result, DatetimeIndex)
             exp = date_range('2010-12-31', periods=3, freq='2D', name='x')
             tm.assert_index_equal(result, exp)
             self.assertEqual(result.freq, '2D')
@@ -175,14 +175,14 @@ class TestDatetimeIndex(tm.TestCase):
         delta = np.array([np.timedelta64(1, 'D'), np.timedelta64(2, 'D'),
                           np.timedelta64(3, 'D')])
         for result in [idx + delta, np.add(idx, delta)]:
-            tm.assertIsInstance(result, DatetimeIndex)
+            assert isinstance(result, DatetimeIndex)
             exp = DatetimeIndex(['2011-01-02', '2011-01-05', '2011-01-08'],
                                 freq='3D', name='x')
             tm.assert_index_equal(result, exp)
             self.assertEqual(result.freq, '3D')
 
         for result in [idx - delta, np.subtract(idx, delta)]:
-            tm.assertIsInstance(result, DatetimeIndex)
+            assert isinstance(result, DatetimeIndex)
             exp = DatetimeIndex(['2010-12-31', '2011-01-01', '2011-01-02'],
                                 freq='D', name='x')
             tm.assert_index_equal(result, exp)
@@ -227,7 +227,7 @@ class TestDatetimeIndex(tm.TestCase):
         idx = Index(['a', 'b', 'c', 'd'])
 
         result = rng.append(idx)
-        tm.assertIsInstance(result[0], Timestamp)
+        assert isinstance(result[0], Timestamp)
 
         # it works
         rng.join(idx, how='outer')
@@ -394,7 +394,7 @@ class TestDatetimeIndex(tm.TestCase):
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)
         result = rng.groupby(rng.day)
-        tm.assertIsInstance(list(result.values())[0][0], Timestamp)
+        assert isinstance(list(result.values())[0][0], Timestamp)
 
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
         self.assertFalse(idx.equals(list(idx)))
@@ -477,7 +477,7 @@ class TestDatetimeIndex(tm.TestCase):
 
             for taken in [taken1, taken2]:
                 tm.assert_index_equal(taken, expected)
-                tm.assertIsInstance(taken, DatetimeIndex)
+                assert isinstance(taken, DatetimeIndex)
                 self.assertIsNone(taken.freq)
                 self.assertEqual(taken.tz, expected.tz)
                 self.assertEqual(taken.name, expected.name)
@@ -559,7 +559,7 @@ class TestDatetimeIndex(tm.TestCase):
         monthly_group = df.groupby(lambda x: (x.year, x.month))
 
         result = monthly_group.mean()
-        tm.assertIsInstance(result.index[0], tuple)
+        assert isinstance(result.index[0], tuple)
 
     def test_append_numpy_bug_1681(self):
         # another datetime64 bug

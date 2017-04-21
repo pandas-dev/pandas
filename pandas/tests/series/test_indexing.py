@@ -561,7 +561,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_box_float64(self):
         value = self.ts[5]
-        tm.assertIsInstance(value, np.float64)
+        assert isinstance(value, np.float64)
 
     def test_getitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
@@ -2275,8 +2275,8 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.dups = Series(np.random.randn(len(dates)), index=dates)
 
     def test_constructor(self):
-        tm.assertIsInstance(self.dups, Series)
-        tm.assertIsInstance(self.dups.index, DatetimeIndex)
+        assert isinstance(self.dups, Series)
+        assert isinstance(self.dups.index, DatetimeIndex)
 
     def test_is_unique_monotonic(self):
         self.assertFalse(self.dups.index.is_unique)

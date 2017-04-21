@@ -21,7 +21,7 @@ class TestPeriodIndex(tm.TestCase):
         for kind in ['inner', 'outer', 'left', 'right']:
             joined = index.join(index[:-5], how=kind)
 
-            tm.assertIsInstance(joined, PeriodIndex)
+            assert isinstance(joined, PeriodIndex)
             self.assertEqual(joined.freq, index.freq)
 
     def test_join_self(self):

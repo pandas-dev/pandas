@@ -68,7 +68,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def test_constructor(self):
         index = RangeIndex(5)
         expected = np.arange(5, dtype=np.int64)
-        self.assertIsInstance(index, RangeIndex)
+        assert isinstance(index, RangeIndex)
         self.assertEqual(index._start, 0)
         self.assertEqual(index._stop, 5)
         self.assertEqual(index._step, 1)
@@ -77,13 +77,13 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         index = RangeIndex(1, 5)
         expected = np.arange(1, 5, dtype=np.int64)
-        self.assertIsInstance(index, RangeIndex)
+        assert isinstance(index, RangeIndex)
         self.assertEqual(index._start, 1)
         tm.assert_index_equal(Index(expected), index)
 
         index = RangeIndex(1, 5, 2)
         expected = np.arange(1, 5, 2, dtype=np.int64)
-        self.assertIsInstance(index, RangeIndex)
+        assert isinstance(index, RangeIndex)
         self.assertEqual(index._step, 2)
         tm.assert_index_equal(Index(expected), index)
 
@@ -94,7 +94,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
                       RangeIndex(0, 0)]:
             expected = np.empty(0, dtype=np.int64)
-            self.assertIsInstance(index, RangeIndex)
+            assert isinstance(index, RangeIndex)
             self.assertEqual(index._start, 0)
             self.assertEqual(index._stop, 0)
             self.assertEqual(index._step, 1)
@@ -107,7 +107,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                       RangeIndex(start=0, name='Foo'),
                       RangeIndex(stop=0, name='Foo'),
                       RangeIndex(0, 0, name='Foo')]:
-            self.assertIsInstance(index, RangeIndex)
+            assert isinstance(index, RangeIndex)
             self.assertEqual(index.name, 'Foo')
 
         # we don't allow on a bare Index
@@ -421,7 +421,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 8, 7, 6,
                           5, 4, 3, 2, 1, 0], dtype=np.intp)
 
-        self.assertIsInstance(res, Int64Index)
+        assert isinstance(res, Int64Index)
         self.assertFalse(isinstance(res, RangeIndex))
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
@@ -435,7 +435,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         noidx_res = self.index.join(other, how='outer')
         tm.assert_index_equal(res, noidx_res)
 
-        self.assertIsInstance(res, Int64Index)
+        assert isinstance(res, Int64Index)
         self.assertFalse(isinstance(res, RangeIndex))
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
@@ -458,7 +458,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         elidx = np.array([8, 9], dtype=np.intp)
         eridx = np.array([9, 7], dtype=np.intp)
 
-        self.assertIsInstance(res, Int64Index)
+        assert isinstance(res, Int64Index)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
@@ -469,7 +469,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, how='inner',
                                           return_indexers=True)
 
-        self.assertIsInstance(res, RangeIndex)
+        assert isinstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
@@ -483,7 +483,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         eres = self.index
         eridx = np.array([-1, -1, -1, -1, -1, -1, -1, -1, 9, 7], dtype=np.intp)
 
-        self.assertIsInstance(res, RangeIndex)
+        assert isinstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
         self.assertIsNone(lidx)
         tm.assert_numpy_array_equal(ridx, eridx)
@@ -494,7 +494,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         res, lidx, ridx = self.index.join(other, how='left',
                                           return_indexers=True)
 
-        self.assertIsInstance(res, RangeIndex)
+        assert isinstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
         self.assertIsNone(lidx)
         tm.assert_numpy_array_equal(ridx, eridx)
@@ -509,7 +509,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         elidx = np.array([-1, -1, -1, -1, -1, -1, -1, 9, -1, 8, -1],
                          dtype=np.intp)
 
-        self.assertIsInstance(other, Int64Index)
+        assert isinstance(other, Int64Index)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         self.assertIsNone(ridx)
@@ -521,7 +521,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                                           return_indexers=True)
         eres = other
 
-        self.assertIsInstance(other, RangeIndex)
+        assert isinstance(other, RangeIndex)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         self.assertIsNone(ridx)

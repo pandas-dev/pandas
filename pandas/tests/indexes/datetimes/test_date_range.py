@@ -281,7 +281,7 @@ class TestBusinessDateRange(tm.TestCase):
         rng2.offset = BDay()
 
         result = rng1.union(rng2)
-        tm.assertIsInstance(result, DatetimeIndex)
+        assert isinstance(result, DatetimeIndex)
 
     def test_error_with_zero_monthends(self):
         self.assertRaises(ValueError, date_range, '1/1/2000', '1/1/2001',
@@ -537,7 +537,7 @@ class TestCustomDateRange(tm.TestCase):
         rng2.offset = CDay()
 
         result = rng1.union(rng2)
-        tm.assertIsInstance(result, DatetimeIndex)
+        assert isinstance(result, DatetimeIndex)
 
     def test_cdaterange(self):
         rng = cdate_range('2013-05-01', periods=3)

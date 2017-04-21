@@ -86,7 +86,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_copy(self):
         cp = self.frame.copy()
-        tm.assertIsInstance(cp, SparseDataFrame)
+        assert isinstance(cp, SparseDataFrame)
         tm.assert_sp_frame_equal(cp, self.frame)
 
         # as of v0.15.0
@@ -95,9 +95,9 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_constructor(self):
         for col, series in compat.iteritems(self.frame):
-            tm.assertIsInstance(series, SparseSeries)
+            assert isinstance(series, SparseSeries)
 
-        tm.assertIsInstance(self.iframe['A'].sp_index, IntIndex)
+        assert isinstance(self.iframe['A'].sp_index, IntIndex)
 
         # constructed zframe from matrix above
         self.assertEqual(self.zframe['A'].fill_value, 0)
@@ -110,7 +110,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         # construct no data
         sdf = SparseDataFrame(columns=np.arange(10), index=np.arange(10))
         for col, series in compat.iteritems(sdf):
-            tm.assertIsInstance(series, SparseSeries)
+            assert isinstance(series, SparseSeries)
 
         # construct from nested dict
         data = {}
@@ -178,9 +178,9 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         # GH 2873
         x = Series(np.random.randn(10000), name='a')
         x = x.to_sparse(fill_value=0)
-        tm.assertIsInstance(x, SparseSeries)
+        assert isinstance(x, SparseSeries)
         df = SparseDataFrame(x)
-        tm.assertIsInstance(df, SparseDataFrame)
+        assert isinstance(df, SparseDataFrame)
 
         x = Series(np.random.randn(10000), name='a')
         y = Series(np.random.randn(10000), name='b')
@@ -289,13 +289,13 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         df = DataFrame({'A': [nan, nan, nan, 1, 2],
                         'B': [1, 2, nan, nan, nan]})
         sdf = df.to_sparse()
-        tm.assertIsInstance(sdf, SparseDataFrame)
+        assert isinstance(sdf, SparseDataFrame)
         self.assertTrue(np.isnan(sdf.default_fill_value))
-        tm.assertIsInstance(sdf['A'].sp_index, BlockIndex)
+        assert isinstance(sdf['A'].sp_index, BlockIndex)
         tm.assert_frame_equal(sdf.to_dense(), df)
 
         sdf = df.to_sparse(kind='integer')
-        tm.assertIsInstance(sdf['A'].sp_index, IntIndex)
+        assert isinstance(sdf['A'].sp_index, IntIndex)
 
         df = DataFrame({'A': [0, 0, 0, 1, 2],
                         'B': [1, 2, 0, 0, 0]}, dtype=float)
@@ -342,7 +342,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
             if isinstance(a, DataFrame) and isinstance(db, DataFrame):
                 mixed_result = op(a, db)
-                tm.assertIsInstance(mixed_result, SparseDataFrame)
+                assert isinstance(mixed_result, SparseDataFrame)
                 tm.assert_sp_frame_equal(mixed_result, sparse_result,
                                          exact_indices=False)
 
@@ -388,7 +388,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         self.assertTrue(empty.empty)
 
         foo = self.frame + self.empty
-        tm.assertIsInstance(foo.index, DatetimeIndex)
+        assert isinstance(foo.index, DatetimeIndex)
         tm.assert_frame_equal(foo, self.frame * np.nan)
 
         foo = self.empty + self.frame
@@ -474,7 +474,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
             # insert SparseSeries
             frame['E'] = frame['A']
-            tm.assertIsInstance(frame['E'], SparseSeries)
+            assert isinstance(frame['E'], SparseSeries)
             tm.assert_sp_series_equal(frame['E'], frame['A'],
                                       check_names=False)
 
@@ -488,7 +488,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
             # insert Series
             frame['F'] = frame['A'].to_dense()
-            tm.assertIsInstance(frame['F'], SparseSeries)
+            assert isinstance(frame['F'], SparseSeries)
             tm.assert_sp_series_equal(frame['F'], frame['A'],
                                       check_names=False)
 
@@ -501,7 +501,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
             # insert ndarray
             frame['H'] = np.random.randn(N)
-            tm.assertIsInstance(frame['H'], SparseSeries)
+            assert isinstance(frame['H'], SparseSeries)
 
             to_sparsify = np.random.randn(N)
             to_sparsify[N // 2:] = frame.default_fill_value
@@ -580,7 +580,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_apply(self):
         applied = self.frame.apply(np.sqrt)
-        tm.assertIsInstance(applied, SparseDataFrame)
+        assert isinstance(applied, SparseDataFrame)
         tm.assert_almost_equal(applied.values, np.sqrt(self.frame.values))
 
         applied = self.fill_frame.apply(np.sqrt)
@@ -588,7 +588,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
         # agg / broadcast
         broadcasted = self.frame.apply(np.sum, broadcast=True)
-        tm.assertIsInstance(broadcasted, SparseDataFrame)
+        assert isinstance(broadcasted, SparseDataFrame)
 
         exp = self.frame.to_dense().apply(np.sum, broadcast=True)
         tm.assert_frame_equal(broadcasted.to_dense(), exp)
@@ -609,7 +609,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         # dtype must be kept
         self.assertEqual(res.dtype, np.int64)
         # ToDo: apply must return subclassed dtype
-        self.assertIsInstance(res, pd.Series)
+        assert isinstance(res, pd.Series)
         tm.assert_series_equal(res.to_dense(), exp)
 
         # df.T breaks
@@ -622,7 +622,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
     def test_applymap(self):
         # just test that it works
         result = self.frame.applymap(lambda x: x * 2)
-        tm.assertIsInstance(result, SparseDataFrame)
+        assert isinstance(result, SparseDataFrame)
 
     def test_astype(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([1, 2, 3, 4],
@@ -1118,7 +1118,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                                  'B': [0, np.nan, 0, 2, np.nan]},
                                 default_fill_value=0.)
         res = df.isnull()
-        tm.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         exp = pd.DataFrame({'A': [False, False, False, False, True],
                             'B': [False, True, False, False, True]})
         tm.assert_frame_equal(res.to_dense(), exp)
@@ -1140,7 +1140,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                                  'B': [0, np.nan, 0, 2, np.nan]},
                                 default_fill_value=0.)
         res = df.isnotnull()
-        tm.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         exp = pd.DataFrame({'A': [True, True, True, True, False],
                             'B': [True, False, True, True, False]})
         tm.assert_frame_equal(res.to_dense(), exp)
@@ -1266,11 +1266,11 @@ class TestSparseDataFrameArithmetic(tm.TestCase):
 
         # comparison changes internal repr, compare with dense
         res = sparse > 1
-        tm.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), df > 1)
 
         res = sparse != 0
-        tm.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), df != 0)
 
 

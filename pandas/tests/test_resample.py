@@ -70,12 +70,12 @@ class TestResampleAPI(tm.TestCase):
 
         r = self.series.resample('H')
         result = r.mean()
-        self.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         self.assertEqual(len(result), 217)
 
         r = self.series.to_frame().resample('H')
         result = r.mean()
-        self.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
         self.assertEqual(len(result), 217)
 
     def test_api_changes_v018(self):
@@ -84,7 +84,7 @@ class TestResampleAPI(tm.TestCase):
         # to .resample(......).how()
 
         r = self.series.resample('H')
-        self.assertIsInstance(r, DatetimeIndexResampler)
+        assert isinstance(r, DatetimeIndexResampler)
 
         for how in ['sum', 'mean', 'prod', 'min', 'max', 'var', 'std']:
             with tm.assert_produces_warning(FutureWarning,
@@ -146,7 +146,7 @@ class TestResampleAPI(tm.TestCase):
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
-                self.assertIsInstance(getattr(r, op)(2), pd.Series)
+                assert isinstance(getattr(r, op)(2), pd.Series)
 
         # unary numeric ops
         for op in ['__pos__', '__neg__', '__abs__', '__inv__']:
@@ -157,7 +157,7 @@ class TestResampleAPI(tm.TestCase):
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
-                self.assertIsInstance(getattr(r, op)(), pd.Series)
+                assert isinstance(getattr(r, op)(), pd.Series)
 
         # comparison ops
         for op in ['__lt__', '__le__', '__gt__', '__ge__', '__eq__', '__ne__']:
@@ -165,7 +165,7 @@ class TestResampleAPI(tm.TestCase):
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
-                self.assertIsInstance(getattr(r, op)(2), pd.Series)
+                assert isinstance(getattr(r, op)(2), pd.Series)
 
         # IPython introspection shouldn't trigger warning GH 13618
         for op in ['_repr_json', '_repr_latex',
@@ -1344,10 +1344,10 @@ class TestDatetimeIndex(Base, tm.TestCase):
         s = Series(range(len(index)), index=index)
 
         a = s.loc[:'4-15-2000'].resample('30T').ohlc()
-        self.assertIsInstance(a, DataFrame)
+        assert isinstance(a, DataFrame)
 
         b = s.loc[:'4-14-2000'].resample('30T').ohlc()
-        self.assertIsInstance(b, DataFrame)
+        assert isinstance(b, DataFrame)
 
         # GH12348
         # raising on odd period
@@ -1412,7 +1412,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         bs = s.resample('B', closed='right', label='right').mean()
         result = bs.resample('8H').mean()
         self.assertEqual(len(result), 22)
-        tm.assertIsInstance(result.index.freq, offsets.DateOffset)
+        assert isinstance(result.index.freq, offsets.DateOffset)
         self.assertEqual(result.index.freq, offsets.Hour(8))
 
     def test_resample_timestamp_to_period(self):
@@ -1811,7 +1811,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         result = ts.resample('20min').aggregate(['mean', 'sum'])
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
 
     def test_resample_not_monotonic(self):
         rng = pd.date_range('2012-06-12', periods=200, freq='h')

@@ -352,7 +352,7 @@ Freq: D"""
 
         def _check(result, expected):
             self.assertEqual(result, expected)
-            self.assertIsInstance(result, Timedelta)
+            assert isinstance(result, Timedelta)
 
         # scalars
         result = ts - ts

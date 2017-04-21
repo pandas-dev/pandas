@@ -1426,7 +1426,7 @@ class TestToHTML(tm.TestCase):
         self.assertIsNone(retval)
         self.assertEqual(buf.getvalue(), s)
 
-        tm.assertIsInstance(s, compat.string_types)
+        assert isinstance(s, compat.string_types)
 
         biggie.to_html(columns=['B', 'A'], col_space=17)
         biggie.to_html(columns=['B', 'A'],

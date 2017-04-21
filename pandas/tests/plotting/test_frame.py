@@ -1248,7 +1248,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # normal style: return_type=None
         result = df.plot.box(subplots=True)
-        self.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         self._check_box_return_type(result, None, expected_keys=[
                                     'height', 'weight', 'category'])
 

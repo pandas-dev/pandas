@@ -53,7 +53,7 @@ class TestIndex(Base, tm.TestCase):
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
         self.assertEqual(new_index.ndim, 2)
-        tm.assertIsInstance(new_index, np.ndarray)
+        assert isinstance(new_index, np.ndarray)
 
     def test_copy_and_deepcopy(self):
         super(TestIndex, self).test_copy_and_deepcopy()
@@ -75,7 +75,7 @@ class TestIndex(Base, tm.TestCase):
         # copy
         arr = np.array(self.strIndex)
         index = Index(arr, copy=True, name='name')
-        tm.assertIsInstance(index, Index)
+        assert isinstance(index, Index)
         self.assertEqual(index.name, 'name')
         tm.assert_numpy_array_equal(arr, index.values)
         arr[0] = "SOMEBIGLONGSTRING"
@@ -90,15 +90,15 @@ class TestIndex(Base, tm.TestCase):
         self.assertRaises(TypeError, Index, 0)
 
     def test_construction_list_mixed_tuples(self):
-        # 10697
-        # if we are constructing from a mixed list of tuples, make sure that we
-        # are independent of the sorting order
+        # see gh-10697: if we are constructing from a mixed list of tuples,
+        # make sure that we are independent of the sorting order.
         idx1 = Index([('A', 1), 'B'])
-        self.assertIsInstance(idx1, Index) and self.assertNotInstance(
-            idx1, MultiIndex)
+        assert isinstance(idx1, Index)
+        assert not isinstance(idx1, MultiIndex)
+
         idx2 = Index(['B', ('A', 1)])
-        self.assertIsInstance(idx2, Index) and self.assertNotInstance(
-            idx2, MultiIndex)
+        assert isinstance(idx2, Index)
+        assert not isinstance(idx2, MultiIndex)
 
     def test_constructor_from_index_datetimetz(self):
         idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
@@ -263,7 +263,7 @@ class TestIndex(Base, tm.TestCase):
         xp = period_range('2012-1-1', freq='M', periods=3)
         rs = Index(xp)
         tm.assert_index_equal(rs, xp)
-        tm.assertIsInstance(rs, PeriodIndex)
+        assert isinstance(rs, PeriodIndex)
 
     def test_constructor_simple_new(self):
         idx = Index([1, 2, 3, 4, 5], name='int')
@@ -510,7 +510,7 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(self.dateIndex.asof(d + timedelta(1)), d)
 
         d = self.dateIndex[0].to_pydatetime()
-        tm.assertIsInstance(self.dateIndex.asof(d), Timestamp)
+        assert isinstance(self.dateIndex.asof(d), Timestamp)
 
     def test_asof_datetime_partial(self):
         idx = pd.date_range('2010-01-01', periods=2, freq='m')
@@ -545,7 +545,7 @@ class TestIndex(Base, tm.TestCase):
             arr_result = op(arr, element)
             index_result = op(index, element)
 
-            self.assertIsInstance(index_result, np.ndarray)
+            assert isinstance(index_result, np.ndarray)
             tm.assert_numpy_array_equal(arr_result, index_result)
 
         _check(operator.eq)
@@ -1465,7 +1465,7 @@ class TestIndex(Base, tm.TestCase):
         idx = Index(['a1', 'a2', 'b1', 'b2'])
         expected = np.array([True, True, False, False])
         tm.assert_numpy_array_equal(idx.str.startswith('a'), expected)
-        self.assertIsInstance(idx.str.startswith('a'), np.ndarray)
+        assert isinstance(idx.str.startswith('a'), np.ndarray)
         s = Series(range(4), index=idx)
         expected = Series(range(2), index=['a1', 'a2'])
         tm.assert_series_equal(s[s.index.str.startswith('a')], expected)

@@ -132,14 +132,14 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
                              freq='2H', name='x')
 
         for result in [idx * 2, np.multiply(idx, 2)]:
-            tm.assertIsInstance(result, TimedeltaIndex)
+            assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(['4H', '8H', '12H', '16H', '20H'],
                                  freq='4H', name='x')
             tm.assert_index_equal(result, exp)
             self.assertEqual(result.freq, '4H')
 
         for result in [idx / 2, np.divide(idx, 2)]:
-            tm.assertIsInstance(result, TimedeltaIndex)
+            assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(['1H', '2H', '3H', '4H', '5H'],
                                  freq='H', name='x')
             tm.assert_index_equal(result, exp)
@@ -148,7 +148,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
                              freq='2H', name='x')
         for result in [-idx, np.negative(idx)]:
-            tm.assertIsInstance(result, TimedeltaIndex)
+            assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(['-2H', '-4H', '-6H', '-8H', '-10H'],
                                  freq='-2H', name='x')
             tm.assert_index_equal(result, exp)
@@ -157,7 +157,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         idx = TimedeltaIndex(['-2H', '-1H', '0H', '1H', '2H'],
                              freq='H', name='x')
         for result in [abs(idx), np.absolute(idx)]:
-            tm.assertIsInstance(result, TimedeltaIndex)
+            assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(['2H', '1H', '0H', '1H', '2H'],
                                  freq=None, name='x')
             tm.assert_index_equal(result, exp)
@@ -205,7 +205,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         for taken in [taken1, taken2]:
             tm.assert_index_equal(taken, expected)
-            tm.assertIsInstance(taken, TimedeltaIndex)
+            assert isinstance(taken, TimedeltaIndex)
             self.assertIsNone(taken.freq)
             self.assertEqual(taken.name, expected.name)
 
@@ -341,7 +341,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         rng = timedelta_range('1 day', periods=5)
         result = rng.groupby(rng.days)
-        tm.assertIsInstance(list(result.values())[0][0], Timedelta)
+        assert isinstance(list(result.values())[0][0], Timedelta)
 
         idx = TimedeltaIndex(['3d', '1d', '2d'])
         self.assertFalse(idx.equals(list(idx)))
@@ -468,7 +468,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         idx = Index(['a', 'b', 'c', 'd'])
 
         result = rng.append(idx)
-        tm.assertIsInstance(result[0], Timedelta)
+        assert isinstance(result[0], Timedelta)
 
         # it works
         rng.join(idx, how='outer')
@@ -592,5 +592,5 @@ class TestTimeSeries(tm.TestCase):
     def test_series_box_timedelta(self):
         rng = timedelta_range('1 day 1 s', periods=5, freq='h')
         s = Series(rng)
-        tm.assertIsInstance(s[1], Timedelta)
-        tm.assertIsInstance(s.iat[2], Timedelta)
+        assert isinstance(s[1], Timedelta)
+        assert isinstance(s.iat[2], Timedelta)

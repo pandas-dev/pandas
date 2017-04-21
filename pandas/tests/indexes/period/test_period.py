@@ -230,7 +230,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
     def test_make_time_series(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         series = Series(1, index=index)
-        tm.assertIsInstance(series, Series)
+        assert isinstance(series, Series)
 
     def test_shallow_copy_empty(self):
 
@@ -703,7 +703,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         index = PeriodIndex(start='1/1/10', periods=4, freq='B')
 
         result = list(index)
-        tm.assertIsInstance(result[0], Period)
+        assert isinstance(result[0], Period)
         self.assertEqual(result[0].freq, index.freq)
 
     def test_is_full(self):
@@ -731,16 +731,16 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         s = Series([0, 1, 2, 3], index_as_arrays)
 
-        tm.assertIsInstance(s.index.levels[0], PeriodIndex)
+        assert isinstance(s.index.levels[0], PeriodIndex)
 
-        tm.assertIsInstance(s.index.values[0][0], Period)
+        assert isinstance(s.index.values[0][0], Period)
 
     def test_convert_array_of_periods(self):
         rng = period_range('1/1/2000', periods=20, freq='D')
         periods = list(rng)
 
         result = pd.Index(periods)
-        tm.assertIsInstance(result, PeriodIndex)
+        assert isinstance(result, PeriodIndex)
 
     def test_append_concat(self):
         # #1815
@@ -755,7 +755,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         # drops index
         result = pd.concat([s1, s2])
-        tm.assertIsInstance(result.index, PeriodIndex)
+        assert isinstance(result.index, PeriodIndex)
         self.assertEqual(result.index[0], s1.index[0])
 
     def test_pickle_freq(self):

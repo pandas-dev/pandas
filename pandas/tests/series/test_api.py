@@ -166,7 +166,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         s = pd.Series(vals)
         self.assertEqual(s.dtype, 'datetime64[ns]')
         for res, exp in zip(s, vals):
-            self.assertIsInstance(res, pd.Timestamp)
+            assert isinstance(res, pd.Timestamp)
             self.assertEqual(res, exp)
             self.assertIsNone(res.tz)
 
@@ -175,7 +175,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         s = pd.Series(vals)
         self.assertEqual(s.dtype, 'datetime64[ns, US/Eastern]')
         for res, exp in zip(s, vals):
-            self.assertIsInstance(res, pd.Timestamp)
+            assert isinstance(res, pd.Timestamp)
             self.assertEqual(res, exp)
             self.assertEqual(res.tz, exp.tz)
 
@@ -184,7 +184,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         s = pd.Series(vals)
         self.assertEqual(s.dtype, 'timedelta64[ns]')
         for res, exp in zip(s, vals):
-            self.assertIsInstance(res, pd.Timedelta)
+            assert isinstance(res, pd.Timedelta)
             self.assertEqual(res, exp)
 
         # period (object dtype, not boxed)
@@ -193,7 +193,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         s = pd.Series(vals)
         self.assertEqual(s.dtype, 'object')
         for res, exp in zip(s, vals):
-            self.assertIsInstance(res, pd.Period)
+            assert isinstance(res, pd.Period)
             self.assertEqual(res, exp)
             self.assertEqual(res.freq, 'M')
 

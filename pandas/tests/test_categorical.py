@@ -3193,7 +3193,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # row
         res_row = df.iloc[2, :]
         tm.assert_series_equal(res_row, exp_row)
-        tm.assertIsInstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], compat.string_types)
 
         # col
         res_col = df.iloc[:, 0]
@@ -3213,7 +3213,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # row
         res_row = df.loc["j", :]
         tm.assert_series_equal(res_row, exp_row)
-        tm.assertIsInstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], compat.string_types)
 
         # col
         res_col = df.loc[:, "cats"]
@@ -3234,7 +3234,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # row
         res_row = df.loc["j", :]
         tm.assert_series_equal(res_row, exp_row)
-        tm.assertIsInstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], compat.string_types)
 
         # col
         res_col = df.loc[:, "cats"]
@@ -3268,7 +3268,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # i : int, slice, or sequence of integers
         res_row = df.iloc[2]
         tm.assert_series_equal(res_row, exp_row)
-        tm.assertIsInstance(res_row["cats"], compat.string_types)
+        assert isinstance(res_row["cats"], compat.string_types)
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
@@ -4220,7 +4220,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         from pandas.core.categorical import CategoricalAccessor
         self.assertIs(Series.cat, CategoricalAccessor)
         s = Series(list('aabbcde')).astype('category')
-        self.assertIsInstance(s.cat, CategoricalAccessor)
+        assert isinstance(s.cat, CategoricalAccessor)
 
         invalid = Series([1])
         with tm.assertRaisesRegexp(AttributeError, "only use .cat accessor"):
@@ -4240,7 +4240,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         s = Series(list('aabb'))
         s = s + " " + s
         c = s.astype('category')
-        self.assertIsInstance(c.str, StringMethods)
+        assert isinstance(c.str, StringMethods)
 
         # str functions, which need special arguments
         special_func_defs = [
@@ -4331,7 +4331,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             ("Period", get_ops(PeriodIndex), s_pr, c_pr),
             ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
 
-        self.assertIsInstance(c_dr.dt, Properties)
+        assert isinstance(c_dr.dt, Properties)
 
         special_func_defs = [
             ('strftime', ("%Y-%m-%d",), {}),
@@ -4414,18 +4414,18 @@ class TestCategoricalSubclassing(tm.TestCase):
 
     def test_constructor(self):
         sc = tm.SubclassedCategorical(['a', 'b', 'c'])
-        self.assertIsInstance(sc, tm.SubclassedCategorical)
+        assert isinstance(sc, tm.SubclassedCategorical)
         tm.assert_categorical_equal(sc, Categorical(['a', 'b', 'c']))
 
     def test_from_array(self):
         sc = tm.SubclassedCategorical.from_codes([1, 0, 2], ['a', 'b', 'c'])
-        self.assertIsInstance(sc, tm.SubclassedCategorical)
+        assert isinstance(sc, tm.SubclassedCategorical)
         exp = Categorical.from_codes([1, 0, 2], ['a', 'b', 'c'])
         tm.assert_categorical_equal(sc, exp)
 
     def test_map(self):
         sc = tm.SubclassedCategorical(['a', 'b', 'c'])
         res = sc.map(lambda x: x.upper())
-        self.assertIsInstance(res, tm.SubclassedCategorical)
+        assert isinstance(res, tm.SubclassedCategorical)
         exp = Categorical(['A', 'B', 'C'])
         tm.assert_categorical_equal(res, exp)

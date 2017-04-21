@@ -68,7 +68,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                 getattr(s.dt, prop)
 
             result = s.dt.to_pydatetime()
-            self.assertIsInstance(result, np.ndarray)
+            assert isinstance(result, np.ndarray)
             self.assertTrue(result.dtype == object)
 
             result = s.dt.tz_localize('US/Eastern')
@@ -138,7 +138,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             getattr(s.dt, prop)
 
         result = s.dt.to_pydatetime()
-        self.assertIsInstance(result, np.ndarray)
+        assert isinstance(result, np.ndarray)
         self.assertTrue(result.dtype == object)
 
         result = s.dt.tz_convert('CET')
@@ -169,15 +169,15 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                 getattr(s.dt, prop)
 
             result = s.dt.components
-            self.assertIsInstance(result, DataFrame)
+            assert isinstance(result, DataFrame)
             tm.assert_index_equal(result.index, s.index)
 
             result = s.dt.to_pytimedelta()
-            self.assertIsInstance(result, np.ndarray)
+            assert isinstance(result, np.ndarray)
             self.assertTrue(result.dtype == object)
 
             result = s.dt.total_seconds()
-            self.assertIsInstance(result, pd.Series)
+            assert isinstance(result, pd.Series)
             self.assertTrue(result.dtype == 'float64')
 
             freq_result = s.dt.freq
@@ -369,7 +369,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         self.assertIs(Series.dt, CombinedDatetimelikeProperties)
 
         s = Series(date_range('2000-01-01', periods=3))
-        self.assertIsInstance(s.dt, DatetimeProperties)
+        assert isinstance(s.dt, DatetimeProperties)
 
         for s in [Series(np.arange(5)), Series(list('abcde')),
                   Series(np.random.randn(5))]:

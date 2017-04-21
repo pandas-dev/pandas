@@ -158,12 +158,12 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     def test_spam_no_match(self):
         dfs = self.read_html(self.spam_data)
         for df in dfs:
-            tm.assertIsInstance(df, DataFrame)
+            assert isinstance(df, DataFrame)
 
     def test_banklist_no_match(self):
         dfs = self.read_html(self.banklist_data, attrs={'id': 'table'})
         for df in dfs:
-            tm.assertIsInstance(df, DataFrame)
+            assert isinstance(df, DataFrame)
 
     def test_spam_header(self):
         df = self.read_html(self.spam_data, '.*Water.*', header=1)[0]
@@ -295,9 +295,9 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         url = self.banklist_data
         dfs = self.read_html(file_path_to_url(url), 'First',
                              attrs={'id': 'table'})
-        tm.assertIsInstance(dfs, list)
+        assert isinstance(dfs, list)
         for df in dfs:
-            tm.assertIsInstance(df, DataFrame)
+            assert isinstance(df, DataFrame)
 
     @tm.slow
     def test_invalid_table_attrs(self):
@@ -313,34 +313,34 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     @tm.slow
     def test_multiindex_header(self):
         df = self._bank_data(header=[0, 1])[0]
-        tm.assertIsInstance(df.columns, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
 
     @tm.slow
     def test_multiindex_index(self):
         df = self._bank_data(index_col=[0, 1])[0]
-        tm.assertIsInstance(df.index, MultiIndex)
+        assert isinstance(df.index, MultiIndex)
 
     @tm.slow
     def test_multiindex_header_index(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1])[0]
-        tm.assertIsInstance(df.columns, MultiIndex)
-        tm.assertIsInstance(df.index, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
+        assert isinstance(df.index, MultiIndex)
 
     @tm.slow
     def test_multiindex_header_skiprows_tuples(self):
         df = self._bank_data(header=[0, 1], skiprows=1, tupleize_cols=True)[0]
-        tm.assertIsInstance(df.columns, Index)
+        assert isinstance(df.columns, Index)
 
     @tm.slow
     def test_multiindex_header_skiprows(self):
         df = self._bank_data(header=[0, 1], skiprows=1)[0]
-        tm.assertIsInstance(df.columns, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
 
     @tm.slow
     def test_multiindex_header_index_skiprows(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
-        tm.assertIsInstance(df.index, MultiIndex)
-        tm.assertIsInstance(df.columns, MultiIndex)
+        assert isinstance(df.index, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
 
     @tm.slow
     def test_regex_idempotency(self):
@@ -348,9 +348,9 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         dfs = self.read_html(file_path_to_url(url),
                              match=re.compile(re.compile('Florida')),
                              attrs={'id': 'table'})
-        tm.assertIsInstance(dfs, list)
+        assert isinstance(dfs, list)
         for df in dfs:
-            tm.assertIsInstance(df, DataFrame)
+            assert isinstance(df, DataFrame)
 
     def test_negative_skiprows(self):
         with tm.assertRaisesRegexp(ValueError,
@@ -851,8 +851,8 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')
         dfs = self.read_html(filename, index_col=0)
-        tm.assertIsInstance(dfs, list)
-        tm.assertIsInstance(dfs[0], DataFrame)
+        assert isinstance(dfs, list)
+        assert isinstance(dfs[0], DataFrame)
 
     @tm.slow
     def test_fallback_success(self):

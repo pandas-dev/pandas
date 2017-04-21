@@ -43,11 +43,11 @@ class TestIntervalIndex(Base, tm.TestCase):
         self.assertTrue(expected.equals(actual))
 
         actual = Index([Interval(0, 1), Interval(1, 2)])
-        self.assertIsInstance(actual, IntervalIndex)
+        assert isinstance(actual, IntervalIndex)
         self.assertTrue(expected.equals(actual))
 
         actual = Index(expected)
-        self.assertIsInstance(actual, IntervalIndex)
+        assert isinstance(actual, IntervalIndex)
         self.assertTrue(expected.equals(actual))
 
     def test_constructors_other(self):

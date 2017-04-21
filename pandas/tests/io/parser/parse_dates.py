@@ -241,7 +241,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 """
         df = self.read_csv(StringIO(data), parse_dates=True)
         expected = self.read_csv(StringIO(data), index_col=0, parse_dates=True)
-        self.assertIsInstance(
+        assert isinstance(
             df.index[0], (datetime, np.datetime64, Timestamp))
         tm.assert_frame_equal(df, expected)
 
@@ -320,13 +320,13 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 20090103,three,c,4,5
 """
         df = self.read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
-        self.assertIsInstance(df.index.levels[0][0],
-                              (datetime, np.datetime64, Timestamp))
+        assert isinstance(df.index.levels[0][0],
+                          (datetime, np.datetime64, Timestamp))
 
         # specify columns out of order!
         df2 = self.read_csv(StringIO(data), index_col=[1, 0], parse_dates=True)
-        self.assertIsInstance(df2.index.levels[1][0],
-                              (datetime, np.datetime64, Timestamp))
+        assert isinstance(df2.index.levels[1][0],
+                          (datetime, np.datetime64, Timestamp))
 
     def test_parse_dates_custom_euroformat(self):
         text = """foo,bar,baz

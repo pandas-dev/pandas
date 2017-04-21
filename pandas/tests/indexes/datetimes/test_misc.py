@@ -13,7 +13,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                            2345901.5])
         r2 = date_range(start=Timestamp('1710-10-01'), periods=5,
                         freq='D').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_2000(self):
@@ -21,7 +21,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                            2451605.5])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='D').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_hour(self):
@@ -30,7 +30,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
              2451601.625, 2451601.6666666666666666])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='H').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_minute(self):
@@ -39,7 +39,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
              2451601.5020833333333333, 2451601.5027777777777777])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='T').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_second(self):
@@ -48,7 +48,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
              2451601.5000347222222222, 2451601.5000462962962962])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='S').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
 
