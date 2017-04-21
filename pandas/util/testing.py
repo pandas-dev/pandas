@@ -19,7 +19,6 @@ from contextlib import contextmanager
 from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
-import pytest
 import numpy as np
 
 import pandas as pd
@@ -52,7 +51,13 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
 
 from pandas.util import libtesting
 from pandas.io.common import urlopen
-slow = pytest.mark.slow
+try:
+    import pytest
+    slow = pytest.mark.slow
+except ImportError:
+    # Should be ok to just ignore. If you actually need
+    # slow then you'll hit an import error long before getting here.
+    pass
 
 
 N = 30
@@ -347,13 +352,8 @@ def _check_if_lzma():
 
 
 def _skip_if_no_lzma():
+    import pytest
     return _check_if_lzma() or pytest.skip('need backports.lzma to run')
-
-
-_mark_skipif_no_lzma = pytest.mark.skipif(
-    not _check_if_lzma(),
-    reason='need backports.lzma to run'
-)
 
 
 def _skip_if_no_xarray():
