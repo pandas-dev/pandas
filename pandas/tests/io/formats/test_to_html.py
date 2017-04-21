@@ -1859,3 +1859,13 @@ class TestToHTML(tm.TestCase):
           </tbody>
         </table>""")
         self.assertEqual(result, expected)
+
+    def test_to_html_notebook_has_style(self):
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        result = df.to_html(notebook=True)
+        assert "thead tr:only-child" in result
+
+    def test_to_html_notebook_has_no_style(self):
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        result = df.to_html()
+        assert "thead tr:only-child" not in result
