@@ -22,7 +22,8 @@ class TestPandasDtype(tm.TestCase):
             with tm.assertRaisesRegexp(TypeError, msg):
                 pandas_dtype(dtype)
 
-        valid_list = [object, 'float64', np.float64, float, np.dtype('float64')]
+        valid_list = [object, 'float64',
+                      np.float64, float, np.dtype('float64')]
         for dtype in valid_list:
             pandas_dtype(dtype)
 
