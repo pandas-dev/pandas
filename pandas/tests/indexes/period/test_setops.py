@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 import pandas as pd
@@ -106,7 +108,7 @@ class TestPeriodIndex(tm.TestCase):
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             index.union(index2)
 
         msg = 'can only call with other PeriodIndex-ed objects'
@@ -114,7 +116,7 @@ class TestPeriodIndex(tm.TestCase):
             index.join(index.to_timestamp())
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             index.join(index3)
 
     def test_union_dataframe_index(self):
@@ -143,11 +145,11 @@ class TestPeriodIndex(tm.TestCase):
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             index.intersection(index2)
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             index.intersection(index3)
 
     def test_intersection_cases(self):

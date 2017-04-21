@@ -96,8 +96,8 @@ class TestPandasContainer(tm.TestCase):
         df = DataFrame([['a', 'b'], ['c', 'd']], index=[1, 1],
                        columns=['x', 'y'])
 
-        self.assertRaises(ValueError, df.to_json, orient='index')
-        self.assertRaises(ValueError, df.to_json, orient='columns')
+        pytest.raises(ValueError, df.to_json, orient='index')
+        pytest.raises(ValueError, df.to_json, orient='columns')
 
         assert_frame_equal(df, read_json(df.to_json(orient='split'),
                                          orient='split'))
@@ -111,9 +111,9 @@ class TestPandasContainer(tm.TestCase):
         df = DataFrame([['a', 'b'], ['c', 'd']], index=[1, 2],
                        columns=['x', 'x'])
 
-        self.assertRaises(ValueError, df.to_json, orient='index')
-        self.assertRaises(ValueError, df.to_json, orient='columns')
-        self.assertRaises(ValueError, df.to_json, orient='records')
+        pytest.raises(ValueError, df.to_json, orient='index')
+        pytest.raises(ValueError, df.to_json, orient='columns')
+        pytest.raises(ValueError, df.to_json, orient='records')
 
         assert_frame_equal(df, read_json(df.to_json(orient='split'),
                                          orient='split', dtype=False))
@@ -151,12 +151,12 @@ class TestPandasContainer(tm.TestCase):
             # if we are not unique, then check that we are raising ValueError
             # for the appropriate orients
             if not df.index.is_unique and orient in ['index', 'columns']:
-                self.assertRaises(
+                pytest.raises(
                     ValueError, lambda: df.to_json(orient=orient))
                 return
             if (not df.columns.is_unique and
                     orient in ['index', 'columns', 'records']):
-                self.assertRaises(
+                pytest.raises(
                     ValueError, lambda: df.to_json(orient=orient))
                 return
 
@@ -322,21 +322,21 @@ class TestPandasContainer(tm.TestCase):
         _check_orient(df.transpose().transpose(), "index", dtype=False)
 
     def test_frame_from_json_bad_data(self):
-        self.assertRaises(ValueError, read_json, StringIO('{"key":b:a:d}'))
+        pytest.raises(ValueError, read_json, StringIO('{"key":b:a:d}'))
 
         # too few indices
         json = StringIO('{"columns":["A","B"],'
                         '"index":["2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        self.assertRaises(ValueError, read_json, json,
-                          orient="split")
+        pytest.raises(ValueError, read_json, json,
+                      orient="split")
 
         # too many columns
         json = StringIO('{"columns":["A","B","C"],'
                         '"index":["1","2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        self.assertRaises(AssertionError, read_json, json,
-                          orient="split")
+        pytest.raises(AssertionError, read_json, json,
+                      orient="split")
 
         # bad key
         json = StringIO('{"badkey":["A","B"],'
@@ -410,7 +410,7 @@ class TestPandasContainer(tm.TestCase):
 
     def test_frame_to_json_except(self):
         df = DataFrame([1, 2, 3])
-        self.assertRaises(ValueError, df.to_json, orient="garbage")
+        pytest.raises(ValueError, df.to_json, orient="garbage")
 
     def test_frame_empty(self):
         df = DataFrame(columns=['jim', 'joe'])
@@ -514,7 +514,7 @@ class TestPandasContainer(tm.TestCase):
     def test_series_non_unique_index(self):
         s = Series(['a', 'b'], index=[1, 1])
 
-        self.assertRaises(ValueError, s.to_json, orient='index')
+        pytest.raises(ValueError, s.to_json, orient='index')
 
         assert_series_equal(s, read_json(s.to_json(orient='split'),
                                          orient='split', typ='series'))
@@ -587,7 +587,7 @@ class TestPandasContainer(tm.TestCase):
 
     def test_series_to_json_except(self):
         s = Series([1, 2, 3])
-        self.assertRaises(ValueError, s.to_json, orient="garbage")
+        pytest.raises(ValueError, s.to_json, orient="garbage")
 
     def test_series_from_json_precise_float(self):
         s = Series([4.56, 4.56, 4.56])
@@ -695,8 +695,8 @@ class TestPandasContainer(tm.TestCase):
         test_w_date('20130101 20:43:42.123456', date_unit='us')
         test_w_date('20130101 20:43:42.123456789', date_unit='ns')
 
-        self.assertRaises(ValueError, df.to_json, date_format='iso',
-                          date_unit='foo')
+        pytest.raises(ValueError, df.to_json, date_format='iso',
+                      date_unit='foo')
 
     def test_date_format_series(self):
         def test_w_date(date, date_unit=None):
@@ -717,8 +717,8 @@ class TestPandasContainer(tm.TestCase):
         test_w_date('20130101 20:43:42.123456789', date_unit='ns')
 
         ts = Series(Timestamp('20130101 20:43:42.123'), index=self.ts.index)
-        self.assertRaises(ValueError, ts.to_json, date_format='iso',
-                          date_unit='foo')
+        pytest.raises(ValueError, ts.to_json, date_format='iso',
+                      date_unit='foo')
 
     def test_date_unit(self):
         df = self.tsframe.copy()
@@ -884,12 +884,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_default_handler_raises(self):
         def my_handler_raises(obj):
             raise TypeError("raisin")
-        self.assertRaises(TypeError,
-                          DataFrame({'a': [1, 2, object()]}).to_json,
-                          default_handler=my_handler_raises)
-        self.assertRaises(TypeError,
-                          DataFrame({'a': [1, 2, complex(4, -5)]}).to_json,
-                          default_handler=my_handler_raises)
+        pytest.raises(TypeError,
+                      DataFrame({'a': [1, 2, object()]}).to_json,
+                      default_handler=my_handler_raises)
+        pytest.raises(TypeError,
+                      DataFrame({'a': [1, 2, complex(4, -5)]}).to_json,
+                      default_handler=my_handler_raises)
 
     def test_categorical(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks

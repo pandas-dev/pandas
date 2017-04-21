@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+import pytest
+
 from warnings import catch_warnings
 from string import ascii_lowercase
 from datetime import datetime
@@ -69,7 +71,7 @@ class TestGroupBy(MixIn, tm.TestCase):
             self.assertEqual(agged[1], 21)
 
             # corner cases
-            self.assertRaises(Exception, grouped.aggregate, lambda x: x * 2)
+            pytest.raises(Exception, grouped.aggregate, lambda x: x * 2)
 
         for dtype in ['int64', 'int32', 'float64', 'float32']:
             checkit(dtype)
@@ -77,9 +79,9 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         g = df.groupby('A')
-        self.assertRaises(KeyError, g.__getitem__, ['C'])  # g[['C']]
+        pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
 
-        self.assertRaises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
+        pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
         with assertRaisesRegexp(KeyError, '^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
@@ -648,7 +650,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
     def test_empty_groups(self):
         # GH # 1048
-        self.assertRaises(ValueError, self.df.groupby, [])
+        pytest.raises(ValueError, self.df.groupby, [])
 
     def test_groupby_grouper(self):
         grouped = self.df.groupby('A')
@@ -662,8 +664,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         df = DataFrame(columns=['A', 'B', 'A', 'C'],
                        data=[range(4), range(2, 6), range(0, 8, 2)])
 
-        self.assertRaises(ValueError, df.groupby, 'A')
-        self.assertRaises(ValueError, df.groupby, ['A', 'B'])
+        pytest.raises(ValueError, df.groupby, 'A')
+        pytest.raises(ValueError, df.groupby, ['A', 'B'])
 
         grouped = df.groupby('B')
         c = grouped.count()
@@ -702,7 +704,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         # when the elements are Timestamp.
         # the result is Index[0:6], very confusing.
 
-        self.assertRaises(AssertionError, ts.groupby, lambda key: key[0:6])
+        pytest.raises(AssertionError, ts.groupby, lambda key: key[0:6])
 
     def test_groupby_nonobject_dtype(self):
         key = self.mframe.index.labels[0]
@@ -853,10 +855,10 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(result1, result3)
 
         # must pass a same-length tuple with multiple keys
-        self.assertRaises(ValueError, lambda: g.get_group('foo'))
-        self.assertRaises(ValueError, lambda: g.get_group(('foo')))
-        self.assertRaises(ValueError,
-                          lambda: g.get_group(('foo', 'bar', 'baz')))
+        pytest.raises(ValueError, lambda: g.get_group('foo'))
+        pytest.raises(ValueError, lambda: g.get_group(('foo')))
+        pytest.raises(ValueError,
+                      lambda: g.get_group(('foo', 'bar', 'baz')))
 
     def test_get_group_empty_bins(self):
 
@@ -870,7 +872,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = DataFrame([3, 1], index=[0, 1])
         assert_frame_equal(result, expected)
 
-        self.assertRaises(KeyError, lambda: g.get_group(pd.Interval(10, 15)))
+        pytest.raises(KeyError, lambda: g.get_group(pd.Interval(10, 15)))
 
     def test_get_group_grouped_by_tuple(self):
         # GH 8121
@@ -890,8 +892,8 @@ class TestGroupBy(MixIn, tm.TestCase):
 
     def test_grouping_error_on_multidim_input(self):
         from pandas.core.groupby import Grouping
-        self.assertRaises(ValueError,
-                          Grouping, self.df.index, self.df[['A', 'A']])
+        pytest.raises(ValueError,
+                      Grouping, self.df.index, self.df[['A', 'A']])
 
     def test_apply_describe_bug(self):
         grouped = self.mframe.groupby(level='first')
@@ -1073,12 +1075,12 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(result1, result2)
 
         # should fail (not the same number of levels)
-        self.assertRaises(AssertionError, df.groupby('a').apply, f2)
-        self.assertRaises(AssertionError, df2.groupby('a').apply, f2)
+        pytest.raises(AssertionError, df.groupby('a').apply, f2)
+        pytest.raises(AssertionError, df2.groupby('a').apply, f2)
 
         # should fail (incorrect shape)
-        self.assertRaises(AssertionError, df.groupby('a').apply, f3)
-        self.assertRaises(AssertionError, df2.groupby('a').apply, f3)
+        pytest.raises(AssertionError, df.groupby('a').apply, f3)
+        pytest.raises(AssertionError, df2.groupby('a').apply, f3)
 
     def test_attr_wrapper(self):
         grouped = self.ts.groupby(lambda x: x.weekday())
@@ -1100,7 +1102,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = grouped.agg(lambda x: x.dtype)
 
         # make sure raises error
-        self.assertRaises(AttributeError, getattr, grouped, 'foo')
+        pytest.raises(AttributeError, getattr, grouped, 'foo')
 
     def test_series_describe_multikey(self):
         ts = tm.makeTimeSeries()
@@ -1155,8 +1157,8 @@ class TestGroupBy(MixIn, tm.TestCase):
                          'z': [100, 200, 300, 400, 500] * 3})
         df1['k'] = [(0, 0, 1), (0, 1, 0), (1, 0, 0)] * 5
         df2 = df1.rename(columns={'k': 'key'})
-        tm.assertRaises(ValueError, lambda: df1.groupby('k').describe())
-        tm.assertRaises(ValueError, lambda: df2.groupby('key').describe())
+        pytest.raises(ValueError, lambda: df1.groupby('k').describe())
+        pytest.raises(ValueError, lambda: df2.groupby('key').describe())
 
     def test_frame_describe_unstacked_format(self):
         # GH 4792
@@ -1585,7 +1587,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(result2, expected2)
 
         # corner case
-        self.assertRaises(Exception, grouped['C'].__getitem__, 'D')
+        pytest.raises(Exception, grouped['C'].__getitem__, 'D')
 
     def test_groupby_as_index_cython(self):
         data = self.df
@@ -1619,11 +1621,11 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_groupby_as_index_corner(self):
-        self.assertRaises(TypeError, self.ts.groupby, lambda x: x.weekday(),
-                          as_index=False)
+        pytest.raises(TypeError, self.ts.groupby, lambda x: x.weekday(),
+                      as_index=False)
 
-        self.assertRaises(ValueError, self.df.groupby, lambda x: x.lower(),
-                          as_index=False, axis=1)
+        pytest.raises(ValueError, self.df.groupby, lambda x: x.lower(),
+                      as_index=False, axis=1)
 
     def test_groupby_as_index_apply(self):
         # GH #4648 and #3417
@@ -1756,8 +1758,8 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         # won't work with axis = 1
         grouped = df.groupby({'A': 0, 'C': 0, 'D': 1, 'E': 1}, axis=1)
-        result = self.assertRaises(TypeError, grouped.agg,
-                                   lambda x: x.sum(0, numeric_only=False))
+        result = pytest.raises(TypeError, grouped.agg,
+                               lambda x: x.sum(0, numeric_only=False))
 
     def test_omit_nuisance_python_multiple(self):
         grouped = self.three_group.groupby(['A', 'B'])
@@ -1821,7 +1823,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
     def test_nonsense_func(self):
         df = DataFrame([0])
-        self.assertRaises(Exception, df.groupby, lambda x: x + 'foo')
+        pytest.raises(Exception, df.groupby, lambda x: x + 'foo')
 
     def test_builtins_apply(self):  # GH8155
         df = pd.DataFrame(np.random.randint(1, 50, (1000, 2)),
@@ -2046,14 +2048,14 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(result1, expected1.T)
 
         # raise exception for non-MultiIndex
-        self.assertRaises(ValueError, self.df.groupby, level=1)
+        pytest.raises(ValueError, self.df.groupby, level=1)
 
     def test_groupby_level_index_names(self):
         # GH4014 this used to raise ValueError since 'exp'>1 (in py2)
         df = DataFrame({'exp': ['A'] * 3 + ['B'] * 3,
                         'var1': lrange(6), }).set_index('exp')
         df.groupby(level='exp')
-        self.assertRaises(ValueError, df.groupby, level='foo')
+        pytest.raises(ValueError, df.groupby, level='foo')
 
     def test_groupby_level_with_nas(self):
         index = MultiIndex(levels=[[1, 0], [0, 1, 2, 3]],
@@ -2140,12 +2142,12 @@ class TestGroupBy(MixIn, tm.TestCase):
         result = s.groupby(level=[-1]).sum()
         tm.assert_series_equal(result, expected)
 
-        tm.assertRaises(ValueError, s.groupby, level=1)
-        tm.assertRaises(ValueError, s.groupby, level=-2)
-        tm.assertRaises(ValueError, s.groupby, level=[])
-        tm.assertRaises(ValueError, s.groupby, level=[0, 0])
-        tm.assertRaises(ValueError, s.groupby, level=[0, 1])
-        tm.assertRaises(ValueError, s.groupby, level=[1])
+        pytest.raises(ValueError, s.groupby, level=1)
+        pytest.raises(ValueError, s.groupby, level=-2)
+        pytest.raises(ValueError, s.groupby, level=[])
+        pytest.raises(ValueError, s.groupby, level=[0, 0])
+        pytest.raises(ValueError, s.groupby, level=[0, 1])
+        pytest.raises(ValueError, s.groupby, level=[1])
 
     def test_groupby_complex(self):
         # GH 12902
@@ -2905,7 +2907,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = self.df.groupby(self.df['A']).mean()
         assert_frame_equal(result, expected, check_names=False)
 
-        self.assertRaises(Exception, self.df.groupby, list(self.df['A'][:-1]))
+        pytest.raises(Exception, self.df.groupby, list(self.df['A'][:-1]))
 
         # pathological case of ambiguity
         df = DataFrame({'foo': [0, 1],
@@ -2931,9 +2933,9 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_groupby_one_row(self):
         # GH 11741
         df1 = pd.DataFrame(np.random.randn(1, 4), columns=list('ABCD'))
-        self.assertRaises(KeyError, df1.groupby, 'Z')
+        pytest.raises(KeyError, df1.groupby, 'Z')
         df2 = pd.DataFrame(np.random.randn(2, 4), columns=list('ABCD'))
-        self.assertRaises(KeyError, df2.groupby, 'Z')
+        pytest.raises(KeyError, df2.groupby, 'Z')
 
     def test_groupby_nat_exclude(self):
         # GH 6992
@@ -2970,7 +2972,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         tm.assert_frame_equal(
             grouped.get_group(Timestamp('2013-02-01')), df.iloc[[3, 5]])
 
-        self.assertRaises(KeyError, grouped.get_group, pd.NaT)
+        pytest.raises(KeyError, grouped.get_group, pd.NaT)
 
         nan_df = DataFrame({'nan': [np.nan, np.nan, np.nan],
                             'nat': [pd.NaT, pd.NaT, pd.NaT]})
@@ -2982,8 +2984,8 @@ class TestGroupBy(MixIn, tm.TestCase):
             self.assertEqual(grouped.groups, {})
             self.assertEqual(grouped.ngroups, 0)
             self.assertEqual(grouped.indices, {})
-            self.assertRaises(KeyError, grouped.get_group, np.nan)
-            self.assertRaises(KeyError, grouped.get_group, pd.NaT)
+            pytest.raises(KeyError, grouped.get_group, np.nan)
+            pytest.raises(KeyError, grouped.get_group, pd.NaT)
 
     def test_dictify(self):
         dict(iter(self.df.groupby('A')))
@@ -4019,7 +4021,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         df['year'] = df.set_index('eventDate').index.year
         df['month'] = df.set_index('eventDate').index.month
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.reset_index().pivot_table(index='year', columns='month',
                                          values='badname', aggfunc='count')
 

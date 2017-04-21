@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 from datetime import timedelta
 
@@ -287,10 +289,10 @@ Freq: Q-DEC"""
         other = pd.period_range('1/6/2000', freq='D', periods=5)
 
         # previously performed setop union, now raises TypeError (GH14164)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             rng + other
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             rng += other
 
         # offset
@@ -392,10 +394,10 @@ Freq: Q-DEC"""
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             rng - other
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             rng -= other
 
         # offset
@@ -747,7 +749,7 @@ Freq: Q-DEC"""
         # GH 9903
         idx = pd.PeriodIndex([], name='xxx', freq='H')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             # period shift doesn't accept freq
             idx.shift(1, freq='H')
 
@@ -885,29 +887,29 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
                 with tm.assertRaisesRegexp(TypeError, msg):
                     obj + ng
 
-                with tm.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     # error message differs between PY2 and 3
                     ng + obj
 
                 with tm.assertRaisesRegexp(TypeError, msg):
                     obj - ng
 
-                with tm.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     np.add(obj, ng)
 
                 if _np_version_under1p10:
                     self.assertIs(np.add(ng, obj), NotImplemented)
                 else:
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         np.add(ng, obj)
 
-                with tm.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     np.subtract(obj, ng)
 
                 if _np_version_under1p10:
                     self.assertIs(np.subtract(ng, obj), NotImplemented)
                 else:
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         np.subtract(ng, obj)
 
     def test_pi_ops_nat(self):

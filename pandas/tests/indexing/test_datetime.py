@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 import pandas as pd
 from pandas import date_range, Index, DataFrame, Series, Timestamp
@@ -57,7 +59,7 @@ class TestDatetimeIndex(tm.TestCase):
         def f():
             df.loc[df.new_col == 'new', 'time'] = v
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         v = df.loc[df.new_col == 'new', 'time'] + pd.Timedelta('1s')
         df.loc[df.new_col == 'new', 'time'] = v

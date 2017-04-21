@@ -111,7 +111,7 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
 
     def test_to_dict_invalid_orient(self):
         df = DataFrame({'A': [0, 1]})
-        self.assertRaises(ValueError, df.to_dict, orient='xinvalid')
+        pytest.raises(ValueError, df.to_dict, orient='xinvalid')
 
     def test_to_records_dt64(self):
         df = DataFrame([["one", "two", "three"],

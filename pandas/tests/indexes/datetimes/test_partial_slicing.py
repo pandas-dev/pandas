@@ -1,4 +1,7 @@
 """ test partial slicing on Series/Frame """
+
+import pytest
+
 from datetime import datetime
 import numpy as np
 import pandas as pd
@@ -67,7 +70,7 @@ class TestSlicing(tm.TestCase):
         result = s['2005-1-1']
         self.assertEqual(result, s.iloc[0])
 
-        self.assertRaises(Exception, s.__getitem__, '2004-12-31')
+        pytest.raises(Exception, s.__getitem__, '2004-12-31')
 
     def test_partial_slice_daily(self):
         rng = DatetimeIndex(freq='H', start=datetime(2005, 1, 31), periods=500)
@@ -76,7 +79,7 @@ class TestSlicing(tm.TestCase):
         result = s['2005-1-31']
         tm.assert_series_equal(result, s.iloc[:24])
 
-        self.assertRaises(Exception, s.__getitem__, '2004-12-31 00')
+        pytest.raises(Exception, s.__getitem__, '2004-12-31 00')
 
     def test_partial_slice_hourly(self):
         rng = DatetimeIndex(freq='T', start=datetime(2005, 1, 1, 20, 0, 0),
@@ -90,7 +93,7 @@ class TestSlicing(tm.TestCase):
         tm.assert_series_equal(result, s.iloc[:60])
 
         self.assertEqual(s['2005-1-1 20:00'], s.iloc[0])
-        self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:15')
+        pytest.raises(Exception, s.__getitem__, '2004-12-31 00:15')
 
     def test_partial_slice_minutely(self):
         rng = DatetimeIndex(freq='S', start=datetime(2005, 1, 1, 23, 59, 0),
@@ -104,7 +107,7 @@ class TestSlicing(tm.TestCase):
         tm.assert_series_equal(result, s.iloc[:60])
 
         self.assertEqual(s[Timestamp('2005-1-1 23:59:00')], s.iloc[0])
-        self.assertRaises(Exception, s.__getitem__, '2004-12-31 00:00:00')
+        pytest.raises(Exception, s.__getitem__, '2004-12-31 00:00:00')
 
     def test_partial_slice_second_precision(self):
         rng = DatetimeIndex(start=datetime(2005, 1, 1, 0, 0, 59,
@@ -152,7 +155,7 @@ class TestSlicing(tm.TestCase):
                 result = df['a'][ts_string]
                 assert isinstance(result, np.int64)
                 self.assertEqual(result, expected)
-                self.assertRaises(KeyError, df.__getitem__, ts_string)
+                pytest.raises(KeyError, df.__getitem__, ts_string)
 
             # Timestamp with resolution less precise than index
             for fmt in formats[:rnum]:
@@ -179,15 +182,15 @@ class TestSlicing(tm.TestCase):
                 result = df['a'][ts_string]
                 assert isinstance(result, np.int64)
                 self.assertEqual(result, 2)
-                self.assertRaises(KeyError, df.__getitem__, ts_string)
+                pytest.raises(KeyError, df.__getitem__, ts_string)
 
             # Not compatible with existing key
             # Should raise KeyError
             for fmt, res in list(zip(formats, resolutions))[rnum + 1:]:
                 ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
-                self.assertRaises(KeyError, df['a'].__getitem__, ts_string)
-                self.assertRaises(KeyError, df.__getitem__, ts_string)
+                pytest.raises(KeyError, df['a'].__getitem__, ts_string)
+                pytest.raises(KeyError, df.__getitem__, ts_string)
 
     def test_partial_slicing_with_multiindex(self):
 
@@ -216,7 +219,7 @@ class TestSlicing(tm.TestCase):
         def f():
             df_multi.loc[('2013-06-19', 'ACCT1', 'ABC')]
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         # GH 4294
         # partial slice on a series mi

@@ -4,6 +4,7 @@ from warnings import catch_warnings
 from datetime import datetime, timedelta
 from functools import partial
 
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -107,18 +108,18 @@ class TestResampleAPI(tm.TestCase):
 
         # invalids as these can be setting operations
         r = self.series.resample('H')
-        self.assertRaises(ValueError, lambda: r.iloc[0])
-        self.assertRaises(ValueError, lambda: r.iat[0])
-        self.assertRaises(ValueError, lambda: r.loc[0])
-        self.assertRaises(ValueError, lambda: r.loc[
+        pytest.raises(ValueError, lambda: r.iloc[0])
+        pytest.raises(ValueError, lambda: r.iat[0])
+        pytest.raises(ValueError, lambda: r.loc[0])
+        pytest.raises(ValueError, lambda: r.loc[
             Timestamp('2013-01-01 00:00:00', offset='H')])
-        self.assertRaises(ValueError, lambda: r.at[
+        pytest.raises(ValueError, lambda: r.at[
             Timestamp('2013-01-01 00:00:00', offset='H')])
 
         def f():
             r[0] = 5
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # str/repr
         r = self.series.resample('H')
@@ -178,7 +179,7 @@ class TestResampleAPI(tm.TestCase):
         df = self.series.to_frame('foo')
 
         # same as prior versions for DataFrame
-        self.assertRaises(KeyError, lambda: df.resample('H')[0])
+        pytest.raises(KeyError, lambda: df.resample('H')[0])
 
         # compat for Series
         # but we cannot be sure that we need a warning here
@@ -268,9 +269,9 @@ class TestResampleAPI(tm.TestCase):
     def test_select_bad_cols(self):
 
         g = self.frame.resample('H')
-        self.assertRaises(KeyError, g.__getitem__, ['D'])
+        pytest.raises(KeyError, g.__getitem__, ['D'])
 
-        self.assertRaises(KeyError, g.__getitem__, ['A', 'D'])
+        pytest.raises(KeyError, g.__getitem__, ['A', 'D'])
         with tm.assertRaisesRegexp(KeyError, '^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
@@ -283,13 +284,13 @@ class TestResampleAPI(tm.TestCase):
 
         # getting
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertRaises(AttributeError, lambda: r.F)
+            pytest.raises(AttributeError, lambda: r.F)
 
         # setting
         def f():
             r.F = 'bah'
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_api_compat_before_use(self):
 
@@ -371,7 +372,7 @@ class TestResampleAPI(tm.TestCase):
         result = r.fillna(method='bfill')
         assert_series_equal(result, expected)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             r.fillna(0)
 
     def test_apply_without_aggregation(self):
@@ -598,7 +599,7 @@ class TestResampleAPI(tm.TestCase):
                     t[['A']].agg({'A': ['sum', 'std'],
                                   'B': ['mean', 'std']})
 
-            self.assertRaises(SpecificationError, f)
+            pytest.raises(SpecificationError, f)
 
     def test_agg_nested_dicts(self):
 
@@ -625,7 +626,7 @@ class TestResampleAPI(tm.TestCase):
             def f():
                 t.aggregate({'r1': {'A': ['mean', 'sum']},
                              'r2': {'B': ['mean', 'sum']}})
-                self.assertRaises(ValueError, f)
+                pytest.raises(ValueError, f)
 
         for t in cases:
             expected = pd.concat([t['A'].mean(), t['A'].std(), t['B'].mean(),
@@ -658,23 +659,23 @@ class TestResampleAPI(tm.TestCase):
                               index=index)
 
         # non DatetimeIndex
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.resample('2D', level='v')
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.resample('2D', on='date', level='d')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.resample('2D', on=['a', 'date'])
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.resample('2D', level=['a', 'date'])
 
         # upsampling not allowed
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.resample('2D', level='d').asfreq()
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.resample('2D', on='date').asfreq()
 
         exp = df_exp.resample('2D').sum()
@@ -754,7 +755,7 @@ class Base(object):
     def test_raises_on_non_datetimelike_index(self):
         # this is a non datetimelike index
         xp = DataFrame()
-        self.assertRaises(TypeError, lambda: xp.resample('A').mean())
+        pytest.raises(TypeError, lambda: xp.resample('A').mean())
 
     def test_resample_empty_series(self):
         # GH12771 & GH12868
@@ -839,7 +840,7 @@ class Base(object):
 
             # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
             if isinstance(expected.index, TimedeltaIndex):
-                with tm.assertRaises(AssertionError):
+                with pytest.raises(AssertionError):
                     assert_frame_equal(result_agg, expected)
                     assert_frame_equal(result_how, expected)
             else:
@@ -1476,7 +1477,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         rng2 = rng.repeat(2).values
         ts = Series(np.random.randn(len(rng2)), index=rng2)
 
-        self.assertRaises(Exception, ts.asfreq, 'B')
+        pytest.raises(Exception, ts.asfreq, 'B')
 
     def test_resample_axis1(self):
         rng = date_range('1/1/2000', '2/29/2000')
@@ -2252,10 +2253,10 @@ class TestPeriodIndex(Base, tm.TestCase):
                               np.arange(len(index), dtype=np.int64),
                               index], names=['v', 'd']))
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             df.resample('2D', on='date')
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             df.resample('2D', level='d')
 
     def test_annual_upsample_D_s_f(self):
@@ -2318,10 +2319,10 @@ class TestPeriodIndex(Base, tm.TestCase):
     def test_not_subperiod(self):
         # These are incompatible period rules for resampling
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='w-wed')
-        self.assertRaises(ValueError, lambda: ts.resample('a-dec').mean())
-        self.assertRaises(ValueError, lambda: ts.resample('q-mar').mean())
-        self.assertRaises(ValueError, lambda: ts.resample('M').mean())
-        self.assertRaises(ValueError, lambda: ts.resample('w-thu').mean())
+        pytest.raises(ValueError, lambda: ts.resample('a-dec').mean())
+        pytest.raises(ValueError, lambda: ts.resample('q-mar').mean())
+        pytest.raises(ValueError, lambda: ts.resample('M').mean())
+        pytest.raises(ValueError, lambda: ts.resample('w-thu').mean())
 
     def test_basic_upsample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
@@ -2422,7 +2423,7 @@ class TestPeriodIndex(Base, tm.TestCase):
 
     def test_resample_incompat_freq(self):
 
-        with self.assertRaises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             pd.Series(range(3), index=pd.period_range(
                 start='2000', periods=3, freq='M')).resample('W').mean()
 
@@ -2548,7 +2549,7 @@ class TestPeriodIndex(Base, tm.TestCase):
     def test_cant_fill_missing_dups(self):
         rng = PeriodIndex([2000, 2005, 2005, 2007, 2007], freq='A')
         s = Series(np.random.randn(5), index=rng)
-        self.assertRaises(Exception, lambda: s.resample('A').ffill())
+        pytest.raises(Exception, lambda: s.resample('A').ffill())
 
     def test_resample_5minute(self):
         rng = period_range('1/1/2000', '1/5/2000', freq='T')

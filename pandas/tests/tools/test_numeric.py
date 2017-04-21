@@ -162,7 +162,7 @@ class TestToNumeric(tm.TestCase):
         self.assertEqual(pd.to_numeric('1'), 1)
         self.assertEqual(pd.to_numeric('1.1'), 1.1)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             to_numeric('XX', errors='raise')
 
         self.assertEqual(to_numeric('XX', errors='ignore'), 'XX')

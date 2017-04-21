@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 import pandas as pd
 import numpy as np
 from pandas import Series, DataFrame
@@ -47,22 +49,22 @@ class TestCategoricalIndex(tm.TestCase):
         assert_frame_equal(df, expected)
 
         # value not in the categories
-        self.assertRaises(KeyError, lambda: df.loc['d'])
+        pytest.raises(KeyError, lambda: df.loc['d'])
 
         def f():
             df.loc['d'] = 10
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         def f():
             df.loc['d', 'A'] = 10
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         def f():
             df.loc['d', 'C'] = 10
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
     def test_loc_listlike(self):
 
@@ -78,7 +80,7 @@ class TestCategoricalIndex(tm.TestCase):
         assert_frame_equal(result, expected, check_index_type=True)
 
         # element in the categories but not in the values
-        self.assertRaises(KeyError, lambda: self.df2.loc['e'])
+        pytest.raises(KeyError, lambda: self.df2.loc['e'])
 
         # assign is ok
         df = self.df2.copy()
@@ -97,7 +99,7 @@ class TestCategoricalIndex(tm.TestCase):
         assert_frame_equal(result, expected, check_index_type=True)
 
         # not all labels in the categories
-        self.assertRaises(KeyError, lambda: self.df2.loc[['a', 'd']])
+        pytest.raises(KeyError, lambda: self.df2.loc[['a', 'd']])
 
     def test_loc_listlike_dtypes(self):
         # GH 11586
@@ -324,22 +326,22 @@ class TestCategoricalIndex(tm.TestCase):
         assert_frame_equal(result, expected, check_index_type=True)
 
         # passed duplicate indexers are not allowed
-        self.assertRaises(ValueError, lambda: self.df2.reindex(['a', 'a']))
+        pytest.raises(ValueError, lambda: self.df2.reindex(['a', 'a']))
 
         # args NotImplemented ATM
-        self.assertRaises(NotImplementedError,
-                          lambda: self.df2.reindex(['a'], method='ffill'))
-        self.assertRaises(NotImplementedError,
-                          lambda: self.df2.reindex(['a'], level=1))
-        self.assertRaises(NotImplementedError,
-                          lambda: self.df2.reindex(['a'], limit=2))
+        pytest.raises(NotImplementedError,
+                      lambda: self.df2.reindex(['a'], method='ffill'))
+        pytest.raises(NotImplementedError,
+                      lambda: self.df2.reindex(['a'], level=1))
+        pytest.raises(NotImplementedError,
+                      lambda: self.df2.reindex(['a'], limit=2))
 
     def test_loc_slice(self):
         # slicing
         # not implemented ATM
         # GH9748
 
-        self.assertRaises(TypeError, lambda: self.df.loc[1:5])
+        pytest.raises(TypeError, lambda: self.df.loc[1:5])
 
         # result = df.loc[1:5]
         # expected = df.iloc[[1,2,3,4]]
@@ -387,8 +389,8 @@ class TestCategoricalIndex(tm.TestCase):
         #         categories=[3, 2, 1],
         #         ordered=False,
         #         name=u'B')
-        self.assertRaises(TypeError, lambda: df4[df4.index < 2])
-        self.assertRaises(TypeError, lambda: df4[df4.index > 1])
+        pytest.raises(TypeError, lambda: df4[df4.index < 2])
+        pytest.raises(TypeError, lambda: df4[df4.index > 1])
 
     def test_indexing_with_category(self):
 

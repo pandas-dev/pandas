@@ -120,7 +120,7 @@ class TestCategorical(tm.TestCase):
         self.assertFalse(factor.ordered)
 
         # this however will raise as cannot be sorted
-        self.assertRaises(
+        pytest.raises(
             TypeError, lambda: Categorical(arr, ordered=True))
 
     def test_constructor_interval(self):
@@ -166,12 +166,12 @@ class TestCategorical(tm.TestCase):
         def f():
             Categorical([1, 2], [1, 2, 2])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             Categorical(["a", "b"], ["a", "b", "b"])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # The default should be unordered
         c1 = Categorical(["a", "b", "c", "a"])
@@ -409,31 +409,31 @@ class TestCategorical(tm.TestCase):
         def f():
             Categorical.from_codes([1, 2], [1, 2])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # no int codes
         def f():
             Categorical.from_codes(["a"], [1, 2])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # no unique categories
         def f():
             Categorical.from_codes([0, 1, 2], ["a", "a", "b"])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # NaN categories included
         def f():
             Categorical.from_codes([0, 1, 2], ["a", "b", np.nan])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # too negative
         def f():
             Categorical.from_codes([-2, 1, 2], ["a", "b", "c"])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         exp = Categorical(["a", "b", "c"], ordered=False)
         res = Categorical.from_codes([0, 1, 2], ["a", "b", "c"])
@@ -522,7 +522,7 @@ class TestCategorical(tm.TestCase):
         def f():
             cat > cat_rev
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         cat_rev_base2 = pd.Categorical(
             ["b", "b", "b"], categories=["c", "b", "a", "d"])
@@ -530,7 +530,7 @@ class TestCategorical(tm.TestCase):
         def f():
             cat_rev > cat_rev_base2
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         # Only categories with same ordering information can be compared
         cat_unorderd = cat.set_ordered(False)
@@ -539,26 +539,26 @@ class TestCategorical(tm.TestCase):
         def f():
             cat > cat_unorderd
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         # comparison (in both directions) with Series will raise
         s = Series(["b", "b", "b"])
-        self.assertRaises(TypeError, lambda: cat > s)
-        self.assertRaises(TypeError, lambda: cat_rev > s)
-        self.assertRaises(TypeError, lambda: s < cat)
-        self.assertRaises(TypeError, lambda: s < cat_rev)
+        pytest.raises(TypeError, lambda: cat > s)
+        pytest.raises(TypeError, lambda: cat_rev > s)
+        pytest.raises(TypeError, lambda: s < cat)
+        pytest.raises(TypeError, lambda: s < cat_rev)
 
         # comparison with numpy.array will raise in both direction, but only on
         # newer numpy versions
         a = np.array(["b", "b", "b"])
-        self.assertRaises(TypeError, lambda: cat > a)
-        self.assertRaises(TypeError, lambda: cat_rev > a)
+        pytest.raises(TypeError, lambda: cat > a)
+        pytest.raises(TypeError, lambda: cat_rev > a)
 
         # The following work via '__array_priority__ = 1000'
         # works only on numpy >= 1.7.1
         if LooseVersion(np.__version__) > "1.7.1":
-            self.assertRaises(TypeError, lambda: a < cat)
-            self.assertRaises(TypeError, lambda: a < cat_rev)
+            pytest.raises(TypeError, lambda: a < cat)
+            pytest.raises(TypeError, lambda: a < cat_rev)
 
         # Make sure that unequal comparison take the categories order in
         # account
@@ -777,13 +777,13 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         def f():
             s.categories = [1, 2, 3, 4]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # shorten
         def f():
             s.categories = [1, 2]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_construction_with_ordered(self):
         # GH 9347, 9190
@@ -968,19 +968,19 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         def f():
             cat.reorder_categories(["a"])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # still not all "old" in "new"
         def f():
             cat.reorder_categories(["a", "b", "d"])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # all "old" included in "new", but too long
         def f():
             cat.reorder_categories(["a", "b", "c", "d"])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_add_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -1006,7 +1006,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         def f():
             cat.add_categories(["d"])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # GH 9927
         cat = Categorical(list("abc"), ordered=True)
@@ -1046,7 +1046,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         def f():
             cat.remove_categories(["c"])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"],
@@ -1127,7 +1127,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         def f():
             c.codes = np.array([0, 1, 2, 0, 1], dtype='int8')
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # changes in the codes array should raise
         # np 1.6.1 raises RuntimeError rather than ValueError
@@ -1136,7 +1136,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         def f():
             codes[4] = 1
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # But even after getting the codes, the original array should still be
         # writeable!
@@ -1151,8 +1151,8 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
-        self.assertRaises(TypeError, lambda: cat.min())
-        self.assertRaises(TypeError, lambda: cat.max())
+        pytest.raises(TypeError, lambda: cat.min())
+        pytest.raises(TypeError, lambda: cat.max())
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
         _min = cat.min()
         _max = cat.max()
@@ -1480,18 +1480,18 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for a single value that is not from the Categorical
-        self.assertRaises(ValueError, lambda: c1.searchsorted('cucumber'))
-        self.assertRaises(ValueError, lambda: s1.searchsorted('cucumber'))
+        pytest.raises(ValueError, lambda: c1.searchsorted('cucumber'))
+        pytest.raises(ValueError, lambda: s1.searchsorted('cucumber'))
 
         # Searching for multiple values one of each is not from the Categorical
-        self.assertRaises(ValueError,
-                          lambda: c1.searchsorted(['bread', 'cucumber']))
-        self.assertRaises(ValueError,
-                          lambda: s1.searchsorted(['bread', 'cucumber']))
+        pytest.raises(ValueError,
+                      lambda: c1.searchsorted(['bread', 'cucumber']))
+        pytest.raises(ValueError,
+                      lambda: s1.searchsorted(['bread', 'cucumber']))
 
         # searchsorted call for unordered Categorical
-        self.assertRaises(ValueError, lambda: c2.searchsorted('apple'))
-        self.assertRaises(ValueError, lambda: s2.searchsorted('apple'))
+        pytest.raises(ValueError, lambda: c2.searchsorted('apple'))
+        pytest.raises(ValueError, lambda: s2.searchsorted('apple'))
 
         with tm.assert_produces_warning(FutureWarning):
             res = c1.searchsorted(v=['bread'])
@@ -1568,36 +1568,36 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.set_ordered(value=True, inplace=value)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.as_ordered(inplace=value)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.as_unordered(inplace=value)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.set_categories(['X', 'Y', 'Z'], rename=True, inplace=value)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.rename_categories(['X', 'Y', 'Z'], inplace=value)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.reorder_categories(
                     ['X', 'Y', 'Z'], ordered=True, inplace=value)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.add_categories(
                     new_categories=['D', 'E', 'F'], inplace=value)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.remove_categories(removals=['D', 'E', 'F'], inplace=value)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.remove_unused_categories(inplace=value)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 cat.sort_values(inplace=value)
 
 
@@ -1817,14 +1817,14 @@ class TestCategoricalAsBlock(tm.TestCase):
         tm.assert_frame_equal(df, expected)
 
         # invalid (shape)
-        self.assertRaises(
+        pytest.raises(
             ValueError,
             lambda: DataFrame([pd.Categorical(list('abc')),
                                pd.Categorical(list('abdefg'))]))
 
         # ndim > 1
-        self.assertRaises(NotImplementedError,
-                          lambda: pd.Categorical(np.array([list('abcd')])))
+        pytest.raises(NotImplementedError,
+                      lambda: pd.Categorical(np.array([list('abcd')])))
 
     def test_reshaping(self):
 
@@ -1954,15 +1954,15 @@ class TestCategoricalAsBlock(tm.TestCase):
     def test_series_delegations(self):
 
         # invalid accessor
-        self.assertRaises(AttributeError, lambda: Series([1, 2, 3]).cat)
+        pytest.raises(AttributeError, lambda: Series([1, 2, 3]).cat)
         tm.assertRaisesRegexp(
             AttributeError,
             r"Can only use .cat accessor with a 'category' dtype",
             lambda: Series([1, 2, 3]).cat)
-        self.assertRaises(AttributeError, lambda: Series(['a', 'b', 'c']).cat)
-        self.assertRaises(AttributeError, lambda: Series(np.arange(5.)).cat)
-        self.assertRaises(AttributeError,
-                          lambda: Series([Timestamp('20130101')]).cat)
+        pytest.raises(AttributeError, lambda: Series(['a', 'b', 'c']).cat)
+        pytest.raises(AttributeError, lambda: Series(np.arange(5.)).cat)
+        pytest.raises(AttributeError,
+                      lambda: Series([Timestamp('20130101')]).cat)
 
         # Series should delegate calls to '.categories', '.codes', '.ordered'
         # and the methods '.set_categories()' 'drop_unused_categories()' to the
@@ -2007,7 +2007,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         def f():
             s.set_categories([4, 3, 2, 1])
 
-        self.assertRaises(Exception, f)
+        pytest.raises(Exception, f)
         # right: s.cat.set_categories([4,3,2,1])
 
     def test_series_functions_no_warnings(self):
@@ -2795,8 +2795,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
     def test_min_max(self):
         # unordered cats have no min/max
         cat = Series(Categorical(["a", "b", "c", "d"], ordered=False))
-        self.assertRaises(TypeError, lambda: cat.min())
-        self.assertRaises(TypeError, lambda: cat.max())
+        pytest.raises(TypeError, lambda: cat.min())
+        pytest.raises(TypeError, lambda: cat.max())
 
         cat = Series(Categorical(["a", "b", "c", "d"], ordered=True))
         _min = cat.min()
@@ -3395,7 +3395,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.iloc[2, 0] = "c"
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         #   - assign a complete row (mixed values) -> exp_single_row
         df = orig.copy()
@@ -3407,7 +3407,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.iloc[2, :] = ["c", 2]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
@@ -3418,7 +3418,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.iloc[2:4, :] = [["c", 2], ["c", 2]]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
@@ -3426,13 +3426,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df.iloc[2:4, 0] = pd.Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # different categories -> not sure if this should fail or pass
             df = orig.copy()
             df.iloc[2:4, 0] = pd.Categorical(
                 ["b", "b"], categories=["a", "b", "c"])
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # different values
             df = orig.copy()
             df.iloc[2:4, 0] = pd.Categorical(
@@ -3444,7 +3444,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df.iloc[2:4, 0] = ["b", "b"]
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.iloc[2:4, 0] = ["c", "c"]
 
         #  loc
@@ -3463,7 +3463,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.loc["j", "cats"] = "c"
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         #   - assign a complete row (mixed values) -> exp_single_row
         df = orig.copy()
@@ -3475,7 +3475,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.loc["j", :] = ["c", 2]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
@@ -3486,7 +3486,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.loc["j":"k", :] = [["c", 2], ["c", 2]]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
@@ -3495,13 +3495,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             ["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # different categories -> not sure if this should fail or pass
             df = orig.copy()
             df.loc["j":"k", "cats"] = pd.Categorical(
                 ["b", "b"], categories=["a", "b", "c"])
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # different values
             df = orig.copy()
             df.loc["j":"k", "cats"] = pd.Categorical(
@@ -3513,7 +3513,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df.loc["j":"k", "cats"] = ["b", "b"]
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.loc["j":"k", "cats"] = ["c", "c"]
 
         #  loc
@@ -3532,7 +3532,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.loc["j", df.columns[0]] = "c"
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         #   - assign a complete row (mixed values) -> exp_single_row
         df = orig.copy()
@@ -3544,7 +3544,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.loc["j", :] = ["c", 2]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
@@ -3555,7 +3555,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.loc["j":"k", :] = [["c", 2], ["c", 2]]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # assign a part of a column with dtype == categorical ->
         # exp_parts_cats_col
@@ -3564,13 +3564,13 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             ["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # different categories -> not sure if this should fail or pass
             df = orig.copy()
             df.loc["j":"k", df.columns[0]] = pd.Categorical(
                 ["b", "b"], categories=["a", "b", "c"])
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # different values
             df = orig.copy()
             df.loc["j":"k", df.columns[0]] = pd.Categorical(
@@ -3582,7 +3582,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df.loc["j":"k", df.columns[0]] = ["b", "b"]
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.loc["j":"k", df.columns[0]] = ["c", "c"]
 
         # iat
@@ -3595,7 +3595,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.iat[2, 0] = "c"
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # at
         #   - assign a single value -> exp_single_cats_value
@@ -3608,7 +3608,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.at["j", "cats"] = "c"
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # fancy indexing
         catsf = pd.Categorical(["a", "a", "c", "c", "a", "a", "a"],
@@ -3633,7 +3633,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             df = orig.copy()
             df.set_value("j", "cats", "c")
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # Assigning a Category to parts of a int/... column uses the values of
         # the Catgorical
@@ -3723,20 +3723,20 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
             def f():
                 cat > cat_rev
 
-            self.assertRaises(TypeError, f)
+            pytest.raises(TypeError, f)
 
             # categorical cannot be compared to Series or numpy array, and also
             # not the other way around
-            self.assertRaises(TypeError, lambda: cat > s)
-            self.assertRaises(TypeError, lambda: cat_rev > s)
-            self.assertRaises(TypeError, lambda: cat > a)
-            self.assertRaises(TypeError, lambda: cat_rev > a)
+            pytest.raises(TypeError, lambda: cat > s)
+            pytest.raises(TypeError, lambda: cat_rev > s)
+            pytest.raises(TypeError, lambda: cat > a)
+            pytest.raises(TypeError, lambda: cat_rev > a)
 
-            self.assertRaises(TypeError, lambda: s < cat)
-            self.assertRaises(TypeError, lambda: s < cat_rev)
+            pytest.raises(TypeError, lambda: s < cat)
+            pytest.raises(TypeError, lambda: s < cat_rev)
 
-            self.assertRaises(TypeError, lambda: a < cat)
-            self.assertRaises(TypeError, lambda: a < cat_rev)
+            pytest.raises(TypeError, lambda: a < cat)
+            pytest.raises(TypeError, lambda: a < cat_rev)
 
         # unequal comparison should raise for unordered cats
         cat = Series(Categorical(list("abc")))
@@ -3744,23 +3744,23 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         def f():
             cat > "b"
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
         cat = Series(Categorical(list("abc"), ordered=False))
 
         def f():
             cat > "b"
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         # https://github.com/pandas-dev/pandas/issues/9836#issuecomment-92123057
         # and following comparisons with scalars not in categories should raise
         # for unequal comps, but not for equal/not equal
         cat = Series(Categorical(list("abc"), ordered=True))
 
-        self.assertRaises(TypeError, lambda: cat < "d")
-        self.assertRaises(TypeError, lambda: cat > "d")
-        self.assertRaises(TypeError, lambda: "d" < cat)
-        self.assertRaises(TypeError, lambda: "d" > cat)
+        pytest.raises(TypeError, lambda: cat < "d")
+        pytest.raises(TypeError, lambda: cat > "d")
+        pytest.raises(TypeError, lambda: "d" < cat)
+        pytest.raises(TypeError, lambda: "d" > cat)
 
         tm.assert_series_equal(cat == "d", Series([False, False, False]))
         tm.assert_series_equal(cat != "d", Series([True, True, True]))
@@ -3818,10 +3818,10 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assertTrue(((~(f == a) == (f != a)).all()))
 
         # non-equality is not comparable
-        self.assertRaises(TypeError, lambda: a < b)
-        self.assertRaises(TypeError, lambda: b < a)
-        self.assertRaises(TypeError, lambda: a > b)
-        self.assertRaises(TypeError, lambda: b > a)
+        pytest.raises(TypeError, lambda: a < b)
+        pytest.raises(TypeError, lambda: b < a)
+        pytest.raises(TypeError, lambda: a > b)
+        pytest.raises(TypeError, lambda: b > a)
 
     def test_concat_append(self):
         cat = pd.Categorical(["a", "b"], categories=["a", "b"])
@@ -3921,7 +3921,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         df3 = DataFrame({'A': a,
                          'B': pd.Categorical(b, categories=list('abc'))
                          }).set_index('B')
-        self.assertRaises(TypeError, lambda: pd.concat([df2, df3]))
+        pytest.raises(TypeError, lambda: pd.concat([df2, df3]))
 
     def test_merge(self):
         # GH 9426
@@ -4046,7 +4046,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         def f():
             df.fillna(value={"cats": 4, "vals": "c"})
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         res = df.fillna(method='pad')
         tm.assert_frame_equal(res, df_exp_fill)
@@ -4104,7 +4104,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         expected = s
         tm.assert_series_equal(s.astype('category'), expected)
         tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
-        self.assertRaises(ValueError, lambda: s.astype('float64'))
+        pytest.raises(ValueError, lambda: s.astype('float64'))
 
         cat = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
         exp = Series(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
@@ -4142,7 +4142,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # invalid conversion (these are NOT a dtype)
         for invalid in [lambda x: x.astype(pd.Categorical),
                         lambda x: x.astype('object').astype(pd.Categorical)]:
-            self.assertRaises(TypeError, lambda: invalid(s))
+            pytest.raises(TypeError, lambda: invalid(s))
 
     def test_astype_categorical(self):
 
@@ -4150,7 +4150,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_categorical_equal(cat, cat.astype('category'))
         tm.assert_almost_equal(np.array(cat), cat.astype('object'))
 
-        self.assertRaises(ValueError, lambda: cat.astype(float))
+        pytest.raises(ValueError, lambda: cat.astype(float))
 
     def test_to_records(self):
 
@@ -4177,28 +4177,28 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # numeric ops should not succeed
         for op in ['__add__', '__sub__', '__mul__', '__truediv__']:
-            self.assertRaises(TypeError,
-                              lambda: getattr(self.cat, op)(self.cat))
+            pytest.raises(TypeError,
+                          lambda: getattr(self.cat, op)(self.cat))
 
         # reduction ops should not succeed (unless specifically defined, e.g.
         # min/max)
         s = self.cat['value_group']
         for op in ['kurt', 'skew', 'var', 'std', 'mean', 'sum', 'median']:
-            self.assertRaises(TypeError,
-                              lambda: getattr(s, op)(numeric_only=False))
+            pytest.raises(TypeError,
+                          lambda: getattr(s, op)(numeric_only=False))
 
         # mad technically works because it takes always the numeric data
 
         # numpy ops
         s = pd.Series(pd.Categorical([1, 2, 3, 4]))
-        self.assertRaises(TypeError, lambda: np.sum(s))
+        pytest.raises(TypeError, lambda: np.sum(s))
 
         # numeric ops on a Series
         for op in ['__add__', '__sub__', '__mul__', '__truediv__']:
-            self.assertRaises(TypeError, lambda: getattr(s, op)(2))
+            pytest.raises(TypeError, lambda: getattr(s, op)(2))
 
         # invalid ufunc
-        self.assertRaises(TypeError, lambda: np.log(s))
+        pytest.raises(TypeError, lambda: np.log(s))
 
     def test_cat_tab_completition(self):
         # test the tab completion display

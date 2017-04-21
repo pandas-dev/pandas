@@ -131,12 +131,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(['a', 'b']))
 
-        self.assertRaises(TypeError, lambda: idx - idx)
-        self.assertRaises(TypeError, lambda: idx + idx)
-        self.assertRaises(TypeError, lambda: idx - ['a', 'b'])
-        self.assertRaises(TypeError, lambda: idx + ['a', 'b'])
-        self.assertRaises(TypeError, lambda: ['a', 'b'] - idx)
-        self.assertRaises(TypeError, lambda: ['a', 'b'] + idx)
+        pytest.raises(TypeError, lambda: idx - idx)
+        pytest.raises(TypeError, lambda: idx + idx)
+        pytest.raises(TypeError, lambda: idx - ['a', 'b'])
+        pytest.raises(TypeError, lambda: idx + ['a', 'b'])
+        pytest.raises(TypeError, lambda: ['a', 'b'] - idx)
+        pytest.raises(TypeError, lambda: ['a', 'b'] + idx)
 
     def test_method_delegation(self):
 
@@ -170,7 +170,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
             list('aabbca'), categories=list('cabdef'), ordered=True))
 
         # invalid
-        self.assertRaises(ValueError, lambda: ci.set_categories(
+        pytest.raises(ValueError, lambda: ci.set_categories(
             list('cab'), inplace=True))
 
     def test_contains(self):
@@ -193,8 +193,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
     def test_min_max(self):
 
         ci = self.create_index(ordered=False)
-        self.assertRaises(TypeError, lambda: ci.min())
-        self.assertRaises(TypeError, lambda: ci.max())
+        pytest.raises(TypeError, lambda: ci.min())
+        pytest.raises(TypeError, lambda: ci.max())
 
         ci = self.create_index(ordered=True)
 
@@ -275,10 +275,10 @@ class TestCategoricalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, ci, exact=True)
 
         # appending with different categories or reoreded is not ok
-        self.assertRaises(
+        pytest.raises(
             TypeError,
             lambda: ci.append(ci.values.set_categories(list('abcd'))))
-        self.assertRaises(
+        pytest.raises(
             TypeError,
             lambda: ci.append(ci.values.reorder_categories(list('abc'))))
 
@@ -288,7 +288,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid objects
-        self.assertRaises(TypeError, lambda: ci.append(Index(['a', 'd'])))
+        pytest.raises(TypeError, lambda: ci.append(Index(['a', 'd'])))
 
         # GH14298 - if base object is not categorical -> coerce to object
         result = Index(['c', 'a']).append(ci)
@@ -316,7 +316,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid
-        self.assertRaises(TypeError, lambda: ci.insert(0, 'd'))
+        pytest.raises(TypeError, lambda: ci.insert(0, 'd'))
 
     def test_delete(self):
 
@@ -439,12 +439,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
             r1 = idx1.get_indexer(idx2)
             assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
 
-        self.assertRaises(NotImplementedError,
-                          lambda: idx2.get_indexer(idx1, method='pad'))
-        self.assertRaises(NotImplementedError,
-                          lambda: idx2.get_indexer(idx1, method='backfill'))
-        self.assertRaises(NotImplementedError,
-                          lambda: idx2.get_indexer(idx1, method='nearest'))
+        pytest.raises(NotImplementedError,
+                      lambda: idx2.get_indexer(idx1, method='pad'))
+        pytest.raises(NotImplementedError,
+                      lambda: idx2.get_indexer(idx1, method='backfill'))
+        pytest.raises(NotImplementedError,
+                      lambda: idx2.get_indexer(idx1, method='nearest'))
 
     def test_get_loc(self):
         # GH 12531
@@ -454,7 +454,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertEqual(cidx1.get_loc('e'), idx1.get_loc('e'))
 
         for i in [cidx1, idx1]:
-            with tm.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 i.get_loc('NOT-EXIST')
 
         # non-unique
@@ -472,7 +472,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertEqual(res, 4)
 
         for i in [cidx2, idx2]:
-            with tm.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 i.get_loc('NOT-EXIST')
 
         # non-unique, slicable
@@ -489,7 +489,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertEqual(res, slice(2, 5, None))
 
         for i in [cidx3, idx3]:
-            with tm.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 i.get_loc('c')
 
     def test_repr_roundtrip(self):
@@ -581,10 +581,10 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # invalid comparisons
         with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
             ci1 == Index(['a', 'b', 'c'])
-        self.assertRaises(TypeError, lambda: ci1 == ci2)
-        self.assertRaises(
+        pytest.raises(TypeError, lambda: ci1 == ci2)
+        pytest.raises(
             TypeError, lambda: ci1 == Categorical(ci1.values, ordered=False))
-        self.assertRaises(
+        pytest.raises(
             TypeError,
             lambda: ci1 == Categorical(ci1.values, categories=list('abc')))
 
@@ -866,7 +866,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_take_fill_value_datetime(self):
@@ -904,7 +904,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_take_invalid_kwargs(self):

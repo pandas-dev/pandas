@@ -1,5 +1,8 @@
 from datetime import datetime, date, timedelta
 
+import pytest
+
+
 import numpy as np
 
 from collections import OrderedDict
@@ -553,17 +556,17 @@ class TestPivotTable(tm.TestCase):
     def test_pivot_table_with_margins_set_margin_name(self):
         # GH 3335
         for margin_name in ['foo', 'one', 666, None, ['a', 'b']]:
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 # multi-index index
                 pivot_table(self.data, values='D', index=['A', 'B'],
                             columns=['C'], margins=True,
                             margins_name=margin_name)
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 # multi-index column
                 pivot_table(self.data, values='D', index=['C'],
                             columns=['A', 'B'], margins=True,
                             margins_name=margin_name)
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 # non-multi-index index/column
                 pivot_table(self.data, values='D', index=['A'],
                             columns=['B'], margins=True,
@@ -626,10 +629,10 @@ class TestPivotTable(tm.TestCase):
                              values='Quantity', aggfunc=np.sum)
         tm.assert_frame_equal(result, expected.T)
 
-        self.assertRaises(KeyError, lambda: pivot_table(
+        pytest.raises(KeyError, lambda: pivot_table(
             df, index=Grouper(freq='6MS', key='foo'),
             columns='Buyer', values='Quantity', aggfunc=np.sum))
-        self.assertRaises(KeyError, lambda: pivot_table(
+        pytest.raises(KeyError, lambda: pivot_table(
             df, index='Buyer',
             columns=Grouper(freq='6MS', key='foo'),
             values='Quantity', aggfunc=np.sum))
@@ -646,10 +649,10 @@ class TestPivotTable(tm.TestCase):
                              values='Quantity', aggfunc=np.sum)
         tm.assert_frame_equal(result, expected.T)
 
-        self.assertRaises(ValueError, lambda: pivot_table(
+        pytest.raises(ValueError, lambda: pivot_table(
             df, index=Grouper(freq='6MS', level='foo'),
             columns='Buyer', values='Quantity', aggfunc=np.sum))
-        self.assertRaises(ValueError, lambda: pivot_table(
+        pytest.raises(ValueError, lambda: pivot_table(
             df, index='Buyer',
             columns=Grouper(freq='6MS', level='foo'),
             values='Quantity', aggfunc=np.sum))

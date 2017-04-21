@@ -470,7 +470,7 @@ AA &  BB \\
 
         assert withoutescape_result == withoutescape_expected
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.to_latex(header=['A'])
 
     def test_to_latex_decimal(self, frame):

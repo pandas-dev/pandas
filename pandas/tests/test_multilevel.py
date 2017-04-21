@@ -272,14 +272,14 @@ class TestMultiLevel(Base, tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         # key error
-        self.assertRaises(KeyError, s.__getitem__, (2000, 3, 4))
+        pytest.raises(KeyError, s.__getitem__, (2000, 3, 4))
 
     def test_series_getitem_corner(self):
         s = self.ymd['A']
 
         # don't segfault, GH #495
         # out of bounds access
-        self.assertRaises(IndexError, s.__getitem__, len(self.ymd))
+        pytest.raises(IndexError, s.__getitem__, len(self.ymd))
 
         # generator
         result = s[(x > 0 for x in s)]
@@ -509,7 +509,7 @@ class TestMultiLevel(Base, tm.TestCase):
         def f(x):
             x[:] = 10
 
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        pytest.raises(com.SettingWithCopyError, f, result)
 
     def test_xs_level_multiple(self):
         from pandas import read_table
@@ -533,7 +533,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         def f(x):
             x[:] = 10
 
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        pytest.raises(com.SettingWithCopyError, f, result)
 
         # GH2107
         dates = lrange(20111201, 20111205)
@@ -574,7 +574,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # not implementing this for now
 
-        self.assertRaises(TypeError, s.__getitem__, (2000, slice(3, 4)))
+        pytest.raises(TypeError, s.__getitem__, (2000, slice(3, 4)))
 
         # result = s[2000, 3:4]
         # lv =s.index.get_level_values(1)
@@ -641,7 +641,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(result, expected)
 
         # raises exception
-        self.assertRaises(KeyError, frame.loc.__getitem__, 3)
+        pytest.raises(KeyError, frame.loc.__getitem__, 3)
 
         # however this will work
         result = self.frame.iloc[2]
@@ -709,8 +709,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             result = df.ix[('a', 'y'), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
-        self.assertRaises(KeyError, df.loc.__getitem__,
-                          (('a', 'foo'), slice(None, None)))
+        pytest.raises(KeyError, df.loc.__getitem__,
+                      (('a', 'foo'), slice(None, None)))
 
     def test_delevel_infer_dtype(self):
         tuples = [tuple
@@ -1323,7 +1323,7 @@ Thur,Lunch,Yes,51.51,17"""
             df['foo']['one'] = 2
             return df
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        pytest.raises(com.SettingWithCopyError, f)
 
         try:
             df = f()
@@ -1356,8 +1356,8 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expect, check_names=False)
         self.assertEqual(result.index.name, 'a')
 
-        self.assertRaises(KeyError, series.count, 'x')
-        self.assertRaises(KeyError, frame.count, level='x')
+        pytest.raises(KeyError, series.count, 'x')
+        pytest.raises(KeyError, frame.count, level='x')
 
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var', 'sem']
@@ -1552,8 +1552,8 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertEqual(result.shape, (500, 2))
 
     def test_getitem_lowerdim_corner(self):
-        self.assertRaises(KeyError, self.frame.loc.__getitem__,
-                          (('bar', 'three'), 'B'))
+        pytest.raises(KeyError, self.frame.loc.__getitem__,
+                      (('bar', 'three'), 'B'))
 
         # in theory should be inserting in a sorted space????
         self.frame.loc[('bar', 'three'), 'B'] = 0
@@ -1575,8 +1575,8 @@ Thur,Lunch,Yes,51.51,17"""
         # self.assertTrue((self.ymd.loc[2000]['A'] == 0).all())
 
         # Pretty sure the second (and maybe even the first) is already wrong.
-        self.assertRaises(Exception, self.ymd.loc.__getitem__, (2000, 6))
-        self.assertRaises(Exception, self.ymd.loc.__getitem__, (2000, 6), 0)
+        pytest.raises(Exception, self.ymd.loc.__getitem__, (2000, 6))
+        pytest.raises(Exception, self.ymd.loc.__getitem__, (2000, 6), 0)
 
     # ---------------------------------------------------------------------
 
@@ -1600,7 +1600,7 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
 
-        self.assertRaises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
+        pytest.raises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
 
         result = frame.loc[('foo', 'bar', 0)]
         result2 = frame.xs(('foo', 'bar', 0))

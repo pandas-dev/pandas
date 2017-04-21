@@ -1,4 +1,5 @@
 import os
+import pytest
 
 import pytz
 import numpy as np
@@ -200,14 +201,14 @@ class TestAsOfMerge(tm.TestCase):
         # MultiIndex is prohibited
         trades = self.trades.set_index(['time', 'price'])
         quotes = self.quotes.set_index('time')
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        left_index=True,
                        right_index=True)
 
         trades = self.trades.set_index('time')
         quotes = self.quotes.set_index(['time', 'bid'])
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        left_index=True,
                        right_index=True)
@@ -217,7 +218,7 @@ class TestAsOfMerge(tm.TestCase):
         # 'on' parameter and index together is prohibited
         trades = self.trades.set_index('time')
         quotes = self.quotes.set_index('time')
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        left_on='price',
                        left_index=True,
@@ -225,7 +226,7 @@ class TestAsOfMerge(tm.TestCase):
 
         trades = self.trades.set_index('time')
         quotes = self.quotes.set_index('time')
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        right_on='bid',
                        left_index=True,
@@ -399,7 +400,7 @@ class TestAsOfMerge(tm.TestCase):
 
         assert_frame_equal(expected, result)
 
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             pd.merge_asof(left, right, left_index=True, right_index=True,
                           left_by=['k1', 'k2'], right_by=['k1'])
 
@@ -432,18 +433,18 @@ class TestAsOfMerge(tm.TestCase):
         trades = self.trades
         quotes = self.quotes
 
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        left_on='time',
                        right_on='bid',
                        by='ticker')
 
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        on=['time', 'ticker'],
                        by='ticker')
 
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        by='ticker')
 
@@ -474,7 +475,7 @@ class TestAsOfMerge(tm.TestCase):
         trades = self.trades
         quotes = self.quotes
 
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        on='time',
                        by='ticker',
@@ -498,27 +499,27 @@ class TestAsOfMerge(tm.TestCase):
                    tolerance=1)
 
         # incompat
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        on='time',
                        by='ticker',
                        tolerance=1)
 
         # invalid
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades.reset_index(), quotes.reset_index(),
                        on='index',
                        by='ticker',
                        tolerance=1.0)
 
         # invalid negative
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades, quotes,
                        on='time',
                        by='ticker',
                        tolerance=-Timedelta('1s'))
 
-        with self.assertRaises(MergeError):
+        with pytest.raises(MergeError):
             merge_asof(trades.reset_index(), quotes.reset_index(),
                        on='index',
                        by='ticker',
@@ -532,7 +533,7 @@ class TestAsOfMerge(tm.TestCase):
         # we require that we are already sorted on time & quotes
         self.assertFalse(trades.time.is_monotonic)
         self.assertFalse(quotes.time.is_monotonic)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             merge_asof(trades, quotes,
                        on='time',
                        by='ticker')
@@ -540,7 +541,7 @@ class TestAsOfMerge(tm.TestCase):
         trades = self.trades.sort_values('time')
         self.assertTrue(trades.time.is_monotonic)
         self.assertFalse(quotes.time.is_monotonic)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             merge_asof(trades, quotes,
                        on='time',
                        by='ticker')
@@ -891,7 +892,7 @@ class TestAsOfMerge(tm.TestCase):
             df1 = df1.sort_values('value').reset_index(drop=True)
 
             if dtype == np.float16:
-                with self.assertRaises(MergeError):
+                with pytest.raises(MergeError):
                     pd.merge_asof(df1, df2, on='value')
                 continue
 
@@ -928,7 +929,7 @@ class TestAsOfMerge(tm.TestCase):
             df1 = df1.sort_values('value').reset_index(drop=True)
 
             if dtype == np.float16:
-                with self.assertRaises(MergeError):
+                with pytest.raises(MergeError):
                     pd.merge_asof(df1, df2, on='value', by='key')
             else:
                 result = pd.merge_asof(df1, df2, on='value', by='key')

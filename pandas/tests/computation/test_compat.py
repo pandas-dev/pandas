@@ -2,7 +2,6 @@ import pytest
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas.util import testing as tm
 
 from pandas.core.computation.engines import _engines
 import pandas.core.computation.expr as expr
@@ -39,7 +38,7 @@ def test_invalid_numexpr_version(engine, parser):
             pytest.skip("no numexpr")
         else:
             if ne.__version__ < LooseVersion(_MIN_NUMEXPR_VERSION):
-                with tm.assertRaises(ImportError):
+                with pytest.raises(ImportError):
                     testit()
             else:
                 testit()

@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 from datetime import date, timedelta, time
 
@@ -40,7 +42,7 @@ class TestDatetimeIndex(tm.TestCase):
                                      tolerance=timedelta(1)), 1)
         with tm.assertRaisesRegexp(ValueError, 'must be convertible'):
             idx.get_loc('2000-01-01T12', method='nearest', tolerance='foo')
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             idx.get_loc('2000-01-01T03', method='nearest', tolerance='2 hours')
 
         self.assertEqual(idx.get_loc('2000', method='nearest'), slice(0, 3))
@@ -49,14 +51,14 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertEqual(idx.get_loc('1999', method='nearest'), 0)
         self.assertEqual(idx.get_loc('2001', method='nearest'), 2)
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             idx.get_loc('1999', method='pad')
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             idx.get_loc('2001', method='backfill')
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             idx.get_loc('foobar')
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             idx.get_loc(slice(2))
 
         idx = pd.to_datetime(['2000-01-01', '2000-01-04'])
@@ -70,7 +72,7 @@ class TestDatetimeIndex(tm.TestCase):
                                     np.array([12]), check_dtype=False)
         tm.assert_numpy_array_equal(idx.get_loc(time(12, 30)),
                                     np.array([]), check_dtype=False)
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             idx.get_loc(time(12, 30), method='pad')
 
     def test_get_indexer(self):
@@ -90,7 +92,7 @@ class TestDatetimeIndex(tm.TestCase):
             idx.get_indexer(target, 'nearest',
                             tolerance=pd.Timedelta('1 hour')),
             np.array([0, -1, 1], dtype=np.intp))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             idx.get_indexer(idx[[0]], method='nearest', tolerance='foo')
 
     def test_reasonable_keyerror(self):
@@ -234,7 +236,7 @@ class TestDatetimeIndex(tm.TestCase):
 
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
-        self.assertRaises(ValueError, idx.to_period)
+        pytest.raises(ValueError, idx.to_period)
 
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'],
                             freq='infer')
@@ -252,7 +254,7 @@ class TestDatetimeIndex(tm.TestCase):
         rng = date_range('1/1/2000', periods=10)
 
         # raise TypeError for now
-        self.assertRaises(TypeError, rng.__lt__, rng[3].value)
+        pytest.raises(TypeError, rng.__lt__, rng[3].value)
 
         result = rng == list(rng)
         exp = rng == rng
@@ -422,15 +424,15 @@ class TestDatetimeIndex(tm.TestCase):
 
         def f():
             t + offset
-        self.assertRaises(OverflowError, f)
+        pytest.raises(OverflowError, f)
 
         def f():
             offset + t
-        self.assertRaises(OverflowError, f)
+        pytest.raises(OverflowError, f)
 
         def f():
             t - offset
-        self.assertRaises(OverflowError, f)
+        pytest.raises(OverflowError, f)
 
     def test_get_duplicates(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
@@ -511,7 +513,7 @@ class TestDatetimeIndex(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_take_fill_value_with_timezone(self):
@@ -542,7 +544,7 @@ class TestDatetimeIndex(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_map_bug_1677(self):

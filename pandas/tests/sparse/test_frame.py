@@ -133,7 +133,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_sp_frame_equal(cons, reindexed, exact_indices=False)
 
         # assert level parameter breaks reindex
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.frame.reindex(idx, level=0)
 
         repr(self.frame)
@@ -147,8 +147,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_sp_frame_equal(sp, self.frame.reindex(columns=['A']))
 
         # raise on level argument
-        self.assertRaises(TypeError, self.frame.reindex, columns=['A'],
-                          level=1)
+        pytest.raises(TypeError, self.frame.reindex, columns=['A'],
+                      level=1)
 
         # wrong length index / columns
         with tm.assertRaisesRegexp(ValueError, "^Index length"):
@@ -405,7 +405,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         exp = sdf.reindex(columns=['a', 'b'])
         tm.assert_sp_frame_equal(result, exp)
 
-        self.assertRaises(Exception, sdf.__getitem__, ['a', 'd'])
+        pytest.raises(Exception, sdf.__getitem__, ['a', 'd'])
 
     def test_iloc(self):
 
@@ -465,7 +465,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         subframe = self.frame[indexer]
 
         tm.assert_index_equal(subindex, subframe.index)
-        self.assertRaises(Exception, self.frame.__getitem__, indexer[:-1])
+        pytest.raises(Exception, self.frame.__getitem__, indexer[:-1])
 
     def test_setitem(self):
 
@@ -509,8 +509,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
             self.assertEqual(len(frame['I'].sp_values), N // 2)
 
             # insert ndarray wrong size
-            self.assertRaises(Exception, frame.__setitem__, 'foo',
-                              np.random.randn(N - 1))
+            pytest.raises(Exception, frame.__setitem__, 'foo',
+                          np.random.randn(N - 1))
 
             # scalar value
             frame['J'] = 5
@@ -557,13 +557,13 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_set_columns(self):
         self.frame.columns = self.frame.columns
-        self.assertRaises(Exception, setattr, self.frame, 'columns',
-                          self.frame.columns[:-1])
+        pytest.raises(Exception, setattr, self.frame, 'columns',
+                      self.frame.columns[:-1])
 
     def test_set_index(self):
         self.frame.index = self.frame.index
-        self.assertRaises(Exception, setattr, self.frame, 'index',
-                          self.frame.index[:-1])
+        pytest.raises(Exception, setattr, self.frame, 'index',
+                      self.frame.index[:-1])
 
     def test_append(self):
         a = self.frame[:5]
@@ -796,7 +796,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_sp_frame_equal(joined, self.frame, exact_indices=False)
 
         right = self.frame.loc[:, ['B', 'D']]
-        self.assertRaises(Exception, left.join, right)
+        pytest.raises(Exception, left.join, right)
 
         with tm.assertRaisesRegexp(ValueError,
                                    'Other Series must have a name'):
@@ -931,11 +931,11 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_sp_frame_equal(result, expected)
 
         # method='bfill'
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             sparse.reindex(columns=range(6), method='bfill')
 
         # method='ffill'
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             sparse.reindex(columns=range(6), method='ffill')
 
     def test_take(self):
@@ -969,8 +969,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
             _check(self.iframe)
 
             # for now
-            self.assertRaises(Exception, _check, self.zframe)
-            self.assertRaises(Exception, _check, self.fill_frame)
+            pytest.raises(Exception, _check, self.zframe)
+            pytest.raises(Exception, _check, self.fill_frame)
 
     def test_transpose(self):
 

@@ -586,10 +586,10 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             tm.assert_series_equal(expected, result)
 
             # df1 has all numbers, df2 has a letter inside
-            self.assertRaises(TypeError, lambda: getattr(df1, meth)
-                              (axis=1, numeric_only=False))
-            self.assertRaises(TypeError, lambda: getattr(df2, meth)
-                              (axis=1, numeric_only=False))
+            pytest.raises(TypeError, lambda: getattr(df1, meth)(
+                axis=1, numeric_only=False))
+            pytest.raises(TypeError, lambda: getattr(df2, meth)(
+                axis=1, numeric_only=False))
 
     def test_cumsum(self):
         self.tsframe.loc[5:10, 0] = nan
@@ -998,7 +998,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        self.assertRaises(ValueError, frame.idxmin, axis=2)
+        pytest.raises(ValueError, frame.idxmin, axis=2)
 
     def test_idxmax(self):
         frame = self.frame
@@ -1012,7 +1012,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                                         skipna=skipna)
                     tm.assert_series_equal(result, expected)
 
-        self.assertRaises(ValueError, frame.idxmax, axis=2)
+        pytest.raises(ValueError, frame.idxmax, axis=2)
 
     # ----------------------------------------------------------------------
     # Logical reductions
@@ -1087,7 +1087,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # assert_series_equal(result, comp)
 
         # bad axis
-        self.assertRaises(ValueError, f, axis=2)
+        pytest.raises(ValueError, f, axis=2)
 
         # make sure works on mixed-type frame
         mixed = self.mixed_frame
@@ -1163,10 +1163,10 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
                         'ids2': ['a', 'n', 'c', 'n']},
                        index=['foo', 'bar', 'baz', 'qux'])
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.isin('a')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.isin('aaa')
 
     def test_isin_df(self):
@@ -1189,18 +1189,18 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # just cols duped
         df2 = DataFrame([[0, 2], [12, 4], [2, np.nan], [4, 5]],
                         columns=['B', 'B'])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df1.isin(df2)
 
         # just index duped
         df2 = DataFrame([[0, 2], [12, 4], [2, np.nan], [4, 5]],
                         columns=['A', 'B'], index=[0, 0, 1, 1])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df1.isin(df2)
 
         # cols and index:
         df2.columns = ['B', 'B']
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df1.isin(df2)
 
     def test_isin_dupe_self(self):
@@ -1629,7 +1629,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         # Round with a list
         round_list = [1, 2]
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.round(round_list)
 
         # Round with a dictionary
@@ -1652,34 +1652,34 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         # float input to `decimals`
         non_int_round_dict = {'col1': 1, 'col2': 0.5}
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.round(non_int_round_dict)
 
         # String input
         non_int_round_dict = {'col1': 1, 'col2': 'foo'}
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.round(non_int_round_dict)
 
         non_int_round_Series = Series(non_int_round_dict)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.round(non_int_round_Series)
 
         # List input
         non_int_round_dict = {'col1': 1, 'col2': [1, 2]}
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.round(non_int_round_dict)
 
         non_int_round_Series = Series(non_int_round_dict)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.round(non_int_round_Series)
 
         # Non integer Series inputs
         non_int_round_Series = Series(non_int_round_dict)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.round(non_int_round_Series)
 
         non_int_round_Series = Series(non_int_round_dict)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.round(non_int_round_Series)
 
         # Negative numbers
@@ -1700,10 +1700,10 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         if sys.version < LooseVersion('2.7'):
             # Rounding with decimal is a ValueError in Python < 2.7
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 df.round(nan_round_Series)
         else:
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 df.round(nan_round_Series)
 
         # Make sure this doesn't break existing Series.round
@@ -1761,7 +1761,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_index_equal(rounded.index, dfs.index)
 
         decimals = pd.Series([1, 0, 2], index=['A', 'B', 'A'])
-        self.assertRaises(ValueError, df.round, decimals)
+        pytest.raises(ValueError, df.round, decimals)
 
     def test_built_in_round(self):
         if not compat.PY3:

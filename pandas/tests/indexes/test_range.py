@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 from datetime import datetime
 from itertools import combinations
 import operator
@@ -111,13 +113,13 @@ class TestRangeIndex(Numeric, tm.TestCase):
             self.assertEqual(index.name, 'Foo')
 
         # we don't allow on a bare Index
-        self.assertRaises(TypeError, lambda: Index(0, 1000))
+        pytest.raises(TypeError, lambda: Index(0, 1000))
 
         # invalid args
         for i in [Index(['a', 'b']), Series(['a', 'b']), np.array(['a', 'b']),
                   [], 'foo', datetime(2000, 1, 1, 0, 0), np.arange(0, 10),
                   np.array([1]), [1]]:
-            self.assertRaises(TypeError, lambda: RangeIndex(i))
+            pytest.raises(TypeError, lambda: RangeIndex(i))
 
     def test_constructor_same(self):
 
@@ -132,12 +134,12 @@ class TestRangeIndex(Numeric, tm.TestCase):
         result = RangeIndex(index)
         tm.assert_index_equal(result, index, exact=True)
 
-        self.assertRaises(TypeError,
-                          lambda: RangeIndex(index, dtype='float64'))
+        pytest.raises(TypeError,
+                      lambda: RangeIndex(index, dtype='float64'))
 
     def test_constructor_range(self):
 
-        self.assertRaises(TypeError, lambda: RangeIndex(range(1, 5, 2)))
+        pytest.raises(TypeError, lambda: RangeIndex(range(1, 5, 2)))
 
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
@@ -160,8 +162,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
         expected = RangeIndex(1, 5, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
-        self.assertRaises(TypeError,
-                          lambda: Index(range(1, 5, 2), dtype='float64'))
+        pytest.raises(TypeError,
+                      lambda: Index(range(1, 5, 2), dtype='float64'))
 
     def test_constructor_name(self):
         # GH12288
@@ -249,11 +251,11 @@ class TestRangeIndex(Numeric, tm.TestCase):
         tm.assert_index_equal(index, Index(arr))
 
         # non-int raise Exception
-        self.assertRaises(TypeError, RangeIndex, '1', '10', '1')
-        self.assertRaises(TypeError, RangeIndex, 1.1, 10.2, 1.3)
+        pytest.raises(TypeError, RangeIndex, '1', '10', '1')
+        pytest.raises(TypeError, RangeIndex, 1.1, 10.2, 1.3)
 
         # invalid passed type
-        self.assertRaises(TypeError, lambda: RangeIndex(1, 5, dtype='float64'))
+        pytest.raises(TypeError, lambda: RangeIndex(1, 5, dtype='float64'))
 
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
@@ -306,7 +308,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
 
-        with tm.assertRaises((IndexError, ValueError)):
+        with pytest.raises((IndexError, ValueError)):
             # either depending on numpy version
             result = idx.delete(len(idx))
 
@@ -696,10 +698,10 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
     def test_cant_or_shouldnt_cast(self):
         # can't
-        self.assertRaises(TypeError, RangeIndex, 'foo', 'bar', 'baz')
+        pytest.raises(TypeError, RangeIndex, 'foo', 'bar', 'baz')
 
         # shouldn't
-        self.assertRaises(TypeError, RangeIndex, '0', '1', '2')
+        pytest.raises(TypeError, RangeIndex, '0', '1', '2')
 
     def test_view_Index(self):
         self.index.view(Index)
@@ -737,7 +739,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_print_unicode_columns(self):

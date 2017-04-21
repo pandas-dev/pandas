@@ -76,13 +76,13 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
     def test_assign_bad(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
         # non-keyword argument
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.assign(lambda x: x.A)
-        with tm.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             df.assign(C=df.A, D=df.A + df.C)
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.assign(C=lambda df: df.A, D=lambda df: df['A'] + df['C'])
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.assign(C=df.A, D=lambda x: x['A'] + x['C'])
 
     def test_insert_error_msmgs(self):
@@ -147,7 +147,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
 
         with assertRaisesRegexp(ValueError, 'already exists'):
             df.insert(1, 'a', df['b'])
-        self.assertRaises(ValueError, df.insert, 1, 'c', df['b'])
+        pytest.raises(ValueError, df.insert, 1, 'c', df['b'])
 
         df.columns.name = 'some_name'
         # preserve columns name field

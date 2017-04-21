@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime
 import re
 
@@ -31,8 +33,8 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         tsframe.replace(nan, 0, inplace=True)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
-        self.assertRaises(TypeError, self.tsframe.replace, nan, inplace=True)
-        self.assertRaises(TypeError, self.tsframe.replace, nan)
+        pytest.raises(TypeError, self.tsframe.replace, nan, inplace=True)
+        pytest.raises(TypeError, self.tsframe.replace, nan)
 
         # mixed type
         mf = self.mixed_frame
@@ -718,7 +720,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         assert_frame_equal(expected, result)
 
     def test_replace_value_is_none(self):
-        self.assertRaises(TypeError, self.tsframe.replace, nan)
+        pytest.raises(TypeError, self.tsframe.replace, nan)
         orig_value = self.tsframe.iloc[0, 0]
         orig2 = self.tsframe.iloc[1, 0]
 
@@ -831,7 +833,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
             expected.replace(to_rep[i], values[i], inplace=True)
         assert_frame_equal(result, expected)
 
-        self.assertRaises(ValueError, df.replace, to_rep, values[1:])
+        pytest.raises(ValueError, df.replace, to_rep, values[1:])
 
     def test_replace_input_formats_scalar(self):
         df = DataFrame({'A': [np.nan, 0, np.inf], 'B': [0, 2, 5],
@@ -845,7 +847,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
             expected[k] = v.replace(to_rep[k], 0)
         assert_frame_equal(filled, DataFrame(expected))
 
-        self.assertRaises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
+        pytest.raises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
 
         # list to scalar
         to_rep = [np.nan, 0, '']

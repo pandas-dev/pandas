@@ -43,8 +43,8 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
             self.assertEqual(obj.columns.name, 'second')
         self.assertEqual(list(df.columns), ['d', 'e', 'f'])
 
-        self.assertRaises(ValueError, df.drop, ['g'])
-        self.assertRaises(ValueError, df.drop, ['g'], 1)
+        pytest.raises(ValueError, df.drop, ['g'])
+        pytest.raises(ValueError, df.drop, ['g'], 1)
 
         # errors = 'ignore'
         dropped = df.drop(['g'], errors='ignore')
@@ -84,10 +84,10 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         assert_frame_equal(simple.drop(
             [0, 3], axis='index'), simple.loc[[1, 2], :])
 
-        self.assertRaises(ValueError, simple.drop, 5)
-        self.assertRaises(ValueError, simple.drop, 'C', 1)
-        self.assertRaises(ValueError, simple.drop, [1, 5])
-        self.assertRaises(ValueError, simple.drop, ['A', 'C'], 1)
+        pytest.raises(ValueError, simple.drop, 5)
+        pytest.raises(ValueError, simple.drop, 'C', 1)
+        pytest.raises(ValueError, simple.drop, [1, 5])
+        pytest.raises(ValueError, simple.drop, ['A', 'C'], 1)
 
         # errors = 'ignore'
         assert_frame_equal(simple.drop(5, errors='ignore'), simple)
@@ -407,7 +407,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         # reindex fails
-        self.assertRaises(ValueError, df.reindex, index=list(range(len(df))))
+        pytest.raises(ValueError, df.reindex, index=list(range(len(df))))
 
     def test_align(self):
         af, bf = self.frame.align(self.frame)
@@ -798,10 +798,10 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
             assert_frame_equal(result, expected, check_names=False)
 
         # illegal indices
-        self.assertRaises(IndexError, df.take, [3, 1, 2, 30], axis=0)
-        self.assertRaises(IndexError, df.take, [3, 1, 2, -31], axis=0)
-        self.assertRaises(IndexError, df.take, [3, 1, 2, 5], axis=1)
-        self.assertRaises(IndexError, df.take, [3, 1, 2, -5], axis=1)
+        pytest.raises(IndexError, df.take, [3, 1, 2, 30], axis=0)
+        pytest.raises(IndexError, df.take, [3, 1, 2, -31], axis=0)
+        pytest.raises(IndexError, df.take, [3, 1, 2, 5], axis=1)
+        pytest.raises(IndexError, df.take, [3, 1, 2, -5], axis=1)
 
         # mixed-dtype
         order = [4, 1, 2, 0, 3]
@@ -883,7 +883,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         reindexed2 = self.intframe.reindex(index=rows)
         assert_frame_equal(reindexed1, reindexed2)
 
-        self.assertRaises(ValueError, self.intframe.reindex_axis, rows, axis=2)
+        pytest.raises(ValueError, self.intframe.reindex_axis, rows, axis=2)
 
         # no-op case
         cols = self.frame.columns.copy()

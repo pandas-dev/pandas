@@ -1,4 +1,5 @@
 import os
+import pytest
 
 import numpy as np
 from pandas.compat import zip
@@ -85,18 +86,18 @@ class TestCut(tm.TestCase):
 
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
-        self.assertRaises(ValueError, cut, data, [0.1, 1.5, 1, 10])
+        pytest.raises(ValueError, cut, data, [0.1, 1.5, 1, 10])
 
     def test_wrong_num_labels(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
-        self.assertRaises(ValueError, cut, data, [0, 1, 10],
-                          labels=['foo', 'bar', 'baz'])
+        pytest.raises(ValueError, cut, data, [0, 1, 10],
+                      labels=['foo', 'bar', 'baz'])
 
     def test_cut_corner(self):
         # h3h
-        self.assertRaises(ValueError, cut, [], 2)
+        pytest.raises(ValueError, cut, [], 2)
 
-        self.assertRaises(ValueError, cut, [1, 2, 3], 0.5)
+        pytest.raises(ValueError, cut, [1, 2, 3], 0.5)
 
     def test_cut_out_of_range_more(self):
         # #1511
@@ -326,11 +327,11 @@ class TestCut(tm.TestCase):
         result = qcut(values, 3, duplicates='drop')
         tm.assert_index_equal(result.categories, expected)
 
-        self.assertRaises(ValueError, qcut, values, 3)
-        self.assertRaises(ValueError, qcut, values, 3, duplicates='raise')
+        pytest.raises(ValueError, qcut, values, 3)
+        pytest.raises(ValueError, qcut, values, 3, duplicates='raise')
 
         # invalid
-        self.assertRaises(ValueError, qcut, values, 3, duplicates='foo')
+        pytest.raises(ValueError, qcut, values, 3, duplicates='foo')
 
     def test_single_quantile(self):
         # issue 15431
@@ -489,7 +490,7 @@ class TestCut(tm.TestCase):
 
         def f():
             cut(date_range('20130101', periods=3), bins=[0, 2, 4])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         result = cut(date_range('20130102', periods=5),
                      bins=date_range('20130101', periods=2))

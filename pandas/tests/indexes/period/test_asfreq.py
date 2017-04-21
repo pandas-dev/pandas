@@ -1,5 +1,6 @@
-import numpy as np
+import pytest
 
+import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 from pandas import PeriodIndex, Series, DataFrame
@@ -69,7 +70,7 @@ class TestPeriodIndex(tm.TestCase):
         self.assertEqual(pi7.asfreq('H', 'S'), pi5)
         self.assertEqual(pi7.asfreq('Min', 'S'), pi6)
 
-        self.assertRaises(ValueError, pi7.asfreq, 'T', 'foo')
+        pytest.raises(ValueError, pi7.asfreq, 'T', 'foo')
         result1 = pi1.asfreq('3M')
         result2 = pi1.asfreq('M')
         expected = PeriodIndex(freq='M', start='2001-12', end='2001-12')

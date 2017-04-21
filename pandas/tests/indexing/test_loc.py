@@ -1,6 +1,8 @@
 """ test label based indexing with loc """
 
 import itertools
+import pytest
+
 from warnings import catch_warnings
 import numpy as np
 
@@ -231,8 +233,8 @@ class TestLoc(Base, tm.TestCase):
                        columns=['e', 'f', 'g'])
 
         # raise a KeyError?
-        self.assertRaises(KeyError, df.loc.__getitem__,
-                          tuple([[1, 2], [1, 2]]))
+        pytest.raises(KeyError, df.loc.__getitem__,
+                      tuple([[1, 2], [1, 2]]))
 
         # GH  7496
         # loc should not fallback
@@ -241,10 +243,10 @@ class TestLoc(Base, tm.TestCase):
         s.loc[1] = 1
         s.loc['a'] = 2
 
-        self.assertRaises(KeyError, lambda: s.loc[-1])
-        self.assertRaises(KeyError, lambda: s.loc[[-1, -2]])
+        pytest.raises(KeyError, lambda: s.loc[-1])
+        pytest.raises(KeyError, lambda: s.loc[[-1, -2]])
 
-        self.assertRaises(KeyError, lambda: s.loc[['4']])
+        pytest.raises(KeyError, lambda: s.loc[['4']])
 
         s.loc[-1] = 3
         result = s.loc[[-1, -2]]
@@ -252,14 +254,14 @@ class TestLoc(Base, tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         s['a'] = 2
-        self.assertRaises(KeyError, lambda: s.loc[[-2]])
+        pytest.raises(KeyError, lambda: s.loc[[-2]])
 
         del s['a']
 
         def f():
             s.loc[[-2]] = 0
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         # inconsistency between .loc[values] and .loc[values,:]
         # GH 7999
@@ -268,12 +270,12 @@ class TestLoc(Base, tm.TestCase):
         def f():
             df.loc[[3], :]
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         def f():
             df.loc[[3]]
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
     def test_loc_getitem_label_slice(self):
 
@@ -540,11 +542,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # these are going to raise becuase the we are non monotonic
         df = DataFrame({'A': [1, 2, 3, 4, 5, 6],
                         'B': [3, 4, 5, 6, 7, 8]}, index=[0, 1, 0, 1, 2, 3])
-        self.assertRaises(KeyError, df.loc.__getitem__,
-                          tuple([slice(1, None)]))
-        self.assertRaises(KeyError, df.loc.__getitem__,
-                          tuple([slice(0, None)]))
-        self.assertRaises(KeyError, df.loc.__getitem__, tuple([slice(1, 2)]))
+        pytest.raises(KeyError, df.loc.__getitem__,
+                      tuple([slice(1, None)]))
+        pytest.raises(KeyError, df.loc.__getitem__,
+                      tuple([slice(0, None)]))
+        pytest.raises(KeyError, df.loc.__getitem__, tuple([slice(1, 2)]))
 
         # monotonic are ok
         df = DataFrame({'A': [1, 2, 3, 4, 5, 6],

@@ -148,8 +148,8 @@ also also skip this
             result = self.read_csv(path, sep='::', compression='bz2')
             tm.assert_frame_equal(result, expected)
 
-            self.assertRaises(ValueError, self.read_csv,
-                              path, compression='bz3')
+            pytest.raises(ValueError, self.read_csv,
+                          path, compression='bz3')
 
     def test_read_table_buglet_4x_multiindex(self):
         # see gh-6607
@@ -213,7 +213,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # We expect no match, so there should be an assertion
         # error out of the inner context manager.
-        with tm.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             with tm.assertRaisesRegexp(ParserError, msg):
                 self.read_csv(StringIO(data), sep=',,',
                               quoting=csv.QUOTE_NONE)
@@ -231,6 +231,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
             # We expect no match, so there should be an assertion
             # error out of the inner context manager.
-            with tm.assertRaises(AssertionError):
+            with pytest.raises(AssertionError):
                 with tm.assertRaisesRegexp(ParserError, msg):
                     self.read_csv(StringIO(data))

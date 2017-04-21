@@ -47,7 +47,7 @@ class TestHashing(tm.TestCase):
     def test_hash_array_errors(self):
 
         for val in [5, 'foo', pd.Timestamp('20130101')]:
-            self.assertRaises(TypeError, hash_array, val)
+            pytest.raises(TypeError, hash_array, val)
 
     def check_equal(self, obj, **kwargs):
         a = hash_pandas_object(obj, **kwargs)
@@ -81,7 +81,7 @@ class TestHashing(tm.TestCase):
     def test_hash_tuples_err(self):
 
         for val in [5, 'foo', pd.Timestamp('20130101')]:
-            self.assertRaises(TypeError, hash_tuples, val)
+            pytest.raises(TypeError, hash_tuples, val)
 
     def test_multiindex_unique(self):
         mi = MultiIndex.from_tuples([(118, 472), (236, 118),
@@ -221,7 +221,7 @@ class TestHashing(tm.TestCase):
         # this only matters for object dtypes
         def f():
             hash_pandas_object(Series(list('abc')), hash_key='foo')
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_alread_encoded(self):
         # if already encoded then ok

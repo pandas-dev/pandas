@@ -243,7 +243,7 @@ MyColumn
    a
    b"""
         for arg in [True, False]:
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 read_fwf(StringIO(data), header=arg)
 
     def test_full_file(self):
@@ -401,5 +401,5 @@ AA   BBB  C
 78   901  2
 """.strip()
 
-        with tm.assertRaises(EmptyDataError):
+        with pytest.raises(EmptyDataError):
             read_fwf(StringIO(test), skiprows=3)
