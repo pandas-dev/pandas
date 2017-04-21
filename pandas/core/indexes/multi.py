@@ -718,7 +718,7 @@ class MultiIndex(Index):
     @cache_readonly
     def _hashed_values(self):
         """ return a uint64 ndarray of my hashed values """
-        from pandas.tools.hashing import hash_tuples
+        from pandas.util.hashing import hash_tuples
         return hash_tuples(self)
 
     def _hashed_indexing_key(self, key):
@@ -740,7 +740,7 @@ class MultiIndex(Index):
         we need to stringify if we have mixed levels
 
         """
-        from pandas.tools.hashing import hash_tuples
+        from pandas.util.hashing import hash_tuples
 
         if not isinstance(key, tuple):
             return hash_tuples(key)

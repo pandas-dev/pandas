@@ -5,7 +5,7 @@ import itertools
 
 import numpy as np
 from pandas import Series, factorize, Categorical, Index, MultiIndex
-from pandas.tools import libhashing as _hash
+from pandas.util import libhashing as _hash
 from pandas._libs.lib import is_bool_array
 from pandas.core.dtypes.generic import (
     ABCIndexClass,
