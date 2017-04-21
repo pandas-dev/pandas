@@ -9,6 +9,7 @@ from distutils.version import LooseVersion
 # pylint: disable=W0141
 
 import sys
+from textwrap import dedent
 
 from pandas.core.dtypes.missing import isnull, notnull
 from pandas.core.dtypes.common import (
@@ -1107,6 +1108,24 @@ class HTMLFormatter(TableFormatter):
         indent -= indent_delta
         self.write('</tr>', indent)
 
+    def write_style(self):
+        template = dedent("""\
+            <style>
+                .dataframe thead tr:only-child th {
+                    text-align: right;
+                }
+
+                .dataframe thead th {
+                    text-align: left;
+                }
+
+                .dataframe tbody tr th {
+                    vertical-align: top;
+                }
+            </style>""")
+        if self.notebook:
+            self.write(template)
+
     def write_result(self, buf):
         indent = 0
         frame = self.frame
@@ -1131,6 +1150,7 @@ class HTMLFormatter(TableFormatter):
 
             self.write('<div{0}>'.format(div_style))
 
+        self.write_style()
         self.write('<table border="%s" class="%s">' % (self.border,
                                                        ' '.join(_classes)),
                    indent)
