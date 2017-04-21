@@ -22,7 +22,8 @@ def salaries_table():
 @pytest.mark.parametrize(
     "compression,extension",
     [('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'),
-     tm._mark_skipif_no_lzma(('xz', '.xz'))])
+     pytest.mark.skipif(not tm._check_if_lzma(),
+                        reason='need backports.lzma to run')(('xz', '.xz'))])
 @pytest.mark.parametrize('mode', ['explicit', 'infer'])
 @pytest.mark.parametrize('engine', ['python', 'c'])
 def test_compressed_urls(salaries_table, compression, extension, mode, engine):
