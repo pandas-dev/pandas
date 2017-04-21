@@ -533,7 +533,7 @@ Other Enhancements
 - ``pd.merge_asof()`` gained the option ``direction='backward'|'forward'|'nearest'`` (:issue:`14887`)
 - ``Series/DataFrame.asfreq()`` have gained a ``fill_value`` parameter, to fill missing values (:issue:`3715`).
 - ``Series/DataFrame.resample.asfreq`` have gained a ``fill_value`` parameter, to fill missing values during resampling (:issue:`3715`).
-- ``pandas.tools.hashing`` has gained a ``hash_tuples`` routine, and ``hash_pandas_object`` has gained the ability to hash a ``MultiIndex`` (:issue:`15224`)
+- ``pandas.util.hashing`` has gained a ``hash_tuples`` routine, and ``hash_pandas_object`` has gained the ability to hash a ``MultiIndex`` (:issue:`15224`)
 - ``Series/DataFrame.squeeze()`` have gained the ``axis`` parameter. (:issue:`15339`)
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
 - ``pd.read_html()`` will parse multiple header rows, creating a multiindex header. (:issue:`13434`).
@@ -1423,7 +1423,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
     "pandas.types", "pandas.core.dtypes", ""
     "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
     "pandas._join", "pandas._libs.join", ""
-    "pandas._hash", "pandas.tools.libhash", ""
+    "pandas._hash", "pandas.util.libhashing", ""
     "pandas._period", "pandas._libs.period", ""
     "pandas._sparse", "pandas.core.sparse.libsparse", ""
     "pandas._testing", "pandas.util.libtesting", ""
@@ -1619,7 +1619,7 @@ I/O
 - Bug in ``pd.read_csv()`` for the Python engine in which unhelpful error messages were being raised when parsing errors occurred (:issue:`15910`)
 - Bug in ``pd.read_csv()`` in which the ``skipfooter`` parameter was not being properly validated (:issue:`15925`)
 - Bug in ``pd.to_csv()`` in which there was numeric overflow when a timestamp index was being written (:issue:`15982`)
-- Bug in ``pd.tools.hashing.hash_pandas_object()`` in which hashing of categoricals depended on the ordering of categories, instead of just their values. (:issue:`15143`)
+- Bug in ``pd.util.hashing.hash_pandas_object()`` in which hashing of categoricals depended on the ordering of categories, instead of just their values. (:issue:`15143`)
 - Bug in ``.to_json()`` where ``lines=True`` and contents (keys or values) contain escaped characters (:issue:`15096`)
 - Bug in ``.to_json()`` causing single byte ascii characters to be expanded to four byte unicode (:issue:`15344`)
 - Bug in ``.to_json()`` for the C engine where rollover was not correctly handled for case where frac is odd and diff is exactly 0.5 (:issue:`15716`, :issue:`15864`)

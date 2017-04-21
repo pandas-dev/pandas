@@ -528,8 +528,8 @@ ext_data = {
                                      _pxi_dep['sparse'])},
     'util.libtesting': {'pyxfile': 'util/testing',
                         'depends': ['pandas/util/testing.pyx']},
-    'tools.libhashing': {'pyxfile': 'tools/hashing',
-                         'depends': ['pandas/tools/hashing.pyx']},
+    'util.libhashing': {'pyxfile': 'util/hashing',
+                        'depends': ['pandas/util/hashing.pyx']},
     'io.sas.libsas': {'pyxfile': 'io/sas/sas'},
     }
 
