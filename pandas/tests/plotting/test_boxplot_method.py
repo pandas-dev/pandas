@@ -106,7 +106,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.boxplot(return_type='NOTATYPE')
 
         result = df.boxplot()
@@ -263,13 +263,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     def test_grouped_box_layout(self):
         df = self.hist_df
 
-        self.assertRaises(ValueError, df.boxplot, column=['weight', 'height'],
-                          by=df.gender, layout=(1, 1))
-        self.assertRaises(ValueError, df.boxplot,
-                          column=['height', 'weight', 'category'],
-                          layout=(2, 1), return_type='dict')
-        self.assertRaises(ValueError, df.boxplot, column=['weight', 'height'],
-                          by=df.gender, layout=(-1, -1))
+        pytest.raises(ValueError, df.boxplot, column=['weight', 'height'],
+                      by=df.gender, layout=(1, 1))
+        pytest.raises(ValueError, df.boxplot,
+                      column=['height', 'weight', 'category'],
+                      layout=(2, 1), return_type='dict')
+        pytest.raises(ValueError, df.boxplot, column=['weight', 'height'],
+                      by=df.gender, layout=(-1, -1))
 
         # _check_plot_works adds an ax so catch warning. see GH #13188
         with tm.assert_produces_warning(UserWarning):
@@ -369,7 +369,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.assert_numpy_array_equal(returned, axes[1])
         self.assertIs(returned[0].figure, fig)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             with tm.assert_produces_warning(UserWarning):

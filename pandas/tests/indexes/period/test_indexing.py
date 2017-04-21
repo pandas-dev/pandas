@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import pytest
+
 import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
@@ -76,7 +78,7 @@ class TestGetItem(tm.TestCase):
         rng = period_range('2007-01', periods=50, freq='M')
         ts = Series(np.random.randn(len(rng)), rng)
 
-        self.assertRaises(KeyError, ts.__getitem__, '2006')
+        pytest.raises(KeyError, ts.__getitem__, '2006')
 
         result = ts['2008']
         self.assertTrue((result.index.year == 2008).all())
@@ -148,13 +150,13 @@ class TestGetItem(tm.TestCase):
                       '2013/02/01 09:00']
             for v in values:
                 if _np_version_under1p9:
-                    with tm.assertRaises(ValueError):
+                    with pytest.raises(ValueError):
                         idx[v]
                 else:
                     # GH7116
                     # these show deprecations as we are trying
                     # to slice with non-integer indexers
-                    # with tm.assertRaises(IndexError):
+                    # with pytest.raises(IndexError):
                     #    idx[v]
                     continue
 
@@ -177,13 +179,13 @@ class TestGetItem(tm.TestCase):
             for v in values:
 
                 if _np_version_under1p9:
-                    with tm.assertRaises(ValueError):
+                    with pytest.raises(ValueError):
                         idx[v]
                 else:
                     # GH7116
                     # these show deprecations as we are trying
                     # to slice with non-integer indexers
-                    # with tm.assertRaises(IndexError):
+                    # with pytest.raises(IndexError):
                     #    idx[v]
                     continue
 
@@ -194,7 +196,7 @@ class TestGetItem(tm.TestCase):
 
             invalid = ['2013/02/01 9H', '2013/02/01 09:00']
             for v in invalid:
-                with tm.assertRaises(KeyError):
+                with pytest.raises(KeyError):
                     s[v]
 
 
@@ -203,7 +205,7 @@ class TestIndexing(tm.TestCase):
     def test_get_loc_msg(self):
         idx = period_range('2000-1-1', freq='A', periods=10)
         bad_period = Period('2012', 'A')
-        self.assertRaises(KeyError, idx.get_loc, bad_period)
+        pytest.raises(KeyError, idx.get_loc, bad_period)
 
         try:
             idx.get_loc(bad_period)
@@ -314,5 +316,5 @@ class TestIndexing(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))

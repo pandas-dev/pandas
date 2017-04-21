@@ -326,7 +326,7 @@ class TestChaining(tm.TestCase):
         def f():
             df[['c']][mask] = df[['b']][mask]
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        pytest.raises(com.SettingWithCopyError, f)
 
         # invalid warning as we are returning a new object
         # GH 8730

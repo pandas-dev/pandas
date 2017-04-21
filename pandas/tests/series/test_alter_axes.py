@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime
 
 import numpy as np
@@ -21,12 +23,12 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
     def test_setindex(self):
         # wrong type
         series = self.series.copy()
-        self.assertRaises(TypeError, setattr, series, 'index', None)
+        pytest.raises(TypeError, setattr, series, 'index', None)
 
         # wrong length
         series = self.series.copy()
-        self.assertRaises(Exception, setattr, series, 'index',
-                          np.arange(len(series) - 1))
+        pytest.raises(Exception, setattr, series, 'index',
+                      np.arange(len(series) - 1))
 
         # works
         series = self.series.copy()

@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime
 
 from numpy import nan
@@ -294,7 +296,7 @@ class TestSeriesInternals(tm.TestCase):
 
     def test_convert_no_arg_error(self):
         s = Series(['1.0', '2'])
-        self.assertRaises(ValueError, s._convert)
+        pytest.raises(ValueError, s._convert)
 
     def test_convert_preserve_bool(self):
         s = Series([1, True, 3, 5], dtype=object)

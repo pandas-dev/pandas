@@ -61,8 +61,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         df['foo'] = np.ones((4, 2)).tolist()
 
         # this is not ok
-        self.assertRaises(ValueError, df.__setitem__, tuple(['test']),
-                          np.ones((4, 2)))
+        pytest.raises(ValueError, df.__setitem__, tuple(['test']),
+                      np.ones((4, 2)))
 
         # this is ok
         df['foo2'] = np.ones((4, 2)).tolist()
@@ -232,7 +232,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # mix dict and array, wrong size - no spec for which error should raise
         # first
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             DataFrame({'A': {'a': 'a', 'b': 'b'}, 'B': ['a', 'b', 'c']})
 
         # Length-one dict micro-optimization
@@ -265,13 +265,13 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # GH10856
         # dict with scalar values should raise error, even if columns passed
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             DataFrame({'a': 0.7})
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             DataFrame({'a': 0.7}, columns=['a'])
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             DataFrame({'a': 0.7}, columns=['b'])
 
     def test_constructor_multi_index(self):
@@ -1087,7 +1087,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         expected = DataFrame({0: s})
         tm.assert_frame_equal(df, expected)
 
-        self.assertRaises(ValueError, DataFrame, s, columns=[1, 2])
+        pytest.raises(ValueError, DataFrame, s, columns=[1, 2])
 
         # #2234
         a = Series([], name='x')
@@ -1207,9 +1207,9 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
             [('a', [8]), ('a', [5])], columns=['a', 'a'])
         tm.assert_frame_equal(idf, edf)
 
-        self.assertRaises(ValueError, DataFrame.from_items,
-                          [('a', [8]), ('a', [5]), ('b', [6])],
-                          columns=['b', 'a', 'a'])
+        pytest.raises(ValueError, DataFrame.from_items,
+                      [('a', [8]), ('a', [5]), ('b', [6])],
+                      columns=['b', 'a', 'a'])
 
     def test_constructor_empty_with_string_dtype(self):
         # GH 9428
@@ -1240,8 +1240,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                                                      dtype=object),
                                             index=[1, 2], columns=['a', 'c']))
 
-        self.assertRaises(ValueError, DataFrame, 'a', [1, 2])
-        self.assertRaises(ValueError, DataFrame, 'a', columns=['a', 'c'])
+        pytest.raises(ValueError, DataFrame, 'a', [1, 2])
+        pytest.raises(ValueError, DataFrame, 'a', columns=['a', 'c'])
         with tm.assertRaisesRegexp(TypeError, 'incompatible data and dtype'):
             DataFrame('a', [1, 2], ['a', 'c'], float)
 
@@ -1486,7 +1486,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
                 def f():
                     df.loc[:, np.nan]
-                self.assertRaises(TypeError, f)
+                pytest.raises(TypeError, f)
 
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan])
         check(df)
@@ -1857,8 +1857,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         tm.assert_index_equal(df1.index, Index(df.C))
 
         # should fail
-        self.assertRaises(ValueError, DataFrame.from_records, df, index=[2])
-        self.assertRaises(KeyError, DataFrame.from_records, df, index=2)
+        pytest.raises(ValueError, DataFrame.from_records, df, index=[2])
+        pytest.raises(KeyError, DataFrame.from_records, df, index=2)
 
     def test_from_records_non_tuple(self):
         class Record(object):

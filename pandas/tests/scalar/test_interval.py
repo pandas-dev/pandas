@@ -29,7 +29,7 @@ class TestInterval(tm.TestCase):
         self.assertIn(0.5, self.interval)
         self.assertIn(1, self.interval)
         self.assertNotIn(0, self.interval)
-        self.assertRaises(TypeError, lambda: self.interval in self.interval)
+        pytest.raises(TypeError, lambda: self.interval in self.interval)
 
         interval = Interval(0, 1, closed='both')
         self.assertIn(0, interval)

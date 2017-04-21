@@ -4,6 +4,8 @@ from __future__ import print_function
 
 from datetime import datetime, time
 
+import pytest
+
 from numpy import nan
 from numpy.random import randn
 import numpy as np
@@ -299,7 +301,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         assert_frame_equal(unshifted, inferred_ts)
 
         no_freq = self.tsframe.iloc[[0, 5, 7], :]
-        self.assertRaises(ValueError, no_freq.tshift)
+        pytest.raises(ValueError, no_freq.tshift)
 
     def test_truncate(self):
         ts = self.tsframe[::3]
@@ -340,9 +342,9 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         truncated = ts.truncate(after=end_missing)
         assert_frame_equal(truncated, expected)
 
-        self.assertRaises(ValueError, ts.truncate,
-                          before=ts.index[-1] - 1,
-                          after=ts.index[0] + 1)
+        pytest.raises(ValueError, ts.truncate,
+                      before=ts.index[-1] - 1,
+                      after=ts.index[0] + 1)
 
     def test_truncate_copy(self):
         index = self.tsframe.index
@@ -571,4 +573,4 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         pts = df.to_period('M', axis=1)
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
-        self.assertRaises(ValueError, df.to_period, axis=2)
+        pytest.raises(ValueError, df.to_period, axis=2)

@@ -2,6 +2,8 @@
 from __future__ import print_function
 from datetime import datetime
 
+import pytest
+
 import numpy as np
 from numpy import nan
 
@@ -227,7 +229,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         # len(bins) != len(series) here
         def f():
             series.groupby(bins).mean()
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_groupby_multi_categorical_as_index(self):
         # GH13204

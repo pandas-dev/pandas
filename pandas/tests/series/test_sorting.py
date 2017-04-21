@@ -1,5 +1,7 @@
 # coding=utf-8
 
+import pytest
+
 import numpy as np
 import random
 
@@ -61,16 +63,16 @@ class TestSeriesSorting(TestData, tm.TestCase):
         expected = ts.sort_values(ascending=False, na_position='first')
         assert_series_equal(expected, ordered)
 
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending=None))
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending=[]))
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending=[1, 2, 3]))
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending=[False, False]))
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending='foobar'))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending=None))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending=[]))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending=[1, 2, 3]))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending=[False, False]))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending='foobar'))
 
         # inplace=True
         ts = self.ts.copy()
@@ -87,7 +89,7 @@ class TestSeriesSorting(TestData, tm.TestCase):
         def f():
             s.sort_values(inplace=True)
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_sort_index(self):
         rindex = list(self.ts.index)
@@ -110,13 +112,13 @@ class TestSeriesSorting(TestData, tm.TestCase):
         sorted_series = random_order.sort_index(axis=0)
         assert_series_equal(sorted_series, self.ts)
 
-        self.assertRaises(ValueError, lambda: random_order.sort_values(axis=1))
+        pytest.raises(ValueError, lambda: random_order.sort_values(axis=1))
 
         sorted_series = random_order.sort_index(level=0, axis=0)
         assert_series_equal(sorted_series, self.ts)
 
-        self.assertRaises(ValueError,
-                          lambda: random_order.sort_index(level=0, axis=1))
+        pytest.raises(ValueError,
+                      lambda: random_order.sort_index(level=0, axis=1))
 
     def test_sort_index_inplace(self):
 

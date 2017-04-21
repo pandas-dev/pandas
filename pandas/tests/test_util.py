@@ -63,11 +63,11 @@ class TestDecorators(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             result = self.f3(old=x)
         self.assertEqual(result, x + 1)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.f3(old='hello')
 
     def test_bad_deprecate_kwarg(self):
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             @deprecate_kwarg('old', 'new', 0)
             def f4(new=None):
                 pass
@@ -336,7 +336,7 @@ class TestMove(tm.TestCase):
         """
         b = b'testing'
 
-        with tm.assertRaises(BadMove) as e:
+        with pytest.raises(BadMove) as e:
             def handle_success(type_, value, tb):
                 self.assertIs(value.args[0], b)
                 return type(e).handle_success(e, type_, value, tb)  # super
@@ -385,7 +385,7 @@ class TestMove(tm.TestCase):
             refcount[0] = sys.getrefcount(ob) - 2
             return ob
 
-        with tm.assertRaises(BadMove):
+        with pytest.raises(BadMove):
             # If we intern the string it will still have one reference but now
             # it is in the intern table so if other people intern the same
             # string while the mutable buffer holds the first string they will
@@ -459,7 +459,7 @@ class TestLocaleUtils(tm.TestCase):
         new_locale = lang, enc
 
         if not tm._can_set_locale(new_locale):
-            with tm.assertRaises(locale.Error):
+            with pytest.raises(locale.Error):
                 with tm.set_locale(new_locale):
                     pass
         else:

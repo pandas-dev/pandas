@@ -169,10 +169,10 @@ class TestS3(tm.TestCase):
 
     @tm.network
     def test_s3_fails(self):
-        with tm.assertRaises(IOError):
+        with pytest.raises(IOError):
             read_csv('s3://nyqpug/asdf.csv')
 
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
-        with tm.assertRaises(IOError):
+        with pytest.raises(IOError):
             read_csv('s3://cant_get_it/')

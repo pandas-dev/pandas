@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 from datetime import timedelta
 
@@ -119,9 +121,9 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             5, dtype='float64') * (np.arange(5, dtype='float64') + 0.1)))
 
         # invalid
-        self.assertRaises(TypeError, lambda: idx * idx)
-        self.assertRaises(ValueError, lambda: idx * self._holder(np.arange(3)))
-        self.assertRaises(ValueError, lambda: idx * np.array([1, 2]))
+        pytest.raises(TypeError, lambda: idx * idx)
+        pytest.raises(ValueError, lambda: idx * self._holder(np.arange(3)))
+        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
 
     def test_pickle_compat_construction(self):
         pass
@@ -238,7 +240,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_isin(self):
@@ -411,7 +413,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         tm.assert_numpy_array_equal(result, exp)
 
         # raise TypeError for now
-        self.assertRaises(TypeError, rng.__lt__, rng[3].value)
+        pytest.raises(TypeError, rng.__lt__, rng[3].value)
 
         result = rng == list(rng)
         exp = rng == rng
@@ -497,9 +499,9 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         tm.assert_index_equal(rng.nanoseconds,
                               Index([456, 456], dtype='int64'))
 
-        self.assertRaises(AttributeError, lambda: rng.hours)
-        self.assertRaises(AttributeError, lambda: rng.minutes)
-        self.assertRaises(AttributeError, lambda: rng.milliseconds)
+        pytest.raises(AttributeError, lambda: rng.hours)
+        pytest.raises(AttributeError, lambda: rng.minutes)
+        pytest.raises(AttributeError, lambda: rng.milliseconds)
 
         # with nat
         s = Series(rng)

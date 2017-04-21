@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pytest
+
 from numpy.random import RandomState
 from numpy import nan
 from datetime import datetime
@@ -126,9 +128,9 @@ class TestSafeSort(tm.TestCase):
         if compat.PY2 and not pd._np_version_under1p10:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
             with tm.assert_produces_warning(RuntimeWarning):
-                tm.assertRaises(TypeError, algos.safe_sort, arr)
+                pytest.raises(TypeError, algos.safe_sort, arr)
         else:
-            tm.assertRaises(TypeError, algos.safe_sort, arr)
+            pytest.raises(TypeError, algos.safe_sort, arr)
 
     def test_exceptions(self):
         with tm.assertRaisesRegexp(TypeError,
@@ -284,7 +286,7 @@ class TestFactorize(tm.TestCase):
 
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        self.assertRaises(TypeError, algos.factorize, x17[::-1], sort=True)
+        pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
 
     def test_uint64_factorize(self):
         data = np.array([2**63, 1, 2**63], dtype=np.uint64)
@@ -499,9 +501,9 @@ class TestIsin(tm.TestCase):
 
     def test_invalid(self):
 
-        self.assertRaises(TypeError, lambda: algos.isin(1, 1))
-        self.assertRaises(TypeError, lambda: algos.isin(1, [1]))
-        self.assertRaises(TypeError, lambda: algos.isin([1], 1))
+        pytest.raises(TypeError, lambda: algos.isin(1, 1))
+        pytest.raises(TypeError, lambda: algos.isin(1, [1]))
+        pytest.raises(TypeError, lambda: algos.isin([1], 1))
 
     def test_basic(self):
 
@@ -620,8 +622,8 @@ class TestValueCounts(tm.TestCase):
         result = algos.value_counts(Series([1, 1., '1']))  # object
         self.assertEqual(len(result), 2)
 
-        self.assertRaises(TypeError, lambda s: algos.value_counts(s, bins=1),
-                          ['1', 1])
+        pytest.raises(TypeError, lambda s: algos.value_counts(s, bins=1),
+                      ['1', 1])
 
     def test_value_counts_nat(self):
         td = Series([np.timedelta64(10000), pd.NaT], dtype='timedelta64[ns]')
@@ -1355,15 +1357,15 @@ def test_int64_add_overflow():
     # Check that the nan boolean arrays override whether or not
     # the addition overflows. We don't check the result but just
     # the fact that an OverflowError is not raised.
-    with tm.assertRaises(AssertionError):
+    with pytest.raises(AssertionError):
         with tm.assertRaisesRegexp(OverflowError, msg):
             algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                        arr_mask=np.array([True, True]))
-    with tm.assertRaises(AssertionError):
+    with pytest.raises(AssertionError):
         with tm.assertRaisesRegexp(OverflowError, msg):
             algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                        b_mask=np.array([True, True]))
-    with tm.assertRaises(AssertionError):
+    with pytest.raises(AssertionError):
         with tm.assertRaisesRegexp(OverflowError, msg):
             algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                        arr_mask=np.array([True, False]),

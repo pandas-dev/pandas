@@ -278,13 +278,13 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     @network
     def test_bad_url_protocol(self):
-        with tm.assertRaises(URLError):
+        with pytest.raises(URLError):
             self.read_html('git://github.com', match='.*Water.*')
 
     @network
     def test_invalid_url(self):
         try:
-            with tm.assertRaises(URLError):
+            with pytest.raises(URLError):
                 self.read_html('http://www.a23950sdfa908sd.com',
                                match='.*Water.*')
         except ValueError as e:
@@ -691,7 +691,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     def test_bool_header_arg(self):
         # GH 6114
         for arg in [True, False]:
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 read_html(self.spam_data, header=arg)
 
     def test_converters(self):
@@ -842,10 +842,10 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
         spam_data = os.path.join(DATA_PATH, 'spam.html')
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
-        with tm.assertRaises(XMLSyntaxError):
+        with pytest.raises(XMLSyntaxError):
             self.read_html(spam_data)
 
-        with tm.assertRaises(XMLSyntaxError):
+        with pytest.raises(XMLSyntaxError):
             self.read_html(banklist_data)
 
     def test_works_on_valid_markup(self):
@@ -884,7 +884,7 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
 
 def test_invalid_flavor():
     url = 'google.com'
-    with tm.assertRaises(ValueError):
+    with pytest.raises(ValueError):
         read_html(url, 'google', flavor='not a* valid**++ flaver')
 
 

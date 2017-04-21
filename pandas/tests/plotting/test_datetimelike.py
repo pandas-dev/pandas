@@ -98,7 +98,7 @@ class TestTSPlot(TestPlotBase):
         self.assertEqual(len(ax.get_lines()), 1)  # B was plotted
         plt.close(plt.gcf())
 
-        self.assertRaises(TypeError, df['A'].plot)
+        pytest.raises(TypeError, df['A'].plot)
 
     @slow
     def test_tsplot(self):
@@ -130,10 +130,10 @@ class TestTSPlot(TestPlotBase):
         import matplotlib.pyplot as plt  # noqa
 
         ts = tm.makeTimeSeries()
-        self.assertRaises(ValueError, ts.plot, style='b-', color='#000099')
+        pytest.raises(ValueError, ts.plot, style='b-', color='#000099')
 
         s = ts.reset_index(drop=True)
-        self.assertRaises(ValueError, s.plot, style='b-', color='#000099')
+        pytest.raises(ValueError, s.plot, style='b-', color='#000099')
 
     @slow
     def test_high_freq(self):

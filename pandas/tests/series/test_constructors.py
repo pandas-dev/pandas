@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime, timedelta
 
 from numpy import nan
@@ -57,8 +59,8 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         self.assertFalse(self.empty.index.is_all_dates)
         self.assertFalse(Series({}).index.is_all_dates)
-        self.assertRaises(Exception, Series, np.random.randn(3, 3),
-                          index=np.arange(3))
+        pytest.raises(Exception, Series, np.random.randn(3, 3),
+                      index=np.arange(3))
 
         mixed.name = 'Series'
         rs = Series(mixed).name
@@ -67,7 +69,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         # raise on MultiIndex GH4187
         m = MultiIndex.from_arrays([[1, 2], [3, 4]])
-        self.assertRaises(NotImplementedError, Series, m)
+        pytest.raises(NotImplementedError, Series, m)
 
     def test_constructor_empty(self):
         empty = Series()
@@ -138,7 +140,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         tm.assert_categorical_equal(res.values, cat)
 
         # GH12574
-        self.assertRaises(
+        pytest.raises(
             ValueError, lambda: Series(pd.Categorical([1, 2, 3]),
                                        dtype='int64'))
         cat = Series(pd.Categorical([1, 2, 3]), dtype='category')
@@ -291,7 +293,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         tm.assert_series_equal(Series(np.array([np.nan, pd.NaT])), exp)
 
     def test_constructor_cast(self):
-        self.assertRaises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
+        pytest.raises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
 
     def test_constructor_dtype_nocast(self):
         # 1572
@@ -372,13 +374,13 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         # invalid astypes
         for t in ['s', 'D', 'us', 'ms']:
-            self.assertRaises(TypeError, s.astype, 'M8[%s]' % t)
+            pytest.raises(TypeError, s.astype, 'M8[%s]' % t)
 
         # GH3414 related
-        self.assertRaises(TypeError, lambda x: Series(
+        pytest.raises(TypeError, lambda x: Series(
             Series(dates).astype('int') / 1000000, dtype='M8[ms]'))
-        self.assertRaises(TypeError,
-                          lambda x: Series(dates, dtype='datetime64'))
+        pytest.raises(TypeError,
+                      lambda x: Series(dates, dtype='datetime64'))
 
         # invalid dates can be help as object
         result = Series([datetime(2, 1, 1)])
@@ -692,9 +694,9 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
     def test_constructor_set(self):
         values = set([1, 2, 3, 4, 5])
-        self.assertRaises(TypeError, Series, values)
+        pytest.raises(TypeError, Series, values)
         values = frozenset(values)
-        self.assertRaises(TypeError, Series, values)
+        pytest.raises(TypeError, Series, values)
 
     def test_fromDict(self):
         data = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
@@ -781,19 +783,19 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         # these are frequency conversion astypes
         # for t in ['s', 'D', 'us', 'ms']:
-        #    self.assertRaises(TypeError, td.astype, 'm8[%s]' % t)
+        #    pytest.raises(TypeError, td.astype, 'm8[%s]' % t)
 
         # valid astype
         td.astype('int64')
 
         # invalid casting
-        self.assertRaises(TypeError, td.astype, 'int32')
+        pytest.raises(TypeError, td.astype, 'int32')
 
         # this is an invalid casting
         def f():
             Series([timedelta(days=1), 'foo'], dtype='m8[ns]')
 
-        self.assertRaises(Exception, f)
+        pytest.raises(Exception, f)
 
         # leave as object here
         td = Series([timedelta(days=i) for i in range(3)] + ['foo'])
@@ -833,7 +835,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
     def test_constructor_name_unhashable(self):
         for n in [['name_list'], np.ones(2), {1: 2}]:
             for data in [['name_list'], np.ones(2), {1: 2}]:
-                self.assertRaises(TypeError, Series, data, name=n)
+                pytest.raises(TypeError, Series, data, name=n)
 
     def test_auto_conversion(self):
         series = Series(list(date_range('1/1/2000', periods=10)))

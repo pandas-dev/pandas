@@ -4,7 +4,9 @@ from __future__ import print_function
 
 from warnings import catch_warnings
 from datetime import datetime
+
 import itertools
+import pytest
 
 from numpy.random import randn
 from numpy import nan
@@ -364,7 +366,7 @@ class TestDataFrameReshape(tm.TestCase, TestData):
 
         # When mixed types are passed and the ints are not level
         # names, raise
-        self.assertRaises(ValueError, df2.stack, level=['animal', 0])
+        pytest.raises(ValueError, df2.stack, level=['animal', 0])
 
         # GH #8584: Having 0 in the level names could raise a
         # strange error about lexsort depth
@@ -523,10 +525,10 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')],
                                      names=['c1', 'c1'])
         df = DataFrame([1, 2], index=idx)
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.unstack('c1')
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.T.stack('c1')
 
     def test_unstack_nan_index(self):  # GH7466

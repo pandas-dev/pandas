@@ -148,9 +148,9 @@ class TestAPI(TestPackers):
             def __init__(self):
                 self.read = 0
 
-        tm.assertRaises(ValueError, read_msgpack, path_or_buf=None)
-        tm.assertRaises(ValueError, read_msgpack, path_or_buf={})
-        tm.assertRaises(ValueError, read_msgpack, path_or_buf=A())
+        pytest.raises(ValueError, read_msgpack, path_or_buf=None)
+        pytest.raises(ValueError, read_msgpack, path_or_buf={})
+        pytest.raises(ValueError, read_msgpack, path_or_buf=A())
 
 
 class TestNumpy(TestPackers):
@@ -536,7 +536,7 @@ class TestSparse(TestPackers):
         # currently these are not implemetned
         # i_rec = self.encode_decode(obj)
         # comparator(obj, i_rec, **kwargs)
-        self.assertRaises(NotImplementedError, self.encode_decode, obj)
+        pytest.raises(NotImplementedError, self.encode_decode, obj)
 
     def test_sparse_series(self):
 

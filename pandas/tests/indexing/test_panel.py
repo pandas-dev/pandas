@@ -65,7 +65,7 @@ class TestPanel(tm.TestCase):
             def f():
                 p.iloc[0, [True, True], [0, 1, 2]]
 
-            self.assertRaises(IndexError, f)
+            pytest.raises(IndexError, f)
 
             # trying to use a label
             with pytest.raises(ValueError):
@@ -89,12 +89,12 @@ class TestPanel(tm.TestCase):
             def f():
                 p.iloc[0, [True, True, True], [0, 1, 2]]
 
-            self.assertRaises(IndexError, f)
+            pytest.raises(IndexError, f)
 
             def f():
                 p.iloc[0, [True, True, True], [2]]
 
-            self.assertRaises(IndexError, f)
+            pytest.raises(IndexError, f)
 
     def test_iloc_panel_issue(self):
 
@@ -211,7 +211,7 @@ class TestPanel(tm.TestCase):
                 wp.loc[['Item1', 'Item2'], :, ['A', 'B']] = wp2.loc[
                     ['Item1', 'Item2'], :, ['A', 'B']]
 
-            self.assertRaises(NotImplementedError, f)
+            pytest.raises(NotImplementedError, f)
 
             # to_assign = wp2.loc[['Item1', 'Item2'], :, ['A', 'B']]
             # wp.loc[['Item1', 'Item2'], :, ['A', 'B']] = to_assign

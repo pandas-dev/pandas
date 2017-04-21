@@ -446,7 +446,7 @@ class TestMultiIndexBasic(tm.TestCase):
         def f():
             df.loc['bar'] *= 2
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         # from SO
         # http://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
@@ -492,12 +492,12 @@ class TestMultiIndexBasic(tm.TestCase):
         def f():
             df.val['A']
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         def f():
             df.val['X']
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         # A is treated as a special Timestamp
         index = MultiIndex(levels=[['A', 'B', 'C'],
@@ -514,7 +514,7 @@ class TestMultiIndexBasic(tm.TestCase):
         def f():
             df.val['X']
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         # GH 7866
         # multi-index slicing with missing indexers
@@ -534,7 +534,7 @@ class TestMultiIndexBasic(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         # not any values found
-        self.assertRaises(KeyError, lambda: s.loc[['D']])
+        pytest.raises(KeyError, lambda: s.loc[['D']])
 
         # empty ok
         result = s.loc[[]]
@@ -611,13 +611,13 @@ class TestMultiIndexBasic(tm.TestCase):
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0, 1, 2, 3]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # groupby example
         NUM_ROWS = 100
@@ -786,12 +786,12 @@ class TestMultiIndexSlicers(tm.TestCase):
         def f():
             df.loc[(slice(None), np.array([True, False])), :]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # ambiguous cases
         # these can be multiply interpreted (e.g. in this case
         # as df.loc[slice(None),[1]] as well
-        self.assertRaises(KeyError, lambda: df.loc[slice(None), [1]])
+        pytest.raises(KeyError, lambda: df.loc[slice(None), [1]])
 
         result = df.loc[(slice(None), [1]), :]
         expected = df.iloc[[0, 3]]
@@ -989,7 +989,7 @@ class TestMultiIndexSlicers(tm.TestCase):
         def f():
             df.loc['A1', (slice(None), 'foo')]
 
-        self.assertRaises(UnsortedIndexError, f)
+        pytest.raises(UnsortedIndexError, f)
         df = df.sort_index(axis=1)
 
         # slicing
@@ -1038,17 +1038,17 @@ class TestMultiIndexSlicers(tm.TestCase):
         def f():
             df.loc(axis=-1)[:, :, ['C1', 'C3']]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             df.loc(axis=2)[:, :, ['C1', 'C3']]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             df.loc(axis='foo')[:, :, ['C1', 'C3']]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_per_axis_per_level_setitem(self):
 
@@ -1153,13 +1153,13 @@ class TestMultiIndexSlicers(tm.TestCase):
             df.loc[(slice(None), 1), (slice(None), ['foo'])] = np.array(
                 [[100], [100, 100]], dtype='int64')
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             df.loc[(slice(None), 1), (slice(None), ['foo'])] = np.array(
                 [100, 100, 100, 100], dtype='int64')
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # with an alignable rhs
         df = df_orig.copy()

@@ -105,8 +105,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         # DST ambiguity, this should fail
         rng = date_range('3/11/2012', '3/12/2012', freq='30T')
         # Is this really how it should fail??
-        self.assertRaises(NonExistentTimeError, rng.tz_localize,
-                          self.tzstr('US/Eastern'))
+        pytest.raises(NonExistentTimeError, rng.tz_localize,
+                      self.tzstr('US/Eastern'))
 
     def test_localize_utc_conversion_explicit(self):
         # Localizing to time zone should:
@@ -121,8 +121,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         # DST ambiguity, this should fail
         rng = date_range('3/11/2012', '3/12/2012', freq='30T')
         # Is this really how it should fail??
-        self.assertRaises(NonExistentTimeError, rng.tz_localize,
-                          self.tz('US/Eastern'))
+        pytest.raises(NonExistentTimeError, rng.tz_localize,
+                      self.tz('US/Eastern'))
 
     def test_timestamp_tz_localize(self):
         stamp = Timestamp('3/11/2012 04:00')
@@ -255,13 +255,13 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         dti = DatetimeIndex(start='11/6/2011 1:59', end='11/6/2011 2:00',
                             freq='L')
-        self.assertRaises(pytz.AmbiguousTimeError, dti.tz_localize,
-                          self.tzstr('US/Eastern'))
+        pytest.raises(pytz.AmbiguousTimeError, dti.tz_localize,
+                      self.tzstr('US/Eastern'))
 
         dti = DatetimeIndex(start='3/13/2011 1:59', end='3/13/2011 2:00',
                             freq='L')
-        self.assertRaises(pytz.NonExistentTimeError, dti.tz_localize,
-                          self.tzstr('US/Eastern'))
+        pytest.raises(pytz.NonExistentTimeError, dti.tz_localize,
+                      self.tzstr('US/Eastern'))
 
     def test_tz_localize_empty_series(self):
         # #2248
@@ -436,9 +436,9 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         dr = bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc),
                          '1/1/2009', tz=pytz.utc)
 
-        self.assertRaises(Exception, bdate_range,
-                          datetime(2005, 1, 1, tzinfo=pytz.utc), '1/1/2009',
-                          tz=tz)
+        pytest.raises(Exception, bdate_range,
+                      datetime(2005, 1, 1, tzinfo=pytz.utc), '1/1/2009',
+                      tz=tz)
 
     def test_tz_localize(self):
         dr = bdate_range('1/1/2009', '1/1/2010')
@@ -452,7 +452,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         # March 13, 2011, spring forward, skip from 2 AM to 3 AM
         dr = date_range(datetime(2011, 3, 13, 1, 30), periods=3,
                         freq=offsets.Hour())
-        self.assertRaises(pytz.NonExistentTimeError, dr.tz_localize, tz)
+        pytest.raises(pytz.NonExistentTimeError, dr.tz_localize, tz)
 
         # after dst transition, it works
         dr = date_range(datetime(2011, 3, 13, 3, 30), periods=3,
@@ -461,7 +461,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         # November 6, 2011, fall back, repeat 2 AM hour
         dr = date_range(datetime(2011, 11, 6, 1, 30), periods=3,
                         freq=offsets.Hour())
-        self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize, tz)
+        pytest.raises(pytz.AmbiguousTimeError, dr.tz_localize, tz)
 
         # UTC is OK
         dr = date_range(datetime(2011, 3, 13), periods=48,
@@ -473,7 +473,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         tz = self.tz('US/Eastern')
         dr = date_range(datetime(2011, 11, 6, 0), periods=5,
                         freq=offsets.Hour())
-        self.assertRaises(pytz.AmbiguousTimeError, dr.tz_localize, tz)
+        pytest.raises(pytz.AmbiguousTimeError, dr.tz_localize, tz)
 
         # With repeated hours, we can infer the transition
         dr = date_range(datetime(2011, 11, 6, 0), periods=5,
@@ -533,7 +533,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         di = DatetimeIndex(times)
 
         # When the sizes are incompatible, make sure error is raised
-        self.assertRaises(Exception, di.tz_localize, tz, ambiguous=is_dst)
+        pytest.raises(Exception, di.tz_localize, tz, ambiguous=is_dst)
 
         # When sizes are compatible and there are repeats ('infer' won't work)
         is_dst = np.hstack((is_dst, is_dst))
@@ -556,7 +556,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         def f():
             date_range("2013-10-26 23:00", "2013-10-27 01:00",
                        tz="Europe/London", freq="H")
-            self.assertRaises(pytz.AmbiguousTimeError, f)
+            pytest.raises(pytz.AmbiguousTimeError, f)
 
         times = date_range("2013-10-26 23:00", "2013-10-27 01:00", freq="H",
                            tz=tz, ambiguous='infer')
@@ -592,7 +592,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         def f():
             t.tz_localize('US/Central')
-        self.assertRaises(pytz.AmbiguousTimeError, f)
+        pytest.raises(pytz.AmbiguousTimeError, f)
 
         result = t.tz_localize('US/Central', ambiguous=True)
         self.assertEqual(result, expected0)
@@ -606,7 +606,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
         def f():
             s.dt.tz_localize('US/Central')
-        self.assertRaises(pytz.AmbiguousTimeError, f)
+        pytest.raises(pytz.AmbiguousTimeError, f)
 
         result = s.dt.tz_localize('US/Central', ambiguous=True)
         assert_series_equal(result, expected0)
@@ -626,10 +626,10 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         times = ['2015-03-08 01:00', '2015-03-08 02:00', '2015-03-08 03:00']
         index = DatetimeIndex(times)
         tz = 'US/Eastern'
-        self.assertRaises(NonExistentTimeError,
-                          index.tz_localize, tz=tz)
-        self.assertRaises(NonExistentTimeError,
-                          index.tz_localize, tz=tz, errors='raise')
+        pytest.raises(NonExistentTimeError,
+                      index.tz_localize, tz=tz)
+        pytest.raises(NonExistentTimeError,
+                      index.tz_localize, tz=tz, errors='raise')
         result = index.tz_localize(tz=tz, errors='coerce')
         test_times = ['2015-03-08 01:00-05:00', 'NaT',
                       '2015-03-08 03:00-04:00']
@@ -659,8 +659,8 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         assert (tools._infer_tzinfo(start, end) is utc)
 
         end = self.localize(eastern, _end)
-        self.assertRaises(Exception, tools._infer_tzinfo, start, end)
-        self.assertRaises(Exception, tools._infer_tzinfo, end, start)
+        pytest.raises(Exception, tools._infer_tzinfo, start, end)
+        pytest.raises(Exception, tools._infer_tzinfo, end, start)
 
     def test_tz_string(self):
         result = date_range('1/1/2000', periods=10,
@@ -1232,11 +1232,11 @@ class TestTimeZones(tm.TestCase):
         # error
         def f():
             dt.replace(foo=5)
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         def f():
             dt.replace(hour=0.1)
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # assert conversion to naive is the same as replacing tzinfo with None
         dt = Timestamp('2013-11-03 01:59:59.999999-0400', tz='US/Eastern')
@@ -1306,7 +1306,7 @@ class TestTimeZones(tm.TestCase):
                                       tz=tz)
                 tm.assert_index_equal(localized, expected)
 
-                with tm.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     localized.tz_localize(tz)
 
                 reset = localized.tz_localize(None)
@@ -1410,8 +1410,8 @@ class TestTimeZones(tm.TestCase):
 
         ts_utc = ts.tz_localize('utc')
 
-        self.assertRaises(Exception, ts.__add__, ts_utc)
-        self.assertRaises(Exception, ts_utc.__add__, ts)
+        pytest.raises(Exception, ts.__add__, ts_utc)
+        pytest.raises(Exception, ts_utc.__add__, ts)
 
         test1 = DataFrame(np.zeros((6, 3)),
                           index=date_range("2012-11-15 00:00:00", periods=6,

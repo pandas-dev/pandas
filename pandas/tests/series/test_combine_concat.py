@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime
 
 from numpy import nan
@@ -28,8 +30,8 @@ class TestSeriesCombine(TestData, tm.TestCase):
             else:
                 self.fail("orphaned index!")
 
-        self.assertRaises(ValueError, self.ts.append, self.ts,
-                          verify_integrity=True)
+        pytest.raises(ValueError, self.ts.append, self.ts,
+                      verify_integrity=True)
 
     def test_append_many(self):
         pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
