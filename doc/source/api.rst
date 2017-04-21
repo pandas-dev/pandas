@@ -5,6 +5,22 @@
 API Reference
 *************
 
+This page gives an overview of all public pandas objects, functions and
+methods. In general, all classes and functions exposed in the top-level
+``pandas.*`` namespace are regarded as public.
+
+Further some of the subpackages are public, including ``pandas.errors``,
+``pandas.plotting``, and ``pandas.testing``. Certain functions in the the
+``pandas.io`` and ``pandas.tseries`` submodules are public as well (those
+mentioned in the documentation). Further, the ``pandas.api.types`` subpackage
+holds some public functions related to data types in pandas.
+
+
+.. warning::
+
+    The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are considered to be PRIVATE. Stability of functionality in those modules in not guaranteed.
+
+
 .. _api.functions:
 
 Input/Output
@@ -1896,3 +1912,30 @@ Testing functions
    testing.assert_frame_equal
    testing.assert_series_equal
    testing.assert_index_equal
+
+
+Exceptions and warnings
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   errors.DtypeWarning
+   errors.EmptyDataError
+   errors.OutOfBoundsDatetime
+   errors.ParserError
+   errors.ParserWarning
+   errors.PerformanceWarning
+   errors.UnsortedIndexError
+   errors.UnsupportedFunctionCall
+
+
+Data types related functionality
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   api.types.union_categoricals
+   api.types.infer_dtype
+   api.types.pandas_dtype
