@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import DataFrame, Series, Index, MultiIndex
-from pandas.tools.hashing import hash_array, hash_tuples, hash_pandas_object
+from pandas.util.hashing import hash_array, hash_tuples, hash_pandas_object
 import pandas.util.testing as tm
 
 
