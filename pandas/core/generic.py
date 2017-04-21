@@ -482,9 +482,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return new_axes
 
-    def set_axis(self, axis, labels):
+    def set_axis(self, axis, labels, inplace=True):
         """ public verson of axis assignment """
-        setattr(self, self._get_axis_name(axis), labels)
+        if inplace:
+          setattr(self, self._get_axis_name(axis), labels)
+        else:
+          obj = self.copy()
+          obj.set_axis(axis, labels, inplace=True)
+          return obj
 
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
