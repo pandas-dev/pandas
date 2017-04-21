@@ -745,7 +745,7 @@ def pandas_dtype(dtype):
             np.dtype(dtype)
         except (TypeError, ValueError):
             raise
-        if dtype == object:
+        if dtype in [object, np.object_]:
             return np.dtype(dtype)
         elif np.dtype(dtype).kind == 'O':
             raise TypeError('dtype {0} not understood'.format(dtype))
