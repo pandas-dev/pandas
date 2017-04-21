@@ -1248,7 +1248,7 @@ these are now the public subpackages.
 - The function :func:`~pandas.api.types.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
 
 
-.. _whatsnew_0200.enhancements.errors:
+.. _whatsnew_0200.privacy.errors:
 
 ``pandas.errors``
 ^^^^^^^^^^^^^^^^^
@@ -1271,12 +1271,12 @@ The following are now part of this API:
     'UnsupportedFunctionCall']
 
 
-.. _whatsnew_0200.enhancements.testing:
+.. _whatsnew_0200.privay.testing:
 
 ``pandas.testing``
 ^^^^^^^^^^^^^^^^^^
 
-We are adding a standard module that exposes the public testing functions in ``pandas.testing`` (:issue:`9895`). Those functions can be used when writing tests for functionality using pandas objects.
+We are adding a standard module that exposes the public testing functions in ``pandas.testing`` (:issue:`9895`. Those functions can be used when writing tests for functionality using pandas objects.
 
 The following testing functions are now part of this API:
 
@@ -1284,17 +1284,13 @@ The following testing functions are now part of this API:
 - :func:`testing.assert_series_equal`
 - :func:`testing.assert_index_equal`
 
+
+.. _whatsnew_0200.privay.plotting:
 
 ``pandas.plotting``
 ^^^^^^^^^^^^^^^^^^^
 
-We are adding a standard module that exposes the public testing functions in ``pandas.testing`` (:issue:`9895`). Those functions can be used when writing tests for functionality using pandas objects.
-
-The following testing functions are now part of this API:
-
-- :func:`testing.assert_frame_equal`
-- :func:`testing.assert_series_equal`
-- :func:`testing.assert_index_equal`
+A new public ``pandas.plotting`` module has been added that holds plotting functionality that was previously in either ``pandas.tools.plotting`` or in the top-level namespace. See the :ref:`deprecations sections <whatsnew_0200.privacy.deprecate_plotting>` for more details.
 
 
 .. _whatsnew_0200.privacy.development:
