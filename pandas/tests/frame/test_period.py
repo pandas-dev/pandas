@@ -41,7 +41,7 @@ class TestPeriodIndex(tm.TestCase):
         self.assertEqual(rng.name, 'index')
 
         rs = df.reset_index().set_index('index')
-        tm.assertIsInstance(rs.index, PeriodIndex)
+        assert isinstance(rs.index, PeriodIndex)
         tm.assert_index_equal(rs.index, rng)
 
     def test_frame_to_time_stamp(self):

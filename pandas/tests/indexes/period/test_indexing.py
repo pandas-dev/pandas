@@ -281,7 +281,7 @@ class TestIndexing(tm.TestCase):
 
         for taken in [taken1, taken2]:
             tm.assert_index_equal(taken, expected)
-            tm.assertIsInstance(taken, PeriodIndex)
+            assert isinstance(taken, PeriodIndex)
             self.assertEqual(taken.freq, index.freq)
             self.assertEqual(taken.name, expected.name)
 

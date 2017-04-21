@@ -99,32 +99,32 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         res = df.loc[:, 'X']
         exp = tm.SubclassedSeries([1, 2, 3], index=list('abc'), name='X')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.iloc[:, 1]
         exp = tm.SubclassedSeries([4, 5, 6], index=list('abc'), name='Y')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.loc[:, 'Z']
         exp = tm.SubclassedSeries([7, 8, 9], index=list('abc'), name='Z')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.loc['a', :]
         exp = tm.SubclassedSeries([1, 4, 7], index=list('XYZ'), name='a')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.iloc[1, :]
         exp = tm.SubclassedSeries([2, 5, 8], index=list('XYZ'), name='b')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
         res = df.loc['c', :]
         exp = tm.SubclassedSeries([3, 6, 9], index=list('XYZ'), name='c')
         tm.assert_series_equal(res, exp)
-        tm.assertIsInstance(res, tm.SubclassedSeries)
+        assert isinstance(res, tm.SubclassedSeries)
 
     def test_to_panel_expanddim(self):
         # GH 9762
@@ -173,15 +173,15 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         exp2 = tm.SubclassedDataFrame({'c': [1, 2, np.nan, 4, np.nan],
                                        'd': [1, 2, np.nan, 4, np.nan]},
                                       index=list('ABCDE'))
-        tm.assertIsInstance(res1, tm.SubclassedDataFrame)
+        assert isinstance(res1, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res1, exp1)
-        tm.assertIsInstance(res2, tm.SubclassedDataFrame)
+        assert isinstance(res2, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res2, exp2)
 
         res1, res2 = df1.a.align(df2.c)
-        tm.assertIsInstance(res1, tm.SubclassedSeries)
+        assert isinstance(res1, tm.SubclassedSeries)
         tm.assert_series_equal(res1, exp1.a)
-        tm.assertIsInstance(res2, tm.SubclassedSeries)
+        assert isinstance(res2, tm.SubclassedSeries)
         tm.assert_series_equal(res2, exp2.c)
 
     def test_subclass_align_combinations(self):
@@ -199,23 +199,23 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         exp2 = pd.Series([1, 2, np.nan, 4, np.nan],
                          index=list('ABCDE'), name='x')
 
-        tm.assertIsInstance(res1, tm.SubclassedDataFrame)
+        assert isinstance(res1, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res1, exp1)
-        tm.assertIsInstance(res2, tm.SubclassedSeries)
+        assert isinstance(res2, tm.SubclassedSeries)
         tm.assert_series_equal(res2, exp2)
 
         # series + frame
         res1, res2 = s.align(df)
-        tm.assertIsInstance(res1, tm.SubclassedSeries)
+        assert isinstance(res1, tm.SubclassedSeries)
         tm.assert_series_equal(res1, exp2)
-        tm.assertIsInstance(res2, tm.SubclassedDataFrame)
+        assert isinstance(res2, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res2, exp1)
 
     def test_subclass_iterrows(self):
         # GH 13977
         df = tm.SubclassedDataFrame({'a': [1]})
         for i, row in df.iterrows():
-            tm.assertIsInstance(row, tm.SubclassedSeries)
+            assert isinstance(row, tm.SubclassedSeries)
             tm.assert_series_equal(row, df.loc[i])
 
     def test_subclass_sparse_slice(self):

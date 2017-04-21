@@ -20,7 +20,7 @@ class TestPeriodProperties(tm.TestCase):
         for freq in ['A', 'M', 'D', 'H']:
             p = Period('2000-01-01 00:00:00', freq=freq)
             self.assertTrue(p.is_leap_year)
-            self.assertIsInstance(p.is_leap_year, bool)
+            assert isinstance(p.is_leap_year, bool)
 
             p = Period('1999-01-01 00:00:00', freq=freq)
             self.assertFalse(p.is_leap_year)
@@ -35,17 +35,17 @@ class TestPeriodProperties(tm.TestCase):
         p = Period(ordinal=-1, freq='Q-DEC')
         self.assertEqual(p.year, 1969)
         self.assertEqual(p.quarter, 4)
-        self.assertIsInstance(p, Period)
+        assert isinstance(p, Period)
 
         p = Period(ordinal=-2, freq='Q-DEC')
         self.assertEqual(p.year, 1969)
         self.assertEqual(p.quarter, 3)
-        self.assertIsInstance(p, Period)
+        assert isinstance(p, Period)
 
         p = Period(ordinal=-2, freq='M')
         self.assertEqual(p.year, 1969)
         self.assertEqual(p.month, 11)
-        self.assertIsInstance(p, Period)
+        assert isinstance(p, Period)
 
     def test_period_cons_quarterly(self):
         # bugs in scikits.timeseries
@@ -69,7 +69,7 @@ class TestPeriodProperties(tm.TestCase):
             stamp = exp.to_timestamp('D', how='end') + timedelta(days=30)
             p = Period(stamp, freq=freq)
             self.assertEqual(p, exp + 1)
-            self.assertIsInstance(p, Period)
+            assert isinstance(p, Period)
 
     def test_period_cons_weekly(self):
         for num in range(10, 17):
@@ -80,13 +80,13 @@ class TestPeriodProperties(tm.TestCase):
                 result = Period(daystr, freq=freq)
                 expected = Period(daystr, freq='D').asfreq(freq)
                 self.assertEqual(result, expected)
-                self.assertIsInstance(result, Period)
+                assert isinstance(result, Period)
 
     def test_period_from_ordinal(self):
         p = pd.Period('2011-01', freq='M')
         res = pd.Period._from_ordinal(p.ordinal, freq='M')
         self.assertEqual(p, res)
-        self.assertIsInstance(res, Period)
+        assert isinstance(res, Period)
 
     def test_period_cons_nat(self):
         p = Period('NaT', freq='M')
@@ -524,8 +524,8 @@ class TestPeriodProperties(tm.TestCase):
             # check supported freq-aliases still works
             p1 = Period('2016-03-01 09:00', freq=exp)
             p2 = Period(ordinal=1, freq=exp)
-            tm.assertIsInstance(p1, Period)
-            tm.assertIsInstance(p2, Period)
+            assert isinstance(p1, Period)
+            assert isinstance(p2, Period)
 
     def test_hash(self):
         self.assertEqual(hash(Period('2011-01', freq='M')),
@@ -565,7 +565,7 @@ class TestPeriodProperties(tm.TestCase):
         p = Period('2000-1-1 12:34:12', freq='S')
         res = p.strftime('%Y-%m-%d %H:%M:%S')
         self.assertEqual(res, '2000-01-01 12:34:12')
-        tm.assertIsInstance(res, text_type)  # GH3363
+        assert isinstance(res, text_type)  # GH3363
 
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')

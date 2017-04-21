@@ -3876,7 +3876,7 @@ class TestHDFStore(Base, tm.TestCase):
             # valid
             result = store.select_column('df', 'index')
             tm.assert_almost_equal(result.values, Series(df.index).values)
-            self.assertIsInstance(result, Series)
+            assert isinstance(result, Series)
 
             # not a data indexable column
             self.assertRaises(
@@ -3951,7 +3951,7 @@ class TestHDFStore(Base, tm.TestCase):
             result = store.select('df', where=c)
             expected = df.loc[3:4, :]
             tm.assert_frame_equal(result, expected)
-            self.assertIsInstance(c, Index)
+            assert isinstance(c, Index)
 
             # multiple tables
             _maybe_remove(store, 'df1')
@@ -4396,7 +4396,7 @@ class TestHDFStore(Base, tm.TestCase):
                 tm.get_data_path('legacy_hdf/pytables_native.h5'),
                 mode='r') as store:
             d2 = store['detector/readout']
-            self.assertIsInstance(d2, DataFrame)
+            assert isinstance(d2, DataFrame)
 
     def test_pytables_native2_read(self):
         # fails on win/3.5 oddly
@@ -4408,7 +4408,7 @@ class TestHDFStore(Base, tm.TestCase):
                 mode='r') as store:
             str(store)
             d1 = store['detector']
-            self.assertIsInstance(d1, DataFrame)
+            assert isinstance(d1, DataFrame)
 
     def test_legacy_table_read(self):
         # legacy table types

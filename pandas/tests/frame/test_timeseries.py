@@ -372,10 +372,10 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
                        index=[datetime(2011, 11, 1), datetime(2011, 11, 2),
                               datetime(2011, 11, 3)])
         df = df.asfreq('B')
-        tm.assertIsInstance(df.index, DatetimeIndex)
+        assert isinstance(df.index, DatetimeIndex)
 
         ts = df['A'].asfreq('B')
-        tm.assertIsInstance(ts.index, DatetimeIndex)
+        assert isinstance(ts.index, DatetimeIndex)
 
     def test_asfreq_fillvalue(self):
         # test for fill value during upsampling, related to issue 3715

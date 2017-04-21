@@ -1380,7 +1380,7 @@ class TestMoments(Base):
         series_result = get_result(self.series, window=50)
         frame_result = get_result(self.frame, window=50)
 
-        tm.assertIsInstance(series_result, Series)
+        assert isinstance(series_result, Series)
         self.assertEqual(type(frame_result), DataFrame)
 
         # check time_rule works
@@ -1692,7 +1692,7 @@ class TestMoments(Base):
 
     def _check_ew_structures(self, func, name):
         series_result = getattr(self.series.ewm(com=10), name)()
-        tm.assertIsInstance(series_result, Series)
+        assert isinstance(series_result, Series)
 
         frame_result = getattr(self.frame.ewm(com=10), name)()
         self.assertEqual(type(frame_result), DataFrame)
@@ -2908,7 +2908,7 @@ class TestMomentsConsistency(Base):
 
     def _check_expanding_structures(self, func):
         series_result = func(self.series)
-        tm.assertIsInstance(series_result, Series)
+        assert isinstance(series_result, Series)
         frame_result = func(self.frame)
         self.assertEqual(type(frame_result), DataFrame)
 

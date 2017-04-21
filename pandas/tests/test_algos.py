@@ -310,13 +310,13 @@ class TestUnique(tm.TestCase):
         arr = np.random.randint(0, 100, size=50)
 
         result = algos.unique(arr)
-        tm.assertIsInstance(result, np.ndarray)
+        assert isinstance(result, np.ndarray)
 
     def test_objects(self):
         arr = np.random.randint(0, 100, size=50).astype('O')
 
         result = algos.unique(arr)
-        tm.assertIsInstance(result, np.ndarray)
+        assert isinstance(result, np.ndarray)
 
     def test_object_refcount_bug(self):
         lst = ['A', 'B', 'C', 'D', 'E']
@@ -588,7 +588,7 @@ class TestValueCounts(tm.TestCase):
         arr = np.random.randn(4)
         factor = cut(arr, 4)
 
-        # tm.assertIsInstance(factor, n)
+        # assert isinstance(factor, n)
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
         expected_index = pd.IntervalIndex.from_breaks(

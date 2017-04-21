@@ -962,7 +962,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = self.ts.clip(-0.5, 0.5)
         expected = np.clip(self.ts, -0.5, 0.5)
         assert_series_equal(result, expected)
-        tm.assertIsInstance(expected, Series)
+        assert isinstance(expected, Series)
 
     def test_clip_types_and_nulls(self):
 
@@ -1460,7 +1460,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             result = a.reshape(2, 2)
             expected = a.values.reshape(2, 2)
             tm.assert_numpy_array_equal(result, expected)
-            self.assertIsInstance(result, type(expected))
+            assert isinstance(result, type(expected))
 
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')
@@ -1496,7 +1496,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             result = np.reshape(a, (2, 2))
             expected = a.values.reshape(2, 2)
             tm.assert_numpy_array_equal(result, expected)
-            self.assertIsInstance(result, type(expected))
+            assert isinstance(result, type(expected))
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = np.reshape(a, a.shape)

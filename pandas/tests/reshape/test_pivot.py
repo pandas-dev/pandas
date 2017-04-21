@@ -384,7 +384,7 @@ class TestPivotTable(tm.TestCase):
         # no rows
         rtable = self.data.pivot_table(columns=['AA', 'BB'], margins=True,
                                        aggfunc=np.mean)
-        tm.assertIsInstance(rtable, Series)
+        assert isinstance(rtable, Series)
 
         table = self.data.pivot_table(index=['AA', 'BB'], margins=True,
                                       aggfunc='mean')

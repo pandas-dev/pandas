@@ -272,20 +272,20 @@ class TestConcatAppendCommon(ConcatenateBase):
 
         res = dti.append(tdi)
         tm.assert_index_equal(res, exp)
-        tm.assertIsInstance(res[0], pd.Timestamp)
-        tm.assertIsInstance(res[-1], pd.Timedelta)
+        assert isinstance(res[0], pd.Timestamp)
+        assert isinstance(res[-1], pd.Timedelta)
 
         dts = pd.Series(dti)
         tds = pd.Series(tdi)
         res = dts.append(tds)
         tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
-        tm.assertIsInstance(res.iloc[0], pd.Timestamp)
-        tm.assertIsInstance(res.iloc[-1], pd.Timedelta)
+        assert isinstance(res.iloc[0], pd.Timestamp)
+        assert isinstance(res.iloc[-1], pd.Timedelta)
 
         res = pd.concat([dts, tds])
         tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
-        tm.assertIsInstance(res.iloc[0], pd.Timestamp)
-        tm.assertIsInstance(res.iloc[-1], pd.Timedelta)
+        assert isinstance(res.iloc[0], pd.Timestamp)
+        assert isinstance(res.iloc[-1], pd.Timedelta)
 
     def test_concatlike_datetimetz(self):
         # GH 7795
@@ -1861,7 +1861,7 @@ bar2,12,13,14,15
         s1 = pd.Series([1, 2, 3], name='x')
         s2 = pd.Series([4, 5, 6], name='y')
         res = pd.concat([s1, s2], axis=1, ignore_index=True)
-        self.assertIsInstance(res.columns, pd.RangeIndex)
+        assert isinstance(res.columns, pd.RangeIndex)
         exp = pd.DataFrame([[1, 4], [2, 5], [3, 6]])
         # use check_index_type=True to check the result have
         # RangeIndex (default index)
@@ -1872,7 +1872,7 @@ bar2,12,13,14,15
         s1 = pd.Series([1, 2, 3])
         s2 = pd.Series([4, 5, 6])
         res = pd.concat([s1, s2], axis=1, ignore_index=False)
-        self.assertIsInstance(res.columns, pd.RangeIndex)
+        assert isinstance(res.columns, pd.RangeIndex)
         exp = pd.DataFrame([[1, 4], [2, 5], [3, 6]])
         exp.columns = pd.RangeIndex(2)
         tm.assert_frame_equal(res, exp, check_index_type=True,

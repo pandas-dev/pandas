@@ -1830,14 +1830,14 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result = df.iloc[0]
         with catch_warnings(record=True):
             result2 = df.ix[0]
-        tm.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         assert_almost_equal(result.values, df.values[0])
         assert_series_equal(result, result2)
 
         with catch_warnings(record=True):
             result = df.T.iloc[:, 0]
             result2 = df.T.ix[:, 0]
-        tm.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         assert_almost_equal(result.values, df.values[0])
         assert_series_equal(result, result2)
 

@@ -1,4 +1,6 @@
 """ test the scalar Timedelta """
+import pytest
+
 import numpy as np
 from datetime import timedelta
 
@@ -585,27 +587,26 @@ class TestTimedeltas(tm.TestCase):
 
         # GH 12727
         # timedelta limits correspond to int64 boundaries
-        self.assertTrue(min_td.value == np.iinfo(np.int64).min + 1)
-        self.assertTrue(max_td.value == np.iinfo(np.int64).max)
+        assert min_td.value == np.iinfo(np.int64).min + 1
+        assert max_td.value == np.iinfo(np.int64).max
 
         # Beyond lower limit, a NAT before the Overflow
-        self.assertIsInstance(min_td - Timedelta(1, 'ns'),
-                              NaTType)
+        assert isinstance(min_td - Timedelta(1, 'ns'), NaTType)
 
-        with tm.assertRaises(OverflowError):
+        with pytest.raises(OverflowError):
             min_td - Timedelta(2, 'ns')
 
-        with tm.assertRaises(OverflowError):
+        with pytest.raises(OverflowError):
             max_td + Timedelta(1, 'ns')
 
         # Same tests using the internal nanosecond values
         td = Timedelta(min_td.value - 1, 'ns')
-        self.assertIsInstance(td, NaTType)
+        assert isinstance(td, NaTType)
 
-        with tm.assertRaises(OverflowError):
+        with pytest.raises(OverflowError):
             Timedelta(min_td.value - 2, 'ns')
 
-        with tm.assertRaises(OverflowError):
+        with pytest.raises(OverflowError):
             Timedelta(max_td.value + 1, 'ns')
 
     def test_timedelta_arithmetic(self):

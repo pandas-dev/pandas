@@ -370,7 +370,7 @@ class TestGroupBy(tm.TestCase):
 
         # it works!
         groups = grouped.groups
-        tm.assertIsInstance(list(groups.keys())[0], datetime)
+        assert isinstance(list(groups.keys())[0], datetime)
 
         # GH 11442
         index = pd.date_range('2015/01/01', periods=5, name='date')

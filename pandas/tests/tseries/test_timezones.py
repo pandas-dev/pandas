@@ -279,7 +279,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         expected = utc.tz_convert(self.tzstr('US/Eastern'))
         result = utc.astimezone(self.tzstr('US/Eastern'))
         self.assertEqual(expected, result)
-        tm.assertIsInstance(result, Timestamp)
+        assert isinstance(result, Timestamp)
 
     def test_create_with_tz(self):
         stamp = Timestamp('3/11/2012 05:00', tz=self.tzstr('US/Eastern'))
@@ -1397,11 +1397,11 @@ class TestTimeZones(tm.TestCase):
 
         for how in ['inner', 'outer', 'left', 'right']:
             result = left.join(left[:-5], how=how)
-            tm.assertIsInstance(result, DatetimeIndex)
+            assert isinstance(result, DatetimeIndex)
             self.assertEqual(result.tz, left.tz)
 
             result = left.join(right[:-5], how=how)
-            tm.assertIsInstance(result, DatetimeIndex)
+            assert isinstance(result, DatetimeIndex)
             self.assertEqual(result.tz.zone, 'UTC')
 
     def test_join_aware(self):

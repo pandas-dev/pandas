@@ -23,9 +23,9 @@ class TestIndexer(tm.TestCase):
             empty = np.array([], dtype=dtype)
 
             result, lindexer, rindexer = indexer(left, right)
-            tm.assertIsInstance(result, np.ndarray)
-            tm.assertIsInstance(lindexer, np.ndarray)
-            tm.assertIsInstance(rindexer, np.ndarray)
+            assert isinstance(result, np.ndarray)
+            assert isinstance(lindexer, np.ndarray)
+            assert isinstance(rindexer, np.ndarray)
             tm.assert_numpy_array_equal(result, np.arange(5, dtype=dtype))
             exp = np.array([0, 1, 2, -1, -1], dtype=np.int64)
             tm.assert_numpy_array_equal(lindexer, exp)

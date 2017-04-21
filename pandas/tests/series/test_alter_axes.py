@@ -31,7 +31,7 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
         # works
         series = self.series.copy()
         series.index = np.arange(len(series))
-        tm.assertIsInstance(series.index, Index)
+        assert isinstance(series.index, Index)
 
     def test_rename(self):
         renamer = lambda x: x.strftime('%Y%m%d')
@@ -137,13 +137,13 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
 
         rs = s.reset_index(level=[0, 2], drop=True)
         tm.assert_index_equal(rs.index, Index(index.get_level_values(1)))
-        tm.assertIsInstance(rs, Series)
+        assert isinstance(rs, Series)
 
     def test_reset_index_range(self):
         # GH 12071
         s = pd.Series(range(2), name='A', dtype='int64')
         series_result = s.reset_index()
-        tm.assertIsInstance(series_result.index, RangeIndex)
+        assert isinstance(series_result.index, RangeIndex)
         series_expected = pd.DataFrame([[0, 0], [1, 1]],
                                        columns=['index', 'A'],
                                        index=RangeIndex(stop=2))

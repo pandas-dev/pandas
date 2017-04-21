@@ -150,7 +150,7 @@ class TestSlicing(tm.TestCase):
                 ts_string = timestamp.strftime(formats[rnum])
                 # make ts_string as precise as index
                 result = df['a'][ts_string]
-                self.assertIsInstance(result, np.int64)
+                assert isinstance(result, np.int64)
                 self.assertEqual(result, expected)
                 self.assertRaises(KeyError, df.__getitem__, ts_string)
 
@@ -177,7 +177,7 @@ class TestSlicing(tm.TestCase):
             for fmt in formats[rnum + 1:]:
                 ts_string = index[1].strftime(fmt)
                 result = df['a'][ts_string]
-                self.assertIsInstance(result, np.int64)
+                assert isinstance(result, np.int64)
                 self.assertEqual(result, 2)
                 self.assertRaises(KeyError, df.__getitem__, ts_string)
 

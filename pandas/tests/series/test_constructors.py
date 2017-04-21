@@ -234,7 +234,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         df = tm.makeTimeDataFrame()
         objs = [df, df]
         s = Series(objs, index=[0, 1])
-        tm.assertIsInstance(s, Series)
+        assert isinstance(s, Series)
 
     def test_constructor_sanitize(self):
         s = Series(np.array([1., 1., 8.]), dtype='i8')
@@ -469,7 +469,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
         # export
         result = s.values
-        self.assertIsInstance(result, np.ndarray)
+        assert isinstance(result, np.ndarray)
         self.assertTrue(result.dtype == 'datetime64[ns]')
 
         exp = pd.DatetimeIndex(result)

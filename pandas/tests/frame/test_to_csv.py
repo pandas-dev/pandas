@@ -883,7 +883,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         # Make sure we return string for consistency with
         # Series.to_csv()
         csv_str = self.frame.to_csv(path_or_buf=None)
-        self.assertIsInstance(csv_str, str)
+        assert isinstance(csv_str, str)
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 

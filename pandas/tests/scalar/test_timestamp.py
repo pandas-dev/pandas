@@ -1087,7 +1087,7 @@ class TestTimestamp(tm.TestCase):
         for tz in [None, 'UTC', 'US/Eastern', 'Asia/Tokyo']:
             dt = Timestamp('2000-01-01 00:00:00', tz=tz)
             self.assertTrue(dt.is_leap_year)
-            self.assertIsInstance(dt.is_leap_year, bool)
+            assert isinstance(dt.is_leap_year, bool)
 
             dt = Timestamp('1999-01-01 00:00:00', tz=tz)
             self.assertFalse(dt.is_leap_year)
@@ -1416,13 +1416,13 @@ class TestTimeSeries(tm.TestCase):
         rng = date_range('20090415', '20090519', freq='B')
         s = Series(rng)
 
-        tm.assertIsInstance(s[5], Timestamp)
+        assert isinstance(s[5], Timestamp)
 
         rng = date_range('20090415', '20090519', freq='B')
         s = Series(rng, index=rng)
-        tm.assertIsInstance(s[5], Timestamp)
+        assert isinstance(s[5], Timestamp)
 
-        tm.assertIsInstance(s.iat[5], Timestamp)
+        assert isinstance(s.iat[5], Timestamp)
 
     def test_frame_setitem_timestamp(self):
         # 2155

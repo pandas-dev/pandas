@@ -228,7 +228,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         # old style: return_type=None
         result = df.boxplot(by='gender')
-        self.assertIsInstance(result, np.ndarray)
+        assert isinstance(result, np.ndarray)
         self._check_box_return_type(
             result, None,
             expected_keys=['height', 'weight', 'category'])

@@ -169,7 +169,7 @@ def compare_frame_cat_and_float(result, expected, typ, version):
 
 def compare_index_period(result, expected, typ, version):
     tm.assert_index_equal(result, expected)
-    tm.assertIsInstance(result.freq, MonthEnd)
+    assert isinstance(result.freq, MonthEnd)
     assert result.freq == MonthEnd()
     assert result.freqstr == 'M'
     tm.assert_index_equal(result.shift(2), expected.shift(2))

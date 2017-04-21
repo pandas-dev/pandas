@@ -507,7 +507,7 @@ class TestTSPlot(TestPlotBase):
         self.assertEqual(len(lines), 1)
         l = lines[0]
         data = l.get_xydata()
-        tm.assertIsInstance(data, np.ma.core.MaskedArray)
+        assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assertTrue(mask[5:25, 1].all())
         plt.close(ax.get_figure())
@@ -521,7 +521,7 @@ class TestTSPlot(TestPlotBase):
         self.assertEqual(len(lines), 1)
         l = lines[0]
         data = l.get_xydata()
-        tm.assertIsInstance(data, np.ma.core.MaskedArray)
+        assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assertTrue(mask[2:5, 1].all())
         plt.close(ax.get_figure())
@@ -535,7 +535,7 @@ class TestTSPlot(TestPlotBase):
         self.assertEqual(len(lines), 1)
         l = lines[0]
         data = l.get_xydata()
-        tm.assertIsInstance(data, np.ma.core.MaskedArray)
+        assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assertTrue(mask[2:5, 1].all())
 
@@ -556,7 +556,7 @@ class TestTSPlot(TestPlotBase):
 
         tm._skip_if_mpl_1_5()
 
-        tm.assertIsInstance(data, np.ma.core.MaskedArray)
+        assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         self.assertTrue(mask[5:25, 1].all())
 

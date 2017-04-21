@@ -84,7 +84,7 @@ def test_normalize_date():
 def test_to_m8():
     valb = datetime(2007, 10, 1)
     valu = _to_m8(valb)
-    tm.assertIsInstance(valu, np.datetime64)
+    assert isinstance(valu, np.datetime64)
     # assert valu == np.datetime64(datetime(2007,10,1))
 
     # def test_datetime64_box():
@@ -146,7 +146,7 @@ class Base(tm.TestCase):
                 offset = self._get_offset(self._offset, value=10000)
 
             result = Timestamp('20080101') + offset
-            self.assertIsInstance(result, datetime)
+            assert isinstance(result, datetime)
             self.assertIsNone(result.tzinfo)
 
             tm._skip_if_no_pytz()
@@ -155,7 +155,7 @@ class Base(tm.TestCase):
             for tz in self.timezones:
                 t = Timestamp('20080101', tz=tz)
                 result = t + offset
-                self.assertIsInstance(result, datetime)
+                assert isinstance(result, datetime)
                 self.assertEqual(t.tzinfo, result.tzinfo)
 
         except (tslib.OutOfBoundsDatetime):
@@ -219,7 +219,7 @@ class TestCommon(Base):
 
             # make sure that we are returning a Timestamp
             result = Timestamp('20080101') + offset
-            self.assertIsInstance(result, Timestamp)
+            assert isinstance(result, Timestamp)
 
             # make sure that we are returning NaT
             self.assertTrue(NaT + offset is NaT)

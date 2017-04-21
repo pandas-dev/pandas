@@ -1648,7 +1648,7 @@ class TestMultiIndex(Base, tm.TestCase):
                                           sortorder=0,
                                           names=self.index.names)
 
-        tm.assertIsInstance(result, MultiIndex)
+        assert isinstance(result, MultiIndex)
         self.assertTrue(result.equals(expected))
         self.assertEqual(result.names, self.index.names)
 
@@ -2029,7 +2029,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # some corner cases
         idx = Index(['three', 'one', 'two'])
         result = idx.join(self.index, level='second')
-        tm.assertIsInstance(result, MultiIndex)
+        assert isinstance(result, MultiIndex)
 
         assertRaisesRegexp(TypeError, "Join.*MultiIndex.*ambiguous",
                            self.index.join, self.index, level=1)
@@ -2077,11 +2077,11 @@ class TestMultiIndex(Base, tm.TestCase):
 
     def test_reindex(self):
         result, indexer = self.index.reindex(list(self.index[:4]))
-        tm.assertIsInstance(result, MultiIndex)
+        assert isinstance(result, MultiIndex)
         self.check_level_names(result, self.index[:4].names)
 
         result, indexer = self.index.reindex(list(self.index))
-        tm.assertIsInstance(result, MultiIndex)
+        assert isinstance(result, MultiIndex)
         self.assertIsNone(indexer)
         self.check_level_names(result, self.index.names)
 

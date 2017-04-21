@@ -176,7 +176,8 @@ class TestPeriodIndex(tm.TestCase):
     def test_tolist(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         rs = index.tolist()
-        [tm.assertIsInstance(x, Period) for x in rs]
+        for x in rs:
+            assert isinstance(x, Period)
 
         recon = PeriodIndex(rs)
         tm.assert_index_equal(index, recon)

@@ -459,7 +459,7 @@ class TestMerge(tm.TestCase):
         nad = NotADataFrame(self.df)
         result = nad.merge(self.df2, on='key1')
 
-        tm.assertIsInstance(result, NotADataFrame)
+        assert isinstance(result, NotADataFrame)
 
     def test_join_append_timedeltas(self):
 

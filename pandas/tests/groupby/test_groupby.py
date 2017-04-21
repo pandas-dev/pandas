@@ -740,7 +740,7 @@ class TestGroupBy(MixIn, tm.TestCase):
             return dataf["val2"] - dataf["val2"].mean()
 
         result = df1.groupby("val1", squeeze=True).apply(func)
-        tm.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
 
         df2 = DataFrame(
             [{"val1": 1, "val2": 20},
@@ -753,12 +753,12 @@ class TestGroupBy(MixIn, tm.TestCase):
             return dataf["val2"] - dataf["val2"].mean()
 
         result = df2.groupby("val1", squeeze=True).apply(func)
-        tm.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
 
         # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
         df = DataFrame([[1, 1], [1, 1]], columns=['X', 'Y'])
         result = df.groupby('X', squeeze=False).count()
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
 
         # GH5592
         # inconcistent return type
@@ -1566,22 +1566,22 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         result = grouped['C'].agg(np.sum)
         expected = grouped.agg(np.sum).loc[:, ['A', 'C']]
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
         assert_frame_equal(result, expected)
 
         result2 = grouped2['C'].agg(np.sum)
         expected2 = grouped2.agg(np.sum).loc[:, ['A', 'B', 'C']]
-        tm.assertIsInstance(result2, DataFrame)
+        assert isinstance(result2, DataFrame)
         assert_frame_equal(result2, expected2)
 
         result = grouped['C'].sum()
         expected = grouped.sum().loc[:, ['A', 'C']]
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
         assert_frame_equal(result, expected)
 
         result2 = grouped2['C'].sum()
         expected2 = grouped2.sum().loc[:, ['A', 'B', 'C']]
-        tm.assertIsInstance(result2, DataFrame)
+        assert isinstance(result2, DataFrame)
         assert_frame_equal(result2, expected2)
 
         # corner case
@@ -2000,7 +2000,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
         agged = df.groupby(keys).agg(np.mean)
-        tm.assertIsInstance(agged.columns, MultiIndex)
+        assert isinstance(agged.columns, MultiIndex)
 
         def aggfun(ser):
             if ser.name == ('foo', 'one'):
@@ -2182,7 +2182,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = ts.groupby(lambda x: x.month)
         result = grouped.apply(f)
 
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
         tm.assert_index_equal(result.index, ts.index)
 
     def test_apply_series_yield_constant(self):
@@ -2818,11 +2818,11 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         result = grouped.agg(convert_fast)
         self.assertEqual(result.dtype, np.object_)
-        tm.assertIsInstance(result[0], Decimal)
+        assert isinstance(result[0], Decimal)
 
         result = grouped.agg(convert_force_pure)
         self.assertEqual(result.dtype, np.object_)
-        tm.assertIsInstance(result[0], Decimal)
+        assert isinstance(result[0], Decimal)
 
     def test_fast_apply(self):
         # make sure that fast apply is correctly called
@@ -3197,7 +3197,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         result = self.df.groupby('A')['C'].apply(f)
         expected = self.df.groupby('A')['C'].apply(g)
 
-        tm.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         assert_series_equal(result, expected)
 
     def test_getitem_list_of_columns(self):

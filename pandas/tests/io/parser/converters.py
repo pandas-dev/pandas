@@ -39,7 +39,7 @@ c,4,5,01/03/2009
         expected = self.read_csv(StringIO(data))
         expected['D'] = expected['D'].map(parse_date)
 
-        tm.assertIsInstance(result['D'][0], (datetime, Timestamp))
+        assert isinstance(result['D'][0], (datetime, Timestamp))
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 

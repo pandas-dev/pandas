@@ -45,7 +45,7 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         expected_records = [{'A': 1.0, 'B': '1'},
                             {'A': 2.0, 'B': '2'},
                             {'A': np.nan, 'B': '3'}]
-        tm.assertIsInstance(recons_data, list)
+        assert isinstance(recons_data, list)
         self.assertEqual(len(recons_data), 3)
         for l, r in zip(recons_data, expected_records):
             tm.assert_dict_equal(l, r)

@@ -681,15 +681,6 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
                                by_blocks=True)
 
 
-class TestIsInstance(tm.TestCase):
-
-    def test_isinstance(self):
-
-        expected = "Expected type "
-        with assertRaisesRegexp(AssertionError, expected):
-            tm.assertIsInstance(1, pd.Series)
-
-
 class TestAssertCategoricalEqual(unittest.TestCase):
 
     def test_categorical_equal_message(self):

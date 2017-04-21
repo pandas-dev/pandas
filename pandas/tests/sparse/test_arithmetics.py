@@ -67,9 +67,9 @@ class TestSparseArrayArithmetics(tm.TestCase):
             self._assert((b_dense ** a).to_dense(), b_dense ** a_dense)
 
     def _check_bool_result(self, res):
-        tm.assertIsInstance(res, self._klass)
+        assert isinstance(res, self._klass)
         self.assertEqual(res.dtype, np.bool)
-        self.assertIsInstance(res.fill_value, bool)
+        assert isinstance(res.fill_value, bool)
 
     def _check_comparison_ops(self, a, b, a_dense, b_dense):
         with np.errstate(invalid='ignore'):

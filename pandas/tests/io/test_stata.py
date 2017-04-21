@@ -352,11 +352,11 @@ class TestStata(tm.TestCase):
         if compat.PY3:
             expected = raw.kreis1849[0]
             self.assertEqual(result, expected)
-            self.assertIsInstance(result, compat.string_types)
+            assert isinstance(result, compat.string_types)
         else:
             expected = raw.kreis1849.str.decode("latin-1")[0]
             self.assertEqual(result, expected)
-            self.assertIsInstance(result, unicode)  # noqa
+            assert isinstance(result, unicode)  # noqa
 
         with tm.ensure_clean() as path:
             encoded.to_stata(path, encoding='latin-1', write_index=False)

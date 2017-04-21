@@ -275,7 +275,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         # scalar Timestamp on rhs
         maxa = df['A'].max()
-        tm.assertIsInstance(maxa, Timestamp)
+        assert isinstance(maxa, Timestamp)
 
         resultb = df['A'] - df['A'].max()
         self.assertEqual(resultb.dtype, 'timedelta64[ns]')
@@ -562,11 +562,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # astype
         s = Series(date_range('20130101', periods=3))
         result = s.astype(object)
-        self.assertIsInstance(result.iloc[0], datetime)
+        assert isinstance(result.iloc[0], datetime)
         self.assertTrue(result.dtype == np.object_)
 
         result = s1.astype(object)
-        self.assertIsInstance(result.iloc[0], timedelta)
+        assert isinstance(result.iloc[0], timedelta)
         self.assertTrue(result.dtype == np.object_)
 
     def test_timedelta64_equal_timedelta_supported_ops(self):

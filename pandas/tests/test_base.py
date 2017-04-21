@@ -80,7 +80,7 @@ class CheckImmutable(object):
 
     def check_result(self, result, expected, klass=None):
         klass = klass or self.klass
-        self.assertIsInstance(result, klass)
+        assert isinstance(result, klass)
         self.assertEqual(result, expected)
 
 
@@ -432,7 +432,7 @@ class TestIndexOps(Ops):
                 # datetimetz Series returns array of Timestamp
                 self.assertEqual(result[0], orig[0])
                 for r in result:
-                    self.assertIsInstance(r, pd.Timestamp)
+                    assert isinstance(r, pd.Timestamp)
                 tm.assert_numpy_array_equal(result,
                                             orig._values.asobject.values)
             else:

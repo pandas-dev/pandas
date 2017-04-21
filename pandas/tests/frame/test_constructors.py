@@ -101,7 +101,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         self.assertEqual(result.shape, (1, 0))
 
         result = DataFrame([DataFrame(dict(A=lrange(5)))])
-        tm.assertIsInstance(result.iloc[0, 0], DataFrame)
+        assert isinstance(result.iloc[0, 0], DataFrame)
 
     def test_constructor_mixed_dtypes(self):
 
@@ -397,10 +397,10 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
     def test_constructor_dict_dont_upcast(self):
         d = {'Col1': {'Row1': 'A String', 'Row2': np.nan}}
         df = DataFrame(d)
-        tm.assertIsInstance(df['Col1']['Row2'], float)
+        assert isinstance(df['Col1']['Row2'], float)
 
         dm = DataFrame([[1, 2], ['a', 'b']], index=[1, 2], columns=[1, 2])
-        tm.assertIsInstance(dm[1][1], int)
+        assert isinstance(dm[1][1], int)
 
     def test_constructor_dict_of_tuples(self):
         # GH #1491
@@ -1169,7 +1169,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                                       columns=self.mixed_frame.columns,
                                       orient='index')
         tm.assert_frame_equal(recons, self.mixed_frame)
-        tm.assertIsInstance(recons['foo'][0], tuple)
+        assert isinstance(recons['foo'][0], tuple)
 
         rs = DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
                                   orient='index',

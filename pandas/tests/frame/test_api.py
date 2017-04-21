@@ -118,7 +118,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
     def test_array_interface(self):
         with np.errstate(all='ignore'):
             result = np.sqrt(self.frame)
-        tm.assertIsInstance(result, type(self.frame))
+        assert isinstance(result, type(self.frame))
         self.assertIs(result.index, self.frame.index)
         self.assertIs(result.columns, self.frame.columns)
 
@@ -174,7 +174,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
                         'ints': lrange(5)}, columns=['floats', 'ints'])
 
         for tup in df.itertuples(index=False):
-            tm.assertIsInstance(tup[1], np.integer)
+            assert isinstance(tup[1], np.integer)
 
         df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[['a', 'a']]
@@ -204,7 +204,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
         self.assertFalse(hasattr(tup3, '_fields'))
-        self.assertIsInstance(tup3, tuple)
+        assert isinstance(tup3, tuple)
 
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))

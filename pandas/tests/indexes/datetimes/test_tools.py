@@ -391,15 +391,15 @@ class ToDatetimeUnit(tm.TestCase):
         expected = Timestamp('1970-05-09 14:25:11')
         result = pd.to_datetime(11111111, unit='s', errors='raise')
         self.assertEqual(result, expected)
-        self.assertIsInstance(result, Timestamp)
+        assert isinstance(result, Timestamp)
 
         result = pd.to_datetime(11111111, unit='s', errors='coerce')
         self.assertEqual(result, expected)
-        self.assertIsInstance(result, Timestamp)
+        assert isinstance(result, Timestamp)
 
         result = pd.to_datetime(11111111, unit='s', errors='ignore')
         self.assertEqual(result, expected)
-        self.assertIsInstance(result, Timestamp)
+        assert isinstance(result, Timestamp)
 
     def test_unit_with_numeric(self):
 
@@ -761,7 +761,7 @@ class ToDatetimeMisc(tm.TestCase):
         tm.assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings)
-        tm.assertIsInstance(result2, DatetimeIndex)
+        assert isinstance(result2, DatetimeIndex)
         tm.assert_numpy_array_equal(result, result2.values)
 
         malformed = np.array(['1/100/2000', np.nan], dtype=object)
@@ -1294,7 +1294,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                                Series(expected_arr, name="test"))
 
         res = tools.to_time(np.array(arg))
-        self.assertIsInstance(res, list)
+        assert isinstance(res, list)
         assert res == expected_arr
 
     def test_parsers_monthfreq(self):
