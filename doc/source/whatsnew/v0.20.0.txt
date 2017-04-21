@@ -3,7 +3,7 @@
 v0.20.0 (May 12, 2017)
 ------------------------
 
-This is a major release from 0.19.2 and includes a small number of API changes, deprecations, new features,
+This is a major release from 0.19.2 and includes a number of API changes, deprecations, new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
 users upgrade to this version.
 
@@ -45,9 +45,9 @@ New features
 ^^^^^^^^^^^
 
 Series & DataFrame have been enhanced to support the aggregation API. This is an already familiar API that
-is supported for groupby, window operations, and resampling. This allows one to express, possibly multiple
-aggregation operations, in a single concise way by using :meth:`~DataFrame.agg`,
-and :meth:`~DataFrame.transform`. The full documentation is :ref:`here <basics.aggregate>` (:issue:`1623`)
+is supported for groupby, window operations, and resampling. This allows one to express, possibly multiple,
+aggregation operations in a single concise way by using :meth:`~DataFrame.agg`,
+and :meth:`~DataFrame.transform`. The full documentation is :ref:`here <basics.aggregate>` (:issue:`1623`).
 
 Here is a sample
 
@@ -148,42 +148,6 @@ Commonly called 'unix epoch' or POSIX time. This was the previous default, so th
 .. ipython:: python
 
    pd.to_datetime([1, 2, 3], unit='D')
-
-.. _whatsnew_0200.enhancements.errors:
-
-``pandas.errors``
-^^^^^^^^^^^^^^^^^
-
-We are adding a standard public module for all pandas exceptions & warnings ``pandas.errors``. (:issue:`14800`). Previously
-these exceptions & warnings could be imported from ``pandas.core.common`` or ``pandas.io.common``. These exceptions and warnings
-will be removed from the ``*.common`` locations in a future release. (:issue:`15541`)
-
-The following are now part of this API:
-
-.. code-block:: python
-
-   ['DtypeWarning',
-    'EmptyDataError',
-    'OutOfBoundsDatetime',
-    'ParserError',
-    'ParserWarning',
-    'PerformanceWarning',
-    'UnsortedIndexError',
-    'UnsupportedFunctionCall']
-
-
-.. _whatsnew_0200.enhancements.testing:
-
-``pandas.testing``
-^^^^^^^^^^^^^^^^^^
-
-We are adding a standard module that exposes the public testing functions in ``pandas.testing`` (:issue:`9895`). Those functions can be used when writing tests for functionality using pandas objects.
-
-The following testing functions are now part of this API:
-
-- :func:`testing.assert_frame_equal`
-- :func:`testing.assert_series_equal`
-- :func:`testing.assert_index_equal`
 
 
 .. _whatsnew_0200.enhancements.groupby_access:
@@ -567,167 +531,10 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_0200.api_breaking.deprecate_ix:
-
-Deprecate .ix
-^^^^^^^^^^^^^
-
-The ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc`` and ``.loc`` indexers. ``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide to index *positionally* OR via *labels*, depending on the data type of the index. This has caused quite a bit of user confusion over the years. The full indexing documentation are :ref:`here <indexing>`. (:issue:`14218`)
-
-
-The recommended methods of indexing are:
-
-- ``.loc`` if you want to *label* index
-- ``.iloc`` if you want to *positionally* index.
-
-Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some examples of how to convert code :ref:`here <indexing.deprecate_ix>`.
-
-
-.. ipython:: python
-
-  df = pd.DataFrame({'A': [1, 2, 3],
-                     'B': [4, 5, 6]},
-                    index=list('abc'))
-
-  df
-
-Previous Behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
-
-.. code-block:: ipython
-
-  In [3]: df.ix[[0, 2], 'A']
-  Out[3]:
-  a    1
-  c    3
-  Name: A, dtype: int64
-
-Using ``.loc``. Here we will select the appropriate indexes from the index, then use *label* indexing.
-
-.. ipython:: python
-
-  df.loc[df.index[[0, 2]], 'A']
-
-Using ``.iloc``. Here we will get the location of the 'A' column, then use *positional* indexing to select things.
-
-.. ipython:: python
-
-  df.iloc[[0, 2], df.columns.get_loc('A')]
-
-
-.. _whatsnew_0200.api_breaking.deprecate_panel:
-
-Deprecate Panel
-^^^^^^^^^^^^^^^
-
-``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
-with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
-provides a :meth:`~Panel.to_xarray` method to automate this conversion. See the documentation :ref:`Deprecate Panel <dsintro.deprecate_panel>`. (:issue:`13563`).
-
-.. ipython:: python
-   :okwarning:
-
-   p = tm.makePanel()
-   p
-
-Convert to a MultiIndex DataFrame
-
-.. ipython:: python
-
-   p.to_frame()
-
-Convert to an xarray DataArray
-
-.. ipython:: python
-
-   p.to_xarray()
-
-.. _whatsnew_0200.api_breaking.deprecate_group_agg_dict:
-
-Deprecate groupby.agg() with a dictionary when renaming
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``.groupby(..).agg(..)``, ``.rolling(..).agg(..)``, and ``.resample(..).agg(..)``  syntax can accept a variable of inputs, including scalars,
-list, and a dict of column names to scalars or lists. This provides a useful syntax for constructing multiple
-(potentially different) aggregations.
-
-However, ``.agg(..)`` can *also* accept a dict that allows 'renaming' of the result columns. This is a complicated and confusing syntax, as well as not consistent
-between ``Series`` and ``DataFrame``. We are deprecating this 'renaming' functionaility.
-
-- We are deprecating passing a dict to a grouped/rolled/resampled ``Series``. This allowed
-  one to ``rename`` the resulting aggregation, but this had a completely different
-  meaning than passing a dictionary to a grouped ``DataFrame``, which accepts column-to-aggregations.
-- We are deprecating passing a dict-of-dicts to a grouped/rolled/resampled ``DataFrame`` in a similar manner.
-
-This is an illustrative example:
-
-.. ipython:: python
-
-    df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
-                       'B': range(5),
-                       'C': range(5)})
-    df
-
-Here is a typical useful syntax for computing different aggregations for different columns. This
-is a natural, and useful syntax. We aggregate from the dict-to-list by taking the specified
-columns and applying the list of functions. This returns a ``MultiIndex`` for the columns.
-
-.. ipython:: python
-
-   df.groupby('A').agg({'B': 'sum', 'C': 'min'})
-
-Here's an example of the first deprecation, passing a dict to a grouped ``Series``. This
-is a combination aggregation & renaming:
-
-.. code-block:: ipython
-
-   In [6]: df.groupby('A').B.agg({'foo': 'count'})
-   FutureWarning: using a dict on a Series for aggregation
-   is deprecated and will be removed in a future version
-
-   Out[6]:
-      foo
-   A
-   1    3
-   2    2
-
-You can accomplish the same operation, more idiomatically by:
-
-.. ipython:: python
-
-   df.groupby('A').B.agg(['count']).rename(columns={'count': 'foo'})
-
-
-Here's an example of the second deprecation, passing a dict-of-dict to a grouped ``DataFrame``:
-
-.. code-block:: python
-
-   In [23]: (df.groupby('A')
-               .agg({'B': {'foo': 'sum'}, 'C': {'bar': 'min'}})
-            )
-   FutureWarning: using a dict with renaming is deprecated and
-   will be removed in a future version
-
-   Out[23]:
-        B   C
-      foo bar
-   A
-   1   3   0
-   2   7   3
-
-
-You can accomplish nearly the same by:
-
-.. ipython:: python
-
-   (df.groupby('A')
-      .agg({'B': 'sum', 'C': 'min'})
-      .rename(columns={'B': 'foo', 'C': 'bar'})
-   )
-
 .. _whatsnew.api_breaking.io_compat:
 
-Possible incompat for HDF5 formats for pandas < 0.13.0
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Possible incompatibility for HDF5 formats created with pandas < 0.13.0
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``pd.TimeSeries`` was deprecated officially in 0.17.0, though has only been an alias since 0.13.0. It has
 been dropped in favor of ``pd.Series``. (:issue:`15098`).
@@ -1389,10 +1196,11 @@ Other API Changes
 - ``DataFrame`` and ``Panel`` constructors with invalid input will now raise ``ValueError`` rather than ``pandas.core.common.PandasError``, if called with scalar inputs and not axes; The exception ``PandasError`` is removed as well. (:issue:`15541`)
 - The exception ``pandas.core.common.AmbiguousIndexError`` is removed as it is not referenced (:issue:`15541`)
 
+
 .. _whatsnew_0200.privacy:
 
-Privacy Changes
-~~~~~~~~~~~~~~~
+Reorganization of the library: Privacy Changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _whatsnew_0200.privacy.extensions:
 
@@ -1400,7 +1208,7 @@ Modules Privacy Has Changed
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Some formerly public python/c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
-Furthermore, the ``pandas.core``, ``pandas.io``, and ``pandas.util`` top-level modules are now considered to be PRIVATE.
+Furthermore, the ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are now considered to be PRIVATE.
 If indicated, a deprecation warning will be issued if you reference theses modules. (:issue:`12588`)
 
 .. csv-table::
@@ -1429,7 +1237,239 @@ If indicated, a deprecation warning will be issued if you reference theses modul
     "pandas._testing", "pandas.util.libtesting", ""
     "pandas._window", "pandas.core.libwindow", ""
 
+
+Some new subpackages are created with public functionality that is not directly
+exposed in the top-level namespace: ``pandas.errors``, ``pandas.plotting`` and
+``pandas.testing`` (more details below). Together with ``pandas.api.types`` and
+certain functions in  the ``pandas.io`` and ``pandas.tseries`` submodules,
+these are now the public subpackages.
+
+
 - The function :func:`~pandas.api.types.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
+
+
+.. _whatsnew_0200.enhancements.errors:
+
+``pandas.errors``
+^^^^^^^^^^^^^^^^^
+
+We are adding a standard public module for all pandas exceptions & warnings ``pandas.errors``. (:issue:`14800`). Previously
+these exceptions & warnings could be imported from ``pandas.core.common`` or ``pandas.io.common``. These exceptions and warnings
+will be removed from the ``*.common`` locations in a future release. (:issue:`15541`)
+
+The following are now part of this API:
+
+.. code-block:: python
+
+   ['DtypeWarning',
+    'EmptyDataError',
+    'OutOfBoundsDatetime',
+    'ParserError',
+    'ParserWarning',
+    'PerformanceWarning',
+    'UnsortedIndexError',
+    'UnsupportedFunctionCall']
+
+
+.. _whatsnew_0200.enhancements.testing:
+
+``pandas.testing``
+^^^^^^^^^^^^^^^^^^
+
+We are adding a standard module that exposes the public testing functions in ``pandas.testing`` (:issue:`9895`). Those functions can be used when writing tests for functionality using pandas objects.
+
+The following testing functions are now part of this API:
+
+- :func:`testing.assert_frame_equal`
+- :func:`testing.assert_series_equal`
+- :func:`testing.assert_index_equal`
+
+
+``pandas.plotting``
+^^^^^^^^^^^^^^^^^^^
+
+We are adding a standard module that exposes the public testing functions in ``pandas.testing`` (:issue:`9895`). Those functions can be used when writing tests for functionality using pandas objects.
+
+The following testing functions are now part of this API:
+
+- :func:`testing.assert_frame_equal`
+- :func:`testing.assert_series_equal`
+- :func:`testing.assert_index_equal`
+
+
+.. _whatsnew_0200.privacy.development:
+
+Other Developement Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
+- Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
+- Reorganization of timeseries tests (:issue:`14854`)
+- Reorganization of date converter tests (:issue:`15707`)
+
+.. _whatsnew_0200.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+.. _whatsnew_0200.api_breaking.deprecate_ix:
+
+Deprecate ``.ix``
+^^^^^^^^^^^^^^^^^
+
+The ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc`` and ``.loc`` indexers. ``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide to index *positionally* OR via *labels*, depending on the data type of the index. This has caused quite a bit of user confusion over the years. The full indexing documentation are :ref:`here <indexing>`. (:issue:`14218`)
+
+
+The recommended methods of indexing are:
+
+- ``.loc`` if you want to *label* index
+- ``.iloc`` if you want to *positionally* index.
+
+Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some examples of how to convert code :ref:`here <indexing.deprecate_ix>`.
+
+
+.. ipython:: python
+
+  df = pd.DataFrame({'A': [1, 2, 3],
+                     'B': [4, 5, 6]},
+                    index=list('abc'))
+
+  df
+
+Previous Behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
+
+.. code-block:: ipython
+
+  In [3]: df.ix[[0, 2], 'A']
+  Out[3]:
+  a    1
+  c    3
+  Name: A, dtype: int64
+
+Using ``.loc``. Here we will select the appropriate indexes from the index, then use *label* indexing.
+
+.. ipython:: python
+
+  df.loc[df.index[[0, 2]], 'A']
+
+Using ``.iloc``. Here we will get the location of the 'A' column, then use *positional* indexing to select things.
+
+.. ipython:: python
+
+  df.iloc[[0, 2], df.columns.get_loc('A')]
+
+
+.. _whatsnew_0200.api_breaking.deprecate_panel:
+
+Deprecate Panel
+^^^^^^^^^^^^^^^
+
+``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
+with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+provides a :meth:`~Panel.to_xarray` method to automate this conversion. See the documentation :ref:`Deprecate Panel <dsintro.deprecate_panel>`. (:issue:`13563`).
+
+.. ipython:: python
+   :okwarning:
+
+   p = tm.makePanel()
+   p
+
+Convert to a MultiIndex DataFrame
+
+.. ipython:: python
+
+   p.to_frame()
+
+Convert to an xarray DataArray
+
+.. ipython:: python
+
+   p.to_xarray()
+
+.. _whatsnew_0200.api_breaking.deprecate_group_agg_dict:
+
+Deprecate groupby.agg() with a dictionary when renaming
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``.groupby(..).agg(..)``, ``.rolling(..).agg(..)``, and ``.resample(..).agg(..)``  syntax can accept a variable of inputs, including scalars,
+list, and a dict of column names to scalars or lists. This provides a useful syntax for constructing multiple
+(potentially different) aggregations.
+
+However, ``.agg(..)`` can *also* accept a dict that allows 'renaming' of the result columns. This is a complicated and confusing syntax, as well as not consistent
+between ``Series`` and ``DataFrame``. We are deprecating this 'renaming' functionaility.
+
+- We are deprecating passing a dict to a grouped/rolled/resampled ``Series``. This allowed
+  one to ``rename`` the resulting aggregation, but this had a completely different
+  meaning than passing a dictionary to a grouped ``DataFrame``, which accepts column-to-aggregations.
+- We are deprecating passing a dict-of-dicts to a grouped/rolled/resampled ``DataFrame`` in a similar manner.
+
+This is an illustrative example:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+                       'B': range(5),
+                       'C': range(5)})
+    df
+
+Here is a typical useful syntax for computing different aggregations for different columns. This
+is a natural, and useful syntax. We aggregate from the dict-to-list by taking the specified
+columns and applying the list of functions. This returns a ``MultiIndex`` for the columns.
+
+.. ipython:: python
+
+   df.groupby('A').agg({'B': 'sum', 'C': 'min'})
+
+Here's an example of the first deprecation, passing a dict to a grouped ``Series``. This
+is a combination aggregation & renaming:
+
+.. code-block:: ipython
+
+   In [6]: df.groupby('A').B.agg({'foo': 'count'})
+   FutureWarning: using a dict on a Series for aggregation
+   is deprecated and will be removed in a future version
+
+   Out[6]:
+      foo
+   A
+   1    3
+   2    2
+
+You can accomplish the same operation, more idiomatically by:
+
+.. ipython:: python
+
+   df.groupby('A').B.agg(['count']).rename(columns={'count': 'foo'})
+
+
+Here's an example of the second deprecation, passing a dict-of-dict to a grouped ``DataFrame``:
+
+.. code-block:: python
+
+   In [23]: (df.groupby('A')
+               .agg({'B': {'foo': 'sum'}, 'C': {'bar': 'min'}})
+            )
+   FutureWarning: using a dict with renaming is deprecated and
+   will be removed in a future version
+
+   Out[23]:
+        B   C
+      foo bar
+   A
+   1   3   0
+   2   7   3
+
+
+You can accomplish nearly the same by:
+
+.. ipython:: python
+
+   (df.groupby('A')
+      .agg({'B': 'sum', 'C': 'min'})
+      .rename(columns={'B': 'foo', 'C': 'bar'})
+   )
+
+
 
 .. _whatsnew_0200.privacy.deprecate_plotting:
 
@@ -1456,20 +1496,11 @@ Should be changed to:
     pd.plotting.scatter_matrix(df)
 
 
-.. _whatsnew_0200.privacy.development:
 
-Other Developement Changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _whatsnew_0200.deprecations.other:
 
-- Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
-- Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
-- Reorganization of timeseries tests (:issue:`14854`)
-- Reorganization of date converter tests (:issue:`15707`)
-
-.. _whatsnew_0200.deprecations:
-
-Deprecations
-~~~~~~~~~~~~
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
 
 - ``SparseArray.to_dense()`` has deprecated the ``fill`` parameter, as that parameter was not being respected (:issue:`14647`)
 - ``SparseSeries.to_dense()`` has deprecated the ``sparse_only`` parameter (:issue:`14647`)
