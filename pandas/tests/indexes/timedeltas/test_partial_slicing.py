@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 import pandas.util.testing as tm
 
@@ -27,7 +29,7 @@ class TestSlicing(tm.TestCase):
         result = s['6 days, 23:11:12']
         self.assertEqual(result, s.iloc[133])
 
-        self.assertRaises(KeyError, s.__getitem__, '50 days')
+        pytest.raises(KeyError, s.__getitem__, '50 days')
 
     def test_partial_slice_high_reso(self):
 

@@ -500,7 +500,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             # idxmax, idxmin, min, and max are valid for dates
             if name not in ['max', 'min']:
                 ds = Series(date_range('1/1/2001', periods=10))
-                self.assertRaises(TypeError, f, ds)
+                pytest.raises(TypeError, f, ds)
 
             # skipna or no
             self.assertTrue(notnull(f(self.series)))
@@ -543,10 +543,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
             # check on string data
             if name not in ['sum', 'min', 'max']:
-                self.assertRaises(TypeError, f, Series(list('abc')))
+                pytest.raises(TypeError, f, Series(list('abc')))
 
             # Invalid axis.
-            self.assertRaises(ValueError, f, self.series, axis=1)
+            pytest.raises(ValueError, f, self.series, axis=1)
 
             # Unimplemented numeric_only parameter.
             if 'numeric_only' in compat.signature(f).args:
@@ -669,12 +669,12 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_series_equal(s.any(level=0), Series([False, True, True]))
 
         # bool_only is not implemented with level option.
-        self.assertRaises(NotImplementedError, s.any, bool_only=True, level=0)
-        self.assertRaises(NotImplementedError, s.all, bool_only=True, level=0)
+        pytest.raises(NotImplementedError, s.any, bool_only=True, level=0)
+        pytest.raises(NotImplementedError, s.all, bool_only=True, level=0)
 
         # bool_only is not implemented alone.
-        self.assertRaises(NotImplementedError, s.any, bool_only=True)
-        self.assertRaises(NotImplementedError, s.all, bool_only=True)
+        pytest.raises(NotImplementedError, s.any, bool_only=True)
+        pytest.raises(NotImplementedError, s.all, bool_only=True)
 
     def test_modulo(self):
         with np.errstate(all='ignore'):
@@ -866,8 +866,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
 
-        self.assertRaises(Exception, a.dot, a.values[:3])
-        self.assertRaises(ValueError, a.dot, b.T)
+        pytest.raises(Exception, a.dot, a.values[:3])
+        pytest.raises(ValueError, a.dot, b.T)
 
     def test_value_counts_nunique(self):
 
@@ -1061,10 +1061,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
     def test_isin_with_string_scalar(self):
         # GH4763
         s = Series(['A', 'B', 'C', 'a', 'B', 'B', 'A', 'C'])
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s.isin('a')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s = Series(['aaa', 'b', 'c'])
             s.isin('aaa')
 
@@ -1263,14 +1263,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = pd.Series([np.nan, np.nan], index=['a', 'b'])
         tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.ptp(axis=1)
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'])
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s.ptp()
 
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             s.ptp(numeric_only=True)
 
     def test_empty_timeseries_redections_return_nat(self):

@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 from datetime import datetime
@@ -115,11 +117,11 @@ class TestDatetimeIndex(tm.TestCase):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
 
-        self.assertRaises(ValueError, idx.astype, float)
-        self.assertRaises(ValueError, idx.astype, 'timedelta64')
-        self.assertRaises(ValueError, idx.astype, 'timedelta64[ns]')
-        self.assertRaises(ValueError, idx.astype, 'datetime64')
-        self.assertRaises(ValueError, idx.astype, 'datetime64[D]')
+        pytest.raises(ValueError, idx.astype, float)
+        pytest.raises(ValueError, idx.astype, 'timedelta64')
+        pytest.raises(ValueError, idx.astype, 'timedelta64[ns]')
+        pytest.raises(ValueError, idx.astype, 'datetime64')
+        pytest.raises(ValueError, idx.astype, 'datetime64[D]')
 
     def test_index_convert_to_datetime_array(self):
         tm._skip_if_no_pytz()

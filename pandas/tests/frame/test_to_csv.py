@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import csv
+import pytest
 
 from numpy import nan
 import numpy as np
@@ -94,8 +95,8 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
             assert_frame_equal(xp, rs)
 
-            self.assertRaises(ValueError, self.frame2.to_csv, path,
-                              header=['AA', 'X'])
+            pytest.raises(ValueError, self.frame2.to_csv, path,
+                          header=['AA', 'X'])
 
     def test_to_csv_from_csv3(self):
 
@@ -965,8 +966,8 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         with ensure_clean() as filename:
             # zip compression is not supported and should raise ValueError
             import zipfile
-            self.assertRaises(zipfile.BadZipfile, df.to_csv,
-                              filename, compression="zip")
+            pytest.raises(zipfile.BadZipfile, df.to_csv,
+                          filename, compression="zip")
 
     def test_to_csv_date_format(self):
         with ensure_clean('__tmp_to_csv_date_format__') as path:

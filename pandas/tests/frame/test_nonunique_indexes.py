@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import pytest
 import numpy as np
 
 from pandas.compat import lrange, u
@@ -189,8 +190,8 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         # reindex is invalid!
         df = DataFrame([[1, 5, 7.], [1, 5, 7.], [1, 5, 7.]],
                        columns=['bar', 'a', 'a'])
-        self.assertRaises(ValueError, df.reindex, columns=['bar'])
-        self.assertRaises(ValueError, df.reindex, columns=['bar', 'foo'])
+        pytest.raises(ValueError, df.reindex, columns=['bar'])
+        pytest.raises(ValueError, df.reindex, columns=['bar', 'foo'])
 
         # drop
         df = DataFrame([[1, 5, 7.], [1, 5, 7.], [1, 5, 7.]],
@@ -307,7 +308,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         # boolean with the duplicate raises
         df = DataFrame(np.arange(12).reshape(3, 4),
                        columns=dups, dtype='float64')
-        self.assertRaises(ValueError, lambda: df[df.A > 6])
+        pytest.raises(ValueError, lambda: df[df.A > 6])
 
         # dup aligining operations should work
         # GH 5185
@@ -324,7 +325,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
                         columns=['A', 'A'])
 
         # not-comparing like-labelled
-        self.assertRaises(ValueError, lambda: df1 == df2)
+        pytest.raises(ValueError, lambda: df1 == df2)
 
         df1r = df1.reindex_like(df2)
         result = df1r == df2
@@ -411,7 +412,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         assert_frame_equal(df, expected)
 
         # this is an error because we cannot disambiguate the dup columns
-        self.assertRaises(Exception, lambda x: DataFrame(
+        pytest.raises(Exception, lambda x: DataFrame(
             [[1, 2, 'foo', 'bar']], columns=['a', 'a', 'a', 'a']))
 
         # dups across blocks

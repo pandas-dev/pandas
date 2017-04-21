@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import pytest
+
 import pandas as pd
 import unittest
 import warnings
@@ -40,26 +42,26 @@ class TestConfig(unittest.TestCase):
 
         v(12)
         v(None)
-        self.assertRaises(ValueError, v, 1.1)
+        pytest.raises(ValueError, v, 1.1)
 
     def test_register_option(self):
         self.cf.register_option('a', 1, 'doc')
 
         # can't register an already registered option
-        self.assertRaises(KeyError, self.cf.register_option, 'a', 1, 'doc')
+        pytest.raises(KeyError, self.cf.register_option, 'a', 1, 'doc')
 
         # can't register an already registered option
-        self.assertRaises(KeyError, self.cf.register_option, 'a.b.c.d1', 1,
-                          'doc')
-        self.assertRaises(KeyError, self.cf.register_option, 'a.b.c.d2', 1,
-                          'doc')
+        pytest.raises(KeyError, self.cf.register_option, 'a.b.c.d1', 1,
+                      'doc')
+        pytest.raises(KeyError, self.cf.register_option, 'a.b.c.d2', 1,
+                      'doc')
 
         # no python keywords
-        self.assertRaises(ValueError, self.cf.register_option, 'for', 0)
-        self.assertRaises(ValueError, self.cf.register_option, 'a.for.b', 0)
+        pytest.raises(ValueError, self.cf.register_option, 'for', 0)
+        pytest.raises(ValueError, self.cf.register_option, 'a.for.b', 0)
         # must be valid identifier (ensure attribute access works)
-        self.assertRaises(ValueError, self.cf.register_option,
-                          'Oh my Goddess!', 0)
+        pytest.raises(ValueError, self.cf.register_option,
+                      'Oh my Goddess!', 0)
 
         # we can register options several levels deep
         # without predefining the intermediate steps
@@ -82,7 +84,7 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('l', "foo")
 
         # non-existent keys raise KeyError
-        self.assertRaises(KeyError, self.cf.describe_option, 'no.such.key')
+        pytest.raises(KeyError, self.cf.describe_option, 'no.such.key')
 
         # we can get the description for any key we registered
         self.assertTrue(
@@ -128,7 +130,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(self.cf.get_option('kAnBaN'), 2)
 
         # gets of non-existent keys fail
-        self.assertRaises(KeyError, self.cf.get_option, 'no_such_option')
+        pytest.raises(KeyError, self.cf.get_option, 'no_such_option')
         self.cf.deprecate_option('KanBan')
 
         self.assertTrue(self.cf._is_deprecated('kAnBaN'))
@@ -144,7 +146,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(self.cf.get_option('b.b') is None)
 
         # gets of non-existent keys fail
-        self.assertRaises(KeyError, self.cf.get_option, 'no_such_option')
+        pytest.raises(KeyError, self.cf.get_option, 'no_such_option')
 
     def test_set_option(self):
         self.cf.register_option('a', 1, 'doc')
@@ -163,16 +165,16 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(self.cf.get_option('b.c'), 'wurld')
         self.assertEqual(self.cf.get_option('b.b'), 1.1)
 
-        self.assertRaises(KeyError, self.cf.set_option, 'no.such.key', None)
+        pytest.raises(KeyError, self.cf.set_option, 'no.such.key', None)
 
     def test_set_option_empty_args(self):
-        self.assertRaises(ValueError, self.cf.set_option)
+        pytest.raises(ValueError, self.cf.set_option)
 
     def test_set_option_uneven_args(self):
-        self.assertRaises(ValueError, self.cf.set_option, 'a.b', 2, 'b.c')
+        pytest.raises(ValueError, self.cf.set_option, 'a.b', 2, 'b.c')
 
     def test_set_option_invalid_single_argument_type(self):
-        self.assertRaises(ValueError, self.cf.set_option, 2)
+        pytest.raises(ValueError, self.cf.set_option, 2)
 
     def test_set_option_multiple(self):
         self.cf.register_option('a', 1, 'doc')
@@ -193,23 +195,23 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
         self.cf.register_option('b.c', 'hullo', 'doc2',
                                 validator=self.cf.is_text)
-        self.assertRaises(ValueError, self.cf.register_option, 'a.b.c.d2',
-                          'NO', 'doc', validator=self.cf.is_int)
+        pytest.raises(ValueError, self.cf.register_option, 'a.b.c.d2',
+                      'NO', 'doc', validator=self.cf.is_int)
 
         self.cf.set_option('a', 2)  # int is_int
         self.cf.set_option('b.c', 'wurld')  # str is_str
 
-        self.assertRaises(
+        pytest.raises(
             ValueError, self.cf.set_option, 'a', None)  # None not is_int
-        self.assertRaises(ValueError, self.cf.set_option, 'a', 'ab')
-        self.assertRaises(ValueError, self.cf.set_option, 'b.c', 1)
+        pytest.raises(ValueError, self.cf.set_option, 'a', 'ab')
+        pytest.raises(ValueError, self.cf.set_option, 'b.c', 1)
 
         validator = self.cf.is_one_of_factory([None, self.cf.is_callable])
         self.cf.register_option('b', lambda: None, 'doc',
                                 validator=validator)
         self.cf.set_option('b', '%.1f'.format)  # Formatter is callable
         self.cf.set_option('b', None)  # Formatter is none (default)
-        self.assertRaises(ValueError, self.cf.set_option, 'b', '%.1f')
+        pytest.raises(ValueError, self.cf.set_option, 'b', '%.1f')
 
     def test_reset_option(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
@@ -279,7 +281,7 @@ class TestConfig(unittest.TestCase):
             self.assertTrue(
                 'nifty_ver' in str(w[-1]))  # with the removal_ver quoted
 
-            self.assertRaises(
+            pytest.raises(
                 KeyError, self.cf.deprecate_option, 'a')  # can't depr. twice
 
         self.cf.deprecate_option('b.c', 'zounds!')
@@ -415,8 +417,8 @@ class TestConfig(unittest.TestCase):
         self.cf.reset_option("a")
         self.assertEqual(options.a, self.cf.get_option("a", 0))
 
-        self.assertRaises(KeyError, f)
-        self.assertRaises(KeyError, f2)
+        pytest.raises(KeyError, f)
+        pytest.raises(KeyError, f2)
 
         # make sure callback kicks when using this form of setting
         options.c = 1

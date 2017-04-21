@@ -22,7 +22,7 @@ from pandas._libs.lib import Timestamp
 
 import pandas.util.testing as tm
 
-from pandas.util.testing import (assertRaises, assertRaisesRegexp,
+from pandas.util.testing import (assertRaisesRegexp,
                                  assert_almost_equal, assert_copy)
 
 
@@ -87,7 +87,7 @@ class TestMultiIndex(Base, tm.TestCase):
         def f():
             i.where(True)
 
-        self.assertRaises(NotImplementedError, f)
+        pytest.raises(NotImplementedError, f)
 
     def test_where_array_like(self):
         i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
@@ -96,7 +96,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         for klass in klasses:
             f = lambda: i.where(klass(cond))
-            self.assertRaises(NotImplementedError, f)
+            pytest.raises(NotImplementedError, f)
 
     def test_repeat(self):
         reps = 2
@@ -657,7 +657,7 @@ class TestMultiIndex(Base, tm.TestCase):
         self.index.names = [1, 0]
         self.assertEqual(self.index._get_level_number(1), 0)
         self.assertEqual(self.index._get_level_number(0), 1)
-        self.assertRaises(IndexError, self.index._get_level_number, 2)
+        pytest.raises(IndexError, self.index._get_level_number, 2)
         assertRaisesRegexp(KeyError, 'Level fourth not found',
                            self.index._get_level_number, 'fourth')
 
@@ -784,7 +784,7 @@ class TestMultiIndex(Base, tm.TestCase):
         invalid_inputs = [1, [1], [1, 2], [[1], 2],
                           'a', ['a'], ['a', 'b'], [['a'], 'b']]
         for i in invalid_inputs:
-            tm.assertRaises(TypeError, MultiIndex.from_arrays, arrays=i)
+            pytest.raises(TypeError, MultiIndex.from_arrays, arrays=i)
 
     def test_from_arrays_different_lengths(self):
         # GH13599
@@ -853,7 +853,7 @@ class TestMultiIndex(Base, tm.TestCase):
         invalid_inputs = [1, [1], [1, 2], [[1], 2],
                           'a', ['a'], ['a', 'b'], [['a'], 'b']]
         for i in invalid_inputs:
-            tm.assertRaises(TypeError, MultiIndex.from_product, iterables=i)
+            pytest.raises(TypeError, MultiIndex.from_product, iterables=i)
 
     def test_from_product_datetimeindex(self):
         dt_index = date_range('2000-01-01', periods=2)
@@ -1108,17 +1108,17 @@ class TestMultiIndex(Base, tm.TestCase):
     def test_get_loc(self):
         self.assertEqual(self.index.get_loc(('foo', 'two')), 1)
         self.assertEqual(self.index.get_loc(('baz', 'two')), 3)
-        self.assertRaises(KeyError, self.index.get_loc, ('bar', 'two'))
-        self.assertRaises(KeyError, self.index.get_loc, 'quux')
+        pytest.raises(KeyError, self.index.get_loc, ('bar', 'two'))
+        pytest.raises(KeyError, self.index.get_loc, 'quux')
 
-        self.assertRaises(NotImplementedError, self.index.get_loc, 'foo',
-                          method='nearest')
+        pytest.raises(NotImplementedError, self.index.get_loc, 'foo',
+                      method='nearest')
 
         # 3 levels
         index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
             lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
                 [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
-        self.assertRaises(KeyError, index.get_loc, (1, 1))
+        pytest.raises(KeyError, index.get_loc, (1, 1))
         self.assertEqual(index.get_loc((2, 0)), slice(3, 5))
 
     def test_get_loc_duplicates(self):
@@ -1126,7 +1126,7 @@ class TestMultiIndex(Base, tm.TestCase):
         result = index.get_loc(2)
         expected = slice(0, 4)
         self.assertEqual(result, expected)
-        # self.assertRaises(Exception, index.get_loc, 2)
+        # pytest.raises(Exception, index.get_loc, 2)
 
         index = Index(['c', 'a', 'a', 'b', 'b'])
         rs = index.get_loc('c')
@@ -1160,7 +1160,7 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertEqual(loc, expected)
         self.assertIsNone(new_index)
 
-        self.assertRaises(KeyError, index.get_loc_level, (2, 2))
+        pytest.raises(KeyError, index.get_loc_level, (2, 2))
 
         index = MultiIndex(levels=[[2000], lrange(4)], labels=[np.array(
             [0, 0, 0, 0]), np.array([0, 1, 2, 3])])
@@ -1298,7 +1298,7 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertEqual(len(result.levels[0]), 2)
 
         # after < before
-        self.assertRaises(ValueError, index.truncate, 3, 1)
+        pytest.raises(ValueError, index.truncate, 3, 1)
 
     def test_get_indexer(self):
         major_axis = Index(lrange(4))
@@ -1353,9 +1353,9 @@ class TestMultiIndex(Base, tm.TestCase):
 
     def test_get_indexer_nearest(self):
         midx = MultiIndex.from_tuples([('a', 1), ('b', 2)])
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             midx.get_indexer(['a'], method='nearest')
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             midx.get_indexer(['a'], method='pad', tolerance=2)
 
     def test_hash_collisions(self):
@@ -1631,13 +1631,13 @@ class TestMultiIndex(Base, tm.TestCase):
         first = self.index
 
         # - now raises (previously was set op difference)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             first - self.index[-3:]
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.index[-3:] - first
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.index[-3:] - first.tolist()
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             first.tolist() - self.index[-3:]
 
     def test_difference(self):
@@ -1781,13 +1781,13 @@ class TestMultiIndex(Base, tm.TestCase):
         tm.assert_index_equal(dropped, expected)
 
         index = MultiIndex.from_tuples([('bar', 'two')])
-        self.assertRaises(KeyError, self.index.drop, [('bar', 'two')])
-        self.assertRaises(KeyError, self.index.drop, index)
-        self.assertRaises(KeyError, self.index.drop, ['foo', 'two'])
+        pytest.raises(KeyError, self.index.drop, [('bar', 'two')])
+        pytest.raises(KeyError, self.index.drop, index)
+        pytest.raises(KeyError, self.index.drop, ['foo', 'two'])
 
         # partially correct argument
         mixed_index = MultiIndex.from_tuples([('qux', 'one'), ('bar', 'two')])
-        self.assertRaises(KeyError, self.index.drop, mixed_index)
+        pytest.raises(KeyError, self.index.drop, mixed_index)
 
         # error='ignore'
         dropped = self.index.drop(index, errors='ignore')
@@ -1809,7 +1809,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         # mixed partial / full drop / error='ignore'
         mixed_index = ['foo', ('qux', 'one'), 'two']
-        self.assertRaises(KeyError, self.index.drop, mixed_index)
+        pytest.raises(KeyError, self.index.drop, mixed_index)
         dropped = self.index.drop(mixed_index, errors='ignore')
         expected = self.index[[2, 3, 5]]
         tm.assert_index_equal(dropped, expected)
@@ -1969,7 +1969,7 @@ class TestMultiIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def take_invalid_kwargs(self):
@@ -2355,7 +2355,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # should not segfault GH5123
         # NOTE: if MI representation changes, may make sense to allow
         # isnull(MI)
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             pd.isnull(self.index)
 
     def test_level_setting_resets_attributes(self):
@@ -2527,18 +2527,18 @@ class TestMultiIndex(Base, tm.TestCase):
         tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level=1))
         tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level=-1))
 
-        self.assertRaises(IndexError, idx.isin, vals_0, level=5)
-        self.assertRaises(IndexError, idx.isin, vals_0, level=-5)
+        pytest.raises(IndexError, idx.isin, vals_0, level=5)
+        pytest.raises(IndexError, idx.isin, vals_0, level=-5)
 
-        self.assertRaises(KeyError, idx.isin, vals_0, level=1.0)
-        self.assertRaises(KeyError, idx.isin, vals_1, level=-1.0)
-        self.assertRaises(KeyError, idx.isin, vals_1, level='A')
+        pytest.raises(KeyError, idx.isin, vals_0, level=1.0)
+        pytest.raises(KeyError, idx.isin, vals_1, level=-1.0)
+        pytest.raises(KeyError, idx.isin, vals_1, level='A')
 
         idx.names = ['A', 'B']
         tm.assert_numpy_array_equal(expected, idx.isin(vals_0, level='A'))
         tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level='B'))
 
-        self.assertRaises(KeyError, idx.isin, vals_1, level='C')
+        pytest.raises(KeyError, idx.isin, vals_1, level='C')
 
     def test_reindex_preserves_names_when_target_is_list_or_ndarray(self):
         # GH6552
@@ -2616,16 +2616,16 @@ class TestMultiIndex(Base, tm.TestCase):
         df_below_1000000 = pd.DataFrame(
             1, index=pd.MultiIndex.from_product([[1, 2], range(499999)]),
             columns=['dest'])
-        with assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df_below_1000000.loc[(-1, 0), 'dest']
-        with assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df_below_1000000.loc[(3, 0), 'dest']
         df_above_1000000 = pd.DataFrame(
             1, index=pd.MultiIndex.from_product([[1, 2], range(500001)]),
             columns=['dest'])
-        with assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df_above_1000000.loc[(-1, 0), 'dest']
-        with assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df_above_1000000.loc[(3, 0), 'dest']
 
     def test_partial_string_timestamp_multiindex(self):
@@ -2678,7 +2678,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # ambiguous and we don't want to extend this behavior forward to work
         # in multi-indexes. This would amount to selecting a scalar from a
         # column.
-        with assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df['2016-01-01']
 
         # partial string match on year only
@@ -2707,7 +2707,7 @@ class TestMultiIndex(Base, tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # Slicing date on first level should break (of course)
-        with assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df_swap.loc['2016-01-01']
 
         # GH12685 (partial string with daily resolution or below)
@@ -2771,12 +2771,12 @@ class TestMultiIndex(Base, tm.TestCase):
         df = pd.DataFrame([[i, 10 * i] for i in lrange(6)], index=mi,
                           columns=['one', 'two'])
 
-        with assertRaises(UnsortedIndexError):
+        with pytest.raises(UnsortedIndexError):
             df.loc(axis=0)['z', :]
         df.sort_index(inplace=True)
         self.assertEqual(len(df.loc(axis=0)['z', :]), 2)
 
-        with assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.loc(axis=0)['q', :]
 
     def test_unsortedindex_doc_examples(self):
@@ -2807,7 +2807,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # GH 15110 and GH 14848
 
         li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
-        with assertRaises(ValueError):
+        with pytest.raises(ValueError):
             pd.Index(li, name='abc')
-        with assertRaises(ValueError):
+        with pytest.raises(ValueError):
             pd.Index(li, name='a')

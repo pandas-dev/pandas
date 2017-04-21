@@ -1,3 +1,5 @@
+import pytest
+
 from datetime import datetime
 import pandas.util.testing as tm
 from pandas import compat
@@ -384,7 +386,7 @@ class TestHolidayConflictingArguments(tm.TestCase):
     # GH 10217
 
     def test_both_offset_observance_raises(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             Holiday("Cyber Monday", month=11, day=1,
                     offset=[DateOffset(weekday=SA(4))],
                     observance=next_monday)

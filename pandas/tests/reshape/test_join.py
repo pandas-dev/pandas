@@ -3,6 +3,7 @@
 from warnings import catch_warnings
 from numpy.random import randn
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas.compat import lrange
@@ -193,15 +194,15 @@ class TestJoin(tm.TestCase):
         self.assertTrue(np.isnan(joined['three']['c']))
 
         # merge column not p resent
-        self.assertRaises(KeyError, target.join, source, on='E')
+        pytest.raises(KeyError, target.join, source, on='E')
 
         # overlap
         source_copy = source.copy()
         source_copy['A'] = 0
-        self.assertRaises(ValueError, target.join, source_copy, on='A')
+        pytest.raises(ValueError, target.join, source_copy, on='A')
 
     def test_join_on_fails_with_different_right_index(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
                             'b': np.random.randn(3)})
             df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
@@ -210,7 +211,7 @@ class TestJoin(tm.TestCase):
             merge(df, df2, left_on='a', right_index=True)
 
     def test_join_on_fails_with_different_left_index(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
                             'b': np.random.randn(3)},
                            index=tm.makeCustomIndex(10, 2))
@@ -219,7 +220,7 @@ class TestJoin(tm.TestCase):
             merge(df, df2, right_on='b', left_index=True)
 
     def test_join_on_fails_with_different_column_counts(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
                             'b': np.random.randn(3)})
             df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
@@ -588,7 +589,7 @@ class TestJoin(tm.TestCase):
         joined = df_list[0].join(df_list[1:], how='inner')
         _check_diff_index(df_list, joined, df.index[2:8])
 
-        self.assertRaises(ValueError, df_list[0].join, df_list[1:], on='a')
+        pytest.raises(ValueError, df_list[0].join, df_list[1:], on='a')
 
     def test_join_many_mixed(self):
         df = DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
@@ -710,10 +711,10 @@ class TestJoin(tm.TestCase):
             tm.assert_panel_equal(joined, expected)
 
             # edge cases
-            self.assertRaises(ValueError, panels[0].join, panels[1:],
-                              how='outer', lsuffix='foo', rsuffix='bar')
-            self.assertRaises(ValueError, panels[0].join, panels[1:],
-                              how='right')
+            pytest.raises(ValueError, panels[0].join, panels[1:],
+                          how='outer', lsuffix='foo', rsuffix='bar')
+            pytest.raises(ValueError, panels[0].join, panels[1:],
+                          how='right')
 
 
 def _check_join(left, right, result, join_col, how='left',

@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 from datetime import timedelta
 
@@ -49,7 +51,7 @@ class TestDatetimeIndex(tm.TestCase):
         tm.assert_index_equal(i2, expected)
 
         # incompat tz/dtype
-        self.assertRaises(ValueError, lambda: DatetimeIndex(
+        pytest.raises(ValueError, lambda: DatetimeIndex(
             i.tz_localize(None).asi8, dtype=i.dtype, tz='US/Pacific'))
 
     def test_construction_index_with_mixed_timezones(self):
@@ -239,7 +241,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         # tz mismatch affecting to tz-aware raises TypeError/ValueError
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             DatetimeIndex([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           name='idx')
@@ -249,7 +251,7 @@ class TestDatetimeIndex(tm.TestCase):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='Asia/Tokyo', name='idx')
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             DatetimeIndex([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='US/Eastern', name='idx')
@@ -280,7 +282,7 @@ class TestDatetimeIndex(tm.TestCase):
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        with tm.assertRaises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
 
@@ -302,13 +304,13 @@ class TestDatetimeIndex(tm.TestCase):
         exp = date_range('1/1/2000', periods=10)
         tm.assert_index_equal(rng, exp)
 
-        self.assertRaises(ValueError, DatetimeIndex, start='1/1/2000',
-                          periods='foo', freq='D')
+        pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
+                      periods='foo', freq='D')
 
-        self.assertRaises(ValueError, DatetimeIndex, start='1/1/2000',
-                          end='1/10/2000')
+        pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
+                      end='1/10/2000')
 
-        self.assertRaises(ValueError, DatetimeIndex, '1/1/2000')
+        pytest.raises(ValueError, DatetimeIndex, '1/1/2000')
 
         # generator expression
         gen = (datetime(2000, 1, 1) + timedelta(i) for i in range(10))
@@ -336,14 +338,14 @@ class TestDatetimeIndex(tm.TestCase):
         tm.assert_index_equal(from_ints, expected)
 
         # non-conforming
-        self.assertRaises(ValueError, DatetimeIndex,
-                          ['2000-01-01', '2000-01-02', '2000-01-04'], freq='D')
+        pytest.raises(ValueError, DatetimeIndex,
+                      ['2000-01-01', '2000-01-02', '2000-01-04'], freq='D')
 
-        self.assertRaises(ValueError, DatetimeIndex, start='2011-01-01',
-                          freq='b')
-        self.assertRaises(ValueError, DatetimeIndex, end='2011-01-01',
-                          freq='B')
-        self.assertRaises(ValueError, DatetimeIndex, periods=10, freq='D')
+        pytest.raises(ValueError, DatetimeIndex, start='2011-01-01',
+                      freq='b')
+        pytest.raises(ValueError, DatetimeIndex, end='2011-01-01',
+                      freq='B')
+        pytest.raises(ValueError, DatetimeIndex, periods=10, freq='D')
 
     def test_constructor_datetime64_tzformat(self):
         # GH 6572
@@ -414,18 +416,18 @@ class TestDatetimeIndex(tm.TestCase):
         idx = DatetimeIndex(['2013-01-01', '2013-01-02'],
                             dtype='datetime64[ns, US/Eastern]')
 
-        self.assertRaises(ValueError,
-                          lambda: DatetimeIndex(idx,
-                                                dtype='datetime64[ns]'))
+        pytest.raises(ValueError,
+                      lambda: DatetimeIndex(idx,
+                                            dtype='datetime64[ns]'))
 
         # this is effectively trying to convert tz's
-        self.assertRaises(TypeError,
-                          lambda: DatetimeIndex(idx,
-                                                dtype='datetime64[ns, CET]'))
-        self.assertRaises(ValueError,
-                          lambda: DatetimeIndex(
-                              idx, tz='CET',
-                              dtype='datetime64[ns, US/Eastern]'))
+        pytest.raises(TypeError,
+                      lambda: DatetimeIndex(idx,
+                                            dtype='datetime64[ns, CET]'))
+        pytest.raises(ValueError,
+                      lambda: DatetimeIndex(
+                          idx, tz='CET',
+                          dtype='datetime64[ns, US/Eastern]'))
         result = DatetimeIndex(idx, dtype='datetime64[ns, US/Eastern]')
         tm.assert_index_equal(idx, result)
 
@@ -527,7 +529,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_datetimeindex_constructor_misc(self):
         arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']
-        self.assertRaises(Exception, DatetimeIndex, arr)
+        pytest.raises(Exception, DatetimeIndex, arr)
 
         arr = ['1/1/2005', '1/2/2005', '1/3/2005', '2005-01-04']
         idx1 = DatetimeIndex(arr)

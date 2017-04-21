@@ -15,7 +15,7 @@ class TestUnpack(tm.TestCase):
         assert unpacker.unpack() == 2
         assert unpacker.unpack() == 3
         assert unpacker.unpack() == 4
-        self.assertRaises(OutOfData, unpacker.unpack)
+        pytest.raises(OutOfData, unpacker.unpack)
 
     def test_unpacker_hook_refcnt(self):
         if not hasattr(sys, 'getrefcount'):

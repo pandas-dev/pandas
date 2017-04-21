@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 from warnings import catch_warnings
 import numpy as np
 
@@ -41,13 +43,11 @@ class TestTypes(Base, tm.TestCase):
             try:
                 result = fold('foo')
                 expected = fnew('foo')
-                self.assertEqual(result, expected)
+                assert result == expected
             except TypeError:
-                self.assertRaises(TypeError,
-                                  lambda: fnew('foo'))
+                pytest.raises(TypeError, lambda: fnew('foo'))
             except AttributeError:
-                self.assertRaises(AttributeError,
-                                  lambda: fnew('foo'))
+                pytest.raises(AttributeError, lambda: fnew('foo'))
 
     def test_deprecation_core_common(self):
 
@@ -83,7 +83,7 @@ class TestTypes(Base, tm.TestCase):
 
         for t in ['is_null_datelike_scalar',
                   'ensure_float']:
-            self.assertRaises(AttributeError, lambda: getattr(com, t))
+            pytest.raises(AttributeError, lambda: getattr(com, t))
 
 
 def test_moved_infer_dtype():

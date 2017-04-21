@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 import pandas as pd
@@ -75,7 +77,7 @@ class TestPeriodIndex(tm.TestCase):
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with tm.assertRaises(exc):
+                with pytest.raises(exc):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
@@ -87,7 +89,7 @@ class TestPeriodIndex(tm.TestCase):
 
             invalid = ['2013/02/01 9H', '2013/02/01 09:00']
             for v in invalid:
-                with tm.assertRaises(exc):
+                with pytest.raises(exc):
                     idx[v:]
 
     def test_range_slice_seconds(self):
@@ -105,7 +107,7 @@ class TestPeriodIndex(tm.TestCase):
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with tm.assertRaises(exc):
+                with pytest.raises(exc):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)

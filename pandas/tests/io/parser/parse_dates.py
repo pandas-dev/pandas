@@ -347,11 +347,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         tm.assert_frame_equal(df, expected)
 
         parser = lambda d: parse_date(d, day_first=True)
-        self.assertRaises(TypeError, self.read_csv,
-                          StringIO(text), skiprows=[0],
-                          names=['time', 'Q', 'NTU'], index_col=0,
-                          parse_dates=True, date_parser=parser,
-                          na_values=['NA'])
+        pytest.raises(TypeError, self.read_csv,
+                      StringIO(text), skiprows=[0],
+                      names=['time', 'Q', 'NTU'], index_col=0,
+                      parse_dates=True, date_parser=parser,
+                      na_values=['NA'])
 
     def test_parse_tz_aware(self):
         # See gh-1693

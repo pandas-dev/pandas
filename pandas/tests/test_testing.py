@@ -21,8 +21,8 @@ class TestAssertAlmostEqual(tm.TestCase):
         assert_almost_equal(b, a, **kwargs)
 
     def _assert_not_almost_equal_both(self, a, b, **kwargs):
-        self.assertRaises(AssertionError, assert_almost_equal, a, b, **kwargs)
-        self.assertRaises(AssertionError, assert_almost_equal, b, a, **kwargs)
+        pytest.raises(AssertionError, assert_almost_equal, a, b, **kwargs)
+        pytest.raises(AssertionError, assert_almost_equal, b, a, **kwargs)
 
     def test_assert_almost_equal_numbers(self):
         self._assert_almost_equal_both(1.1, 1.1)
@@ -495,8 +495,8 @@ class TestAssertSeriesEqual(tm.TestCase):
         assert_series_equal(y, x, **kwargs)
 
     def _assert_not_equal(self, a, b, **kwargs):
-        self.assertRaises(AssertionError, assert_series_equal, a, b, **kwargs)
-        self.assertRaises(AssertionError, assert_series_equal, b, a, **kwargs)
+        pytest.raises(AssertionError, assert_series_equal, a, b, **kwargs)
+        pytest.raises(AssertionError, assert_series_equal, b, a, **kwargs)
 
     def test_equal(self):
         self._assert_equal(Series(range(3)), Series(range(3)))
@@ -520,27 +520,27 @@ class TestAssertSeriesEqual(tm.TestCase):
         s1 = Series([0.12345], dtype='float64')
         s2 = Series([0.12346], dtype='float64')
 
-        self.assertRaises(AssertionError, assert_series_equal, s1, s2)
+        pytest.raises(AssertionError, assert_series_equal, s1, s2)
         self._assert_equal(s1, s2, check_less_precise=True)
         for i in range(4):
             self._assert_equal(s1, s2, check_less_precise=i)
-        self.assertRaises(AssertionError, assert_series_equal, s1, s2, 10)
+        pytest.raises(AssertionError, assert_series_equal, s1, s2, 10)
 
         s1 = Series([0.12345], dtype='float32')
         s2 = Series([0.12346], dtype='float32')
 
-        self.assertRaises(AssertionError, assert_series_equal, s1, s2)
+        pytest.raises(AssertionError, assert_series_equal, s1, s2)
         self._assert_equal(s1, s2, check_less_precise=True)
         for i in range(4):
             self._assert_equal(s1, s2, check_less_precise=i)
-        self.assertRaises(AssertionError, assert_series_equal, s1, s2, 10)
+        pytest.raises(AssertionError, assert_series_equal, s1, s2, 10)
 
         # even less than less precise
         s1 = Series([0.1235], dtype='float32')
         s2 = Series([0.1236], dtype='float32')
 
-        self.assertRaises(AssertionError, assert_series_equal, s1, s2)
-        self.assertRaises(AssertionError, assert_series_equal, s1, s2, True)
+        pytest.raises(AssertionError, assert_series_equal, s1, s2)
+        pytest.raises(AssertionError, assert_series_equal, s1, s2, True)
 
     def test_index_dtype(self):
         df1 = DataFrame.from_records(
@@ -589,8 +589,8 @@ class TestAssertFrameEqual(tm.TestCase):
         assert_frame_equal(y, x, **kwargs)
 
     def _assert_not_equal(self, a, b, **kwargs):
-        self.assertRaises(AssertionError, assert_frame_equal, a, b, **kwargs)
-        self.assertRaises(AssertionError, assert_frame_equal, b, a, **kwargs)
+        pytest.raises(AssertionError, assert_frame_equal, a, b, **kwargs)
+        pytest.raises(AssertionError, assert_frame_equal, b, a, **kwargs)
 
     def test_equal_with_different_row_order(self):
         # check_like=True ignores row-column orderings

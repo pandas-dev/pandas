@@ -3,6 +3,8 @@ test date_range, bdate_range, cdate_range
 construction from the convenience range functions
 """
 
+import pytest
+
 import numpy as np
 from datetime import datetime, timedelta, time
 
@@ -79,8 +81,8 @@ class TestDateRanges(TestData, tm.TestCase):
         start = datetime(2011, 1, 1, 5, 3, 40)
         end = datetime(2011, 1, 1, 8, 9, 40)
 
-        self.assertRaises(ValueError, date_range, start, end, freq='s',
-                          periods=10)
+        pytest.raises(ValueError, date_range, start, end, freq='s',
+                      periods=10)
 
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
@@ -119,13 +121,13 @@ class TestDateRanges(TestData, tm.TestCase):
     def test_range_misspecified(self):
         # GH #1095
 
-        self.assertRaises(ValueError, date_range, '1/1/2000')
-        self.assertRaises(ValueError, date_range, end='1/1/2000')
-        self.assertRaises(ValueError, date_range, periods=10)
+        pytest.raises(ValueError, date_range, '1/1/2000')
+        pytest.raises(ValueError, date_range, end='1/1/2000')
+        pytest.raises(ValueError, date_range, periods=10)
 
-        self.assertRaises(ValueError, date_range, '1/1/2000', freq='H')
-        self.assertRaises(ValueError, date_range, end='1/1/2000', freq='H')
-        self.assertRaises(ValueError, date_range, periods=10, freq='H')
+        pytest.raises(ValueError, date_range, '1/1/2000', freq='H')
+        pytest.raises(ValueError, date_range, end='1/1/2000', freq='H')
+        pytest.raises(ValueError, date_range, periods=10, freq='H')
 
     def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349
@@ -141,8 +143,8 @@ class TestDateRanges(TestData, tm.TestCase):
     def test_catch_infinite_loop(self):
         offset = offsets.DateOffset(minute=5)
         # blow up, don't loop forever
-        self.assertRaises(Exception, date_range, datetime(2011, 11, 11),
-                          datetime(2011, 11, 12), freq=offset)
+        pytest.raises(Exception, date_range, datetime(2011, 11, 11),
+                      datetime(2011, 11, 12), freq=offset)
 
 
 class TestGenRangeGeneration(tm.TestCase):
@@ -203,8 +205,8 @@ class TestBusinessDateRange(tm.TestCase):
         bdate_range(START, END, freq=BDay())
         bdate_range(START, periods=20, freq=BDay())
         bdate_range(end=START, periods=20, freq=BDay())
-        self.assertRaises(ValueError, date_range, '2011-1-1', '2012-1-1', 'B')
-        self.assertRaises(ValueError, bdate_range, '2011-1-1', '2012-1-1', 'B')
+        pytest.raises(ValueError, date_range, '2011-1-1', '2012-1-1', 'B')
+        pytest.raises(ValueError, bdate_range, '2011-1-1', '2012-1-1', 'B')
 
     def test_naive_aware_conflicts(self):
         naive = bdate_range(START, END, freq=BDay(), tz=None)
@@ -250,8 +252,8 @@ class TestBusinessDateRange(tm.TestCase):
 
     def test_timezone_comparaison_assert(self):
         start = Timestamp('20130220 10:00', tz='US/Eastern')
-        self.assertRaises(AssertionError, date_range, start, periods=2,
-                          tz='Europe/Berlin')
+        pytest.raises(AssertionError, date_range, start, periods=2,
+                      tz='Europe/Berlin')
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
@@ -265,14 +267,14 @@ class TestBusinessDateRange(tm.TestCase):
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'
 
-        self.assertRaises(ValueError, Timestamp, badly_formed_date)
+        pytest.raises(ValueError, Timestamp, badly_formed_date)
 
-        self.assertRaises(ValueError, bdate_range, start=badly_formed_date,
-                          periods=10)
-        self.assertRaises(ValueError, bdate_range, end=badly_formed_date,
-                          periods=10)
-        self.assertRaises(ValueError, bdate_range, badly_formed_date,
-                          badly_formed_date)
+        pytest.raises(ValueError, bdate_range, start=badly_formed_date,
+                      periods=10)
+        pytest.raises(ValueError, bdate_range, end=badly_formed_date,
+                      periods=10)
+        pytest.raises(ValueError, bdate_range, badly_formed_date,
+                      badly_formed_date)
 
     def test_daterange_bug_456(self):
         # GH #456
@@ -284,8 +286,8 @@ class TestBusinessDateRange(tm.TestCase):
         assert isinstance(result, DatetimeIndex)
 
     def test_error_with_zero_monthends(self):
-        self.assertRaises(ValueError, date_range, '1/1/2000', '1/1/2001',
-                          freq=MonthEnd(0))
+        pytest.raises(ValueError, date_range, '1/1/2000', '1/1/2001',
+                      freq=MonthEnd(0))
 
     def test_range_bug(self):
         # GH #770
@@ -488,8 +490,8 @@ class TestCustomDateRange(tm.TestCase):
         cdate_range(START, END, freq=CDay())
         cdate_range(START, periods=20, freq=CDay())
         cdate_range(end=START, periods=20, freq=CDay())
-        self.assertRaises(ValueError, date_range, '2011-1-1', '2012-1-1', 'C')
-        self.assertRaises(ValueError, cdate_range, '2011-1-1', '2012-1-1', 'C')
+        pytest.raises(ValueError, date_range, '2011-1-1', '2012-1-1', 'C')
+        pytest.raises(ValueError, cdate_range, '2011-1-1', '2012-1-1', 'C')
 
     def test_cached_range(self):
         DatetimeIndex._cached_range(START, END, offset=CDay())
@@ -498,16 +500,16 @@ class TestCustomDateRange(tm.TestCase):
         DatetimeIndex._cached_range(end=START, periods=20,
                                     offset=CDay())
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, START, END)
+        pytest.raises(Exception, DatetimeIndex._cached_range, START, END)
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, START,
-                          freq=CDay())
+        pytest.raises(Exception, DatetimeIndex._cached_range, START,
+                      freq=CDay())
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, end=END,
-                          freq=CDay())
+        pytest.raises(Exception, DatetimeIndex._cached_range, end=END,
+                      freq=CDay())
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, periods=20,
-                          freq=CDay())
+        pytest.raises(Exception, DatetimeIndex._cached_range, periods=20,
+                      freq=CDay())
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
@@ -521,14 +523,14 @@ class TestCustomDateRange(tm.TestCase):
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'
 
-        self.assertRaises(ValueError, Timestamp, badly_formed_date)
+        pytest.raises(ValueError, Timestamp, badly_formed_date)
 
-        self.assertRaises(ValueError, cdate_range, start=badly_formed_date,
-                          periods=10)
-        self.assertRaises(ValueError, cdate_range, end=badly_formed_date,
-                          periods=10)
-        self.assertRaises(ValueError, cdate_range, badly_formed_date,
-                          badly_formed_date)
+        pytest.raises(ValueError, cdate_range, start=badly_formed_date,
+                      periods=10)
+        pytest.raises(ValueError, cdate_range, end=badly_formed_date,
+                      periods=10)
+        pytest.raises(ValueError, cdate_range, badly_formed_date,
+                      badly_formed_date)
 
     def test_daterange_bug_456(self):
         # GH #456

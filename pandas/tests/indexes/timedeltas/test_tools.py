@@ -1,3 +1,5 @@
+import pytest
+
 from datetime import time, timedelta
 import numpy as np
 
@@ -115,15 +117,15 @@ class TestTimedeltas(tm.TestCase):
                               ['foo'], errors='never')
 
         # these will error
-        self.assertRaises(ValueError, lambda: to_timedelta([1, 2], unit='foo'))
-        self.assertRaises(ValueError, lambda: to_timedelta(1, unit='foo'))
+        pytest.raises(ValueError, lambda: to_timedelta([1, 2], unit='foo'))
+        pytest.raises(ValueError, lambda: to_timedelta(1, unit='foo'))
 
         # time not supported ATM
-        self.assertRaises(ValueError, lambda: to_timedelta(time(second=1)))
+        pytest.raises(ValueError, lambda: to_timedelta(time(second=1)))
         self.assertTrue(to_timedelta(
             time(second=1), errors='coerce') is pd.NaT)
 
-        self.assertRaises(ValueError, lambda: to_timedelta(['foo', 'bar']))
+        pytest.raises(ValueError, lambda: to_timedelta(['foo', 'bar']))
         tm.assert_index_equal(TimedeltaIndex([pd.NaT, pd.NaT]),
                               to_timedelta(['foo', 'bar'], errors='coerce'))
 
@@ -199,4 +201,4 @@ class TestTimedeltas(tm.TestCase):
         expected = Timedelta('990ns')
         self.assertEqual(result, expected)
 
-        self.assertRaises(TypeError, lambda: Timedelta(nanoseconds='abc'))
+        pytest.raises(TypeError, lambda: Timedelta(nanoseconds='abc'))

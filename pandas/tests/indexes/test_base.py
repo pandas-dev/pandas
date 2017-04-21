@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 from datetime import datetime, timedelta
 
 import pandas.util.testing as tm
@@ -83,11 +85,11 @@ class TestIndex(Base, tm.TestCase):
 
         # what to do here?
         # arr = np.array(5.)
-        # self.assertRaises(Exception, arr.view, Index)
+        # pytest.raises(Exception, arr.view, Index)
 
     def test_constructor_corner(self):
         # corner case
-        self.assertRaises(TypeError, Index, 0)
+        pytest.raises(TypeError, Index, 0)
 
     def test_construction_list_mixed_tuples(self):
         # see gh-10697: if we are constructing from a mixed list of tuples,
@@ -387,7 +389,7 @@ class TestIndex(Base, tm.TestCase):
             ind = self.indices[i]
 
             # with arguments
-            self.assertRaises(TypeError, lambda: ind.view('i8'))
+            pytest.raises(TypeError, lambda: ind.view('i8'))
 
         # these are ok
         for i in list(set(self.indices.keys()) - set(restricted)):
@@ -454,7 +456,7 @@ class TestIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
 
-        with tm.assertRaises((IndexError, ValueError)):
+        with pytest.raises((IndexError, ValueError)):
             # either depending on numpy version
             result = idx.delete(5)
 
@@ -589,7 +591,7 @@ class TestIndex(Base, tm.TestCase):
 
             # np.ndarray only accepts ndarray of int & bool dtypes, so should
             # Index.
-            self.assertRaises(IndexError, idx.__getitem__, empty_farr)
+            pytest.raises(IndexError, idx.__getitem__, empty_farr)
 
     def test_getitem(self):
         arr = np.array(self.dateIndex)
@@ -773,10 +775,10 @@ class TestIndex(Base, tm.TestCase):
 
     def test_sub(self):
         idx = self.strIndex
-        self.assertRaises(TypeError, lambda: idx - 'a')
-        self.assertRaises(TypeError, lambda: idx - idx)
-        self.assertRaises(TypeError, lambda: idx - idx.tolist())
-        self.assertRaises(TypeError, lambda: idx.tolist() - idx)
+        pytest.raises(TypeError, lambda: idx - 'a')
+        pytest.raises(TypeError, lambda: idx - idx)
+        pytest.raises(TypeError, lambda: idx - idx.tolist())
+        pytest.raises(TypeError, lambda: idx.tolist() - idx)
 
     def test_map_identity_mapping(self):
         # GH 12766
@@ -1126,10 +1128,10 @@ class TestIndex(Base, tm.TestCase):
         expected = np.array([0, 0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(actual, expected)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             idx.get_indexer(['a', 'b', 'c', 'd'], method='nearest')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             idx.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
 
     def test_get_loc(self):
@@ -1139,7 +1141,7 @@ class TestIndex(Base, tm.TestCase):
             self.assertEqual(idx.get_loc(1, method=method), 1)
             if method is not None:
                 self.assertEqual(idx.get_loc(1, method=method, tolerance=0), 1)
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 idx.get_loc([1, 2], method=method)
 
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
@@ -1149,7 +1151,7 @@ class TestIndex(Base, tm.TestCase):
             self.assertEqual(idx.get_loc(1.1, method, tolerance=1), loc)
 
         for method in ['pad', 'backfill', 'nearest']:
-            with tm.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 idx.get_loc(1.1, method, tolerance=0.05)
 
         with tm.assertRaisesRegexp(ValueError, 'must be numeric'):
@@ -1158,9 +1160,9 @@ class TestIndex(Base, tm.TestCase):
             idx.get_loc(1.1, tolerance=1)
 
         idx = pd.Index(['a', 'c'])
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             idx.get_loc('a', method='nearest')
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             idx.get_loc('a', method='pad', tolerance='invalid')
 
     def test_slice_locs(self):
@@ -1192,15 +1194,15 @@ class TestIndex(Base, tm.TestCase):
         # int slicing with floats
         # GH 4892, these are all TypeErrors
         idx = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=int))
-        self.assertRaises(TypeError,
-                          lambda: idx.slice_locs(5.0, 10.0), (3, n))
-        self.assertRaises(TypeError,
-                          lambda: idx.slice_locs(4.5, 10.5), (3, 8))
+        pytest.raises(TypeError,
+                      lambda: idx.slice_locs(5.0, 10.0), (3, n))
+        pytest.raises(TypeError,
+                      lambda: idx.slice_locs(4.5, 10.5), (3, 8))
         idx2 = idx[::-1]
-        self.assertRaises(TypeError,
-                          lambda: idx2.slice_locs(8.5, 1.5), (2, 6))
-        self.assertRaises(TypeError,
-                          lambda: idx2.slice_locs(10.5, -1), (0, n))
+        pytest.raises(TypeError,
+                      lambda: idx2.slice_locs(8.5, 1.5), (2, 6))
+        pytest.raises(TypeError,
+                      lambda: idx2.slice_locs(10.5, -1), (0, n))
 
     def test_slice_locs_dup(self):
         idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])
@@ -1226,8 +1228,8 @@ class TestIndex(Base, tm.TestCase):
 
     def test_slice_locs_na(self):
         idx = Index([np.nan, 1, 2])
-        self.assertRaises(KeyError, idx.slice_locs, start=1.5)
-        self.assertRaises(KeyError, idx.slice_locs, end=1.5)
+        pytest.raises(KeyError, idx.slice_locs, start=1.5)
+        pytest.raises(KeyError, idx.slice_locs, end=1.5)
         self.assertEqual(idx.slice_locs(1), (1, 3))
         self.assertEqual(idx.slice_locs(np.nan), (0, 3))
 
@@ -1268,8 +1270,8 @@ class TestIndex(Base, tm.TestCase):
         expected = self.strIndex[lrange(5) + lrange(10, n)]
         tm.assert_index_equal(dropped, expected)
 
-        self.assertRaises(ValueError, self.strIndex.drop, ['foo', 'bar'])
-        self.assertRaises(ValueError, self.strIndex.drop, ['1', 'bar'])
+        pytest.raises(ValueError, self.strIndex.drop, ['foo', 'bar'])
+        pytest.raises(ValueError, self.strIndex.drop, ['1', 'bar'])
 
         # errors='ignore'
         mixed = drop.tolist() + ['foo']
@@ -1291,7 +1293,7 @@ class TestIndex(Base, tm.TestCase):
         tm.assert_index_equal(dropped, expected)
 
         # errors='ignore'
-        self.assertRaises(ValueError, ser.drop, [3, 4])
+        pytest.raises(ValueError, ser.drop, [3, 4])
 
         dropped = ser.drop(4, errors='ignore')
         expected = Index([1, 2, 3])
@@ -1388,19 +1390,19 @@ class TestIndex(Base, tm.TestCase):
             tm.assert_numpy_array_equal(expected, idx.isin(values, level=0))
             tm.assert_numpy_array_equal(expected, idx.isin(values, level=-1))
 
-            self.assertRaises(IndexError, idx.isin, values, level=1)
-            self.assertRaises(IndexError, idx.isin, values, level=10)
-            self.assertRaises(IndexError, idx.isin, values, level=-2)
+            pytest.raises(IndexError, idx.isin, values, level=1)
+            pytest.raises(IndexError, idx.isin, values, level=10)
+            pytest.raises(IndexError, idx.isin, values, level=-2)
 
-            self.assertRaises(KeyError, idx.isin, values, level=1.0)
-            self.assertRaises(KeyError, idx.isin, values, level='foobar')
+            pytest.raises(KeyError, idx.isin, values, level=1.0)
+            pytest.raises(KeyError, idx.isin, values, level='foobar')
 
             idx.name = 'foobar'
             tm.assert_numpy_array_equal(expected,
                                         idx.isin(values, level='foobar'))
 
-            self.assertRaises(KeyError, idx.isin, values, level='xyzzy')
-            self.assertRaises(KeyError, idx.isin, values, level=np.nan)
+            pytest.raises(KeyError, idx.isin, values, level='xyzzy')
+            pytest.raises(KeyError, idx.isin, values, level=np.nan)
 
         check_idx(Index(['qux', 'baz', 'foo', 'bar']))
         # Float64Index overrides isin, so must be checked separately
@@ -1529,7 +1531,7 @@ class TestIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_reshape_raise(self):

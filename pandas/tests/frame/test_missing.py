@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from distutils.version import LooseVersion
 from numpy import nan, random
 import numpy as np
@@ -139,7 +141,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         assert_frame_equal(dropped, expected)
 
         # bad input
-        self.assertRaises(ValueError, df.dropna, axis=3)
+        pytest.raises(ValueError, df.dropna, axis=3)
 
     def test_drop_and_dropna_caching(self):
         # tst that cacher updates
@@ -158,10 +160,10 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
 
     def test_dropna_corner(self):
         # bad input
-        self.assertRaises(ValueError, self.frame.dropna, how='foo')
-        self.assertRaises(TypeError, self.frame.dropna, how=None)
+        pytest.raises(ValueError, self.frame.dropna, how='foo')
+        pytest.raises(TypeError, self.frame.dropna, how=None)
         # non-existent column - 8303
-        self.assertRaises(KeyError, self.frame.dropna, subset=['A', 'X'])
+        pytest.raises(KeyError, self.frame.dropna, subset=['A', 'X'])
 
     def test_dropna_multiple_axes(self):
         df = DataFrame([[1, np.nan, 2, 3],
@@ -202,8 +204,8 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         result = self.mixed_frame.fillna(value=0)
         result = self.mixed_frame.fillna(method='pad')
 
-        self.assertRaises(ValueError, self.tsframe.fillna)
-        self.assertRaises(ValueError, self.tsframe.fillna, 5, method='ffill')
+        pytest.raises(ValueError, self.tsframe.fillna)
+        pytest.raises(ValueError, self.tsframe.fillna, 5, method='ffill')
 
         # mixed numeric (but no float16)
         mf = self.mixed_float.reindex(columns=['A', 'B', 'D'])
@@ -482,12 +484,11 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
 
     def test_fillna_invalid_value(self):
         # list
-        self.assertRaises(TypeError, self.frame.fillna, [1, 2])
+        pytest.raises(TypeError, self.frame.fillna, [1, 2])
         # tuple
-        self.assertRaises(TypeError, self.frame.fillna, (1, 2))
+        pytest.raises(TypeError, self.frame.fillna, (1, 2))
         # frame with series
-        self.assertRaises(ValueError, self.frame.iloc[:, 0].fillna,
-                          self.frame)
+        pytest.raises(ValueError, self.frame.iloc[:, 0].fillna, self.frame)
 
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
@@ -545,7 +546,7 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
                         'B': [1, 4, 9, np.nan],
                         'C': [1, 2, 3, 5],
                         'D': list('abcd')})
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.interpolate(method='not_a_method')
 
     def test_interp_combo(self):
@@ -565,7 +566,7 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
     def test_interp_nan_idx(self):
         df = DataFrame({'A': [1, 2, np.nan, 4], 'B': [np.nan, 2, 3, 4]})
         df = df.set_index('A')
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             df.interpolate(method='values')
 
     def test_interp_various(self):
@@ -693,7 +694,7 @@ class TestDataFrameInterpolate(tm.TestCase, TestData):
                         'C': [np.nan, 2, 5, 7],
                         'D': [np.nan, np.nan, 9, 9],
                         'E': [1, 2, 3, 4]})
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.interpolate(axis=1)
 
     def test_interp_inplace(self):

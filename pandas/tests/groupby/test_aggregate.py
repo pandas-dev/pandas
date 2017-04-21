@@ -6,6 +6,9 @@ generally in test_groupby.py
 """
 
 from __future__ import print_function
+
+import pytest
+
 from datetime import datetime, timedelta
 from functools import partial
 
@@ -179,8 +182,8 @@ class TestGroupByAggregate(tm.TestCase):
 
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
-        self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
-        self.assertRaises(Exception, grouped.agg, lambda x: x.index[:2])
+        pytest.raises(Exception, grouped.agg, lambda x: x.describe())
+        pytest.raises(Exception, grouped.agg, lambda x: x.index[:2])
 
     def test_agg_ser_multi_key(self):
         # TODO(wesm): unused
@@ -374,7 +377,7 @@ class TestGroupByAggregate(tm.TestCase):
             g.aggregate({'r1': {'C': ['mean', 'sum']},
                          'r2': {'D': ['mean', 'sum']}})
 
-        self.assertRaises(SpecificationError, f)
+        pytest.raises(SpecificationError, f)
 
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
@@ -477,7 +480,7 @@ class TestGroupByAggregate(tm.TestCase):
             pprint_thing(df.to_string())
             raise TypeError
 
-        self.assertRaises(TypeError, df.groupby(0).agg, raiseException)
+        pytest.raises(TypeError, df.groupby(0).agg, raiseException)
 
     def test_series_agg_multikey(self):
         ts = tm.makeTimeSeries()
@@ -563,11 +566,11 @@ class TestGroupByAggregate(tm.TestCase):
     def test_cython_agg_nothing_to_agg(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': ['foo', 'bar'] * 25})
-        self.assertRaises(DataError, frame.groupby('a')['b'].mean)
+        pytest.raises(DataError, frame.groupby('a')['b'].mean)
 
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': ['foo', 'bar'] * 25})
-        self.assertRaises(DataError, frame[['b']].groupby(frame['a']).mean)
+        pytest.raises(DataError, frame[['b']].groupby(frame['a']).mean)
 
     def test_cython_agg_nothing_to_agg_with_dates(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
@@ -659,7 +662,7 @@ class TestGroupByAggregate(tm.TestCase):
         grouped = self.df.groupby('A')
         funcs = ['mean', lambda x: x.mean(), lambda x: x.std()]
 
-        self.assertRaises(SpecificationError, grouped.agg, funcs)
+        pytest.raises(SpecificationError, grouped.agg, funcs)
 
     def test_more_flexible_frame_multi_function(self):
 

@@ -119,12 +119,12 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         def f():
             DataFrame(1.0, index=[1], columns=['A']) | DataFrame(
                 True, index=[1], columns=['A'])
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         def f():
             DataFrame('foo', index=[1], columns=['A']) | DataFrame(
                 True, index=[1], columns=['A'])
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
     def test_operators_none_as_na(self):
         df = DataFrame({"col1": [2, 5.0, 123, None],
@@ -157,12 +157,12 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         def check(df, df2):
 
             for (x, y) in [(df, df2), (df2, df)]:
-                self.assertRaises(TypeError, lambda: x == y)
-                self.assertRaises(TypeError, lambda: x != y)
-                self.assertRaises(TypeError, lambda: x >= y)
-                self.assertRaises(TypeError, lambda: x > y)
-                self.assertRaises(TypeError, lambda: x < y)
-                self.assertRaises(TypeError, lambda: x <= y)
+                pytest.raises(TypeError, lambda: x == y)
+                pytest.raises(TypeError, lambda: x != y)
+                pytest.raises(TypeError, lambda: x >= y)
+                pytest.raises(TypeError, lambda: x > y)
+                pytest.raises(TypeError, lambda: x < y)
+                pytest.raises(TypeError, lambda: x <= y)
 
         # GH4968
         # invalid date/int comparisons
@@ -318,10 +318,10 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
     def test_logical_typeerror(self):
         if not compat.PY3:
-            self.assertRaises(TypeError, self.frame.__eq__, 'foo')
-            self.assertRaises(TypeError, self.frame.__lt__, 'foo')
-            self.assertRaises(TypeError, self.frame.__gt__, 'foo')
-            self.assertRaises(TypeError, self.frame.__ne__, 'foo')
+            pytest.raises(TypeError, self.frame.__eq__, 'foo')
+            pytest.raises(TypeError, self.frame.__lt__, 'foo')
+            pytest.raises(TypeError, self.frame.__gt__, 'foo')
+            pytest.raises(TypeError, self.frame.__ne__, 'foo')
         else:
             pytest.skip('test_logical_typeerror not tested on PY3')
 
@@ -968,7 +968,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         df = DataFrame(np.random.randn(8, 3), index=lrange(8),
                        columns=['A', 'B', 'C'])
 
-        self.assertRaises(TypeError, df.__eq__, None)
+        pytest.raises(TypeError, df.__eq__, None)
 
     def test_boolean_comparison(self):
 
@@ -1001,8 +1001,8 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         result = df.values > b_r
         assert_numpy_array_equal(result, expected.values)
 
-        self.assertRaises(ValueError, df.__gt__, b_c)
-        self.assertRaises(ValueError, df.values.__gt__, b_c)
+        pytest.raises(ValueError, df.__gt__, b_c)
+        pytest.raises(ValueError, df.values.__gt__, b_c)
 
         # ==
         expected = DataFrame([[False, False], [True, False], [False, False]])
@@ -1021,7 +1021,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         result = df.values == b_r
         assert_numpy_array_equal(result, expected.values)
 
-        self.assertRaises(ValueError, lambda: df == b_c)
+        pytest.raises(ValueError, lambda: df == b_c)
         self.assertFalse(np.array_equal(df.values, b_c))
 
         # with alignment
@@ -1037,8 +1037,8 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         # not shape compatible
-        self.assertRaises(ValueError, lambda: df == (2, 2))
-        self.assertRaises(ValueError, lambda: df == [2, 2])
+        pytest.raises(ValueError, lambda: df == (2, 2))
+        pytest.raises(ValueError, lambda: df == [2, 2])
 
     def test_combine_generic(self):
         df1 = self.frame
@@ -1203,7 +1203,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             align(df, val, 'columns')
 
         val = np.zeros((3, 3, 3))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             align(df, val, 'index')
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             align(df, val, 'columns')

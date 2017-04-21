@@ -1,5 +1,6 @@
-import numpy as np
+import pytest
 
+import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (Index, DatetimeIndex, datetime, offsets,
@@ -291,7 +292,7 @@ class TestDatetime64(tm.TestCase):
         # CBD requires np >= 1.7
         bday_egypt = offsets.CustomBusinessDay(weekmask='Sun Mon Tue Wed Thu')
         dti = date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
-        self.assertRaises(ValueError, lambda: dti.is_month_start)
+        pytest.raises(ValueError, lambda: dti.is_month_start)
 
         dti = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
 

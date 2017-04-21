@@ -1,5 +1,7 @@
 """ test with the .transform """
 
+import pytest
+
 import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
@@ -534,8 +536,8 @@ class TestGroupBy(MixIn, tm.TestCase):
                     for c in df:
                         if c not in ['float', 'int', 'float_missing'
                                      ] and op != 'shift':
-                            self.assertRaises(DataError, gb[c].transform, op)
-                            self.assertRaises(DataError, getattr(gb[c], op))
+                            pytest.raises(DataError, gb[c].transform, op)
+                            pytest.raises(DataError, getattr(gb[c], op))
                         else:
                             expected = gb[c].apply(targop)
                             expected.name = c

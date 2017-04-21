@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 import numpy as np
 import pandas as pd
 
@@ -148,8 +150,8 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
     def test_not_hashable(self):
         s_empty = Series()
         s = Series([1])
-        self.assertRaises(TypeError, hash, s_empty)
-        self.assertRaises(TypeError, hash, s)
+        pytest.raises(TypeError, hash, s_empty)
+        pytest.raises(TypeError, hash, s)
 
     def test_contains(self):
         tm.assert_contains_all(self.ts.index, self.ts)
@@ -218,7 +220,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))
-        with tm.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             s.info()
 
     def test_copy(self):

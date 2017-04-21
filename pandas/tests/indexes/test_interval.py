@@ -114,7 +114,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         # non-intervals
         def f():
             IntervalIndex.from_intervals([0.997, 4.0])
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
     def test_properties(self):
         index = self.index
@@ -212,7 +212,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         for dtype in [np.int64, np.float64, 'datetime64[ns]',
                       'datetime64[ns, US/Eastern]', 'timedelta64',
                       'period[M]']:
-            self.assertRaises(ValueError, idx.astype, dtype)
+            pytest.raises(ValueError, idx.astype, dtype)
 
         result = idx.astype(object)
         tm.assert_index_equal(result, Index(idx.values, dtype='object'))
@@ -251,9 +251,9 @@ class TestIntervalIndex(Base, tm.TestCase):
         actual = self.index.insert(2, Interval(2, 3))
         self.assertTrue(expected.equals(actual))
 
-        self.assertRaises(ValueError, self.index.insert, 0, 1)
-        self.assertRaises(ValueError, self.index.insert, 0,
-                          Interval(2, 3, closed='left'))
+        pytest.raises(ValueError, self.index.insert, 0, 1)
+        pytest.raises(ValueError, self.index.insert, 0,
+                      Interval(2, 3, closed='left'))
 
     def test_take(self):
         actual = self.index.take([0, 1])
@@ -328,13 +328,13 @@ class TestIntervalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, expected)
 
     def test_get_loc_value(self):
-        self.assertRaises(KeyError, self.index.get_loc, 0)
+        pytest.raises(KeyError, self.index.get_loc, 0)
         self.assertEqual(self.index.get_loc(0.5), 0)
         self.assertEqual(self.index.get_loc(1), 0)
         self.assertEqual(self.index.get_loc(1.5), 1)
         self.assertEqual(self.index.get_loc(2), 1)
-        self.assertRaises(KeyError, self.index.get_loc, -1)
-        self.assertRaises(KeyError, self.index.get_loc, 3)
+        pytest.raises(KeyError, self.index.get_loc, -1)
+        pytest.raises(KeyError, self.index.get_loc, 3)
 
         idx = IntervalIndex.from_tuples([(0, 2), (1, 3)])
         self.assertEqual(idx.get_loc(0.5), 0)
@@ -344,10 +344,10 @@ class TestIntervalIndex(Base, tm.TestCase):
         tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
                                     np.array([0, 1], dtype='int64'))
         self.assertEqual(idx.get_loc(3), 1)
-        self.assertRaises(KeyError, idx.get_loc, 3.5)
+        pytest.raises(KeyError, idx.get_loc, 3.5)
 
         idx = IntervalIndex.from_arrays([0, 2], [1, 3])
-        self.assertRaises(KeyError, idx.get_loc, 1.5)
+        pytest.raises(KeyError, idx.get_loc, 1.5)
 
     def slice_locs_cases(self, breaks):
         # TODO: same tests for more index types
@@ -401,16 +401,16 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_slice_locs_fails(self):
         index = IntervalIndex.from_tuples([(1, 2), (0, 1), (2, 3)])
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             index.slice_locs(1, 2)
 
     def test_get_loc_interval(self):
         self.assertEqual(self.index.get_loc(Interval(0, 1)), 0)
         self.assertEqual(self.index.get_loc(Interval(0, 0.5)), 0)
         self.assertEqual(self.index.get_loc(Interval(0, 1, 'left')), 0)
-        self.assertRaises(KeyError, self.index.get_loc, Interval(2, 3))
-        self.assertRaises(KeyError, self.index.get_loc,
-                          Interval(-1, 0, 'left'))
+        pytest.raises(KeyError, self.index.get_loc, Interval(2, 3))
+        pytest.raises(KeyError, self.index.get_loc,
+                      Interval(-1, 0, 'left'))
 
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
@@ -543,10 +543,10 @@ class TestIntervalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, expected)
 
     def test_set_operation_errors(self):
-        self.assertRaises(ValueError, self.index.union, self.index.left)
+        pytest.raises(ValueError, self.index.union, self.index.left)
 
         other = IntervalIndex.from_breaks([0, 1, 2], closed='neither')
-        self.assertRaises(ValueError, self.index.union, other)
+        pytest.raises(ValueError, self.index.union, other)
 
     def test_isin(self):
         actual = self.index.isin(self.index)
@@ -606,9 +606,9 @@ class TestIntervalIndex(Base, tm.TestCase):
             self.index > 0
         with self.assertRaisesRegexp(TypeError, 'unorderable types'):
             self.index <= 0
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.index > np.arange(2)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.index > np.arange(3)
 
     def test_missing_values(self):
@@ -677,7 +677,7 @@ class TestIntervalIndex(Base, tm.TestCase):
             index1.append(IntervalIndex.from_arrays([0, 1], [1, 2],
                                                     closed='both'))
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
 
 class TestIntervalRange(tm.TestCase):
@@ -694,28 +694,28 @@ class TestIntervalRange(tm.TestCase):
         def f():
             interval_range(0)
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             interval_range(periods=2)
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             interval_range()
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # mixed units
         def f():
             interval_range(0, Timestamp('20130101'), freq=2)
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             interval_range(0, 10, freq=Timedelta('1day'))
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
 
 class TestIntervalTree(tm.TestCase):
@@ -740,7 +740,7 @@ class TestIntervalTree(tm.TestCase):
             tm.assert_numpy_array_equal(
                 tree.get_indexer(np.array([1.0, 5.5, 6.5])),
                 np.array([0, 4, -1], dtype='int64'))
-            with self.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 tree.get_indexer(np.array([3.0]))
 
     def test_get_indexer_non_unique(self):

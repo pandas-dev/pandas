@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
+import pytest
 import random
 import numpy as np
 
@@ -61,7 +63,7 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         sorted_df = frame.sort_values(by=['B', 'A'], ascending=[True, False])
         assert_frame_equal(sorted_df, expected)
 
-        self.assertRaises(ValueError, lambda: frame.sort_values(
+        pytest.raises(ValueError, lambda: frame.sort_values(
             by=['A', 'B'], axis=2, inplace=True))
 
         # by row (axis=1): GH 10806

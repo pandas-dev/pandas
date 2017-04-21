@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 import pandas as pd
 from pandas import Categorical, Series, CategoricalIndex
@@ -265,7 +267,7 @@ class TestUnionCategoricals(tm.TestCase):
 
         c1 = Categorical(['b', 'a'], categories=['b', 'a', 'c'], ordered=True)
         c2 = Categorical(['a', 'c'], categories=['b', 'a', 'c'], ordered=True)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             union_categoricals([c1, c2], sort_categories=True)
 
     def test_union_categoricals_sort_false(self):
@@ -335,5 +337,5 @@ class TestUnionCategoricals(tm.TestCase):
         result = union_categoricals([c1, c2])
         tm.assert_categorical_equal(result, expected)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             union_categoricals([c1, ['a', 'b', 'c']])

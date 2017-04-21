@@ -1110,11 +1110,11 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame(np.random.randn(1, 3), index=['a'])
         df2 = DataFrame(np.random.randn(1, 4), index=['b'])
 
-        self.assertRaises(ValueError, concat, [df, df],
-                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+        pytest.raises(ValueError, concat, [df, df],
+                      keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
 
-        self.assertRaises(ValueError, concat, [df, df2],
-                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+        pytest.raises(ValueError, concat, [df, df2],
+                      keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
 
     def test_concat_rename_index(self):
         a = DataFrame(np.random.rand(3, 3),
@@ -1306,7 +1306,7 @@ class TestConcatenate(ConcatenateBase):
         # invalid concatente of mixed dims
         with catch_warnings(record=True):
             panel = tm.makePanel()
-            self.assertRaises(ValueError, lambda: concat([panel, s1], axis=1))
+            pytest.raises(ValueError, lambda: concat([panel, s1], axis=1))
 
     def test_empty_dtype_coerce(self):
 
@@ -1500,7 +1500,7 @@ class TestConcatenate(ConcatenateBase):
         pieces = [df[:5], None, None, df[5:]]
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
-        self.assertRaises(ValueError, concat, [None, None])
+        pytest.raises(ValueError, concat, [None, None])
 
     def test_concat_datetime64_block(self):
         from pandas.core.indexes.datetimes import date_range
@@ -1634,12 +1634,12 @@ class TestConcatenate(ConcatenateBase):
         # trying to concat a ndframe with a non-ndframe
         df1 = mkdf(10, 2)
         for obj in [1, dict(), [1, 2], (1, 2)]:
-            self.assertRaises(TypeError, lambda x: concat([df1, obj]))
+            pytest.raises(TypeError, lambda x: concat([df1, obj]))
 
     def test_concat_invalid_first_argument(self):
         df1 = mkdf(10, 2)
         df2 = mkdf(10, 2)
-        self.assertRaises(TypeError, concat, df1, df2)
+        pytest.raises(TypeError, concat, df1, df2)
 
         # generator ok though
         concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))

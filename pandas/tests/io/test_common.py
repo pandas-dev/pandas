@@ -2,6 +2,7 @@
     Tests for the pandas.io.common functionalities
 """
 import mmap
+import pytest
 import os
 from os.path import isabs
 
@@ -138,4 +139,4 @@ class TestMMapWrapper(tm.TestCase):
             next_line = next(wrapper)
             self.assertEqual(next_line.strip(), line.strip())
 
-        self.assertRaises(StopIteration, next, wrapper)
+        pytest.raises(StopIteration, next, wrapper)

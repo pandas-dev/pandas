@@ -1,6 +1,7 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
+import pytest
 
 from numpy import nan
 import numpy as np
@@ -353,7 +354,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         self.assertEqual(self.ziseries2.shape, (15, ))
 
     def test_astype(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.bseries.astype(np.int64)
 
     def test_astype_all(self):
@@ -425,12 +426,12 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         _check_getitem(self.ziseries, self.ziseries.to_dense())
 
         # exception handling
-        self.assertRaises(Exception, self.bseries.__getitem__,
-                          len(self.bseries) + 1)
+        pytest.raises(Exception, self.bseries.__getitem__,
+                      len(self.bseries) + 1)
 
         # index not contained
-        self.assertRaises(Exception, self.btseries.__getitem__,
-                          self.btseries.index[-1] + BDay())
+        pytest.raises(Exception, self.btseries.__getitem__,
+                      self.btseries.index[-1] + BDay())
 
     def test_get_get_value(self):
         tm.assert_almost_equal(self.bseries.get(10), self.bseries[10])
@@ -489,8 +490,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         self._check_all(_compare_with_dense)
 
-        self.assertRaises(Exception, self.bseries.take,
-                          [0, len(self.bseries) + 1])
+        pytest.raises(Exception, self.bseries.take,
+                      [0, len(self.bseries) + 1])
 
         # Corner case
         sp = SparseSeries(np.ones(10) * nan)
@@ -1036,25 +1037,25 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
 
     def test_to_coo_bad_partition_nonnull_intersection(self):
         ss = self.sparse_series[0]
-        self.assertRaises(ValueError, ss.to_coo, ['A', 'B', 'C'], ['C', 'D'])
+        pytest.raises(ValueError, ss.to_coo, ['A', 'B', 'C'], ['C', 'D'])
 
     def test_to_coo_bad_partition_small_union(self):
         ss = self.sparse_series[0]
-        self.assertRaises(ValueError, ss.to_coo, ['A'], ['C', 'D'])
+        pytest.raises(ValueError, ss.to_coo, ['A'], ['C', 'D'])
 
     def test_to_coo_nlevels_less_than_two(self):
         ss = self.sparse_series[0]
         ss.index = np.arange(len(ss.index))
-        self.assertRaises(ValueError, ss.to_coo)
+        pytest.raises(ValueError, ss.to_coo)
 
     def test_to_coo_bad_ilevel(self):
         ss = self.sparse_series[0]
-        self.assertRaises(KeyError, ss.to_coo, ['A', 'B'], ['C', 'D', 'E'])
+        pytest.raises(KeyError, ss.to_coo, ['A', 'B'], ['C', 'D', 'E'])
 
     def test_to_coo_duplicate_index_entries(self):
         ss = pd.concat([self.sparse_series[0],
                         self.sparse_series[0]]).to_sparse()
-        self.assertRaises(ValueError, ss.to_coo, ['A', 'B'], ['C', 'D'])
+        pytest.raises(ValueError, ss.to_coo, ['A', 'B'], ['C', 'D'])
 
     def test_from_coo_dense_index(self):
         ss = SparseSeries.from_coo(self.coo_matrices[0], dense_index=True)

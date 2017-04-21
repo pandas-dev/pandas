@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime
 
 import warnings
@@ -37,7 +39,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         # invalid axis
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        self.assertRaises(ValueError, df.apply, lambda x: x, 2)
+        pytest.raises(ValueError, df.apply, lambda x: x, 2)
 
         # GH9573
         df = DataFrame({'c0': ['A', 'A', 'B', 'B'],
@@ -528,17 +530,17 @@ class TestDataFrameAggregate(tm.TestCase, TestData):
         # cannot both transform and agg
         def f():
             self.frame.transform(['max', 'min'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.frame.agg(['max', 'sqrt'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.frame.transform(['max', 'sqrt'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
 

@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
+import pytest
+
 from datetime import timedelta
 
 import numpy as np
@@ -146,8 +149,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         ei = df[['k']]
         assert_frame_equal(ri, ei)
 
-        self.assertRaises(NotImplementedError,
-                          lambda: df.select_dtypes(include=['period']))
+        pytest.raises(NotImplementedError,
+                      lambda: df.select_dtypes(include=['period']))
 
     def test_select_dtypes_exclude(self):
         df = DataFrame({'a': list('abc'),
@@ -470,8 +473,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
         # error should be raised when using something other than column labels
         # in the keys of the dtype dict
-        self.assertRaises(KeyError, df.astype, {'b': str, 2: str})
-        self.assertRaises(KeyError, df.astype, {'e': str})
+        pytest.raises(KeyError, df.astype, {'b': str, 2: str})
+        pytest.raises(KeyError, df.astype, {'e': str})
         assert_frame_equal(df, original)
 
         # if the dtypes provided are the same as the original dtypes, the
@@ -526,7 +529,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
         df = DataFrame([1, 2, 3])
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.astype(np.float64, errors=True)
 
         with tm.assert_produces_warning(FutureWarning):

@@ -287,7 +287,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df3, df4)
 
         import xlrd
-        with tm.assertRaises(xlrd.XLRDError):
+        with pytest.raises(xlrd.XLRDError):
             read_excel(excel, 'asdf')
 
     def test_excel_table(self):
@@ -399,7 +399,7 @@ class ReadingTestsBase(SharedItems):
         expected['c'] = ['001', '002', '003', '004']
         tm.assert_frame_equal(actual, expected)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             actual = self.get_exceldf(basename, dtype={'d': 'int64'})
 
     def test_reading_all_sheets(self):
@@ -915,13 +915,13 @@ class XlrdTests(ReadingTestsBase):
     def test_read_excel_bool_header_arg(self):
         # GH 6114
         for arg in [True, False]:
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
                               header=arg)
 
     def test_read_excel_chunksize(self):
         # GH 8011
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
                           chunksize=100)
 
@@ -1040,7 +1040,7 @@ class ExcelWriterBase(SharedItems):
             df = read_excel(xl, 0)
             tm.assert_frame_equal(gt, df)
 
-            with tm.assertRaises(xlrd.XLRDError):
+            with pytest.raises(xlrd.XLRDError):
                 read_excel(xl, '0')
 
     def test_excelwriter_contextmanager(self):
@@ -1675,7 +1675,7 @@ class ExcelWriterBase(SharedItems):
                     # this if will be removed once multi column excel writing
                     # is implemented for now fixing #9794
                     if j > 1:
-                        with tm.assertRaises(NotImplementedError):
+                        with pytest.raises(NotImplementedError):
                             res = roundtrip(df, use_headers, index=False)
                     else:
                         res = roundtrip(df, use_headers)
@@ -1725,7 +1725,7 @@ class ExcelWriterBase(SharedItems):
         j = 2
         i = 1
         df = mkdf(nrows, ncols, r_idx_nlevels=i, c_idx_nlevels=j)
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             roundtrip2(df, header=False, index=False)
 
     def test_duplicated_columns(self):
@@ -1784,7 +1784,7 @@ class ExcelWriterBase(SharedItems):
             read_frame = read_excel(path, 'test1')
             tm.assert_frame_equal(expected, read_frame)
 
-            with tm.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 write_frame.to_excel(path, 'test1', columns=['C', 'D'])
 
     def test_datetimes(self):
@@ -2164,7 +2164,7 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
                                        ('2014', 'height'),
                                        ('2014', 'weight')])
         df = DataFrame(np.random.randn(10, 3), columns=cols)
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, index=False)
 

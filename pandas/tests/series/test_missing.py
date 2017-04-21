@@ -2,6 +2,8 @@
 # pylint: disable-msg=E1101,W0612
 
 import pytz
+import pytest
+
 from datetime import timedelta, datetime
 
 from distutils.version import LooseVersion
@@ -309,14 +311,14 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
     def test_fillna_raise(self):
         s = Series(np.random.randint(-100, 100, 50))
-        self.assertRaises(TypeError, s.fillna, [1, 2])
-        self.assertRaises(TypeError, s.fillna, (1, 2))
+        pytest.raises(TypeError, s.fillna, [1, 2])
+        pytest.raises(TypeError, s.fillna, (1, 2))
 
         # related GH 9217, make sure limit is an int and greater than 0
         s = Series([1, 2, 3, None])
         for limit in [-1, 0, 1., 2.]:
             for method in ['backfill', 'bfill', 'pad', 'ffill', None]:
-                with tm.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     s.fillna(1, limit=limit, method=method)
 
     def test_fillna_nat(self):
@@ -382,8 +384,8 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         exp = Series([0., 1., 5., 3., 4.], index=ts.index)
         tm.assert_series_equal(ts.fillna(value=5), exp)
 
-        self.assertRaises(ValueError, ts.fillna)
-        self.assertRaises(ValueError, self.ts.fillna, value=0, method='ffill')
+        pytest.raises(ValueError, ts.fillna)
+        pytest.raises(ValueError, self.ts.fillna, value=0, method='ffill')
 
         # GH 5703
         s1 = Series([np.nan])
@@ -520,7 +522,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         self.assertEqual(len(s), 0)
 
         # invalid axis
-        self.assertRaises(ValueError, s.dropna, axis=1)
+        pytest.raises(ValueError, s.dropna, axis=1)
 
     def test_datetime64_tz_dropna(self):
         # DatetimeBlock
@@ -605,7 +607,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         # neither monotonic increasing or decreasing
         rng2 = rng[[1, 0, 2]]
 
-        self.assertRaises(ValueError, rng2.get_indexer, rng, method='pad')
+        pytest.raises(ValueError, rng2.get_indexer, rng, method='pad')
 
     def test_dropna_preserve_name(self):
         self.ts[:5] = np.nan
@@ -722,7 +724,7 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         # Only raises ValueError if there are NaNs.
         non_ts = self.series.copy()
         non_ts[0] = np.NaN
-        self.assertRaises(ValueError, non_ts.interpolate, method='time')
+        pytest.raises(ValueError, non_ts.interpolate, method='time')
 
     def test_interpolate_pchip(self):
         tm._skip_if_no_scipy()
@@ -821,7 +823,7 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
 
     def test_interpolate_non_ts(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.interpolate(method='time')
 
     # New interpolation tests
@@ -912,7 +914,7 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         s = pd.Series([1, 2, np.nan, np.nan, 5])
         for limit in [-1, 0, 1., 2.]:
             for method in methods:
-                with tm.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     s.interpolate(limit=limit, method=method)
 
     def test_interp_limit_forward(self):
@@ -932,12 +934,12 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
     def test_interp_limit_bad_direction(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 
-        self.assertRaises(ValueError, s.interpolate, method='linear', limit=2,
-                          limit_direction='abc')
+        pytest.raises(ValueError, s.interpolate, method='linear', limit=2,
+                      limit_direction='abc')
 
         # raises an error even if no limit is specified.
-        self.assertRaises(ValueError, s.interpolate, method='linear',
-                          limit_direction='abc')
+        pytest.raises(ValueError, s.interpolate, method='linear',
+                      limit_direction='abc')
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
@@ -1021,13 +1023,13 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
         tm._skip_if_no_scipy()
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.interpolate(method='polynomial', order=1)
 
     def test_interp_nonmono_raise(self):
         tm._skip_if_no_scipy()
         s = Series([1, np.nan, 3], index=[0, 2, 1])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.interpolate(method='krogh')
 
     def test_interp_datetime64(self):
@@ -1048,9 +1050,9 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
     def test_no_order(self):
         tm._skip_if_no_scipy()
         s = Series([0, 1, np.nan, 3])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.interpolate(method='polynomial')
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.interpolate(method='spline')
 
     def test_spline(self):
@@ -1094,10 +1096,10 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
 
         s = pd.Series(np.arange(10) ** 2)
         s[np.random.randint(0, 9, 3)] = np.nan
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.interpolate(method='spline')
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.interpolate(method='spline', order=0)
 
     def test_interp_timedelta64(self):

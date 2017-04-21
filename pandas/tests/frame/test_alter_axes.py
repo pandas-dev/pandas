@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -396,7 +398,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         tm.assert_index_equal(renamed.index, pd.Index(['BAR', 'FOO']))
 
         # have to pass something
-        self.assertRaises(TypeError, self.frame.rename)
+        pytest.raises(TypeError, self.frame.rename)
 
         # partial columns
         renamed = self.frame.rename(columns={'C': 'foo', 'D': 'bar'})

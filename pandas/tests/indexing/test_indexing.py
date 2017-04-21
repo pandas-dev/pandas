@@ -3,6 +3,8 @@
 
 """ test fancy indexing & misc """
 
+import pytest
+
 from warnings import catch_warnings
 from datetime import datetime
 
@@ -40,7 +42,7 @@ class TestFancy(Base, tm.TestCase):
             df.loc[df.index[2:5], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
                                                      2.2, 1.0])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # valid
         df.loc[df.index[2:6], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
@@ -59,7 +61,7 @@ class TestFancy(Base, tm.TestCase):
         def f():
             df[2:5] = np.arange(1, 4) * 1j
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_setitem_dtype_upcast(self):
 
@@ -240,7 +242,7 @@ class TestFancy(Base, tm.TestCase):
         df = pd.DataFrame(np.random.random((10, 5)),
                           columns=["a"] + [20, 21, 22, 23])
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df[[22, 26, -8]]
         self.assertEqual(df[21].shape[0], df.shape[0])
 
@@ -429,18 +431,18 @@ class TestFancy(Base, tm.TestCase):
         df = pd.DataFrame([1], pd.Index([pd.Timestamp('2011-01-01')],
                                         dtype=object))
         self.assertTrue(df.index.is_all_dates)
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df['2011']
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.loc['2011', 0]
 
         df = pd.DataFrame()
         self.assertFalse(df.index.is_all_dates)
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df['2011']
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.loc['2011', 0]
 
     def test_mi_access(self):

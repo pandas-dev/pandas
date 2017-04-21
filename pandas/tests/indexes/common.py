@@ -40,7 +40,7 @@ class Base(object):
             return
 
         # need an object to create with
-        self.assertRaises(TypeError, self._holder)
+        pytest.raises(TypeError, self._holder)
 
     def test_to_series(self):
         # assert that we are creating a copy of the index
@@ -55,8 +55,8 @@ class Base(object):
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        self.assertRaises(NotImplementedError, idx.shift, 1)
-        self.assertRaises(NotImplementedError, idx.shift, 1, 2)
+        pytest.raises(NotImplementedError, idx.shift, 1)
+        pytest.raises(NotImplementedError, idx.shift, 1, 2)
 
     def test_create_index_existing_name(self):
 
@@ -363,13 +363,13 @@ class Base(object):
 
     def test_sort(self):
         for ind in self.indices.values():
-            self.assertRaises(TypeError, ind.sort)
+            pytest.raises(TypeError, ind.sort)
 
     def test_mutability(self):
         for ind in self.indices.values():
             if not len(ind):
                 continue
-            self.assertRaises(TypeError, ind.__setitem__, 0, ind[0])
+            pytest.raises(TypeError, ind.__setitem__, 0, ind[0])
 
     def test_view(self):
         for ind in self.indices.values():
@@ -459,7 +459,7 @@ class Base(object):
             if not isinstance(ind,
                               (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 # GH 10791
-                with tm.assertRaises(AttributeError):
+                with pytest.raises(AttributeError):
                     ind.freq
 
     def test_take_invalid_kwargs(self):
@@ -694,7 +694,7 @@ class Base(object):
             self.assertTrue(result.equals(expected))
             self.assertEqual(result.name, expected.name)
 
-            with tm.assertRaises((IndexError, ValueError)):
+            with pytest.raises((IndexError, ValueError)):
                 # either depending on numpy version
                 result = idx.delete(len(idx))
 

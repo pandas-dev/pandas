@@ -213,7 +213,7 @@ class TestSeriesRank(tm.TestCase, TestData):
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')
-        self.assertRaises(ValueError, s.rank, 'average')
+        pytest.raises(ValueError, s.rank, 'average')
 
     def test_rank_inf(self):
         pytest.skip('DataFrame.rank does not currently rank '

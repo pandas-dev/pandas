@@ -167,7 +167,7 @@ class TestDatetimeIndex(tm.TestCase):
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
-        with tm.assertRaises((IndexError, ValueError)):
+        with pytest.raises((IndexError, ValueError)):
             # either depeidnig on numpy version
             result = idx.delete(5)
 

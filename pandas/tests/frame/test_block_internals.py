@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime, timedelta
 import itertools
 
@@ -285,10 +287,10 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
                              columns=["A", "B", "C"],
                              dtype=dtype)
 
-        self.assertRaises(NotImplementedError, f,
-                          [("A", "datetime64[h]"),
-                           ("B", "str"),
-                           ("C", "int32")])
+        pytest.raises(NotImplementedError, f,
+                      [("A", "datetime64[h]"),
+                       ("B", "str"),
+                       ("C", "int32")])
 
         # these work (though results may be unexpected)
         f('int64')

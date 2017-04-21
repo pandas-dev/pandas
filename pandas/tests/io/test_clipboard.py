@@ -127,9 +127,9 @@ class TestClipboard(tm.TestCase):
     def test_invalid_encoding(self):
         # test case for testing invalid encoding
         data = self.data['string']
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             data.to_clipboard(encoding='ascii')
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             pd.read_clipboard(encoding='ascii')
 
     def test_round_trip_valid_encodings(self):

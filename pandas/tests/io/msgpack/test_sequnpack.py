@@ -1,26 +1,26 @@
 # coding: utf-8
 
-import unittest
+import pytest
 
 from pandas import compat
 from pandas.io.msgpack import Unpacker, BufferFull
 from pandas.io.msgpack import OutOfData
 
 
-class TestPack(unittest.TestCase):
+class TestPack(object):
 
     def test_partialdata(self):
         unpacker = Unpacker()
         unpacker.feed(b'\xa5')
-        self.assertRaises(StopIteration, next, iter(unpacker))
+        pytest.raises(StopIteration, next, iter(unpacker))
         unpacker.feed(b'h')
-        self.assertRaises(StopIteration, next, iter(unpacker))
+        pytest.raises(StopIteration, next, iter(unpacker))
         unpacker.feed(b'a')
-        self.assertRaises(StopIteration, next, iter(unpacker))
+        pytest.raises(StopIteration, next, iter(unpacker))
         unpacker.feed(b'l')
-        self.assertRaises(StopIteration, next, iter(unpacker))
+        pytest.raises(StopIteration, next, iter(unpacker))
         unpacker.feed(b'l')
-        self.assertRaises(StopIteration, next, iter(unpacker))
+        pytest.raises(StopIteration, next, iter(unpacker))
         unpacker.feed(b'o')
         assert next(iter(unpacker)) == b'hallo'
 
@@ -33,7 +33,7 @@ class TestPack(unittest.TestCase):
         assert unpacker.unpack() == ord(b'b')
         assert unpacker.unpack() == ord(b'a')
         assert unpacker.unpack() == ord(b'r')
-        self.assertRaises(OutOfData, unpacker.unpack)
+        pytest.raises(OutOfData, unpacker.unpack)
 
         unpacker.feed(b'foo')
         unpacker.feed(b'bar')
@@ -53,13 +53,13 @@ class TestPack(unittest.TestCase):
         unpacker.skip()
         assert unpacker.unpack() == ord(b'a')
         unpacker.skip()
-        self.assertRaises(OutOfData, unpacker.unpack)
+        pytest.raises(OutOfData, unpacker.unpack)
 
     def test_maxbuffersize(self):
-        self.assertRaises(ValueError, Unpacker, read_size=5, max_buffer_size=3)
+        pytest.raises(ValueError, Unpacker, read_size=5, max_buffer_size=3)
         unpacker = Unpacker(read_size=3, max_buffer_size=3, use_list=1)
         unpacker.feed(b'fo')
-        self.assertRaises(BufferFull, unpacker.feed, b'ob')
+        pytest.raises(BufferFull, unpacker.feed, b'ob')
         unpacker.feed(b'o')
         assert ord('f') == next(unpacker)
         unpacker.feed(b'b')

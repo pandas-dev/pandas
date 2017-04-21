@@ -308,20 +308,20 @@ class TestHDFStore(Base, tm.TestCase):
 
             # invalid
             df = tm.makeDataFrame()
-            self.assertRaises(ValueError, df.to_hdf, path,
-                              'df', append=True, format='f')
-            self.assertRaises(ValueError, df.to_hdf, path,
-                              'df', append=True, format='fixed')
+            pytest.raises(ValueError, df.to_hdf, path,
+                          'df', append=True, format='f')
+            pytest.raises(ValueError, df.to_hdf, path,
+                          'df', append=True, format='fixed')
 
-            self.assertRaises(TypeError, df.to_hdf, path,
-                              'df', append=True, format='foo')
-            self.assertRaises(TypeError, df.to_hdf, path,
-                              'df', append=False, format='bar')
+            pytest.raises(TypeError, df.to_hdf, path,
+                          'df', append=True, format='foo')
+            pytest.raises(TypeError, df.to_hdf, path,
+                          'df', append=False, format='bar')
 
         # File path doesn't exist
         path = ""
-        self.assertRaises(compat.FileNotFoundError,
-                          read_hdf, path, 'df')
+        pytest.raises(compat.FileNotFoundError,
+                      read_hdf, path, 'df')
 
     def test_api_default_format(self):
 
@@ -333,7 +333,7 @@ class TestHDFStore(Base, tm.TestCase):
             _maybe_remove(store, 'df')
             store.put('df', df)
             self.assertFalse(store.get_storer('df').is_table)
-            self.assertRaises(ValueError, store.append, 'df2', df)
+            pytest.raises(ValueError, store.append, 'df2', df)
 
             pandas.set_option('io.hdf.default_format', 'table')
             _maybe_remove(store, 'df')
@@ -353,7 +353,7 @@ class TestHDFStore(Base, tm.TestCase):
             df.to_hdf(path, 'df')
             with HDFStore(path) as store:
                 self.assertFalse(store.get_storer('df').is_table)
-            self.assertRaises(ValueError, df.to_hdf, path, 'df2', append=True)
+            pytest.raises(ValueError, df.to_hdf, path, 'df2', append=True)
 
             pandas.set_option('io.hdf.default_format', 'table')
             df.to_hdf(path, 'df3')
@@ -473,7 +473,7 @@ class TestHDFStore(Base, tm.TestCase):
             # this is an error because its table_type is appendable, but no
             # version info
             store.get_node('df2')._v_attrs.pandas_version = None
-            self.assertRaises(Exception, store.select, 'df2')
+            pytest.raises(Exception, store.select, 'df2')
 
     def test_mode(self):
 
@@ -485,7 +485,7 @@ class TestHDFStore(Base, tm.TestCase):
 
                 # constructor
                 if mode in ['r', 'r+']:
-                    self.assertRaises(IOError, HDFStore, path, mode=mode)
+                    pytest.raises(IOError, HDFStore, path, mode=mode)
 
                 else:
                     store = HDFStore(path, mode=mode)
@@ -499,7 +499,7 @@ class TestHDFStore(Base, tm.TestCase):
                     def f():
                         with HDFStore(path, mode=mode) as store:  # noqa
                             pass
-                    self.assertRaises(IOError, f)
+                    pytest.raises(IOError, f)
                 else:
                     with HDFStore(path, mode=mode) as store:
                         self.assertEqual(store._handle.mode, mode)
@@ -508,16 +508,16 @@ class TestHDFStore(Base, tm.TestCase):
 
                 # conv write
                 if mode in ['r', 'r+']:
-                    self.assertRaises(IOError, df.to_hdf,
-                                      path, 'df', mode=mode)
+                    pytest.raises(IOError, df.to_hdf,
+                                  path, 'df', mode=mode)
                     df.to_hdf(path, 'df', mode='w')
                 else:
                     df.to_hdf(path, 'df', mode=mode)
 
                 # conv read
                 if mode in ['w']:
-                    self.assertRaises(ValueError, read_hdf,
-                                      path, 'df', mode=mode)
+                    pytest.raises(ValueError, read_hdf,
+                                  path, 'df', mode=mode)
                 else:
                     result = read_hdf(path, 'df', mode=mode)
                     assert_frame_equal(result, df)
@@ -544,7 +544,7 @@ class TestHDFStore(Base, tm.TestCase):
             store['a'] = tm.makeTimeSeries()
 
             # invalid mode change
-            self.assertRaises(PossibleDataLossError, store.open, 'w')
+            pytest.raises(PossibleDataLossError, store.open, 'w')
             store.close()
             self.assertFalse(store.is_open)
 
@@ -621,7 +621,7 @@ class TestHDFStore(Base, tm.TestCase):
             right = store['/a']
             tm.assert_series_equal(left, right)
 
-            self.assertRaises(KeyError, store.get, 'b')
+            pytest.raises(KeyError, store.get, 'b')
 
     def test_getattr(self):
 
@@ -642,10 +642,10 @@ class TestHDFStore(Base, tm.TestCase):
             tm.assert_frame_equal(result, df)
 
             # errors
-            self.assertRaises(AttributeError, getattr, store, 'd')
+            pytest.raises(AttributeError, getattr, store, 'd')
 
             for x in ['mode', 'path', 'handle', 'complib']:
-                self.assertRaises(AttributeError, getattr, store, x)
+                pytest.raises(AttributeError, getattr, store, x)
 
             # not stores
             for x in ['mode', 'path', 'handle', 'complib']:
@@ -665,17 +665,17 @@ class TestHDFStore(Base, tm.TestCase):
             store.put('c', df[:10], format='table')
 
             # not OK, not a table
-            self.assertRaises(
+            pytest.raises(
                 ValueError, store.put, 'b', df[10:], append=True)
 
             # node does not currently exist, test _is_table_type returns False
             # in this case
             # _maybe_remove(store, 'f')
-            # self.assertRaises(ValueError, store.put, 'f', df[10:],
+            # pytest.raises(ValueError, store.put, 'f', df[10:],
             #                   append=True)
 
             # can't put to a table (use append instead)
-            self.assertRaises(ValueError, store.put, 'c', df[10:], append=True)
+            pytest.raises(ValueError, store.put, 'c', df[10:], append=True)
 
             # overwrite table
             store.put('c', df[:10], format='table', append=False)
@@ -717,8 +717,8 @@ class TestHDFStore(Base, tm.TestCase):
             tm.assert_frame_equal(store['c'], df)
 
             # can't compress if format='fixed'
-            self.assertRaises(ValueError, store.put, 'b', df,
-                              format='fixed', complib='zlib')
+            pytest.raises(ValueError, store.put, 'b', df,
+                          format='fixed', complib='zlib')
 
     def test_put_compression_blosc(self):
         tm.skip_if_no_package('tables', min_version='2.2',
@@ -731,8 +731,8 @@ class TestHDFStore(Base, tm.TestCase):
         with ensure_clean_store(self.path) as store:
 
             # can't compress if format='fixed'
-            self.assertRaises(ValueError, store.put, 'b', df,
-                              format='fixed', complib='blosc')
+            pytest.raises(ValueError, store.put, 'b', df,
+                          format='fixed', complib='blosc')
 
             store.put('c', df, format='table', complib='blosc')
             tm.assert_frame_equal(store['c'], df)
@@ -946,7 +946,7 @@ class TestHDFStore(Base, tm.TestCase):
             else:
 
                 # only support for fixed types (and they have a perf warning)
-                self.assertRaises(TypeError, check, 'table', index)
+                pytest.raises(TypeError, check, 'table', index)
 
                 # PerformanceWarning
                 with catch_warnings(record=True):
@@ -1216,11 +1216,11 @@ class TestHDFStore(Base, tm.TestCase):
 
             # store additonal fields in different blocks
             df['int16_2'] = Series([1] * len(df), dtype='int16')
-            self.assertRaises(ValueError, store.append, 'df', df)
+            pytest.raises(ValueError, store.append, 'df', df)
 
             # store multile additonal fields in different blocks
             df['float_3'] = Series([1.] * len(df), dtype='float64')
-            self.assertRaises(ValueError, store.append, 'df', df)
+            pytest.raises(ValueError, store.append, 'df', df)
 
     def test_ndim_indexables(self):
         # test using ndim tables in new ways
@@ -1254,7 +1254,7 @@ class TestHDFStore(Base, tm.TestCase):
 
                 # pass incorrect number of axes
                 _maybe_remove(store, 'p4d')
-                self.assertRaises(ValueError, store.append, 'p4d', p4d.iloc[
+                pytest.raises(ValueError, store.append, 'p4d', p4d.iloc[
                     :, :, :10, :], axes=['major_axis', 'minor_axis'])
 
                 # different than default indexables #1
@@ -1323,11 +1323,11 @@ class TestHDFStore(Base, tm.TestCase):
 
                 # apply the wrong field (similar to #1)
                 store.append('s3', wp, min_itemsize={'major_axis': 20})
-                self.assertRaises(ValueError, store.append, 's3', wp2)
+                pytest.raises(ValueError, store.append, 's3', wp2)
 
                 # test truncation of bigger strings
                 store.append('s4', wp)
-                self.assertRaises(ValueError, store.append, 's4', wp2)
+                pytest.raises(ValueError, store.append, 's4', wp2)
 
                 # avoid truncation on elements
                 df = DataFrame([[123, 'asdqwerty'], [345, 'dggnhebbsdfbdfb']])
@@ -1352,7 +1352,7 @@ class TestHDFStore(Base, tm.TestCase):
                 store.append('df_new', df)
                 df_new = DataFrame(
                     [[124, 'abcdefqhij'], [346, 'abcdefghijklmnopqrtsuvwxyz']])
-                self.assertRaises(ValueError, store.append, 'df_new', df_new)
+                pytest.raises(ValueError, store.append, 'df_new', df_new)
 
                 # min_itemsize on Series index (GH 11412)
                 df = tm.makeMixedDataFrame().set_index('C')
@@ -1431,8 +1431,8 @@ class TestHDFStore(Base, tm.TestCase):
             df = DataFrame(['foo', 'foo', 'foo', 'barh',
                             'barh', 'barh'], columns=['A'])
             _maybe_remove(store, 'df')
-            self.assertRaises(ValueError, store.append, 'df',
-                              df, min_itemsize={'foo': 20, 'foobar': 20})
+            pytest.raises(ValueError, store.append, 'df',
+                          df, min_itemsize={'foo': 20, 'foobar': 20})
 
     def test_to_hdf_with_min_itemsize(self):
 
@@ -1690,7 +1690,7 @@ class TestHDFStore(Base, tm.TestCase):
                 # try to index a non-table
                 _maybe_remove(store, 'f2')
                 store.put('f2', df)
-                self.assertRaises(TypeError, store.create_table_index, 'f2')
+                pytest.raises(TypeError, store.create_table_index, 'f2')
 
     def test_append_diff_item_order(self):
 
@@ -1702,8 +1702,8 @@ class TestHDFStore(Base, tm.TestCase):
 
             with ensure_clean_store(self.path) as store:
                 store.put('panel', wp1, format='table')
-                self.assertRaises(ValueError, store.put, 'panel', wp2,
-                                  append=True)
+                pytest.raises(ValueError, store.put, 'panel', wp2,
+                              append=True)
 
     def test_append_hierarchical(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -1754,10 +1754,10 @@ class TestHDFStore(Base, tm.TestCase):
                                   check_index_type=True,
                                   check_column_type=True)
 
-            self.assertRaises(ValueError, store.put, 'df2', df,
-                              format='table', data_columns=['A'])
-            self.assertRaises(ValueError, store.put, 'df3', df,
-                              format='table', data_columns=True)
+            pytest.raises(ValueError, store.put, 'df2', df,
+                          format='table', data_columns=['A'])
+            pytest.raises(ValueError, store.put, 'df3', df,
+                          format='table', data_columns=True)
 
         # appending multi-column on existing table (see GH 6167)
         with ensure_clean_store(self.path) as store:
@@ -1820,13 +1820,13 @@ class TestHDFStore(Base, tm.TestCase):
             _maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=[
                            'a', 'b'], index=make_index(['date', 'a', 't']))
-            self.assertRaises(ValueError, store.append, 'df', df)
+            pytest.raises(ValueError, store.append, 'df', df)
 
             # dup within level
             _maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=['a', 'b'],
                            index=make_index(['date', 'date', 'date']))
-            self.assertRaises(ValueError, store.append, 'df', df)
+            pytest.raises(ValueError, store.append, 'df', df)
 
             # fully names
             _maybe_remove(store, 'df')
@@ -1885,9 +1885,9 @@ class TestHDFStore(Base, tm.TestCase):
 
         with ensure_clean_store(self.path) as store:
             store.put('df', df)
-            self.assertRaises(TypeError, store.select, 'df', columns=['A'])
-            self.assertRaises(TypeError, store.select,
-                              'df', where=[('columns=A')])
+            pytest.raises(TypeError, store.select, 'df', columns=['A'])
+            pytest.raises(TypeError, store.select,
+                          'df', where=[('columns=A')])
 
     def test_append_misc(self):
 
@@ -1897,13 +1897,13 @@ class TestHDFStore(Base, tm.TestCase):
 
                 # unsuported data types for non-tables
                 p4d = tm.makePanel4D()
-                self.assertRaises(TypeError, store.put, 'p4d', p4d)
+                pytest.raises(TypeError, store.put, 'p4d', p4d)
 
                 # unsuported data types
-                self.assertRaises(TypeError, store.put, 'abc', None)
-                self.assertRaises(TypeError, store.put, 'abc', '123')
-                self.assertRaises(TypeError, store.put, 'abc', 123)
-                self.assertRaises(TypeError, store.put, 'abc', np.arange(5))
+                pytest.raises(TypeError, store.put, 'abc', None)
+                pytest.raises(TypeError, store.put, 'abc', '123')
+                pytest.raises(TypeError, store.put, 'abc', 123)
+                pytest.raises(TypeError, store.put, 'abc', np.arange(5))
 
                 df = tm.makeDataFrame()
                 store.append('df', df, chunksize=1)
@@ -1945,7 +1945,7 @@ class TestHDFStore(Base, tm.TestCase):
             # 0 len
             df_empty = DataFrame(columns=list('ABC'))
             store.append('df', df_empty)
-            self.assertRaises(KeyError, store.select, 'df')
+            pytest.raises(KeyError, store.select, 'df')
 
             # repeated append of 0/non-zero frames
             df = DataFrame(np.random.rand(10, 3), columns=list('ABC'))
@@ -1964,7 +1964,7 @@ class TestHDFStore(Base, tm.TestCase):
                 # 0 len
                 p_empty = Panel(items=list('ABC'))
                 store.append('p', p_empty)
-                self.assertRaises(KeyError, store.select, 'p')
+                pytest.raises(KeyError, store.select, 'p')
 
                 # repeated append of 0/non-zero frames
                 p = Panel(np.random.randn(3, 4, 5), items=list('ABC'))
@@ -1987,12 +1987,12 @@ class TestHDFStore(Base, tm.TestCase):
             df = tm.makeDataFrame()
             df['invalid'] = [['a']] * len(df)
             self.assertEqual(df.dtypes['invalid'], np.object_)
-            self.assertRaises(TypeError, store.append, 'df', df)
+            pytest.raises(TypeError, store.append, 'df', df)
 
             # multiple invalid columns
             df['invalid2'] = [['a']] * len(df)
             df['invalid3'] = [['a']] * len(df)
-            self.assertRaises(TypeError, store.append, 'df', df)
+            pytest.raises(TypeError, store.append, 'df', df)
 
             # datetime with embedded nans as object
             df = tm.makeDataFrame()
@@ -2001,21 +2001,21 @@ class TestHDFStore(Base, tm.TestCase):
             s[0:5] = np.nan
             df['invalid'] = s
             self.assertEqual(df.dtypes['invalid'], np.object_)
-            self.assertRaises(TypeError, store.append, 'df', df)
+            pytest.raises(TypeError, store.append, 'df', df)
 
             # directy ndarray
-            self.assertRaises(TypeError, store.append, 'df', np.arange(10))
+            pytest.raises(TypeError, store.append, 'df', np.arange(10))
 
             # series directly
-            self.assertRaises(TypeError, store.append,
-                              'df', Series(np.arange(10)))
+            pytest.raises(TypeError, store.append,
+                          'df', Series(np.arange(10)))
 
             # appending an incompatible table
             df = tm.makeDataFrame()
             store.append('df', df)
 
             df['foo'] = 'foo'
-            self.assertRaises(ValueError, store.append, 'df', df)
+            pytest.raises(ValueError, store.append, 'df', df)
 
     def test_table_index_incompatible_dtypes(self):
         df1 = DataFrame({'a': [1, 2, 3]})
@@ -2024,8 +2024,8 @@ class TestHDFStore(Base, tm.TestCase):
 
         with ensure_clean_store(self.path) as store:
             store.put('frame', df1, format='table')
-            self.assertRaises(TypeError, store.put, 'frame', df2,
-                              format='table', append=True)
+            pytest.raises(TypeError, store.put, 'frame', df2,
+                          format='table', append=True)
 
     def test_table_values_dtypes_roundtrip(self):
 
@@ -2039,7 +2039,7 @@ class TestHDFStore(Base, tm.TestCase):
             assert_series_equal(df2.dtypes, store['df_i8'].dtypes)
 
             # incompatible dtype
-            self.assertRaises(ValueError, store.append, 'df_i8', df1)
+            pytest.raises(ValueError, store.append, 'df_i8', df1)
 
             # check creation/storage/retrieval of float32 (a bit hacky to
             # actually create them thought)
@@ -2138,7 +2138,7 @@ class TestHDFStore(Base, tm.TestCase):
             for n, f in l:
                 df = tm.makeDataFrame()
                 df[n] = f
-                self.assertRaises(
+                pytest.raises(
                     TypeError, store.append, 'df1_%s' % n, df)
 
         # frame
@@ -2150,7 +2150,7 @@ class TestHDFStore(Base, tm.TestCase):
 
         with ensure_clean_store(self.path) as store:
             # this fails because we have a date in the object block......
-            self.assertRaises(TypeError, store.append, 'df_unimplemented', df)
+            pytest.raises(TypeError, store.append, 'df_unimplemented', df)
 
     def test_calendar_roundtrip_issue(self):
 
@@ -2235,7 +2235,7 @@ class TestHDFStore(Base, tm.TestCase):
             self.assertEqual(len(store), 0)
 
             # nonexistence
-            self.assertRaises(KeyError, store.remove, 'a_nonexistent_store')
+            pytest.raises(KeyError, store.remove, 'a_nonexistent_store')
 
             # pathing
             store['a'] = ts
@@ -2264,7 +2264,7 @@ class TestHDFStore(Base, tm.TestCase):
 
                 # non-existance
                 crit1 = 'index>foo'
-                self.assertRaises(KeyError, store.remove, 'a', [crit1])
+                pytest.raises(KeyError, store.remove, 'a', [crit1])
 
                 # try to remove non-table (with crit)
                 # non-table ok (where = None)
@@ -2286,8 +2286,8 @@ class TestHDFStore(Base, tm.TestCase):
                 # non - empty where
                 _maybe_remove(store, 'wp')
                 store.put('wp', wp, format='table')
-                self.assertRaises(ValueError, store.remove,
-                                  'wp', ['foo'])
+                pytest.raises(ValueError, store.remove,
+                              'wp', ['foo'])
 
     def test_remove_startstop(self):
         # GH #4835 and #6177
@@ -2460,19 +2460,19 @@ class TestHDFStore(Base, tm.TestCase):
                 store.put('p4d', p4d, format='table')
 
                 # some invalid terms
-                self.assertRaises(ValueError, store.select,
-                                  'wp', "minor=['A', 'B']")
-                self.assertRaises(ValueError, store.select,
-                                  'wp', ["index=['20121114']"])
-                self.assertRaises(ValueError, store.select, 'wp', [
+                pytest.raises(ValueError, store.select,
+                              'wp', "minor=['A', 'B']")
+                pytest.raises(ValueError, store.select,
+                              'wp', ["index=['20121114']"])
+                pytest.raises(ValueError, store.select, 'wp', [
                     "index=['20121114', '20121114']"])
-                self.assertRaises(TypeError, Term)
+                pytest.raises(TypeError, Term)
 
                 # more invalid
-                self.assertRaises(
+                pytest.raises(
                     ValueError, store.select, 'df', 'df.index[3]')
-                self.assertRaises(SyntaxError, store.select, 'df', 'index>')
-                self.assertRaises(
+                pytest.raises(SyntaxError, store.select, 'df', 'index>')
+                pytest.raises(
                     ValueError, store.select, 'wp',
                     "major_axis<'20000108' & minor_axis['A', 'B']")
 
@@ -2493,8 +2493,8 @@ class TestHDFStore(Base, tm.TestCase):
                 'ABCD'), index=date_range('20130101', periods=10))
             dfq.to_hdf(path, 'dfq', format='table')
 
-            self.assertRaises(ValueError, read_hdf, path,
-                              'dfq', where="A>0 or C>0")
+            pytest.raises(ValueError, read_hdf, path,
+                          'dfq', where="A>0 or C>0")
 
     def test_terms(self):
 
@@ -3097,7 +3097,7 @@ class TestHDFStore(Base, tm.TestCase):
                 assert_panel_equal(expected, result)
 
                 # selectin non-table with a where
-                # self.assertRaises(ValueError, store.select,
+                # pytest.raises(ValueError, store.select,
                 #                  'wp2', ('column', ['A', 'D']))
 
                 # select with columns=
@@ -3318,10 +3318,10 @@ class TestHDFStore(Base, tm.TestCase):
 
             df = tm.makeTimeDataFrame(500)
             df.to_hdf(path, 'df_non_table')
-            self.assertRaises(TypeError, read_hdf, path,
-                              'df_non_table', chunksize=100)
-            self.assertRaises(TypeError, read_hdf, path,
-                              'df_non_table', iterator=True)
+            pytest.raises(TypeError, read_hdf, path,
+                          'df_non_table', chunksize=100)
+            pytest.raises(TypeError, read_hdf, path,
+                          'df_non_table', iterator=True)
 
         with ensure_clean_path(self.path) as path:
 
@@ -3671,12 +3671,12 @@ class TestHDFStore(Base, tm.TestCase):
             # invalid terms
             df = tm.makeTimeDataFrame()
             store.append('df_time', df)
-            self.assertRaises(
+            pytest.raises(
                 ValueError, store.select, 'df_time', "index>0")
 
             # can't select if not written as table
             # store['frame'] = df
-            # self.assertRaises(ValueError, store.select,
+            # pytest.raises(ValueError, store.select,
             #                  'frame', [crit1, crit2])
 
     def test_frame_select_complex(self):
@@ -3715,8 +3715,8 @@ class TestHDFStore(Base, tm.TestCase):
             tm.assert_frame_equal(result, expected)
 
             # invert not implemented in numexpr :(
-            self.assertRaises(NotImplementedError,
-                              store.select, 'df', '~(string="bar")')
+            pytest.raises(NotImplementedError,
+                          store.select, 'df', '~(string="bar")')
 
             # invert ok for filters
             result = store.select('df', "~(columns=['A','B'])")
@@ -3804,12 +3804,12 @@ class TestHDFStore(Base, tm.TestCase):
             store.put('df', df, format='table')
 
             # not implemented
-            self.assertRaises(NotImplementedError, store.select,
-                              'df', "columns=['A'] | columns=['B']")
+            pytest.raises(NotImplementedError, store.select,
+                          'df', "columns=['A'] | columns=['B']")
 
             # in theory we could deal with this
-            self.assertRaises(NotImplementedError, store.select,
-                              'df', "columns=['A','B'] & columns=['C']")
+            pytest.raises(NotImplementedError, store.select,
+                          'df', "columns=['A','B'] & columns=['C']")
 
     def test_string_select(self):
         # GH 2973
@@ -3867,11 +3867,11 @@ class TestHDFStore(Base, tm.TestCase):
             store.append('df', df)
 
             # error
-            self.assertRaises(KeyError, store.select_column, 'df', 'foo')
+            pytest.raises(KeyError, store.select_column, 'df', 'foo')
 
             def f():
                 store.select_column('df', 'index', where=['index>5'])
-            self.assertRaises(Exception, f)
+            pytest.raises(Exception, f)
 
             # valid
             result = store.select_column('df', 'index')
@@ -3879,7 +3879,7 @@ class TestHDFStore(Base, tm.TestCase):
             assert isinstance(result, Series)
 
             # not a data indexable column
-            self.assertRaises(
+            pytest.raises(
                 ValueError, store.select_column, 'df', 'values_block_0')
 
             # a data column
@@ -3989,14 +3989,14 @@ class TestHDFStore(Base, tm.TestCase):
             tm.assert_frame_equal(result, expected)
 
             # invalid
-            self.assertRaises(ValueError, store.select, 'df',
-                              where=np.arange(len(df), dtype='float64'))
-            self.assertRaises(ValueError, store.select, 'df',
-                              where=np.arange(len(df) + 1))
-            self.assertRaises(ValueError, store.select, 'df',
-                              where=np.arange(len(df)), start=5)
-            self.assertRaises(ValueError, store.select, 'df',
-                              where=np.arange(len(df)), start=5, stop=10)
+            pytest.raises(ValueError, store.select, 'df',
+                          where=np.arange(len(df), dtype='float64'))
+            pytest.raises(ValueError, store.select, 'df',
+                          where=np.arange(len(df) + 1))
+            pytest.raises(ValueError, store.select, 'df',
+                          where=np.arange(len(df)), start=5)
+            pytest.raises(ValueError, store.select, 'df',
+                          where=np.arange(len(df)), start=5, stop=10)
 
             # selection with filter
             selection = date_range('20000101', periods=500)
@@ -4032,12 +4032,12 @@ class TestHDFStore(Base, tm.TestCase):
         with ensure_clean_store(self.path) as store:
 
             # exceptions
-            self.assertRaises(ValueError, store.append_to_multiple,
-                              {'df1': ['A', 'B'], 'df2': None}, df,
-                              selector='df3')
-            self.assertRaises(ValueError, store.append_to_multiple,
-                              {'df1': None, 'df2': None}, df, selector='df3')
-            self.assertRaises(
+            pytest.raises(ValueError, store.append_to_multiple,
+                          {'df1': ['A', 'B'], 'df2': None}, df,
+                          selector='df3')
+            pytest.raises(ValueError, store.append_to_multiple,
+                          {'df1': None, 'df2': None}, df, selector='df3')
+            pytest.raises(
                 ValueError, store.append_to_multiple, 'df1', df, 'df1')
 
             # regular operation
@@ -4097,25 +4097,25 @@ class TestHDFStore(Base, tm.TestCase):
         with ensure_clean_store(self.path) as store:
 
             # no tables stored
-            self.assertRaises(Exception, store.select_as_multiple,
-                              None, where=['A>0', 'B>0'], selector='df1')
+            pytest.raises(Exception, store.select_as_multiple,
+                          None, where=['A>0', 'B>0'], selector='df1')
 
             store.append('df1', df1, data_columns=['A', 'B'])
             store.append('df2', df2)
 
             # exceptions
-            self.assertRaises(Exception, store.select_as_multiple,
-                              None, where=['A>0', 'B>0'], selector='df1')
-            self.assertRaises(Exception, store.select_as_multiple,
-                              [None], where=['A>0', 'B>0'], selector='df1')
-            self.assertRaises(KeyError, store.select_as_multiple,
-                              ['df1', 'df3'], where=['A>0', 'B>0'],
-                              selector='df1')
-            self.assertRaises(KeyError, store.select_as_multiple,
-                              ['df3'], where=['A>0', 'B>0'], selector='df1')
-            self.assertRaises(KeyError, store.select_as_multiple,
-                              ['df1', 'df2'], where=['A>0', 'B>0'],
-                              selector='df4')
+            pytest.raises(Exception, store.select_as_multiple,
+                          None, where=['A>0', 'B>0'], selector='df1')
+            pytest.raises(Exception, store.select_as_multiple,
+                          [None], where=['A>0', 'B>0'], selector='df1')
+            pytest.raises(KeyError, store.select_as_multiple,
+                          ['df1', 'df3'], where=['A>0', 'B>0'],
+                          selector='df1')
+            pytest.raises(KeyError, store.select_as_multiple,
+                          ['df3'], where=['A>0', 'B>0'], selector='df1')
+            pytest.raises(KeyError, store.select_as_multiple,
+                          ['df1', 'df2'], where=['A>0', 'B>0'],
+                          selector='df4')
 
             # default select
             result = store.select('df1', ['A>0', 'B>0'])
@@ -4142,9 +4142,9 @@ class TestHDFStore(Base, tm.TestCase):
 
             # test excpection for diff rows
             store.append('df3', tm.makeTimeDataFrame(nper=50))
-            self.assertRaises(ValueError, store.select_as_multiple,
-                              ['df1', 'df3'], where=['A>0', 'B>0'],
-                              selector='df1')
+            pytest.raises(ValueError, store.select_as_multiple,
+                          ['df1', 'df3'], where=['A>0', 'B>0'],
+                          selector='df1')
 
     def test_nan_selection_bug_4858(self):
 
@@ -4231,7 +4231,7 @@ class TestHDFStore(Base, tm.TestCase):
             df.iloc[8:10, -2] = np.nan
             dfs = df.to_sparse()
             store.put('dfs', dfs)
-            with self.assertRaises(NotImplementedError):
+            with pytest.raises(NotImplementedError):
                 store.select('dfs', start=0, stop=5)
 
     def test_select_filter_corner(self):
@@ -4312,7 +4312,7 @@ class TestHDFStore(Base, tm.TestCase):
 
                 def f():
                     HDFStore(path)
-                self.assertRaises(ValueError, f)
+                pytest.raises(ValueError, f)
                 store1.close()
 
             else:
@@ -4374,17 +4374,17 @@ class TestHDFStore(Base, tm.TestCase):
             store = HDFStore(path)
             store.close()
 
-            self.assertRaises(ClosedFileError, store.keys)
-            self.assertRaises(ClosedFileError, lambda: 'df' in store)
-            self.assertRaises(ClosedFileError, lambda: len(store))
-            self.assertRaises(ClosedFileError, lambda: store['df'])
-            self.assertRaises(ClosedFileError, lambda: store.df)
-            self.assertRaises(ClosedFileError, store.select, 'df')
-            self.assertRaises(ClosedFileError, store.get, 'df')
-            self.assertRaises(ClosedFileError, store.append, 'df2', df)
-            self.assertRaises(ClosedFileError, store.put, 'df3', df)
-            self.assertRaises(ClosedFileError, store.get_storer, 'df2')
-            self.assertRaises(ClosedFileError, store.remove, 'df2')
+            pytest.raises(ClosedFileError, store.keys)
+            pytest.raises(ClosedFileError, lambda: 'df' in store)
+            pytest.raises(ClosedFileError, lambda: len(store))
+            pytest.raises(ClosedFileError, lambda: store['df'])
+            pytest.raises(ClosedFileError, lambda: store.df)
+            pytest.raises(ClosedFileError, store.select, 'df')
+            pytest.raises(ClosedFileError, store.get, 'df')
+            pytest.raises(ClosedFileError, store.append, 'df2', df)
+            pytest.raises(ClosedFileError, store.put, 'df3', df)
+            pytest.raises(ClosedFileError, store.get_storer, 'df2')
+            pytest.raises(ClosedFileError, store.remove, 'df2')
 
             def f():
                 store.select('df')
@@ -4425,7 +4425,7 @@ class TestHDFStore(Base, tm.TestCase):
                 store.select('df2', typ='legacy_frame')
 
                 # old version warning
-                self.assertRaises(
+                pytest.raises(
                     Exception, store.select, 'wp1', 'minor_axis=B')
 
                 df2 = store.select('df2')
@@ -4636,7 +4636,7 @@ class TestHDFStore(Base, tm.TestCase):
     #                   index=[np.arange(5).repeat(2),
     #                          np.tile(np.arange(2), 5)])
 
-    #    self.assertRaises(Exception, store.put, 'foo', df, format='table')
+    #    pytest.raises(Exception, store.put, 'foo', df, format='table')
 
     def test_append_with_diff_col_name_types_raises_value_error(self):
         df = DataFrame(np.random.randn(10, 1))
@@ -4650,7 +4650,7 @@ class TestHDFStore(Base, tm.TestCase):
             store.append(name, df)
 
             for d in (df2, df3, df4, df5):
-                with tm.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     store.append(name, d)
 
     def test_query_with_nested_special_character(self):
@@ -4795,8 +4795,8 @@ class TestHDFStore(Base, tm.TestCase):
         df = DataFrame(columns=["a", "a"], data=[[0, 0]])
 
         with ensure_clean_path(self.path) as path:
-            self.assertRaises(ValueError, df.to_hdf,
-                              path, 'df', format='fixed')
+            pytest.raises(ValueError, df.to_hdf,
+                          path, 'df', format='fixed')
 
             df.to_hdf(path, 'df', format='table')
             other = read_hdf(path, 'df')
@@ -4871,7 +4871,7 @@ class TestHDFStore(Base, tm.TestCase):
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
             with ensure_clean_path(self.path) as path:
                 with catch_warnings(record=True):
-                    with self.assertRaises(
+                    with pytest.raises(
                         ValueError, msg=("cannot have non-object label "
                                          "DataIndexableCol")):
                         df.to_hdf(path, 'df', format='table',
@@ -4926,21 +4926,21 @@ class TestHDFStore(Base, tm.TestCase):
                        columns=list('ABCDE'))
 
         with ensure_clean_path(self.path) as path:
-            self.assertRaises(IOError, read_hdf, path, 'key')
+            pytest.raises(IOError, read_hdf, path, 'key')
             df.to_hdf(path, 'df')
             store = HDFStore(path, mode='r')
             store.close()
-            self.assertRaises(IOError, read_hdf, store, 'df')
+            pytest.raises(IOError, read_hdf, store, 'df')
             with open(path, mode='r') as store:
-                self.assertRaises(NotImplementedError, read_hdf, store, 'df')
+                pytest.raises(NotImplementedError, read_hdf, store, 'df')
 
     def test_invalid_complib(self):
         df = DataFrame(np.random.rand(4, 5),
                        index=list('abcd'),
                        columns=list('ABCDE'))
         with ensure_clean_path(self.path) as path:
-            self.assertRaises(ValueError, df.to_hdf, path,
-                              'df', complib='blosc:zlib')
+            pytest.raises(ValueError, df.to_hdf, path,
+                          'df', complib='blosc:zlib')
     # GH10443
 
     def test_read_nokey(self):
@@ -4955,7 +4955,7 @@ class TestHDFStore(Base, tm.TestCase):
             reread = read_hdf(path)
             assert_frame_equal(df, reread)
             df.to_hdf(path, 'df2', mode='a')
-            self.assertRaises(ValueError, read_hdf, path)
+            pytest.raises(ValueError, read_hdf, path)
 
     def test_read_nokey_table(self):
         # GH13231
@@ -4967,13 +4967,13 @@ class TestHDFStore(Base, tm.TestCase):
             reread = read_hdf(path)
             assert_frame_equal(df, reread)
             df.to_hdf(path, 'df2', mode='a', format='table')
-            self.assertRaises(ValueError, read_hdf, path)
+            pytest.raises(ValueError, read_hdf, path)
 
     def test_read_nokey_empty(self):
         with ensure_clean_path(self.path) as path:
             store = HDFStore(path)
             store.close()
-            self.assertRaises(ValueError, read_hdf, path)
+            pytest.raises(ValueError, read_hdf, path)
 
     def test_read_from_pathlib_path(self):
 
@@ -5055,14 +5055,14 @@ class TestHDFStore(Base, tm.TestCase):
                 for v in [2.1, True, pd.Timestamp('2014-01-01'),
                           pd.Timedelta(1, 's')]:
                     query = 'date {op} v'.format(op=op)
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         result = store.select('test', where=query)
 
                 # strings to other columns must be convertible to type
                 v = 'a'
                 for col in ['int', 'float', 'real_date']:
                     query = '{col} {op} v'.format(op=op, col=col)
-                    with tm.assertRaises(ValueError):
+                    with pytest.raises(ValueError):
                         result = store.select('test', where=query)
 
                 for v, col in zip(['1', '1.1', '2014-01-01'],
@@ -5200,15 +5200,15 @@ class TestHDFComplexValues(Base):
                         'C': complex128},
                        index=list('abcd'))
         with ensure_clean_store(self.path) as store:
-            self.assertRaises(TypeError, store.append,
-                              'df', df, data_columns=['C'])
+            pytest.raises(TypeError, store.append,
+                          'df', df, data_columns=['C'])
 
     def test_complex_series_error(self):
         complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
         s = Series(complex128, index=list('abcd'))
 
         with ensure_clean_path(self.path) as path:
-            self.assertRaises(TypeError, s.to_hdf, path, 'obj', format='t')
+            pytest.raises(TypeError, s.to_hdf, path, 'obj', format='t')
 
         with ensure_clean_path(self.path) as path:
             s.to_hdf(path, 'obj', format='t', index=False)
@@ -5283,7 +5283,7 @@ class TestTimezones(Base, tm.TestCase):
                                             tz=gettz('US/Eastern')),
                                 B=Timestamp('20130102', tz=gettz('EET'))),
                            index=range(5))
-            self.assertRaises(ValueError, store.append, 'df_tz', df)
+            pytest.raises(ValueError, store.append, 'df_tz', df)
 
             # this is ok
             _maybe_remove(store, 'df_tz')
@@ -5297,7 +5297,7 @@ class TestTimezones(Base, tm.TestCase):
                                             tz=gettz('US/Eastern')),
                                 B=Timestamp('20130102', tz=gettz('CET'))),
                            index=range(5))
-            self.assertRaises(ValueError, store.append, 'df_tz', df)
+            pytest.raises(ValueError, store.append, 'df_tz', df)
 
         # as index
         with ensure_clean_store(self.path) as store:
@@ -5350,7 +5350,7 @@ class TestTimezones(Base, tm.TestCase):
             df = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
                                 B=Timestamp('20130102', tz='EET')),
                            index=range(5))
-            self.assertRaises(ValueError, store.append, 'df_tz', df)
+            pytest.raises(ValueError, store.append, 'df_tz', df)
 
             # this is ok
             _maybe_remove(store, 'df_tz')
@@ -5363,7 +5363,7 @@ class TestTimezones(Base, tm.TestCase):
             df = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
                                 B=Timestamp('20130102', tz='CET')),
                            index=range(5))
-            self.assertRaises(ValueError, store.append, 'df_tz', df)
+            pytest.raises(ValueError, store.append, 'df_tz', df)
 
         # as index
         with ensure_clean_store(self.path) as store:

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 
+import pytest
+
 from pandas import DataFrame, Series
 import pandas as pd
 
@@ -428,11 +430,11 @@ class TestGetDummies(tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_prefix_bad_length(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             get_dummies(self.df, prefix=['too few'], sparse=self.sparse)
 
     def test_dataframe_dummies_prefix_sep_bad_length(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             get_dummies(self.df, prefix_sep=['bad'], sparse=self.sparse)
 
     def test_dataframe_dummies_prefix_dict(self):
@@ -740,7 +742,7 @@ class TestLreshape(tm.TestCase):
 
         spec = {'visitdt': ['visitdt%d' % i for i in range(1, 3)],
                 'wt': ['wt%d' % i for i in range(1, 4)]}
-        self.assertRaises(ValueError, lreshape, df, spec)
+        pytest.raises(ValueError, lreshape, df, spec)
 
 
 class TestWideToLong(tm.TestCase):

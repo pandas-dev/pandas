@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
+import pytest
+
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 import sys
@@ -106,8 +109,8 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     def test_not_hashable(self):
         df = pd.DataFrame([1])
-        self.assertRaises(TypeError, hash, df)
-        self.assertRaises(TypeError, hash, self.empty)
+        pytest.raises(TypeError, hash, df)
+        pytest.raises(TypeError, hash, self.empty)
 
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
@@ -131,7 +134,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         idx = self.frame._get_agg_axis(1)
         self.assertIs(idx, self.frame.index)
 
-        self.assertRaises(ValueError, self.frame._get_agg_axis, 2)
+        pytest.raises(ValueError, self.frame._get_agg_axis, 2)
 
     def test_nonzero(self):
         self.assertTrue(self.empty.empty)
@@ -278,7 +281,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         assert_frame_equal(df.T, df.swapaxes(0, 1))
         assert_frame_equal(df.T, df.swapaxes(1, 0))
         assert_frame_equal(df, df.swapaxes(0, 0))
-        self.assertRaises(ValueError, df.swapaxes, 2, 5)
+        pytest.raises(ValueError, df.swapaxes, 2, 5)
 
     def test_axis_aliases(self):
         f = self.frame

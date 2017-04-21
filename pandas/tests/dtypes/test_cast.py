@@ -293,7 +293,7 @@ class TestCommonTypes(tm.TestCase):
         for src, common in testcases:
             self.assertEqual(find_common_type(src), common)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             # empty
             find_common_type([])
 

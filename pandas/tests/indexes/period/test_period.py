@@ -47,10 +47,10 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         # GH 13149, GH 13209
         idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
 
-        self.assertRaises(ValueError, idx.astype, str)
-        self.assertRaises(ValueError, idx.astype, float)
-        self.assertRaises(ValueError, idx.astype, 'timedelta64')
-        self.assertRaises(ValueError, idx.astype, 'timedelta64[ns]')
+        pytest.raises(ValueError, idx.astype, str)
+        pytest.raises(ValueError, idx.astype, float)
+        pytest.raises(ValueError, idx.astype, 'timedelta64')
+        pytest.raises(ValueError, idx.astype, 'timedelta64[ns]')
 
     def test_pickle_compat_construction(self):
         pass
@@ -88,7 +88,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 day')
 
     def test_where(self):
@@ -197,10 +197,10 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
             pd.Period('2011-01-01', freq='D')), exp)
 
     def test_no_millisecond_field(self):
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             DatetimeIndex.millisecond
 
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             DatetimeIndex([]).millisecond
 
     def test_difference_freq(self):
@@ -355,9 +355,9 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
         # Mixed freq should fail
         vals = [end_intv, Period('2006-12-31', 'w')]
-        self.assertRaises(ValueError, PeriodIndex, vals)
+        pytest.raises(ValueError, PeriodIndex, vals)
         vals = np.array(vals)
-        self.assertRaises(ValueError, PeriodIndex, vals)
+        pytest.raises(ValueError, PeriodIndex, vals)
 
     def test_fields(self):
         # year, month, day, hour, minute
@@ -530,7 +530,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         self.assertTrue(np.nan in idx)
 
     def test_periods_number_check(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             period_range('2011-1-1', '2012-1-1', 'B')
 
     def test_start_time(self):
@@ -720,7 +720,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         self.assertTrue(index.is_full)
 
         index = PeriodIndex([2006, 2005, 2005], freq='A')
-        self.assertRaises(ValueError, getattr, index, 'is_full')
+        pytest.raises(ValueError, getattr, index, 'is_full')
 
         self.assertTrue(index[:0].is_full)
 

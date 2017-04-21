@@ -48,7 +48,7 @@ class PanelTests(object):
 
     def test_rank(self):
         with catch_warnings(record=True):
-            self.assertRaises(NotImplementedError, lambda: self.panel.rank())
+            pytest.raises(NotImplementedError, lambda: self.panel.rank())
 
     def test_cumsum(self):
         with catch_warnings(record=True):
@@ -59,8 +59,8 @@ class PanelTests(object):
         with catch_warnings(record=True):
             c_empty = Panel()
             c = Panel(Panel([[[1]]]))
-            self.assertRaises(TypeError, hash, c_empty)
-            self.assertRaises(TypeError, hash, c)
+            pytest.raises(TypeError, hash, c_empty)
+            pytest.raises(TypeError, hash, c)
 
 
 class SafeForLongAndSparse(object):
@@ -176,7 +176,7 @@ class SafeForLongAndSparse(object):
             if not tm._incompat_bottleneck_version(name):
                 assert_frame_equal(result, obj.apply(skipna_wrapper, axis=i))
 
-        self.assertRaises(Exception, f, axis=obj.ndim)
+        pytest.raises(Exception, f, axis=obj.ndim)
 
         # Unimplemented numeric_only parameter.
         if 'numeric_only' in signature(f).args:
@@ -287,8 +287,8 @@ class SafeForSparse(object):
             self._test_op(self.panel, lambda x, y: x / y)  # panel / 1
             self._test_op(self.panel, lambda x, y: x ** y)  # panel ** 1
 
-            self.assertRaises(Exception, self.panel.__add__,
-                              self.panel['ItemA'])
+            pytest.raises(Exception, self.panel.__add__,
+                          self.panel['ItemA'])
 
     @staticmethod
     def _test_op(panel, op):
@@ -375,7 +375,7 @@ class SafeForSparse(object):
             ops = ['add', 'sub', 'mul', 'truediv',
                    'floordiv', 'div', 'mod', 'pow']
             for op in ops:
-                with self.assertRaises(NotImplementedError):
+                with pytest.raises(NotImplementedError):
                     getattr(p, op)(d, axis=0)
 
     def test_select(self):
@@ -440,7 +440,7 @@ class SafeForSparse(object):
 class CheckIndexing(object):
 
     def test_getitem(self):
-        self.assertRaises(Exception, self.panel.__getitem__, 'ItemQ')
+        pytest.raises(Exception, self.panel.__getitem__, 'ItemQ')
 
     def test_delitem_and_pop(self):
         with catch_warnings(record=True):
@@ -451,7 +451,7 @@ class CheckIndexing(object):
 
             del self.panel['ItemB']
             self.assertNotIn('ItemB', self.panel.items)
-            self.assertRaises(Exception, self.panel.__delitem__, 'ItemB')
+            pytest.raises(Exception, self.panel.__delitem__, 'ItemB')
 
             values = np.empty((3, 3, 3))
             values[0] = 0
@@ -482,7 +482,7 @@ class CheckIndexing(object):
 
             # LongPanel with one item
             lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
-            with tm.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 self.panel['ItemE'] = lp
 
             # DataFrame
@@ -509,8 +509,8 @@ class CheckIndexing(object):
             self.panel['ItemP'] = self.panel['ItemA'] > 0
             self.assertEqual(self.panel['ItemP'].values.dtype, np.bool_)
 
-            self.assertRaises(TypeError, self.panel.__setitem__, 'foo',
-                              self.panel.loc[['ItemP']])
+            pytest.raises(TypeError, self.panel.__setitem__, 'foo',
+                          self.panel.loc[['ItemP']])
 
             # bad shape
             p = Panel(np.random.randn(4, 3, 2))
@@ -564,7 +564,7 @@ class CheckIndexing(object):
 
             # not contained
             idx = self.panel.major_axis[0] - BDay()
-            self.assertRaises(Exception, self.panel.major_xs, idx)
+            pytest.raises(Exception, self.panel.major_xs, idx)
 
     def test_major_xs_mixed(self):
         with catch_warnings(record=True):
@@ -583,7 +583,7 @@ class CheckIndexing(object):
             assert_series_equal(xs['ItemA'], ref[idx], check_names=False)
 
             # not contained
-            self.assertRaises(Exception, self.panel.minor_xs, 'E')
+            pytest.raises(Exception, self.panel.minor_xs, 'E')
 
     def test_minor_xs_mixed(self):
         with catch_warnings(record=True):
@@ -979,7 +979,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             # can't cast
             data = [[['foo', 'bar', 'baz']]]
-            self.assertRaises(ValueError, Panel, data, dtype=float)
+            pytest.raises(ValueError, Panel, data, dtype=float)
 
     def test_constructor_empty_panel(self):
         with catch_warnings(record=True):
@@ -1122,10 +1122,10 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             # corner, blow up
             data['ItemB'] = data['ItemB'][:-1]
-            self.assertRaises(Exception, Panel, data)
+            pytest.raises(Exception, Panel, data)
 
             data['ItemB'] = self.panel['ItemB'].values[:, :-1]
-            self.assertRaises(Exception, Panel, data)
+            pytest.raises(Exception, Panel, data)
 
     def test_ctor_orderedDict(self):
         with catch_warnings(record=True):
@@ -1238,7 +1238,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             expected = Panel(str_data, ['a', 'b'], ['c', 'd'], ['e', 'f'])
             assert_panel_equal(panel.astype(str), expected)
 
-            self.assertRaises(NotImplementedError, panel.astype, {0: str})
+            pytest.raises(NotImplementedError, panel.astype, {0: str})
 
     def test_apply(self):
         with catch_warnings(record=True):
@@ -1409,9 +1409,9 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_frame_equal(result['ItemB'], ref.reindex(index=new_major))
 
             # raise exception put both major and major_axis
-            self.assertRaises(Exception, self.panel.reindex,
-                              major_axis=new_major,
-                              major=new_major)
+            pytest.raises(Exception, self.panel.reindex,
+                          major_axis=new_major,
+                          major=new_major)
 
             # minor
             new_minor = list(self.panel.minor_axis[:2])
@@ -1511,7 +1511,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             result = self.panel.take([3, -1, 1, 2], axis=2)
             assert_panel_equal(result, expected)
 
-            self.assertRaises(Exception, self.panel.take, [4, 0, 1, 2], axis=2)
+            pytest.raises(Exception, self.panel.take, [4, 0, 1, 2], axis=2)
 
     def test_sort_index(self):
         with catch_warnings(record=True):
@@ -1563,17 +1563,17 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             filled = empty.fillna(0)
             assert_panel_equal(filled, empty)
 
-            self.assertRaises(ValueError, self.panel.fillna)
-            self.assertRaises(ValueError, self.panel.fillna, 5, method='ffill')
+            pytest.raises(ValueError, self.panel.fillna)
+            pytest.raises(ValueError, self.panel.fillna, 5, method='ffill')
 
-            self.assertRaises(TypeError, self.panel.fillna, [1, 2])
-            self.assertRaises(TypeError, self.panel.fillna, (1, 2))
+            pytest.raises(TypeError, self.panel.fillna, [1, 2])
+            pytest.raises(TypeError, self.panel.fillna, (1, 2))
 
             # limit not implemented when only value is specified
             p = Panel(np.random.randn(3, 4, 5))
             p.iloc[0:2, 0:2, 0:2] = np.nan
-            self.assertRaises(NotImplementedError,
-                              lambda: p.fillna(999, limit=1))
+            pytest.raises(NotImplementedError,
+                          lambda: p.fillna(999, limit=1))
 
             # Test in place fillNA
             # Expected result
@@ -1680,7 +1680,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             result = self.panel.transpose(2, 0, 1)
             assert_panel_equal(result, expected)
 
-            self.assertRaises(ValueError, self.panel.transpose, 0, 0, 1)
+            pytest.raises(ValueError, self.panel.transpose, 0, 0, 1)
 
     def test_transpose_copy(self):
         with catch_warnings(record=True):
@@ -2014,7 +2014,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(unshifted, inferred_ts)
 
             no_freq = panel.iloc[:, [0, 5, 7], :]
-            self.assertRaises(ValueError, no_freq.tshift)
+            pytest.raises(ValueError, no_freq.tshift)
 
     def test_pct_change(self):
         with catch_warnings(record=True):
@@ -2276,7 +2276,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             expected = Panel({"One": df})
             check_drop('Two', 0, ['items'], expected)
 
-            self.assertRaises(ValueError, panel.drop, 'Three')
+            pytest.raises(ValueError, panel.drop, 'Three')
 
             # errors = 'ignore'
             dropped = panel.drop('Three', errors='ignore')
@@ -2405,8 +2405,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                           [1.5, np.nan, 3.],
                           [1.5, np.nan, 3.]]])
 
-            self.assertRaises(Exception, pan.update, *(pan, ),
-                              **{'raise_conflict': True})
+            pytest.raises(Exception, pan.update, *(pan, ),
+                          **{'raise_conflict': True})
 
     def test_all_any(self):
         self.assertTrue((self.panel.all(axis=0).values == nanall(
@@ -2423,8 +2423,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             self.panel, axis=2).T).all())
 
     def test_all_any_unhandled(self):
-        self.assertRaises(NotImplementedError, self.panel.all, bool_only=True)
-        self.assertRaises(NotImplementedError, self.panel.any, bool_only=True)
+        pytest.raises(NotImplementedError, self.panel.all, bool_only=True)
+        pytest.raises(NotImplementedError, self.panel.any, bool_only=True)
 
 
 class TestLongPanel(tm.TestCase):
@@ -2580,8 +2580,8 @@ class TestLongPanel(tm.TestCase):
             assert_panel_equal(wp_trunc, lp_trunc.to_panel())
 
             # throw proper exception
-            self.assertRaises(Exception, lp2.truncate, wp.major_axis[-2],
-                              wp.major_axis[2])
+            pytest.raises(Exception, lp2.truncate, wp.major_axis[-2],
+                          wp.major_axis[2])
 
     def test_axis_dummies(self):
         from pandas.core.reshape.reshape import make_axis_dummies
@@ -2650,8 +2650,8 @@ class TestLongPanel(tm.TestCase):
 
             self.assertEqual(len(joined.columns), 3)
 
-            self.assertRaises(Exception, lp1.join,
-                              self.panel.filter(['ItemB', 'ItemC']))
+            pytest.raises(Exception, lp1.join,
+                          self.panel.filter(['ItemB', 'ItemC']))
 
     def test_pivot(self):
         with catch_warnings(record=True):
@@ -2672,7 +2672,7 @@ class TestLongPanel(tm.TestCase):
             a, b, c = (np.array([1, 2, 3, 4, 4]),
                        np.array(['a', 'a', 'a', 'a', 'a']),
                        np.array([1., 2., 3., 4., 5.]))
-            self.assertRaises(Exception, pivot, a, b, c)
+            pytest.raises(Exception, pivot, a, b, c)
 
             # corner case, empty
             df = pivot(np.array([]), np.array([]), np.array([]))

@@ -1,6 +1,7 @@
 # coding: utf-8
 
-import unittest
+import pytest
+
 from pandas.io.msgpack import packb, unpackb
 
 
@@ -8,7 +9,7 @@ class DecodeError(Exception):
     pass
 
 
-class TestObj(unittest.TestCase):
+class TestObj(object):
 
     def _arr_to_str(self, arr):
         return ''.join(str(c) for c in arr)
@@ -46,15 +47,15 @@ class TestObj(unittest.TestCase):
         assert unpacked[1] == prod_sum
 
     def test_only_one_obj_hook(self):
-        self.assertRaises(TypeError, unpackb, b'', object_hook=lambda x: x,
-                          object_pairs_hook=lambda x: x)
+        pytest.raises(TypeError, unpackb, b'', object_hook=lambda x: x,
+                      object_pairs_hook=lambda x: x)
 
     def test_bad_hook(self):
         def f():
             packed = packb([3, 1 + 2j], default=lambda o: o)
             unpacked = unpackb(packed, use_list=1)  # noqa
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
     def test_array_hook(self):
         packed = packb([1, 2, 3])
@@ -66,11 +67,11 @@ class TestObj(unittest.TestCase):
             packed = packb({1: {'__complex__': True, 'real': 1, 'imag': 2}})
             unpackb(packed, object_hook=self.bad_complex_decoder)
 
-        self.assertRaises(DecodeError, f)
+        pytest.raises(DecodeError, f)
 
     def test_an_exception_in_objecthook2(self):
         def f():
             packed = packb({1: [{'__complex__': True, 'real': 1, 'imag': 2}]})
             unpackb(packed, list_hook=self.bad_complex_decoder, use_list=1)
 
-        self.assertRaises(DecodeError, f)
+        pytest.raises(DecodeError, f)

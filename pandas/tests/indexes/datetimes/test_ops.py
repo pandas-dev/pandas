@@ -41,14 +41,14 @@ class TestDatetimeIndexOps(Ops):
         # sanity check that the behavior didn't change
         # GH7206
         for op in ['year', 'day', 'second', 'weekday']:
-            self.assertRaises(TypeError, lambda x: getattr(self.dt_series, op))
+            pytest.raises(TypeError, lambda x: getattr(self.dt_series, op))
 
         # attribute access should still work!
         s = Series(dict(year=2000, month=1, day=10))
         self.assertEqual(s.year, 2000)
         self.assertEqual(s.month, 1)
         self.assertEqual(s.day, 10)
-        self.assertRaises(AttributeError, lambda: s.weekday)
+        pytest.raises(AttributeError, lambda: s.weekday)
 
     def test_asobject_tolist(self):
         idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
@@ -446,16 +446,16 @@ Freq: D"""
         dti = date_range('20130101', periods=3)
         dti_tz = date_range('20130101', periods=3).tz_localize('US/Eastern')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti + dti
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti_tz + dti_tz
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti_tz + dti
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti + dti_tz
 
     def test_difference(self):
@@ -521,13 +521,13 @@ Freq: D"""
         result = dti_tz - dti_tz
         tm.assert_index_equal(result, expected)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti_tz - dti
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti - dti_tz
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti_tz - dti_tz2
 
         # isub
@@ -537,7 +537,7 @@ Freq: D"""
         # different length raises ValueError
         dti1 = date_range('20130101', periods=3)
         dti2 = date_range('20130101', periods=4)
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             dti1 - dti2
 
         # NaN propagation
@@ -555,10 +555,10 @@ Freq: D"""
         for freq in [None, 'D']:
             idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=freq)
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 idx - p
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 p - idx
 
     def test_comp_nat(self):

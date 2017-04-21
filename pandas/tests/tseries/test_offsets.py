@@ -590,7 +590,7 @@ class TestBusinessDay(Base):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d + BDay(-2))
@@ -713,7 +713,7 @@ class TestBusinessDay(Base):
         self.assertEqual(rs, xp)
 
     def test_apply_corner(self):
-        self.assertRaises(TypeError, BDay().apply, BMonthEnd())
+        pytest.raises(TypeError, BDay().apply, BMonthEnd())
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -742,11 +742,11 @@ class TestBusinessHour(Base):
 
     def test_constructor_errors(self):
         from datetime import time as dt_time
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             BusinessHour(start=dt_time(11, 0, 5))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             BusinessHour(start='AAA')
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             BusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
@@ -802,7 +802,7 @@ class TestBusinessHour(Base):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d + self._offset(-3))
@@ -1446,11 +1446,11 @@ class TestCustomBusinessHour(Base):
 
     def test_constructor_errors(self):
         from datetime import time as dt_time
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CustomBusinessHour(start=dt_time(11, 0, 5))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CustomBusinessHour(start='AAA')
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CustomBusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
@@ -1502,7 +1502,7 @@ class TestCustomBusinessHour(Base):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d - (2 * off - off))
@@ -1735,7 +1735,7 @@ class TestCustomBusinessDay(Base):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d + CDay(-2))
@@ -1854,7 +1854,7 @@ class TestCustomBusinessDay(Base):
         self.assertEqual(rs, xp)
 
     def test_apply_corner(self):
-        self.assertRaises(Exception, CDay().apply, BMonthEnd())
+        pytest.raises(Exception, CDay().apply, BMonthEnd())
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -1947,7 +1947,7 @@ class CustomBusinessMonthBase(object):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d + self._object(-2))
@@ -2225,7 +2225,7 @@ class TestWeek(Base):
                          "<-2 * Weeks: weekday=0>")
 
     def test_corner(self):
-        self.assertRaises(ValueError, Week, weekday=7)
+        pytest.raises(ValueError, Week, weekday=7)
         assertRaisesRegexp(ValueError, "Day must be", Week, weekday=-1)
 
     def test_isAnchored(self):
@@ -4031,8 +4031,8 @@ class TestBYearBegin(Base):
     _offset = BYearBegin
 
     def test_misspecified(self):
-        self.assertRaises(ValueError, BYearBegin, month=13)
-        self.assertRaises(ValueError, BYearEnd, month=13)
+        pytest.raises(ValueError, BYearBegin, month=13)
+        pytest.raises(ValueError, BYearEnd, month=13)
 
     def test_offset(self):
         tests = []
@@ -4077,7 +4077,7 @@ class TestYearBegin(Base):
     _offset = YearBegin
 
     def test_misspecified(self):
-        self.assertRaises(ValueError, YearBegin, month=13)
+        pytest.raises(ValueError, YearBegin, month=13)
 
     def test_offset(self):
         tests = []
@@ -4169,8 +4169,8 @@ class TestYearBegin(Base):
 class TestBYearEndLagged(Base):
 
     def test_bad_month_fail(self):
-        self.assertRaises(Exception, BYearEnd, month=13)
-        self.assertRaises(Exception, BYearEnd, month=0)
+        pytest.raises(Exception, BYearEnd, month=13)
+        pytest.raises(Exception, BYearEnd, month=0)
 
     def test_offset(self):
         tests = []
@@ -4258,7 +4258,7 @@ class TestYearEnd(Base):
     _offset = YearEnd
 
     def test_misspecified(self):
-        self.assertRaises(ValueError, YearEnd, month=13)
+        pytest.raises(ValueError, YearEnd, month=13)
 
     def test_offset(self):
         tests = []
@@ -4622,9 +4622,9 @@ class TestParseTimeString(tm.TestCase):
             self.assertEqual(parsed_dash, parsed)
             self.assertEqual(reso_dash, reso)
 
-        self.assertRaises(DateParseError, parse_time_string, "-2Q1992")
-        self.assertRaises(DateParseError, parse_time_string, "2-Q1992")
-        self.assertRaises(DateParseError, parse_time_string, "4-4Q1992")
+        pytest.raises(DateParseError, parse_time_string, "-2Q1992")
+        pytest.raises(DateParseError, parse_time_string, "2-Q1992")
+        pytest.raises(DateParseError, parse_time_string, "4-4Q1992")
 
 
 def test_get_standard_freq():

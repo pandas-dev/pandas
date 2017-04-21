@@ -184,7 +184,7 @@ class TestSparseIndexUnion(tm.TestCase):
 
         a = IntIndex(5, np.array([0, 1], dtype=np.int32))
         b = IntIndex(4, np.array([0, 1], dtype=np.int32))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             a.make_union(b)
 
 
@@ -196,7 +196,7 @@ class TestSparseIndexIntersect(tm.TestCase):
             assert (result.equals(expected))
 
         def _check_length_exc(a, longer):
-            self.assertRaises(Exception, a.intersect, longer)
+            pytest.raises(Exception, a.intersect, longer)
 
         def _check_case(xloc, xlen, yloc, ylen, eloc, elen):
             xindex = BlockIndex(TEST_LENGTH, xloc, xlen)
@@ -451,10 +451,10 @@ class TestBlockIndex(tm.TestCase):
         index = BlockIndex(1, locs, lengths)  # noqa
 
         # block extend beyond end
-        self.assertRaises(Exception, BlockIndex, 10, [5], [10])
+        pytest.raises(Exception, BlockIndex, 10, [5], [10])
 
         # block overlap
-        self.assertRaises(Exception, BlockIndex, 10, [2, 5], [5, 3])
+        pytest.raises(Exception, BlockIndex, 10, [2, 5], [5, 3])
 
     def test_to_int_index(self):
         locs = [0, 10]

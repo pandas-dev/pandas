@@ -268,7 +268,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
 
         # object + int -> IndexError, regarded as location
         temp = obj.copy()
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             temp[5] = 5
 
         # object + float -> object
@@ -300,7 +300,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
         # float + int -> int
         temp = obj.copy()
         # TODO_GH12747 The result must be float
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             temp[5] = 5
 
         # float + float -> float
@@ -803,7 +803,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
         # datetime64 + datetime64 -> datetime64
         # must support scalar
         msg = "cannot coerce a Timestamp with a tz on a naive Block"
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             obj.where(cond, pd.Timestamp('2012-01-01'))
 
         values = pd.Index([pd.Timestamp('2012-01-01'),

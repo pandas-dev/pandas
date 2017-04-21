@@ -327,7 +327,7 @@ class TestTableOrient(tm.TestCase):
         self.assertEqual(result, expected)
 
     def test_date_format_raises(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.df.to_json(orient='table', date_format='epoch')
 
         # others work

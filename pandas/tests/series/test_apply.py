@@ -1,7 +1,10 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from collections import Counter, defaultdict, OrderedDict
+
 import numpy as np
 import pandas as pd
 
@@ -204,22 +207,22 @@ class TestSeriesAggregate(TestData, tm.TestCase):
         # we are trying to transform with an aggregator
         def f():
             self.series.transform(['min', 'max'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.series.agg(['sqrt', 'max'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.series.transform(['sqrt', 'max'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.series.agg({'foo': np.sqrt, 'bar': 'sum'})
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_demo(self):
         # demonstration tests
@@ -505,7 +508,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         tm.assert_series_equal(result, exp)
         self.assertEqual(result.dtype, np.object)
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             s.map(lambda x: x, na_action='ignore')
 
     def test_map_datetimetz(self):
@@ -526,7 +529,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         exp = pd.Series(list(range(24)) + [0], name='XX', dtype=np.int64)
         tm.assert_series_equal(result, exp)
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             s.map(lambda x: x, na_action='ignore')
 
         # not vectorized

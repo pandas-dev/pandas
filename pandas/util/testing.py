@@ -2446,57 +2446,23 @@ def stdin_encoding(encoding=None):
     sys.stdin = _stdin
 
 
-def assertRaises(_exception, _callable=None, *args, **kwargs):
-    """assertRaises that is usable as context manager or in a with statement
-
-    Exceptions that don't match the given Exception type fall through::
-
-    >>> with assertRaises(ValueError):
-    ...     raise TypeError("banana")
-    ...
-    Traceback (most recent call last):
-        ...
-    TypeError: banana
-
-    If it raises the given Exception type, the test passes
-    >>> with assertRaises(KeyError):
-    ...     dct = dict()
-    ...     dct["apple"]
-
-    If the expected error doesn't occur, it raises an error.
-    >>> with assertRaises(KeyError):
-    ...     dct = {'apple':True}
-    ...     dct["apple"]
-    Traceback (most recent call last):
-        ...
-    AssertionError: KeyError not raised.
-
-    In addition to using it as a contextmanager, you can also use it as a
-    function, just like the normal assertRaises
-
-    >>> assertRaises(TypeError, ",".join, [1, 3, 5])
-    """
-    manager = _AssertRaisesContextmanager(exception=_exception)
-    # don't return anything if used in function form
-    if _callable is not None:
-        with manager:
-            _callable(*args, **kwargs)
-    else:
-        return manager
-
-
 def assertRaisesRegexp(_exception, _regexp, _callable=None, *args, **kwargs):
-    """ Port of assertRaisesRegexp from unittest in
-        Python 2.7 - used in with statement.
+    """
+    Check that the specified Exception is raised and that the error message
+    matches a given regular expression pattern. This may be a regular
+    expression object or a string containing a regular expression suitable
+    for use by `re.search()`.
 
-    Explanation from standard library:
-        Like assertRaises() but also tests that regexp matches on the
-        string representation of the raised exception. regexp may be a
-        regular expression object or a string containing a regular
-        expression suitable for use by re.search().
+    This is a port of the `assertRaisesRegexp` function from unittest in
+    Python 2.7. However, with our migration to `pytest`, please refrain
+    from using this. Instead, use the following paradigm:
 
-    You can pass either a regular expression
-    or a compiled regular expression object.
+    with pytest.raises(_exception) as exc_info:
+       func(*args, **kwargs)
+    exc_info.matches(reg_exp)
+
+    Examples
+    --------
     >>> assertRaisesRegexp(ValueError, 'invalid literal for.*XYZ',
     ...                                int, 'XYZ')
     >>> import re

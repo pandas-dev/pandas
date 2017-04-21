@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 from datetime import timedelta
 from distutils.version import LooseVersion
@@ -276,7 +278,7 @@ Freq: D"""
 
         # multiply
         for offset in offsets:
-            self.assertRaises(TypeError, lambda: rng * offset)
+            pytest.raises(TypeError, lambda: rng * offset)
 
         # divide
         expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
@@ -298,7 +300,7 @@ Freq: D"""
             tm.assert_index_equal(result, expected)
 
         # don't allow division by NaT (make could in the future)
-        self.assertRaises(TypeError, lambda: rng / pd.NaT)
+        pytest.raises(TypeError, lambda: rng / pd.NaT)
 
     def test_subtraction_ops(self):
 
@@ -308,10 +310,10 @@ Freq: D"""
         td = Timedelta('1 days')
         dt = Timestamp('20130101')
 
-        self.assertRaises(TypeError, lambda: tdi - dt)
-        self.assertRaises(TypeError, lambda: tdi - dti)
-        self.assertRaises(TypeError, lambda: td - dt)
-        self.assertRaises(TypeError, lambda: td - dti)
+        pytest.raises(TypeError, lambda: tdi - dt)
+        pytest.raises(TypeError, lambda: tdi - dti)
+        pytest.raises(TypeError, lambda: td - dt)
+        pytest.raises(TypeError, lambda: td - dti)
 
         result = dt - dti
         expected = TimedeltaIndex(['0 days', '-1 days', '-2 days'], name='bar')
@@ -368,19 +370,19 @@ Freq: D"""
         _check(result, expected)
 
         # tz mismatches
-        self.assertRaises(TypeError, lambda: dt_tz - ts)
-        self.assertRaises(TypeError, lambda: dt_tz - dt)
-        self.assertRaises(TypeError, lambda: dt_tz - ts_tz2)
-        self.assertRaises(TypeError, lambda: dt - dt_tz)
-        self.assertRaises(TypeError, lambda: ts - dt_tz)
-        self.assertRaises(TypeError, lambda: ts_tz2 - ts)
-        self.assertRaises(TypeError, lambda: ts_tz2 - dt)
-        self.assertRaises(TypeError, lambda: ts_tz - ts_tz2)
+        pytest.raises(TypeError, lambda: dt_tz - ts)
+        pytest.raises(TypeError, lambda: dt_tz - dt)
+        pytest.raises(TypeError, lambda: dt_tz - ts_tz2)
+        pytest.raises(TypeError, lambda: dt - dt_tz)
+        pytest.raises(TypeError, lambda: ts - dt_tz)
+        pytest.raises(TypeError, lambda: ts_tz2 - ts)
+        pytest.raises(TypeError, lambda: ts_tz2 - dt)
+        pytest.raises(TypeError, lambda: ts_tz - ts_tz2)
 
         # with dti
-        self.assertRaises(TypeError, lambda: dti - ts_tz)
-        self.assertRaises(TypeError, lambda: dti_tz - ts)
-        self.assertRaises(TypeError, lambda: dti_tz - ts_tz2)
+        pytest.raises(TypeError, lambda: dti - ts_tz)
+        pytest.raises(TypeError, lambda: dti_tz - ts)
+        pytest.raises(TypeError, lambda: dti_tz - ts_tz2)
 
         result = dti_tz - dt_tz
         expected = TimedeltaIndex(['0 days', '1 days', '2 days'])
@@ -437,10 +439,10 @@ Freq: D"""
         for freq in [None, 'H']:
             idx = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=freq)
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 idx - p
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 p - idx
 
     def test_addition_ops(self):
@@ -468,14 +470,14 @@ Freq: D"""
         tm.assert_index_equal(result, expected)
 
         # unequal length
-        self.assertRaises(ValueError, lambda: tdi + dti[0:1])
-        self.assertRaises(ValueError, lambda: tdi[0:1] + dti)
+        pytest.raises(ValueError, lambda: tdi + dti[0:1])
+        pytest.raises(ValueError, lambda: tdi[0:1] + dti)
 
         # random indexes
-        self.assertRaises(TypeError, lambda: tdi + Int64Index([1, 2, 3]))
+        pytest.raises(TypeError, lambda: tdi + Int64Index([1, 2, 3]))
 
         # this is a union!
-        # self.assertRaises(TypeError, lambda : Int64Index([1,2,3]) + tdi)
+        # pytest.raises(TypeError, lambda : Int64Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
         expected = DatetimeIndex(['20130102', pd.NaT, '20130105'])
@@ -566,7 +568,7 @@ Freq: D"""
         tdi = pd.timedelta_range(start=0, periods=10, freq='1s')
         ts = pd.Series(np.random.normal(size=10), index=tdi)
         self.assertNotIn('foo', ts.__dict__.keys())
-        self.assertRaises(AttributeError, lambda: ts.foo)
+        pytest.raises(AttributeError, lambda: ts.foo)
 
     def test_order(self):
         # GH 10295
@@ -886,11 +888,11 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(abs(-td), Timedelta('10d'))
 
         # invalid multiply with another timedelta
-        self.assertRaises(TypeError, lambda: td * td)
+        pytest.raises(TypeError, lambda: td * td)
 
         # can't operate with integers
-        self.assertRaises(TypeError, lambda: td + 2)
-        self.assertRaises(TypeError, lambda: td - 2)
+        pytest.raises(TypeError, lambda: td + 2)
+        pytest.raises(TypeError, lambda: td - 2)
 
     def test_ops_offsets(self):
         td = Timedelta(10, unit='d')
@@ -910,21 +912,21 @@ class TestTimedeltas(tm.TestCase):
         tm.assert_numpy_array_equal(td + other, expected)
         if LooseVersion(np.__version__) >= '1.8':
             tm.assert_numpy_array_equal(other + td, expected)
-        self.assertRaises(TypeError, lambda: td + np.array([1]))
-        self.assertRaises(TypeError, lambda: np.array([1]) + td)
+        pytest.raises(TypeError, lambda: td + np.array([1]))
+        pytest.raises(TypeError, lambda: np.array([1]) + td)
 
         expected = pd.to_timedelta(['0 days']).values
         tm.assert_numpy_array_equal(td - other, expected)
         if LooseVersion(np.__version__) >= '1.8':
             tm.assert_numpy_array_equal(-other + td, expected)
-        self.assertRaises(TypeError, lambda: td - np.array([1]))
-        self.assertRaises(TypeError, lambda: np.array([1]) - td)
+        pytest.raises(TypeError, lambda: td - np.array([1]))
+        pytest.raises(TypeError, lambda: np.array([1]) - td)
 
         expected = pd.to_timedelta(['2 days']).values
         tm.assert_numpy_array_equal(td * np.array([2]), expected)
         tm.assert_numpy_array_equal(np.array([2]) * td, expected)
-        self.assertRaises(TypeError, lambda: td * other)
-        self.assertRaises(TypeError, lambda: other * td)
+        pytest.raises(TypeError, lambda: td * other)
+        pytest.raises(TypeError, lambda: other * td)
 
         tm.assert_numpy_array_equal(td / other,
                                     np.array([1], dtype=np.float64))
@@ -1002,16 +1004,16 @@ class TestTimedeltas(tm.TestCase):
         tdi = TimedeltaIndex(['1 day', '2 days'])
 
         for l, r in [(tdi, 'a'), ('a', tdi)]:
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 l + r
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 l > r
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 l == r
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 l != r
 
     def test_timedelta_ops(self):
@@ -1058,7 +1060,7 @@ class TestTimedeltas(tm.TestCase):
 
         # invalid ops
         for op in ['skew', 'kurt', 'sem', 'prod']:
-            self.assertRaises(TypeError, getattr(td, op))
+            pytest.raises(TypeError, getattr(td, op))
 
         # GH 10040
         # make sure NaT is properly handled by median()

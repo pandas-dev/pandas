@@ -24,8 +24,8 @@ class TestMisc(tm.TestCase):
         self.assertTrue(lib.max_len_string_array(arr), 3)
 
         # raises
-        tm.assertRaises(TypeError,
-                        lambda: lib.max_len_string_array(arr.astype('U')))
+        pytest.raises(TypeError,
+                      lambda: lib.max_len_string_array(arr.astype('U')))
 
     def test_fast_unique_multiple_list_gen_sort(self):
         keys = [['p', 'a'], ['n', 'd'], ['a', 's']]

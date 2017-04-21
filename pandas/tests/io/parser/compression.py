@@ -60,8 +60,8 @@ class CompressionTests(object):
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:
-                self.assertRaises(zipfile.BadZipfile, self.read_csv,
-                                  f, compression='zip')
+                pytest.raises(zipfile.BadZipfile, self.read_csv,
+                              f, compression='zip')
 
     def test_gzip(self):
         try:
@@ -110,8 +110,8 @@ class CompressionTests(object):
             result = self.read_csv(path, compression='bz2')
             tm.assert_frame_equal(result, expected)
 
-            self.assertRaises(ValueError, self.read_csv,
-                              path, compression='bz3')
+            pytest.raises(ValueError, self.read_csv,
+                          path, compression='bz3')
 
             with open(path, 'rb') as fin:
                 result = self.read_csv(fin, compression='bz2')

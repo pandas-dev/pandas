@@ -1177,7 +1177,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         self.assertEqual(df_s, expected)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.to_string(header=['X'])
 
     def test_to_string_no_index(self):
@@ -2563,7 +2563,7 @@ def test_format_percentiles():
     expected = ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     assert result == expected
 
-    tm.assertRaises(ValueError, fmt.format_percentiles, [0.1, np.nan, 0.5])
-    tm.assertRaises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
-    tm.assertRaises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
-    tm.assertRaises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])
+    pytest.raises(ValueError, fmt.format_percentiles, [0.1, np.nan, 0.5])
+    pytest.raises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
+    pytest.raises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
+    pytest.raises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])

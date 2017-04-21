@@ -130,17 +130,17 @@ class TestPandasDelegate(tm.TestCase):
         def f():
             delegate.foo
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         def f():
             delegate.foo = 5
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         def f():
             delegate.foo()
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
     def test_memory_usage(self):
         # Delegate does not implement memory_usage.
@@ -227,10 +227,10 @@ class Ops(tm.TestCase):
                     # an object that is datetimelike will raise a TypeError,
                     # otherwise an AttributeError
                     if issubclass(type(o), DatetimeIndexOpsMixin):
-                        self.assertRaises(TypeError, lambda: getattr(o, op))
+                        pytest.raises(TypeError, lambda: getattr(o, op))
                     else:
-                        self.assertRaises(AttributeError,
-                                          lambda: getattr(o, op))
+                        pytest.raises(AttributeError,
+                                      lambda: getattr(o, op))
 
     def test_binary_ops_docs(self):
         from pandas import DataFrame, Panel
@@ -978,7 +978,7 @@ class TestIndexOps(Ops):
         invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 self.int_series.drop_duplicates(inplace=value)
 
 
@@ -1027,5 +1027,5 @@ class TestNoNewAttributesMixin(tm.TestCase):
         def f():
             t.b = "test"
 
-        self.assertRaises(AttributeError, f)
+        pytest.raises(AttributeError, f)
         self.assertFalse(hasattr(t, "b"))

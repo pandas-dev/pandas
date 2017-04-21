@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 from datetime import datetime
 from pandas.compat import range, PY3
 
@@ -74,10 +76,10 @@ class Numeric(Base):
         tm.assert_index_equal(result, expected)
 
         # invalid
-        self.assertRaises(TypeError,
-                          lambda: idx * date_range('20130101', periods=5))
-        self.assertRaises(ValueError, lambda: idx * idx[0:3])
-        self.assertRaises(ValueError, lambda: idx * np.array([1, 2]))
+        pytest.raises(TypeError,
+                      lambda: idx * date_range('20130101', periods=5))
+        pytest.raises(ValueError, lambda: idx * idx[0:3])
+        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
 
         result = divmod(idx, 2)
         with np.errstate(all='ignore'):
@@ -235,9 +237,9 @@ class TestFloat64Index(Numeric, tm.TestCase):
     def test_constructor_invalid(self):
 
         # invalid
-        self.assertRaises(TypeError, Float64Index, 0.)
-        self.assertRaises(TypeError, Float64Index, ['a', 'b', 0.])
-        self.assertRaises(TypeError, Float64Index, [Timestamp('20130101')])
+        pytest.raises(TypeError, Float64Index, 0.)
+        pytest.raises(TypeError, Float64Index, ['a', 'b', 0.])
+        pytest.raises(TypeError, Float64Index, [Timestamp('20130101')])
 
     def test_constructor_coerce(self):
 
@@ -295,12 +297,12 @@ class TestFloat64Index(Numeric, tm.TestCase):
 
         # invalid
         for dtype in ['M8[ns]', 'm8[ns]']:
-            self.assertRaises(TypeError, lambda: i.astype(dtype))
+            pytest.raises(TypeError, lambda: i.astype(dtype))
 
         # GH 13149
         for dtype in ['int16', 'int32', 'int64']:
             i = Float64Index([0, 1.1, np.NAN])
-            self.assertRaises(ValueError, lambda: i.astype(dtype))
+            pytest.raises(ValueError, lambda: i.astype(dtype))
 
     def test_equals_numeric(self):
 
@@ -342,10 +344,10 @@ class TestFloat64Index(Numeric, tm.TestCase):
             self.assertEqual(idx.get_loc(1.1, method), loc)
             self.assertEqual(idx.get_loc(1.1, method, tolerance=0.9), loc)
 
-        self.assertRaises(KeyError, idx.get_loc, 'foo')
-        self.assertRaises(KeyError, idx.get_loc, 1.5)
-        self.assertRaises(KeyError, idx.get_loc, 1.5, method='pad',
-                          tolerance=0.1)
+        pytest.raises(KeyError, idx.get_loc, 'foo')
+        pytest.raises(KeyError, idx.get_loc, 1.5)
+        pytest.raises(KeyError, idx.get_loc, 1.5, method='pad',
+                      tolerance=0.1)
 
         with tm.assertRaisesRegexp(ValueError, 'must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
@@ -359,7 +361,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
         self.assertEqual(idx.get_loc(1), 1)
 
         # representable by slice [0:2:2]
-        # self.assertRaises(KeyError, idx.slice_locs, np.nan)
+        # pytest.raises(KeyError, idx.slice_locs, np.nan)
         sliced = idx.slice_locs(np.nan)
         self.assertTrue(isinstance(sliced, tuple))
         self.assertEqual(sliced, (0, 3))
@@ -367,7 +369,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
         # not representable by slice
         idx = Float64Index([np.nan, 1, np.nan, np.nan])
         self.assertEqual(idx.get_loc(1), 1)
-        self.assertRaises(KeyError, idx.slice_locs, np.nan)
+        pytest.raises(KeyError, idx.slice_locs, np.nan)
 
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
@@ -441,7 +443,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
 
@@ -534,11 +536,11 @@ class NumericInt(Numeric):
     def test_cant_or_shouldnt_cast(self):
         # can't
         data = ['foo', 'bar', 'baz']
-        self.assertRaises(TypeError, self._holder, data)
+        pytest.raises(TypeError, self._holder, data)
 
         # shouldn't
         data = ['0', '1', '2']
-        self.assertRaises(TypeError, self._holder, data)
+        pytest.raises(TypeError, self._holder, data)
 
     def test_view_index(self):
         self.index.view(Index)
@@ -578,7 +580,7 @@ class NumericInt(Numeric):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_slice_keep_name(self):
@@ -642,7 +644,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
         tm.assert_index_equal(index, expected)
 
         # scalar raise Exception
-        self.assertRaises(TypeError, Int64Index, 5)
+        pytest.raises(TypeError, Int64Index, 5)
 
         # copy
         arr = self.index.values

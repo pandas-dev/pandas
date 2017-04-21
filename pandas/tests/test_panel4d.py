@@ -145,7 +145,7 @@ class SafeForLongAndSparse(object):
                     expected = obj.apply(skipna_wrapper, axis=i)
                     assert_panel_equal(result, expected)
 
-        self.assertRaises(Exception, f, axis=obj.ndim)
+        pytest.raises(Exception, f, axis=obj.ndim)
 
 
 class SafeForSparse(object):
@@ -220,8 +220,8 @@ class SafeForSparse(object):
             self._test_op(self.panel4d, lambda x, y: y / x)
             self._test_op(self.panel4d, lambda x, y: y ** x)
 
-            self.assertRaises(Exception, self.panel4d.__add__,
-                              self.panel4d['l1'])
+            pytest.raises(Exception, self.panel4d.__add__,
+                          self.panel4d['l1'])
 
     @staticmethod
     def _test_op(panel4d, op):
@@ -307,7 +307,7 @@ class SafeForSparse(object):
 class CheckIndexing(object):
 
     def test_getitem(self):
-        self.assertRaises(Exception, self.panel4d.__getitem__, 'ItemQ')
+        pytest.raises(Exception, self.panel4d.__getitem__, 'ItemQ')
 
     def test_delitem_and_pop(self):
 
@@ -319,7 +319,7 @@ class CheckIndexing(object):
 
             del self.panel4d['l3']
             self.assertNotIn('l3', self.panel4d.labels)
-            self.assertRaises(Exception, self.panel4d.__delitem__, 'l3')
+            pytest.raises(Exception, self.panel4d.__delitem__, 'l3')
 
             values = np.empty((4, 4, 4, 4))
             values[0] = 0
@@ -395,7 +395,7 @@ class CheckIndexing(object):
 
             def func():
                 self.panel4d.iloc[0] = p
-            self.assertRaises(NotImplementedError, func)
+            pytest.raises(NotImplementedError, func)
 
             # DataFrame
             panel4dc = self.panel4d.copy()
@@ -478,7 +478,7 @@ class CheckIndexing(object):
 
         # not contained
         idx = self.panel4d.major_axis[0] - BDay()
-        self.assertRaises(Exception, self.panel4d.major_xs, idx)
+        pytest.raises(Exception, self.panel4d.major_xs, idx)
 
     def test_major_xs_mixed(self):
         self.panel4d['l4'] = 'foo'
@@ -497,7 +497,7 @@ class CheckIndexing(object):
         assert_series_equal(xs['l1'].T['ItemA'], ref[idx], check_names=False)
 
         # not contained
-        self.assertRaises(Exception, self.panel4d.minor_xs, 'E')
+        pytest.raises(Exception, self.panel4d.minor_xs, 'E')
 
     def test_minor_xs_mixed(self):
         self.panel4d['l4'] = 'foo'
@@ -677,7 +677,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
             # can't cast
             data = [[['foo', 'bar', 'baz']]]
-            self.assertRaises(ValueError, Panel, data, dtype=float)
+            pytest.raises(ValueError, Panel, data, dtype=float)
 
     def test_consolidate(self):
         with catch_warnings(record=True):
@@ -724,10 +724,10 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
             # corner, blow up
             data['l2'] = data['l2']['ItemB']
-            self.assertRaises(Exception, Panel4D, data)
+            pytest.raises(Exception, Panel4D, data)
 
             data['l2'] = self.panel4d['l2'].values[:, :, :-1]
-            self.assertRaises(Exception, Panel4D, data)
+            pytest.raises(Exception, Panel4D, data)
 
     def test_constructor_resize(self):
         with catch_warnings(record=True):
@@ -786,8 +786,8 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
                 result['l2']['ItemB'], ref['ItemB'].reindex(index=new_major))
 
             # raise exception put both major and major_axis
-            self.assertRaises(Exception, self.panel4d.reindex,
-                              major_axis=new_major, major=new_major)
+            pytest.raises(Exception, self.panel4d.reindex,
+                          major_axis=new_major, major=new_major)
 
             # minor
             new_minor = list(self.panel4d.minor_axis[:2])
@@ -824,8 +824,8 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
     def test_not_hashable(self):
         with catch_warnings(record=True):
             p4D_empty = Panel4D()
-            self.assertRaises(TypeError, hash, p4D_empty)
-            self.assertRaises(TypeError, hash, self.panel4d)
+            pytest.raises(TypeError, hash, p4D_empty)
+            pytest.raises(TypeError, hash, self.panel4d)
 
     def test_reindex_like(self):
         # reindex_like
@@ -861,8 +861,8 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             filled = self.panel4d.fillna(0)
             self.assertTrue(np.isfinite(filled.values).all())
 
-            self.assertRaises(NotImplementedError,
-                              self.panel4d.fillna, method='pad')
+            pytest.raises(NotImplementedError,
+                          self.panel4d.fillna, method='pad')
 
     def test_swapaxes(self):
         with catch_warnings(record=True):

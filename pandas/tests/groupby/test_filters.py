@@ -2,6 +2,7 @@
 from __future__ import print_function
 from numpy import nan
 
+import pytest
 
 from pandas import Timestamp
 from pandas.core.index import MultiIndex
@@ -164,8 +165,8 @@ class TestGroupByFilter(tm.TestCase):
         s = pd.Series([-1, 0, 1, 2])
         grouper = s.apply(lambda x: x % 2)
         grouped = s.groupby(grouper)
-        self.assertRaises(TypeError,
-                          lambda: grouped.filter(raise_if_sum_is_zero))
+        pytest.raises(TypeError,
+                      lambda: grouped.filter(raise_if_sum_is_zero))
 
     def test_filter_with_axis_in_groupby(self):
         # issue 11041
@@ -186,16 +187,16 @@ class TestGroupByFilter(tm.TestCase):
         g_s = s.groupby(s)
 
         f = lambda x: x
-        self.assertRaises(TypeError, lambda: g_df.filter(f))
-        self.assertRaises(TypeError, lambda: g_s.filter(f))
+        pytest.raises(TypeError, lambda: g_df.filter(f))
+        pytest.raises(TypeError, lambda: g_s.filter(f))
 
         f = lambda x: x == 1
-        self.assertRaises(TypeError, lambda: g_df.filter(f))
-        self.assertRaises(TypeError, lambda: g_s.filter(f))
+        pytest.raises(TypeError, lambda: g_df.filter(f))
+        pytest.raises(TypeError, lambda: g_s.filter(f))
 
         f = lambda x: np.outer(x, x)
-        self.assertRaises(TypeError, lambda: g_df.filter(f))
-        self.assertRaises(TypeError, lambda: g_s.filter(f))
+        pytest.raises(TypeError, lambda: g_df.filter(f))
+        pytest.raises(TypeError, lambda: g_s.filter(f))
 
     def test_filter_nan_is_false(self):
         df = DataFrame({'A': np.arange(8),

@@ -2,6 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
+import pytest
 import re
 
 from numpy import nan as NA
@@ -430,7 +431,7 @@ class TestStringMethods(tm.TestCase):
             for repl in (None, 3, {'a': 'b'}):
                 for data in (['a', 'b', None], ['a', 'b', 'c', 'ad']):
                     values = klass(data)
-                    self.assertRaises(TypeError, values.str.replace, 'a', repl)
+                    pytest.raises(TypeError, values.str.replace, 'a', repl)
 
     def test_replace_callable(self):
         # GH 15055
@@ -583,8 +584,8 @@ class TestStringMethods(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
         tm.assert_series_equal(result, exp)
-        self.assertRaises(ValueError, values.str.match, '.*(BAD[_]+).*(BAD)',
-                          as_indexer=False)
+        pytest.raises(ValueError, values.str.match, '.*(BAD[_]+).*(BAD)',
+                      as_indexer=False)
 
         # mixed
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
@@ -655,11 +656,11 @@ class TestStringMethods(tm.TestCase):
             # no groups
             s_or_idx = klass(['A1', 'B2', 'C3'])
             f = lambda: s_or_idx.str.extract('[ABC][123]', expand=False)
-            self.assertRaises(ValueError, f)
+            pytest.raises(ValueError, f)
 
             # only non-capturing groups
             f = lambda: s_or_idx.str.extract('(?:[AB]).*', expand=False)
-            self.assertRaises(ValueError, f)
+            pytest.raises(ValueError, f)
 
             # single group renames series/index properly
             s_or_idx = klass(['A1', 'A2'])
@@ -800,11 +801,11 @@ class TestStringMethods(tm.TestCase):
             # no groups
             s_or_idx = klass(['A1', 'B2', 'C3'])
             f = lambda: s_or_idx.str.extract('[ABC][123]', expand=True)
-            self.assertRaises(ValueError, f)
+            pytest.raises(ValueError, f)
 
             # only non-capturing groups
             f = lambda: s_or_idx.str.extract('(?:[AB]).*', expand=True)
-            self.assertRaises(ValueError, f)
+            pytest.raises(ValueError, f)
 
             # single group renames series/index properly
             s_or_idx = klass(['A1', 'A2'])
@@ -2619,7 +2620,7 @@ class TestStringMethods(tm.TestCase):
     def test_encode_decode_errors(self):
         encodeBase = Series([u('a'), u('b'), u('a\x9d')])
 
-        self.assertRaises(UnicodeEncodeError, encodeBase.str.encode, 'cp1252')
+        pytest.raises(UnicodeEncodeError, encodeBase.str.encode, 'cp1252')
 
         f = lambda x: x.encode('cp1252', 'ignore')
         result = encodeBase.str.encode('cp1252', 'ignore')
@@ -2628,7 +2629,7 @@ class TestStringMethods(tm.TestCase):
 
         decodeBase = Series([b'a', b'b', b'a\x9d'])
 
-        self.assertRaises(UnicodeDecodeError, decodeBase.str.decode, 'cp1252')
+        pytest.raises(UnicodeDecodeError, decodeBase.str.decode, 'cp1252')
 
         f = lambda x: x.decode('cp1252', 'ignore')
         result = decodeBase.str.decode('cp1252', 'ignore')
@@ -2745,7 +2746,7 @@ class TestStringMethods(tm.TestCase):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
         if compat.PY3:
-            self.assertRaises(TypeError, lhs.str.cat, rhs)
+            pytest.raises(TypeError, lhs.str.cat, rhs)
         else:
             result = lhs.str.cat(rhs)
             expected = Series(np.array(

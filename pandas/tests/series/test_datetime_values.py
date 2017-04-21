@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime, date
 
 import numpy as np
@@ -258,7 +260,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             def f():
                 s.dt.hour[0] = 5
 
-            self.assertRaises(com.SettingWithCopyError, f)
+            pytest.raises(com.SettingWithCopyError, f)
 
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673

@@ -220,7 +220,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         exp = orig.iloc[[1, -2, -4]].to_sparse()
         tm.assert_sp_series_equal(result, exp)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.iloc[[1, 3, 5]]
 
     def test_iloc_fill_value(self):
@@ -792,7 +792,7 @@ class TestSparseDataFrameIndexing(tm.TestCase):
         exp = orig.iloc[[2], [1, 0]].to_sparse()
         tm.assert_sp_frame_equal(result, exp)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.iloc[[1, 3, 5]]
 
     def test_iloc_slice(self):

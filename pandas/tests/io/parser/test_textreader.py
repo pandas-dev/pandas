@@ -5,6 +5,8 @@ Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
 
+import pytest
+
 from pandas.compat import StringIO, BytesIO, map
 from pandas import compat
 
@@ -152,7 +154,7 @@ class TestTextReader(tm.TestCase):
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None)
-        self.assertRaises(parser.ParserError, reader.read)
+        pytest.raises(parser.ParserError, reader.read)
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None,
@@ -191,8 +193,8 @@ class TestTextReader(tm.TestCase):
         assert_array_dicts_equal(expected, recs)
 
         # not enough rows
-        self.assertRaises(parser.ParserError, TextReader, StringIO(data),
-                          delimiter=',', header=5, as_recarray=True)
+        pytest.raises(parser.ParserError, TextReader, StringIO(data),
+                      delimiter=',', header=5, as_recarray=True)
 
     def test_header_not_enough_lines_as_recarray(self):
         data = ('skip this\n'
@@ -212,8 +214,8 @@ class TestTextReader(tm.TestCase):
         assert_array_dicts_equal(expected, recs)
 
         # not enough rows
-        self.assertRaises(parser.ParserError, TextReader, StringIO(data),
-                          delimiter=',', header=5, as_recarray=True)
+        pytest.raises(parser.ParserError, TextReader, StringIO(data),
+                      delimiter=',', header=5, as_recarray=True)
 
     def test_escapechar(self):
         data = ('\\"hello world\"\n'

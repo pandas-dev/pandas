@@ -1,5 +1,7 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
+import pytest
+
 from datetime import datetime
 import numpy as np
 from numpy import nan
@@ -186,7 +188,7 @@ class TestGroupBy(tm.TestCase):
                                  ]).sum()
             assert_frame_equal(result, expected)
 
-            with self.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 df.groupby([pd.Grouper(freq='1M', key='foo'), 'Buyer']).sum()
 
             # passing the level
@@ -198,7 +200,7 @@ class TestGroupBy(tm.TestCase):
             )
             assert_frame_equal(result, expected)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 df.groupby([pd.Grouper(freq='1M', level='foo'),
                             'Buyer']).sum()
 
@@ -219,7 +221,7 @@ class TestGroupBy(tm.TestCase):
             assert_frame_equal(result, expected)
 
             # error as we have both a level and a name!
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 df.groupby([pd.Grouper(freq='1M', key='Date',
                                        level='Date'), 'Buyer']).sum()
 
