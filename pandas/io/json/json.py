@@ -6,7 +6,7 @@ from pandas.io.json import libjson
 from pandas._libs.tslib import iNaT
 from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
-from pandas import Series, DataFrame, to_datetime
+from pandas import Series, DataFrame, to_datetime, MultiIndex
 from pandas.io.common import get_filepath_or_buffer, _get_handle
 from pandas.core.common import AbstractMethodError
 from pandas.io.formats.printing import pprint_thing
@@ -137,6 +137,11 @@ class JSONTableWriter(FrameWriter):
             raise ValueError(msg)
 
         self.schema = build_table_schema(obj)
+
+        # NotImplementd on a column MultiIndex
+        if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
+            raise NotImplementedError(
+                "orient='table' is not supported for MultiIndex")
 
         # TODO: Do this timedelta properly in objToJSON.c See GH #15137
         if ((obj.ndim == 1) and (obj.name in set(obj.index.names)) or
