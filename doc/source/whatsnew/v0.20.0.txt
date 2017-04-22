@@ -1677,7 +1677,7 @@ Groupby/Resample/Rolling
 - Bug in ``.groupby(..).resample()`` when passed the ``on=`` kwarg. (:issue:`15021`)
 - Properly set ``__name__`` and ``__qualname__`` for ``Groupby.*`` functions (:issue:`14620`)
 - Bug in ``GroupBy.get_group()`` failing with a categorical grouper (:issue:`15155`)
-- Bug in ``.groupby(...).rolling(...)`` when ``on`` is specified and using a ``DatetimeIndex`` (:issue:`15130`)
+- Bug in ``.groupby(...).rolling(...)`` when ``on`` is specified and using a ``DatetimeIndex`` (:issue:`15130`, :issue:`13966`)
 - Bug in groupby operations with ``timedelta64`` when passing ``numeric_only=False`` (:issue:`5724`)
 - Bug in ``groupby.apply()`` coercing ``object`` dtypes to numeric types, when not all values were numeric (:issue:`14423`, :issue:`15421`, :issue:`15670`)
 - Bug in ``resample``, where a non-string ``loffset`` argument would not be applied when resampling a timeseries (:issue:`13218`)
