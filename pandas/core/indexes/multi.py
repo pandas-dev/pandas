@@ -1645,10 +1645,11 @@ class MultiIndex(Index):
         """
         from pandas.core.categorical import Categorical
 
-        return [Categorical.from_codes(label,
-                                       np.arange(np.array(label).max() + 1,
-                                                 dtype=label.dtype),
-                                       ordered=True)
+        def cats(label):
+            return np.arange(np.array(label).max() + 1 if len(label) else 0,
+                             dtype=label.dtype)
+
+        return [Categorical.from_codes(label, cats(label), ordered=True)
                 for label in self.labels]
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
