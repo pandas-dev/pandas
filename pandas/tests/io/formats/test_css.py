@@ -1,5 +1,6 @@
 import pytest
 
+from pandas.util import testing as tm
 from pandas.io.formats.css import CSSResolver, CSSWarning
 
 
@@ -35,20 +36,23 @@ def test_css_parse_comments():
 
 
 @pytest.mark.xfail(reason='''we don't need to handle specificity
-                             markers like !important, but we should
-                             ignore them in the future''')
+                   markers like !important, but we should
+                   ignore them in the future''')
 def test_css_parse_specificity():
     assert_same_resolution('font-weight: bold', 'font-weight: bold !important')
 
 
 @pytest.mark.xfail(reason='Splitting CSS declarations not yet sensitive to '
-                          '; in CSS strings')
+                   '; in CSS strings')
 def test_css_parse_strings():
     # semicolons in strings
-    assert_resolves('background-image: url(\'http://blah.com/foo?a;b=c\')',
-                    {'background-image': 'url(\'http://blah.com/foo?a;b=c\')'})
-    assert_resolves('background-image: url("http://blah.com/foo?a;b=c")',
-                    {'background-image': 'url("http://blah.com/foo?a;b=c")'})
+    with tm.assert_produces_warning(CSSWarning):
+        assert_resolves(
+            'background-image: url(\'http://blah.com/foo?a;b=c\')',
+            {'background-image': 'url(\'http://blah.com/foo?a;b=c\')'})
+        assert_resolves(
+            'background-image: url("http://blah.com/foo?a;b=c")',
+            {'background-image': 'url("http://blah.com/foo?a;b=c")'})
 
 
 @pytest.mark.parametrize(
@@ -77,7 +81,7 @@ def test_css_parse_strings():
         ('font-size: 10 pt', 'font-size: 1em'),
     ])
 def test_css_parse_invalid(invalid_css, remainder):
-    with pytest.warns(CSSWarning):
+    with tm.assert_produces_warning(CSSWarning):
         assert_same_resolution(invalid_css, remainder)
 
     # TODO: we should be checking that in other cases no warnings are raised
@@ -115,7 +119,7 @@ def test_css_side_shorthands(shorthand, expansions):
                     {top: '1pt', right: '4pt',
                      bottom: '2pt', left: '0pt'})
 
-    with pytest.warns(CSSWarning):
+    with tm.assert_produces_warning(CSSWarning):
         assert_resolves('%s: 1pt 1pt 1pt 1pt 1pt' % shorthand,
                         {})
 
