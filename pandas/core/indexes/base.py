@@ -2827,7 +2827,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        data : dict
+        data : {dict, DictWithoutMissing}
             The dictionary from which to extract the values
 
         Returns
@@ -2879,43 +2879,36 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    def map(self, mapper):
-        """Apply mapper function to an index.
+    def map(self, arg, na_action=None):
+        """Map values of Series using input correspondence (which can be a
+        dict, Series, or function)
 
         Parameters
         ----------
-        mapper : {callable, dict, Series}
-            Function to be applied or input correspondence object.
-            dict and Series support new in 0.20.0.
+        arg : function, dict, or Series
+        na_action : {None, 'ignore'}
+            If 'ignore', propagate NA values, without passing them to the
+            mapping function
 
         Returns
         -------
-        applied : Union[Index, MultiIndex], inferred
+        applied : {Index, MultiIndex}, inferred
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
 
         """
+
         from .multi import MultiIndex
-
-        if isinstance(mapper, ABCSeries):
-            indexer = mapper.index.get_indexer(self.values)
-            mapped_values = algos.take_1d(mapper.values, indexer)
-        elif isinstance(mapper, dict):
-            idx = Index(mapper.keys())
-            data = idx._get_values_from_dict(mapper)
-            indexer = idx.get_indexer(self.values)
-            mapped_values = algos.take_1d(data, indexer)
-        else:
-            mapped_values = self._arrmap(self.values, mapper)
-
+        new_values = super(Index, self)._map_values(
+            self.values, arg, na_action=na_action)
         attributes = self._get_attributes_dict()
-        if mapped_values.size and isinstance(mapped_values[0], tuple):
-            return MultiIndex.from_tuples(mapped_values,
+        if new_values.size and isinstance(new_values[0], tuple):
+            return MultiIndex.from_tuples(new_values,
                                           names=attributes.get('name'))
 
         attributes['copy'] = False
-        return Index(mapped_values, **attributes)
+        return Index(new_values, **attributes)
 
     def isin(self, values, level=None):
         """

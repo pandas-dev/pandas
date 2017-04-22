@@ -4,6 +4,8 @@ import pytest
 
 from datetime import datetime, timedelta
 
+from collections import defaultdict
+
 import pandas.util.testing as tm
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
@@ -866,6 +868,21 @@ class TestIndex(Base):
 
         mapper = {0: 'foo', 2: 2.0, -1: 'baz'}
         tm.assert_index_equal(expected, input.map(mapper))
+
+    def test_map_na_exclusion(self):
+        idx = Index([1.5, np.nan, 3, np.nan, 5])
+
+        result = idx.map(lambda x: x * 2, na_action='ignore')
+        exp = idx * 2
+        tm.assert_index_equal(result, exp)
+
+    def test_map_defaultdict(self):
+        idx = Index([1, 2, 3])
+        default_dict = defaultdict(lambda: 'blank')
+        default_dict[1] = 'stuff'
+        result = idx.map(default_dict)
+        expected = Index(['stuff', 'blank', 'blank'])
+        tm.assert_index_equal(result, expected)
 
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])

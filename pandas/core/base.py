@@ -16,7 +16,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core import common as com
+from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
@@ -837,6 +837,51 @@ class IndexOpsMixin(object):
             raise TypeError("{klass} cannot perform the operation {op}".format(
                             klass=self.__class__.__name__, op=name))
         return func(**kwds)
+
+    def _map_values(self, values, arg, na_action=None):
+        if is_extension_type(self.dtype):
+            if na_action is not None:
+                raise NotImplementedError
+            map_f = lambda values, f: values.map(f)
+        else:
+            if na_action == 'ignore':
+                def map_f(values, f):
+                    return lib.map_infer_mask(values, f,
+                                              isnull(values).view(np.uint8))
+            else:
+                map_f = lib.map_infer
+
+        map_values = None
+        if isinstance(arg, dict):
+            if hasattr(arg, '__missing__'):
+                # If a dictionary subclass defines a default value method,
+                # convert arg to a lookup function (GH #15999).
+                dict_with_default = arg
+                arg = lambda x: dict_with_default[x]
+            else:
+                # Dictionary does not have a default. Thus it's safe to
+                # convert to an Index for efficiency.
+                from pandas import Index
+                idx = Index(arg.keys())
+                # Cast to dict so we can get values using lib.fast_multiget
+                #   if this is a dict subclass (GH #15999)
+                map_values = idx._get_values_from_dict(dict(arg))
+                arg = idx
+        elif isinstance(arg, ABCSeries):
+            map_values = arg.values
+            arg = arg.index
+
+        if map_values is not None:
+            # Since values were input this means we came from either
+            # a dict or a series and arg should be an index
+            indexer = arg.get_indexer(values)
+            new_values = algorithms.take_1d(map_values, indexer)
+        else:
+            # arg is a function
+            new_values = map_f(values, arg)
+
+        return new_values
+
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):

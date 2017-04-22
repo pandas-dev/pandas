@@ -2263,43 +2263,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    0
         dtype: int64
         """
-
         if is_extension_type(self.dtype):
-            values = self._values
-            if na_action is not None:
-                raise NotImplementedError
-            map_f = lambda values, f: values.map(f)
+            input_values = self._values
         else:
-            values = self.asobject
-
-            if na_action == 'ignore':
-                def map_f(values, f):
-                    return lib.map_infer_mask(values, f,
-                                              isna(values).view(np.uint8))
-            else:
-                map_f = lib.map_infer
-
-        if isinstance(arg, dict):
-            if hasattr(arg, '__missing__'):
-                # If a dictionary subclass defines a default value method,
-                # convert arg to a lookup function (GH #15999).
-                dict_with_default = arg
-                arg = lambda x: dict_with_default[x]
-            else:
-                # Dictionary does not have a default. Thus it's safe to
-                # convert to an indexed series for efficiency.
-                arg = self._constructor(arg, index=arg.keys())
-
-        if isinstance(arg, Series):
-            # arg is a Series
-            indexer = arg.index.get_indexer(values)
-            new_values = algorithms.take_1d(arg._values, indexer)
-        else:
-            # arg is a function
-            new_values = map_f(values, arg)
-
-        return self._constructor(new_values,
-                                 index=self.index).__finalize__(self)
+            input_values = self.asobject
+        new_values = super(Series, self)._map_values(
+            input_values, arg, na_action=na_action)
+        return self._constructor(new_values, index=self.index).__finalize__(self)
 
     def _gotitem(self, key, ndim, subset=None):
         """
