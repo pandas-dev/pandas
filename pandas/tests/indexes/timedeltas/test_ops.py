@@ -564,10 +564,10 @@ Freq: D"""
             tm.assertIn(idx[0], idx)
 
     def test_unknown_attribute(self):
-        # GH 9680
+        # see gh-9680
         tdi = pd.timedelta_range(start=0, periods=10, freq='1s')
         ts = pd.Series(np.random.normal(size=10), index=tdi)
-        self.assertNotIn('foo', ts.__dict__.keys())
+        assert 'foo' not in ts.__dict__.keys()
         pytest.raises(AttributeError, lambda: ts.foo)
 
     def test_order(self):

@@ -653,22 +653,20 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         numSliceEnd = self.series[-10:]
         objSlice = self.objSeries[10:20]
 
-        self.assertNotIn(self.series.index[9], numSlice.index)
-        self.assertNotIn(self.objSeries.index[9], objSlice.index)
+        assert self.series.index[9] not in numSlice.index
+        assert self.objSeries.index[9] not in objSlice.index
 
-        self.assertEqual(len(numSlice), len(numSlice.index))
-        self.assertEqual(self.series[numSlice.index[0]],
-                         numSlice[numSlice.index[0]])
+        assert len(numSlice) == len(numSlice.index)
+        assert self.series[numSlice.index[0]] == numSlice[numSlice.index[0]]
 
-        self.assertEqual(numSlice.index[1], self.series.index[11])
+        assert numSlice.index[1] == self.series.index[11]
+        assert tm.equalContents(numSliceEnd, np.array(self.series)[-10:])
 
-        self.assertTrue(tm.equalContents(numSliceEnd, np.array(self.series)[
-            -10:]))
-
-        # test return view
+        # Test return view.
         sl = self.series[10:20]
         sl[:] = 0
-        self.assertTrue((self.series[10:20] == 0).all())
+
+        assert (self.series[10:20] == 0).all()
 
     def test_slice_can_reorder_not_uniquely_indexed(self):
         s = Series(1, index=['a', 'a', 'b', 'b', 'c'])

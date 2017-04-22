@@ -1058,9 +1058,9 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertTrue((result.values == self.index.values).all())
 
     def test_contains(self):
-        self.assertIn(('foo', 'two'), self.index)
-        self.assertNotIn(('bar', 'two'), self.index)
-        self.assertNotIn(None, self.index)
+        assert ('foo', 'two') in self.index
+        assert ('bar', 'two') not in self.index
+        assert None not in self.index
 
     def test_contains_top_level(self):
         midx = MultiIndex.from_product([['A', 'B'], [1, 2]])
@@ -1287,15 +1287,15 @@ class TestMultiIndex(Base, tm.TestCase):
                            labels=[major_labels, minor_labels])
 
         result = index.truncate(before=1)
-        self.assertNotIn('foo', result.levels[0])
-        self.assertIn(1, result.levels[0])
+        assert 'foo' not in result.levels[0]
+        assert 1 in result.levels[0]
 
         result = index.truncate(after=1)
-        self.assertNotIn(2, result.levels[0])
-        self.assertIn(1, result.levels[0])
+        assert 2 not in result.levels[0]
+        assert 1 in result.levels[0]
 
         result = index.truncate(before=1, after=2)
-        self.assertEqual(len(result.levels[0]), 2)
+        assert len(result.levels[0]) == 2
 
         # after < before
         pytest.raises(ValueError, index.truncate, 3, 1)

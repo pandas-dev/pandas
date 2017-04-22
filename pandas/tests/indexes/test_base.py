@@ -851,8 +851,8 @@ class TestIndex(Base, tm.TestCase):
         index = Index(['a', 'b', 'c'])
         index2 = index + 'foo'
 
-        self.assertNotIn('a', index2)
-        self.assertIn('afoo', index2)
+        assert 'a' not in index2
+        assert 'afoo' in index2
 
     def test_iadd_string(self):
         index = pd.Index(['a', 'b', 'c'])

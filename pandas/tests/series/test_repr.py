@@ -37,21 +37,26 @@ class TestSeriesRepr(TestData, tm.TestCase):
         self.assertEqual(repr(s), expected)
 
     def test_name_printing(self):
-        # test small series
+        # Test small Series.
         s = Series([0, 1, 2])
+
         s.name = "test"
-        self.assertIn("Name: test", repr(s))
+        assert "Name: test" in repr(s)
+
         s.name = None
-        self.assertNotIn("Name:", repr(s))
-        # test big series (diff code path)
+        assert "Name:" not in repr(s)
+
+        # Test big Series (diff code path).
         s = Series(lrange(0, 1000))
+
         s.name = "test"
-        self.assertIn("Name: test", repr(s))
+        assert "Name: test" in repr(s)
+
         s.name = None
-        self.assertNotIn("Name:", repr(s))
+        assert "Name:" not in repr(s)
 
         s = Series(index=date_range('20010101', '20020101'), name='test')
-        self.assertIn("Name: test", repr(s))
+        assert "Name: test" in repr(s)
 
     def test_repr(self):
         str(self.ts)

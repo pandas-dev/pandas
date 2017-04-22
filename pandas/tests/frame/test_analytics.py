@@ -190,10 +190,10 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         dropped = a.corrwith(b, axis=0, drop=True)
         tm.assert_almost_equal(dropped['A'], a['A'].corr(b['A']))
-        self.assertNotIn('B', dropped)
+        assert 'B' not in dropped
 
         dropped = a.corrwith(b, axis=1, drop=True)
-        self.assertNotIn(a.index[-1], dropped.index)
+        assert a.index[-1] not in dropped.index
 
         # non time-series data
         index = ['a', 'b', 'c', 'd', 'e']

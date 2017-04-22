@@ -1072,12 +1072,6 @@ def assertIn(first, second, msg=''):
     assert a in b, "%s: %r is not in %r" % (msg.format(a, b), a, b)
 
 
-def assertNotIn(first, second, msg=''):
-    """Checks that 'first' is not in 'second'"""
-    a, b = first, second
-    assert a not in b, "%s: %r is in %r" % (msg.format(a, b), a, b)
-
-
 def assertIsNone(expr, msg=''):
     """Checks that 'expr' is None"""
     return assertIs(expr, None, msg)

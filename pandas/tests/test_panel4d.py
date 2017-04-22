@@ -182,16 +182,16 @@ class SafeForSparse(object):
             self.panel4d.labels = new_labels
 
             if hasattr(self.panel4d, '_item_cache'):
-                self.assertNotIn('l1', self.panel4d._item_cache)
-            self.assertIs(self.panel4d.labels, new_labels)
+                assert 'l1' not in self.panel4d._item_cache
+            assert self.panel4d.labels is new_labels
 
             self.panel4d.major_axis = new_major
-            self.assertIs(self.panel4d[0].major_axis, new_major)
-            self.assertIs(self.panel4d.major_axis, new_major)
+            assert self.panel4d[0].major_axis is new_major
+            assert self.panel4d.major_axis is new_major
 
             self.panel4d.minor_axis = new_minor
-            self.assertIs(self.panel4d[0].minor_axis, new_minor)
-            self.assertIs(self.panel4d.minor_axis, new_minor)
+            assert self.panel4d[0].minor_axis is new_minor
+            assert self.panel4d.minor_axis is new_minor
 
     def test_get_axis_number(self):
         self.assertEqual(self.panel4d._get_axis_number('labels'), 0)
@@ -315,10 +315,10 @@ class CheckIndexing(object):
             expected = self.panel4d['l2']
             result = self.panel4d.pop('l2')
             assert_panel_equal(expected, result)
-            self.assertNotIn('l2', self.panel4d.labels)
+            assert 'l2' not in self.panel4d.labels
 
             del self.panel4d['l3']
-            self.assertNotIn('l3', self.panel4d.labels)
+            assert 'l3' not in self.panel4d.labels
             pytest.raises(Exception, self.panel4d.__delitem__, 'l3')
 
             values = np.empty((4, 4, 4, 4))
@@ -333,27 +333,27 @@ class CheckIndexing(object):
             # did we delete the right row?
             panel4dc = panel4d.copy()
             del panel4dc[0]
-            assert_panel_equal(panel4dc[1], panel4d[1])
-            assert_panel_equal(panel4dc[2], panel4d[2])
-            assert_panel_equal(panel4dc[3], panel4d[3])
+            tm.assert_panel_equal(panel4dc[1], panel4d[1])
+            tm.assert_panel_equal(panel4dc[2], panel4d[2])
+            tm.assert_panel_equal(panel4dc[3], panel4d[3])
 
             panel4dc = panel4d.copy()
             del panel4dc[1]
-            assert_panel_equal(panel4dc[0], panel4d[0])
-            assert_panel_equal(panel4dc[2], panel4d[2])
-            assert_panel_equal(panel4dc[3], panel4d[3])
+            tm.assert_panel_equal(panel4dc[0], panel4d[0])
+            tm.assert_panel_equal(panel4dc[2], panel4d[2])
+            tm.assert_panel_equal(panel4dc[3], panel4d[3])
 
             panel4dc = panel4d.copy()
             del panel4dc[2]
-            assert_panel_equal(panel4dc[1], panel4d[1])
-            assert_panel_equal(panel4dc[0], panel4d[0])
-            assert_panel_equal(panel4dc[3], panel4d[3])
+            tm.assert_panel_equal(panel4dc[1], panel4d[1])
+            tm.assert_panel_equal(panel4dc[0], panel4d[0])
+            tm.assert_panel_equal(panel4dc[3], panel4d[3])
 
             panel4dc = panel4d.copy()
             del panel4dc[3]
-            assert_panel_equal(panel4dc[1], panel4d[1])
-            assert_panel_equal(panel4dc[2], panel4d[2])
-            assert_panel_equal(panel4dc[0], panel4d[0])
+            tm.assert_panel_equal(panel4dc[1], panel4d[1])
+            tm.assert_panel_equal(panel4dc[2], panel4d[2])
+            tm.assert_panel_equal(panel4dc[0], panel4d[0])
 
     def test_setitem(self):
         with catch_warnings(record=True):
