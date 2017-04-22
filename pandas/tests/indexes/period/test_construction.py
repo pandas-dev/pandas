@@ -1,8 +1,9 @@
-import numpy as np
+import pytest
 
+import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.tseries.period as period
+import pandas.core.indexes.period as period
 from pandas.compat import lrange, PY3, text_type, lmap
 from pandas import (Period, PeriodIndex, period_range, offsets, date_range,
                     Series, Index)
@@ -58,12 +59,12 @@ class TestPeriodIndex(tm.TestCase):
 
         years = [2007, 2007, 2007]
         months = [1, 2]
-        self.assertRaises(ValueError, PeriodIndex, year=years, month=months,
-                          freq='M')
-        self.assertRaises(ValueError, PeriodIndex, year=years, month=months,
-                          freq='2M')
-        self.assertRaises(ValueError, PeriodIndex, year=years, month=months,
-                          freq='M', start=Period('2007-01', freq='M'))
+        pytest.raises(ValueError, PeriodIndex, year=years, month=months,
+                      freq='M')
+        pytest.raises(ValueError, PeriodIndex, year=years, month=months,
+                      freq='2M')
+        pytest.raises(ValueError, PeriodIndex, year=years, month=months,
+                      freq='M', start=Period('2007-01', freq='M'))
 
         years = [2007, 2007, 2007]
         months = [1, 2, 3]
@@ -73,8 +74,8 @@ class TestPeriodIndex(tm.TestCase):
 
     def test_constructor_U(self):
         # U was used as undefined period
-        self.assertRaises(ValueError, period_range, '2007-1-1', periods=500,
-                          freq='X')
+        pytest.raises(ValueError, period_range, '2007-1-1', periods=500,
+                      freq='X')
 
     def test_constructor_nano(self):
         idx = period_range(start=Period(ordinal=1, freq='N'),
@@ -91,21 +92,21 @@ class TestPeriodIndex(tm.TestCase):
 
         pindex = PeriodIndex(year=years, quarter=quarters)
 
-        self.assert_index_equal(pindex.year, pd.Index(years))
-        self.assert_index_equal(pindex.quarter, pd.Index(quarters))
+        tm.assert_index_equal(pindex.year, pd.Index(years))
+        tm.assert_index_equal(pindex.quarter, pd.Index(quarters))
 
     def test_constructor_invalid_quarters(self):
-        self.assertRaises(ValueError, PeriodIndex, year=lrange(2000, 2004),
-                          quarter=lrange(4), freq='Q-DEC')
+        pytest.raises(ValueError, PeriodIndex, year=lrange(2000, 2004),
+                      quarter=lrange(4), freq='Q-DEC')
 
     def test_constructor_corner(self):
-        self.assertRaises(ValueError, PeriodIndex, periods=10, freq='A')
+        pytest.raises(ValueError, PeriodIndex, periods=10, freq='A')
 
         start = Period('2007', freq='A-JUN')
         end = Period('2010', freq='A-DEC')
-        self.assertRaises(ValueError, PeriodIndex, start=start, end=end)
-        self.assertRaises(ValueError, PeriodIndex, start=start)
-        self.assertRaises(ValueError, PeriodIndex, end=end)
+        pytest.raises(ValueError, PeriodIndex, start=start, end=end)
+        pytest.raises(ValueError, PeriodIndex, start=start)
+        pytest.raises(ValueError, PeriodIndex, end=end)
 
         result = period_range('2007-01', periods=10.5, freq='M')
         exp = period_range('2007-01', periods=10, freq='M')
@@ -118,10 +119,10 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_index_equal(PeriodIndex(idx.values), idx)
         tm.assert_index_equal(PeriodIndex(list(idx.values)), idx)
 
-        self.assertRaises(ValueError, PeriodIndex, idx._values)
-        self.assertRaises(ValueError, PeriodIndex, list(idx._values))
-        self.assertRaises(TypeError, PeriodIndex,
-                          data=Period('2007', freq='A'))
+        pytest.raises(ValueError, PeriodIndex, idx._values)
+        pytest.raises(ValueError, PeriodIndex, list(idx._values))
+        pytest.raises(TypeError, PeriodIndex,
+                      data=Period('2007', freq='A'))
 
         result = PeriodIndex(iter(idx))
         tm.assert_index_equal(result, idx)
@@ -152,7 +153,7 @@ class TestPeriodIndex(tm.TestCase):
         vals = np.arange(100000, 100000 + 10000, 100, dtype=np.int64)
         vals = vals.view(np.dtype('M8[us]'))
 
-        self.assertRaises(ValueError, PeriodIndex, vals, freq='D')
+        pytest.raises(ValueError, PeriodIndex, vals, freq='D')
 
     def test_constructor_dtype(self):
         # passing a dtype with a tz should localize
@@ -185,7 +186,7 @@ class TestPeriodIndex(tm.TestCase):
 
     def test_constructor_empty(self):
         idx = pd.PeriodIndex([], freq='M')
-        tm.assertIsInstance(idx, PeriodIndex)
+        assert isinstance(idx, PeriodIndex)
         self.assertEqual(len(idx), 0)
         self.assertEqual(idx.freq, 'M')
 
@@ -272,12 +273,12 @@ class TestPeriodIndex(tm.TestCase):
         result = idx._simple_new([pd.Period('2007-01', freq='M'),
                                   pd.Period('2007-02', freq='M')],
                                  'p', freq=idx.freq)
-        self.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, idx)
 
         result = idx._simple_new(np.array([pd.Period('2007-01', freq='M'),
                                            pd.Period('2007-02', freq='M')]),
                                  'p', freq=idx.freq)
-        self.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, idx)
 
     def test_constructor_simple_new_empty(self):
         # GH13079
@@ -288,17 +289,17 @@ class TestPeriodIndex(tm.TestCase):
     def test_constructor_floats(self):
         # GH13079
         for floats in [[1.1, 2.1], np.array([1.1, 2.1])]:
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 pd.PeriodIndex._simple_new(floats, freq='M')
 
-            with self.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 pd.PeriodIndex(floats, freq='M')
 
     def test_constructor_nat(self):
-        self.assertRaises(ValueError, period_range, start='NaT',
-                          end='2011-01-01', freq='M')
-        self.assertRaises(ValueError, period_range, start='2011-01-01',
-                          end='NaT', freq='M')
+        pytest.raises(ValueError, period_range, start='NaT',
+                      end='2011-01-01', freq='M')
+        pytest.raises(ValueError, period_range, start='2011-01-01',
+                      end='NaT', freq='M')
 
     def test_constructor_year_and_quarter(self):
         year = pd.Series([2001, 2002, 2003])
@@ -427,9 +428,9 @@ class TestPeriodIndex(tm.TestCase):
 
         # Mixed freq should fail
         vals = [end_intv, Period('2006-12-31', 'w')]
-        self.assertRaises(ValueError, PeriodIndex, vals)
+        pytest.raises(ValueError, PeriodIndex, vals)
         vals = np.array(vals)
-        self.assertRaises(ValueError, PeriodIndex, vals)
+        pytest.raises(ValueError, PeriodIndex, vals)
 
     def test_constructor_error(self):
         start = Period('02-Apr-2005', 'B')
@@ -463,7 +464,7 @@ class TestPeriodIndex(tm.TestCase):
             res = index.map(t)
 
             # should return an Index
-            tm.assertIsInstance(res, Index)
+            assert isinstance(res, Index)
 
             # preserve element types
             self.assertTrue(all(isinstance(resi, t) for resi in res))
@@ -478,7 +479,7 @@ class TestSeriesPeriod(tm.TestCase):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
 
     def test_constructor_cant_cast_period(self):
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             Series(period_range('2000-01-01', periods=10, freq='D'),
                    dtype=float)
 

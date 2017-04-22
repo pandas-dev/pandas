@@ -439,7 +439,9 @@ Aggregation
 -----------
 
 Once the GroupBy object has been created, several methods are available to
-perform a computation on the grouped data.
+perform a computation on the grouped data. These operations are similar to the
+:ref:`aggregating API <basics.aggregate>`, :ref:`window functions API <stats.aggregate>`,
+and :ref:`resample API <timeseries.aggregate>`.
 
 An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` method:
 
@@ -502,7 +504,7 @@ index are the group names and whose values are the sizes of each group.
 Applying multiple functions at once
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With grouped Series you can also pass a list or dict of functions to do
+With grouped ``Series`` you can also pass a list or dict of functions to do
 aggregation with, outputting a DataFrame:
 
 .. ipython:: python
@@ -510,23 +512,35 @@ aggregation with, outputting a DataFrame:
    grouped = df.groupby('A')
    grouped['C'].agg([np.sum, np.mean, np.std])
 
-If a dict is passed, the keys will be used to name the columns. Otherwise the
-function's name (stored in the function object) will be used.
-
-.. ipython:: python
-
-   grouped['D'].agg({'result1' : np.sum,
-                     'result2' : np.mean})
-
-On a grouped DataFrame, you can pass a list of functions to apply to each
+On a grouped ``DataFrame``, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
 
    grouped.agg([np.sum, np.mean, np.std])
 
-Passing a dict of functions has different behavior by default, see the next
-section.
+
+The resulting aggregations are named for the functions themselves. If you
+need to rename, then you can add in a chained operation for a ``Series`` like this:
+
+.. ipython:: python
+
+   (grouped['C'].agg([np.sum, np.mean, np.std])
+                .rename(columns={'sum': 'foo',
+                                 'mean': 'bar',
+                                 'std': 'baz'})
+   )
+
+For a grouped ``DataFrame``, you can rename in a similar manner:
+
+.. ipython:: python
+
+   (grouped.agg([np.sum, np.mean, np.std])
+           .rename(columns={'sum': 'foo',
+                            'mean': 'bar',
+                            'std': 'baz'})
+    )
+
 
 Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

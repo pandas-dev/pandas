@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 from datetime import timedelta
 
@@ -12,41 +14,55 @@ from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
 
 class TestDatetimeIndex(tm.TestCase):
 
+    def test_construction_caching(self):
+
+        df = pd.DataFrame({'dt': pd.date_range('20130101', periods=3),
+                           'dttz': pd.date_range('20130101', periods=3,
+                                                 tz='US/Eastern'),
+                           'dt_with_null': [pd.Timestamp('20130101'), pd.NaT,
+                                            pd.Timestamp('20130103')],
+                           'dtns': pd.date_range('20130101', periods=3,
+                                                 freq='ns')})
+        assert df.dttz.dtype.tz.zone == 'US/Eastern'
+
     def test_construction_with_alt(self):
 
         i = pd.date_range('20130101', periods=5, freq='H', tz='US/Eastern')
         i2 = DatetimeIndex(i, dtype=i.dtype)
-        self.assert_index_equal(i, i2)
+        tm.assert_index_equal(i, i2)
+        assert i.tz.zone == 'US/Eastern'
 
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz=i.dtype.tz)
-        self.assert_index_equal(i, i2)
+        tm.assert_index_equal(i, i2)
+        assert i.tz.zone == 'US/Eastern'
 
         i2 = DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype)
-        self.assert_index_equal(i, i2)
+        tm.assert_index_equal(i, i2)
+        assert i.tz.zone == 'US/Eastern'
 
         i2 = DatetimeIndex(
             i.tz_localize(None).asi8, dtype=i.dtype, tz=i.dtype.tz)
-        self.assert_index_equal(i, i2)
+        tm.assert_index_equal(i, i2)
+        assert i.tz.zone == 'US/Eastern'
 
         # localize into the provided tz
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz='UTC')
         expected = i.tz_localize(None).tz_localize('UTC')
-        self.assert_index_equal(i2, expected)
+        tm.assert_index_equal(i2, expected)
 
         # incompat tz/dtype
-        self.assertRaises(ValueError, lambda: DatetimeIndex(
+        pytest.raises(ValueError, lambda: DatetimeIndex(
             i.tz_localize(None).asi8, dtype=i.dtype, tz='US/Pacific'))
 
     def test_construction_index_with_mixed_timezones(self):
-        # GH 11488
-        # no tz results in DatetimeIndex
+        # gh-11488: no tz results in DatetimeIndex
         result = Index([Timestamp('2011-01-01'),
                         Timestamp('2011-01-02')], name='idx')
         exp = DatetimeIndex([Timestamp('2011-01-01'),
                              Timestamp('2011-01-02')], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNone(result.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is None
 
         # same tz results in DatetimeIndex
         result = Index([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
@@ -55,10 +71,10 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex(
             [Timestamp('2011-01-01 10:00'), Timestamp('2011-01-02 10:00')
              ], tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
         # same tz results in DatetimeIndex (DST)
         result = Index([Timestamp('2011-01-01 10:00', tz='US/Eastern'),
@@ -67,20 +83,20 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00'),
                              Timestamp('2011-08-01 10:00')],
                             tz='US/Eastern', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
-        # different tz results in Index(dtype=object)
+        # Different tz results in Index(dtype=object)
         result = Index([Timestamp('2011-01-01 10:00'),
                         Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                        name='idx')
         exp = Index([Timestamp('2011-01-01 10:00'),
                      Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                     dtype='object', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertFalse(isinstance(result, DatetimeIndex))
+        tm.assert_index_equal(result, exp, exact=True)
+        assert not isinstance(result, DatetimeIndex)
 
         result = Index([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                         Timestamp('2011-01-02 10:00', tz='US/Eastern')],
@@ -88,37 +104,37 @@ class TestDatetimeIndex(tm.TestCase):
         exp = Index([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                      Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                     dtype='object', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertFalse(isinstance(result, DatetimeIndex))
+        tm.assert_index_equal(result, exp, exact=True)
+        assert not isinstance(result, DatetimeIndex)
 
         # length = 1
         result = Index([Timestamp('2011-01-01')], name='idx')
         exp = DatetimeIndex([Timestamp('2011-01-01')], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNone(result.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is None
 
         # length = 1 with tz
         result = Index(
             [Timestamp('2011-01-01 10:00', tz='Asia/Tokyo')], name='idx')
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00')], tz='Asia/Tokyo',
                             name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
     def test_construction_index_with_mixed_timezones_with_NaT(self):
-        # GH 11488
+        # see gh-11488
         result = Index([pd.NaT, Timestamp('2011-01-01'),
                         pd.NaT, Timestamp('2011-01-02')], name='idx')
         exp = DatetimeIndex([pd.NaT, Timestamp('2011-01-01'),
                              pd.NaT, Timestamp('2011-01-02')], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNone(result.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is None
 
-        # same tz results in DatetimeIndex
+        # Same tz results in DatetimeIndex
         result = Index([pd.NaT, Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                         pd.NaT, Timestamp('2011-01-02 10:00',
                                           tz='Asia/Tokyo')],
@@ -126,10 +142,10 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([pd.NaT, Timestamp('2011-01-01 10:00'),
                              pd.NaT, Timestamp('2011-01-02 10:00')],
                             tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
         # same tz results in DatetimeIndex (DST)
         result = Index([Timestamp('2011-01-01 10:00', tz='US/Eastern'),
@@ -139,10 +155,10 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00'), pd.NaT,
                              Timestamp('2011-08-01 10:00')],
                             tz='US/Eastern', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
         # different tz results in Index(dtype=object)
         result = Index([pd.NaT, Timestamp('2011-01-01 10:00'),
@@ -152,8 +168,8 @@ class TestDatetimeIndex(tm.TestCase):
         exp = Index([pd.NaT, Timestamp('2011-01-01 10:00'),
                      pd.NaT, Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                     dtype='object', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertFalse(isinstance(result, DatetimeIndex))
+        tm.assert_index_equal(result, exp, exact=True)
+        assert not isinstance(result, DatetimeIndex)
 
         result = Index([pd.NaT, Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                         pd.NaT, Timestamp('2011-01-02 10:00',
@@ -161,23 +177,24 @@ class TestDatetimeIndex(tm.TestCase):
         exp = Index([pd.NaT, Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                      pd.NaT, Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                     dtype='object', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertFalse(isinstance(result, DatetimeIndex))
+        tm.assert_index_equal(result, exp, exact=True)
+        assert not isinstance(result, DatetimeIndex)
 
         # all NaT
         result = Index([pd.NaT, pd.NaT], name='idx')
         exp = DatetimeIndex([pd.NaT, pd.NaT], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNone(result.tz)
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is None
 
         # all NaT with tz
         result = Index([pd.NaT, pd.NaT], tz='Asia/Tokyo', name='idx')
         exp = DatetimeIndex([pd.NaT, pd.NaT], tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
-        self.assertIsNotNone(result.tz)
-        self.assertEqual(result.tz, exp.tz)
+
+        tm.assert_index_equal(result, exp, exact=True)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz is not None
+        assert result.tz == exp.tz
 
     def test_construction_dti_with_mixed_timezones(self):
         # GH 11488 (not changed, added explicit tests)
@@ -187,7 +204,7 @@ class TestDatetimeIndex(tm.TestCase):
             [Timestamp('2011-01-01'), Timestamp('2011-01-02')], name='idx')
         exp = DatetimeIndex(
             [Timestamp('2011-01-01'), Timestamp('2011-01-02')], name='idx')
-        self.assert_index_equal(result, exp, exact=True)
+        tm.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
 
         # same tz results in DatetimeIndex
@@ -198,7 +215,7 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00'),
                              Timestamp('2011-01-02 10:00')],
                             tz='Asia/Tokyo', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
+        tm.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
 
         # same tz results in DatetimeIndex (DST)
@@ -209,7 +226,7 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 10:00'),
                              Timestamp('2011-08-01 10:00')],
                             tz='US/Eastern', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
+        tm.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
 
         # different tz coerces tz-naive to tz-awareIndex(dtype=object)
@@ -219,12 +236,12 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex([Timestamp('2011-01-01 05:00'),
                              Timestamp('2011-01-02 10:00')],
                             tz='US/Eastern', name='idx')
-        self.assert_index_equal(result, exp, exact=True)
+        tm.assert_index_equal(result, exp, exact=True)
         self.assertTrue(isinstance(result, DatetimeIndex))
 
         # tz mismatch affecting to tz-aware raises TypeError/ValueError
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             DatetimeIndex([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           name='idx')
@@ -234,7 +251,7 @@ class TestDatetimeIndex(tm.TestCase):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='Asia/Tokyo', name='idx')
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             DatetimeIndex([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='US/Eastern', name='idx')
@@ -265,7 +282,7 @@ class TestDatetimeIndex(tm.TestCase):
         # coerces to object
         tm.assert_index_equal(Index(dates), exp)
 
-        with tm.assertRaises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime):
             # can't create DatetimeIndex
             DatetimeIndex(dates)
 
@@ -287,13 +304,13 @@ class TestDatetimeIndex(tm.TestCase):
         exp = date_range('1/1/2000', periods=10)
         tm.assert_index_equal(rng, exp)
 
-        self.assertRaises(ValueError, DatetimeIndex, start='1/1/2000',
-                          periods='foo', freq='D')
+        pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
+                      periods='foo', freq='D')
 
-        self.assertRaises(ValueError, DatetimeIndex, start='1/1/2000',
-                          end='1/10/2000')
+        pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
+                      end='1/10/2000')
 
-        self.assertRaises(ValueError, DatetimeIndex, '1/1/2000')
+        pytest.raises(ValueError, DatetimeIndex, '1/1/2000')
 
         # generator expression
         gen = (datetime(2000, 1, 1) + timedelta(i) for i in range(10))
@@ -321,14 +338,14 @@ class TestDatetimeIndex(tm.TestCase):
         tm.assert_index_equal(from_ints, expected)
 
         # non-conforming
-        self.assertRaises(ValueError, DatetimeIndex,
-                          ['2000-01-01', '2000-01-02', '2000-01-04'], freq='D')
+        pytest.raises(ValueError, DatetimeIndex,
+                      ['2000-01-01', '2000-01-02', '2000-01-04'], freq='D')
 
-        self.assertRaises(ValueError, DatetimeIndex, start='2011-01-01',
-                          freq='b')
-        self.assertRaises(ValueError, DatetimeIndex, end='2011-01-01',
-                          freq='B')
-        self.assertRaises(ValueError, DatetimeIndex, periods=10, freq='D')
+        pytest.raises(ValueError, DatetimeIndex, start='2011-01-01',
+                      freq='b')
+        pytest.raises(ValueError, DatetimeIndex, end='2011-01-01',
+                      freq='B')
+        pytest.raises(ValueError, DatetimeIndex, periods=10, freq='D')
 
     def test_constructor_datetime64_tzformat(self):
         # GH 6572
@@ -345,7 +362,7 @@ class TestDatetimeIndex(tm.TestCase):
             expected_i8 = date_range('2013-01-01T00:00:00',
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='America/Lima')
-            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+            tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
             idx = date_range('2013-01-01T00:00:00+09:00',
                              '2016-01-01T23:59:59+09:00', freq=freq)
@@ -355,7 +372,7 @@ class TestDatetimeIndex(tm.TestCase):
             expected_i8 = date_range('2013-01-01T00:00:00',
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='Asia/Tokyo')
-            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+            tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
         tm._skip_if_no_dateutil()
 
@@ -370,7 +387,7 @@ class TestDatetimeIndex(tm.TestCase):
             expected_i8 = date_range('2013-01-01T00:00:00',
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='America/Lima')
-            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+            tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
             idx = date_range('2013/1/1 0:00:00+9:00',
                              '2016/1/1 23:59:59+09:00', freq=freq)
@@ -380,7 +397,7 @@ class TestDatetimeIndex(tm.TestCase):
             expected_i8 = date_range('2013-01-01T00:00:00',
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='Asia/Tokyo')
-            self.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
+            tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
     def test_constructor_dtype(self):
 
@@ -399,18 +416,18 @@ class TestDatetimeIndex(tm.TestCase):
         idx = DatetimeIndex(['2013-01-01', '2013-01-02'],
                             dtype='datetime64[ns, US/Eastern]')
 
-        self.assertRaises(ValueError,
-                          lambda: DatetimeIndex(idx,
-                                                dtype='datetime64[ns]'))
+        pytest.raises(ValueError,
+                      lambda: DatetimeIndex(idx,
+                                            dtype='datetime64[ns]'))
 
         # this is effectively trying to convert tz's
-        self.assertRaises(TypeError,
-                          lambda: DatetimeIndex(idx,
-                                                dtype='datetime64[ns, CET]'))
-        self.assertRaises(ValueError,
-                          lambda: DatetimeIndex(
-                              idx, tz='CET',
-                              dtype='datetime64[ns, US/Eastern]'))
+        pytest.raises(TypeError,
+                      lambda: DatetimeIndex(idx,
+                                            dtype='datetime64[ns, CET]'))
+        pytest.raises(ValueError,
+                      lambda: DatetimeIndex(
+                          idx, tz='CET',
+                          dtype='datetime64[ns, US/Eastern]'))
         result = DatetimeIndex(idx, dtype='datetime64[ns, US/Eastern]')
         tm.assert_index_equal(idx, result)
 
@@ -512,7 +529,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_datetimeindex_constructor_misc(self):
         arr = ['1/1/2005', '1/2/2005', 'Jn 3, 2005', '2005-01-04']
-        self.assertRaises(Exception, DatetimeIndex, arr)
+        pytest.raises(Exception, DatetimeIndex, arr)
 
         arr = ['1/1/2005', '1/2/2005', '1/3/2005', '2005-01-04']
         idx1 = DatetimeIndex(arr)

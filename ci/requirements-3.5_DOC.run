@@ -1,10 +1,12 @@
 ipython
 ipykernel
+ipywidgets
 sphinx
 nbconvert
 nbformat
 notebook
 matplotlib
+seaborn
 scipy
 lxml
 beautifulsoup4
@@ -18,4 +20,5 @@ sqlalchemy
 numexpr
 bottleneck
 statsmodels
+xarray
 pyqt=4.11.4

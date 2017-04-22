@@ -10,20 +10,21 @@ import os
 import abc
 import numpy as np
 
-from pandas.types.common import (is_integer, is_float,
-                                 is_bool, is_list_like)
+from pandas.core.dtypes.common import (
+    is_integer, is_float,
+    is_bool, is_list_like)
 
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
+from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              EmptyDataError, get_filepath_or_buffer,
-                              _NA_VALUES)
-from pandas.tseries.period import Period
+                              get_filepath_or_buffer, _NA_VALUES)
+from pandas.core.indexes.period import Period
 from pandas.io.json import libjson
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
                            string_types, OrderedDict)
 from pandas.core import config
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
@@ -243,9 +244,8 @@ class ExcelFile(object):
         # to get_filepath_or_buffer()
         if _is_url(io):
             io = _urlopen(io)
-        # Deal with S3 urls, path objects, etc. Will convert them to
-        # buffer or path string
-        io, _, _ = get_filepath_or_buffer(io)
+        elif not isinstance(io, (ExcelFile, xlrd.Book)):
+            io, _, _ = get_filepath_or_buffer(io)
 
         if engine == 'xlrd' and isinstance(io, xlrd.Book):
             self.book = io
@@ -572,7 +572,7 @@ def _fill_mi_header(row, control_row):
     ----------
     row : list
         List of items in a single row.
-    constrol_row : list of boolean
+    control_row : list of boolean
         Helps to determine if particular column is in same parent index as the
         previous value. Used to stop propagation of empty cells between
         different indexes.

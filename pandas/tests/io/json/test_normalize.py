@@ -300,10 +300,10 @@ class TestNestedToRecord(tm.TestCase):
 
         self.assertEqual(j.fillna('').to_dict(), expected)
 
-        self.assertRaises(KeyError,
-                          json_normalize, data=i['Trades'],
-                          record_path=[['general', 'stocks']],
-                          meta=[['general', 'tradeid'],
-                                ['general', 'trade_version']],
-                          errors='raise'
-                          )
+        pytest.raises(KeyError,
+                      json_normalize, data=i['Trades'],
+                      record_path=[['general', 'stocks']],
+                      meta=[['general', 'tradeid'],
+                            ['general', 'trade_version']],
+                      errors='raise'
+                      )

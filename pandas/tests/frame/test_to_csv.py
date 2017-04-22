@@ -3,12 +3,13 @@
 from __future__ import print_function
 
 import csv
+import pytest
 
 from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
-from pandas.io.common import ParserError
+from pandas.errors import ParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
                     date_range, read_csv, compat, to_datetime)
 import pandas as pd
@@ -94,8 +95,8 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
             assert_frame_equal(xp, rs)
 
-            self.assertRaises(ValueError, self.frame2.to_csv, path,
-                              header=['AA', 'X'])
+            pytest.raises(ValueError, self.frame2.to_csv, path,
+                          header=['AA', 'X'])
 
     def test_to_csv_from_csv3(self):
 
@@ -603,7 +604,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             exp = tsframe[:0]
             exp.index = []
 
-            self.assert_index_equal(recons.columns, exp.columns)
+            tm.assert_index_equal(recons.columns, exp.columns)
             self.assertEqual(len(recons), 0)
 
     def test_to_csv_float32_nanrep(self):
@@ -883,7 +884,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         # Make sure we return string for consistency with
         # Series.to_csv()
         csv_str = self.frame.to_csv(path_or_buf=None)
-        self.assertIsInstance(csv_str, str)
+        assert isinstance(csv_str, str)
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
@@ -965,8 +966,8 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         with ensure_clean() as filename:
             # zip compression is not supported and should raise ValueError
             import zipfile
-            self.assertRaises(zipfile.BadZipfile, df.to_csv,
-                              filename, compression="zip")
+            pytest.raises(zipfile.BadZipfile, df.to_csv,
+                          filename, compression="zip")
 
     def test_to_csv_date_format(self):
         with ensure_clean('__tmp_to_csv_date_format__') as path:
@@ -1143,3 +1144,31 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         df = df.set_index(['a', 'b'])
         expected = '"a","b","c"\n"1","3","5"\n"2","4","6"\n'
         self.assertEqual(df.to_csv(quoting=csv.QUOTE_ALL), expected)
+
+    def test_period_index_date_overflow(self):
+        # see gh-15982
+
+        dates = ["1990-01-01", "2000-01-01", "3005-01-01"]
+        index = pd.PeriodIndex(dates, freq="D")
+
+        df = pd.DataFrame([4, 5, 6], index=index)
+        result = df.to_csv()
+
+        expected = ',0\n1990-01-01,4\n2000-01-01,5\n3005-01-01,6\n'
+        assert result == expected
+
+        date_format = "%m-%d-%Y"
+        result = df.to_csv(date_format=date_format)
+
+        expected = ',0\n01-01-1990,4\n01-01-2000,5\n01-01-3005,6\n'
+        assert result == expected
+
+        # Overflow with pd.NaT
+        dates = ["1990-01-01", pd.NaT, "3005-01-01"]
+        index = pd.PeriodIndex(dates, freq="D")
+
+        df = pd.DataFrame([4, 5, 6], index=index)
+        result = df.to_csv()
+
+        expected = ',0\n1990-01-01,4\n,5\n3005-01-01,6\n'
+        assert result == expected

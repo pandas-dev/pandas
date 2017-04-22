@@ -1,13 +1,14 @@
 """
 Base and utility classes for pandas objects.
 """
+import warnings
 from pandas import compat
 from pandas.compat import builtins
 import numpy as np
 
-from pandas.types.missing import isnull
-from pandas.types.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.types.common import is_object_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
 from pandas.util.validators import validate_bool_kwarg
 
 from pandas.core import common as com
@@ -290,7 +291,12 @@ class SelectionMixin(object):
     }
 
     @property
-    def name(self):
+    def _selection_name(self):
+        """
+        return a name for myself; this would ideally be called
+        the 'name' property, but we cannot conflict with the
+        Series.name property which can be set
+        """
         if self._selection is None:
             return None  # 'result'
         else:
@@ -405,6 +411,26 @@ pandas.DataFrame.%(name)s
 
     agg = aggregate
 
+    def _try_aggregate_string_function(self, arg, *args, **kwargs):
+        """
+        if arg is a string, then try to operate on it:
+        - try to find a function on ourselves
+        - try to find a numpy function
+        - raise
+
+        """
+        assert isinstance(arg, compat.string_types)
+
+        f = getattr(self, arg, None)
+        if f is not None:
+            return f(*args, **kwargs)
+
+        f = getattr(np, arg, None)
+        if f is not None:
+            return f(self, *args, **kwargs)
+
+        raise ValueError("{} is an unknown string function".format(arg))
+
     def _aggregate(self, arg, *args, **kwargs):
         """
         provide an implementation for the aggregators
@@ -424,21 +450,34 @@ pandas.DataFrame.%(name)s
         how can be a string describe the required post-processing, or
         None if not required
         """
-
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
         is_nested_renamer = False
 
+        _axis = kwargs.pop('_axis', None)
+        if _axis is None:
+            _axis = getattr(self, 'axis', 0)
         _level = kwargs.pop('_level', None)
+
         if isinstance(arg, compat.string_types):
-            return getattr(self, arg)(*args, **kwargs), None
+            return self._try_aggregate_string_function(arg, *args,
+                                                       **kwargs), None
 
         if isinstance(arg, dict):
 
             # aggregate based on the passed dict
-            if self.axis != 0:  # pragma: no cover
+            if _axis != 0:  # pragma: no cover
                 raise ValueError('Can only pass dict with axis=0')
 
             obj = self._selected_obj
+
+            def nested_renaming_depr(level=4):
+                # deprecation of nested renaming
+                # GH 15931
+                warnings.warn(
+                    ("using a dict with renaming "
+                     "is deprecated and will be removed in a future "
+                     "version"),
+                    FutureWarning, stacklevel=level)
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
@@ -454,7 +493,7 @@ pandas.DataFrame.%(name)s
                     # the keys must be in the columns
                     # for ndim=2, or renamers for ndim=1
 
-                    # ok
+                    # ok for now, but deprecated
                     # {'A': { 'ra': 'mean' }}
                     # {'A': { 'ra': ['mean'] }}
                     # {'ra': ['mean']}
@@ -468,10 +507,22 @@ pandas.DataFrame.%(name)s
                             raise SpecificationError('cannot perform renaming '
                                                      'for {0} with a nested '
                                                      'dictionary'.format(k))
+                        nested_renaming_depr(4 + (_level or 0))
+
+                    elif isinstance(obj, ABCSeries):
+                        nested_renaming_depr()
 
                 arg = new_arg
 
-            from pandas.tools.concat import concat
+            else:
+                # deprecation of renaming keys
+                # GH 15931
+                keys = list(compat.iterkeys(arg))
+                if (isinstance(obj, ABCDataFrame) and
+                        len(obj.columns.intersection(keys)) != len(keys)):
+                    nested_renaming_depr()
+
+            from pandas.core.reshape.concat import concat
 
             def _agg_1dim(name, how, subset=None):
                 """
@@ -534,7 +585,7 @@ pandas.DataFrame.%(name)s
                                   agg_how: _agg_1dim(self._selection, agg_how))
 
                 # we are selecting the same set as we are aggregating
-                elif not len(sl - set(compat.iterkeys(arg))):
+                elif not len(sl - set(keys)):
 
                     result = _agg(arg, _agg_1dim)
 
@@ -555,32 +606,74 @@ pandas.DataFrame.%(name)s
                     result = _agg(arg, _agg_2dim)
 
             # combine results
+
+            def is_any_series():
+                # return a boolean if we have *any* nested series
+                return any([isinstance(r, ABCSeries)
+                            for r in compat.itervalues(result)])
+
+            def is_any_frame():
+                # return a boolean if we have *any* nested series
+                return any([isinstance(r, ABCDataFrame)
+                            for r in compat.itervalues(result)])
+
             if isinstance(result, list):
-                result = concat(result, keys=keys, axis=1)
-            elif isinstance(list(compat.itervalues(result))[0],
-                            ABCDataFrame):
-                result = concat([result[k] for k in keys], keys=keys, axis=1)
-            else:
-                from pandas import DataFrame
+                return concat(result, keys=keys, axis=1), True
+
+            elif is_any_frame():
+                # we have a dict of DataFrames
+                # return a MI DataFrame
+
+                return concat([result[k] for k in keys],
+                              keys=keys, axis=1), True
+
+            elif isinstance(self, ABCSeries) and is_any_series():
+
+                # we have a dict of Series
+                # return a MI Series
+                try:
+                    result = concat(result)
+                except TypeError:
+                    # we want to give a nice error here if
+                    # we have non-same sized objects, so
+                    # we don't automatically broadcast
+
+                    raise ValueError("cannot perform both aggregation "
+                                     "and transformation operations "
+                                     "simultaneously")
+
+                return result, True
+
+            # fall thru
+            from pandas import DataFrame, Series
+            try:
                 result = DataFrame(result)
+            except ValueError:
+
+                # we have a dict of scalars
+                result = Series(result,
+                                name=getattr(self, 'name', None))
 
             return result, True
-        elif hasattr(arg, '__iter__'):
-            return self._aggregate_multiple_funcs(arg, _level=_level), None
+        elif is_list_like(arg) and arg not in compat.string_types:
+            # we require a list, but not an 'str'
+            return self._aggregate_multiple_funcs(arg,
+                                                  _level=_level,
+                                                  _axis=_axis), None
         else:
             result = None
 
-        cy_func = self._is_cython_func(arg)
-        if cy_func and not args and not kwargs:
-            return getattr(self, cy_func)(), None
+        f = self._is_cython_func(arg)
+        if f and not args and not kwargs:
+            return getattr(self, f)(), None
 
         # caller can react
         return result, True
 
-    def _aggregate_multiple_funcs(self, arg, _level):
-        from pandas.tools.concat import concat
+    def _aggregate_multiple_funcs(self, arg, _level, _axis):
+        from pandas.core.reshape.concat import concat
 
-        if self.axis != 0:
+        if _axis != 0:
             raise NotImplementedError("axis other than 0 is not supported")
 
         if self._selected_obj.ndim == 1:
@@ -615,10 +708,30 @@ pandas.DataFrame.%(name)s
                     keys.append(col)
                 except (TypeError, DataError):
                     pass
+                except ValueError:
+                    # cannot aggregate
+                    continue
                 except SpecificationError:
                     raise
 
-        return concat(results, keys=keys, axis=1)
+        # if we are empty
+        if not len(results):
+            raise ValueError("no results")
+
+        try:
+            return concat(results, keys=keys, axis=1)
+        except TypeError:
+
+            # we are concatting non-NDFrame objects,
+            # e.g. a list of scalars
+
+            from pandas.core.dtypes.cast import is_nested_object
+            from pandas import Series
+            result = Series(results, index=keys, name=self.name)
+            if is_nested_object(result):
+                raise ValueError("cannot combine transform and "
+                                 "aggregation operations")
+            return result
 
     def _shallow_copy(self, obj=None, obj_type=None, **kwargs):
         """ return a new object with the replacement attributes """
@@ -855,13 +968,25 @@ class IndexOpsMixin(object):
 
     _shared_docs['unique'] = (
         """
-        Return %(unique)s of unique values in the object.
-        Significantly faster than numpy.unique. Includes NA values.
-        The order of the original is preserved.
+        Return unique values in the object. Uniques are returned in order
+        of appearance, this does NOT sort. Hash table-based unique.
+
+        Parameters
+        ----------
+        values : 1d array-like
 
         Returns
         -------
-        uniques : %(unique)s
+        unique values.
+          - If the input is an Index, the return is an Index
+          - If the input is a Categorical dtype, the return is a Categorical
+          - If the input is a Series/ndarray, the return will be an ndarray
+
+        See Also
+        --------
+        unique
+        Index.unique
+        Series.unique
         """)
 
     @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
@@ -873,6 +998,7 @@ class IndexOpsMixin(object):
         else:
             from pandas.core.algorithms import unique1d
             result = unique1d(values)
+
         return result
 
     def nunique(self, dropna=True):

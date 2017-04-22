@@ -129,7 +129,8 @@ def test_NaT_methods():
                      'timetuple', 'timetz', 'toordinal', 'tzname',
                      'utcfromtimestamp', 'utcnow', 'utcoffset',
                      'utctimetuple']
-    nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
+    nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today',
+                   'tz_convert', 'tz_localize']
     nan_methods = ['weekday', 'isoweekday']
 
     for method in raise_methods:

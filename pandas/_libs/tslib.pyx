@@ -502,7 +502,7 @@ class Timestamp(_Timestamp):
         """
         Return an period of which this timestamp is an observation.
         """
-        from pandas.tseries.period import Period
+        from pandas import Period
 
         if freq is None:
             freq = self.freq
@@ -1296,6 +1296,18 @@ cdef class _Timestamp(datetime):
 
             return result
 
+    property _short_repr:
+        def __get__(self):
+            # format a Timestamp with only _date_repr if possible
+            # otherwise _repr_base
+            if (self.hour == 0 and
+                self.minute == 0 and
+                self.second == 0 and
+                self.microsecond == 0 and
+                self.nanosecond == 0):
+                return self._date_repr
+            return self._repr_base
+
     property asm8:
         def __get__(self):
             return np.datetime64(self.value, 'ns')
@@ -1569,7 +1581,9 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                 ts = obj.value
                 if tz is not None:
                     # shift for _localize_tso
-                    ts = tz_convert_single(ts, tz, 'UTC')
+                    ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
+                                            ambiguous='raise',
+                                            errors='raise')[0]
         except ValueError:
             try:
                 ts = parse_datetime_string(
@@ -3073,6 +3087,7 @@ class Timedelta(_Timedelta):
         return np.timedelta64(self.value, 'ns')
 
     def _validate_ops_compat(self, other):
+
         # return True if we are compat with operating
         if _checknull_with_nat(other):
             return True
@@ -3179,11 +3194,41 @@ class Timedelta(_Timedelta):
         __div__ = __truediv__
         __rdiv__ = __rtruediv__
 
-    def _not_implemented(self, *args, **kwargs):
-        return NotImplemented
+    def __floordiv__(self, other):
 
-    __floordiv__ = _not_implemented
-    __rfloordiv__ = _not_implemented
+        if hasattr(other, 'dtype'):
+
+            # work with i8
+            other = other.astype('m8[ns]').astype('i8')
+
+            return self.value // other
+
+        # integers only
+        if is_integer_object(other):
+            return Timedelta(self.value // other, unit='ns')
+
+        if not self._validate_ops_compat(other):
+            return NotImplemented
+
+        other = Timedelta(other)
+        if other is NaT:
+            return np.nan
+        return self.value // other.value
+
+    def __rfloordiv__(self, other):
+        if hasattr(other, 'dtype'):
+
+            # work with i8
+            other = other.astype('m8[ns]').astype('i8')
+            return other // self.value
+
+        if not self._validate_ops_compat(other):
+            return NotImplemented
+
+        other = Timedelta(other)
+        if other is NaT:
+            return NaT
+        return other.value // self.value
 
     def _op_unary_method(func, name):
 
@@ -3835,7 +3880,8 @@ for field in fields:
 # to the NaTType class; these can return NaT, np.nan
 # or raise respectively
 _nat_methods = ['date', 'now', 'replace', 'to_pydatetime',
-                'today', 'round', 'floor', 'ceil']
+                'today', 'round', 'floor', 'ceil', 'tz_convert',
+                'tz_localize']
 _nan_methods = ['weekday', 'isoweekday', 'total_seconds']
 _implemented_methods = ['to_datetime', 'to_datetime64', 'isoformat']
 _implemented_methods.extend(_nat_methods)
@@ -4041,7 +4087,23 @@ except:
     have_pytz = False
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
+    """
+    Convert the values (in i8) from timezone1 to timezone2
+
+    Parameters
+    ----------
+    vals : int64 ndarray
+    tz1 : string / timezone object
+    tz2 : string / timezone object
+
+    Returns
+    -------
+    int64 ndarray of converted
+    """
+
     cdef:
         ndarray[int64_t] utc_dates, tt, result, trans, deltas
         Py_ssize_t i, j, pos, n = len(vals)
@@ -4143,6 +4205,23 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
 
 def tz_convert_single(int64_t val, object tz1, object tz2):
+    """
+    Convert the val (in i8) from timezone1 to timezone2
+
+    This is a single timezone versoin of tz_convert
+
+    Parameters
+    ----------
+    val : int64
+    tz1 : string / timezone object
+    tz2 : string / timezone object
+
+    Returns
+    -------
+    int64 converted
+
+    """
+
     cdef:
         ndarray[int64_t] trans, deltas
         Py_ssize_t pos
@@ -4342,7 +4421,7 @@ cpdef ndarray _unbox_utcoffsets(object transinfo):
 def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                        object errors='raise'):
     """
-    Localize tzinfo-naive DateRange to given time zone (using pytz). If
+    Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
 
     Returns
@@ -4513,6 +4592,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 raise pytz.NonExistentTimeError(stamp)
 
     return result
+
 
 cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     cdef Py_ssize_t pivot, left = 0, right = n

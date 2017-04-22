@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 from numpy import nan
 import numpy as np
 
-from pandas.types.common import _ensure_int64
+from pandas.core.dtypes.common import _ensure_int64
 from pandas import Index, isnull
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
@@ -70,15 +72,15 @@ class TestBinGroupers(tm.TestCase):
             bins = func(values, binner, closed='right')
             assert ((bins == np.array([3, 6])).all())
 
-        self.assertRaises(ValueError, generate_bins_generic, values, [],
-                          'right')
-        self.assertRaises(ValueError, generate_bins_generic, values[:0],
-                          binner, 'right')
+        pytest.raises(ValueError, generate_bins_generic, values, [],
+                      'right')
+        pytest.raises(ValueError, generate_bins_generic, values[:0],
+                      binner, 'right')
 
-        self.assertRaises(ValueError, generate_bins_generic, values, [4],
-                          'right')
-        self.assertRaises(ValueError, generate_bins_generic, values, [-3, -1],
-                          'right')
+        pytest.raises(ValueError, generate_bins_generic, values, [4],
+                      'right')
+        pytest.raises(ValueError, generate_bins_generic, values, [-3, -1],
+                      'right')
 
 
 def test_group_ohlc():

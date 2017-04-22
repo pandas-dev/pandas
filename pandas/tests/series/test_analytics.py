@@ -13,8 +13,8 @@ import pandas as pd
 from pandas import (Series, Categorical, DataFrame, isnull, notnull,
                     bdate_range, date_range, _np_version_under1p10)
 from pandas.core.index import MultiIndex
-from pandas.tseries.index import Timestamp
-from pandas.tseries.tdi import Timedelta
+from pandas.core.indexes.datetimes import Timestamp
+from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.config as cf
 
 import pandas.core.nanops as nanops
@@ -320,19 +320,19 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                           name='int_data',
                           index=['count', 'mean', 'std', 'min', '25%',
                                  '50%', '75%', 'max'])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series([True, True, False, False, False], name='bool_data')
         result = s.describe()
         expected = Series([5, 2, False, 3], name='bool_data',
                           index=['count', 'unique', 'top', 'freq'])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = Series(['a', 'a', 'b', 'c', 'd'], name='str_data')
         result = s.describe()
         expected = Series([5, 4, 'a', 2], name='str_data',
                           index=['count', 'unique', 'top', 'freq'])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_argsort(self):
         self._check_accum_op('argsort', check_dtype=False)
@@ -362,11 +362,12 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         mexpected = np.argsort(s.values, kind='mergesort')
         qexpected = np.argsort(s.values, kind='quicksort')
 
-        self.assert_series_equal(mindexer, Series(mexpected),
-                                 check_dtype=False)
-        self.assert_series_equal(qindexer, Series(qexpected),
-                                 check_dtype=False)
-        self.assertFalse(np.array_equal(qindexer, mindexer))
+        tm.assert_series_equal(mindexer, Series(mexpected),
+                               check_dtype=False)
+        tm.assert_series_equal(qindexer, Series(qexpected),
+                               check_dtype=False)
+        pytest.raises(AssertionError, tm.assert_numpy_array_equal,
+                      qindexer, mindexer)
 
     def test_cumsum(self):
         self._check_accum_op('cumsum')
@@ -375,24 +376,24 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self._check_accum_op('cumprod')
 
     def test_cummin(self):
-        self.assert_numpy_array_equal(self.ts.cummin().values,
-                                      np.minimum.accumulate(np.array(self.ts)))
+        tm.assert_numpy_array_equal(self.ts.cummin().values,
+                                    np.minimum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummin()[1::2]
         expected = np.minimum.accumulate(ts.valid())
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_cummax(self):
-        self.assert_numpy_array_equal(self.ts.cummax().values,
-                                      np.maximum.accumulate(np.array(self.ts)))
+        tm.assert_numpy_array_equal(self.ts.cummax().values,
+                                    np.maximum.accumulate(np.array(self.ts)))
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummax()[1::2]
         expected = np.maximum.accumulate(ts.valid())
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_cummin_datetime64(self):
         s = pd.Series(pd.to_datetime(['NaT', '2000-1-2', 'NaT', '2000-1-1',
@@ -401,13 +402,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = pd.Series(pd.to_datetime(['NaT', '2000-1-2', 'NaT',
                                              '2000-1-1', 'NaT', '2000-1-1']))
         result = s.cummin(skipna=True)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         expected = pd.Series(pd.to_datetime(
             ['NaT', '2000-1-2', '2000-1-2', '2000-1-1', '2000-1-1', '2000-1-1'
              ]))
         result = s.cummin(skipna=False)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
     def test_cummax_datetime64(self):
         s = pd.Series(pd.to_datetime(['NaT', '2000-1-2', 'NaT', '2000-1-1',
@@ -416,13 +417,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = pd.Series(pd.to_datetime(['NaT', '2000-1-2', 'NaT',
                                              '2000-1-2', 'NaT', '2000-1-3']))
         result = s.cummax(skipna=True)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         expected = pd.Series(pd.to_datetime(
             ['NaT', '2000-1-2', '2000-1-2', '2000-1-2', '2000-1-2', '2000-1-3'
              ]))
         result = s.cummax(skipna=False)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
     def test_cummin_timedelta64(self):
         s = pd.Series(pd.to_timedelta(['NaT',
@@ -439,7 +440,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                               'NaT',
                                               '1 min', ]))
         result = s.cummin(skipna=True)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         expected = pd.Series(pd.to_timedelta(['NaT',
                                               '2 min',
@@ -448,7 +449,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                               '1 min',
                                               '1 min', ]))
         result = s.cummin(skipna=False)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
     def test_cummax_timedelta64(self):
         s = pd.Series(pd.to_timedelta(['NaT',
@@ -465,7 +466,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                               'NaT',
                                               '3 min', ]))
         result = s.cummax(skipna=True)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         expected = pd.Series(pd.to_timedelta(['NaT',
                                               '2 min',
@@ -474,7 +475,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                               '2 min',
                                               '3 min', ]))
         result = s.cummax(skipna=False)
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
     def test_npdiff(self):
         pytest.skip("skipping due to Series no longer being an "
@@ -499,7 +500,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             # idxmax, idxmin, min, and max are valid for dates
             if name not in ['max', 'min']:
                 ds = Series(date_range('1/1/2001', periods=10))
-                self.assertRaises(TypeError, f, ds)
+                pytest.raises(TypeError, f, ds)
 
             # skipna or no
             self.assertTrue(notnull(f(self.series)))
@@ -542,10 +543,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
             # check on string data
             if name not in ['sum', 'min', 'max']:
-                self.assertRaises(TypeError, f, Series(list('abc')))
+                pytest.raises(TypeError, f, Series(list('abc')))
 
             # Invalid axis.
-            self.assertRaises(ValueError, f, self.series, axis=1)
+            pytest.raises(ValueError, f, self.series, axis=1)
 
             # Unimplemented numeric_only parameter.
             if 'numeric_only' in compat.signature(f).args:
@@ -564,9 +565,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
     def _check_accum_op(self, name, check_dtype=True):
         func = getattr(np, name)
-        self.assert_numpy_array_equal(func(self.ts).values,
-                                      func(np.array(self.ts)),
-                                      check_dtype=check_dtype)
+        tm.assert_numpy_array_equal(func(self.ts).values,
+                                    func(np.array(self.ts)),
+                                    check_dtype=check_dtype)
 
         # with missing values
         ts = self.ts.copy()
@@ -575,8 +576,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = func(ts)[1::2]
         expected = func(np.array(ts.valid()))
 
-        self.assert_numpy_array_equal(result.values, expected,
-                                      check_dtype=False)
+        tm.assert_numpy_array_equal(result.values, expected,
+                                    check_dtype=False)
 
     def test_compress(self):
         cond = [True, False, True, False, False]
@@ -629,17 +630,18 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series([1.123, 2.123, 3.123], index=lrange(3))
         result = round(s)
         expected_rounded0 = Series([1., 2., 3.], index=lrange(3))
-        self.assert_series_equal(result, expected_rounded0)
+        tm.assert_series_equal(result, expected_rounded0)
 
         decimals = 2
         expected_rounded = Series([1.12, 2.12, 3.12], index=lrange(3))
         result = round(s, decimals)
-        self.assert_series_equal(result, expected_rounded)
+        tm.assert_series_equal(result, expected_rounded)
 
     def test_prod_numpy16_bug(self):
         s = Series([1., 1., 1.], index=lrange(3))
         result = s.prod()
-        self.assertNotIsInstance(result, Series)
+
+        assert not isinstance(result, Series)
 
     def test_all_any(self):
         ts = tm.makeTimeSeries()
@@ -667,12 +669,12 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_series_equal(s.any(level=0), Series([False, True, True]))
 
         # bool_only is not implemented with level option.
-        self.assertRaises(NotImplementedError, s.any, bool_only=True, level=0)
-        self.assertRaises(NotImplementedError, s.all, bool_only=True, level=0)
+        pytest.raises(NotImplementedError, s.any, bool_only=True, level=0)
+        pytest.raises(NotImplementedError, s.all, bool_only=True, level=0)
 
         # bool_only is not implemented alone.
-        self.assertRaises(NotImplementedError, s.any, bool_only=True)
-        self.assertRaises(NotImplementedError, s.all, bool_only=True)
+        pytest.raises(NotImplementedError, s.any, bool_only=True)
+        pytest.raises(NotImplementedError, s.all, bool_only=True)
 
     def test_modulo(self):
         with np.errstate(all='ignore'):
@@ -864,8 +866,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
 
-        self.assertRaises(Exception, a.dot, a.values[:3])
-        self.assertRaises(ValueError, a.dot, b.T)
+        pytest.raises(Exception, a.dot, a.values[:3])
+        pytest.raises(ValueError, a.dot, b.T)
 
     def test_value_counts_nunique(self):
 
@@ -899,7 +901,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series([1, 2, 3, None, None, None], dtype=object)
         result = s.unique()
         expected = np.array([1, 2, 3, None], dtype=object)
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_drop_duplicates(self):
         # check both int and object
@@ -960,7 +962,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = self.ts.clip(-0.5, 0.5)
         expected = np.clip(self.ts, -0.5, 0.5)
         assert_series_equal(result, expected)
-        tm.assertIsInstance(expected, Series)
+        assert isinstance(expected, Series)
 
     def test_clip_types_and_nulls(self):
 
@@ -1059,10 +1061,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
     def test_isin_with_string_scalar(self):
         # GH4763
         s = Series(['A', 'B', 'C', 'a', 'B', 'B', 'A', 'C'])
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s.isin('a')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s = Series(['aaa', 'b', 'c'])
             s.isin('aaa')
 
@@ -1256,19 +1258,19 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = pd.Series([1, np.nan, 7, 3, 5, np.nan], index=mi)
 
         expected = pd.Series([6, 2], index=['a', 'b'], dtype=np.float64)
-        self.assert_series_equal(s.ptp(level=0), expected)
+        tm.assert_series_equal(s.ptp(level=0), expected)
 
         expected = pd.Series([np.nan, np.nan], index=['a', 'b'])
-        self.assert_series_equal(s.ptp(level=0, skipna=False), expected)
+        tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.ptp(axis=1)
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'])
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             s.ptp()
 
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             s.ptp(numeric_only=True)
 
     def test_empty_timeseries_redections_return_nat(self):
@@ -1381,80 +1383,6 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertFalse(s.is_monotonic)
         self.assertTrue(s.is_monotonic_decreasing)
 
-    def test_nsmallest_nlargest(self):
-        # float, int, datetime64 (use i8), timedelts64 (same),
-        # object that are numbers, object that are strings
-
-        base = [3, 2, 1, 2, 5]
-
-        s_list = [
-            Series(base, dtype='int8'),
-            Series(base, dtype='int16'),
-            Series(base, dtype='int32'),
-            Series(base, dtype='int64'),
-            Series(base, dtype='float32'),
-            Series(base, dtype='float64'),
-            Series(base, dtype='uint8'),
-            Series(base, dtype='uint16'),
-            Series(base, dtype='uint32'),
-            Series(base, dtype='uint64'),
-            Series(base).astype('timedelta64[ns]'),
-            Series(pd.to_datetime(['2003', '2002', '2001', '2002', '2005'])),
-        ]
-
-        raising = [
-            Series([3., 2, 1, 2, '5'], dtype='object'),
-            Series([3., 2, 1, 2, 5], dtype='object'),
-            # not supported on some archs
-            # Series([3., 2, 1, 2, 5], dtype='complex256'),
-            Series([3., 2, 1, 2, 5], dtype='complex128'),
-        ]
-
-        for r in raising:
-            dt = r.dtype
-            msg = "Cannot use method 'n(larg|small)est' with dtype %s" % dt
-            args = 2, len(r), 0, -1
-            methods = r.nlargest, r.nsmallest
-            for method, arg in product(methods, args):
-                with tm.assertRaisesRegexp(TypeError, msg):
-                    method(arg)
-
-        for s in s_list:
-
-            assert_series_equal(s.nsmallest(2), s.iloc[[2, 1]])
-            assert_series_equal(s.nsmallest(2, keep='last'), s.iloc[[2, 3]])
-
-            empty = s.iloc[0:0]
-            assert_series_equal(s.nsmallest(0), empty)
-            assert_series_equal(s.nsmallest(-1), empty)
-            assert_series_equal(s.nlargest(0), empty)
-            assert_series_equal(s.nlargest(-1), empty)
-
-            assert_series_equal(s.nsmallest(len(s)), s.sort_values())
-            assert_series_equal(s.nsmallest(len(s) + 1), s.sort_values())
-            assert_series_equal(s.nlargest(len(s)), s.iloc[[4, 0, 1, 3, 2]])
-            assert_series_equal(s.nlargest(len(s) + 1),
-                                s.iloc[[4, 0, 1, 3, 2]])
-
-        s = Series([3., np.nan, 1, 2, 5])
-        assert_series_equal(s.nlargest(), s.iloc[[4, 0, 3, 2]])
-        assert_series_equal(s.nsmallest(), s.iloc[[2, 3, 0, 4]])
-
-        msg = 'keep must be either "first", "last"'
-        with tm.assertRaisesRegexp(ValueError, msg):
-            s.nsmallest(keep='invalid')
-        with tm.assertRaisesRegexp(ValueError, msg):
-            s.nlargest(keep='invalid')
-
-        # GH 13412
-        s = Series([1, 4, 3, 2], index=[0, 0, 1, 1])
-        result = s.nlargest(3)
-        expected = s.sort_values(ascending=False).head(3)
-        assert_series_equal(result, expected)
-        result = s.nsmallest(3)
-        expected = s.sort_values().head(3)
-        assert_series_equal(result, expected)
-
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         s = Series([1, 2], mi)
@@ -1532,23 +1460,23 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             result = a.reshape(2, 2)
             expected = a.values.reshape(2, 2)
             tm.assert_numpy_array_equal(result, expected)
-            self.assertIsInstance(result, type(expected))
+            assert isinstance(result, type(expected))
 
     def test_reshape_2d_return_array(self):
         x = Series(np.random.random(201), name='x')
 
         with tm.assert_produces_warning(FutureWarning):
             result = x.reshape((-1, 1))
-            self.assertNotIsInstance(result, Series)
+            assert not isinstance(result, Series)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result2 = np.reshape(x, (-1, 1))
-            self.assertNotIsInstance(result2, Series)
+            assert not isinstance(result2, Series)
 
         with tm.assert_produces_warning(FutureWarning):
             result = x[:, None]
             expected = x.reshape((-1, 1))
-            assert_almost_equal(result, expected)
+            tm.assert_almost_equal(result, expected)
 
     def test_reshape_bad_kwarg(self):
         a = Series([1, 2, 3, 4])
@@ -1568,7 +1496,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             result = np.reshape(a, (2, 2))
             expected = a.values.reshape(2, 2)
             tm.assert_numpy_array_equal(result, expected)
-            self.assertIsInstance(result, type(expected))
+            assert isinstance(result, type(expected))
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = np.reshape(a, a.shape)
@@ -1600,7 +1528,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                                labels=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]])
         expected = DataFrame({'bar': s.values},
                              index=exp_index).sort_index(level=0)
-        unstacked = s.unstack(0)
+        unstacked = s.unstack(0).sort_index()
         assert_frame_equal(unstacked, expected)
 
         # GH5873
@@ -1729,3 +1657,109 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                         index=exp_idx, name='xxx')
         tm.assert_series_equal(s.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
+
+
+@pytest.fixture
+def s_main_dtypes():
+    df = pd.DataFrame(
+        {'datetime': pd.to_datetime(['2003', '2002',
+                                     '2001', '2002',
+                                     '2005']),
+         'datetimetz': pd.to_datetime(
+             ['2003', '2002',
+              '2001', '2002',
+              '2005']).tz_localize('US/Eastern'),
+         'timedelta': pd.to_timedelta(['3d', '2d', '1d',
+                                       '2d', '5d'])})
+
+    for dtype in ['int8', 'int16', 'int32', 'int64',
+                  'float32', 'float64',
+                  'uint8', 'uint16', 'uint32', 'uint64']:
+        df[dtype] = Series([3, 2, 1, 2, 5], dtype=dtype)
+
+    return df
+
+
+class TestNLargestNSmallest(object):
+
+    @pytest.mark.parametrize(
+        "r", [Series([3., 2, 1, 2, '5'], dtype='object'),
+              Series([3., 2, 1, 2, 5], dtype='object'),
+              # not supported on some archs
+              # Series([3., 2, 1, 2, 5], dtype='complex256'),
+              Series([3., 2, 1, 2, 5], dtype='complex128'),
+              Series(list('abcde'), dtype='category'),
+              Series(list('abcde'))])
+    def test_error(self, r):
+        dt = r.dtype
+        msg = ("Cannot use method 'n(larg|small)est' with "
+               "dtype {dt}".format(dt=dt))
+        args = 2, len(r), 0, -1
+        methods = r.nlargest, r.nsmallest
+        for method, arg in product(methods, args):
+            with tm.assertRaisesRegexp(TypeError, msg):
+                method(arg)
+
+    @pytest.mark.parametrize(
+        "s",
+        [v for k, v in s_main_dtypes().iteritems()])
+    def test_nsmallest_nlargest(self, s):
+        # float, int, datetime64 (use i8), timedelts64 (same),
+        # object that are numbers, object that are strings
+
+        assert_series_equal(s.nsmallest(2), s.iloc[[2, 1]])
+        assert_series_equal(s.nsmallest(2, keep='last'), s.iloc[[2, 3]])
+
+        empty = s.iloc[0:0]
+        assert_series_equal(s.nsmallest(0), empty)
+        assert_series_equal(s.nsmallest(-1), empty)
+        assert_series_equal(s.nlargest(0), empty)
+        assert_series_equal(s.nlargest(-1), empty)
+
+        assert_series_equal(s.nsmallest(len(s)), s.sort_values())
+        assert_series_equal(s.nsmallest(len(s) + 1), s.sort_values())
+        assert_series_equal(s.nlargest(len(s)), s.iloc[[4, 0, 1, 3, 2]])
+        assert_series_equal(s.nlargest(len(s) + 1),
+                            s.iloc[[4, 0, 1, 3, 2]])
+
+    def test_misc(self):
+
+        s = Series([3., np.nan, 1, 2, 5])
+        assert_series_equal(s.nlargest(), s.iloc[[4, 0, 3, 2]])
+        assert_series_equal(s.nsmallest(), s.iloc[[2, 3, 0, 4]])
+
+        msg = 'keep must be either "first", "last"'
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.nsmallest(keep='invalid')
+        with tm.assertRaisesRegexp(ValueError, msg):
+            s.nlargest(keep='invalid')
+
+        # GH 15297
+        s = Series([1] * 5, index=[1, 2, 3, 4, 5])
+        expected_first = Series([1] * 3, index=[1, 2, 3])
+        expected_last = Series([1] * 3, index=[5, 4, 3])
+
+        result = s.nsmallest(3)
+        assert_series_equal(result, expected_first)
+
+        result = s.nsmallest(3, keep='last')
+        assert_series_equal(result, expected_last)
+
+        result = s.nlargest(3)
+        assert_series_equal(result, expected_first)
+
+        result = s.nlargest(3, keep='last')
+        assert_series_equal(result, expected_last)
+
+    @pytest.mark.parametrize('n', range(1, 5))
+    def test_n(self, n):
+
+        # GH 13412
+        s = Series([1, 4, 3, 2], index=[0, 0, 1, 1])
+        result = s.nlargest(n)
+        expected = s.sort_values(ascending=False).head(n)
+        assert_series_equal(result, expected)
+
+        result = s.nsmallest(n)
+        expected = s.sort_values().head(n)
+        assert_series_equal(result, expected)

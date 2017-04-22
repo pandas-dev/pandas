@@ -33,6 +33,10 @@ cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
 
 
+cpdef bint is_interval(object obj):
+    return isinstance(obj, Interval)
+
+
 cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
@@ -218,9 +222,91 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(object _values):
+def infer_dtype(object value):
     """
-    we are coercing to an ndarray here
+    Effeciently infer the type of a passed val, or list-like
+    array of values. Return a string describing the type.
+
+    Parameters
+    ----------
+    value : scalar, list, ndarray, or pandas type
+
+    Returns
+    -------
+    string describing the common type of the input data.
+    Results can include:
+
+    - string
+    - unicode
+    - bytes
+    - floating
+    - integer
+    - mixed-integer
+    - mixed-integer-float
+    - complex
+    - categorical
+    - boolean
+    - datetime64
+    - datetime
+    - date
+    - timedelta64
+    - timedelta
+    - time
+    - period
+    - mixed
+
+    Raises
+    ------
+    TypeError if ndarray-like but cannot infer the dtype
+
+    Notes
+    -----
+    - 'mixed' is the catchall for anything that is not otherwise
+      specialized
+    - 'mixed-integer-float' are floats and integers
+    - 'mixed-integer' are integers mixed with non-integers
+
+    Examples
+    --------
+    >>> infer_dtype(['foo', 'bar'])
+    'string'
+
+    >>> infer_dtype([b'foo', b'bar'])
+    'bytes'
+
+    >>> infer_dtype([1, 2, 3])
+    'integer'
+
+    >>> infer_dtype([1, 2, 3.5])
+    'mixed-integer-float'
+
+    >>> infer_dtype([1.0, 2.0, 3.5])
+    'floating'
+
+    >>> infer_dtype(['a', 1])
+    'mixed-integer'
+
+    >>> infer_dtype([True, False])
+    'boolean'
+
+    >>> infer_dtype([True, False, np.nan])
+    'mixed'
+
+    >>> infer_dtype([pd.Timestamp('20130101')])
+    'datetime'
+
+    >>> infer_dtype([datetime.date(2013, 1, 1)])
+    'date'
+
+    >>> infer_dtype([np.datetime64('2013-01-01')])
+    'datetime64'
+
+    >>> infer_dtype([datetime.timedelta(0, 1, 1)])
+    'timedelta'
+
+    >>> infer_dtype(pd.Series(list('aabc')).astype('category'))
+    'categorical'
+
     """
 
     cdef:
@@ -229,27 +315,27 @@ def infer_dtype(object _values):
         ndarray values
         bint seen_pdnat = False, seen_val = False
 
-    if isinstance(_values, np.ndarray):
-        values = _values
-    elif hasattr(_values, 'dtype'):
+    if isinstance(value, np.ndarray):
+        values = value
+    elif hasattr(value, 'dtype'):
 
         # this will handle ndarray-like
         # e.g. categoricals
         try:
-            values = getattr(_values, '_values', getattr(
-                _values, 'values', _values))
+            values = getattr(value, '_values', getattr(
+                value, 'values', value))
         except:
-            val = _try_infer_map(_values)
-            if val is not None:
-                return val
+            value = _try_infer_map(value)
+            if value is not None:
+                return value
 
             # its ndarray like but we can't handle
-            raise ValueError("cannot infer type for {0}".format(type(_values)))
+            raise ValueError("cannot infer type for {0}".format(type(value)))
 
     else:
-        if not isinstance(_values, list):
-            _values = list(_values)
-        values = list_to_object_array(_values)
+        if not isinstance(value, list):
+            value = list(value)
+        values = list_to_object_array(value)
 
     values = getattr(values, 'values', values)
     val = _try_infer_map(values)
@@ -347,6 +433,10 @@ def infer_dtype(object _values):
         if is_period_array(values):
             return 'period'
 
+    elif is_interval(val):
+        if is_interval_array(values):
+            return 'interval'
+
     for i in range(n):
         val = util.get_value_1d(values, i)
         if (util.is_integer_object(val) and
@@ -357,31 +447,86 @@ def infer_dtype(object _values):
     return 'mixed'
 
 
-cpdef bint is_possible_datetimelike_array(object arr):
-    # determine if we have a possible datetimelike (or null-like) array
+cpdef object infer_datetimelike_array(object arr):
+    """
+    infer if we have a datetime or timedelta array
+    - date: we have *only* date and maybe strings, nulls
+    - datetime: we have *only* datetimes and maybe strings, nulls
+    - timedelta: we have *only* timedeltas and maybe strings, nulls
+    - nat: we do not have *any* date, datetimes or timedeltas, but do have
+      at least a NaT
+    - mixed: other objects (strings or actual objects)
+
+    Parameters
+    ----------
+    arr : object array
+
+    Returns
+    -------
+    string: {datetime, timedelta, date, nat, mixed}
+
+    """
+
     cdef:
         Py_ssize_t i, n = len(arr)
-        bint seen_timedelta = 0, seen_datetime = 0
+        bint seen_timedelta = 0, seen_date = 0, seen_datetime = 0
+        bint seen_nat = 0
+        list objs = []
         object v
 
     for i in range(n):
         v = arr[i]
         if util.is_string_object(v):
-            continue
+            objs.append(v)
+
+            if len(objs) == 3:
+                break
+
         elif util._checknull(v):
-            continue
-        elif is_datetime(v):
-            seen_datetime=1
-        elif is_timedelta(v):
-            seen_timedelta=1
+            # nan or None
+            pass
+        elif v is NaT:
+            seen_nat = 1
+        elif is_datetime(v) or util.is_datetime64_object(v):
+            # datetime, or np.datetime64
+            seen_datetime = 1
+        elif is_date(v):
+            seen_date = 1
+        elif is_timedelta(v) or util.is_timedelta64_object(v):
+            # timedelta, or timedelta64
+            seen_timedelta = 1
         else:
-            return False
-    return seen_datetime or seen_timedelta
+            return 'mixed'
+
+    if seen_date and not (seen_datetime or seen_timedelta):
+        return 'date'
+    elif seen_datetime and not seen_timedelta:
+        return 'datetime'
+    elif seen_timedelta and not seen_datetime:
+        return 'timedelta'
+    elif seen_nat:
+        return 'nat'
+
+    # short-circuit by trying to
+    # actually convert these strings
+    # this is for performance as we don't need to try
+    # convert *every* string array
+    if len(objs):
+        try:
+            tslib.array_to_datetime(objs, errors='raise')
+            return 'datetime'
+        except:
+            pass
+
+        # we are *not* going to infer from strings
+        # for timedelta as too much ambiguity
+
+    return 'mixed'
 
 
 cdef inline bint is_null_datetimelike(v):
     # determine if we have a null for a timedelta/datetime (or integer
-    # versions)x
+    # versions)
     if util._checknull(v):
         return True
     elif v is NaT:
@@ -739,6 +884,23 @@ cpdef bint is_period_array(ndarray[object] values):
             if util._checknull(v):
                 null_count += 1
         elif not is_period(v):
+            return False
+    return null_count != n
+
+
+cpdef bint is_interval_array(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values), null_count = 0
+        object v
+
+    if n == 0:
+        return False
+    for i in range(n):
+        v = values[i]
+        if util._checknull(v):
+            null_count += 1
+            continue
+        if not is_interval(v):
             return False
     return null_count != n
 

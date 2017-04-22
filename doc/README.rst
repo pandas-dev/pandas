@@ -81,7 +81,9 @@ have ``sphinx`` and ``ipython`` installed. `numpydoc
 <https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
 follow the Numpy Docstring Standard (see above), but you don't need to install
 this because a local copy of ``numpydoc`` is included in the pandas source
-code.
+code. `nbsphinx <https://nbsphinx.readthedocs.io/>`_ is used to convert
+Jupyter notebooks. You will need to install it if you intend to modify any of
+the notebooks included in the documentation.
 
 Furthermore, it is recommended to have all `optional dependencies
 <http://pandas.pydata.org/pandas-docs/dev/install.html#optional-dependencies>`_

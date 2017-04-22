@@ -5,6 +5,8 @@ Tests that the file header is properly handled or inferred
 during parsing for all of the parsers defined in parsers.py
 """
 
+import pytest
+
 import numpy as np
 import pandas.util.testing as tm
 
@@ -30,9 +32,9 @@ MyColumn
    a
    b"""
         for arg in [True, False]:
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 self.read_csv(StringIO(data), header=arg)
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 self.read_table(StringIO(data), header=arg)
 
     def test_no_header_prefix(self):
@@ -48,9 +50,9 @@ MyColumn
                              [11, 12, 13, 14, 15]], dtype=np.int64)
         tm.assert_almost_equal(df_pref.values, expected)
 
-        self.assert_index_equal(df_pref.columns,
-                                Index(['Field0', 'Field1', 'Field2',
-                                       'Field3', 'Field4']))
+        tm.assert_index_equal(df_pref.columns,
+                              Index(['Field0', 'Field1', 'Field2',
+                                     'Field3', 'Field4']))
 
     def test_header_with_index_col(self):
         data = """foo,1,2,3
@@ -117,27 +119,27 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
         # no as_recarray
         with tm.assert_produces_warning(
                 FutureWarning, check_stacklevel=False):
-            self.assertRaises(ValueError, self.read_csv,
-                              StringIO(data), header=[0, 1, 2, 3],
-                              index_col=[0, 1], as_recarray=True,
-                              tupleize_cols=False)
+            pytest.raises(ValueError, self.read_csv,
+                          StringIO(data), header=[0, 1, 2, 3],
+                          index_col=[0, 1], as_recarray=True,
+                          tupleize_cols=False)
 
         # names
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(data), header=[0, 1, 2, 3],
-                          index_col=[0, 1], names=['foo', 'bar'],
-                          tupleize_cols=False)
+        pytest.raises(ValueError, self.read_csv,
+                      StringIO(data), header=[0, 1, 2, 3],
+                      index_col=[0, 1], names=['foo', 'bar'],
+                      tupleize_cols=False)
 
         # usecols
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(data), header=[0, 1, 2, 3],
-                          index_col=[0, 1], usecols=['foo', 'bar'],
-                          tupleize_cols=False)
+        pytest.raises(ValueError, self.read_csv,
+                      StringIO(data), header=[0, 1, 2, 3],
+                      index_col=[0, 1], usecols=['foo', 'bar'],
+                      tupleize_cols=False)
 
         # non-numeric index_col
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(data), header=[0, 1, 2, 3],
-                          index_col=['foo', 'bar'], tupleize_cols=False)
+        pytest.raises(ValueError, self.read_csv,
+                      StringIO(data), header=[0, 1, 2, 3],
+                      index_col=['foo', 'bar'], tupleize_cols=False)
 
     def test_header_multiindex_common_format(self):
 
@@ -270,8 +272,8 @@ q,r,s,t,u,v
         tm.assert_almost_equal(df.values, expected)
         tm.assert_almost_equal(df.values, df2.values)
 
-        self.assert_index_equal(df_pref.columns,
-                                Index(['X0', 'X1', 'X2', 'X3', 'X4']))
-        self.assert_index_equal(df.columns, Index(lrange(5)))
+        tm.assert_index_equal(df_pref.columns,
+                              Index(['X0', 'X1', 'X2', 'X3', 'X4']))
+        tm.assert_index_equal(df.columns, Index(lrange(5)))
 
-        self.assert_index_equal(df2.columns, Index(names))
+        tm.assert_index_equal(df2.columns, Index(names))

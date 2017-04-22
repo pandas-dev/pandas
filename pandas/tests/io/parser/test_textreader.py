@@ -5,6 +5,8 @@ Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
 
+import pytest
+
 from pandas.compat import StringIO, BytesIO, map
 from pandas import compat
 
@@ -76,12 +78,10 @@ class TestTextReader(tm.TestCase):
                             header=None)
         result = reader.read()
 
-        self.assert_numpy_array_equal(result[0],
-                                      np.array(['a', 'a', 'a', 'a'],
-                                               dtype=np.object_))
-        self.assert_numpy_array_equal(result[1],
-                                      np.array(['b', 'b', 'b', 'b'],
-                                               dtype=np.object_))
+        tm.assert_numpy_array_equal(result[0], np.array(['a', 'a', 'a', 'a'],
+                                                        dtype=np.object_))
+        tm.assert_numpy_array_equal(result[1], np.array(['b', 'b', 'b', 'b'],
+                                                        dtype=np.object_))
 
     def test_parse_booleans(self):
         data = 'True\nFalse\nTrue\nTrue'
@@ -98,10 +98,10 @@ class TestTextReader(tm.TestCase):
                             header=None)
         result = reader.read()
 
-        self.assert_numpy_array_equal(result[0], np.array(['a', 'a', 'a'],
-                                                          dtype=np.object_))
-        self.assert_numpy_array_equal(result[1], np.array(['b', 'b', 'b'],
-                                                          dtype=np.object_))
+        tm.assert_numpy_array_equal(result[0], np.array(['a', 'a', 'a'],
+                                                        dtype=np.object_))
+        tm.assert_numpy_array_equal(result[1], np.array(['b', 'b', 'b'],
+                                                        dtype=np.object_))
 
     def test_embedded_newline(self):
         data = 'a\n"hello\nthere"\nthis'
@@ -110,7 +110,7 @@ class TestTextReader(tm.TestCase):
         result = reader.read()
 
         expected = np.array(['a', 'hello\nthere', 'this'], dtype=np.object_)
-        self.assert_numpy_array_equal(result[0], expected)
+        tm.assert_numpy_array_equal(result[0], expected)
 
     def test_euro_decimal(self):
         data = '12345,67\n345,678'
@@ -142,6 +142,7 @@ class TestTextReader(tm.TestCase):
         expected = DataFrame([123456, 12500])
         tm.assert_frame_equal(result, expected)
 
+    @tm.capture_stderr
     def test_skip_bad_lines(self):
         # too many lines, see #2430 for why
         data = ('a:b:c\n'
@@ -153,7 +154,7 @@ class TestTextReader(tm.TestCase):
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None)
-        self.assertRaises(parser.ParserError, reader.read)
+        pytest.raises(parser.ParserError, reader.read)
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None,
@@ -165,19 +166,15 @@ class TestTextReader(tm.TestCase):
                     2: ['c', 'f', 'i', 'n']}
         assert_array_dicts_equal(result, expected)
 
-        stderr = sys.stderr
-        sys.stderr = StringIO()
-        try:
-            reader = TextReader(StringIO(data), delimiter=':',
-                                header=None,
-                                error_bad_lines=False,
-                                warn_bad_lines=True)
-            reader.read()
-            val = sys.stderr.getvalue()
-            self.assertTrue('Skipping line 4' in val)
-            self.assertTrue('Skipping line 6' in val)
-        finally:
-            sys.stderr = stderr
+        reader = TextReader(StringIO(data), delimiter=':',
+                            header=None,
+                            error_bad_lines=False,
+                            warn_bad_lines=True)
+        reader.read()
+        val = sys.stderr.getvalue()
+
+        assert 'Skipping line 4' in val
+        assert 'Skipping line 6' in val
 
     def test_header_not_enough_lines(self):
         data = ('skip this\n'
@@ -196,8 +193,8 @@ class TestTextReader(tm.TestCase):
         assert_array_dicts_equal(expected, recs)
 
         # not enough rows
-        self.assertRaises(parser.ParserError, TextReader, StringIO(data),
-                          delimiter=',', header=5, as_recarray=True)
+        pytest.raises(parser.ParserError, TextReader, StringIO(data),
+                      delimiter=',', header=5, as_recarray=True)
 
     def test_header_not_enough_lines_as_recarray(self):
         data = ('skip this\n'
@@ -217,8 +214,8 @@ class TestTextReader(tm.TestCase):
         assert_array_dicts_equal(expected, recs)
 
         # not enough rows
-        self.assertRaises(parser.ParserError, TextReader, StringIO(data),
-                          delimiter=',', header=5, as_recarray=True)
+        pytest.raises(parser.ParserError, TextReader, StringIO(data),
+                      delimiter=',', header=5, as_recarray=True)
 
     def test_escapechar(self):
         data = ('\\"hello world\"\n'

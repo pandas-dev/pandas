@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta
 from pandas.compat import range
 
+import pytest
 import numpy as np
 
 from pandas import (Index, DatetimeIndex, Timestamp, Series,
                     date_range, period_range)
 
 import pandas.tseries.frequencies as frequencies
-from pandas.tseries.tools import to_datetime
+from pandas.core.tools.datetimes import to_datetime
 
 import pandas.tseries.offsets as offsets
-from pandas.tseries.period import PeriodIndex
+from pandas.core.indexes.period import PeriodIndex
 import pandas.compat as compat
 from pandas.compat import is_platform_windows
 
@@ -198,7 +199,7 @@ class TestToOffset(tm.TestCase):
         assert (expected == result)
 
         td = Timedelta(microseconds=0)
-        tm.assertRaises(ValueError, lambda: frequencies.to_offset(td))
+        pytest.raises(ValueError, lambda: frequencies.to_offset(td))
 
     def test_anchored_shortcuts(self):
         result = frequencies.to_offset('W')
@@ -427,11 +428,11 @@ class TestFrequencyCode(tm.TestCase):
         self.assertEqual(Reso.get_stride_from_decimal(1.2345, 'D'),
                          (106660800, 'L'))
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             Reso.get_stride_from_decimal(0.5, 'N')
 
         # too much precision in the input can prevent
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             Reso.get_stride_from_decimal(0.3429324798798269273987982, 'H')
 
     def test_get_freq_code(self):
@@ -492,11 +493,11 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_raise_if_period_index(self):
         index = PeriodIndex(start="1/1/1990", periods=20, freq="M")
-        self.assertRaises(TypeError, frequencies.infer_freq, index)
+        pytest.raises(TypeError, frequencies.infer_freq, index)
 
     def test_raise_if_too_few(self):
         index = _dti(['12/31/1998', '1/3/1999'])
-        self.assertRaises(ValueError, frequencies.infer_freq, index)
+        pytest.raises(ValueError, frequencies.infer_freq, index)
 
     def test_business_daily(self):
         index = _dti(['12/31/1998', '1/3/1999', '1/4/1999'])
@@ -567,7 +568,7 @@ class TestFrequencyInference(tm.TestCase):
     def test_fifth_week_of_month(self):
         # Only supports freq up to WOM-4. See #9425
         func = lambda: date_range('2014-01-01', freq='WOM-5MON')
-        self.assertRaises(ValueError, func)
+        pytest.raises(ValueError, func)
 
     def test_fifth_week_of_month_infer(self):
         # Only attempts to infer up to WOM-4. See #9425
@@ -742,14 +743,13 @@ class TestFrequencyInference(tm.TestCase):
         # test all index types
         for i in [tm.makeIntIndex(10), tm.makeFloatIndex(10),
                   tm.makePeriodIndex(10)]:
-            self.assertRaises(TypeError, lambda: frequencies.infer_freq(i))
+            pytest.raises(TypeError, lambda: frequencies.infer_freq(i))
 
         # GH 10822
         # odd error message on conversions to datetime for unicode
         if not is_platform_windows():
             for i in [tm.makeStringIndex(10), tm.makeUnicodeIndex(10)]:
-                self.assertRaises(ValueError,
-                                  lambda: frequencies.infer_freq(i))
+                pytest.raises(ValueError, lambda: frequencies.infer_freq(i))
 
     def test_string_datetimelike_compat(self):
 
@@ -767,33 +767,32 @@ class TestFrequencyInference(tm.TestCase):
 
         # invalid type of Series
         for s in [Series(np.arange(10)), Series(np.arange(10.))]:
-            self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
+            pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
 
         # a non-convertible string
-        self.assertRaises(ValueError,
-                          lambda: frequencies.infer_freq(
-                              Series(['foo', 'bar'])))
+        pytest.raises(ValueError, lambda: frequencies.infer_freq(
+            Series(['foo', 'bar'])))
 
         # cannot infer on PeriodIndex
         for freq in [None, 'L']:
             s = Series(period_range('2013', periods=10, freq=freq))
-            self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
+            pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
         for freq in ['Y']:
 
             msg = frequencies._INVALID_FREQ_ERROR
             with tm.assertRaisesRegexp(ValueError, msg):
                 s = Series(period_range('2013', periods=10, freq=freq))
-            self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
+            pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
 
         # DateTimeIndex
         for freq in ['M', 'L', 'S']:
             s = Series(date_range('20130101', periods=10, freq=freq))
             inferred = frequencies.infer_freq(s)
-            self.assertEqual(inferred, freq)
+            assert inferred == freq
 
         s = Series(date_range('20130101', '20130110'))
         inferred = frequencies.infer_freq(s)
-        self.assertEqual(inferred, 'D')
+        assert inferred == 'D'
 
     def test_legacy_offset_warnings(self):
         freqs = ['WEEKDAY', 'EOM', 'W@MON', 'W@TUE', 'W@WED', 'W@THU',

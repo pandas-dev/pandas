@@ -2,8 +2,11 @@
 
 from __future__ import print_function
 
+from warnings import catch_warnings
 from datetime import datetime
+
 import itertools
+import pytest
 
 from numpy.random import randn
 from numpy import nan
@@ -53,11 +56,12 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         self.assertEqual(pivoted.index.name, 'index')
         self.assertEqual(pivoted.columns.names, (None, 'columns'))
 
-        # pivot multiple columns
-        wp = tm.makePanel()
-        lp = wp.to_frame()
-        df = lp.reset_index()
-        assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
+        with catch_warnings(record=True):
+            # pivot multiple columns
+            wp = tm.makePanel()
+            lp = wp.to_frame()
+            df = lp.reset_index()
+            assert_frame_equal(df.pivot('major', 'minor'), lp.unstack())
 
     def test_pivot_duplicates(self):
         data = DataFrame({'a': ['bar', 'bar', 'foo', 'foo', 'foo'],
@@ -77,7 +81,7 @@ class TestDataFrameReshape(tm.TestCase, TestData):
 
         result = df.pivot(index=1, columns=0, values=2)
         repr(result)
-        self.assert_index_equal(result.columns, Index(['A', 'B'], name=0))
+        tm.assert_index_equal(result.columns, Index(['A', 'B'], name=0))
 
     def test_pivot_index_none(self):
         # gh-3962
@@ -362,7 +366,7 @@ class TestDataFrameReshape(tm.TestCase, TestData):
 
         # When mixed types are passed and the ints are not level
         # names, raise
-        self.assertRaises(ValueError, df2.stack, level=['animal', 0])
+        pytest.raises(ValueError, df2.stack, level=['animal', 0])
 
         # GH #8584: Having 0 in the level names could raise a
         # strange error about lexsort depth
@@ -521,10 +525,10 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')],
                                      names=['c1', 'c1'])
         df = DataFrame([1, 2], index=idx)
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.unstack('c1')
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.T.stack('c1')
 
     def test_unstack_nan_index(self):  # GH7466

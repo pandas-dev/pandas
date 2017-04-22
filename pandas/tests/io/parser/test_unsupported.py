@@ -13,7 +13,7 @@ import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
 from pandas.compat import StringIO
-from pandas.io.common import ParserError
+from pandas.errors import ParserError
 from pandas.io.parsers import read_csv, read_table
 
 
@@ -112,8 +112,8 @@ class TestDeprecatedFeatures(tm.TestCase):
             'as_recarray': True,
             'buffer_lines': True,
             'compact_ints': True,
-            'skip_footer': True,
             'use_unsigned': True,
+            'skip_footer': 1,
         }
 
         engines = 'c', 'python'

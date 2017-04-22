@@ -3,10 +3,12 @@ from __future__ import division, print_function
 
 from functools import partial
 
+import pytest
+
 import warnings
 import numpy as np
 from pandas import Series, isnull, _np_version_under1p9
-from pandas.types.common import is_integer_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
@@ -774,7 +776,7 @@ class TestEnsureNumeric(tm.TestCase):
 
         # Test non-convertible string ndarray
         s_values = np.array(['foo', 'bar', 'baz'], dtype=object)
-        self.assertRaises(ValueError, lambda: nanops._ensure_numeric(s_values))
+        pytest.raises(ValueError, lambda: nanops._ensure_numeric(s_values))
 
     def test_convertable_values(self):
         self.assertTrue(np.allclose(nanops._ensure_numeric('1'), 1.0),
@@ -785,9 +787,9 @@ class TestEnsureNumeric(tm.TestCase):
                         'Failed for convertible complex string')
 
     def test_non_convertable_values(self):
-        self.assertRaises(TypeError, lambda: nanops._ensure_numeric('foo'))
-        self.assertRaises(TypeError, lambda: nanops._ensure_numeric({}))
-        self.assertRaises(TypeError, lambda: nanops._ensure_numeric([]))
+        pytest.raises(TypeError, lambda: nanops._ensure_numeric('foo'))
+        pytest.raises(TypeError, lambda: nanops._ensure_numeric({}))
+        pytest.raises(TypeError, lambda: nanops._ensure_numeric([]))
 
 
 class TestNanvarFixedValues(tm.TestCase):

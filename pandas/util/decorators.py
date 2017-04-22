@@ -1,7 +1,6 @@
-from pandas.compat import StringIO, callable, signature
+from pandas.compat import callable, signature
 from pandas._libs.lib import cache_readonly  # noqa
 import types
-import sys
 import warnings
 from textwrap import dedent
 from functools import wraps, update_wrapper
@@ -25,7 +24,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     old_arg_name : str
         Name of argument in function to deprecate
     new_arg_name : str
-        Name of prefered argument in function
+        Name of preferred argument in function
     mapping : dict or callable
         If mapping is present, use it to translate old arguments to
         new arguments. A callable must do its own value checking;
@@ -194,17 +193,6 @@ def indent(text, indents=1):
         return ''
     jointext = ''.join(['\n'] + ['    '] * indents)
     return jointext.join(text.split('\n'))
-
-
-def suppress_stdout(f):
-    def wrapped(*args, **kwargs):
-        try:
-            sys.stdout = StringIO()
-            f(*args, **kwargs)
-        finally:
-            sys.stdout = sys.__stdout__
-
-    return wrapped
 
 
 def make_signature(func):

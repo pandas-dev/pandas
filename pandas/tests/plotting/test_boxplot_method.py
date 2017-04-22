@@ -14,7 +14,7 @@ import numpy as np
 from numpy import random
 from numpy.random import randn
 
-import pandas.tools.plotting as plotting
+import pandas.plotting as plotting
 
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
@@ -54,7 +54,8 @@ class TestDataFramePlots(TestPlotBase):
             _check_plot_works(df.boxplot, by='indic')
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by=['indic', 'indic2'])
-        _check_plot_works(plotting.boxplot, data=df['one'], return_type='dict')
+        _check_plot_works(plotting._core.boxplot, data=df['one'],
+                          return_type='dict')
         _check_plot_works(df.boxplot, notch=1, return_type='dict')
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.boxplot, by='indic', notch=1)
@@ -105,7 +106,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),
                        columns=['one', 'two', 'three', 'four'])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.boxplot(return_type='NOTATYPE')
 
         result = df.boxplot()
@@ -227,7 +228,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         # old style: return_type=None
         result = df.boxplot(by='gender')
-        self.assertIsInstance(result, np.ndarray)
+        assert isinstance(result, np.ndarray)
         self._check_box_return_type(
             result, None,
             expected_keys=['height', 'weight', 'category'])
@@ -262,13 +263,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     def test_grouped_box_layout(self):
         df = self.hist_df
 
-        self.assertRaises(ValueError, df.boxplot, column=['weight', 'height'],
-                          by=df.gender, layout=(1, 1))
-        self.assertRaises(ValueError, df.boxplot,
-                          column=['height', 'weight', 'category'],
-                          layout=(2, 1), return_type='dict')
-        self.assertRaises(ValueError, df.boxplot, column=['weight', 'height'],
-                          by=df.gender, layout=(-1, -1))
+        pytest.raises(ValueError, df.boxplot, column=['weight', 'height'],
+                      by=df.gender, layout=(1, 1))
+        pytest.raises(ValueError, df.boxplot,
+                      column=['height', 'weight', 'category'],
+                      layout=(2, 1), return_type='dict')
+        pytest.raises(ValueError, df.boxplot, column=['weight', 'height'],
+                      by=df.gender, layout=(-1, -1))
 
         # _check_plot_works adds an ax so catch warning. see GH #13188
         with tm.assert_produces_warning(UserWarning):
@@ -355,7 +356,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                   by='gender', return_type='axes', ax=axes[0])
         returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[0])
+        tm.assert_numpy_array_equal(returned, axes[0])
         self.assertIs(returned[0].figure, fig)
 
         # draw on second row
@@ -365,10 +366,10 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                 return_type='axes', ax=axes[1])
         returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[1])
+        tm.assert_numpy_array_equal(returned, axes[1])
         self.assertIs(returned[0].figure, fig)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             with tm.assert_produces_warning(UserWarning):

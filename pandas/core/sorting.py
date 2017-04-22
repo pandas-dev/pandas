@@ -3,10 +3,11 @@
 import numpy as np
 from pandas.compat import long
 from pandas.core.categorical import Categorical
-from pandas.types.common import (_ensure_platform_int,
-                                 _ensure_int64,
-                                 is_categorical_dtype)
-from pandas.types.missing import isnull
+from pandas.core.dtypes.common import (
+    _ensure_platform_int,
+    _ensure_int64,
+    is_categorical_dtype)
+from pandas.core.dtypes.missing import isnull
 import pandas.core.algorithms as algorithms
 from pandas._libs import lib, algos, hashtable
 from pandas._libs.hashtable import unique_label_indices
@@ -91,6 +92,27 @@ def get_group_index(labels, shape, sort, xnull):
         labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
 
     return loop(list(labels), list(shape))
+
+
+def get_compressed_ids(labels, sizes):
+    """
+
+    Group_index is offsets into cartesian product of all possible labels. This
+    space can be huge, so this function compresses it, by computing offsets
+    (comp_ids) into the list of unique labels (obs_group_ids).
+
+    Parameters
+    ----------
+    labels : list of label arrays
+    sizes : list of size of the levels
+
+    Returns
+    -------
+    tuple of (comp_ids, obs_group_ids)
+
+    """
+    ids = get_group_index(labels, sizes, sort=True, xnull=False)
+    return compress_group_index(ids, sort=True)
 
 
 def is_int64_overflow_possible(shape):

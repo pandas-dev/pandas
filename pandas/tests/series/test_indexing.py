@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime, timedelta
 
 from numpy import nan
@@ -8,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 import pandas._libs.index as _index
-from pandas.types.common import is_integer, is_scalar
+from pandas.core.dtypes.common import is_integer, is_scalar
 from pandas import (Index, Series, DataFrame, isnull,
                     date_range, NaT, MultiIndex,
                     Timestamp, DatetimeIndex, Timedelta)
@@ -88,7 +90,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         def f():
             del s[0]
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         # only 1 left, del, add, del
         s = Series(1)
@@ -126,8 +128,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_getitem_negative_out_of_bounds(self):
         s = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
 
-        self.assertRaises(IndexError, s.__getitem__, -11)
-        self.assertRaises(IndexError, s.__setitem__, -11, 'foo')
+        pytest.raises(IndexError, s.__getitem__, -11)
+        pytest.raises(IndexError, s.__setitem__, -11, 'foo')
 
     def test_pop(self):
         # GH 6600
@@ -156,7 +158,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # missing
         d = self.ts.index[0] - BDay()
-        self.assertRaises(KeyError, self.ts.__getitem__, d)
+        pytest.raises(KeyError, self.ts.__getitem__, d)
 
         # None
         # GH 5652
@@ -234,7 +236,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         result = s[list(mask)]
         expected = s[mask]
         assert_series_equal(result, expected)
-        self.assert_index_equal(result.index, s.index[mask])
+        tm.assert_index_equal(result.index, s.index[mask])
 
     def test_getitem_boolean_empty(self):
         s = Series([], dtype=np.int64)
@@ -260,12 +262,12 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         def f():
             s[Series([], dtype=bool)]
 
-        self.assertRaises(IndexingError, f)
+        pytest.raises(IndexingError, f)
 
         def f():
             s[Series([True], dtype=bool)]
 
-        self.assertRaises(IndexingError, f)
+        pytest.raises(IndexingError, f)
 
     def test_getitem_generator(self):
         gen = (x > 0 for x in self.series)
@@ -306,8 +308,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # nans raise exception
         omask[5:10] = np.nan
-        self.assertRaises(Exception, s.__getitem__, omask)
-        self.assertRaises(Exception, s.__setitem__, omask, 5)
+        pytest.raises(Exception, s.__getitem__, omask)
+        pytest.raises(Exception, s.__setitem__, omask, 5)
 
     def test_getitem_setitem_boolean_corner(self):
         ts = self.ts
@@ -315,13 +317,13 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # these used to raise...??
 
-        self.assertRaises(Exception, ts.__getitem__, mask_shifted)
-        self.assertRaises(Exception, ts.__setitem__, mask_shifted, 1)
+        pytest.raises(Exception, ts.__getitem__, mask_shifted)
+        pytest.raises(Exception, ts.__setitem__, mask_shifted, 1)
         # ts[mask_shifted]
         # ts[mask_shifted] = 1
 
-        self.assertRaises(Exception, ts.loc.__getitem__, mask_shifted)
-        self.assertRaises(Exception, ts.loc.__setitem__, mask_shifted, 1)
+        pytest.raises(Exception, ts.loc.__getitem__, mask_shifted)
+        pytest.raises(Exception, ts.loc.__setitem__, mask_shifted, 1)
         # ts.loc[mask_shifted]
         # ts.loc[mask_shifted] = 2
 
@@ -545,11 +547,11 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_out_of_bounds(self):
         # don't segfault, GH #495
-        self.assertRaises(IndexError, self.ts.__getitem__, len(self.ts))
+        pytest.raises(IndexError, self.ts.__getitem__, len(self.ts))
 
         # GH #917
         s = Series([])
-        self.assertRaises(IndexError, s.__getitem__, -1)
+        pytest.raises(IndexError, s.__getitem__, -1)
 
     def test_getitem_setitem_integers(self):
         # caused bug without test
@@ -561,12 +563,12 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_box_float64(self):
         value = self.ts[5]
-        tm.assertIsInstance(value, np.float64)
+        assert isinstance(value, np.float64)
 
     def test_getitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
-        self.assertRaises(KeyError, s.__getitem__, 1)
-        self.assertRaises(KeyError, s.loc.__getitem__, 1)
+        pytest.raises(KeyError, s.__getitem__, 1)
+        pytest.raises(KeyError, s.loc.__getitem__, 1)
 
     def test_getitem_unordered_dup(self):
         obj = Series(lrange(5), index=['c', 'a', 'a', 'b', 'b'])
@@ -592,7 +594,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         rng = list(range(10))
         s = pd.Series(10, index=rng)
         df = pd.DataFrame(rng, index=rng)
-        self.assertRaises(TypeError, s.__getitem__, df > 5)
+        pytest.raises(TypeError, s.__getitem__, df > 5)
 
     def test_getitem_callable(self):
         # GH 12533
@@ -674,15 +676,15 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_slice_float_get_set(self):
 
-        self.assertRaises(TypeError, lambda: self.ts[4.0:10.0])
+        pytest.raises(TypeError, lambda: self.ts[4.0:10.0])
 
         def f():
             self.ts[4.0:10.0] = 0
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
-        self.assertRaises(TypeError, self.ts.__getitem__, slice(4.5, 10.0))
-        self.assertRaises(TypeError, self.ts.__setitem__, slice(4.5, 10.0), 0)
+        pytest.raises(TypeError, self.ts.__getitem__, slice(4.5, 10.0))
+        pytest.raises(TypeError, self.ts.__setitem__, slice(4.5, 10.0), 0)
 
     def test_slice_floats2(self):
         s = Series(np.random.rand(10), index=np.arange(10, 20, dtype=float))
@@ -819,10 +821,10 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
         # OK
-        self.assertRaises(Exception, self.ts.__getitem__,
-                          [5, slice(None, None)])
-        self.assertRaises(Exception, self.ts.__setitem__,
-                          [5, slice(None, None)], 2)
+        pytest.raises(Exception, self.ts.__getitem__,
+                      [5, slice(None, None)])
+        pytest.raises(Exception, self.ts.__setitem__,
+                      [5, slice(None, None)], 2)
 
     def test_basic_getitem_with_labels(self):
         indices = self.ts.index[[5, 10, 15]]
@@ -893,8 +895,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         inds_notfound = [0, 4, 5, 6]
         arr_inds_notfound = np.array([0, 4, 5, 6])
-        self.assertRaises(Exception, s.__setitem__, inds_notfound, 0)
-        self.assertRaises(Exception, s.__setitem__, arr_inds_notfound, 0)
+        pytest.raises(Exception, s.__setitem__, inds_notfound, 0)
+        pytest.raises(Exception, s.__setitem__, arr_inds_notfound, 0)
 
         # GH12089
         # with tz for values
@@ -940,8 +942,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         ts2 = self.ts[::2][[1, 2, 0]]
 
-        self.assertRaises(KeyError, ts2.loc.__getitem__, slice(d1, d2))
-        self.assertRaises(KeyError, ts2.loc.__setitem__, slice(d1, d2), 0)
+        pytest.raises(KeyError, ts2.loc.__getitem__, slice(d1, d2))
+        pytest.raises(KeyError, ts2.loc.__setitem__, slice(d1, d2), 0)
 
     def test_loc_getitem_setitem_integer_slice_keyerrors(self):
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
@@ -965,8 +967,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # non-monotonic, raise KeyError
         s2 = s.iloc[lrange(5) + lrange(5, 10)[::-1]]
-        self.assertRaises(KeyError, s2.loc.__getitem__, slice(3, 11))
-        self.assertRaises(KeyError, s2.loc.__setitem__, slice(3, 11), 0)
+        pytest.raises(KeyError, s2.loc.__getitem__, slice(3, 11))
+        pytest.raises(KeyError, s2.loc.__setitem__, slice(3, 11), 0)
 
     def test_loc_getitem_iterator(self):
         idx = iter(self.series.index[:10])
@@ -1024,9 +1026,9 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         # scalar
         s = orig.copy()
         s[1] = pd.Timestamp('2011-01-01', tz=tz)
-        exp = pd.Series([pd.Timestamp('2016-11-06 00:00', tz=tz),
-                         pd.Timestamp('2011-01-01 00:00', tz=tz),
-                         pd.Timestamp('2016-11-06 02:00', tz=tz)])
+        exp = pd.Series([pd.Timestamp('2016-11-06 00:00-04:00', tz=tz),
+                         pd.Timestamp('2011-01-01 00:00-05:00', tz=tz),
+                         pd.Timestamp('2016-11-06 01:00-05:00', tz=tz)])
         tm.assert_series_equal(s, exp)
 
         s = orig.copy()
@@ -1084,8 +1086,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         rs = s2.where(cond[:3], -s2)
         assert_series_equal(rs, expected)
 
-        self.assertRaises(ValueError, s.where, 1)
-        self.assertRaises(ValueError, s.where, cond[:3].values, -s)
+        pytest.raises(ValueError, s.where, 1)
+        pytest.raises(ValueError, s.where, cond[:3].values, -s)
 
         # GH 2745
         s = Series([1, 2])
@@ -1094,10 +1096,10 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(s, expected)
 
         # failures
-        self.assertRaises(ValueError, s.__setitem__, tuple([[[True, False]]]),
-                          [0, 2, 3])
-        self.assertRaises(ValueError, s.__setitem__, tuple([[[True, False]]]),
-                          [])
+        pytest.raises(ValueError, s.__setitem__, tuple([[[True, False]]]),
+                      [0, 2, 3])
+        pytest.raises(ValueError, s.__setitem__, tuple([[[True, False]]]),
+                      [])
 
         # unsafe dtype changes
         for dtype in [np.int8, np.int16, np.int32, np.int64, np.float16,
@@ -1133,7 +1135,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
             s = Series(np.arange(10), dtype=dtype)
             mask = s < 5
             values = [2.5, 3.5, 4.5, 5.5, 6.5]
-            self.assertRaises(Exception, s.__setitem__, tuple(mask), values)
+            pytest.raises(Exception, s.__setitem__, tuple(mask), values)
 
         # GH3235
         s = Series(np.arange(10), dtype='int64')
@@ -1155,12 +1157,12 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         def f():
             s[mask] = [5, 4, 3, 2, 1]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             s[mask] = [0] * 5
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # dtype changes
         s = Series([1, 2, 3, 4])
@@ -1246,7 +1248,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         def f():
             s[0:3] = list(range(27))
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         s[0:3] = list(range(3))
         expected = Series([0, 1, 2])
@@ -1258,7 +1260,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         def f():
             s[0:4:2] = list(range(27))
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         s = Series(list('abcdef'))
         s[0:4:2] = list(range(2))
@@ -1271,7 +1273,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         def f():
             s[:-1] = list(range(27))
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         s[-3:-1] = list(range(2))
         expected = Series(['a', 'b', 'c', 0, 1, 'f'])
@@ -1283,14 +1285,14 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         def f():
             s[[0, 1, 2]] = list(range(27))
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         s = Series(list('abc'))
 
         def f():
             s[[0, 1, 2]] = list(range(2))
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # scalar
         s = Series(list('abc'))
@@ -1440,8 +1442,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         rs2 = s2.mask(cond[:3], -s2)
         assert_series_equal(rs, rs2)
 
-        self.assertRaises(ValueError, s.mask, 1)
-        self.assertRaises(ValueError, s.mask, cond[:3].values, -s)
+        pytest.raises(ValueError, s.mask, 1)
+        pytest.raises(ValueError, s.mask, cond[:3].values, -s)
 
         # dtype changes
         s = Series([1, 2, 3, 4])
@@ -1562,8 +1564,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_ix_setitem_corner(self):
         inds = list(self.series.index[[5, 8, 12]])
         self.series.loc[inds] = 5
-        self.assertRaises(Exception, self.series.loc.__setitem__,
-                          inds + ['foo'], 5)
+        pytest.raises(Exception, self.series.loc.__setitem__,
+                      inds + ['foo'], 5)
 
     def test_get_set_boolean_different_order(self):
         ordered = self.series.sort_values()
@@ -1604,29 +1606,29 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_basic_indexing(self):
         s = Series(np.random.randn(5), index=['a', 'b', 'a', 'a', 'b'])
 
-        self.assertRaises(IndexError, s.__getitem__, 5)
-        self.assertRaises(IndexError, s.__setitem__, 5, 0)
+        pytest.raises(IndexError, s.__getitem__, 5)
+        pytest.raises(IndexError, s.__setitem__, 5, 0)
 
-        self.assertRaises(KeyError, s.__getitem__, 'c')
+        pytest.raises(KeyError, s.__getitem__, 'c')
 
         s = s.sort_index()
 
-        self.assertRaises(IndexError, s.__getitem__, 5)
-        self.assertRaises(IndexError, s.__setitem__, 5, 0)
+        pytest.raises(IndexError, s.__getitem__, 5)
+        pytest.raises(IndexError, s.__setitem__, 5, 0)
 
     def test_int_indexing(self):
         s = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
 
-        self.assertRaises(KeyError, s.__getitem__, 5)
+        pytest.raises(KeyError, s.__getitem__, 5)
 
-        self.assertRaises(KeyError, s.__getitem__, 'c')
+        pytest.raises(KeyError, s.__getitem__, 'c')
 
         # not monotonic
         s = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
 
-        self.assertRaises(KeyError, s.__getitem__, 5)
+        pytest.raises(KeyError, s.__getitem__, 5)
 
-        self.assertRaises(KeyError, s.__getitem__, 'c')
+        pytest.raises(KeyError, s.__getitem__, 'c')
 
     def test_datetime_indexing(self):
         from pandas import date_range
@@ -1637,7 +1639,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = Series(len(index), index=index)
         stamp = Timestamp('1/8/2000')
 
-        self.assertRaises(KeyError, s.__getitem__, stamp)
+        pytest.raises(KeyError, s.__getitem__, stamp)
         s[stamp] = 0
         self.assertEqual(s[stamp], 0)
 
@@ -1645,7 +1647,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = Series(len(index), index=index)
         s = s[::-1]
 
-        self.assertRaises(KeyError, s.__getitem__, stamp)
+        pytest.raises(KeyError, s.__getitem__, stamp)
         s[stamp] = 0
         self.assertEqual(s[stamp], 0)
 
@@ -1745,8 +1747,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # single string/tuple-like
         s = Series(range(3), index=list('abc'))
-        self.assertRaises(ValueError, s.drop, 'bc')
-        self.assertRaises(ValueError, s.drop, ('a', ))
+        pytest.raises(ValueError, s.drop, 'bc')
+        pytest.raises(ValueError, s.drop, ('a', ))
 
         # errors='ignore'
         s = Series(range(3), index=list('abc'))
@@ -1757,7 +1759,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
         # bad axis
-        self.assertRaises(ValueError, s.drop, 'one', axis='columns')
+        pytest.raises(ValueError, s.drop, 'one', axis='columns')
 
         # GH 8522
         s = Series([2, 3], index=[True, False])
@@ -1873,14 +1875,14 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         rb[:2] = 5
         self.assertTrue((b[:2] == 5).all())
 
-    def test_align_sameindex(self):
+    def test_align_same_index(self):
         a, b = self.ts.align(self.ts, copy=False)
-        self.assertIs(a.index, self.ts.index)
-        self.assertIs(b.index, self.ts.index)
+        assert a.index is self.ts.index
+        assert b.index is self.ts.index
 
-        # a, b = self.ts.align(self.ts, copy=True)
-        # self.assertIsNot(a.index, self.ts.index)
-        # self.assertIsNot(b.index, self.ts.index)
+        a, b = self.ts.align(self.ts, copy=True)
+        assert a.index is not self.ts.index
+        assert b.index is not self.ts.index
 
     def test_align_multiindex(self):
         # GH 10665
@@ -2000,7 +2002,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # bad fill method
         ts = self.ts[::2]
-        self.assertRaises(Exception, ts.reindex, self.ts.index, method='foo')
+        pytest.raises(Exception, ts.reindex, self.ts.index, method='foo')
 
     def test_reindex_pad(self):
 
@@ -2236,7 +2238,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         series = Series(array)
 
         for n in range(len(series)):
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 series[n] = 1
 
             self.assertEqual(
@@ -2253,7 +2255,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         array.flags.writeable = False  # make the array immutable
         series = Series(array)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             series[1:3] = 1
 
         self.assertTrue(
@@ -2275,8 +2277,8 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.dups = Series(np.random.randn(len(dates)), index=dates)
 
     def test_constructor(self):
-        tm.assertIsInstance(self.dups, Series)
-        tm.assertIsInstance(self.dups.index, DatetimeIndex)
+        assert isinstance(self.dups, Series)
+        assert isinstance(self.dups.index, DatetimeIndex)
 
     def test_is_unique_monotonic(self):
         self.assertFalse(self.dups.index.is_unique)
@@ -2340,7 +2342,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
             expected = Series(np.where(mask, 0, ts), index=ts.index)
             assert_series_equal(cp, expected)
 
-        self.assertRaises(KeyError, ts.__getitem__, datetime(2000, 1, 6))
+        pytest.raises(KeyError, ts.__getitem__, datetime(2000, 1, 6))
 
         # new index
         ts[datetime(2000, 1, 6)] = 0
@@ -2501,8 +2503,8 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         expected = df.loc[[df.index[2]]]
 
         # this is a single date, so will raise
-        self.assertRaises(KeyError, df.__getitem__, '2012-01-02 18:01:02', )
-        self.assertRaises(KeyError, df.__getitem__, df.index[2], )
+        pytest.raises(KeyError, df.__getitem__, '2012-01-02 18:01:02', )
+        pytest.raises(KeyError, df.__getitem__, df.index[2], )
 
 
 class TestDatetimeIndexing(tm.TestCase):
@@ -2526,7 +2528,7 @@ class TestDatetimeIndexing(tm.TestCase):
         self.assertEqual(s['2009-1-2'], 48)
         self.assertEqual(s[datetime(2009, 1, 2)], 48)
         self.assertEqual(s[lib.Timestamp(datetime(2009, 1, 2))], 48)
-        self.assertRaises(KeyError, s.__getitem__, '2009-1-3')
+        pytest.raises(KeyError, s.__getitem__, '2009-1-3')
 
         assert_series_equal(s['3/6/2009':'2009-06-05'],
                             s[datetime(2009, 3, 6):datetime(2009, 6, 5)])

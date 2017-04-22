@@ -1,8 +1,4 @@
 from .pandas_vb_common import *
-try:
-    import pandas.computation.expressions as expr
-except:
-    expr = None
 
 
 class Int64Indexing(object):
@@ -224,6 +220,26 @@ class MultiIndexing(object):
 
     def time_is_monotonic(self):
         self.miint.is_monotonic
+
+
+class IntervalIndexing(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.monotonic = Series(np.arange(1000000),
+                                index=IntervalIndex.from_breaks(np.arange(1000001)))
+
+    def time_getitem_scalar(self):
+        self.monotonic[80000]
+
+    def time_loc_scalar(self):
+        self.monotonic.loc[80000]
+
+    def time_getitem_list(self):
+        self.monotonic[80000:]
+
+    def time_loc_list(self):
+        self.monotonic.loc[80000:]
 
 
 class PanelIndexing(object):

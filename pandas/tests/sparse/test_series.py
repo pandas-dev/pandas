@@ -1,6 +1,7 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
+import pytest
 
 from numpy import nan
 import numpy as np
@@ -12,13 +13,13 @@ from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 from pandas.compat import range
 from pandas import compat
-from pandas.tools.util import cartesian_product
+from pandas.core.reshape.util import cartesian_product
 
-import pandas.sparse.frame as spf
+import pandas.core.sparse.frame as spf
 
-from pandas.sparse.libsparse import BlockIndex, IntIndex
-from pandas.sparse.api import SparseSeries
-from pandas.tests.series.test_misc_api import SharedWithSparse
+from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas.core.sparse.api import SparseSeries
+from pandas.tests.series.test_api import SharedWithSparse
 
 
 def _test_data1():
@@ -230,9 +231,9 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_constructor(self):
         # test setup guys
         self.assertTrue(np.isnan(self.bseries.fill_value))
-        tm.assertIsInstance(self.bseries.sp_index, BlockIndex)
+        assert isinstance(self.bseries.sp_index, BlockIndex)
         self.assertTrue(np.isnan(self.iseries.fill_value))
-        tm.assertIsInstance(self.iseries.sp_index, IntIndex)
+        assert isinstance(self.iseries.sp_index, IntIndex)
 
         self.assertEqual(self.zbseries.fill_value, 0)
         tm.assert_numpy_array_equal(self.zbseries.values.values,
@@ -258,7 +259,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # Sparse time series works
         date_index = bdate_range('1/1/2000', periods=len(self.bseries))
         s5 = SparseSeries(self.bseries, index=date_index)
-        tm.assertIsInstance(s5, SparseSeries)
+        assert isinstance(s5, SparseSeries)
 
         # pass Series
         bseries2 = SparseSeries(self.bseries.to_dense())
@@ -314,9 +315,9 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_copy_astype(self):
         cop = self.bseries.astype(np.float64)
-        self.assertIsNot(cop, self.bseries)
-        self.assertIs(cop.sp_index, self.bseries.sp_index)
-        self.assertEqual(cop.dtype, np.float64)
+        assert cop is not self.bseries
+        assert cop.sp_index is self.bseries.sp_index
+        assert cop.dtype == np.float64
 
         cop2 = self.iseries.copy()
 
@@ -325,8 +326,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         # test that data is copied
         cop[:5] = 97
-        self.assertEqual(cop.sp_values[0], 97)
-        self.assertNotEqual(self.bseries.sp_values[0], 97)
+        assert cop.sp_values[0] == 97
+        assert self.bseries.sp_values[0] != 97
 
         # correct fill value
         zbcop = self.zbseries.copy()
@@ -338,7 +339,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # no deep copy
         view = self.bseries.copy(deep=False)
         view.sp_values[:5] = 5
-        self.assertTrue((self.bseries.sp_values[:5] == 5).all())
+        assert (self.bseries.sp_values[:5] == 5).all()
 
     def test_shape(self):
         # GH 10452
@@ -353,7 +354,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         self.assertEqual(self.ziseries2.shape, (15, ))
 
     def test_astype(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.bseries.astype(np.int64)
 
     def test_astype_all(self):
@@ -390,7 +391,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_pickle(self):
         def _test_roundtrip(series):
-            unpickled = self.round_trip_pickle(series)
+            unpickled = tm.round_trip_pickle(series)
             tm.assert_sp_series_equal(series, unpickled)
             tm.assert_series_equal(series.to_dense(), unpickled.to_dense())
 
@@ -425,12 +426,12 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         _check_getitem(self.ziseries, self.ziseries.to_dense())
 
         # exception handling
-        self.assertRaises(Exception, self.bseries.__getitem__,
-                          len(self.bseries) + 1)
+        pytest.raises(Exception, self.bseries.__getitem__,
+                      len(self.bseries) + 1)
 
         # index not contained
-        self.assertRaises(Exception, self.btseries.__getitem__,
-                          self.btseries.index[-1] + BDay())
+        pytest.raises(Exception, self.btseries.__getitem__,
+                      self.btseries.index[-1] + BDay())
 
     def test_get_get_value(self):
         tm.assert_almost_equal(self.bseries.get(10), self.bseries[10])
@@ -456,13 +457,13 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_getitem_slice(self):
         idx = self.bseries.index
         res = self.bseries[::2]
-        tm.assertIsInstance(res, SparseSeries)
+        assert isinstance(res, SparseSeries)
 
         expected = self.bseries.reindex(idx[::2])
         tm.assert_sp_series_equal(res, expected)
 
         res = self.bseries[:5]
-        tm.assertIsInstance(res, SparseSeries)
+        assert isinstance(res, SparseSeries)
         tm.assert_sp_series_equal(res, self.bseries.reindex(idx[:5]))
 
         res = self.bseries[5:]
@@ -479,7 +480,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
             def _compare(idx):
                 dense_result = dense.take(idx).values
                 sparse_result = sp.take(idx)
-                self.assertIsInstance(sparse_result, SparseSeries)
+                assert isinstance(sparse_result, SparseSeries)
                 tm.assert_almost_equal(dense_result,
                                        sparse_result.values.values)
 
@@ -489,8 +490,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         self._check_all(_compare_with_dense)
 
-        self.assertRaises(Exception, self.bseries.take,
-                          [0, len(self.bseries) + 1])
+        pytest.raises(Exception, self.bseries.take,
+                      [0, len(self.bseries) + 1])
 
         # Corner case
         sp = SparseSeries(np.ones(10) * nan)
@@ -639,7 +640,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # special cases
         same_index = self.bseries.reindex(self.bseries.index)
         tm.assert_sp_series_equal(self.bseries, same_index)
-        self.assertIsNot(same_index, self.bseries)
+        assert same_index is not self.bseries
 
         # corner cases
         sp = SparseSeries([], index=[])
@@ -650,7 +651,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # with copy=False
         reindexed = self.bseries.reindex(self.bseries.index, copy=True)
         reindexed.sp_values[:] = 1.
-        self.assertTrue((self.bseries.sp_values != 1.).all())
+        assert (self.bseries.sp_values != 1.).all()
 
         reindexed = self.bseries.reindex(self.bseries.index, copy=False)
         reindexed.sp_values[:] = 1.
@@ -764,12 +765,12 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         expected = expected[expected != 0]
         exp_arr = pd.SparseArray(expected.values, fill_value=0, kind='block')
         tm.assert_sp_array_equal(sp_valid.values, exp_arr)
-        self.assert_index_equal(sp_valid.index, expected.index)
-        self.assertEqual(len(sp_valid.sp_values), 2)
+        tm.assert_index_equal(sp_valid.index, expected.index)
+        assert len(sp_valid.sp_values) == 2
 
         result = self.bseries.dropna()
         expected = self.bseries.to_dense().dropna()
-        self.assertNotIsInstance(result, SparseSeries)
+        assert not isinstance(result, SparseSeries)
         tm.assert_series_equal(result, expected)
 
     def test_homogenize(self):
@@ -818,13 +819,13 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         exp = s.fillna(0).add(2)
         res = s.add(2, fill_value=0)
-        self.assert_series_equal(res, exp)
+        tm.assert_series_equal(res, exp)
 
     def test_shift(self):
         series = SparseSeries([nan, 1., 2., 3., nan, nan], index=np.arange(6))
 
         shifted = series.shift(0)
-        self.assertIsNot(shifted, series)
+        assert shifted is not series
         tm.assert_sp_series_equal(shifted, series)
 
         f = lambda s: s.shift(1)
@@ -1036,25 +1037,25 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
 
     def test_to_coo_bad_partition_nonnull_intersection(self):
         ss = self.sparse_series[0]
-        self.assertRaises(ValueError, ss.to_coo, ['A', 'B', 'C'], ['C', 'D'])
+        pytest.raises(ValueError, ss.to_coo, ['A', 'B', 'C'], ['C', 'D'])
 
     def test_to_coo_bad_partition_small_union(self):
         ss = self.sparse_series[0]
-        self.assertRaises(ValueError, ss.to_coo, ['A'], ['C', 'D'])
+        pytest.raises(ValueError, ss.to_coo, ['A'], ['C', 'D'])
 
     def test_to_coo_nlevels_less_than_two(self):
         ss = self.sparse_series[0]
         ss.index = np.arange(len(ss.index))
-        self.assertRaises(ValueError, ss.to_coo)
+        pytest.raises(ValueError, ss.to_coo)
 
     def test_to_coo_bad_ilevel(self):
         ss = self.sparse_series[0]
-        self.assertRaises(KeyError, ss.to_coo, ['A', 'B'], ['C', 'D', 'E'])
+        pytest.raises(KeyError, ss.to_coo, ['A', 'B'], ['C', 'D', 'E'])
 
     def test_to_coo_duplicate_index_entries(self):
         ss = pd.concat([self.sparse_series[0],
                         self.sparse_series[0]]).to_sparse()
-        self.assertRaises(ValueError, ss.to_coo, ['A', 'B'], ['C', 'D'])
+        pytest.raises(ValueError, ss.to_coo, ['A', 'B'], ['C', 'D'])
 
     def test_from_coo_dense_index(self):
         ss = SparseSeries.from_coo(self.coo_matrices[0], dense_index=True)
@@ -1161,7 +1162,7 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         res = pd.concat([sparse1, sparse2], axis=1)
         exp = pd.concat([pd.Series(val1, name='x'),
                          pd.Series(val2, name='y')], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
     def test_concat_different_kind(self):
@@ -1280,7 +1281,7 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         s = pd.SparseSeries([np.nan, 0., 1., 2., 0.], name='xxx',
                             fill_value=0.)
         res = s.isnull()
-        tm.assertIsInstance(res, pd.SparseSeries)
+        assert isinstance(res, pd.SparseSeries)
         exp = pd.Series([True, False, False, False, False], name='xxx')
         tm.assert_series_equal(res.to_dense(), exp)
 
@@ -1297,7 +1298,7 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         s = pd.SparseSeries([np.nan, 0., 1., 2., 0.], name='xxx',
                             fill_value=0.)
         res = s.isnotnull()
-        tm.assertIsInstance(res, pd.SparseSeries)
+        assert isinstance(res, pd.SparseSeries)
         exp = pd.Series([False, True, True, True, True], name='xxx')
         tm.assert_series_equal(res.to_dense(), exp)
 

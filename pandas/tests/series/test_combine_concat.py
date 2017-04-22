@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime
 
 from numpy import nan
@@ -28,8 +30,8 @@ class TestSeriesCombine(TestData, tm.TestCase):
             else:
                 self.fail("orphaned index!")
 
-        self.assertRaises(ValueError, self.ts.append, self.ts,
-                          verify_integrity=True)
+        pytest.raises(ValueError, self.ts.append, self.ts,
+                      verify_integrity=True)
 
     def test_append_many(self):
         pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
@@ -68,14 +70,14 @@ class TestSeriesCombine(TestData, tm.TestCase):
         # nothing used from the input
         combined = series.combine_first(series_copy)
 
-        self.assert_series_equal(combined, series)
+        tm.assert_series_equal(combined, series)
 
         # Holes filled from input
         combined = series_copy.combine_first(series)
         self.assertTrue(np.isfinite(combined).all())
 
-        self.assert_series_equal(combined[::2], series[::2])
-        self.assert_series_equal(combined[1::2], series_copy[1::2])
+        tm.assert_series_equal(combined[::2], series[::2])
+        tm.assert_series_equal(combined[1::2], series_copy[1::2])
 
         # mixed types
         index = tm.makeStringIndex(20)
@@ -204,7 +206,7 @@ class TestSeriesCombine(TestData, tm.TestCase):
         self.assertEqual(result.ftype, 'object:dense')
 
     def test_combine_first_dt64(self):
-        from pandas.tseries.tools import to_datetime
+        from pandas.core.tools.datetimes import to_datetime
         s0 = to_datetime(Series(["2010", np.NaN]))
         s1 = to_datetime(Series([np.NaN, "2011"]))
         rs = s0.combine_first(s1)

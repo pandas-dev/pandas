@@ -15,7 +15,8 @@ from pandas.core.series import Series
 from pandas.tseries.frequencies import (_offset_map, get_freq_code,
                                         _get_freq_str, _INVALID_FREQ_ERROR,
                                         get_offset, get_standard_freq)
-from pandas.tseries.index import _to_m8, DatetimeIndex, _daterange_cache
+from pandas.core.indexes.datetimes import (
+    _to_m8, DatetimeIndex, _daterange_cache)
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
                                     CustomBusinessHour, WeekDay,
@@ -27,8 +28,9 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Milli, Nano, Easter, FY5253Quarter,
                                     LastWeekOfMonth, CacheableOffset)
-from pandas.tseries.tools import (format, ole2datetime, parse_time_string,
-                                  to_datetime, DateParseError)
+from pandas.core.tools.datetimes import (
+    format, ole2datetime, parse_time_string,
+    to_datetime, DateParseError)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslib import normalize_date, NaT, Timestamp, Timedelta
@@ -82,7 +84,7 @@ def test_normalize_date():
 def test_to_m8():
     valb = datetime(2007, 10, 1)
     valu = _to_m8(valb)
-    tm.assertIsInstance(valu, np.datetime64)
+    assert isinstance(valu, np.datetime64)
     # assert valu == np.datetime64(datetime(2007,10,1))
 
     # def test_datetime64_box():
@@ -144,7 +146,7 @@ class Base(tm.TestCase):
                 offset = self._get_offset(self._offset, value=10000)
 
             result = Timestamp('20080101') + offset
-            self.assertIsInstance(result, datetime)
+            assert isinstance(result, datetime)
             self.assertIsNone(result.tzinfo)
 
             tm._skip_if_no_pytz()
@@ -153,7 +155,7 @@ class Base(tm.TestCase):
             for tz in self.timezones:
                 t = Timestamp('20080101', tz=tz)
                 result = t + offset
-                self.assertIsInstance(result, datetime)
+                assert isinstance(result, datetime)
                 self.assertEqual(t.tzinfo, result.tzinfo)
 
         except (tslib.OutOfBoundsDatetime):
@@ -217,7 +219,7 @@ class TestCommon(Base):
 
             # make sure that we are returning a Timestamp
             result = Timestamp('20080101') + offset
-            self.assertIsInstance(result, Timestamp)
+            assert isinstance(result, Timestamp)
 
             # make sure that we are returning NaT
             self.assertTrue(NaT + offset is NaT)
@@ -588,7 +590,7 @@ class TestBusinessDay(Base):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d + BDay(-2))
@@ -711,7 +713,7 @@ class TestBusinessDay(Base):
         self.assertEqual(rs, xp)
 
     def test_apply_corner(self):
-        self.assertRaises(TypeError, BDay().apply, BMonthEnd())
+        pytest.raises(TypeError, BDay().apply, BMonthEnd())
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -740,11 +742,11 @@ class TestBusinessHour(Base):
 
     def test_constructor_errors(self):
         from datetime import time as dt_time
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             BusinessHour(start=dt_time(11, 0, 5))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             BusinessHour(start='AAA')
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             BusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
@@ -800,7 +802,7 @@ class TestBusinessHour(Base):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d + self._offset(-3))
@@ -1444,11 +1446,11 @@ class TestCustomBusinessHour(Base):
 
     def test_constructor_errors(self):
         from datetime import time as dt_time
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CustomBusinessHour(start=dt_time(11, 0, 5))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CustomBusinessHour(start='AAA')
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CustomBusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
@@ -1500,7 +1502,7 @@ class TestCustomBusinessHour(Base):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d - (2 * off - off))
@@ -1733,7 +1735,7 @@ class TestCustomBusinessDay(Base):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d + CDay(-2))
@@ -1852,7 +1854,7 @@ class TestCustomBusinessDay(Base):
         self.assertEqual(rs, xp)
 
     def test_apply_corner(self):
-        self.assertRaises(Exception, CDay().apply, BMonthEnd())
+        pytest.raises(Exception, CDay().apply, BMonthEnd())
 
     def test_offsets_compare_equal(self):
         # root cause of #456
@@ -1906,7 +1908,7 @@ class TestCustomBusinessDay(Base):
 
     def test_roundtrip_pickle(self):
         def _check_roundtrip(obj):
-            unpickled = self.round_trip_pickle(obj)
+            unpickled = tm.round_trip_pickle(obj)
             self.assertEqual(unpickled, obj)
 
         _check_roundtrip(self.offset)
@@ -1945,7 +1947,7 @@ class CustomBusinessMonthBase(object):
 
     def testSub(self):
         off = self.offset2
-        self.assertRaises(Exception, off.__sub__, self.d)
+        pytest.raises(Exception, off.__sub__, self.d)
         self.assertEqual(2 * off - off, off)
 
         self.assertEqual(self.d - self.offset2, self.d + self._object(-2))
@@ -1967,7 +1969,7 @@ class CustomBusinessMonthBase(object):
 
     def test_roundtrip_pickle(self):
         def _check_roundtrip(obj):
-            unpickled = self.round_trip_pickle(obj)
+            unpickled = tm.round_trip_pickle(obj)
             self.assertEqual(unpickled, obj)
 
         _check_roundtrip(self._object())
@@ -2223,7 +2225,7 @@ class TestWeek(Base):
                          "<-2 * Weeks: weekday=0>")
 
     def test_corner(self):
-        self.assertRaises(ValueError, Week, weekday=7)
+        pytest.raises(ValueError, Week, weekday=7)
         assertRaisesRegexp(ValueError, "Day must be", Week, weekday=-1)
 
     def test_isAnchored(self):
@@ -2829,7 +2831,7 @@ class TestSemiMonthEnd(Base):
 
     def test_vectorized_offset_addition(self):
         for klass, assert_func in zip([Series, DatetimeIndex],
-                                      [self.assert_series_equal,
+                                      [tm.assert_series_equal,
                                        tm.assert_index_equal]):
             s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                        Timestamp('2000-02-15', tz='US/Central')], name='a')
@@ -3004,7 +3006,7 @@ class TestSemiMonthBegin(Base):
 
     def test_vectorized_offset_addition(self):
         for klass, assert_func in zip([Series, DatetimeIndex],
-                                      [self.assert_series_equal,
+                                      [tm.assert_series_equal,
                                        tm.assert_index_equal]):
 
             s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
@@ -4029,8 +4031,8 @@ class TestBYearBegin(Base):
     _offset = BYearBegin
 
     def test_misspecified(self):
-        self.assertRaises(ValueError, BYearBegin, month=13)
-        self.assertRaises(ValueError, BYearEnd, month=13)
+        pytest.raises(ValueError, BYearBegin, month=13)
+        pytest.raises(ValueError, BYearEnd, month=13)
 
     def test_offset(self):
         tests = []
@@ -4075,7 +4077,7 @@ class TestYearBegin(Base):
     _offset = YearBegin
 
     def test_misspecified(self):
-        self.assertRaises(ValueError, YearBegin, month=13)
+        pytest.raises(ValueError, YearBegin, month=13)
 
     def test_offset(self):
         tests = []
@@ -4167,8 +4169,8 @@ class TestYearBegin(Base):
 class TestBYearEndLagged(Base):
 
     def test_bad_month_fail(self):
-        self.assertRaises(Exception, BYearEnd, month=13)
-        self.assertRaises(Exception, BYearEnd, month=0)
+        pytest.raises(Exception, BYearEnd, month=13)
+        pytest.raises(Exception, BYearEnd, month=0)
 
     def test_offset(self):
         tests = []
@@ -4256,7 +4258,7 @@ class TestYearEnd(Base):
     _offset = YearEnd
 
     def test_misspecified(self):
-        self.assertRaises(ValueError, YearEnd, month=13)
+        pytest.raises(ValueError, YearEnd, month=13)
 
     def test_offset(self):
         tests = []
@@ -4620,9 +4622,9 @@ class TestParseTimeString(tm.TestCase):
             self.assertEqual(parsed_dash, parsed)
             self.assertEqual(reso_dash, reso)
 
-        self.assertRaises(DateParseError, parse_time_string, "-2Q1992")
-        self.assertRaises(DateParseError, parse_time_string, "2-Q1992")
-        self.assertRaises(DateParseError, parse_time_string, "4-4Q1992")
+        pytest.raises(DateParseError, parse_time_string, "-2Q1992")
+        pytest.raises(DateParseError, parse_time_string, "2-Q1992")
+        pytest.raises(DateParseError, parse_time_string, "4-4Q1992")
 
 
 def test_get_standard_freq():

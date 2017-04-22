@@ -1,5 +1,6 @@
 import pytest
 
+from warnings import catch_warnings
 import os
 import datetime
 import numpy as np
@@ -10,7 +11,7 @@ from pandas import compat
 from pandas.compat import u, PY3
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
                     date_range, period_range, Index, Categorical)
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
@@ -147,9 +148,9 @@ class TestAPI(TestPackers):
             def __init__(self):
                 self.read = 0
 
-        tm.assertRaises(ValueError, read_msgpack, path_or_buf=None)
-        tm.assertRaises(ValueError, read_msgpack, path_or_buf={})
-        tm.assertRaises(ValueError, read_msgpack, path_or_buf=A())
+        pytest.raises(ValueError, read_msgpack, path_or_buf=None)
+        pytest.raises(ValueError, read_msgpack, path_or_buf={})
+        pytest.raises(ValueError, read_msgpack, path_or_buf=A())
 
 
 class TestNumpy(TestPackers):
@@ -326,30 +327,30 @@ class TestIndex(TestPackers):
 
         for s, i in self.d.items():
             i_rec = self.encode_decode(i)
-            self.assert_index_equal(i, i_rec)
+            tm.assert_index_equal(i, i_rec)
 
         # datetime with no freq (GH5506)
         i = Index([Timestamp('20130101'), Timestamp('20130103')])
         i_rec = self.encode_decode(i)
-        self.assert_index_equal(i, i_rec)
+        tm.assert_index_equal(i, i_rec)
 
         # datetime with timezone
         i = Index([Timestamp('20130101 9:00:00'), Timestamp(
             '20130103 11:00:00')]).tz_localize('US/Eastern')
         i_rec = self.encode_decode(i)
-        self.assert_index_equal(i, i_rec)
+        tm.assert_index_equal(i, i_rec)
 
     def test_multi_index(self):
 
         for s, i in self.mi.items():
             i_rec = self.encode_decode(i)
-            self.assert_index_equal(i, i_rec)
+            tm.assert_index_equal(i, i_rec)
 
     def test_unicode(self):
         i = tm.makeUnicodeIndex(100)
 
         i_rec = self.encode_decode(i)
-        self.assert_index_equal(i, i_rec)
+        tm.assert_index_equal(i, i_rec)
 
     def categorical_index(self):
         # GH15487
@@ -452,9 +453,10 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        self.panel = {
-            'float': Panel(dict(ItemA=self.frame['float'],
-                                ItemB=self.frame['float'] + 1))}
+        with catch_warnings(record=True):
+            self.panel = {
+                'float': Panel(dict(ItemA=self.frame['float'],
+                                    ItemB=self.frame['float'] + 1))}
 
     def test_basic_frame(self):
 
@@ -464,9 +466,10 @@ class TestNDFrame(TestPackers):
 
     def test_basic_panel(self):
 
-        for s, i in self.panel.items():
-            i_rec = self.encode_decode(i)
-            assert_panel_equal(i, i_rec)
+        with catch_warnings(record=True):
+            for s, i in self.panel.items():
+                i_rec = self.encode_decode(i)
+                assert_panel_equal(i, i_rec)
 
     def test_multi(self):
 
@@ -483,7 +486,7 @@ class TestNDFrame(TestPackers):
         l = [self.frame['float'], self.frame['float']
              .A, self.frame['float'].B, None]
         l_rec = self.encode_decode(l)
-        self.assertIsInstance(l_rec, tuple)
+        assert isinstance(l_rec, tuple)
         check_arbitrary(l, l_rec)
 
     def test_iterator(self):
@@ -533,7 +536,7 @@ class TestSparse(TestPackers):
         # currently these are not implemetned
         # i_rec = self.encode_decode(obj)
         # comparator(obj, i_rec, **kwargs)
-        self.assertRaises(NotImplementedError, self.encode_decode, obj)
+        pytest.raises(NotImplementedError, self.encode_decode, obj)
 
     def test_sparse_series(self):
 
@@ -899,8 +902,9 @@ TestPackers
                 continue
             vf = os.path.join(pth, f)
             try:
-                self.compare(current_packers_data, all_packers_data,
-                             vf, version)
+                with catch_warnings(record=True):
+                    self.compare(current_packers_data, all_packers_data,
+                                 vf, version)
             except ImportError:
                 # blosc not installed
                 continue

@@ -2,6 +2,8 @@
 
 """ Test cases for .hist method """
 
+import pytest
+
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
 from pandas.util.testing import slow
@@ -9,7 +11,7 @@ from pandas.util.testing import slow
 import numpy as np
 from numpy.random import randn
 
-import pandas.tools.plotting as plotting
+from pandas.plotting._core import grouped_hist
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
@@ -45,7 +47,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.hist, figure=fig, ax=ax1)
         _check_plot_works(self.ts.hist, figure=fig, ax=ax2)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.ts.hist(by=self.ts.index, figure=fig)
 
     @slow
@@ -57,10 +59,10 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_hist_layout(self):
         df = self.hist_df
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.height.hist(layout=(1, 1))
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.height.hist(layout=[1, 1])
 
     @slow
@@ -134,7 +136,7 @@ class TestSeriesPlots(TestPlotBase):
         fig1 = figure()
         fig2 = figure()
         ax1 = fig1.add_subplot(111)
-        with tm.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             self.ts.hist(ax=ax1, figure=fig2)
 
 
@@ -204,7 +206,7 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
 
         # propagate attr exception from matplotlib.Axes.hist
-        with tm.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             ser.hist(foo='bar')
 
     @slow
@@ -229,13 +231,13 @@ class TestDataFramePlots(TestPlotBase):
             self._check_axes_shape(axes, axes_num=3, layout=expected)
 
         # layout too small for all 4 plots
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.hist(layout=(1, 1))
 
         # invalid format for layout
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.hist(layout=(1,))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.hist(layout=(-1, -1))
 
     @slow
@@ -260,7 +262,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df['C'] = np.random.randint(0, 4, 500)
         df['D'] = ['X'] * 500
 
-        axes = plotting.grouped_hist(df.A, by=df.C)
+        axes = grouped_hist(df.A, by=df.C)
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
@@ -277,10 +279,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # make sure kwargs to hist are handled
         xf, yf = 20, 18
         xrot, yrot = 30, 40
-        axes = plotting.grouped_hist(df.A, by=df.C, normed=True,
-                                     cumulative=True, bins=4,
-                                     xlabelsize=xf, xrot=xrot,
-                                     ylabelsize=yf, yrot=yrot)
+        axes = grouped_hist(df.A, by=df.C, normed=True, cumulative=True,
+                            bins=4, xlabelsize=xf, xrot=xrot,
+                            ylabelsize=yf, yrot=yrot)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
@@ -290,14 +291,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                                 ylabelsize=yf, yrot=yrot)
 
         tm.close()
-        axes = plotting.grouped_hist(df.A, by=df.C, log=True)
+        axes = grouped_hist(df.A, by=df.C, log=True)
         # scale of y must be 'log'
         self._check_ax_scales(axes, yaxis='log')
 
         tm.close()
         # propagate attr exception from matplotlib.Axes.hist
-        with tm.assertRaises(AttributeError):
-            plotting.grouped_hist(df.A, by=df.C, foo='bar')
+        with pytest.raises(AttributeError):
+            grouped_hist(df.A, by=df.C, foo='bar')
 
         with tm.assert_produces_warning(FutureWarning):
             df.hist(by='C', figsize='default')
@@ -320,12 +321,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @slow
     def test_grouped_hist_layout(self):
         df = self.hist_df
-        self.assertRaises(ValueError, df.hist, column='weight', by=df.gender,
-                          layout=(1, 1))
-        self.assertRaises(ValueError, df.hist, column='height', by=df.category,
-                          layout=(1, 3))
-        self.assertRaises(ValueError, df.hist, column='height', by=df.category,
-                          layout=(-1, -1))
+        pytest.raises(ValueError, df.hist, column='weight', by=df.gender,
+                      layout=(1, 1))
+        pytest.raises(ValueError, df.hist, column='height', by=df.category,
+                      layout=(1, 3))
+        pytest.raises(ValueError, df.hist, column='height', by=df.category,
+                      layout=(-1, -1))
 
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.hist, column='height', by=df.gender,
@@ -374,14 +375,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         fig, axes = self.plt.subplots(2, 3)
         returned = df.hist(column=['height', 'weight', 'category'], ax=axes[0])
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[0])
+        tm.assert_numpy_array_equal(returned, axes[0])
         self.assertIs(returned[0].figure, fig)
         returned = df.hist(by='classroom', ax=axes[1])
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[1])
+        tm.assert_numpy_array_equal(returned, axes[1])
         self.assertIs(returned[0].figure, fig)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             axes = df.hist(column='height', ax=axes)

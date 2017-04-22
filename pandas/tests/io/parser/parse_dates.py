@@ -15,7 +15,7 @@ from pandas._libs.lib import Timestamp
 
 import pandas as pd
 import pandas.io.parsers as parsers
-import pandas.tseries.tools as tools
+import pandas.core.tools.datetimes as tools
 import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
@@ -23,7 +23,7 @@ from pandas import DataFrame, Series, Index, DatetimeIndex, MultiIndex
 from pandas import compat
 from pandas.compat import parse_date, StringIO, lrange
 from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.tseries.index import date_range
+from pandas.core.indexes.datetimes import date_range
 
 
 class ParseDatesTests(object):
@@ -144,7 +144,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
                                parse_dates=[[0, 1]], date_parser=Timestamp)
 
         ex_val = Timestamp('05/31/2012 15:30:00.029')
-        self.assertEqual(result['0_1'][0], ex_val)
+        assert result['0_1'][0] == ex_val
 
     def test_multiple_date_cols_with_header(self):
         data = """\
@@ -157,7 +157,7 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         df = self.read_csv(StringIO(data), parse_dates={'nominal': [1, 2]})
-        self.assertNotIsInstance(df.nominal[0], compat.string_types)
+        assert not isinstance(df.nominal[0], compat.string_types)
 
     ts_data = """\
 ID,date,nominalTime,actualTime,A,B,C,D,E
@@ -170,8 +170,8 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
 
     def test_multiple_date_col_name_collision(self):
-        self.assertRaises(ValueError, self.read_csv, StringIO(self.ts_data),
-                          parse_dates={'ID': [1, 2]})
+        with pytest.raises(ValueError):
+            self.read_csv(StringIO(self.ts_data), parse_dates={'ID': [1, 2]})
 
         data = """\
 date_NominalTime,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir
@@ -182,8 +182,8 @@ KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""  # noqa
 
-        self.assertRaises(ValueError, self.read_csv, StringIO(data),
-                          parse_dates=[[1, 2]])
+        with pytest.raises(ValueError):
+            self.read_csv(StringIO(data), parse_dates=[[1, 2]])
 
     def test_date_parser_int_bug(self):
         # See gh-3071
@@ -241,7 +241,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 """
         df = self.read_csv(StringIO(data), parse_dates=True)
         expected = self.read_csv(StringIO(data), index_col=0, parse_dates=True)
-        self.assertIsInstance(
+        assert isinstance(
             df.index[0], (datetime, np.datetime64, Timestamp))
         tm.assert_frame_equal(df, expected)
 
@@ -320,13 +320,13 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 20090103,three,c,4,5
 """
         df = self.read_csv(StringIO(data), index_col=[0, 1], parse_dates=True)
-        self.assertIsInstance(df.index.levels[0][0],
-                              (datetime, np.datetime64, Timestamp))
+        assert isinstance(df.index.levels[0][0],
+                          (datetime, np.datetime64, Timestamp))
 
         # specify columns out of order!
         df2 = self.read_csv(StringIO(data), index_col=[1, 0], parse_dates=True)
-        self.assertIsInstance(df2.index.levels[1][0],
-                              (datetime, np.datetime64, Timestamp))
+        assert isinstance(df2.index.levels[1][0],
+                          (datetime, np.datetime64, Timestamp))
 
     def test_parse_dates_custom_euroformat(self):
         text = """foo,bar,baz
@@ -347,11 +347,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         tm.assert_frame_equal(df, expected)
 
         parser = lambda d: parse_date(d, day_first=True)
-        self.assertRaises(TypeError, self.read_csv,
-                          StringIO(text), skiprows=[0],
-                          names=['time', 'Q', 'NTU'], index_col=0,
-                          parse_dates=True, date_parser=parser,
-                          na_values=['NA'])
+        pytest.raises(TypeError, self.read_csv,
+                      StringIO(text), skiprows=[0],
+                      names=['time', 'Q', 'NTU'], index_col=0,
+                      parse_dates=True, date_parser=parser,
+                      na_values=['NA'])
 
     def test_parse_tz_aware(self):
         # See gh-1693

@@ -1,14 +1,16 @@
 from pandas.compat import range
+
 import re
 import operator
+import pytest
 import warnings
 
 from numpy import nan
 import numpy as np
 
 from pandas import _np_version_under1p8
-from pandas.sparse.api import SparseArray, SparseSeries
-from pandas.sparse.libsparse import IntIndex
+from pandas.core.sparse.api import SparseArray, SparseSeries
+from pandas.core.sparse.libsparse import IntIndex
 from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
 import pandas.util.testing as tm
 
@@ -178,7 +180,7 @@ class TestSparseArray(tm.TestCase):
 
     def test_bad_take(self):
         assertRaisesRegexp(IndexError, "bounds", lambda: self.arr.take(11))
-        self.assertRaises(IndexError, lambda: self.arr.take(-11))
+        pytest.raises(IndexError, lambda: self.arr.take(-11))
 
     def test_take_invalid_kwargs(self):
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
@@ -218,11 +220,11 @@ class TestSparseArray(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             sparse.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.take(np.array([1, -6]))
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.take(np.array([1, 5]))
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_take_filling_fill_value(self):
@@ -250,11 +252,11 @@ class TestSparseArray(tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             sparse.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.take(np.array([1, -6]))
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.take(np.array([1, 5]))
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_take_filling_all_nan(self):
@@ -267,11 +269,11 @@ class TestSparseArray(tm.TestCase):
         expected = SparseArray([np.nan, np.nan, np.nan])
         tm.assert_sp_array_equal(result, expected)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.take(np.array([1, -6]))
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.take(np.array([1, 5]))
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_set_item(self):
@@ -344,7 +346,7 @@ class TestSparseArray(tm.TestCase):
 
         for dense in [arr.to_dense(), arr.values]:
             self.assertEqual(dense.dtype, np.float32)
-            self.assert_numpy_array_equal(dense, data)
+            tm.assert_numpy_array_equal(dense, data)
 
     def test_astype(self):
         res = self.arr.astype('f8')
@@ -496,10 +498,10 @@ class TestSparseArray(tm.TestCase):
         exp = SparseArray(dense[4:, ], fill_value=0)
         tm.assert_sp_array_equal(res, exp)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse[4:, :]
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             # check numpy compat
             dense[4:, :]
 
@@ -521,19 +523,19 @@ class TestSparseArray(tm.TestCase):
             res = op(first, second)
             exp = SparseArray(op(first.values, second.values),
                               fill_value=first.fill_value)
-            tm.assertIsInstance(res, SparseArray)
+            assert isinstance(res, SparseArray)
             assert_almost_equal(res.values, exp.values)
 
             res2 = op(first, second.values)
-            tm.assertIsInstance(res2, SparseArray)
+            assert isinstance(res2, SparseArray)
             tm.assert_sp_array_equal(res, res2)
 
             res3 = op(first.values, second)
-            tm.assertIsInstance(res3, SparseArray)
+            assert isinstance(res3, SparseArray)
             tm.assert_sp_array_equal(res, res3)
 
             res4 = op(first, 4)
-            tm.assertIsInstance(res4, SparseArray)
+            assert isinstance(res4, SparseArray)
 
             # ignore this if the actual op raises (e.g. pow)
             try:
@@ -546,7 +548,7 @@ class TestSparseArray(tm.TestCase):
 
         def _check_inplace_op(op):
             tmp = arr1.copy()
-            self.assertRaises(NotImplementedError, op, tmp, arr2)
+            pytest.raises(NotImplementedError, op, tmp, arr2)
 
         with np.errstate(all='ignore'):
             bin_ops = [operator.add, operator.sub, operator.mul,
@@ -562,7 +564,7 @@ class TestSparseArray(tm.TestCase):
 
     def test_pickle(self):
         def _check_roundtrip(obj):
-            unpickled = self.round_trip_pickle(obj)
+            unpickled = tm.round_trip_pickle(obj)
             tm.assert_sp_array_equal(unpickled, obj)
 
         _check_roundtrip(self.arr)

@@ -52,14 +52,16 @@ extensions = ['sphinx.ext.autodoc',
               'numpydoc', # used to parse numpy-style docstrings for autodoc
               'ipython_sphinxext.ipython_directive',
               'ipython_sphinxext.ipython_console_highlighting',
+              'IPython.sphinxext.ipython_console_highlighting',  # lowercase didn't work
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
+              'nbsphinx',
               ]
 
-
+exclude_patterns = ['**.ipynb_checkpoints']
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()
@@ -70,15 +72,16 @@ with open("index.rst") as f:
 # JP: added from sphinxdocs
 autosummary_generate = False
 
-if any([re.match("\s*api\s*",l) for l in index_rst_lines]):
+if any([re.match("\s*api\s*", l) for l in index_rst_lines]):
     autosummary_generate = True
 
 files_to_delete = []
 for f in os.listdir(os.path.dirname(__file__)):
-    if not f.endswith('.rst') or f.startswith('.') or os.path.basename(f) == 'index.rst':
+    if (not f.endswith(('.ipynb', '.rst')) or
+            f.startswith('.') or os.path.basename(f) == 'index.rst'):
         continue
 
-    _file_basename = f.split('.rst')[0]
+    _file_basename = os.path.splitext(f)[0]
     _regex_to_match = "\s*{}\s*$".format(_file_basename)
     if not any([re.match(_regex_to_match, line) for line in index_rst_lines]):
         files_to_delete.append(f)
@@ -261,6 +264,9 @@ html_use_modindex = True
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'pandas'
 
+# -- Options for nbsphinx ------------------------------------------------
+
+nbsphinx_allow_errors = True
 
 # -- Options for LaTeX output --------------------------------------------
 

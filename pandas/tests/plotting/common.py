@@ -8,7 +8,7 @@ import warnings
 from pandas import DataFrame, Series
 from pandas.compat import zip, iteritems
 from pandas.util.decorators import cache_readonly
-from pandas.types.api import is_list_like
+from pandas.core.dtypes.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
                                  assert_is_valid_plot_return_object)
@@ -16,7 +16,8 @@ from pandas.util.testing import (ensure_clean,
 import numpy as np
 from numpy import random
 
-import pandas.tools.plotting as plotting
+import pandas.plotting as plotting
+from pandas.plotting._tools import _flatten
 
 
 """
@@ -48,12 +49,12 @@ class TestPlotBase(tm.TestCase):
         import matplotlib as mpl
         mpl.rcdefaults()
 
-        self.mpl_le_1_2_1 = plotting._mpl_le_1_2_1()
-        self.mpl_ge_1_3_1 = plotting._mpl_ge_1_3_1()
-        self.mpl_ge_1_4_0 = plotting._mpl_ge_1_4_0()
-        self.mpl_ge_1_5_0 = plotting._mpl_ge_1_5_0()
-        self.mpl_ge_2_0_0 = plotting._mpl_ge_2_0_0()
-        self.mpl_ge_2_0_1 = plotting._mpl_ge_2_0_1()
+        self.mpl_le_1_2_1 = plotting._compat._mpl_le_1_2_1()
+        self.mpl_ge_1_3_1 = plotting._compat._mpl_ge_1_3_1()
+        self.mpl_ge_1_4_0 = plotting._compat._mpl_ge_1_4_0()
+        self.mpl_ge_1_5_0 = plotting._compat._mpl_ge_1_5_0()
+        self.mpl_ge_2_0_0 = plotting._compat._mpl_ge_2_0_0()
+        self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
 
         if self.mpl_ge_1_4_0:
             self.bp_n_objects = 7
@@ -73,7 +74,8 @@ class TestPlotBase(tm.TestCase):
         self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
         # common test data
         from pandas import read_csv
-        path = os.path.join(os.path.dirname(curpath()), 'data', 'iris.csv')
+        base = os.path.join(os.path.dirname(curpath()), os.pardir)
+        path = os.path.join(base, 'tests', 'data', 'iris.csv')
         self.iris = read_csv(path)
 
         n = 100
@@ -353,10 +355,10 @@ class TestPlotBase(tm.TestCase):
                 self.assertTrue(len(ax.get_children()) > 0)
 
         if layout is not None:
-            result = self._get_axes_layout(plotting._flatten(axes))
+            result = self._get_axes_layout(_flatten(axes))
             self.assertEqual(result, layout)
 
-        self.assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             visible_axes[0].figure.get_size_inches(),
             np.array(figsize, dtype=np.float64))
 
@@ -379,7 +381,7 @@ class TestPlotBase(tm.TestCase):
         axes : matplotlib Axes object, or its list-like
 
         """
-        axes = plotting._flatten(axes)
+        axes = _flatten(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
 
@@ -437,13 +439,13 @@ class TestPlotBase(tm.TestCase):
 
             self.assertTrue(isinstance(returned, types[return_type]))
             if return_type == 'both':
-                self.assertIsInstance(returned.ax, Axes)
-                self.assertIsInstance(returned.lines, dict)
+                assert isinstance(returned.ax, Axes)
+                assert isinstance(returned.lines, dict)
         else:
             # should be fixed when the returning default is changed
             if return_type is None:
                 for r in self._flatten_visible(returned):
-                    self.assertIsInstance(r, Axes)
+                    assert isinstance(r, Axes)
                 return
 
             self.assertTrue(isinstance(returned, Series))
@@ -458,8 +460,8 @@ class TestPlotBase(tm.TestCase):
                 elif return_type == 'both':
                     if check_ax_title:
                         self.assertEqual(value.ax.get_title(), key)
-                    self.assertIsInstance(value.ax, Axes)
-                    self.assertIsInstance(value.lines, dict)
+                    assert isinstance(value.ax, Axes)
+                    assert isinstance(value.lines, dict)
                 elif return_type == 'dict':
                     line = value['medians'][0]
                     axes = line.axes if self.mpl_ge_1_5_0 else line.get_axes()

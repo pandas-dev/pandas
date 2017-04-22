@@ -2,6 +2,7 @@
     Tests for the pandas.io.common functionalities
 """
 import mmap
+import pytest
 import os
 from os.path import isabs
 
@@ -11,7 +12,6 @@ from pandas.io import common
 from pandas.compat import is_platform_windows, StringIO
 
 from pandas import read_csv, concat
-import pandas as pd
 
 try:
     from pathlib import Path
@@ -89,23 +89,6 @@ bar2,12,13,14,15
         tm.assert_frame_equal(first, expected.iloc[[0]])
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
 
-    def test_error_rename(self):
-        # see gh-12665
-        try:
-            raise common.CParserError()
-        except common.ParserError:
-            pass
-
-        try:
-            raise common.ParserError()
-        except common.CParserError:
-            pass
-
-        try:
-            raise common.ParserError()
-        except pd.parser.CParserError:
-            pass
-
 
 class TestMMapWrapper(tm.TestCase):
 
@@ -156,4 +139,4 @@ class TestMMapWrapper(tm.TestCase):
             next_line = next(wrapper)
             self.assertEqual(next_line.strip(), line.strip())
 
-        self.assertRaises(StopIteration, next, wrapper)
+        pytest.raises(StopIteration, next, wrapper)

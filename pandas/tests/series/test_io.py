@@ -105,7 +105,7 @@ class TestSeriesToCSV(TestData, tm.TestCase):
         # DataFrame.to_csv() which returned string
         s = Series([1, 2, 3])
         csv_str = s.to_csv(path=None)
-        self.assertIsInstance(csv_str, str)
+        assert isinstance(csv_str, str)
 
 
 class TestSeriesIO(TestData, tm.TestCase):
@@ -127,14 +127,14 @@ class TestSeriesIO(TestData, tm.TestCase):
         assert_frame_equal(rs, xp)
 
     def test_to_dict(self):
-        self.assert_series_equal(Series(self.ts.to_dict(), name='ts'), self.ts)
+        tm.assert_series_equal(Series(self.ts.to_dict(), name='ts'), self.ts)
 
     def test_timeseries_periodindex(self):
         # GH2891
         from pandas import period_range
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
         ts = Series(np.random.randn(len(prng)), prng)
-        new_ts = self.round_trip_pickle(ts)
+        new_ts = tm.round_trip_pickle(ts)
         self.assertEqual(new_ts.index.freq, 'M')
 
     def test_pickle_preserve_name(self):
@@ -184,19 +184,19 @@ class TestSeriesToList(TestData, tm.TestCase):
         # GH10904
         for t in ['int8', 'int16', 'int32', 'int64']:
             s = pd.Series([1], dtype=t)
-            self.assertIsInstance(s.tolist()[0], (int, long))
+            assert isinstance(s.tolist()[0], (int, long))
 
     def test_tolist_np_uint(self):
         # GH10904
         for t in ['uint8', 'uint16']:
             s = pd.Series([1], dtype=t)
-            self.assertIsInstance(s.tolist()[0], int)
+            assert isinstance(s.tolist()[0], int)
         for t in ['uint32', 'uint64']:
             s = pd.Series([1], dtype=t)
-            self.assertIsInstance(s.tolist()[0], long)
+            assert isinstance(s.tolist()[0], long)
 
     def test_tolist_np_float(self):
         # GH10904
         for t in ['float16', 'float32', 'float64']:
             s = pd.Series([1], dtype=t)
-            self.assertIsInstance(s.tolist()[0], float)
+            assert isinstance(s.tolist()[0], float)
