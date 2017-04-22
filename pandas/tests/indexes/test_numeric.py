@@ -678,6 +678,23 @@ class TestInt64Index(NumericInt):
         with tm.assert_raises_regex(TypeError, 'casting'):
             Int64Index(arr_with_floats)
 
+    def test_constructor_overflow_coercion_signed_to_unsigned(self):
+        # GH 15832
+        for t in ['uint8', 'uint16', 'uint32', 'uint64']:
+            with pytest.raises(OverflowError):
+                Index([-1], dtype=t)
+
+        try:
+            Index([-1], dtype=int)
+        except Exception:
+            self.fail("Index constructor did not behave correctly, raising an "
+                      "exception when it should not.")
+
+    def test_constructor_overflow_coercion_float_to_int(self):
+        # GH 15832
+        with pytest.raises(OverflowError):
+            Index([1, 2, 3.5], dtype=int)
+
     def test_coerce_list(self):
         # coerce things
         arr = Index([1, 2, 3, 4])
