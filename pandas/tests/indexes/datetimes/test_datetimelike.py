@@ -76,3 +76,29 @@ class TestDatetimeIndex(DatetimeLike):
         for case in cases:
             result = first.union(case)
             assert tm.equalContents(result, everything)
+
+    def test_map(self):
+        expected = self.index + 1
+        tm.assert_index_equal(self.index.map(lambda x: x + 1), expected)
+
+        series_map = pd.Series(expected, self.index)
+        tm.assert_index_equal(self.index.map(series_map), expected)
+
+        dict_map = {i: e for e, i in zip(expected, self.index)}
+        tm.assert_index_equal(self.index.map(dict_map), expected)
+
+        # empty mappable
+        nan_index = Index([pd.np.nan] * len(self.index))
+        series_map = pd.Series()
+        tm.assert_index_equal(self.index.map(series_map), nan_index)
+        dict_map = {}
+        tm.assert_index_equal(self.index.map(dict_map), nan_index)
+
+        # map to NaT
+        result = self.index.map(lambda x: pd.NaT if x == self.index[0] else x)
+        expected = Index([pd.NaT] + self.index[1:].tolist())
+        tm.assert_index_equal(result, expected)
+        series_map = pd.Series(expected, self.index)
+        tm.assert_index_equal(self.index.map(series_map), expected)
+        dict_map = {i: e for e, i in zip(expected, self.index)}
+        tm.assert_index_equal(self.index.map(dict_map), expected)

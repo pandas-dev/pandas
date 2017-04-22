@@ -788,12 +788,8 @@ class TestPeriodIndex(DatetimeLike):
         assert new_prng.freq == offsets.MonthEnd()
         assert new_prng.freqstr == 'M'
 
-    def test_map(self):
+    def test_map_with_ordinal(self):
         index = PeriodIndex([2005, 2007, 2009], freq='A')
-        result = index.map(lambda x: x + 1)
-        expected = index + 1
-        tm.assert_index_equal(result, expected)
-
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
