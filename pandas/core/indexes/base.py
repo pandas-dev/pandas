@@ -465,6 +465,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # guard when called from IndexOpsMixin
         raise TypeError("Index can't be updated inplace")
 
+    def _sort_levels_monotonic(self):
+        """ compat with MultiIndex """
+        return self
+
     _index_shared_docs['_get_grouper_for_level'] = """
         Get index grouper corresponding to an index level
 

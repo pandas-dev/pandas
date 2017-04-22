@@ -870,7 +870,7 @@ DataFrame.sort_index changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In certain cases, calling ``.sort_index()`` on a MultiIndexed DataFrame would return the *same* DataFrame without seeming to sort.
-This would happen with a ``lexsorted``, but non-monotonic levels. (:issue:`15622`, :issue:`15687`, :issue:`14015`, :issue:`13431`)
+This would happen with a ``lexsorted``, but non-monotonic levels. (:issue:`15622`, :issue:`15687`, :issue:`14015`, :issue:`13431`, :issue:`15797`)
 
 This is *unchanged* from prior versions, but shown for illustration purposes:
 

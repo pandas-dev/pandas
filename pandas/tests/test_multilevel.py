@@ -11,7 +11,6 @@ import numpy as np
 from pandas.core.index import Index, MultiIndex
 from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
 
-from pandas.core.common import UnsortedIndexError
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -938,7 +937,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = df.sort_index(level=1, axis=1)
 
         stacked = df.stack()
-        result = df['foo'].stack()
+        result = df['foo'].stack().sort_index()
         tm.assert_series_equal(stacked['foo'], result, check_names=False)
         self.assertIs(result.name, None)
         self.assertEqual(stacked['bar'].dtype, np.float_)
@@ -2456,11 +2455,11 @@ class TestSorted(Base, tm.TestCase):
 
         assert df2_original.index.equals(df2.index)
         expected = df2.sort_index()
-        assert not expected.index.is_lexsorted()
+        assert expected.index.is_lexsorted()
         assert expected.index.is_monotonic
 
         result = df2.sort_index(level=0)
-        assert not result.index.is_lexsorted()
+        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
         tm.assert_frame_equal(result, expected)
 
@@ -2536,8 +2535,7 @@ class TestSorted(Base, tm.TestCase):
         concatted = pd.concat([df, df], keys=[0.8, 0.5])
         result = concatted.sort_index()
 
-        # this will be monotonic, but not lexsorted!
-        assert not result.index.is_lexsorted()
+        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -2576,7 +2574,7 @@ class TestSorted(Base, tm.TestCase):
                                  levels=[['a', 'b'], ['aa', 'bb']],
                                  labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
         result = df.sort_index()
-        assert not result.index.is_lexsorted()
+        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -2618,22 +2616,29 @@ class TestSorted(Base, tm.TestCase):
     def test_sort_non_lexsorted(self):
         # degenerate case where we sort but don't
         # have a satisfying result :<
-
+        # GH 15797
         idx = MultiIndex([['A', 'B', 'C'],
                           ['c', 'b', 'a']],
                          [[0, 1, 2, 0, 1, 2],
                           [0, 2, 1, 1, 0, 2]])
 
-        df = DataFrame({'col': range(len(idx))}, index=idx)
+        df = DataFrame({'col': range(len(idx))},
+                       index=idx,
+                       dtype='int64')
         assert df.index.is_lexsorted() is False
         assert df.index.is_monotonic is False
 
-        result = df.sort_index()
-        assert result.index.is_lexsorted() is False
-        assert result.index.is_monotonic is True
+        sorted = df.sort_index()
+        assert sorted.index.is_lexsorted() is True
+        assert sorted.index.is_monotonic is True
 
-        with pytest.raises(UnsortedIndexError):
-            result.loc[pd.IndexSlice['B':'C', 'a':'c'], :]
+        expected = DataFrame(
+            {'col': [1, 4, 5, 2]},
+            index=MultiIndex.from_tuples([('B', 'a'), ('B', 'c'),
+                                          ('C', 'a'), ('C', 'b')]),
+            dtype='int64')
+        result = sorted.loc[pd.IndexSlice['B':'C', 'a':'c'], :]
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_index_nan(self):
         # GH 14784

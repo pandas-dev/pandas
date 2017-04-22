@@ -1773,6 +1773,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         indexer = _ensure_platform_int(indexer)
         new_index = index.take(indexer)
+        new_index = new_index._sort_levels_monotonic()
 
         new_values = self._values.take(indexer)
         result = self._constructor(new_values, index=new_index)

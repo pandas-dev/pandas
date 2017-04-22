@@ -3364,6 +3364,9 @@ it is assumed to be aliases for the column names.')
                                    axis=baxis,
                                    convert=False, verify=False)
 
+        # reconstruct axis if needed
+        new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
+
         if inplace:
             return self._update_inplace(new_data)
         else:
