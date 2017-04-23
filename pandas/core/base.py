@@ -860,22 +860,15 @@ class IndexOpsMixin(object):
                 arg = lambda x: dict_with_default[x]
             else:
                 # Dictionary does not have a default. Thus it's safe to
-                # convert to an Index for efficiency.
-                from pandas import Index
-                idx = Index(arg.keys())
-                # Cast to dict so we can get values using lib.fast_multiget
-                #   if this is a dict subclass (GH #15999)
-                map_values = idx._get_values_from_dict(dict(arg))
-                arg = idx
-        elif isinstance(arg, ABCSeries):
-            map_values = arg.values
-            arg = arg.index
+                # convert to an Series for efficiency.
+                from pandas import Series
+                arg = Series(arg, index=arg.keys())
 
-        if map_values is not None:
+        if isinstance(arg, ABCSeries):
             # Since values were input this means we came from either
             # a dict or a series and arg should be an index
-            indexer = arg.get_indexer(values)
-            new_values = algorithms.take_1d(map_values, indexer)
+            indexer = arg.index.get_indexer(values)
+            new_values = algorithms.take_1d(arg._values, indexer)
         else:
             # arg is a function
             new_values = map_f(values, arg)
