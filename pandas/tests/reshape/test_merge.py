@@ -128,8 +128,8 @@ class TestMerge(tm.TestCase):
         merged = merge(self.left, self.left, on='key')
         exp_len = (self.left['key'].value_counts() ** 2).sum()
         self.assertEqual(len(merged), exp_len)
-        self.assertIn('v1_x', merged)
-        self.assertIn('v1_y', merged)
+        assert 'v1_x' in merged
+        assert 'v1_y' in merged
 
     def test_merge_different_column_key_names(self):
         left = DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
