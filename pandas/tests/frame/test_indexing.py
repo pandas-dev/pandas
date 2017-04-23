@@ -422,7 +422,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         # not sure what else to do here
         series = self.frame['A'][::2]
         self.frame['col5'] = series
-        self.assertIn('col5', self.frame)
+        assert 'col5' in self.frame
 
         self.assertEqual(len(series), 15)
         self.assertEqual(len(self.frame), 30)
@@ -600,7 +600,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                        index=np.arange(3))
         del df['B']
         df['B'] = [1., 2., 3.]
-        self.assertIn('B', df)
+        assert 'B' in df
         self.assertEqual(len(df.columns), 2)
 
         df['A'] = 'beginning'

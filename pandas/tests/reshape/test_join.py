@@ -153,15 +153,15 @@ class TestJoin(tm.TestCase):
         joined = merge(self.df, self.df2, on='key2',
                        suffixes=['.foo', '.bar'])
 
-        self.assertIn('key1.foo', joined)
-        self.assertIn('key1.bar', joined)
+        assert 'key1.foo' in joined
+        assert 'key1.bar' in joined
 
     def test_handle_overlap_arbitrary_key(self):
         joined = merge(self.df, self.df2,
                        left_on='key2', right_on='key1',
                        suffixes=['.foo', '.bar'])
-        self.assertIn('key1.foo', joined)
-        self.assertIn('key2.bar', joined)
+        assert 'key1.foo' in joined
+        assert 'key2.bar' in joined
 
     def test_join_on(self):
         target = self.target
@@ -251,7 +251,7 @@ class TestJoin(tm.TestCase):
         # nothing to merge
         merged = self.target.join(self.source.reindex([]), on='C')
         for col in self.source:
-            self.assertIn(col, merged)
+            assert col in merged
             self.assertTrue(merged[col].isnull().all())
 
         merged2 = self.target.join(self.source.reindex([]), on='C',

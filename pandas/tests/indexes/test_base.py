@@ -857,10 +857,10 @@ class TestIndex(Base, tm.TestCase):
     def test_iadd_string(self):
         index = pd.Index(['a', 'b', 'c'])
         # doesn't fail test unless there is a check before `+=`
-        self.assertIn('a', index)
+        assert 'a' in index
 
         index += '_x'
-        self.assertIn('a_x', index)
+        assert 'a_x' in index
 
     def test_difference(self):
 
@@ -963,8 +963,8 @@ class TestIndex(Base, tm.TestCase):
         ind = Index(['{other}%s', "~:{range}:0"], name='A')
         result = ind.summary()
         # shouldn't be formatted accidentally.
-        self.assertIn('~:{range}:0', result)
-        self.assertIn('{other}%s', result)
+        assert '~:{range}:0' in result
+        assert '{other}%s' in result
 
     def test_format(self):
         self._check_method_works(Index.format)

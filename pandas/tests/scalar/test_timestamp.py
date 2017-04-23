@@ -1133,24 +1133,24 @@ class TestTimestampNsOperations(tm.TestCase):
         expected_repr = '2013-05-01 07:15:45.123456789'
         expected_value = 1367392545123456789
         self.assertEqual(ts.value, expected_value)
-        self.assertIn(expected_repr, repr(ts))
+        assert expected_repr in repr(ts)
 
         ts = Timestamp('2013-05-01 07:15:45.123456789+09:00', tz='Asia/Tokyo')
         self.assertEqual(ts.value, expected_value - 9 * 3600 * 1000000000)
-        self.assertIn(expected_repr, repr(ts))
+        assert expected_repr in repr(ts)
 
         ts = Timestamp('2013-05-01 07:15:45.123456789', tz='UTC')
         self.assertEqual(ts.value, expected_value)
-        self.assertIn(expected_repr, repr(ts))
+        assert expected_repr in repr(ts)
 
         ts = Timestamp('2013-05-01 07:15:45.123456789', tz='US/Eastern')
         self.assertEqual(ts.value, expected_value + 4 * 3600 * 1000000000)
-        self.assertIn(expected_repr, repr(ts))
+        assert expected_repr in repr(ts)
 
         # GH 10041
         ts = Timestamp('20130501T071545.123456789')
         self.assertEqual(ts.value, expected_value)
-        self.assertIn(expected_repr, repr(ts))
+        assert expected_repr in repr(ts)
 
     def test_nanosecond_timestamp(self):
         # GH 7610
@@ -1365,7 +1365,7 @@ class TestTimeSeries(tm.TestCase):
         iso8601 = '1850-01-01 01:23:45.012345'
         stamp = Timestamp(iso8601, tz='US/Eastern')
         result = repr(stamp)
-        self.assertIn(iso8601, result)
+        assert iso8601 in result
 
     def test_timestamp_from_ordinal(self):
 
@@ -1440,7 +1440,7 @@ class TestTimeSeries(tm.TestCase):
         df = DataFrame(np.random.randn(10, 4), index=rng)
 
         result = df.to_html()
-        self.assertIn('2000-01-01', result)
+        assert '2000-01-01' in result
 
     def test_series_map_box_timestamps(self):
         # #2689, #2627

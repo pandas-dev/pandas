@@ -156,16 +156,16 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         df = DataFrame(np.random.randn(3, 3))
         df.index.name = 'X'
         rs = df.to_records()
-        self.assertIn('X', rs.dtype.fields)
+        assert 'X' in rs.dtype.fields
 
         df = DataFrame(np.random.randn(3, 3))
         rs = df.to_records()
-        self.assertIn('index', rs.dtype.fields)
+        assert 'index' in rs.dtype.fields
 
         df.index = MultiIndex.from_tuples([('a', 'x'), ('a', 'y'), ('b', 'z')])
         df.index.names = ['A', None]
         rs = df.to_records()
-        self.assertIn('level_0', rs.dtype.fields)
+        assert 'level_0' in rs.dtype.fields
 
     def test_to_records_with_unicode_index(self):
         # GH13172

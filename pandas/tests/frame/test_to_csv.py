@@ -909,7 +909,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             text = f.read().decode('utf8')
             f.close()
             for col in df.columns:
-                self.assertIn(col, text)
+                assert col in text
 
     def test_to_csv_compression_bz2(self):
         # GH7615
@@ -932,7 +932,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             text = f.read().decode('utf8')
             f.close()
             for col in df.columns:
-                self.assertIn(col, text)
+                assert col in text
 
     def test_to_csv_compression_xz(self):
         # GH11852

@@ -171,7 +171,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                                       ' the File through the code..')})
 
         result = repr(df)
-        self.assertIn('StringCol', result)
+        assert 'StringCol' in result
 
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}

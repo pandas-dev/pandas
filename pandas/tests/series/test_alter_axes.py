@@ -118,10 +118,10 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
 
         ser.name = 'value'
         df = ser.reset_index()
-        self.assertIn('value', df)
+        assert 'value' in df
 
         df = ser.reset_index(name='value2')
-        self.assertIn('value2', df)
+        assert 'value2' in df
 
         # check inplace
         s = ser.reset_index(drop=True)

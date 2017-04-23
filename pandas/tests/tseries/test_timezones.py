@@ -372,7 +372,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         rng = date_range('3/13/2012', '3/14/2012', freq='H', tz='utc')
         rng_eastern = rng.tz_convert(self.tzstr('US/Eastern'))
         # test not valid for dateutil timezones.
-        # self.assertIn('EDT', repr(rng_eastern[0].tzinfo))
+        # assert 'EDT' in repr(rng_eastern[0].tzinfo)
         self.assertTrue('EDT' in repr(rng_eastern[0].tzinfo) or 'tzfile' in
                         repr(rng_eastern[0].tzinfo))
 
@@ -683,7 +683,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         rng_eastern = rng.tz_localize(self.tzstr('US/Eastern'))
 
         rng_repr = repr(rng_eastern)
-        self.assertIn('2010-04-13 00:00:00', rng_repr)
+        assert '2010-04-13 00:00:00' in rng_repr
 
     def test_index_astype_asobject_tzinfos(self):
         # #1345

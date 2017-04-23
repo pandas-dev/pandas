@@ -135,7 +135,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         # it works!
         df = self.read_csv(StringIO(data), header=None, parse_dates=date_spec,
                            date_parser=conv.parse_date_time)
-        self.assertIn('nominal', df)
+        assert 'nominal' in df
 
     def test_multiple_date_col_timestamp_parse(self):
         data = """05/31/2012,15:30:00.029,1306.25,1,E,0,,1306.25
@@ -530,7 +530,7 @@ date, time, a, b
         df = self.read_csv(StringIO(data), sep=',', header=0,
                            parse_dates=datecols,
                            date_parser=conv.parse_date_time)
-        self.assertIn('date_time', df)
+        assert 'date_time' in df
         self.assertEqual(df.date_time.loc[0], datetime(2001, 1, 5, 10, 0, 0))
 
         data = ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -558,7 +558,7 @@ date, time, a, b
         df = self.read_csv(StringIO(data), sep=',', header=0,
                            parse_dates=datecols,
                            date_parser=conv.parse_date_fields)
-        self.assertIn('ymd', df)
+        assert 'ymd' in df
         self.assertEqual(df.ymd.loc[0], datetime(2001, 1, 10))
 
     def test_datetime_six_col(self):
@@ -585,7 +585,7 @@ year, month, day, hour, minute, second, a, b
         df = self.read_csv(StringIO(data), sep=',', header=0,
                            parse_dates=datecols,
                            date_parser=conv.parse_all_fields)
-        self.assertIn('ymdHMS', df)
+        assert 'ymdHMS' in df
         self.assertEqual(df.ymdHMS.loc[0], datetime(2001, 1, 5, 10, 0, 0))
 
     def test_datetime_fractional_seconds(self):
@@ -598,7 +598,7 @@ year, month, day, hour, minute, second, a, b
         df = self.read_csv(StringIO(data), sep=',', header=0,
                            parse_dates=datecols,
                            date_parser=conv.parse_all_fields)
-        self.assertIn('ymdHMS', df)
+        assert 'ymdHMS' in df
         self.assertEqual(df.ymdHMS.loc[0], datetime(2001, 1, 5, 10, 0, 0,
                                                     microsecond=123456))
         self.assertEqual(df.ymdHMS.loc[1], datetime(2001, 1, 5, 10, 0, 0,
@@ -611,7 +611,7 @@ year, month, day, hour, minute, second, a, b
         df = self.read_csv(StringIO(data), sep=',', header=0,
                            parse_dates=datecols,
                            date_parser=dateconverter)
-        self.assertIn('ym', df)
+        assert 'ym' in df
         self.assertEqual(df.ym.loc[0], date(2001, 1, 1))
 
     def test_dateparser_resolution_if_not_ns(self):

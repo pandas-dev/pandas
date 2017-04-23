@@ -959,7 +959,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 self.assertTrue(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
-                self.assertIn('DataFrame Index', line)
+                assert 'DataFrame Index' in line
 
         reset_option('display.expand_frame_repr')
 
@@ -981,7 +981,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 self.assertTrue(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
-                self.assertIn('Level 0 Level 1', line)
+                assert 'Level 0 Level 1' in line
 
         reset_option('display.expand_frame_repr')
 
@@ -1875,9 +1875,9 @@ class TestSeriesFormatting(tm.TestCase):
             if line.startswith('dtype:'):
                 continue
             if _three_digit_exp():
-                self.assertIn('+010', line)
+                assert '+010' in line
             else:
-                self.assertIn('+10', line)
+                assert '+10' in line
 
     def test_datetimeindex(self):
 

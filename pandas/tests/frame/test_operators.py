@@ -831,7 +831,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
         for key, s in compat.iteritems(self.frame):
             assert_series_equal(larger_added[key], s + series[key])
-        self.assertIn('E', larger_added)
+        assert 'E' in larger_added
         self.assertTrue(np.isnan(larger_added['E']).all())
 
         # vs mix (upcast) as needed

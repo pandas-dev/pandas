@@ -373,15 +373,15 @@ class TestChaining(tm.TestCase):
         df['A']  # cache series
         with catch_warnings(record=True):
             df.ix["Hello Friend"] = df.ix[0]
-        self.assertIn("Hello Friend", df['A'].index)
-        self.assertIn("Hello Friend", df['B'].index)
+        assert "Hello Friend" in df['A'].index
+        assert "Hello Friend" in df['B'].index
 
         with catch_warnings(record=True):
             panel = tm.makePanel()
             panel.ix[0]  # get first item into cache
             panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-            self.assertIn("A+1", panel.ix[0].columns)
-            self.assertIn("A+1", panel.ix[1].columns)
+            assert "A+1" in panel.ix[0].columns
+            assert "A+1" in panel.ix[1].columns
 
         # 5216
         # make sure that we don't try to set a dead cache

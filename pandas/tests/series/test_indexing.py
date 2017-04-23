@@ -2397,7 +2397,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
 
             pos = n * 3
             timestamp = df.index[pos]
-            self.assertIn(timestamp, df.index)
+            assert timestamp in df.index
 
             # it works!
             df.loc[timestamp]

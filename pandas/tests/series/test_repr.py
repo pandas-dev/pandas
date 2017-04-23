@@ -95,12 +95,12 @@ class TestSeriesRepr(TestData, tm.TestCase):
         # 0 as name
         ser = Series(np.random.randn(100), name=0)
         rep_str = repr(ser)
-        self.assertIn("Name: 0", rep_str)
+        assert "Name: 0" in rep_str
 
         # tidy repr
         ser = Series(np.random.randn(1001), name=0)
         rep_str = repr(ser)
-        self.assertIn("Name: 0", rep_str)
+        assert "Name: 0" in rep_str
 
         ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
         self.assertFalse("\t" in repr(ser))

@@ -1597,8 +1597,8 @@ class TestMultiIndex(Base, tm.TestCase):
         #     other = Index(['A', 'B', 'C'])
 
         #     result = other.union(self.index)
-        #     self.assertIn(('foo', 'one'), result)
-        #     self.assertIn('B', result)
+        #     assert ('foo', 'one') in result
+        #     assert 'B' in result
 
         #     result2 = self.index.union(other)
         #     self.assertTrue(result.equals(result2))
