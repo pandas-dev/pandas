@@ -14,9 +14,7 @@ from pandas import (compat, DataFrame, Series, Index, MultiIndex,
                     date_range, isnull)
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_frame_equal
 
 from pandas.errors import PerformanceWarning
 import pandas.util.testing as tm
@@ -287,15 +285,15 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         assert_frame_equal(other, self.frame.reindex_like(other))
 
     def test_reindex_columns(self):
-        newFrame = self.frame.reindex(columns=['A', 'B', 'E'])
+        new_frame = self.frame.reindex(columns=['A', 'B', 'E'])
 
-        assert_series_equal(newFrame['B'], self.frame['B'])
-        self.assertTrue(np.isnan(newFrame['E']).all())
-        self.assertNotIn('C', newFrame)
+        tm.assert_series_equal(new_frame['B'], self.frame['B'])
+        assert np.isnan(new_frame['E']).all()
+        assert 'C' not in new_frame
 
-        # length zero
-        newFrame = self.frame.reindex(columns=[])
-        self.assertTrue(newFrame.empty)
+        # Length zero
+        new_frame = self.frame.reindex(columns=[])
+        assert new_frame.empty
 
     def test_reindex_columns_method(self):
 
@@ -659,33 +657,33 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         tm.assert_frame_equal(res2, exp1)
 
     def test_filter(self):
-        # items
+        # Items
         filtered = self.frame.filter(['A', 'B', 'E'])
-        self.assertEqual(len(filtered.columns), 2)
-        self.assertNotIn('E', filtered)
+        assert len(filtered.columns) == 2
+        assert 'E' not in filtered
 
         filtered = self.frame.filter(['A', 'B', 'E'], axis='columns')
-        self.assertEqual(len(filtered.columns), 2)
-        self.assertNotIn('E', filtered)
+        assert len(filtered.columns) == 2
+        assert 'E' not in filtered
 
-        # other axis
+        # Other axis
         idx = self.frame.index[0:4]
         filtered = self.frame.filter(idx, axis='index')
         expected = self.frame.reindex(index=idx)
-        assert_frame_equal(filtered, expected)
+        tm.assert_frame_equal(filtered, expected)
 
         # like
         fcopy = self.frame.copy()
         fcopy['AA'] = 1
 
         filtered = fcopy.filter(like='A')
-        self.assertEqual(len(filtered.columns), 2)
-        self.assertIn('AA', filtered)
+        assert len(filtered.columns) == 2
+        assert 'AA' in filtered
 
         # like with ints in column names
         df = DataFrame(0., index=[0, 1, 2], columns=[0, 1, '_A', '_B'])
         filtered = df.filter(like='_')
-        self.assertEqual(len(filtered.columns), 2)
+        assert len(filtered.columns) == 2
 
         # regex with ints in column names
         # from PR #10384
@@ -693,41 +691,41 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         expected = DataFrame(
             0., index=[0, 1, 2], columns=pd.Index([1, 2], dtype=object))
         filtered = df.filter(regex='^[0-9]+$')
-        assert_frame_equal(filtered, expected)
+        tm.assert_frame_equal(filtered, expected)
 
         expected = DataFrame(0., index=[0, 1, 2], columns=[0, '0', 1, '1'])
         # shouldn't remove anything
         filtered = expected.filter(regex='^[0-9]+$')
-        assert_frame_equal(filtered, expected)
+        tm.assert_frame_equal(filtered, expected)
 
         # pass in None
-        with assertRaisesRegexp(TypeError, 'Must pass'):
+        with tm.assertRaisesRegexp(TypeError, 'Must pass'):
             self.frame.filter()
-        with assertRaisesRegexp(TypeError, 'Must pass'):
+        with tm.assertRaisesRegexp(TypeError, 'Must pass'):
             self.frame.filter(items=None)
-        with assertRaisesRegexp(TypeError, 'Must pass'):
+        with tm.assertRaisesRegexp(TypeError, 'Must pass'):
             self.frame.filter(axis=1)
 
         # test mutually exclusive arguments
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$', like='bbi')
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$', axis=1)
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$')
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], like='bbi', axis=0)
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], like='bbi')
 
         # objects
         filtered = self.mixed_frame.filter(like='foo')
-        self.assertIn('foo', filtered)
+        assert 'foo' in filtered
 
         # unicode columns, won't ascii-encode
         df = self.frame.rename(columns={'B': u('\u2202')})
         filtered = df.filter(like='C')
-        self.assertTrue('C' in filtered)
+        assert 'C' in filtered
 
     def test_filter_regex_search(self):
         fcopy = self.frame.copy()
@@ -857,10 +855,10 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
     def test_reindex_objects(self):
         reindexed = self.mixed_frame.reindex(columns=['foo', 'A', 'B'])
-        self.assertIn('foo', reindexed)
+        assert 'foo' in reindexed
 
         reindexed = self.mixed_frame.reindex(columns=['A', 'B'])
-        self.assertNotIn('foo', reindexed)
+        assert 'foo' not in reindexed
 
     def test_reindex_corner(self):
         index = Index(['a', 'b', 'c'])

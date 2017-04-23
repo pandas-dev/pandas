@@ -500,16 +500,16 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
     def test_rename_inplace(self):
         self.frame.rename(columns={'C': 'foo'})
-        self.assertIn('C', self.frame)
-        self.assertNotIn('foo', self.frame)
+        assert 'C' in self.frame
+        assert 'foo' not in self.frame
 
         c_id = id(self.frame['C'])
         frame = self.frame.copy()
         frame.rename(columns={'C': 'foo'}, inplace=True)
 
-        self.assertNotIn('C', frame)
-        self.assertIn('foo', frame)
-        self.assertNotEqual(id(frame['foo']), c_id)
+        assert 'C' not in frame
+        assert 'foo' in frame
+        assert id(frame['foo']) != c_id
 
     def test_rename_bug(self):
         # GH 5344
@@ -778,8 +778,9 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
     def test_rename_objects(self):
         renamed = self.mixed_frame.rename(columns=str.upper)
-        self.assertIn('FOO', renamed)
-        self.assertNotIn('foo', renamed)
+
+        assert 'FOO' in renamed
+        assert 'foo' not in renamed
 
     def test_assign_columns(self):
         self.frame['hi'] = 'there'

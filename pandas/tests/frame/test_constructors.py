@@ -210,8 +210,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                            'col2': self.ts2})
 
         # col2 is padded with NaN
-        self.assertEqual(len(self.ts1), 30)
-        self.assertEqual(len(self.ts2), 25)
+        assert len(self.ts1) == 30
+        assert len(self.ts2) == 25
 
         tm.assert_series_equal(self.ts1, frame['col1'], check_names=False)
 
@@ -223,12 +223,12 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                            'col2': self.ts2},
                           columns=['col2', 'col3', 'col4'])
 
-        self.assertEqual(len(frame), len(self.ts2))
-        self.assertNotIn('col1', frame)
-        self.assertTrue(isnull(frame['col3']).all())
+        assert len(frame) == len(self.ts2)
+        assert 'col1' not in frame
+        assert isnull(frame['col3']).all()
 
         # Corner cases
-        self.assertEqual(len(DataFrame({})), 0)
+        assert len(DataFrame({})) == 0
 
         # mix dict and array, wrong size - no spec for which error should raise
         # first
@@ -242,14 +242,14 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         # empty dict plus index
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx)
-        self.assertIs(frame.index, idx)
+        assert frame.index is idx
 
         # empty with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
-        self.assertIs(frame.index, idx)
-        self.assertIs(frame.columns, idx)
-        self.assertEqual(len(frame._series), 3)
+        assert frame.index is idx
+        assert frame.columns is idx
+        assert len(frame._series) == 3
 
         # with dict of empty list and Series
         frame = DataFrame({'A': [], 'B': []}, columns=['A', 'B'])
@@ -1533,11 +1533,11 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # what to do?
         records = indexed_frame.to_records()
-        self.assertEqual(len(records.dtype.names), 3)
+        assert len(records.dtype.names) == 3
 
         records = indexed_frame.to_records(index=False)
-        self.assertEqual(len(records.dtype.names), 2)
-        self.assertNotIn('index', records.dtype.names)
+        assert len(records.dtype.names) == 2
+        assert 'index' not in records.dtype.names
 
     def test_from_records_nones(self):
         tuples = [(1, 2, None, 3),

@@ -7,9 +7,7 @@ import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_frame_equal, assertRaisesRegexp
 
 import pandas.util.testing as tm
 
@@ -163,7 +161,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
 
     def test_delitem(self):
         del self.frame['A']
-        self.assertNotIn('A', self.frame)
+        assert 'A' not in self.frame
 
     def test_delitem_multiindex(self):
         midx = MultiIndex.from_product([['A', 'B'], [1, 2]])
@@ -194,15 +192,14 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         self.frame.columns.name = 'baz'
 
         self.frame.pop('A')
-        self.assertNotIn('A', self.frame)
+        assert 'A' not in self.frame
 
         self.frame['foo'] = 'bar'
         self.frame.pop('foo')
-        self.assertNotIn('foo', self.frame)
+        assert 'foo' not in self.frame
         # TODO self.assertEqual(self.frame.columns.name, 'baz')
 
-        # 10912
-        # inplace ops cause caching issue
+        # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[
                       'A', 'B', 'C'], index=['X', 'Y'])
         b = a.pop('B')
@@ -211,11 +208,11 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         # original frame
         expected = DataFrame([[1, 3], [4, 6]], columns=[
                              'A', 'C'], index=['X', 'Y'])
-        assert_frame_equal(a, expected)
+        tm.assert_frame_equal(a, expected)
 
         # result
         expected = Series([2, 5], index=['X', 'Y'], name='B') + 1
-        assert_series_equal(b, expected)
+        tm.assert_series_equal(b, expected)
 
     def test_pop_non_unique_cols(self):
         df = DataFrame({0: [0, 1], 1: [0, 1], 2: [4, 5]})

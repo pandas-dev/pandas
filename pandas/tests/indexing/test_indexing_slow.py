@@ -27,10 +27,10 @@ class TestIndexingSlow(tm.TestCase):
                     mask &= df.iloc[:, i] == k
 
                     if not mask.any():
-                        self.assertNotIn(key[:i + 1], mi.index)
+                        assert key[:i + 1] not in mi.index
                         continue
 
-                    self.assertIn(key[:i + 1], mi.index)
+                    assert key[:i + 1] in mi.index
                     right = df[mask].copy()
 
                     if i + 1 != len(key):  # partial key

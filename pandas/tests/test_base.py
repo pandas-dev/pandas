@@ -45,8 +45,8 @@ class CheckImmutable(object):
     mutable_regex = re.compile('does not support mutable operations')
 
     def check_mutable_error(self, *args, **kwargs):
-        # pass whatever functions you normally would to assertRaises (after the
-        # Exception kind)
+        # Pass whatever function you normally would to assertRaisesRegexp
+        # (after the Exception kind).
         tm.assertRaisesRegexp(TypeError, self.mutable_regex, *args, **kwargs)
 
     def test_no_mutable_funcs(self):
@@ -70,6 +70,7 @@ class CheckImmutable(object):
 
         self.check_mutable_error(delslice)
         mutable_methods = getattr(self, "mutable_methods", [])
+
         for meth in mutable_methods:
             self.check_mutable_error(getattr(self.container, meth))
 

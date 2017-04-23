@@ -60,26 +60,26 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
                            prefix='X',
                            parse_dates={'nominal': [1, 2],
                                         'actual': [1, 3]})
-        self.assertIn('nominal', df)
-        self.assertIn('actual', df)
-        self.assertNotIn('X1', df)
-        self.assertNotIn('X2', df)
-        self.assertNotIn('X3', df)
+        assert 'nominal' in df
+        assert 'actual' in df
+        assert 'X1' not in df
+        assert 'X2' not in df
+        assert 'X3' not in df
 
         d = datetime(1999, 1, 27, 19, 0)
-        self.assertEqual(df.loc[0, 'nominal'], d)
+        assert df.loc[0, 'nominal'] == d
 
         df = self.read_csv(StringIO(data), header=None,
                            date_parser=func,
                            parse_dates={'nominal': [1, 2],
                                         'actual': [1, 3]},
                            keep_date_col=True)
-        self.assertIn('nominal', df)
-        self.assertIn('actual', df)
+        assert 'nominal' in df
+        assert 'actual' in df
 
-        self.assertIn(1, df)
-        self.assertIn(2, df)
-        self.assertIn(3, df)
+        assert 1 in df
+        assert 2 in df
+        assert 3 in df
 
         data = """\
 KORD,19990127, 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
@@ -92,23 +92,23 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         df = self.read_csv(StringIO(data), header=None,
                            prefix='X', parse_dates=[[1, 2], [1, 3]])
 
-        self.assertIn('X1_X2', df)
-        self.assertIn('X1_X3', df)
-        self.assertNotIn('X1', df)
-        self.assertNotIn('X2', df)
-        self.assertNotIn('X3', df)
+        assert 'X1_X2' in df
+        assert 'X1_X3' in df
+        assert 'X1' not in df
+        assert 'X2' not in df
+        assert 'X3' not in df
 
         d = datetime(1999, 1, 27, 19, 0)
-        self.assertEqual(df.loc[0, 'X1_X2'], d)
+        assert df.loc[0, 'X1_X2'] == d
 
         df = self.read_csv(StringIO(data), header=None,
                            parse_dates=[[1, 2], [1, 3]], keep_date_col=True)
 
-        self.assertIn('1_2', df)
-        self.assertIn('1_3', df)
-        self.assertIn(1, df)
-        self.assertIn(2, df)
-        self.assertIn(3, df)
+        assert '1_2' in df
+        assert '1_3' in df
+        assert 1 in df
+        assert 2 in df
+        assert 3 in df
 
         data = '''\
 KORD,19990127 19:00:00, 18:56:00, 0.8100, 2.8100, 7.2000, 0.0000, 280.0000
@@ -120,7 +120,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         df = self.read_csv(StringIO(data), sep=',', header=None,
                            parse_dates=[1], index_col=1)
         d = datetime(1999, 1, 27, 19, 0)
-        self.assertEqual(df.index[0], d)
+        assert df.index[0] == d
 
     def test_multiple_date_cols_int_cast(self):
         data = ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -402,7 +402,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 
         chunks = list(reader)
 
-        self.assertNotIn('nominalTime', df)
+        assert 'nominalTime' not in df
 
         tm.assert_frame_equal(chunks[0], df[:2])
         tm.assert_frame_equal(chunks[1], df[2:4])
