@@ -641,7 +641,7 @@ c,d
 2 2 2 e f
 """
         df = self.read_table(StringIO(data), sep=' ')
-        self.assertIsNone(df.index.name)
+        assert df.index.name is None
 
     def test_read_csv_parse_simple_list(self):
         text = """foo
@@ -1243,7 +1243,7 @@ c   1   2   3   4
         df = self.read_table(StringIO(data), sep=r'\s+')
         expected = self.read_csv(StringIO(re.sub('[ ]+', ',', data)),
                                  index_col=0)
-        self.assertIsNone(expected.index.name)
+        assert expected.index.name is None
         tm.assert_frame_equal(df, expected)
 
         data = '    a b c\n1 2 3 \n4 5  6\n 7 8 9'

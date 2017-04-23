@@ -74,7 +74,7 @@ class SafeForLongAndSparse(object):
                 getattr(self.panel, attr).name = None
                 cp = self.panel.copy()
                 getattr(cp, attr).name = 'foo'
-                self.assertIsNone(getattr(self.panel, attr).name)
+                assert getattr(self.panel, attr).name is None
 
     def test_iter(self):
         tm.equalContents(list(self.panel), self.panel.items)

@@ -435,7 +435,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_get_get_value(self):
         tm.assert_almost_equal(self.bseries.get(10), self.bseries[10])
-        self.assertIsNone(self.bseries.get(len(self.bseries) + 1))
+        assert self.bseries.get(len(self.bseries) + 1) is None
 
         dt = self.btseries.index[10]
         result = self.btseries.get(dt)

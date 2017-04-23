@@ -38,7 +38,7 @@ class SharedWithSparse(object):
             ind.name = None
             cp = self.frame.copy()
             getattr(cp, attr).name = 'foo'
-            self.assertIsNone(getattr(self.frame, attr).name)
+            assert getattr(self.frame, attr).name is None
 
     def test_getitem_pop_assign_name(self):
         s = self.frame['A']
@@ -116,7 +116,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))
         df1.index.name = 'foo'
-        self.assertIsNone(df2.index.name)
+        assert df2.index.name is None
 
     def test_array_interface(self):
         with np.errstate(all='ignore'):

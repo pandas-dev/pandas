@@ -81,7 +81,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         b = self.frame.get('B')
         assert_series_equal(b, self.frame['B'])
 
-        self.assertIsNone(self.frame.get('foo'))
+        assert self.frame.get('foo') is None
         assert_series_equal(self.frame.get('foo', self.frame['B']),
                             self.frame['B'])
         # None
@@ -89,7 +89,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         for df in [DataFrame(), DataFrame(columns=list('AB')),
                    DataFrame(columns=list('AB'), index=range(3))]:
             result = df.get(None)
-            self.assertIsNone(result)
+            assert result is None
 
     def test_getitem_iterator(self):
         idx = iter(['A', 'B', 'C'])

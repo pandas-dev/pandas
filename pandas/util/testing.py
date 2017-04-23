@@ -1066,11 +1066,6 @@ def assertIs(first, second, msg=''):
     assert a is b, "%s: %r is not %r" % (msg.format(a, b), a, b)
 
 
-def assertIsNone(expr, msg=''):
-    """Checks that 'expr' is None"""
-    return assertIs(expr, None, msg)
-
-
 def assert_categorical_equal(left, right, check_dtype=True,
                              obj='Categorical', check_category_order=True):
     """Test that Categoricals are equivalent.

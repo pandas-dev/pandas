@@ -931,7 +931,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         res = cat.rename_categories([1, 2, 3], inplace=True)
 
         # and now inplace
-        self.assertIsNone(res)
+        assert res is None
         tm.assert_numpy_array_equal(cat.__array__(), np.array([1, 2, 3, 1],
                                                               dtype=np.int64))
         tm.assert_index_equal(cat.categories, Index([1, 2, 3]))
@@ -959,7 +959,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         # inplace == True
         res = cat.reorder_categories(["c", "b", "a"], inplace=True)
-        self.assertIsNone(res)
+        assert res is None
         tm.assert_categorical_equal(cat, new)
 
         # not all "old" included in "new"
@@ -1000,7 +1000,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # inplace == True
         res = cat.add_categories("d", inplace=True)
         tm.assert_categorical_equal(cat, new)
-        self.assertIsNone(res)
+        assert res is None
 
         # new is in old categories
         def f():
@@ -1040,7 +1040,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # inplace == True
         res = cat.remove_categories("c", inplace=True)
         tm.assert_categorical_equal(cat, new)
-        self.assertIsNone(res)
+        assert res is None
 
         # removal is not in categories
         def f():
@@ -1062,7 +1062,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         res = c.remove_unused_categories(inplace=True)
         tm.assert_index_equal(c.categories, exp_categories_dropped)
-        self.assertIsNone(res)
+        assert res is None
 
         # with NaN values (GH11599)
         c = Categorical(["a", "b", "c", np.nan],

@@ -878,12 +878,12 @@ class TestHDFStore(Base, tm.TestCase):
             store.append('ss', ss)
             result = store['ss']
             tm.assert_series_equal(result, ss)
-            self.assertIsNone(result.name)
+            assert result.name is None
 
             store.append('ts', ts)
             result = store['ts']
             tm.assert_series_equal(result, ts)
-            self.assertIsNone(result.name)
+            assert result.name is None
 
             ns.name = 'foo'
             store.append('ns', ns)
@@ -3573,7 +3573,7 @@ class TestHDFStore(Base, tm.TestCase):
                                               periods=3, freq='D'))))
                 store.append('data', df2)
 
-            self.assertIsNone(store.get_storer('data').info['index']['freq'])
+            assert store.get_storer('data').info['index']['freq'] is None
 
             # this is ok
             _maybe_remove(store, 'df2')
@@ -3618,7 +3618,7 @@ class TestHDFStore(Base, tm.TestCase):
                 df2 = DataFrame(dict(A=Series(lrange(3), index=idx2)))
                 df2.to_hdf(path, 'data', append=True)
 
-            self.assertIsNone(read_hdf(path, 'data').index.name)
+            assert read_hdf(path, 'data').index.name is None
 
     def test_panel_select(self):
 

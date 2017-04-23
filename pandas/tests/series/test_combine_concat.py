@@ -246,7 +246,7 @@ class TestTimeseries(tm.TestCase):
         rng1.name = 'foo'
         rng2.name = 'bar'
         self.assertEqual(rng1.append(rng1).name, 'foo')
-        self.assertIsNone(rng1.append(rng2).name)
+        assert rng1.append(rng2).name is None
 
     def test_append_concat_tz(self):
         # GH 2938

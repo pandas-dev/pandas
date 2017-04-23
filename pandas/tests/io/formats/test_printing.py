@@ -151,7 +151,7 @@ class TestTableSchemaRepr(tm.TestCase):
             with opt, make_patch as mock_display:
                 handle = obj._ipython_display_()
                 self.assertEqual(mock_display.call_count, 1)
-                self.assertIsNone(handle)
+                assert handle is None
                 args, kwargs = mock_display.call_args
                 arg, = args  # just one argument
 

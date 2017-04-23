@@ -189,7 +189,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
             self.assertEqual(result, df._repr_latex_())
 
         # GH 12182
-        self.assertIsNone(df._repr_latex_())
+        assert df._repr_latex_() is None
 
     @tm.capture_stdout
     def test_info(self):

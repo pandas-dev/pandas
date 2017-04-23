@@ -620,18 +620,18 @@ Freq: D"""
         for idx, expected in [(idx1, exp1), (idx1, exp1), (idx1, exp1)]:
             ordered = idx.sort_values()
             tm.assert_index_equal(ordered, expected)
-            self.assertIsNone(ordered.freq)
+            assert ordered.freq is None
 
             ordered = idx.sort_values(ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
-            self.assertIsNone(ordered.freq)
+            assert ordered.freq is None
 
             ordered, indexer = idx.sort_values(return_indexer=True)
             tm.assert_index_equal(ordered, expected)
 
             exp = np.array([0, 4, 3, 1, 2])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
-            self.assertIsNone(ordered.freq)
+            assert ordered.freq is None
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
@@ -639,7 +639,7 @@ Freq: D"""
 
             exp = np.array([2, 1, 3, 4, 0])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
-            self.assertIsNone(ordered.freq)
+            assert ordered.freq is None
 
     def test_getitem(self):
         idx1 = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
@@ -681,10 +681,10 @@ Freq: D"""
         self.assertEqual(idx.freq, result.freq)
 
         idx_dup = idx.append(idx)
-        self.assertIsNone(idx_dup.freq)  # freq is reset
+        assert idx_dup.freq is None  # freq is reset
         result = idx_dup.drop_duplicates()
         tm.assert_index_equal(idx, result)
-        self.assertIsNone(result.freq)
+        assert result.freq is None
 
     def test_drop_duplicates(self):
         # to check Index/Series compat
@@ -739,12 +739,12 @@ Freq: D"""
             result = idx.take([3, 2, 5])
             expected = TimedeltaIndex(['4 day', '3 day', '6 day'], name='idx')
             tm.assert_index_equal(result, expected)
-            self.assertIsNone(result.freq)
+            assert result.freq is None
 
             result = idx.take([-3, 2, 5])
             expected = TimedeltaIndex(['29 day', '3 day', '6 day'], name='idx')
             tm.assert_index_equal(result, expected)
-            self.assertIsNone(result.freq)
+            assert result.freq is None
 
     def test_take_invalid_kwargs(self):
         idx = pd.timedelta_range('1 day', '31 day', freq='D', name='idx')
@@ -808,7 +808,7 @@ Freq: D"""
         exp = pd.TimedeltaIndex(['1 days', '1 days', '2 days', '2 days'])
         for res in [index.repeat(2), np.repeat(index, 2)]:
             tm.assert_index_equal(res, exp)
-            self.assertIsNone(res.freq)
+            assert res.freq is None
 
         index = TimedeltaIndex(['1 days', 'NaT', '3 days'])
         exp = TimedeltaIndex(['1 days', '1 days', '1 days',
@@ -816,7 +816,7 @@ Freq: D"""
                               '3 days', '3 days', '3 days'])
         for res in [index.repeat(3), np.repeat(index, 3)]:
             tm.assert_index_equal(res, exp)
-            self.assertIsNone(res.freq)
+            assert res.freq is None
 
     def test_nat(self):
         self.assertIs(pd.TimedeltaIndex._na_value, pd.NaT)

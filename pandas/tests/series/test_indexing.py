@@ -164,7 +164,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         # GH 5652
         for s in [Series(), Series(index=list('abc'))]:
             result = s.get(None)
-            self.assertIsNone(result)
+            assert result is None
 
     def test_iloc(self):
 

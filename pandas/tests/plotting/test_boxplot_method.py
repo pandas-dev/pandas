@@ -150,7 +150,7 @@ class TestDataFramePlots(TestPlotBase):
         _check_ax_limits(df['age'], age_ax)
         self.assertEqual(weight_ax._sharey, height_ax)
         self.assertEqual(age_ax._sharey, height_ax)
-        self.assertIsNone(dummy_ax._sharey)
+        assert dummy_ax._sharey is None
 
     @slow
     def test_boxplot_empty_column(self):

@@ -1467,7 +1467,7 @@ class TestTimeSeries(tm.TestCase):
         self.assertEqual(v3, Timestamp('6/30/2005'))
 
         # don't carry freq through irregular slicing
-        self.assertIsNone(dti2.freq)
+        assert dti2.freq is None
 
     def test_woy_boundary(self):
         # make sure weeks at year boundaries are correct

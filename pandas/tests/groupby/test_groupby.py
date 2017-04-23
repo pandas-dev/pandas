@@ -1972,11 +1972,11 @@ class TestGroupBy(MixIn, tm.TestCase):
         # GH13568
         result = self.df.groupby(['A', 'B']).apply(len)
         self.assertTrue(isinstance(result, Series))
-        self.assertIsNone(result.name)
+        assert result.name is None
 
         result = self.df.groupby(['A', 'B'])[['C', 'D']].apply(len)
         self.assertTrue(isinstance(result, Series))
-        self.assertIsNone(result.name)
+        assert result.name is None
 
     def test_apply_frame_to_series(self):
         grouped = self.df.groupby(['A', 'B'])
@@ -2954,7 +2954,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         s.name = None
 
         result = s.groupby(self.frame['A']).agg(np.sum)
-        self.assertIsNone(result.name)
+        assert result.name is None
 
     def test_multifunc_sum_bug(self):
         # GH #1065
@@ -3060,7 +3060,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         # GH #1291
 
         result = self.df.groupby(self.df['A'].values).sum()
-        self.assertIsNone(result.index.name)
+        assert result.index.name is None
 
         result = self.df.groupby([self.df['A'].values, self.df['B'].values
                                   ]).sum()

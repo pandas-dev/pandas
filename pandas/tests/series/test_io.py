@@ -34,8 +34,8 @@ class TestSeriesToCSV(TestData, tm.TestCase):
 
             self.series.to_csv(path)
             series = Series.from_csv(path)
-            self.assertIsNone(series.name)
-            self.assertIsNone(series.index.name)
+            assert series.name is None
+            assert series.index.name is None
             assert_series_equal(self.series, series, check_names=False)
             self.assertTrue(series.name is None)
             self.assertTrue(series.index.name is None)

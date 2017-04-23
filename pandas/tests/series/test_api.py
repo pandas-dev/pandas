@@ -34,13 +34,13 @@ class SharedWithSparse(object):
         # making a copy
 
         self.ts.index.name = None
-        self.assertIsNone(self.ts.index.name)
+        assert self.ts.index.name is None
         self.assertIs(self.ts, self.ts)
 
         cp = self.ts.copy()
         cp.index.name = 'foo'
         printing.pprint_thing(self.ts.index.name)
-        self.assertIsNone(self.ts.index.name)
+        assert self.ts.index.name is None
 
     def test_append_preserve_name(self):
         result = self.ts[:5].append(self.ts[5:])
@@ -60,9 +60,9 @@ class SharedWithSparse(object):
         cp = self.ts.copy()
         cp.name = 'something else'
         result = self.ts + cp
-        self.assertIsNone(result.name)
+        assert result.name is None
         result = self.ts.add(cp)
-        self.assertIsNone(result.name)
+        assert result.name is None
 
         ops = ['add', 'sub', 'mul', 'div', 'truediv', 'floordiv', 'mod', 'pow']
         ops = ops + ['r' + op for op in ops]
@@ -76,7 +76,7 @@ class SharedWithSparse(object):
             cp = self.ts.copy()
             cp.name = 'changed'
             result = getattr(s, op)(cp)
-            self.assertIsNone(result.name)
+            assert result.name is None
 
     def test_combine_first_name(self):
         result = self.ts.combine_first(self.ts[:5])
@@ -170,7 +170,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Timestamp)
             self.assertEqual(res, exp)
-            self.assertIsNone(res.tz)
+            assert res.tz is None
 
         vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
                 pd.Timestamp('2011-01-02', tz='US/Eastern')]
