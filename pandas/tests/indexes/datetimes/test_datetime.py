@@ -480,7 +480,7 @@ class TestDatetimeIndex(tm.TestCase):
             for taken in [taken1, taken2]:
                 tm.assert_index_equal(taken, expected)
                 assert isinstance(taken, DatetimeIndex)
-                self.assertIsNone(taken.freq)
+                assert taken.freq is None
                 self.assertEqual(taken.tz, expected.tz)
                 self.assertEqual(taken.name, expected.name)
 

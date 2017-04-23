@@ -545,12 +545,12 @@ class TestFrequencyInference(tm.TestCase):
 
         index = _dti([b + base_delta * 7] + [b + base_delta * j for j in range(
             3)])
-        self.assertIsNone(frequencies.infer_freq(index))
+        assert frequencies.infer_freq(index) is None
 
         index = _dti([b + base_delta * j for j in range(3)] + [b + base_delta *
                                                                7])
 
-        self.assertIsNone(frequencies.infer_freq(index))
+        assert frequencies.infer_freq(index) is None
 
     def test_weekly(self):
         days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
@@ -690,7 +690,7 @@ class TestFrequencyInference(tm.TestCase):
 
         index = date_range("2013-11-03", periods=5,
                            freq="3H").tz_localize("America/Chicago")
-        self.assertIsNone(index.inferred_freq)
+        assert index.inferred_freq is None
 
     def test_infer_freq_businesshour(self):
         # GH 7905

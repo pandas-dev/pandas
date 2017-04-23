@@ -659,12 +659,12 @@ class TestIndex(Base, tm.TestCase):
 
         second.name = 'B'
         intersect = first.intersection(second)
-        self.assertIsNone(intersect.name)
+        assert intersect.name is None
 
         first.name = None
         second.name = 'B'
         intersect = first.intersection(second)
-        self.assertIsNone(intersect.name)
+        assert intersect.name is None
 
     def test_union(self):
         first = self.strIndex[5:20]
@@ -844,7 +844,7 @@ class TestIndex(Base, tm.TestCase):
         right = Index([1, 2, 3], name='bar')
 
         result = left.append(right)
-        self.assertIsNone(result.name)
+        assert result.name is None
 
     def test_add_string(self):
         # from bug report
@@ -896,12 +896,12 @@ class TestIndex(Base, tm.TestCase):
         result = idx1.symmetric_difference(idx2)
         expected = Index([1, 5])
         self.assertTrue(tm.equalContents(result, expected))
-        self.assertIsNone(result.name)
+        assert result.name is None
 
         # __xor__ syntax
         expected = idx1 ^ idx2
         self.assertTrue(tm.equalContents(result, expected))
-        self.assertIsNone(result.name)
+        assert result.name is None
 
         # multiIndex
         idx1 = MultiIndex.from_tuples(self.tuples)
@@ -1015,7 +1015,7 @@ class TestIndex(Base, tm.TestCase):
 
         idx = Index(values)
         idx.format()
-        self.assertIsNone(idx[3])
+        assert idx[3] is None
 
     def test_logical_compat(self):
         idx = self.create_index()

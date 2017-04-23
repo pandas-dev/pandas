@@ -1126,7 +1126,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         buf = StringIO()
         retval = biggie.to_string(buf=buf)
-        self.assertIsNone(retval)
+        assert retval is None
         self.assertEqual(buf.getvalue(), s)
 
         assert isinstance(s, compat.string_types)
@@ -1631,7 +1631,7 @@ class TestSeriesFormatting(tm.TestCase):
         s = self.ts.to_string()
 
         retval = self.ts.to_string(buf=buf)
-        self.assertIsNone(retval)
+        assert retval is None
         self.assertEqual(buf.getvalue().strip(), s)
 
         # pass float_format

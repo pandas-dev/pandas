@@ -91,7 +91,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
     def test_constructor_dtype_list_data(self):
         df = DataFrame([[1, '2'],
                         [None, 'a']], dtype=object)
-        self.assertIsNone(df.loc[1, 0])
+        assert df.loc[1, 0] is None
         self.assertEqual(df.loc[0, 1], '2')
 
     def test_constructor_list_frames(self):

@@ -1423,7 +1423,7 @@ class TestToHTML(tm.TestCase):
 
         buf = StringIO()
         retval = biggie.to_html(buf=buf)
-        self.assertIsNone(retval)
+        assert retval is None
         self.assertEqual(buf.getvalue(), s)
 
         assert isinstance(s, compat.string_types)
