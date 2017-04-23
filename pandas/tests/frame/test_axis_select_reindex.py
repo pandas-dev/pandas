@@ -734,7 +734,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         # regex
         filtered = fcopy.filter(regex='[A]+')
         self.assertEqual(len(filtered.columns), 2)
-        self.assertIn('AA', filtered)
+        assert 'AA' in filtered
 
         # doesn't have to be at beginning
         df = DataFrame({'aBBa': [1, 2],

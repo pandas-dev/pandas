@@ -894,7 +894,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             assert_attr_equal('dtype', l, r, obj=obj)
             # allow string-like to have different inferred_types
             if l.inferred_type in ('string', 'unicode'):
-                assertIn(r.inferred_type, ('string', 'unicode'))
+                assert r.inferred_type in ('string', 'unicode')
             else:
                 assert_attr_equal('inferred_type', l, r, obj=obj)
 
@@ -1064,12 +1064,6 @@ def assertIs(first, second, msg=''):
     """Checks that 'first' is 'second'"""
     a, b = first, second
     assert a is b, "%s: %r is not %r" % (msg.format(a, b), a, b)
-
-
-def assertIn(first, second, msg=''):
-    """Checks that 'first' is in 'second'"""
-    a, b = first, second
-    assert a in b, "%s: %r is not in %r" % (msg.format(a, b), a, b)
 
 
 def assertIsNone(expr, msg=''):

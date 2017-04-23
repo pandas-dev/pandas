@@ -796,7 +796,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         frame.to_csv(buf)
 
         result = buf.getvalue()
-        self.assertIn('2000-01-01', result)
+        assert '2000-01-01' in result
 
     def test_series_map_box_timedelta(self):
         # GH 11349

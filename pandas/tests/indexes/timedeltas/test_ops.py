@@ -561,7 +561,7 @@ Freq: D"""
         for idx in map(TimedeltaIndex, ([0, 1, 0], [0, 0, -1], [0, -1, -1],
                                         ['00:01:00', '00:01:00', '00:02:00'],
                                         ['00:01:00', '00:01:00', '00:00:01'])):
-            tm.assertIn(idx[0], idx)
+            assert idx[0] in idx
 
     def test_unknown_attribute(self):
         # see gh-9680

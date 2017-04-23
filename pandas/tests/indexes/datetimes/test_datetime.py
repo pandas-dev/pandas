@@ -101,7 +101,7 @@ class TestDatetimeIndex(tm.TestCase):
         try:
             index.get_loc('1/1/2000')
         except KeyError as e:
-            self.assertIn('2000', str(e))
+            assert '2000' in str(e)
 
     def test_roundtrip_pickle_with_tz(self):
 
