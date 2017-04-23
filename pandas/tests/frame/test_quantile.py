@@ -431,7 +431,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         # res = df.quantile(0.5)
 
         # datetimes
-        df = DataFrame(columns=['a', 'b'], dtype='datetime64')
+        df = DataFrame(columns=['a', 'b'], dtype='datetime64[ns]')
 
         # FIXME (gives NaNs instead of NaT in 0.18.1 or 0.19.0)
         # res = df.quantile(0.5, numeric_only=False)

@@ -752,5 +752,6 @@ def test_from_custom_template(tmpdir):
 def test_shim():
     # https://github.com/pandas-dev/pandas/pull/16059
     # Remove in 0.21
-    with pytest.warns(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
         from pandas.formats.style import Styler as _styler  # noqa
