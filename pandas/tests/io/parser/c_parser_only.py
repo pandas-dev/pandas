@@ -33,7 +33,7 @@ class CParserTests(object):
             try:
                 self.read_table(StringIO(malf))
             except Exception as err:
-                self.assertIn(cperr, str(err))
+                assert cperr in str(err)
 
     def test_buffer_rd_bytes(self):
         # see gh-12098: src->buffer in the C parser can be freed twice leading

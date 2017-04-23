@@ -138,7 +138,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                         'E': np.random.randn(5)})
         with assertRaisesRegexp(ValueError, 'Index has duplicate keys'):
             df.set_index('A', verify_integrity=True, inplace=True)
-        self.assertIn('A', df)
+        assert 'A' in df
 
     def test_set_index_bug(self):
         # GH1590

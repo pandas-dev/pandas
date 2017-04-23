@@ -459,7 +459,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         try:
             self.ts.fillna(method='ffil')
         except ValueError as inst:
-            self.assertIn('ffil', str(inst))
+            assert 'ffil' in str(inst)
 
     def test_ffill(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
