@@ -1336,7 +1336,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
         c = a + b
         d = c + b""", inplace=True)
         assert_frame_equal(expected, df)
-        self.assertIsNone(ans)
+        assert ans is None
 
         expected['a'] = expected['a'] - 1
         expected['e'] = expected['a'] + 2
@@ -1344,7 +1344,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
         a = a - 1
         e = a + 2""", inplace=True)
         assert_frame_equal(expected, df)
-        self.assertIsNone(ans)
+        assert ans is None
 
         # multi-line not valid if not all assignments
         with pytest.raises(ValueError):
@@ -1384,7 +1384,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
         d = c + @local_var
         """, inplace=True)
         assert_frame_equal(expected, df)
-        self.assertIsNone(ans)
+        assert ans is None
 
     def test_assignment_in_query(self):
         # GH 8664

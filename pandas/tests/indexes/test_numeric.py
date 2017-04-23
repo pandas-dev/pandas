@@ -791,7 +791,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
 
         assert isinstance(res, Int64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # monotonic
@@ -801,7 +801,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
                          dtype=np.intp)
         assert isinstance(res, Int64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # non-unique
@@ -828,7 +828,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
         assert isinstance(other, Int64Index)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
-        self.assertIsNone(ridx)
+        assert ridx is None
 
         # monotonic
         res, lidx, ridx = self.index.join(other_mono, how='right',
@@ -838,7 +838,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
         assert isinstance(other, Int64Index)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
-        self.assertIsNone(ridx)
+        assert ridx is None
 
         # non-unique
         idx = Index([1, 1, 2, 5])
@@ -1031,7 +1031,7 @@ class TestUInt64Index(NumericInt, tm.TestCase):
 
         assert isinstance(res, UInt64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # monotonic
@@ -1041,7 +1041,7 @@ class TestUInt64Index(NumericInt, tm.TestCase):
 
         assert isinstance(res, UInt64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # non-unique
@@ -1074,7 +1074,7 @@ class TestUInt64Index(NumericInt, tm.TestCase):
         tm.assert_numpy_array_equal(lidx, elidx)
         assert isinstance(other, UInt64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(ridx)
+        assert ridx is None
 
         # monotonic
         res, lidx, ridx = self.index.join(other_mono, how='right',
@@ -1085,7 +1085,7 @@ class TestUInt64Index(NumericInt, tm.TestCase):
         assert isinstance(other, UInt64Index)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(ridx)
+        assert ridx is None
 
         # non-unique
         idx = UInt64Index(2**63 + np.array([1, 1, 2, 5], dtype='uint64'))

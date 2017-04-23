@@ -195,7 +195,7 @@ class Base(object):
             res = ind.rename(new_name, inplace=True)
 
             # should return None
-            self.assertIsNone(res)
+            assert res is None
             self.assertEqual(ind.name, new_name)
             self.assertEqual(ind.names, [new_name])
             # with assertRaisesRegexp(TypeError, "list-like"):

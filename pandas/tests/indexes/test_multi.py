@@ -138,7 +138,7 @@ class TestMultiIndex(Base, tm.TestCase):
             ind.set_names(new_names + new_names)
         new_names2 = [name + "SUFFIX2" for name in new_names]
         res = ind.set_names(new_names2, inplace=True)
-        self.assertIsNone(res)
+        assert res is None
         self.assertEqual(ind.names, new_names2)
 
         # set names for specific level (# GH7792)
@@ -147,7 +147,7 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertEqual(ind.names, [new_names[0], self.index_names[1]])
 
         res = ind.set_names(new_names2[0], level=0, inplace=True)
-        self.assertIsNone(res)
+        assert res is None
         self.assertEqual(ind.names, [new_names2[0], self.index_names[1]])
 
         # set names for multiple levels
@@ -156,7 +156,7 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertEqual(ind.names, new_names)
 
         res = ind.set_names(new_names2, level=[0, 1], inplace=True)
-        self.assertIsNone(res)
+        assert res is None
         self.assertEqual(ind.names, new_names2)
 
     def test_set_levels(self):
@@ -182,7 +182,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # level changing [w/ mutation]
         ind2 = self.index.copy()
         inplace_return = ind2.set_levels(new_levels, inplace=True)
-        self.assertIsNone(inplace_return)
+        assert inplace_return is None
         assert_matching(ind2.levels, new_levels)
 
         # level changing specific level [w/o mutation]
@@ -202,13 +202,13 @@ class TestMultiIndex(Base, tm.TestCase):
         # level changing specific level [w/ mutation]
         ind2 = self.index.copy()
         inplace_return = ind2.set_levels(new_levels[0], level=0, inplace=True)
-        self.assertIsNone(inplace_return)
+        assert inplace_return is None
         assert_matching(ind2.levels, [new_levels[0], levels[1]])
         assert_matching(self.index.levels, levels)
 
         ind2 = self.index.copy()
         inplace_return = ind2.set_levels(new_levels[1], level=1, inplace=True)
-        self.assertIsNone(inplace_return)
+        assert inplace_return is None
         assert_matching(ind2.levels, [levels[0], new_levels[1]])
         assert_matching(self.index.levels, levels)
 
@@ -216,7 +216,7 @@ class TestMultiIndex(Base, tm.TestCase):
         ind2 = self.index.copy()
         inplace_return = ind2.set_levels(new_levels, level=[0, 1],
                                          inplace=True)
-        self.assertIsNone(inplace_return)
+        assert inplace_return is None
         assert_matching(ind2.levels, new_levels)
         assert_matching(self.index.levels, levels)
 
@@ -271,7 +271,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # label changing [w/ mutation]
         ind2 = self.index.copy()
         inplace_return = ind2.set_labels(new_labels, inplace=True)
-        self.assertIsNone(inplace_return)
+        assert inplace_return is None
         assert_matching(ind2.labels, new_labels)
 
         # label changing specific level [w/o mutation]
@@ -291,13 +291,13 @@ class TestMultiIndex(Base, tm.TestCase):
         # label changing specific level [w/ mutation]
         ind2 = self.index.copy()
         inplace_return = ind2.set_labels(new_labels[0], level=0, inplace=True)
-        self.assertIsNone(inplace_return)
+        assert inplace_return is None
         assert_matching(ind2.labels, [new_labels[0], labels[1]])
         assert_matching(self.index.labels, labels)
 
         ind2 = self.index.copy()
         inplace_return = ind2.set_labels(new_labels[1], level=1, inplace=True)
-        self.assertIsNone(inplace_return)
+        assert inplace_return is None
         assert_matching(ind2.labels, [labels[0], new_labels[1]])
         assert_matching(self.index.labels, labels)
 
@@ -305,7 +305,7 @@ class TestMultiIndex(Base, tm.TestCase):
         ind2 = self.index.copy()
         inplace_return = ind2.set_labels(new_labels, level=[0, 1],
                                          inplace=True)
-        self.assertIsNone(inplace_return)
+        assert inplace_return is None
         assert_matching(ind2.labels, new_labels)
         assert_matching(self.index.labels, labels)
 
@@ -457,10 +457,10 @@ class TestMultiIndex(Base, tm.TestCase):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sort_index()
-        self.assertIsNone(df.is_copy)
+        assert df.is_copy is None
         self.assertEqual(df.index.names, ('Name', 'Number'))
         df = df.set_value(('grethe', '4'), 'one', 99.34)
-        self.assertIsNone(df.is_copy)
+        assert df.is_copy is None
         self.assertEqual(df.index.names, ('Name', 'Number'))
 
     def test_copy_names(self):
@@ -1158,7 +1158,7 @@ class TestMultiIndex(Base, tm.TestCase):
         loc, new_index = index.get_loc_level((0, 1, 0))
         expected = 1
         self.assertEqual(loc, expected)
-        self.assertIsNone(new_index)
+        assert new_index is None
 
         pytest.raises(KeyError, index.get_loc_level, (2, 2))
 
@@ -2067,12 +2067,12 @@ class TestMultiIndex(Base, tm.TestCase):
         exp_ridx = np.array([-1, 0, 1, -1, -1, 0, 1, -1, -1, 0, 1, -1, -1, 0,
                              1, -1], dtype=np.intp)
         tm.assert_index_equal(jidx, midx)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, exp_ridx)
         # flip
         jidx, ridx, lidx = idx.join(midx, how='right', return_indexers=True)
         tm.assert_index_equal(jidx, midx)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, exp_ridx)
 
     def test_reindex(self):
@@ -2082,7 +2082,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         result, indexer = self.index.reindex(list(self.index))
         assert isinstance(result, MultiIndex)
-        self.assertIsNone(indexer)
+        assert indexer is None
         self.check_level_names(result, self.index.names)
 
     def test_reindex_level(self):

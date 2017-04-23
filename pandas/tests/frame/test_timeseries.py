@@ -415,8 +415,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
         # GH12800
         empty = DataFrame()
-        self.assertIsNone(empty.last_valid_index())
-        self.assertIsNone(empty.first_valid_index())
+        assert empty.last_valid_index() is None
+        assert empty.first_valid_index() is None
 
     def test_at_time_frame(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')

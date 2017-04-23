@@ -147,7 +147,7 @@ class Base(tm.TestCase):
 
             result = Timestamp('20080101') + offset
             assert isinstance(result, datetime)
-            self.assertIsNone(result.tzinfo)
+            assert result.tzinfo is None
 
             tm._skip_if_no_pytz()
             tm._skip_if_no_dateutil()

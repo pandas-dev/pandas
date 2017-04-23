@@ -208,7 +208,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         for taken in [taken1, taken2]:
             tm.assert_index_equal(taken, expected)
             assert isinstance(taken, TimedeltaIndex)
-            self.assertIsNone(taken.freq)
+            assert taken.freq is None
             self.assertEqual(taken.name, expected.name)
 
     def test_take_fill_value(self):

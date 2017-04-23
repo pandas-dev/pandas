@@ -145,7 +145,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_get_datevalue(self):
         from pandas.plotting._converter import get_datevalue
-        self.assertIsNone(get_datevalue(None, 'D'))
+        assert get_datevalue(None, 'D') is None
         self.assertEqual(get_datevalue(1987, 'A'), 1987)
         self.assertEqual(get_datevalue(Period(1987, 'A'), 'M'),
                          Period('1987-12', 'M').ordinal)
@@ -1069,7 +1069,7 @@ class TestTSPlot(TestPlotBase):
         self.assertEqual(leg.get_texts()[1].get_text(), 'B (right)')
         self.assertEqual(leg.get_texts()[2].get_text(), 'C')
         self.assertEqual(leg.get_texts()[3].get_text(), 'D')
-        self.assertIsNone(ax.right_ax.get_legend())
+        assert ax.right_ax.get_legend() is None
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
@@ -1105,7 +1105,7 @@ class TestTSPlot(TestPlotBase):
         ax = df.plot(secondary_y=['C', 'D'])
         leg = ax.get_legend()
         self.assertEqual(len(leg.get_lines()), 4)
-        self.assertIsNone(ax.right_ax.get_legend())
+        assert ax.right_ax.get_legend() is None
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
@@ -1120,7 +1120,7 @@ class TestTSPlot(TestPlotBase):
         ax = df.plot(secondary_y=['A', 'B'])
         leg = ax.get_legend()
         self.assertEqual(len(leg.get_lines()), 4)
-        self.assertIsNone(ax.right_ax.get_legend())
+        assert ax.right_ax.get_legend() is None
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())
@@ -1133,7 +1133,7 @@ class TestTSPlot(TestPlotBase):
         ax = df.plot(secondary_y=['C', 'D'])
         leg = ax.get_legend()
         self.assertEqual(len(leg.get_lines()), 4)
-        self.assertIsNone(ax.right_ax.get_legend())
+        assert ax.right_ax.get_legend() is None
         colors = set()
         for line in leg.get_lines():
             colors.add(line.get_color())

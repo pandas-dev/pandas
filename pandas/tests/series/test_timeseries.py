@@ -373,17 +373,17 @@ class TestTimeSeries(TestData, tm.TestCase):
         self.assertEqual(index, ts.index[-6])
 
         ts[:] = np.nan
-        self.assertIsNone(ts.last_valid_index())
-        self.assertIsNone(ts.first_valid_index())
+        assert ts.last_valid_index() is None
+        assert ts.first_valid_index() is None
 
         ser = Series([], index=[])
-        self.assertIsNone(ser.last_valid_index())
-        self.assertIsNone(ser.first_valid_index())
+        assert ser.last_valid_index() is None
+        assert ser.first_valid_index() is None
 
         # GH12800
         empty = Series()
-        self.assertIsNone(empty.last_valid_index())
-        self.assertIsNone(empty.first_valid_index())
+        assert empty.last_valid_index() is None
+        assert empty.first_valid_index() is None
 
     def test_mpl_compat_hack(self):
         result = self.ts[:, np.newaxis]
@@ -860,7 +860,7 @@ class TestTimeSeries(TestData, tm.TestCase):
 
             result = rng[:50].union(rng[60:100])
             self.assertEqual(result.name, rng.name)
-            self.assertIsNone(result.freq)
+            assert result.freq is None
             self.assertEqual(result.tz, rng.tz)
 
             result = rng[:50].intersection(rng[25:75])
@@ -870,12 +870,12 @@ class TestTimeSeries(TestData, tm.TestCase):
 
             nofreq = DatetimeIndex(list(rng[25:75]), name='other')
             result = rng[:50].union(nofreq)
-            self.assertIsNone(result.name)
+            assert result.name is None
             self.assertEqual(result.freq, rng.freq)
             self.assertEqual(result.tz, rng.tz)
 
             result = rng[:50].intersection(nofreq)
-            self.assertIsNone(result.name)
+            assert result.name is None
             self.assertEqual(result.freq, rng.freq)
             self.assertEqual(result.tz, rng.tz)
 

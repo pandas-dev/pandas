@@ -65,7 +65,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         result = expected.union(expected)
         tm.assert_index_equal(result, expected)
-        self.assertIsNone(result.freq)
+        assert result.freq is None
 
     def test_union_dataframe_index(self):
         rng1 = date_range('1/1/1999', '1/1/2012', freq='MS')
@@ -137,7 +137,7 @@ class TestDatetimeIndex(tm.TestCase):
                 result = base.intersection(rng)
                 tm.assert_index_equal(result, expected)
                 self.assertEqual(result.name, expected.name)
-                self.assertIsNone(result.freq)
+                assert result.freq is None
                 self.assertEqual(result.tz, expected.tz)
 
         # empty same freq GH2129
@@ -251,7 +251,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
 
         the_join = left.join(right, how='outer')
         assert isinstance(the_join, DatetimeIndex)
-        self.assertIsNone(the_join.freq)
+        assert the_join.freq is None
 
         # non-overlapping, no gap
         left = self.rng[:5]
@@ -265,7 +265,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
 
         the_join = self.rng.join(rng, how='outer')
         assert isinstance(the_join, DatetimeIndex)
-        self.assertIsNone(the_join.freq)
+        assert the_join.freq is None
 
     def test_union_not_cacheable(self):
         rng = date_range('1/1/2000', periods=50, freq=Minute())
@@ -395,7 +395,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
 
         the_join = left.join(right, how='outer')
         assert isinstance(the_join, DatetimeIndex)
-        self.assertIsNone(the_join.freq)
+        assert the_join.freq is None
 
         # non-overlapping, no gap
         left = self.rng[:5]
@@ -409,7 +409,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
 
         the_join = self.rng.join(rng, how='outer')
         assert isinstance(the_join, DatetimeIndex)
-        self.assertIsNone(the_join.freq)
+        assert the_join.freq is None
 
     def test_intersection_bug(self):
         # GH #771
