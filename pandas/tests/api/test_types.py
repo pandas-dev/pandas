@@ -33,10 +33,11 @@ class TestTypes(Base, tm.TestCase):
                'is_list_like', 'is_hashable',
                'is_named_tuple', 'is_sequence',
                'pandas_dtype', 'union_categoricals', 'infer_dtype']
+    dtypes = ['CategoricalDtype', 'DatetimeTZDtype', 'PeriodDtype']
 
     def test_types(self):
 
-        self.check(types, self.allowed)
+        self.check(types, self.allowed + self.dtypes)
 
     def check_deprecation(self, fold, fnew):
         with tm.assert_produces_warning(DeprecationWarning):
