@@ -183,15 +183,15 @@ class TestDataFrameFormatting(tm.TestCase):
 
             for line, value in lzip(r.split('\n'), df['B']):
                 if adj.len(value) + 1 > max_len:
-                    self.assertIn('...', line)
+                    assert '...' in line
                 else:
-                    self.assertNotIn('...', line)
+                    assert '...' not in line
 
         with option_context("display.max_colwidth", 999999):
-            self.assertNotIn('...', repr(df))
+            assert '...' not in repr(df)
 
         with option_context("display.max_colwidth", max_len + 2):
-            self.assertNotIn('...', repr(df))
+            assert '...' not in repr(df)
 
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])

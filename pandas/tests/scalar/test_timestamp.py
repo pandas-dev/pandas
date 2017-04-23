@@ -310,40 +310,40 @@ class TestTimestamp(tm.TestCase):
                         tz_repr = tz
 
                     date_only = Timestamp(date)
-                    self.assertIn(date, repr(date_only))
-                    self.assertNotIn(tz_repr, repr(date_only))
-                    self.assertNotIn(freq_repr, repr(date_only))
-                    self.assertEqual(date_only, eval(repr(date_only)))
+                    assert date in repr(date_only)
+                    assert tz_repr not in repr(date_only)
+                    assert freq_repr not in repr(date_only)
+                    assert date_only == eval(repr(date_only))
 
                     date_tz = Timestamp(date, tz=tz)
-                    self.assertIn(date, repr(date_tz))
-                    self.assertIn(tz_repr, repr(date_tz))
-                    self.assertNotIn(freq_repr, repr(date_tz))
-                    self.assertEqual(date_tz, eval(repr(date_tz)))
+                    assert date in repr(date_tz)
+                    assert tz_repr in repr(date_tz)
+                    assert freq_repr not in repr(date_tz)
+                    assert date_tz == eval(repr(date_tz))
 
                     date_freq = Timestamp(date, freq=freq)
-                    self.assertIn(date, repr(date_freq))
-                    self.assertNotIn(tz_repr, repr(date_freq))
-                    self.assertIn(freq_repr, repr(date_freq))
-                    self.assertEqual(date_freq, eval(repr(date_freq)))
+                    assert date in repr(date_freq)
+                    assert tz_repr not in repr(date_freq)
+                    assert freq_repr in repr(date_freq)
+                    assert date_freq == eval(repr(date_freq))
 
                     date_tz_freq = Timestamp(date, tz=tz, freq=freq)
-                    self.assertIn(date, repr(date_tz_freq))
-                    self.assertIn(tz_repr, repr(date_tz_freq))
-                    self.assertIn(freq_repr, repr(date_tz_freq))
-                    self.assertEqual(date_tz_freq, eval(repr(date_tz_freq)))
+                    assert date in repr(date_tz_freq)
+                    assert tz_repr in repr(date_tz_freq)
+                    assert freq_repr in repr(date_tz_freq)
+                    assert date_tz_freq == eval(repr(date_tz_freq))
 
-        # this can cause the tz field to be populated, but it's redundant to
-        # information in the datestring
+        # This can cause the tz field to be populated, but it's redundant to
+        # include this information in the date-string.
         tm._skip_if_no_pytz()
         import pytz  # noqa
         date_with_utc_offset = Timestamp('2014-03-13 00:00:00-0400', tz=None)
-        self.assertIn('2014-03-13 00:00:00-0400', repr(date_with_utc_offset))
-        self.assertNotIn('tzoffset', repr(date_with_utc_offset))
-        self.assertIn('pytz.FixedOffset(-240)', repr(date_with_utc_offset))
+        assert '2014-03-13 00:00:00-0400' in repr(date_with_utc_offset)
+        assert 'tzoffset' not in repr(date_with_utc_offset)
+        assert 'pytz.FixedOffset(-240)' in repr(date_with_utc_offset)
         expr = repr(date_with_utc_offset).replace("'pytz.FixedOffset(-240)'",
                                                   'pytz.FixedOffset(-240)')
-        self.assertEqual(date_with_utc_offset, eval(expr))
+        assert date_with_utc_offset == eval(expr)
 
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = ('1677-09-21', '2262-04-12', )

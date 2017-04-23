@@ -545,15 +545,15 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         C = self.frame['C']
 
         del self.frame['B']
-        self.assertNotIn('B', self.frame)
+        assert 'B' not in self.frame
         tm.assert_sp_series_equal(self.frame['A'], A)
         tm.assert_sp_series_equal(self.frame['C'], C)
 
         del self.frame['D']
-        self.assertNotIn('D', self.frame)
+        assert 'D' not in self.frame
 
         del self.frame['A']
-        self.assertNotIn('A', self.frame)
+        assert 'A' not in self.frame
 
     def test_set_columns(self):
         self.frame.columns = self.frame.columns
@@ -829,22 +829,22 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
             # length zero
             length_zero = frame.reindex([])
-            self.assertEqual(len(length_zero), 0)
-            self.assertEqual(len(length_zero.columns), len(frame.columns))
-            self.assertEqual(len(length_zero['A']), 0)
+            assert len(length_zero) == 0
+            assert len(length_zero.columns) == len(frame.columns)
+            assert len(length_zero['A']) == 0
 
             # frame being reindexed has length zero
             length_n = length_zero.reindex(index)
-            self.assertEqual(len(length_n), len(frame))
-            self.assertEqual(len(length_n.columns), len(frame.columns))
-            self.assertEqual(len(length_n['A']), len(frame))
+            assert len(length_n) == len(frame)
+            assert len(length_n.columns) == len(frame.columns)
+            assert len(length_n['A']) == len(frame)
 
             # reindex columns
             reindexed = frame.reindex(columns=['A', 'B', 'Z'])
-            self.assertEqual(len(reindexed.columns), 3)
+            assert len(reindexed.columns) == 3
             tm.assert_almost_equal(reindexed['Z'].fill_value,
                                    frame.default_fill_value)
-            self.assertTrue(np.isnan(reindexed['Z'].sp_values).all())
+            assert np.isnan(reindexed['Z'].sp_values).all()
 
         _check_frame(self.frame)
         _check_frame(self.iframe)
@@ -854,11 +854,11 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         # with copy=False
         reindexed = self.frame.reindex(self.frame.index, copy=False)
         reindexed['F'] = reindexed['A']
-        self.assertIn('F', self.frame)
+        assert 'F' in self.frame
 
         reindexed = self.frame.reindex(self.frame.index)
         reindexed['G'] = reindexed['A']
-        self.assertNotIn('G', self.frame)
+        assert 'G' not in self.frame
 
     def test_reindex_fill_value(self):
         rng = bdate_range('20110110', periods=20)

@@ -458,20 +458,20 @@ class TestIntervalIndex(Base, tm.TestCase):
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_contains(self):
-        # only endpoints are valid
+        # Only endpoints are valid.
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
 
-        # invalid
-        self.assertNotIn(0, i)
-        self.assertNotIn(1, i)
-        self.assertNotIn(2, i)
+        # Invalid
+        assert 0 not in i
+        assert 1 not in i
+        assert 2 not in i
 
-        # valid
-        self.assertIn(Interval(0, 1), i)
-        self.assertIn(Interval(0, 2), i)
-        self.assertIn(Interval(0, 0.5), i)
-        self.assertNotIn(Interval(3, 5), i)
-        self.assertNotIn(Interval(-1, 0, closed='left'), i)
+        # Valid
+        assert Interval(0, 1) in i
+        assert Interval(0, 2) in i
+        assert Interval(0, 0.5) in i
+        assert Interval(3, 5) not in i
+        assert Interval(-1, 0, closed='left') not in i
 
     def testcontains(self):
         # can select values that are IN the range of a value
@@ -509,7 +509,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         expected = np.array([0, -1, 1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 
-        self.assertNotIn(1.5, index)
+        assert 1.5 not in index
 
     def test_union(self):
         other = IntervalIndex.from_arrays([2], [3])
@@ -651,11 +651,12 @@ class TestIntervalIndex(Base, tm.TestCase):
         expected = pd.date_range('2000-01-01T12:00', periods=2)
         tm.assert_index_equal(idx.mid, expected)
 
-        self.assertNotIn(pd.Timestamp('2000-01-01T12'), idx)
-        self.assertNotIn(pd.Timestamp('2000-01-01T12'), idx)
+        assert pd.Timestamp('2000-01-01T12') not in idx
+        assert pd.Timestamp('2000-01-01T12') not in idx
 
         target = pd.date_range('1999-12-31T12:00', periods=7, freq='12H')
         actual = idx.get_indexer(target)
+
         expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 

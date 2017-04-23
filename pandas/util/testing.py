@@ -1072,12 +1072,6 @@ def assertIn(first, second, msg=''):
     assert a in b, "%s: %r is not in %r" % (msg.format(a, b), a, b)
 
 
-def assertNotIn(first, second, msg=''):
-    """Checks that 'first' is not in 'second'"""
-    a, b = first, second
-    assert a not in b, "%s: %r is in %r" % (msg.format(a, b), a, b)
-
-
 def assertIsNone(expr, msg=''):
     """Checks that 'expr' is None"""
     return assertIs(expr, None, msg)
@@ -2500,40 +2494,79 @@ item assignment"
 
 class _AssertRaisesContextmanager(object):
     """
-    Handles the behind the scenes work
-    for assertRaises and assertRaisesRegexp
+    Context manager behind assertRaisesRegexp.
     """
 
-    def __init__(self, exception, regexp=None, *args, **kwargs):
+    def __init__(self, exception, regexp=None):
+        """
+        Initialize an _AssertRaisesContextManager instance.
+
+        Parameters
+        ----------
+        exception : class
+            The expected Exception class.
+        regexp : str, default None
+            The regex to compare against the Exception message.
+        """
+
         self.exception = exception
+
         if regexp is not None and not hasattr(regexp, "search"):
             regexp = re.compile(regexp, re.DOTALL)
+
         self.regexp = regexp
 
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, trace_back):
         expected = self.exception
+
         if not exc_type:
-            name = getattr(expected, "__name__", str(expected))
-            raise AssertionError("{0} not raised.".format(name))
-        if issubclass(exc_type, expected):
-            return self.handle_success(exc_type, exc_value, traceback)
-        return self.handle_failure(exc_type, exc_value, traceback)
+            exp_name = getattr(expected, "__name__", str(expected))
+            raise AssertionError("{0} not raised.".format(exp_name))
 
-    def handle_failure(*args, **kwargs):
-        # Failed, so allow Exception to bubble up
-        return False
+        return self.exception_matches(exc_type, exc_value, trace_back)
 
-    def handle_success(self, exc_type, exc_value, traceback):
-        if self.regexp is not None:
-            val = str(exc_value)
-            if not self.regexp.search(val):
-                e = AssertionError('"%s" does not match "%s"' %
-                                   (self.regexp.pattern, str(val)))
-                raise_with_traceback(e, traceback)
-        return True
+    def exception_matches(self, exc_type, exc_value, trace_back):
+        """
+        Check that the Exception raised matches the expected Exception
+        and expected error message regular expression.
+
+        Parameters
+        ----------
+        exc_type : class
+            The type of Exception raised.
+        exc_value : Exception
+            The instance of `exc_type` raised.
+        trace_back : stack trace object
+            The traceback object associated with `exc_value`.
+
+        Returns
+        -------
+        is_matched : bool
+            Whether or not the Exception raised matches the expected
+            Exception class and expected error message regular expression.
+
+        Raises
+        ------
+        AssertionError : The error message provided does not match
+                         the expected error message regular expression.
+        """
+
+        if issubclass(exc_type, self.exception):
+            if self.regexp is not None:
+                val = str(exc_value)
+
+                if not self.regexp.search(val):
+                    e = AssertionError('"%s" does not match "%s"' %
+                                       (self.regexp.pattern, str(val)))
+                    raise_with_traceback(e, trace_back)
+
+            return True
+        else:
+            # Failed, so allow Exception to bubble up.
+            return False
 
 
 @contextmanager

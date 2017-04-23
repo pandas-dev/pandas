@@ -205,22 +205,22 @@ class SafeForSparse(object):
         self.panel.items = new_items
 
         if hasattr(self.panel, '_item_cache'):
-            self.assertNotIn('ItemA', self.panel._item_cache)
-        self.assertIs(self.panel.items, new_items)
+            assert 'ItemA' not in self.panel._item_cache
+        assert self.panel.items is new_items
 
         # TODO: unused?
         item = self.panel[0]  # noqa
 
         self.panel.major_axis = new_major
-        self.assertIs(self.panel[0].index, new_major)
-        self.assertIs(self.panel.major_axis, new_major)
+        assert self.panel[0].index is new_major
+        assert self.panel.major_axis is new_major
 
         # TODO: unused?
         item = self.panel[0]  # noqa
 
         self.panel.minor_axis = new_minor
-        self.assertIs(self.panel[0].columns, new_minor)
-        self.assertIs(self.panel.minor_axis, new_minor)
+        assert self.panel[0].columns is new_minor
+        assert self.panel.minor_axis is new_minor
 
     def test_get_axis_number(self):
         self.assertEqual(self.panel._get_axis_number('items'), 0)
@@ -447,10 +447,10 @@ class CheckIndexing(object):
             expected = self.panel['ItemA']
             result = self.panel.pop('ItemA')
             assert_frame_equal(expected, result)
-            self.assertNotIn('ItemA', self.panel.items)
+            assert 'ItemA' not in self.panel.items
 
             del self.panel['ItemB']
-            self.assertNotIn('ItemB', self.panel.items)
+            assert 'ItemB' not in self.panel.items
             pytest.raises(Exception, self.panel.__delitem__, 'ItemB')
 
             values = np.empty((3, 3, 3))
@@ -464,18 +464,18 @@ class CheckIndexing(object):
 
             panelc = panel.copy()
             del panelc[0]
-            assert_frame_equal(panelc[1], panel[1])
-            assert_frame_equal(panelc[2], panel[2])
+            tm.assert_frame_equal(panelc[1], panel[1])
+            tm.assert_frame_equal(panelc[2], panel[2])
 
             panelc = panel.copy()
             del panelc[1]
-            assert_frame_equal(panelc[0], panel[0])
-            assert_frame_equal(panelc[2], panel[2])
+            tm.assert_frame_equal(panelc[0], panel[0])
+            tm.assert_frame_equal(panelc[2], panel[2])
 
             panelc = panel.copy()
             del panelc[2]
-            assert_frame_equal(panelc[1], panel[1])
-            assert_frame_equal(panelc[0], panel[0])
+            tm.assert_frame_equal(panelc[1], panel[1])
+            tm.assert_frame_equal(panelc[0], panel[0])
 
     def test_setitem(self):
         with catch_warnings(record=True):
