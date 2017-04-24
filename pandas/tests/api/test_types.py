@@ -33,7 +33,8 @@ class TestTypes(Base, tm.TestCase):
                'is_list_like', 'is_hashable',
                'is_named_tuple', 'is_sequence',
                'pandas_dtype', 'union_categoricals', 'infer_dtype']
-    dtypes = ['CategoricalDtype', 'DatetimeTZDtype', 'PeriodDtype']
+    dtypes = ['CategoricalDtype', 'DatetimeTZDtype',
+              'PeriodDtype', 'IntervalDtype']
 
     def test_types(self):
 
