@@ -103,10 +103,10 @@ class TestGetItem(tm.TestCase):
         tm.assert_series_equal(exp, result)
 
         ts = ts[10:].append(ts[10:])
-        self.assertRaisesRegexp(KeyError,
-                                "left slice bound for non-unique "
-                                "label: '2008'",
-                                ts.__getitem__, slice('2008', '2009'))
+        tm.assertRaisesRegexp(KeyError,
+                              "left slice bound for non-unique "
+                              "label: '2008'",
+                              ts.__getitem__, slice('2008', '2009'))
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')

@@ -518,9 +518,9 @@ class TestPeriodProperties(tm.TestCase):
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
         for exp, freqs in iteritems(cases):
             for freq in freqs:
-                with self.assertRaisesRegexp(ValueError, msg):
+                with tm.assertRaisesRegexp(ValueError, msg):
                     Period('2016-03-01 09:00', freq=freq)
-                with self.assertRaisesRegexp(ValueError, msg):
+                with tm.assertRaisesRegexp(ValueError, msg):
                     Period(ordinal=1, freq=freq)
 
             # check supported freq-aliases still works
@@ -762,7 +762,7 @@ class TestPeriodProperties(tm.TestCase):
         self.assertEqual(exp.days_in_month, 29)
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=7)
 
     def test_properties_daily(self):

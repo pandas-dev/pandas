@@ -212,31 +212,31 @@ class TestBusinessDateRange(tm.TestCase):
         naive = bdate_range(START, END, freq=BDay(), tz=None)
         aware = bdate_range(START, END, freq=BDay(),
                             tz="Asia/Hong_Kong")
-        self.assertRaisesRegexp(TypeError, "tz-naive.*tz-aware",
-                                naive.join, aware)
-        self.assertRaisesRegexp(TypeError, "tz-naive.*tz-aware",
-                                aware.join, naive)
+        tm.assertRaisesRegexp(TypeError, "tz-naive.*tz-aware",
+                              naive.join, aware)
+        tm.assertRaisesRegexp(TypeError, "tz-naive.*tz-aware",
+                              aware.join, naive)
 
     def test_cached_range(self):
         DatetimeIndex._cached_range(START, END, offset=BDay())
         DatetimeIndex._cached_range(START, periods=20, offset=BDay())
         DatetimeIndex._cached_range(end=START, periods=20, offset=BDay())
 
-        self.assertRaisesRegexp(TypeError, "offset",
-                                DatetimeIndex._cached_range,
-                                START, END)
+        tm.assertRaisesRegexp(TypeError, "offset",
+                              DatetimeIndex._cached_range,
+                              START, END)
 
-        self.assertRaisesRegexp(TypeError, "specify period",
-                                DatetimeIndex._cached_range, START,
-                                offset=BDay())
+        tm.assertRaisesRegexp(TypeError, "specify period",
+                              DatetimeIndex._cached_range, START,
+                              offset=BDay())
 
-        self.assertRaisesRegexp(TypeError, "specify period",
-                                DatetimeIndex._cached_range, end=END,
-                                offset=BDay())
+        tm.assertRaisesRegexp(TypeError, "specify period",
+                              DatetimeIndex._cached_range, end=END,
+                              offset=BDay())
 
-        self.assertRaisesRegexp(TypeError, "start or end",
-                                DatetimeIndex._cached_range, periods=20,
-                                offset=BDay())
+        tm.assertRaisesRegexp(TypeError, "start or end",
+                              DatetimeIndex._cached_range, periods=20,
+                              offset=BDay())
 
     def test_cached_range_bug(self):
         rng = date_range('2010-09-01 05:00:00', periods=50,

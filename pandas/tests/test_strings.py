@@ -2722,9 +2722,9 @@ class TestStringMethods(tm.TestCase):
         for values, tp in cases:
             idx = Index(values)
             message = 'Can only use .str accessor with string values'
-            with self.assertRaisesRegexp(AttributeError, message):
+            with tm.assertRaisesRegexp(AttributeError, message):
                 Series(values).str
-            with self.assertRaisesRegexp(AttributeError, message):
+            with tm.assertRaisesRegexp(AttributeError, message):
                 idx.str
             self.assertEqual(idx.inferred_type, tp)
 
@@ -2732,7 +2732,7 @@ class TestStringMethods(tm.TestCase):
         idx = MultiIndex.from_tuples([('a', 'b'), ('a', 'b')])
         self.assertEqual(idx.inferred_type, 'mixed')
         message = 'Can only use .str accessor with Index, not MultiIndex'
-        with self.assertRaisesRegexp(AttributeError, message):
+        with tm.assertRaisesRegexp(AttributeError, message):
             idx.str
 
     def test_str_accessor_no_new_attributes(self):
