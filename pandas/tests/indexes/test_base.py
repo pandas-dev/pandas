@@ -608,7 +608,7 @@ class TestIndex(Base, tm.TestCase):
 
         # Corner cases
         inter = first.intersection(first)
-        self.assertIs(inter, first)
+        assert inter is first
 
         idx1 = Index([1, 2, 3, 4, 5], name='idx')
         # if target has the same name, it is preserved
@@ -681,13 +681,13 @@ class TestIndex(Base, tm.TestCase):
 
         # Corner cases
         union = first.union(first)
-        self.assertIs(union, first)
+        assert union is first
 
         union = first.union([])
-        self.assertIs(union, first)
+        assert union is first
 
         union = Index([]).union(first)
-        self.assertIs(union, first)
+        assert union is first
 
         # preserve names
         first = Index(list('ab'), name='A')
@@ -1434,7 +1434,7 @@ class TestIndex(Base, tm.TestCase):
 
             for kind in kinds:
                 joined = res.join(res, how=kind)
-                self.assertIs(res, joined)
+                assert res is joined
 
     def test_str_attribute(self):
         # GH9068

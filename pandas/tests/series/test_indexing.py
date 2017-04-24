@@ -786,13 +786,13 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_set_value(self):
         idx = self.ts.index[10]
         res = self.ts.set_value(idx, 0)
-        self.assertIs(res, self.ts)
+        assert res is self.ts
         self.assertEqual(self.ts[idx], 0)
 
         # equiv
         s = self.series.copy()
         res = s.set_value('foobar', 0)
-        self.assertIs(res, s)
+        assert res is s
         self.assertEqual(res.index[-1], 'foobar')
         self.assertEqual(res['foobar'], 0)
 
@@ -2659,16 +2659,16 @@ class TestNatIndexing(tm.TestCase):
 
     def test_set_none_nan(self):
         self.series[3] = None
-        self.assertIs(self.series[3], NaT)
+        assert self.series[3] is NaT
 
         self.series[3:5] = None
-        self.assertIs(self.series[4], NaT)
+        assert self.series[4] is NaT
 
         self.series[5] = np.nan
-        self.assertIs(self.series[5], NaT)
+        assert self.series[5] is NaT
 
         self.series[5:7] = np.nan
-        self.assertIs(self.series[6], NaT)
+        assert self.series[6] is NaT
 
     def test_nat_operations(self):
         # GH 8617

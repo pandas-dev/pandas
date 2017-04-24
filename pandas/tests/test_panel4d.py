@@ -867,23 +867,23 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
     def test_swapaxes(self):
         with catch_warnings(record=True):
             result = self.panel4d.swapaxes('labels', 'items')
-            self.assertIs(result.items, self.panel4d.labels)
+            assert result.items is self.panel4d.labels
 
             result = self.panel4d.swapaxes('labels', 'minor')
-            self.assertIs(result.labels, self.panel4d.minor_axis)
+            assert result.labels is self.panel4d.minor_axis
 
             result = self.panel4d.swapaxes('items', 'minor')
-            self.assertIs(result.items, self.panel4d.minor_axis)
+            assert result.items is self.panel4d.minor_axis
 
             result = self.panel4d.swapaxes('items', 'major')
-            self.assertIs(result.items, self.panel4d.major_axis)
+            assert result.items is self.panel4d.major_axis
 
             result = self.panel4d.swapaxes('major', 'minor')
-            self.assertIs(result.major_axis, self.panel4d.minor_axis)
+            assert result.major_axis is self.panel4d.minor_axis
 
             # this should also work
             result = self.panel4d.swapaxes(0, 1)
-            self.assertIs(result.labels, self.panel4d.items)
+            assert result.labels is self.panel4d.items
 
             # this works, but return a copy
             result = self.panel4d.swapaxes('items', 'items')

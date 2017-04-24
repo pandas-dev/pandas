@@ -913,7 +913,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         _check_mixed_float(result, dtype=dict(C=None))
 
         result = self.empty * 2
-        self.assertIs(result.index, self.empty.index)
+        assert result.index is self.empty.index
         self.assertEqual(len(result.columns), 0)
 
     def test_comparisons(self):
@@ -1123,16 +1123,16 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         s += 1
         assert_series_equal(s, s2)
         assert_series_equal(s_orig + 1, s)
-        self.assertIs(s, s2)
-        self.assertIs(s._data, s2._data)
+        assert s is s2
+        assert s._data is s2._data
 
         df = df_orig.copy()
         df2 = df
         df += 1
         assert_frame_equal(df, df2)
         assert_frame_equal(df_orig + 1, df)
-        self.assertIs(df, df2)
-        self.assertIs(df._data, df2._data)
+        assert df is df2
+        assert df._data is df2._data
 
         # dtype change
         s = s_orig.copy()
@@ -1146,8 +1146,8 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         df += 1.5
         assert_frame_equal(df, df2)
         assert_frame_equal(df_orig + 1.5, df)
-        self.assertIs(df, df2)
-        self.assertIs(df._data, df2._data)
+        assert df is df2
+        assert df._data is df2._data
 
         # mixed dtype
         arr = np.random.randint(0, 10, size=5)
@@ -1158,7 +1158,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         expected = DataFrame({'A': arr.copy() + 1, 'B': 'foo'})
         assert_frame_equal(df, expected)
         assert_frame_equal(df2, expected)
-        self.assertIs(df._data, df2._data)
+        assert df._data is df2._data
 
         df = df_orig.copy()
         df2 = df
@@ -1166,7 +1166,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         expected = DataFrame({'A': arr.copy() + 1.5, 'B': 'foo'})
         assert_frame_equal(df, expected)
         assert_frame_equal(df2, expected)
-        self.assertIs(df._data, df2._data)
+        assert df._data is df2._data
 
     def test_alignment_non_pandas(self):
         index = ['A', 'B', 'C']

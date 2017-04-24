@@ -1447,9 +1447,9 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 major=self.panel.major_axis,
                 minor=self.panel.minor_axis, copy=False)
 
-            self.assertIs(result.items, self.panel.items)
-            self.assertIs(result.major_axis, self.panel.major_axis)
-            self.assertIs(result.minor_axis, self.panel.minor_axis)
+            assert result.items is self.panel.items
+            assert result.major_axis is self.panel.major_axis
+            assert result.minor_axis is self.panel.minor_axis
 
             result = self.panel.reindex(
                 items=self.panel.items,
@@ -1612,13 +1612,13 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
     def test_swapaxes(self):
         with catch_warnings(record=True):
             result = self.panel.swapaxes('items', 'minor')
-            self.assertIs(result.items, self.panel.minor_axis)
+            assert result.items is self.panel.minor_axis
 
             result = self.panel.swapaxes('items', 'major')
-            self.assertIs(result.items, self.panel.major_axis)
+            assert result.items is self.panel.major_axis
 
             result = self.panel.swapaxes('major', 'minor')
-            self.assertIs(result.major_axis, self.panel.minor_axis)
+            assert result.major_axis is self.panel.minor_axis
 
             panel = self.panel.copy()
             result = panel.swapaxes('major', 'minor')
@@ -1628,7 +1628,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             # this should also work
             result = self.panel.swapaxes(0, 1)
-            self.assertIs(result.items, self.panel.major_axis)
+            assert result.items is self.panel.major_axis
 
             # this works, but return a copy
             result = self.panel.swapaxes('items', 'items')

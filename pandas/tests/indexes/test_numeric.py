@@ -518,7 +518,7 @@ class NumericInt(Numeric):
         kinds = 'outer', 'inner', 'left', 'right'
         for kind in kinds:
             joined = self.index.join(self.index, how=kind)
-            self.assertIs(self.index, joined)
+            assert self.index is joined
 
     def test_union_noncomparable(self):
         from datetime import datetime, timedelta
