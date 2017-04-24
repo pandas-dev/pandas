@@ -759,17 +759,18 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_groups(self):
         grouped = self.df.groupby(['A'])
         groups = grouped.groups
-        self.assertIs(groups, grouped.groups)  # caching works
+        assert groups is grouped.groups  # caching works
 
         for k, v in compat.iteritems(grouped.groups):
-            self.assertTrue((self.df.loc[v]['A'] == k).all())
+            assert (self.df.loc[v]['A'] == k).all()
 
         grouped = self.df.groupby(['A', 'B'])
         groups = grouped.groups
-        self.assertIs(groups, grouped.groups)  # caching works
+        assert groups is grouped.groups  # caching works
+
         for k, v in compat.iteritems(grouped.groups):
-            self.assertTrue((self.df.loc[v]['A'] == k[0]).all())
-            self.assertTrue((self.df.loc[v]['B'] == k[1]).all())
+            assert (self.df.loc[v]['A'] == k[0]).all()
+            assert (self.df.loc[v]['B'] == k[1]).all()
 
     def test_basic_regression(self):
         # regression

@@ -56,13 +56,13 @@ class TestPeriodIndexOps(Ops):
         tm.assert_index_equal(result, expected)
         for i in [0, 1, 3]:
             self.assertEqual(result[i], expected[i])
-        self.assertIs(result[2], pd.NaT)
+        assert result[2] is pd.NaT
         self.assertEqual(result.name, expected.name)
 
         result_list = idx.tolist()
         for i in [0, 1, 3]:
             self.assertEqual(result_list[i], expected_list[i])
-        self.assertIs(result_list[2], pd.NaT)
+        assert result_list[2] is pd.NaT
 
     def test_minmax(self):
 
@@ -88,15 +88,15 @@ class TestPeriodIndexOps(Ops):
             # Return NaT
             obj = PeriodIndex([], freq='M')
             result = getattr(obj, op)()
-            self.assertIs(result, tslib.NaT)
+            assert result is tslib.NaT
 
             obj = PeriodIndex([pd.NaT], freq='M')
             result = getattr(obj, op)()
-            self.assertIs(result, tslib.NaT)
+            assert result is tslib.NaT
 
             obj = PeriodIndex([pd.NaT, pd.NaT, pd.NaT], freq='M')
             result = getattr(obj, op)()
-            self.assertIs(result, tslib.NaT)
+            assert result is tslib.NaT
 
     def test_numpy_minmax(self):
         pr = pd.period_range(start='2016-01-15', end='2016-01-20')
@@ -787,8 +787,8 @@ Freq: Q-DEC"""
             tm.assert_index_equal(res, exp)
 
     def test_nat(self):
-        self.assertIs(pd.PeriodIndex._na_value, pd.NaT)
-        self.assertIs(pd.PeriodIndex([], freq='M')._na_value, pd.NaT)
+        assert pd.PeriodIndex._na_value is pd.NaT
+        assert pd.PeriodIndex([], freq='M')._na_value is pd.NaT
 
         idx = pd.PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
         self.assertTrue(idx._can_hold_na)
@@ -898,7 +898,7 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
                     np.add(obj, ng)
 
                 if _np_version_under1p10:
-                    self.assertIs(np.add(ng, obj), NotImplemented)
+                    assert np.add(ng, obj) is NotImplemented
                 else:
                     with pytest.raises(TypeError):
                         np.add(ng, obj)
@@ -907,7 +907,7 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
                     np.subtract(obj, ng)
 
                 if _np_version_under1p10:
-                    self.assertIs(np.subtract(ng, obj), NotImplemented)
+                    assert np.subtract(ng, obj) is NotImplemented
                 else:
                     with pytest.raises(TypeError):
                         np.subtract(ng, obj)
@@ -1014,7 +1014,7 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
 
         result = np.subtract(pd.Period('2012-01', freq='M'), idx)
         if _np_version_under1p10:
-            self.assertIs(result, NotImplemented)
+            assert result is NotImplemented
         else:
             tm.assert_index_equal(result, exp)
 

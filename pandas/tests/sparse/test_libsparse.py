@@ -469,7 +469,7 @@ class TestBlockIndex(tm.TestCase):
 
     def test_to_block_index(self):
         index = BlockIndex(10, [0, 5], [4, 5])
-        self.assertIs(index.to_block_index(), index)
+        assert index.to_block_index() is index
 
 
 class TestIntIndex(tm.TestCase):
@@ -554,7 +554,7 @@ class TestIntIndex(tm.TestCase):
 
     def test_to_int_index(self):
         index = IntIndex(10, [2, 3, 4, 5, 6])
-        self.assertIs(index.to_int_index(), index)
+        assert index.to_int_index() is index
 
 
 class TestSparseOperators(tm.TestCase):

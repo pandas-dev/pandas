@@ -121,7 +121,7 @@ class TestGetItem(tm.TestCase):
     def test_getitem_nat(self):
         idx = pd.PeriodIndex(['2011-01', 'NaT', '2011-02'], freq='M')
         self.assertEqual(idx[0], pd.Period('2011-01', freq='M'))
-        self.assertIs(idx[1], tslib.NaT)
+        assert idx[1] is tslib.NaT
 
         s = pd.Series([0, 1, 2], index=idx)
         self.assertEqual(s[pd.NaT], 1)
@@ -129,7 +129,7 @@ class TestGetItem(tm.TestCase):
         s = pd.Series(idx, index=idx)
         self.assertEqual(s[pd.Period('2011-01', freq='M')],
                          pd.Period('2011-01', freq='M'))
-        self.assertIs(s[pd.NaT], tslib.NaT)
+        assert s[pd.NaT] is tslib.NaT
 
     def test_getitem_list_periods(self):
         # GH 7710

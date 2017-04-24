@@ -272,7 +272,7 @@ class TestBasic(TestPackers):
 
     def test_nat(self):
         nat_rec = self.encode_decode(NaT)
-        self.assertIs(NaT, nat_rec)
+        assert NaT is nat_rec
 
     def test_datetimes(self):
 

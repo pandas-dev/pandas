@@ -198,21 +198,21 @@ class TestMultiLevel(Base, tm.TestCase):
     def test_reindex_preserve_levels(self):
         new_index = self.ymd.index[::10]
         chunk = self.ymd.reindex(new_index)
-        self.assertIs(chunk.index, new_index)
+        assert chunk.index is new_index
 
         chunk = self.ymd.loc[new_index]
-        self.assertIs(chunk.index, new_index)
+        assert chunk.index is new_index
 
         with catch_warnings(record=True):
             chunk = self.ymd.ix[new_index]
-        self.assertIs(chunk.index, new_index)
+        assert chunk.index is new_index
 
         ymdT = self.ymd.T
         chunk = ymdT.reindex(columns=new_index)
-        self.assertIs(chunk.columns, new_index)
+        assert chunk.columns is new_index
 
         chunk = ymdT.loc[:, new_index]
-        self.assertIs(chunk.columns, new_index)
+        assert chunk.columns is new_index
 
     def test_repr_to_string(self):
         repr(self.frame)
@@ -939,7 +939,7 @@ Thur,Lunch,Yes,51.51,17"""
         stacked = df.stack()
         result = df['foo'].stack().sort_index()
         tm.assert_series_equal(stacked['foo'], result, check_names=False)
-        self.assertIs(result.name, None)
+        assert result.name is None
         self.assertEqual(stacked['bar'].dtype, np.float_)
 
     def test_unstack_bug(self):

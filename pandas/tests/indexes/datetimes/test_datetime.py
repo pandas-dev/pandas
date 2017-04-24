@@ -156,7 +156,7 @@ class TestDatetimeIndex(tm.TestCase):
         self.assertEqual(len(idx2), periods)
 
     def test_nat(self):
-        self.assertIs(DatetimeIndex([np.nan])[0], pd.NaT)
+        assert DatetimeIndex([np.nan])[0] is pd.NaT
 
     def test_ufunc_coercions(self):
         idx = date_range('2011-01-01', periods=3, freq='2D', name='x')
@@ -617,7 +617,7 @@ class TestDatetimeIndex(tm.TestCase):
         kinds = 'outer', 'inner', 'left', 'right'
         for kind in kinds:
             joined = index.join(index, how=kind)
-            self.assertIs(index, joined)
+            assert index is joined
 
     def assert_index_parameters(self, index):
         assert index.freq == '40960N'

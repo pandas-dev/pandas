@@ -525,7 +525,7 @@ class TestIndexOps(Ops):
                     # unable to compare NaT / nan
                     tm.assert_numpy_array_equal(result[1:],
                                                 values[2:].asobject.values)
-                    self.assertIs(result[0], pd.NaT)
+                    assert result[0] is pd.NaT
                 else:
                     tm.assert_numpy_array_equal(result[1:], values[2:])
 
@@ -1018,15 +1018,17 @@ class TestNoNewAttributesMixin(tm.TestCase):
             pass
 
         t = T()
-        self.assertFalse(hasattr(t, "__frozen"))
+        assert not hasattr(t, "__frozen")
+
         t.a = "test"
-        self.assertEqual(t.a, "test")
+        assert t.a == "test"
+
         t._freeze()
-        # self.assertTrue("__frozen" not in dir(t))
-        self.assertIs(getattr(t, "__frozen"), True)
+        assert "__frozen" in dir(t)
+        assert getattr(t, "__frozen")
 
         def f():
             t.b = "test"
 
         pytest.raises(AttributeError, f)
-        self.assertFalse(hasattr(t, "b"))
+        assert not hasattr(t, "b")

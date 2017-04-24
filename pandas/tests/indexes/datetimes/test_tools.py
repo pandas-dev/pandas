@@ -179,14 +179,14 @@ class TestToDatetime(tm.TestCase):
         ]
 
         for dt in in_bound_dts:
-            self.assertEqual(pd.to_datetime(dt), Timestamp(dt))
+            assert pd.to_datetime(dt) == Timestamp(dt)
 
         oob_dts = [np.datetime64('1000-01-01'), np.datetime64('5000-01-02'), ]
 
         for dt in oob_dts:
             pytest.raises(ValueError, pd.to_datetime, dt, errors='raise')
             pytest.raises(ValueError, Timestamp, dt)
-            self.assertIs(pd.to_datetime(dt, errors='coerce'), NaT)
+            assert pd.to_datetime(dt, errors='coerce') is NaT
 
     def test_to_datetime_array_of_dt64s(self):
         dts = [np.datetime64('2000-01-01'), np.datetime64('2000-01-02'), ]
@@ -681,7 +681,7 @@ class ToDatetimeMisc(tm.TestCase):
 
         # empty string
         result = to_datetime('')
-        self.assertIs(result, NaT)
+        assert result is NaT
 
         result = to_datetime(['', ''])
         self.assertTrue(isnull(result).all())
