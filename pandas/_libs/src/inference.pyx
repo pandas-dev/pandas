@@ -910,9 +910,9 @@ cdef extern from "parse_helper.h":
 
 # constants that will be compared to potentially arbitrarily large
 # python int
-cdef object oINT64_MAX = <object> INT64_MAX
-cdef object oINT64_MIN = <object> INT64_MIN
-cdef object oUINT64_MAX = <object> UINT64_MAX
+cdef object oINT64_MAX = <int64_t> INT64_MAX
+cdef object oINT64_MIN = <int64_t> INT64_MIN
+cdef object oUINT64_MAX = <uint64_t> UINT64_MAX
 
 
 @cython.boundscheck(False)
@@ -947,6 +947,23 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     -------
     numeric_array : array of converted object values to numerical ones
     """
+    # fastpath for ints/floats - try to convert in one shot based on first value
+    cdef object val = values[1]
+    if util.is_integer_object(val):
+        try:
+            maybe_ints = values.astype('i8')
+            if (maybe_ints == values).all():
+                return maybe_ints
+        except ValueError:
+            pass
+    elif util.is_float_object(val):
+        try:
+            maybe_floats = values.astype('f8')
+            if (maybe_floats == values).all():
+                return maybe_floats
+        except ValueError:
+            pass
+    # otherwise, iterate and do full infererence
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
@@ -956,7 +973,6 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         ndarray[int64_t] ints = np.empty(n, dtype='i8')
         ndarray[uint64_t] uints = np.empty(n, dtype='u8')
         ndarray[uint8_t] bools = np.empty(n, dtype='u1')
-        object val
         float64_t fval
 
     for i in range(n):
@@ -978,6 +994,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
             if val >= 0:
                 uints[i] = val
+
             if val <= oINT64_MAX:
                 ints[i] = val
         elif util.is_bool_object(val):
