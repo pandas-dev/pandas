@@ -954,7 +954,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             maybe_ints = values.astype('i8')
             if (maybe_ints == values).all():
                 return maybe_ints
-        except ValueError:
+        except (ValueError, OverflowError, TypeError):
             pass
     elif util.is_float_object(val):
         try:
@@ -964,7 +964,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             if ((lmask == rmask).all()
                 and (maybe_floats[lmask] == values[lmask]).all()):
                 return maybe_floats
-        except ValueError:
+        except (ValueError, OverflowError, TypeError):
             pass
     # otherwise, iterate and do full infererence
     cdef:
@@ -993,6 +993,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         elif util.is_integer_object(val):
             floats[i] = complexes[i] = val
 
+            val = int(val)
             seen.saw_int(val)
 
             if val >= 0:
