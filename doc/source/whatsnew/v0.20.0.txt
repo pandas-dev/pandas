@@ -22,7 +22,6 @@ Highlights include:
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
-- Fixed an issue with ``Timestamp.replace(tzinfo)`` around DST changes (:issue:`15683`)
 
 .. warning::
 
@@ -1577,6 +1576,7 @@ Conversion
 
 - Bug in ``Timestamp.replace`` now raises ``TypeError`` when incorrect argument names are given; previously this raised ``ValueError`` (:issue:`15240`)
 - Bug in ``Timestamp.replace`` with compat for passing long integers (:issue:`15030`)
+- Bug in ``Timestamp.replace`` when replacing ``tzinfo`` around DST changes (:issue:`15683`)
 - Bug in ``Timestamp`` returning UTC based time/date attributes when a timezone was provided (:issue:`13303`)
 - Bug in ``Timestamp`` incorrectly localizing timezones during construction (:issue:`11481`, :issue:`15777`)
 - Bug in ``TimedeltaIndex`` addition where overflow was being allowed without error (:issue:`14816`)
