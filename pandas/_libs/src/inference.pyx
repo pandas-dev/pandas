@@ -948,7 +948,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     numeric_array : array of converted object values to numerical ones
     """
     # fastpath for ints/floats - try to convert in one shot based on first value
-    cdef object val = values[1]
+    cdef object val = values[0]
     if util.is_integer_object(val):
         try:
             maybe_ints = values.astype('i8')
