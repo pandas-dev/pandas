@@ -819,8 +819,8 @@ Freq: D"""
             assert res.freq is None
 
     def test_nat(self):
-        self.assertIs(pd.TimedeltaIndex._na_value, pd.NaT)
-        self.assertIs(pd.TimedeltaIndex([])._na_value, pd.NaT)
+        assert pd.TimedeltaIndex._na_value is pd.NaT
+        assert pd.TimedeltaIndex([])._na_value is pd.NaT
 
         idx = pd.TimedeltaIndex(['1 days', '2 days'])
         self.assertTrue(idx._can_hold_na)

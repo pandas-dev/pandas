@@ -24,7 +24,7 @@ class TestStringMethods(tm.TestCase):
     def test_api(self):
 
         # GH 6106, GH 9322
-        self.assertIs(Series.str, strings.StringMethods)
+        assert Series.str is strings.StringMethods
         assert isinstance(Series(['']).str, strings.StringMethods)
 
         # GH 9184

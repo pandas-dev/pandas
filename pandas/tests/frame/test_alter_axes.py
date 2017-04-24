@@ -35,7 +35,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         # cache it
         _ = self.mixed_frame['foo']  # noqa
         self.mixed_frame.index = idx
-        self.assertIs(self.mixed_frame['foo'].index, idx)
+        assert self.mixed_frame['foo'].index is idx
         with assertRaisesRegexp(ValueError, 'Length mismatch'):
             self.mixed_frame.index = idx[::2]
 

@@ -1060,12 +1060,6 @@ def is_sorted(seq):
     return assert_numpy_array_equal(seq, np.sort(np.array(seq)))
 
 
-def assertIs(first, second, msg=''):
-    """Checks that 'first' is 'second'"""
-    a, b = first, second
-    assert a is b, "%s: %r is not %r" % (msg.format(a, b), a, b)
-
-
 def assert_categorical_equal(left, right, check_dtype=True,
                              obj='Categorical', check_category_order=True):
     """Test that Categoricals are equivalent.

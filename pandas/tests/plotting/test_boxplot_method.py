@@ -71,19 +71,19 @@ class TestDataFramePlots(TestPlotBase):
         fig, ax = self.plt.subplots()
         axes = df.boxplot('Col1', by='X', ax=ax)
         ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
-        self.assertIs(ax_axes, axes)
+        assert ax_axes is axes
 
         fig, ax = self.plt.subplots()
         axes = df.groupby('Y').boxplot(ax=ax, return_type='axes')
         ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
-        self.assertIs(ax_axes, axes['A'])
+        assert ax_axes is axes['A']
 
         # Multiple columns with an ax argument should use same figure
         fig, ax = self.plt.subplots()
         with tm.assert_produces_warning(UserWarning):
             axes = df.boxplot(column=['Col1', 'Col2'],
                               by='X', ax=ax, return_type='axes')
-        self.assertIs(axes['Col1'].get_figure(), fig)
+        assert axes['Col1'].get_figure() is fig
 
         # When by is None, check that all relevant lines are present in the
         # dict
@@ -357,7 +357,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         tm.assert_numpy_array_equal(returned, axes[0])
-        self.assertIs(returned[0].figure, fig)
+        assert returned[0].figure is fig
 
         # draw on second row
         with tm.assert_produces_warning(UserWarning):
@@ -367,7 +367,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         tm.assert_numpy_array_equal(returned, axes[1])
-        self.assertIs(returned[0].figure, fig)
+        assert returned[0].figure is fig
 
         with pytest.raises(ValueError):
             fig, axes = self.plt.subplots(2, 3)

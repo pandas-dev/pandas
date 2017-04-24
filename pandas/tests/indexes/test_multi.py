@@ -1582,10 +1582,10 @@ class TestMultiIndex(Base, tm.TestCase):
 
         # corner case, pass self or empty thing:
         the_union = self.index.union(self.index)
-        self.assertIs(the_union, self.index)
+        assert the_union is self.index
 
         the_union = self.index.union(self.index[:0])
-        self.assertIs(the_union, self.index)
+        assert the_union is self.index
 
         # won't work in python 3
         # tuples = self.index.values
@@ -1614,7 +1614,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         # corner case, pass self
         the_int = self.index.intersection(self.index)
-        self.assertIs(the_int, self.index)
+        assert the_int is self.index
 
         # empty intersection: disjoint
         empty = self.index[:2] & self.index[2:]
@@ -2039,7 +2039,7 @@ class TestMultiIndex(Base, tm.TestCase):
         for kind in kinds:
             res = self.index
             joined = res.join(res, how=kind)
-            self.assertIs(res, joined)
+            assert res is joined
 
     def test_join_multi(self):
         # GH 10665
