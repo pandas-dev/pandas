@@ -1450,8 +1450,8 @@ class TestIndex(Base, tm.TestCase):
                    MultiIndex.from_tuples([('foo', '1'), ('bar', '3')]),
                    PeriodIndex(start='2000', end='2010', freq='A')]
         for idx in indices:
-            with self.assertRaisesRegexp(AttributeError,
-                                         'only use .str accessor'):
+            with tm.assertRaisesRegexp(AttributeError,
+                                       'only use .str accessor'):
                 idx.str.repeat(2)
 
         idx = Index(['a b c', 'd e', 'f'])

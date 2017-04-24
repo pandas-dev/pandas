@@ -46,7 +46,7 @@ class TestInterval(tm.TestCase):
         self.assertNotEqual(Interval(0, 1), 0)
 
     def test_comparison(self):
-        with self.assertRaisesRegexp(TypeError, 'unorderable types'):
+        with tm.assertRaisesRegexp(TypeError, 'unorderable types'):
             Interval(0, 1) < 2
 
         self.assertTrue(Interval(0, 1) < Interval(1, 2))

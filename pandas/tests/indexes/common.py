@@ -875,7 +875,7 @@ class Base(object):
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
                 msg = "isnull is not defined for MultiIndex"
-                with self.assertRaisesRegexp(NotImplementedError, msg):
+                with tm.assertRaisesRegexp(NotImplementedError, msg):
                     idx.fillna(idx[0])
             else:
                 idx = index.copy()
@@ -884,7 +884,7 @@ class Base(object):
                 self.assertFalse(result is idx)
 
                 msg = "'value' must be a scalar, passed: "
-                with self.assertRaisesRegexp(TypeError, msg):
+                with tm.assertRaisesRegexp(TypeError, msg):
                     idx.fillna([idx[0]])
 
                 idx = index.copy()
@@ -918,7 +918,7 @@ class Base(object):
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
                 msg = "isnull is not defined for MultiIndex"
-                with self.assertRaisesRegexp(NotImplementedError, msg):
+                with tm.assertRaisesRegexp(NotImplementedError, msg):
                     idx.isnull()
             else:
 

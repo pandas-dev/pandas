@@ -602,9 +602,9 @@ class TestIntervalIndex(Base, tm.TestCase):
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        with self.assertRaisesRegexp(TypeError, 'unorderable types'):
+        with tm.assertRaisesRegexp(TypeError, 'unorderable types'):
             self.index > 0
-        with self.assertRaisesRegexp(TypeError, 'unorderable types'):
+        with tm.assertRaisesRegexp(TypeError, 'unorderable types'):
             self.index <= 0
         with pytest.raises(TypeError):
             self.index > np.arange(2)

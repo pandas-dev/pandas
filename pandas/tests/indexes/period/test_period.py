@@ -151,7 +151,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
                                     np.array([0, -1, 1], dtype=np.intp))
 
         msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             idx.get_indexer(target, 'nearest', tolerance='1 minute')
 
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest',

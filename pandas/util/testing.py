@@ -2665,12 +2665,6 @@ def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
     expr.set_use_numexpr(olduse)
 
 
-# Also provide all assert_* functions in the TestCase class
-for name, obj in inspect.getmembers(sys.modules[__name__]):
-    if inspect.isfunction(obj) and name.startswith('assert'):
-        setattr(TestCase, name, staticmethod(obj))
-
-
 def test_parallel(num_threads=2, kwargs_list=None):
     """Decorator to run the same function multiple times in parallel.
 

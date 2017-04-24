@@ -550,8 +550,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
             # Unimplemented numeric_only parameter.
             if 'numeric_only' in compat.signature(f).args:
-                self.assertRaisesRegexp(NotImplementedError, name, f,
-                                        self.series, numeric_only=True)
+                tm.assertRaisesRegexp(NotImplementedError, name, f,
+                                      self.series, numeric_only=True)
 
         testit()
 

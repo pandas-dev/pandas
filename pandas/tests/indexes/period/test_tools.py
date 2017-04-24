@@ -386,7 +386,7 @@ class TestPeriodIndex(tm.TestCase):
         self.assertEqual(prng.freq, 'M')
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             date_range('01-Jan-2012', periods=8, freq='EOM')
 
     def test_period_dt64_round_trip(self):
@@ -439,11 +439,11 @@ class TestPeriodIndex(tm.TestCase):
             self.assertEqual(pidx.searchsorted(p2), 3)
 
             msg = "Input has different freq=H from PeriodIndex"
-            with self.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='H'))
 
             msg = "Input has different freq=5D from PeriodIndex"
-            with self.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
             with tm.assert_produces_warning(FutureWarning):

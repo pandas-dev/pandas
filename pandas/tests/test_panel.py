@@ -180,8 +180,8 @@ class SafeForLongAndSparse(object):
 
         # Unimplemented numeric_only parameter.
         if 'numeric_only' in signature(f).args:
-            self.assertRaisesRegexp(NotImplementedError, name, f,
-                                    numeric_only=True)
+            tm.assertRaisesRegexp(NotImplementedError, name, f,
+                                  numeric_only=True)
 
 
 class SafeForSparse(object):

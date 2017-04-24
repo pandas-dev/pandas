@@ -710,7 +710,7 @@ class TestTimestamp(tm.TestCase):
             _check_round(freq, expected)
 
         msg = frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             stamp.round('foo')
 
     def test_class_ops_pytz(self):

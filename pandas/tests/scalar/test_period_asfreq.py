@@ -295,26 +295,26 @@ class TestFreqConversion(tm.TestCase):
         self.assertEqual(ival_W.asfreq('W'), ival_W)
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             ival_W.asfreq('WK')
 
     def test_conv_weekly_legacy(self):
         # frequency conversion tests: from Weekly Frequency
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=1)
 
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             Period(freq='WK-SAT', year=2007, month=1, day=6)
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             Period(freq='WK-FRI', year=2007, month=1, day=5)
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             Period(freq='WK-THU', year=2007, month=1, day=4)
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             Period(freq='WK-WED', year=2007, month=1, day=3)
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             Period(freq='WK-TUE', year=2007, month=1, day=2)
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             Period(freq='WK-MON', year=2007, month=1, day=1)
 
     def test_conv_business(self):
@@ -712,7 +712,7 @@ class TestFreqConversion(tm.TestCase):
                          Period('2013-01', 'M'))
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             initial.asfreq(freq="MS", how="S")
 
         with tm.assertRaisesRegexp(ValueError, msg):
