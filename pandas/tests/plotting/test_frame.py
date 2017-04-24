@@ -139,7 +139,7 @@ class TestDataFramePlots(TestPlotBase):
             result = ax.axes
         else:
             result = ax.get_axes()  # deprecated
-        self.assertIs(result, axes[0])
+        assert result is axes[0]
 
     # GH 15516
     def test_mpl2_color_cycle_str(self):
@@ -443,13 +443,13 @@ class TestDataFramePlots(TestPlotBase):
                            sharey=False)
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assertEqual(returned.shape, (3, ))
-        self.assertIs(returned[0].figure, fig)
+        assert returned[0].figure is fig
         # draw on second row
         returned = df.plot(subplots=True, ax=axes[1], sharex=False,
                            sharey=False)
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         self.assertEqual(returned.shape, (3, ))
-        self.assertIs(returned[0].figure, fig)
+        assert returned[0].figure is fig
         self._check_axes_shape(axes, axes_num=6, layout=(2, 3))
         tm.close()
 
@@ -933,11 +933,11 @@ class TestDataFramePlots(TestPlotBase):
 
         # verify turning off colorbar works
         ax = df.plot.scatter(x='x', y='y', c='z', colorbar=False)
-        self.assertIs(ax.collections[0].colorbar, None)
+        assert ax.collections[0].colorbar is None
 
         # verify that we can still plot a solid color
         ax = df.plot.scatter(x=0, y=1, c='red')
-        self.assertIs(ax.collections[0].colorbar, None)
+        assert ax.collections[0].colorbar is None
         self._check_colors(ax.collections, facecolors=['r'])
 
         # Ensure that we can pass an np.array straight through to matplotlib,
@@ -2065,7 +2065,7 @@ class TestDataFramePlots(TestPlotBase):
         df = self.hexbin_df
 
         ax = df.plot.hexbin(x='A', y='B', colorbar=None)
-        self.assertIs(ax.collections[0].colorbar, None)
+        assert ax.collections[0].colorbar is None
 
     @slow
     def test_allow_cmap(self):

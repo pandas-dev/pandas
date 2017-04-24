@@ -88,8 +88,8 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         self.assertEqual(f._get_axis_name('rows'), 'index')
         self.assertEqual(f._get_axis_name('columns'), 'columns')
 
-        self.assertIs(f._get_axis(0), f.index)
-        self.assertIs(f._get_axis(1), f.columns)
+        assert f._get_axis(0) is f.index
+        assert f._get_axis(1) is f.columns
 
         assertRaisesRegexp(ValueError, 'No axis named', f._get_axis_number, 2)
         assertRaisesRegexp(ValueError, 'No axis.*foo', f._get_axis_name, 'foo')
@@ -99,7 +99,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     def test_keys(self):
         getkeys = self.frame.keys
-        self.assertIs(getkeys(), self.frame.columns)
+        assert getkeys() is self.frame.columns
 
     def test_column_contains_typeerror(self):
         try:
@@ -122,17 +122,17 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         with np.errstate(all='ignore'):
             result = np.sqrt(self.frame)
         assert isinstance(result, type(self.frame))
-        self.assertIs(result.index, self.frame.index)
-        self.assertIs(result.columns, self.frame.columns)
+        assert result.index is self.frame.index
+        assert result.columns is self.frame.columns
 
         assert_frame_equal(result, self.frame.apply(np.sqrt))
 
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
-        self.assertIs(cols, self.frame.columns)
+        assert cols is self.frame.columns
 
         idx = self.frame._get_agg_axis(1)
-        self.assertIs(idx, self.frame.index)
+        assert idx is self.frame.index
 
         pytest.raises(ValueError, self.frame._get_agg_axis, 2)
 

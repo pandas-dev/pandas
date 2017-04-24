@@ -55,7 +55,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         # Mixed type Series
         mixed = Series(['hello', np.NaN], index=[0, 1])
         self.assertEqual(mixed.dtype, np.object_)
-        self.assertIs(mixed[1], np.NaN)
+        assert mixed[1] is np.NaN
 
         self.assertFalse(self.empty.index.is_all_dates)
         self.assertFalse(Series({}).index.is_all_dates)
@@ -226,7 +226,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         data = dict((k, 1) for k in rng)
 
         result = Series(data, index=rng)
-        self.assertIs(result.index, rng)
+        assert result.index is rng
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])

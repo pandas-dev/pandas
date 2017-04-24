@@ -593,7 +593,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         exp = self.frame.to_dense().apply(np.sum, broadcast=True)
         tm.assert_frame_equal(broadcasted.to_dense(), exp)
 
-        self.assertIs(self.empty.apply(np.sqrt), self.empty)
+        assert self.empty.apply(np.sqrt) is self.empty
 
         from pandas.core import nanops
         applied = self.frame.apply(np.sum)

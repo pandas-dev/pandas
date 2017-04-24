@@ -249,20 +249,14 @@ class TestPeriodDtype(Base, tm.TestCase):
         self.assertTrue(issubclass(type(a), type(b)))
 
     def test_identity(self):
-        self.assertEqual(PeriodDtype('period[D]'),
-                         PeriodDtype('period[D]'))
-        self.assertIs(PeriodDtype('period[D]'),
-                      PeriodDtype('period[D]'))
+        assert PeriodDtype('period[D]') == PeriodDtype('period[D]')
+        assert PeriodDtype('period[D]') is PeriodDtype('period[D]')
 
-        self.assertEqual(PeriodDtype('period[3D]'),
-                         PeriodDtype('period[3D]'))
-        self.assertIs(PeriodDtype('period[3D]'),
-                      PeriodDtype('period[3D]'))
+        assert PeriodDtype('period[3D]') == PeriodDtype('period[3D]')
+        assert PeriodDtype('period[3D]') is PeriodDtype('period[3D]')
 
-        self.assertEqual(PeriodDtype('period[1S1U]'),
-                         PeriodDtype('period[1000001U]'))
-        self.assertIs(PeriodDtype('period[1S1U]'),
-                      PeriodDtype('period[1000001U]'))
+        assert PeriodDtype('period[1S1U]') == PeriodDtype('period[1000001U]')
+        assert PeriodDtype('period[1S1U]') is PeriodDtype('period[1000001U]')
 
     def test_coerce_to_dtype(self):
         self.assertEqual(_coerce_to_dtype('period[D]'),
@@ -371,12 +365,12 @@ class TestIntervalDtype(Base, tm.TestCase):
     def test_construction_generic(self):
         # generic
         i = IntervalDtype('interval')
-        self.assertIs(i.subtype, None)
+        assert i.subtype is None
         self.assertTrue(is_interval_dtype(i))
         self.assertTrue(str(i) == 'interval')
 
         i = IntervalDtype()
-        self.assertIs(i.subtype, None)
+        assert i.subtype is None
         self.assertTrue(is_interval_dtype(i))
         self.assertTrue(str(i) == 'interval')
 

@@ -129,16 +129,17 @@ class TestSeriesSorting(TestData, tm.TestCase):
         # descending
         random_order = self.ts.reindex(rindex)
         result = random_order.sort_index(ascending=False, inplace=True)
-        self.assertIs(result, None,
-                      msg='sort_index() inplace should return None')
-        assert_series_equal(random_order, self.ts.reindex(self.ts.index[::-1]))
+
+        assert result is None
+        tm.assert_series_equal(random_order, self.ts.reindex(
+            self.ts.index[::-1]))
 
         # ascending
         random_order = self.ts.reindex(rindex)
         result = random_order.sort_index(ascending=True, inplace=True)
-        self.assertIs(result, None,
-                      msg='sort_index() inplace should return None')
-        assert_series_equal(random_order, self.ts)
+
+        assert result is None
+        tm.assert_series_equal(random_order, self.ts)
 
     def test_sort_index_multiindex(self):
 

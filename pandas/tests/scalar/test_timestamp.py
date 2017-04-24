@@ -416,8 +416,7 @@ class TestTimestamp(tm.TestCase):
                           tz)
             pytest.raises(NonExistentTimeError, ts.tz_localize,
                           tz, errors='raise')
-            self.assertIs(ts.tz_localize(tz, errors='coerce'),
-                          NaT)
+            assert ts.tz_localize(tz, errors='coerce') is NaT
 
     def test_tz_localize_errors_ambiguous(self):
         # See issue 13057

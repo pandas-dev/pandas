@@ -879,8 +879,8 @@ Freq: D"""
             tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
 
     def test_nat(self):
-        self.assertIs(pd.DatetimeIndex._na_value, pd.NaT)
-        self.assertIs(pd.DatetimeIndex([])._na_value, pd.NaT)
+        assert pd.DatetimeIndex._na_value is pd.NaT
+        assert pd.DatetimeIndex([])._na_value is pd.NaT
 
         for tz in [None, 'US/Eastern', 'UTC']:
             idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], tz=tz)

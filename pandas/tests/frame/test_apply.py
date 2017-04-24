@@ -25,29 +25,30 @@ class TestDataFrameApply(tm.TestCase, TestData):
         with np.errstate(all='ignore'):
             # ufunc
             applied = self.frame.apply(np.sqrt)
-            assert_series_equal(np.sqrt(self.frame['A']), applied['A'])
+            tm.assert_series_equal(np.sqrt(self.frame['A']), applied['A'])
 
             # aggregator
             applied = self.frame.apply(np.mean)
-            self.assertEqual(applied['A'], np.mean(self.frame['A']))
+            assert applied['A'] == np.mean(self.frame['A'])
 
             d = self.frame.index[0]
             applied = self.frame.apply(np.mean, axis=1)
-            self.assertEqual(applied[d], np.mean(self.frame.xs(d)))
-            self.assertIs(applied.index, self.frame.index)  # want this
+            assert applied[d] == np.mean(self.frame.xs(d))
+            assert applied.index is self.frame.index  # want this
 
         # invalid axis
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
         pytest.raises(ValueError, df.apply, lambda x: x, 2)
 
-        # GH9573
+        # see gh-9573
         df = DataFrame({'c0': ['A', 'A', 'B', 'B'],
                         'c1': ['C', 'C', 'D', 'D']})
         df = df.apply(lambda ts: ts.astype('category'))
-        self.assertEqual(df.shape, (4, 2))
-        self.assertTrue(isinstance(df['c0'].dtype, CategoricalDtype))
-        self.assertTrue(isinstance(df['c1'].dtype, CategoricalDtype))
+
+        assert df.shape == (4, 2)
+        assert isinstance(df['c0'].dtype, CategoricalDtype)
+        assert isinstance(df['c1'].dtype, CategoricalDtype)
 
     def test_apply_mixed_datetimelike(self):
         # mixed datetimelike
@@ -190,7 +191,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
                 if is_reduction:
                     agg_axis = df._get_agg_axis(axis)
                     assert isinstance(res, Series)
-                    self.assertIs(res.index, agg_axis)
+                    assert res.index is agg_axis
                 else:
                     assert isinstance(res, DataFrame)
 

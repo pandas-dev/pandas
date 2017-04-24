@@ -4218,7 +4218,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
     def test_cat_accessor_api(self):
         # GH 9322
         from pandas.core.categorical import CategoricalAccessor
-        self.assertIs(Series.cat, CategoricalAccessor)
+        assert Series.cat is CategoricalAccessor
         s = Series(list('aabbcde')).astype('category')
         assert isinstance(s.cat, CategoricalAccessor)
 

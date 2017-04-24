@@ -26,7 +26,7 @@ class TestPandasDtype(tm.TestCase):
         for dtype in ['datetime64[ns, US/Eastern]',
                       'datetime64[ns, Asia/Tokyo]',
                       'datetime64[ns, UTC]']:
-            self.assertIs(pandas_dtype(dtype), DatetimeTZDtype(dtype))
+            assert pandas_dtype(dtype) is DatetimeTZDtype(dtype)
             self.assertEqual(pandas_dtype(dtype), DatetimeTZDtype(dtype))
             self.assertEqual(pandas_dtype(dtype), dtype)
 
@@ -36,7 +36,7 @@ class TestPandasDtype(tm.TestCase):
     def test_period_dtype(self):
         for dtype in ['period[D]', 'period[3M]', 'period[U]',
                       'Period[D]', 'Period[3M]', 'Period[U]']:
-            self.assertIs(pandas_dtype(dtype), PeriodDtype(dtype))
+            assert pandas_dtype(dtype) is PeriodDtype(dtype)
             self.assertEqual(pandas_dtype(dtype), PeriodDtype(dtype))
             self.assertEqual(pandas_dtype(dtype), dtype)
 

@@ -103,10 +103,10 @@ class TestSeriesPeriod(tm.TestCase):
     def test_set_none_nan(self):
         # currently Period is stored as object dtype, not as NaT
         self.series[3] = None
-        self.assertIs(self.series[3], None)
+        assert self.series[3] is None
 
         self.series[3:5] = None
-        self.assertIs(self.series[4], None)
+        assert self.series[4] is None
 
         self.series[5] = np.nan
         self.assertTrue(np.isnan(self.series[5]))

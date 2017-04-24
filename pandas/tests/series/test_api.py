@@ -35,7 +35,7 @@ class SharedWithSparse(object):
 
         self.ts.index.name = None
         assert self.ts.index.name is None
-        self.assertIs(self.ts, self.ts)
+        assert self.ts is self.ts
 
         cp = self.ts.copy()
         cp.index.name = 'foo'
@@ -203,7 +203,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
         # to .keys() in a list()
         getkeys = self.ts.keys
-        self.assertIs(getkeys(), self.ts.index)
+        assert getkeys() is self.ts.index
 
     def test_values(self):
         tm.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)

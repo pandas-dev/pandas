@@ -185,7 +185,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         result = dti.union(empty)
         assert isinstance(result, DatetimeIndex)
-        self.assertIs(result, result)
+        assert result is result
 
         result = dti.join(empty)
         assert isinstance(result, DatetimeIndex)

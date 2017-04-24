@@ -664,7 +664,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
             first_series = SparseSeries(values, sparse_index=index1,
                                         fill_value=fill_value)
             reindexed = first_series.sparse_reindex(index2)
-            self.assertIs(reindexed.sp_index, index2)
+            assert reindexed.sp_index is index2
 
             int_indices1 = index1.to_int_index().indices
             int_indices2 = index2.to_int_index().indices

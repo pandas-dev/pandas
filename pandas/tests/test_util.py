@@ -42,7 +42,7 @@ class TestDecorators(tm.TestCase):
         x = 78
         with tm.assert_produces_warning(FutureWarning):
             result = self.f1(old=x)
-        self.assertIs(result, x)
+        assert result is x
         with tm.assert_produces_warning(None):
             self.f1(new=x)
 
@@ -338,7 +338,7 @@ class TestMove(tm.TestCase):
 
         with pytest.raises(BadMove) as e:
             def handle_success(type_, value, tb):
-                self.assertIs(value.args[0], b)
+                assert value.args[0] is b
                 return type(e).handle_success(e, type_, value, tb)  # super
 
             e.handle_success = handle_success

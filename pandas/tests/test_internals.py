@@ -382,7 +382,7 @@ class TestBlockManager(object):
         assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
         # share ref_items
-        # self.assertIs(mgr2.blocks[0].ref_items, mgr2.blocks[1].ref_items)
+        # assert mgr2.blocks[0].ref_items is mgr2.blocks[1].ref_items
 
         # GH2431
         assert hasattr(mgr2, "_is_consolidated")

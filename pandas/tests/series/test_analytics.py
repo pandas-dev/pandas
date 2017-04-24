@@ -1276,8 +1276,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
     def test_empty_timeseries_redections_return_nat(self):
         # covers #11245
         for dtype in ('m8[ns]', 'm8[ns]', 'M8[ns]', 'M8[ns, UTC]'):
-            self.assertIs(Series([], dtype=dtype).min(), pd.NaT)
-            self.assertIs(Series([], dtype=dtype).max(), pd.NaT)
+            assert Series([], dtype=dtype).min() is pd.NaT
+            assert Series([], dtype=dtype).max() is pd.NaT
 
     def test_unique_data_ownership(self):
         # it works! #1807

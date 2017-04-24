@@ -204,7 +204,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # Same index, copies values but not index if copy=False
         newFrame = self.frame.reindex(self.frame.index, copy=False)
-        self.assertIs(newFrame.index, self.frame.index)
+        assert newFrame.index is self.frame.index
 
         # length zero
         newFrame = self.frame.reindex([])

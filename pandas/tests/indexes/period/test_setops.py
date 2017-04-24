@@ -31,7 +31,7 @@ class TestPeriodIndex(tm.TestCase):
 
         for kind in ['inner', 'outer', 'left', 'right']:
             res = index.join(index, how=kind)
-            self.assertIs(index, res)
+            assert index is res
 
     def test_join_does_not_recur(self):
         df = tm.makeCustomDataframe(

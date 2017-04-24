@@ -1171,29 +1171,29 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         # return self if no slicing...for now
         with catch_warnings(record=True):
-            self.assertIs(f.ix[:, :], f)
+            assert f.ix[:, :] is f
 
         # low dimensional slice
         with catch_warnings(record=True):
             xs1 = f.ix[2, ['C', 'B', 'A']]
         xs2 = f.xs(f.index[2]).reindex(['C', 'B', 'A'])
-        assert_series_equal(xs1, xs2)
+        tm.assert_series_equal(xs1, xs2)
 
         with catch_warnings(record=True):
             ts1 = f.ix[5:10, 2]
         ts2 = f[f.columns[2]][5:10]
-        assert_series_equal(ts1, ts2)
+        tm.assert_series_equal(ts1, ts2)
 
         # positional xs
         with catch_warnings(record=True):
             xs1 = f.ix[0]
         xs2 = f.xs(f.index[0])
-        assert_series_equal(xs1, xs2)
+        tm.assert_series_equal(xs1, xs2)
 
         with catch_warnings(record=True):
             xs1 = f.ix[f.index[5]]
         xs2 = f.xs(f.index[5])
-        assert_series_equal(xs1, xs2)
+        tm.assert_series_equal(xs1, xs2)
 
         # single column
         with catch_warnings(record=True):
@@ -1204,18 +1204,18 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
             exp = f.copy()
             exp.values[5] = 4
             f.ix[5][:] = 4
-        assert_frame_equal(exp, f)
+        tm.assert_frame_equal(exp, f)
 
         with catch_warnings(record=True):
             exp.values[:, 1] = 6
             f.ix[:, 1][:] = 6
-        assert_frame_equal(exp, f)
+        tm.assert_frame_equal(exp, f)
 
         # slice of mixed-frame
         with catch_warnings(record=True):
             xs = self.mixed_frame.ix[5]
         exp = self.mixed_frame.xs(self.mixed_frame.index[5])
-        assert_series_equal(xs, exp)
+        tm.assert_series_equal(xs, exp)
 
     def test_setitem_fancy_1d(self):
 
@@ -1676,7 +1676,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
     def test_set_value_resize(self):
 
         res = self.frame.set_value('foobar', 'B', 0)
-        self.assertIs(res, self.frame)
+        assert res is self.frame
         self.assertEqual(res.index[-1], 'foobar')
         self.assertEqual(res.get_value('foobar', 'B'), 0)
 
