@@ -1280,6 +1280,25 @@ class TestTimeZones(tm.TestCase):
             self.assertEqual(result_pytz.to_pydatetime().tzname(),
                              result_dateutil.to_pydatetime().tzname())
 
+    def test_tzreplace_issue_15683(self):
+        """Regression test for issue 15683."""
+        dt = datetime(2016, 3, 27, 1)
+        tzinfo = pytz.timezone('CET').localize(dt, is_dst=False).tzinfo
+
+        result_dt = dt.replace(tzinfo=tzinfo)
+        result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
+
+        self.assertEqual(result_dt.timestamp(), result_pd.timestamp())
+        self.assertEqual(result_dt, result_pd)
+        self.assertEqual(result_dt, result_pd.to_pydatetime())
+
+        result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
+        result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
+
+        self.assertEqual(result_dt.timestamp(), result_pd.timestamp())
+        self.assertEqual(result_dt, result_pd)
+        self.assertEqual(result_dt, result_pd.to_pydatetime())
+
     def test_index_equals_with_tz(self):
         left = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         right = date_range('1/1/2011', periods=100, freq='H', tz='US/Eastern')

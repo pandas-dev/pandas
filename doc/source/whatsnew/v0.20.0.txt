@@ -22,6 +22,7 @@ Highlights include:
 - Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
 - Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
+- Fixed an issue with ``Timestamp.replace(tzinfo)`` around DST changes (:issue:`15683`)
 
 .. warning::
 
