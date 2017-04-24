@@ -344,11 +344,14 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_series_equal(result, expected)
 
     def test_pos(self):
-        assert_frame_equal(+self.frame, 1 * self.frame)
+        try:
+            assert_frame_equal(+self.frame, self.frame.apply(lambda x: +self.frame))
+        except TypeError:
+            if not (len(self.frame) > 0 and isinstance(self.frame[0], pd.Timestamp)):
+                raise
 
     def test_neg(self):
-        # what to do?
-        assert_frame_equal(-self.frame, -1 * self.frame)
+        assert_frame_equal(-self.frame, self.frame.apply(lambda x: -self.frame))
 
     def test_invert(self):
         assert_frame_equal(-(self.frame < 0), ~(self.frame < 0))

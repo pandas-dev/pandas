@@ -92,10 +92,14 @@ class TestSeriesOperators(TestData, tm.TestCase):
         check(tm.makeFloatSeries(), tm.makeFloatSeries(), check_reverse=True)
 
     def test_pos(self):
-       assert_series_equal(+self.series, 1 * self.series)  #Ensures no rounding issues
+       try:
+           assert_series_equal(+self.series, self.series.apply(lambda x: +x))
+       except TypeError:
+           if not (len(self.frame) > 0 and isinstance(self.frame[0], pd.Timestampe)):
+               raise
 
     def test_neg(self):
-        assert_series_equal(-self.series, -1 * self.series)
+        assert_series_equal(-self.series, self.series.apply(lambda x: -x))
 
     def test_invert(self):
         assert_series_equal(-(self.series < 0), ~(self.series < 0))

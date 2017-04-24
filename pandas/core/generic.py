@@ -862,8 +862,13 @@ class NDFrame(PandasObject, SelectionMixin):
     def __pos__(self):
         values = _values_from_object(self)
         if values.dtype == np.bool_:
-            arr = values  #To remain consistent with __neg__ 
+            arr = values 
         else:
+            if (len(values) > 0):
+                try:
+                    -values[0]
+                except TypeError:
+                    raise TypeError("`+` only works on data types that support `-`")
             arr = operator.pos(values)
         return self.__array_wrap__(arr)    
 
