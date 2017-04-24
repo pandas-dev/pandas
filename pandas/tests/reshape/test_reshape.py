@@ -117,7 +117,7 @@ class TestMelt(tm.TestCase):
 
         for id_vars, value_vars in ((tuple_a, list_b), (list_a, tuple_b),
                                     (tuple_a, tuple_b)):
-            with tm.assertRaisesRegexp(ValueError, r'MultiIndex'):
+            with tm.assert_raises_regex(ValueError, r'MultiIndex'):
                 self.df1.melt(id_vars=id_vars, value_vars=value_vars)
 
     def test_custom_var_name(self):

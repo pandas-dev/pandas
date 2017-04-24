@@ -135,7 +135,7 @@ class TestCategoricalIndex(tm.TestCase):
         exp = DataFrame({'A': [1, 1, 2], 'B': [4, 4, 5]}, index=exp_index)
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with tm.assertRaisesRegexp(
+        with tm.assert_raises_regex(
                 KeyError,
                 'a list-indexer must only include values that are '
                 'in the categories'):
@@ -160,7 +160,7 @@ class TestCategoricalIndex(tm.TestCase):
                    ]}, index=CategoricalIndex(['a', 'a', 'a', 'a', 'b']))
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with tm.assertRaisesRegexp(
+        with tm.assert_raises_regex(
                 KeyError,
                 'a list-indexer must only include values '
                 'that are in the categories'):
@@ -190,7 +190,7 @@ class TestCategoricalIndex(tm.TestCase):
                                                categories=list('abcde')))
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with tm.assertRaisesRegexp(
+        with tm.assert_raises_regex(
                 KeyError,
                 'a list-indexer must only include values '
                 'that are in the categories'):

@@ -13,9 +13,7 @@ from pandas import (DataFrame, Series, Timestamp,
                     date_range)
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData, _check_mixed_float
@@ -439,7 +437,8 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
         # disable this for now
-        with assertRaisesRegexp(NotImplementedError, 'column by column'):
+        with tm.assert_raises_regex(NotImplementedError,
+                                    'column by column'):
             df.fillna(df.max(1), axis=1)
 
     def test_fillna_dataframe(self):
@@ -479,7 +478,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
     def test_fillna_invalid_method(self):
-        with assertRaisesRegexp(ValueError, 'ffil'):
+        with tm.assert_raises_regex(ValueError, 'ffil'):
             self.frame.fillna(method='ffil')
 
     def test_fillna_invalid_value(self):

@@ -131,16 +131,18 @@ class TestDatetimeIndexOps(Ops):
                          Timestamp('2016-01-20 00:00:00', freq='D'))
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, errmsg, np.min, dr, out=0)
-        tm.assertRaisesRegexp(ValueError, errmsg, np.max, dr, out=0)
+        tm.assert_raises_regex(ValueError, errmsg, np.min, dr, out=0)
+        tm.assert_raises_regex(ValueError, errmsg, np.max, dr, out=0)
 
         self.assertEqual(np.argmin(dr), 0)
         self.assertEqual(np.argmax(dr), 5)
 
         if not _np_version_under1p10:
             errmsg = "the 'out' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, errmsg, np.argmin, dr, out=0)
-            tm.assertRaisesRegexp(ValueError, errmsg, np.argmax, dr, out=0)
+            tm.assert_raises_regex(
+                ValueError, errmsg, np.argmin, dr, out=0)
+            tm.assert_raises_regex(
+                ValueError, errmsg, np.argmax, dr, out=0)
 
     def test_round(self):
         for tz in self.tz:
@@ -161,14 +163,14 @@ class TestDatetimeIndexOps(Ops):
             self.assertEqual(elt.round(freq='H'), expected_elt)
 
             msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 rng.round(freq='foo')
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 elt.round(freq='foo')
 
             msg = "<MonthEnd> is a non-fixed frequency"
-            tm.assertRaisesRegexp(ValueError, msg, rng.round, freq='M')
-            tm.assertRaisesRegexp(ValueError, msg, elt.round, freq='M')
+            tm.assert_raises_regex(ValueError, msg, rng.round, freq='M')
+            tm.assert_raises_regex(ValueError, msg, elt.round, freq='M')
 
             # GH 14440 & 15578
             index = pd.DatetimeIndex(['2016-10-17 12:00:00.0015'], tz=tz)
@@ -245,8 +247,8 @@ class TestDatetimeIndexOps(Ops):
             assert res.freq is None
 
             tm.assert_index_equal(np.repeat(rng, reps), expected_rng)
-            tm.assertRaisesRegexp(ValueError, msg, np.repeat,
-                                  rng, reps, axis=1)
+            tm.assert_raises_regex(ValueError, msg, np.repeat,
+                                   rng, reps, axis=1)
 
     def test_representation(self):
 
@@ -433,10 +435,10 @@ Freq: D"""
 
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
         msg = "cannot add a datelike to a DatetimeIndex"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             idx + Timestamp('2011-01-01')
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             Timestamp('2011-01-01') + idx
 
     def test_add_dti_dti(self):
@@ -830,16 +832,16 @@ Freq: D"""
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assertRaisesRegexp(TypeError, msg, idx.take,
-                              indices, foo=2)
+        tm.assert_raises_regex(TypeError, msg, idx.take,
+                               indices, foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, idx.take,
-                              indices, out=indices)
+        tm.assert_raises_regex(ValueError, msg, idx.take,
+                               indices, out=indices)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, idx.take,
-                              indices, mode='clip')
+        tm.assert_raises_regex(ValueError, msg, idx.take,
+                               indices, mode='clip')
 
     def test_infer_freq(self):
         # GH 11018

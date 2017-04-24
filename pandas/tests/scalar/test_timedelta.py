@@ -125,16 +125,17 @@ class TestTimedeltas(tm.TestCase):
         pytest.raises(ValueError, lambda: Timedelta('3.1415'))
 
         # invalid construction
-        tm.assertRaisesRegexp(ValueError, "cannot construct a Timedelta",
-                              lambda: Timedelta())
-        tm.assertRaisesRegexp(ValueError, "unit abbreviation w/o a number",
-                              lambda: Timedelta('foo'))
-        tm.assertRaisesRegexp(ValueError,
-                              "cannot construct a Timedelta from the passed "
-                              "arguments, allowed keywords are ",
-                              lambda: Timedelta(day=10))
+        tm.assert_raises_regex(ValueError, "cannot construct a Timedelta",
+                               lambda: Timedelta())
+        tm.assert_raises_regex(ValueError,
+                               "unit abbreviation w/o a number",
+                               lambda: Timedelta('foo'))
+        tm.assert_raises_regex(ValueError,
+                               "cannot construct a Timedelta from the "
+                               "passed arguments, allowed keywords are ",
+                               lambda: Timedelta(day=10))
 
-        # roundtripping both for string and value
+        # round-trip both for string and value
         for v in ['1s', '-1s', '1us', '-1us', '1 day', '-1 day',
                   '-23:59:59.999999', '-1 days +23:59:59.999999', '-1ns',
                   '1ns', '-23:59:59.999999999']:

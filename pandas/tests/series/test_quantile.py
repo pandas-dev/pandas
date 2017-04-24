@@ -43,7 +43,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
 
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 self.ts.quantile(invalid)
 
     def test_quantile_multi(self):
@@ -109,11 +109,11 @@ class TestSeriesQuantile(TestData, tm.TestCase):
 
         # interpolation other than linear
         expErrMsg = "Interpolation methods other than "
-        with tm.assertRaisesRegexp(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, expErrMsg):
             self.ts.quantile(0.9, interpolation='nearest')
 
         # object dtype
-        with tm.assertRaisesRegexp(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, expErrMsg):
             q = Series(self.ts, dtype=object).quantile(0.7,
                                                        interpolation='higher')
 

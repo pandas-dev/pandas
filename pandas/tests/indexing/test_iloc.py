@@ -22,8 +22,9 @@ class TestiLoc(Base, tm.TestCase):
         expected = df
 
         # lists of positions should raise IndexErrror!
-        with tm.assertRaisesRegexp(IndexError,
-                                   'positional indexers are out-of-bounds'):
+        with tm.assert_raises_regex(IndexError,
+                                    'positional indexers '
+                                    'are out-of-bounds'):
             df.iloc[:, [0, 1, 2, 3, 4, 5]]
         pytest.raises(IndexError, lambda: df.iloc[[1, 30]])
         pytest.raises(IndexError, lambda: df.iloc[[1, -30]])
@@ -35,14 +36,14 @@ class TestiLoc(Base, tm.TestCase):
 
         # still raise on a single indexer
         msg = 'single positional indexer is out-of-bounds'
-        with tm.assertRaisesRegexp(IndexError, msg):
+        with tm.assert_raises_regex(IndexError, msg):
             df.iloc[30]
         pytest.raises(IndexError, lambda: df.iloc[-30])
 
         # GH10779
         # single positive/negative indexer exceeding Series bounds should raise
         # an IndexError
-        with tm.assertRaisesRegexp(IndexError, msg):
+        with tm.assert_raises_regex(IndexError, msg):
             s.iloc[30]
         pytest.raises(IndexError, lambda: s.iloc[-30])
 

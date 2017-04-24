@@ -373,7 +373,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
 
-        with tm.assertRaisesRegexp(ValueError, 'Invalid fill method'):
+        with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
             idx.get_indexer(idx, method='invalid')
 
     def test_reindexing(self):
@@ -579,7 +579,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertTrue((ci1 == ci1.values).all())
 
         # invalid comparisons
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             ci1 == Index(['a', 'b', 'c'])
         pytest.raises(TypeError, lambda: ci1 == ci2)
         pytest.raises(
@@ -806,8 +806,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
         tm.assert_index_equal(idx.fillna(1.0), exp)
 
         # fill by value not in categories raises ValueError
-        with tm.assertRaisesRegexp(ValueError,
-                                   'fill value must be in categories'):
+        with tm.assert_raises_regex(ValueError,
+                                    'fill value must be in categories'):
             idx.fillna(2.0)
 
     def test_take_fill_value(self):
@@ -861,9 +861,9 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -899,9 +899,9 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -912,13 +912,13 @@ class TestCategoricalIndex(Base, tm.TestCase):
         indices = [1, 0, -1]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assertRaisesRegexp(TypeError, msg, idx.take,
-                              indices, foo=2)
+        tm.assert_raises_regex(TypeError, msg, idx.take,
+                               indices, foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, idx.take,
-                              indices, out=indices)
+        tm.assert_raises_regex(ValueError, msg, idx.take,
+                               indices, out=indices)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, idx.take,
-                              indices, mode='clip')
+        tm.assert_raises_regex(ValueError, msg, idx.take,
+                               indices, mode='clip')

@@ -9,9 +9,7 @@ import numpy as np
 from pandas import (DataFrame, Series, Timestamp, _np_version_under1p11)
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 from pandas import _np_version_under1p9
@@ -189,21 +187,21 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         # interpolation method other than default linear
         expErrMsg = "Interpolation methods other than linear"
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
-        with assertRaisesRegexp(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, expErrMsg):
             df.quantile(.5, axis=1, interpolation='nearest')
 
-        with assertRaisesRegexp(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, expErrMsg):
             df.quantile([.5, .75], axis=1, interpolation='lower')
 
         # test degenerate case
         df = DataFrame({'x': [], 'y': []})
-        with assertRaisesRegexp(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, expErrMsg):
             q = df.quantile(0.1, axis=0, interpolation='higher')
 
         # multi
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
                        columns=['a', 'b', 'c'])
-        with assertRaisesRegexp(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, expErrMsg):
             df.quantile([.25, .5], interpolation='midpoint')
 
     def test_quantile_multi(self):
@@ -268,7 +266,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
     def test_quantile_invalid(self):
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 self.tsframe.quantile(invalid)
 
     def test_quantile_box(self):

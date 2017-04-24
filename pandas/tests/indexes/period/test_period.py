@@ -82,11 +82,11 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
                                      tolerance=np.timedelta64(1, 'D')), 1)
         self.assertEqual(idx.get_loc('2000-01-02T12', method='nearest',
                                      tolerance=timedelta(1)), 1)
-        with tm.assertRaisesRegexp(ValueError, 'must be convertible'):
+        with tm.assert_raises_regex(ValueError, 'must be convertible'):
             idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
 
         msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with pytest.raises(KeyError):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 day')
@@ -151,7 +151,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
                                     np.array([0, -1, 1], dtype=np.intp))
 
         msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.get_indexer(target, 'nearest', tolerance='1 minute')
 
         tm.assert_numpy_array_equal(idx.get_indexer(target, 'nearest',
@@ -223,8 +223,8 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
     def test_hash_error(self):
         index = period_range('20010101', periods=10)
-        with tm.assertRaisesRegexp(TypeError, "unhashable type: %r" %
-                                   type(index).__name__):
+        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
+                                    type(index).__name__):
             hash(index)
 
     def test_make_time_series(self):
@@ -679,7 +679,8 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         tm.assert_index_equal(np.repeat(index, 2), expected)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.repeat, index, 2, axis=1)
+        tm.assert_raises_regex(
+            ValueError, msg, np.repeat, index, 2, axis=1)
 
     def test_pindex_multiples(self):
         pi = PeriodIndex(start='1/1/11', end='12/31/11', freq='2M')

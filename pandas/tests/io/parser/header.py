@@ -19,7 +19,7 @@ class HeaderTests(object):
     def test_read_with_bad_header(self):
         errmsg = r"but only \d+ lines in file"
 
-        with tm.assertRaisesRegexp(ValueError, errmsg):
+        with tm.assert_raises_regex(ValueError, errmsg):
             s = StringIO(',,')
             self.read_csv(s, header=[10])
 

@@ -17,8 +17,7 @@ import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+                                 assert_frame_equal)
 
 import pandas.util.testing as tm
 
@@ -481,7 +480,7 @@ starting,ending,measure
 
         # via astype, but errors
         converted = self.mixed_frame.copy()
-        with assertRaisesRegexp(ValueError, 'invalid literal'):
+        with tm.assert_raises_regex(ValueError, 'invalid literal'):
             converted['H'].astype('int32')
 
         # mixed in a single column

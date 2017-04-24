@@ -851,10 +851,10 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
     def test_constructor_cant_cast_datetime64(self):
         msg = "Cannot cast datetime64 to "
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             Series(date_range('1/1/2000', periods=10), dtype=float)
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             Series(date_range('1/1/2000', periods=10), dtype=int)
 
     def test_constructor_cast_object(self):
@@ -882,9 +882,9 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         # These timestamps have the wrong frequencies,
         # so an Exception should be raised now.
         msg = "cannot convert timedeltalike"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             Series([], dtype='m8[ps]')
 
         msg = "cannot convert datetimelike"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             Series([], dtype='M8[ps]')

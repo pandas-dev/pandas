@@ -35,7 +35,6 @@ import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslib import normalize_date, NaT, Timestamp, Timedelta
 import pandas._libs.tslib as tslib
-from pandas.util.testing import assertRaisesRegexp
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
@@ -2226,7 +2225,8 @@ class TestWeek(Base):
 
     def test_corner(self):
         pytest.raises(ValueError, Week, weekday=7)
-        assertRaisesRegexp(ValueError, "Day must be", Week, weekday=-1)
+        tm.assert_raises_regex(
+            ValueError, "Day must be", Week, weekday=-1)
 
     def test_isAnchored(self):
         self.assertTrue(Week(weekday=0).isAnchored())
@@ -2291,16 +2291,16 @@ class TestWeekOfMonth(Base):
     _offset = WeekOfMonth
 
     def test_constructor(self):
-        assertRaisesRegexp(ValueError, "^N cannot be 0", WeekOfMonth, n=0,
-                           week=1, weekday=1)
-        assertRaisesRegexp(ValueError, "^Week", WeekOfMonth, n=1, week=4,
-                           weekday=0)
-        assertRaisesRegexp(ValueError, "^Week", WeekOfMonth, n=1, week=-1,
-                           weekday=0)
-        assertRaisesRegexp(ValueError, "^Day", WeekOfMonth, n=1, week=0,
-                           weekday=-1)
-        assertRaisesRegexp(ValueError, "^Day", WeekOfMonth, n=1, week=0,
-                           weekday=7)
+        tm.assert_raises_regex(ValueError, "^N cannot be 0",
+                               WeekOfMonth, n=0, week=1, weekday=1)
+        tm.assert_raises_regex(ValueError, "^Week", WeekOfMonth,
+                               n=1, week=4, weekday=0)
+        tm.assert_raises_regex(ValueError, "^Week", WeekOfMonth,
+                               n=1, week=-1, weekday=0)
+        tm.assert_raises_regex(ValueError, "^Day", WeekOfMonth,
+                               n=1, week=0, weekday=-1)
+        tm.assert_raises_regex(ValueError, "^Day", WeekOfMonth,
+                               n=1, week=0, weekday=7)
 
     def test_repr(self):
         self.assertEqual(repr(WeekOfMonth(weekday=1, week=2)),
@@ -2377,12 +2377,13 @@ class TestLastWeekOfMonth(Base):
     _offset = LastWeekOfMonth
 
     def test_constructor(self):
-        assertRaisesRegexp(ValueError, "^N cannot be 0", LastWeekOfMonth, n=0,
-                           weekday=1)
+        tm.assert_raises_regex(ValueError, "^N cannot be 0",
+                               LastWeekOfMonth, n=0, weekday=1)
 
-        assertRaisesRegexp(ValueError, "^Day", LastWeekOfMonth, n=1,
-                           weekday=-1)
-        assertRaisesRegexp(ValueError, "^Day", LastWeekOfMonth, n=1, weekday=7)
+        tm.assert_raises_regex(ValueError, "^Day", LastWeekOfMonth, n=1,
+                               weekday=-1)
+        tm.assert_raises_regex(
+            ValueError, "^Day", LastWeekOfMonth, n=1, weekday=7)
 
     def test_offset(self):
         # Saturday
@@ -4567,9 +4568,9 @@ class TestOffsetNames(tm.TestCase):
 
 
 def test_get_offset():
-    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
         get_offset('gibberish')
-    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
         get_offset('QS-JAN-B')
 
     pairs = [
@@ -4597,7 +4598,7 @@ def test_get_offset():
 def test_get_offset_legacy():
     pairs = [('w@Sat', Week(weekday=5))]
     for name, expected in pairs:
-        with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+        with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
             get_offset(name)
 
 
@@ -4637,7 +4638,7 @@ def test_get_standard_freq():
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         assert fstr == get_standard_freq(('W', 1))
 
-    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             get_standard_freq('WeEk')
 
@@ -4646,7 +4647,7 @@ def test_get_standard_freq():
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         assert fstr == get_standard_freq('5q')
 
-    with tm.assertRaisesRegexp(ValueError, _INVALID_FREQ_ERROR):
+    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             get_standard_freq('5QuarTer')
 

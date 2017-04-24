@@ -257,7 +257,7 @@ class TestInference(tm.TestCase):
                 tm.assert_numpy_array_equal(out, pos)
 
                 # too many characters
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     lib.maybe_convert_numeric(
                         np.array(['foo_' + infinity], dtype=object),
                         na_values, maybe_int)
@@ -320,7 +320,7 @@ class TestInference(tm.TestCase):
         for coerce in (True, False):
             for arr, na_values in cases:
                 if coerce:
-                    with tm.assertRaisesRegexp(ValueError, msg):
+                    with tm.assert_raises_regex(ValueError, msg):
                         lib.maybe_convert_numeric(arr, na_values,
                                                   coerce_numeric=coerce)
                 else:
@@ -339,7 +339,7 @@ class TestInference(tm.TestCase):
         for coerce in (True, False):
             for case in cases:
                 if coerce:
-                    with tm.assertRaisesRegexp(ValueError, msg):
+                    with tm.assert_raises_regex(ValueError, msg):
                         lib.maybe_convert_numeric(case, set(),
                                                   coerce_numeric=coerce)
                 else:

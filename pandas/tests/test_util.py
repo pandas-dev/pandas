@@ -93,7 +93,7 @@ class TestValidateArgs(tm.TestCase):
 
     def test_bad_min_fname_arg_count(self):
         msg = "'max_fname_arg_count' must be non-negative"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             validate_args(self.fname, (None,), -1, 'foo')
 
     def test_bad_arg_length_max_value_single(self):
@@ -108,7 +108,7 @@ class TestValidateArgs(tm.TestCase):
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args(self.fname, args,
                           min_fname_arg_count,
                           compat_args)
@@ -125,7 +125,7 @@ class TestValidateArgs(tm.TestCase):
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args(self.fname, args,
                           min_fname_arg_count,
                           compat_args)
@@ -144,7 +144,7 @@ class TestValidateArgs(tm.TestCase):
         arg_vals = (1, -1, 3)
 
         for i in range(1, 3):
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 validate_args(self.fname, arg_vals[:i], 2, compat_args)
 
     def test_validation(self):
@@ -173,7 +173,7 @@ class TestValidateKwargs(tm.TestCase):
                r"keyword argument '{arg}'".format(
                    fname=self.fname, arg=badarg))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_kwargs(self.fname, kwargs, compat_args)
 
     def test_not_all_none(self):
@@ -194,7 +194,7 @@ class TestValidateKwargs(tm.TestCase):
             kwargs = dict(zip(kwarg_keys[:i],
                               kwarg_vals[:i]))
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 validate_kwargs(self.fname, kwargs, compat_args)
 
     def test_validation(self):
@@ -213,10 +213,11 @@ class TestValidateKwargs(tm.TestCase):
 
         for name in arg_names:
             for value in invalid_values:
-                with tm.assertRaisesRegexp(ValueError,
-                                           ("For argument \"%s\" expected "
-                                            "type bool, received type %s") %
-                                           (name, type(value).__name__)):
+                with tm.assert_raises_regex(ValueError,
+                                            "For argument \"%s\" "
+                                            "expected type bool, "
+                                            "received type %s" %
+                                            (name, type(value).__name__)):
                     validate_bool_kwarg(value, name)
 
             for value in valid_values:
@@ -239,7 +240,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args_and_kwargs(self.fname, args, kwargs,
                                      min_fname_arg_count,
                                      compat_args)
@@ -257,7 +258,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args_and_kwargs(self.fname, args, kwargs,
                                      min_fname_arg_count,
                                      compat_args)
@@ -276,17 +277,17 @@ class TestValidateKwargsAndArgs(tm.TestCase):
 
         args = ()
         kwargs = {'foo': -5, bad_arg: 2}
-        tm.assertRaisesRegexp(ValueError, msg,
-                              validate_args_and_kwargs,
-                              self.fname, args, kwargs,
-                              min_fname_arg_count, compat_args)
+        tm.assert_raises_regex(ValueError, msg,
+                               validate_args_and_kwargs,
+                               self.fname, args, kwargs,
+                               min_fname_arg_count, compat_args)
 
         args = (-5, 2)
         kwargs = {}
-        tm.assertRaisesRegexp(ValueError, msg,
-                              validate_args_and_kwargs,
-                              self.fname, args, kwargs,
-                              min_fname_arg_count, compat_args)
+        tm.assert_raises_regex(ValueError, msg,
+                               validate_args_and_kwargs,
+                               self.fname, args, kwargs,
+                               min_fname_arg_count, compat_args)
 
     def test_duplicate_argument(self):
         min_fname_arg_count = 2
@@ -300,7 +301,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         msg = (r"{fname}\(\) got multiple values for keyword "
                r"argument '{arg}'".format(fname=self.fname, arg='foo'))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args_and_kwargs(self.fname, args, kwargs,
                                      min_fname_arg_count,
                                      compat_args)
@@ -327,7 +328,7 @@ class TestMove(tm.TestCase):
         ``move_into_mutable_buffer`` which has a bunch of checks in it.
         """
         msg = "cannot create 'pandas.util._move.stolenbuf' instances"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             stolenbuf()
 
     def test_more_than_one_ref(self):

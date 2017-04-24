@@ -46,4 +46,4 @@ class TestCartesianProduct(tm.TestCase):
                           'a', ['a'], ['a', 'b'], [['a'], 'b']]
         msg = "Input must be a list-like of list-likes"
         for X in invalid_inputs:
-            tm.assertRaisesRegexp(TypeError, msg, cartesian_product, X=X)
+            tm.assert_raises_regex(TypeError, msg, cartesian_product, X=X)

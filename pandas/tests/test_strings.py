@@ -29,7 +29,8 @@ class TestStringMethods(tm.TestCase):
 
         # GH 9184
         invalid = Series([1])
-        with tm.assertRaisesRegexp(AttributeError, "only use .str accessor"):
+        with tm.assert_raises_regex(AttributeError,
+                                    "only use .str accessor"):
             invalid.str
         self.assertFalse(hasattr(invalid, 'str'))
 
@@ -451,15 +452,15 @@ class TestStringMethods(tm.TestCase):
                      r'(?(3)required )positional arguments?')
 
         repl = lambda: None
-        with tm.assertRaisesRegexp(TypeError, p_err):
+        with tm.assert_raises_regex(TypeError, p_err):
             values.str.replace('a', repl)
 
         repl = lambda m, x: None
-        with tm.assertRaisesRegexp(TypeError, p_err):
+        with tm.assert_raises_regex(TypeError, p_err):
             values.str.replace('a', repl)
 
         repl = lambda m, x, y=None: None
-        with tm.assertRaisesRegexp(TypeError, p_err):
+        with tm.assert_raises_regex(TypeError, p_err):
             values.str.replace('a', repl)
 
         # test regex named groups
@@ -512,13 +513,16 @@ class TestStringMethods(tm.TestCase):
         values = Series(['fooBAD__barBAD__bad', NA])
         pat = re.compile(r'BAD[_]*')
 
-        with tm.assertRaisesRegexp(ValueError, "case and flags cannot be"):
+        with tm.assert_raises_regex(ValueError,
+                                    "case and flags cannot be"):
             result = values.str.replace(pat, '', flags=re.IGNORECASE)
 
-        with tm.assertRaisesRegexp(ValueError, "case and flags cannot be"):
+        with tm.assert_raises_regex(ValueError,
+                                    "case and flags cannot be"):
             result = values.str.replace(pat, '', case=False)
 
-        with tm.assertRaisesRegexp(ValueError, "case and flags cannot be"):
+        with tm.assert_raises_regex(ValueError,
+                                    "case and flags cannot be"):
             result = values.str.replace(pat, '', case=True)
 
         # test with callable
@@ -648,7 +652,7 @@ class TestStringMethods(tm.TestCase):
         # Index only works with one regex group since
         # multi-group would expand to a frame
         idx = Index(['A1', 'A2', 'A3', 'A4', 'B5'])
-        with tm.assertRaisesRegexp(ValueError, "supported"):
+        with tm.assert_raises_regex(ValueError, "supported"):
             idx.str.extract('([AB])([123])', expand=False)
 
         # these should work for both Series and Index
@@ -1124,7 +1128,7 @@ class TestStringMethods(tm.TestCase):
         # no capture groups. (it returns DataFrame with one column for
         # each capture group)
         s = Series(['a3', 'b3', 'd4c2'], name='series_name')
-        with tm.assertRaisesRegexp(ValueError, "no capture groups"):
+        with tm.assert_raises_regex(ValueError, "no capture groups"):
             s.str.extractall(r'[a-z]')
 
     def test_extract_index_one_two_groups(self):
@@ -1504,12 +1508,12 @@ class TestStringMethods(tm.TestCase):
                             dtype=np.int64)
         tm.assert_numpy_array_equal(result.values, expected)
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "expected a string object, not int"):
+        with tm.assert_raises_regex(TypeError,
+                                    "expected a string object, not int"):
             result = values.str.find(0)
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "expected a string object, not int"):
+        with tm.assert_raises_regex(TypeError,
+                                    "expected a string object, not int"):
             result = values.str.rfind(0)
 
     def test_find_nan(self):
@@ -1579,11 +1583,13 @@ class TestStringMethods(tm.TestCase):
                                 dtype=np.int64)
             tm.assert_numpy_array_equal(result.values, expected)
 
-            with tm.assertRaisesRegexp(ValueError, "substring not found"):
+            with tm.assert_raises_regex(ValueError,
+                                        "substring not found"):
                 result = s.str.index('DE')
 
-            with tm.assertRaisesRegexp(TypeError,
-                                       "expected a string object, not int"):
+            with tm.assert_raises_regex(TypeError,
+                                        "expected a string "
+                                        "object, not int"):
                 result = s.str.index(0)
 
         # test with nan
@@ -1667,12 +1673,14 @@ class TestStringMethods(tm.TestCase):
         exp = Series(['XXaXX', 'XXbXX', NA, 'XXcXX', NA, 'eeeeee'])
         tm.assert_almost_equal(result, exp)
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "fillchar must be a character, not str"):
+        with tm.assert_raises_regex(TypeError,
+                                    "fillchar must be a "
+                                    "character, not str"):
             result = values.str.pad(5, fillchar='XY')
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "fillchar must be a character, not int"):
+        with tm.assert_raises_regex(TypeError,
+                                    "fillchar must be a "
+                                    "character, not int"):
             result = values.str.pad(5, fillchar=5)
 
     def test_pad_width(self):
@@ -1680,8 +1688,9 @@ class TestStringMethods(tm.TestCase):
         s = Series(['1', '22', 'a', 'bb'])
 
         for f in ['center', 'ljust', 'rjust', 'zfill', 'pad']:
-            with tm.assertRaisesRegexp(TypeError,
-                                       "width must be of integer type, not*"):
+            with tm.assert_raises_regex(TypeError,
+                                        "width must be of "
+                                        "integer type, not*"):
                 getattr(s.str, f)('f')
 
     def test_translate(self):
@@ -1713,7 +1722,7 @@ class TestStringMethods(tm.TestCase):
                 expected = klass(['abcde', 'abcc', 'cddd', 'cde'])
                 _check(result, expected)
             else:
-                with tm.assertRaisesRegexp(
+                with tm.assert_raises_regex(
                         ValueError, "deletechars is not a valid argument"):
                     result = s.str.translate(table, deletechars='fg')
 
@@ -1802,28 +1811,34 @@ class TestStringMethods(tm.TestCase):
         # If fillchar is not a charatter, normal str raises TypeError
         # 'aaa'.ljust(5, 'XY')
         # TypeError: must be char, not str
-        with tm.assertRaisesRegexp(TypeError,
-                                   "fillchar must be a character, not str"):
+        with tm.assert_raises_regex(TypeError,
+                                    "fillchar must be a "
+                                    "character, not str"):
             result = values.str.center(5, fillchar='XY')
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "fillchar must be a character, not str"):
+        with tm.assert_raises_regex(TypeError,
+                                    "fillchar must be a "
+                                    "character, not str"):
             result = values.str.ljust(5, fillchar='XY')
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "fillchar must be a character, not str"):
+        with tm.assert_raises_regex(TypeError,
+                                    "fillchar must be a "
+                                    "character, not str"):
             result = values.str.rjust(5, fillchar='XY')
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "fillchar must be a character, not int"):
+        with tm.assert_raises_regex(TypeError,
+                                    "fillchar must be a "
+                                    "character, not int"):
             result = values.str.center(5, fillchar=1)
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "fillchar must be a character, not int"):
+        with tm.assert_raises_regex(TypeError,
+                                    "fillchar must be a "
+                                    "character, not int"):
             result = values.str.ljust(5, fillchar=1)
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "fillchar must be a character, not int"):
+        with tm.assert_raises_regex(TypeError,
+                                    "fillchar must be a "
+                                    "character, not int"):
             result = values.str.rjust(5, fillchar=1)
 
     def test_zfill(self):
@@ -2005,7 +2020,7 @@ class TestStringMethods(tm.TestCase):
                         index=['preserve', 'me'])
         tm.assert_frame_equal(result, exp)
 
-        with tm.assertRaisesRegexp(ValueError, "expand must be"):
+        with tm.assert_raises_regex(ValueError, "expand must be"):
             s.str.split('_', expand="not_a_boolean")
 
     def test_split_to_multiindex_expand(self):
@@ -2030,7 +2045,7 @@ class TestStringMethods(tm.TestCase):
         tm.assert_index_equal(result, exp)
         self.assertEqual(result.nlevels, 6)
 
-        with tm.assertRaisesRegexp(ValueError, "expand must be"):
+        with tm.assert_raises_regex(ValueError, "expand must be"):
             idx.str.split('_', expand="not_a_boolean")
 
     def test_rsplit_to_dataframe_expand(self):
@@ -2651,7 +2666,8 @@ class TestStringMethods(tm.TestCase):
         result = s.str.normalize('NFC')
         tm.assert_series_equal(result, expected)
 
-        with tm.assertRaisesRegexp(ValueError, "invalid normalization form"):
+        with tm.assert_raises_regex(ValueError,
+                                    "invalid normalization form"):
             s.str.normalize('xxx')
 
         s = Index([u'ＡＢＣ', u'１２３', u'ｱｲｴ'])
@@ -2680,9 +2696,9 @@ class TestStringMethods(tm.TestCase):
         # https://github.com/pandas-dev/pandas/issues/11334
         s = Series(['a', 'b', 'c', 'd'])
         message = "Did you mean to supply a `sep` keyword?"
-        with tm.assertRaisesRegexp(ValueError, message):
+        with tm.assert_raises_regex(ValueError, message):
             s.str.cat('|')
-        with tm.assertRaisesRegexp(ValueError, message):
+        with tm.assert_raises_regex(ValueError, message):
             s.str.cat('    ')
 
     def test_index_str_accessor_visibility(self):
@@ -2720,9 +2736,9 @@ class TestStringMethods(tm.TestCase):
         for values, tp in cases:
             idx = Index(values)
             message = 'Can only use .str accessor with string values'
-            with tm.assertRaisesRegexp(AttributeError, message):
+            with tm.assert_raises_regex(AttributeError, message):
                 Series(values).str
-            with tm.assertRaisesRegexp(AttributeError, message):
+            with tm.assert_raises_regex(AttributeError, message):
                 idx.str
             self.assertEqual(idx.inferred_type, tp)
 
@@ -2730,14 +2746,14 @@ class TestStringMethods(tm.TestCase):
         idx = MultiIndex.from_tuples([('a', 'b'), ('a', 'b')])
         self.assertEqual(idx.inferred_type, 'mixed')
         message = 'Can only use .str accessor with Index, not MultiIndex'
-        with tm.assertRaisesRegexp(AttributeError, message):
+        with tm.assert_raises_regex(AttributeError, message):
             idx.str
 
     def test_str_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(list('aabbcde'))
-        with tm.assertRaisesRegexp(AttributeError,
-                                   "You cannot add any new attribute"):
+        with tm.assert_raises_regex(AttributeError,
+                                    "You cannot add any new attribute"):
             s.str.xlabel = "a"
 
     def test_method_on_bytes(self):

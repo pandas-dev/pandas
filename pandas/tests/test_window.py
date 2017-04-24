@@ -74,7 +74,7 @@ class TestApi(Base):
         pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
 
         pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
-        with tm.assertRaisesRegexp(KeyError, '^[^A]+$'):
+        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'C']]
@@ -352,10 +352,10 @@ class TestWindow(Base):
         msg = "numpy operations are not valid with window objects"
 
         for func in ('sum', 'mean'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(w, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(w, func), dtype=np.float64)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(w, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(w, func), dtype=np.float64)
 
 
 class TestRolling(Base):
@@ -430,10 +430,10 @@ class TestRolling(Base):
         msg = "numpy operations are not valid with window objects"
 
         for func in ('std', 'mean', 'sum', 'max', 'min', 'var'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(r, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(r, func), dtype=np.float64)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(r, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(r, func), dtype=np.float64)
 
     def test_closed(self):
         df = DataFrame({'A': [0, 1, 2, 3, 4]})
@@ -478,10 +478,10 @@ class TestExpanding(Base):
         msg = "numpy operations are not valid with window objects"
 
         for func in ('std', 'mean', 'sum', 'max', 'min', 'var'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(e, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(e, func), dtype=np.float64)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(e, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(e, func), dtype=np.float64)
 
 
 class TestEWM(Base):
@@ -540,10 +540,10 @@ class TestEWM(Base):
         msg = "numpy operations are not valid with window objects"
 
         for func in ('std', 'mean', 'var'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(e, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(e, func), dtype=np.float64)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(e, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(e, func), dtype=np.float64)
 
 
 class TestDeprecations(Base):
@@ -1825,10 +1825,10 @@ class TestPairwise(object):
                 tm.assert_index_equal(result.index, expected_index)
                 tm.assert_index_equal(result.columns, expected_columns)
             else:
-                tm.assertRaisesRegexp(
+                tm.assert_raises_regex(
                     ValueError, "'arg1' columns are not unique", f, df,
                     self.df2)
-                tm.assertRaisesRegexp(
+                tm.assert_raises_regex(
                     ValueError, "'arg2' columns are not unique", f,
                     self.df2, df)
 

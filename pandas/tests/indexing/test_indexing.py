@@ -716,13 +716,14 @@ class TestMisc(Base, tm.TestCase):
 
     def test_slice_with_zero_step_raises(self):
         s = Series(np.arange(20), index=_mklbl('A', 20))
-        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                              lambda: s[::0])
-        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                              lambda: s.loc[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: s[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: s.loc[::0])
         with catch_warnings(record=True):
-            tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                  lambda: s.ix[::0])
+            tm.assert_raises_regex(ValueError,
+                                   'slice step cannot be zero',
+                                   lambda: s.ix[::0])
 
     def test_indexing_assignment_dict_already_exists(self):
         df = pd.DataFrame({'x': [1, 2, 6],

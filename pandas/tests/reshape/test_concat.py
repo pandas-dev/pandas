@@ -124,10 +124,12 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_index_equal(res, exp)
 
             # cannot append non-index
-            with tm.assertRaisesRegexp(TypeError, 'all inputs must be Index'):
+            with tm.assert_raises_regex(TypeError,
+                                        'all inputs must be Index'):
                 pd.Index(vals1).append(vals2)
 
-            with tm.assertRaisesRegexp(TypeError, 'all inputs must be Index'):
+            with tm.assert_raises_regex(TypeError,
+                                        'all inputs must be Index'):
                 pd.Index(vals1).append([pd.Index(vals2), vals3])
 
             # ----- Series ----- #
@@ -175,16 +177,16 @@ class TestConcatAppendCommon(ConcatenateBase):
 
             # cannot append non-index
             msg = "cannot concatenate a non-NDFrame object"
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 pd.Series(vals1).append(vals2)
 
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 pd.Series(vals1).append([pd.Series(vals2), vals3])
 
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 pd.concat([pd.Series(vals1), vals2])
 
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 pd.concat([pd.Series(vals1), pd.Series(vals2), vals3])
 
     def test_concatlike_dtypes_coercion(self):

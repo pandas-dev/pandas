@@ -808,9 +808,9 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_basic_getitem_setitem_corner(self):
         # invalid tuples, e.g. self.ts[:, None] vs. self.ts[:, 2]
-        with tm.assertRaisesRegexp(ValueError, 'tuple-index'):
+        with tm.assert_raises_regex(ValueError, 'tuple-index'):
             self.ts[:, 2]
-        with tm.assertRaisesRegexp(ValueError, 'tuple-index'):
+        with tm.assert_raises_regex(ValueError, 'tuple-index'):
             self.ts[:, 2] = 2
 
         # weird lists. [slice(0, 5)] will work but not two slices
@@ -1206,11 +1206,11 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         ]
 
         for cond in conds:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 s.where(cond)
 
         msg = "Array conditional must be same shape as self"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             s.where([True])
 
     def test_where_ndframe_align(self):
@@ -1218,7 +1218,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = Series([1, 2, 3])
 
         cond = [True]
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             s.where(cond)
 
         expected = Series([1, np.nan, np.nan])
@@ -1227,7 +1227,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         tm.assert_series_equal(out, expected)
 
         cond = np.array([False, True, False, True])
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             s.where(cond)
 
         expected = Series([np.nan, 2, np.nan])

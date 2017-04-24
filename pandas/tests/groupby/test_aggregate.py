@@ -577,7 +577,8 @@ class TestGroupByAggregate(tm.TestCase):
                            'b': ['foo', 'bar'] * 25,
                            'dates': pd.date_range('now', periods=50,
                                                   freq='T')})
-        with tm.assertRaisesRegexp(DataError, "No numeric types to aggregate"):
+        with tm.assert_raises_regex(DataError,
+                                    "No numeric types to aggregate"):
             frame.groupby('b').dates.mean()
 
     def test_cython_agg_frame_columns(self):

@@ -294,9 +294,9 @@ class TestMultiIndexBasic(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # missing item:
-        with tm.assertRaisesRegexp(KeyError, '1'):
+        with tm.assert_raises_regex(KeyError, '1'):
             df[1]
-        with tm.assertRaisesRegexp(KeyError, "'\[1\] not in index'"):
+        with tm.assert_raises_regex(KeyError, "'\[1\] not in index'"):
             df[[1]]
 
     def test_loc_multiindex_indexer_none(self):
@@ -801,7 +801,7 @@ class TestMultiIndexSlicers(tm.TestCase):
         self.assertEqual(df.index.lexsort_depth, 2)
         df = df.sort_index(level=1, axis=0)
         self.assertEqual(df.index.lexsort_depth, 0)
-        with tm.assertRaisesRegexp(
+        with tm.assert_raises_regex(
                 UnsortedIndexError,
                 'MultiIndex Slicing requires the index to be fully '
                 r'lexsorted tuple len \(2\), lexsort depth \(0\)'):

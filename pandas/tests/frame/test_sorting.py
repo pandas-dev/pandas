@@ -11,9 +11,7 @@ from pandas.compat import lrange
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range, NaT, IntervalIndex)
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 
@@ -88,7 +86,7 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         assert_frame_equal(sorted_df, expected)
 
         msg = r'Length of ascending \(5\) != length of by \(2\)'
-        with assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             frame.sort_values(by=['A', 'B'], axis=0, ascending=[True] * 5)
 
     def test_sort_values_inplace(self):
@@ -264,7 +262,7 @@ class TestDataFrameSorting(tm.TestCase, TestData):
 
     def test_frame_column_inplace_sort_exception(self):
         s = self.frame['A']
-        with assertRaisesRegexp(ValueError, "This Series is a view"):
+        with tm.assert_raises_regex(ValueError, "This Series is a view"):
             s.sort_values(inplace=True)
 
         cp = s.copy()
@@ -420,26 +418,26 @@ class TestDataFrameSortIndexKinds(tm.TestCase, TestData):
         df = DataFrame([lrange(5, 9), lrange(4)],
                        columns=['a', 'a', 'b', 'b'])
 
-        with assertRaisesRegexp(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'duplicate'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by='a')
-        with assertRaisesRegexp(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'duplicate'):
             df.sort_values(by='a')
 
-        with assertRaisesRegexp(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'duplicate'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by=['a'])
-        with assertRaisesRegexp(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'duplicate'):
             df.sort_values(by=['a'])
 
-        with assertRaisesRegexp(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'duplicate'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 # multi-column 'by' is separate codepath
                 df.sort_index(by=['a', 'b'])
-        with assertRaisesRegexp(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'duplicate'):
             # multi-column 'by' is separate codepath
             df.sort_values(by=['a', 'b'])
 
@@ -447,11 +445,11 @@ class TestDataFrameSortIndexKinds(tm.TestCase, TestData):
         # GH4370
         df = DataFrame(np.random.randn(4, 2),
                        columns=MultiIndex.from_tuples([('a', 0), ('a', 1)]))
-        with assertRaisesRegexp(ValueError, 'levels'):
+        with tm.assert_raises_regex(ValueError, 'levels'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by='a')
-        with assertRaisesRegexp(ValueError, 'levels'):
+        with tm.assert_raises_regex(ValueError, 'levels'):
             df.sort_values(by='a')
 
         # convert tuples to a list of tuples

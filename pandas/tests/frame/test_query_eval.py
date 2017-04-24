@@ -138,10 +138,10 @@ class TestDataFrameEval(tm.TestCase, TestData):
         df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'b']})
 
         msg = "expr must be a string to be evaluated"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df.query(lambda x: x.B == "b")
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df.query(111)
 
     def test_query_empty_string(self):
@@ -149,7 +149,7 @@ class TestDataFrameEval(tm.TestCase, TestData):
         df = pd.DataFrame({'A': [1, 2, 3]})
 
         msg = "expr cannot be an empty string"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df.query('')
 
     def test_eval_resolvers_as_list(self):
@@ -552,8 +552,8 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         df = DataFrame(np.random.randint(m, size=(n, 3)), columns=list('abc'))
 
         df.index.name = 'sin'
-        with tm.assertRaisesRegexp(NumExprClobberingError,
-                                   'Variables in expression.+'):
+        with tm.assert_raises_regex(NumExprClobberingError,
+                                    'Variables in expression.+'):
             df.query('sin > 5', engine=engine, parser=parser)
 
     def test_query(self):
@@ -686,8 +686,8 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
         df = DataFrame(np.random.rand(10, 2), columns=list('ab'))
-        with tm.assertRaisesRegexp(UndefinedVariableError,
-                                   "local variable 'c' is not defined"):
+        with tm.assert_raises_regex(UndefinedVariableError,
+                                    "local variable 'c' is not defined"):
             df.query('a == @c', engine=engine, parser=parser)
 
     def test_index_resolvers_come_after_columns_with_the_same_name(self):
@@ -1119,9 +1119,9 @@ class TestDataFrameEvalNumExprPandas(tm.TestCase):
         df = DataFrame({'a': [1, 2], 'b': ['c', 'd']})
         ops = '+', '-', '*', '/'
         for op in ops:
-            with tm.assertRaisesRegexp(TypeError,
-                                       r"unsupported operand type\(s\) for "
-                                       r".+: '.+' and '.+'"):
+            with tm.assert_raises_regex(TypeError,
+                                        "unsupported operand type\(s\) "
+                                        "for .+: '.+' and '.+'"):
                 df.eval('a {0} b'.format(op), engine=self.engine,
                         parser=self.parser)
 
