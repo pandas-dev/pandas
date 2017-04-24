@@ -91,6 +91,9 @@ class TestSeriesOperators(TestData, tm.TestCase):
         check(self.ts, 5, check_reverse=True)
         check(tm.makeFloatSeries(), tm.makeFloatSeries(), check_reverse=True)
 
+    def test_pos(self):
+       assert_series_equal(+self.series, 1 * self.series)  #Ensures no rounding issues
+
     def test_neg(self):
         assert_series_equal(-self.series, -1 * self.series)
 

@@ -343,6 +343,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         expected = Series([True, True])
         assert_series_equal(result, expected)
 
+    def test_pos(self):
+        assert_frame_equal(+self.frame, 1 * self.frame)
+
     def test_neg(self):
         # what to do?
         assert_frame_equal(-self.frame, -1 * self.frame)
