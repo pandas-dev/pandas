@@ -15,6 +15,7 @@ import pandas.util.testing as tm
 class TestPandasDtype(tm.TestCase):
 
     # Passing invalid dtype, both as a string or object, must raise TypeError
+    # Per issue GH15520
     def test_invalid_dtype_error(self):
         msg = 'not understood'
         invalid_list = [pd.Timestamp, 'pd.Timestamp']
@@ -22,7 +23,7 @@ class TestPandasDtype(tm.TestCase):
             with tm.assertRaisesRegexp(TypeError, msg):
                 pandas_dtype(dtype)
 
-        valid_list = [object, 'float64', np.object_,
+        valid_list = [object, 'float64', np.object_, np.dtype('object'),
                       np.float64, float, np.dtype('float64')]
         for dtype in valid_list:
             pandas_dtype(dtype)

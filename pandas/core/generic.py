@@ -164,7 +164,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """ validate the passed dtype """
 
         if dtype is not None:
-            # This would raise an error if an invalid dtype was passed
             dtype = pandas_dtype(dtype)
 
             # a compound dtype

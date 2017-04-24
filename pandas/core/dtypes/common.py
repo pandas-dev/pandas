@@ -731,23 +731,26 @@ def pandas_dtype(dtype):
             except TypeError:
                 pass
 
-        elif dtype == 'object':
-            return np.dtype(dtype)
-
         try:
             return CategoricalDtype.construct_from_string(dtype)
         except TypeError:
             pass
     elif isinstance(dtype, ExtensionDtype):
         return dtype
-    else:
-        try:
-            np.dtype(dtype)
-        except (TypeError, ValueError):
-            raise
-        if dtype in [object, np.object_]:
-            return np.dtype(dtype)
-        elif np.dtype(dtype).kind == 'O':
-            raise TypeError('dtype {0} not understood'.format(dtype))
 
-    return np.dtype(dtype)
+    try:
+        npdtype = np.dtype(dtype)
+    except (TypeError, ValueError):
+        raise
+
+    # Any invalid dtype (such as pd.Timestamp) should raise an error.
+    # np.dtype(invalid_type).kind = 0 for such objects. However, this will
+    # also catch some valid dtypes such as object, np.object_ and 'object'
+    # which we safeguard against by catching them earlier and returning
+    # np.dtype(valid_dtype) before this condition is evaluated.
+    if dtype in [object, np.object_, 'object']:
+        return npdtype
+    elif npdtype.kind == 'O':
+        raise TypeError('dtype {0} not understood'.format(dtype))
+
+    return npdtype
