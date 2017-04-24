@@ -387,6 +387,12 @@ class TestUnique(tm.TestCase):
         exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(algos.unique(s), exp)
 
+    def test_nan_in_object_array(self):
+        l = ['a', np.nan, 'c', 'c']
+        result = pd.unique(l)
+        expected = np.array(['a', np.nan, 'c'], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_categorical(self):
 
         # we are expecting to return in the order
@@ -1378,8 +1384,8 @@ class TestMode(tm.TestCase):
         exp = Series([], dtype=np.float64)
         tm.assert_series_equal(algos.mode([]), exp)
 
-    # GH 15714
     def test_mode_single(self):
+        # GH 15714
         exp_single = [1]
         data_single = [1]
 
