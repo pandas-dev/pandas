@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import compat
+from pandas.errors import UnserializableWarning
 import pandas.io.formats.printing as printing
 import pandas.io.formats.format as fmt
 import pandas.util.testing as tm
@@ -177,9 +178,16 @@ class TestTableSchemaRepr(tm.TestCase):
 
         make_patch = self.mock.patch('IPython.display.display')
         opt = pd.option_context('display.html.table_schema', True)
-        with opt, make_patch as mock_display:  # noqa
-            with pytest.raises(NotImplementedError):
+        with opt, make_patch as mock_display:
+            with pytest.warns(UnserializableWarning) as record:
                 df._ipython_display_()
+                args, _ = mock_display.call_args
+                arg, = args  # just one argument
+
+        expected = {'text/plain', 'text/html'}
+        assert set(arg.keys()) == expected
+        assert "orient='table' is not supported for MultiIndex" in (
+            record[-1].message.args[0])
 
     def test_config_on(self):
         df = pd.DataFrame({"A": [1, 2]})
