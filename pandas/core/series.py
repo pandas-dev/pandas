@@ -2269,7 +2269,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             input_values = self.asobject
         new_values = super(Series, self)._map_values(
             input_values, arg, na_action=na_action)
-        return self._constructor(new_values, index=self.index).__finalize__(self)
+        return self._constructor(new_values,
+                                 index=self.index).__finalize__(self)
 
     def _gotitem(self, key, ndim, subset=None):
         """

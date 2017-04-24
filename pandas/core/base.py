@@ -851,7 +851,6 @@ class IndexOpsMixin(object):
             else:
                 map_f = lib.map_infer
 
-        map_values = None
         if isinstance(arg, dict):
             if hasattr(arg, '__missing__'):
                 # If a dictionary subclass defines a default value method,
@@ -874,7 +873,6 @@ class IndexOpsMixin(object):
             new_values = map_f(values, arg)
 
         return new_values
-
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
