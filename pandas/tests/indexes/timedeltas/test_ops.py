@@ -115,7 +115,7 @@ class TestTimedeltaIndexOps(Ops):
         self.assertEqual(elt.round(freq='H'), expected_elt)
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             td.round(freq='foo')
         with tm.assertRaisesRegexp(ValueError, msg):
             elt.round(freq='foo')

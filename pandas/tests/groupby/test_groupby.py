@@ -1874,16 +1874,16 @@ class TestGroupBy(MixIn, tm.TestCase):
         def j():
             frame.groupby()
 
-        self.assertRaisesRegexp(TypeError,
-                                "You have to supply one of 'by' and 'level'",
-                                j)
+        tm.assertRaisesRegexp(TypeError,
+                              "You have to supply one of 'by' and 'level'",
+                              j)
 
         def k():
             frame.groupby(by=None, level=None)
 
-        self.assertRaisesRegexp(TypeError,
-                                "You have to supply one of 'by' and 'level'",
-                                k)
+        tm.assertRaisesRegexp(TypeError,
+                              "You have to supply one of 'by' and 'level'",
+                              k)
 
     def test_groupby_level_mapper(self):
         frame = self.mframe

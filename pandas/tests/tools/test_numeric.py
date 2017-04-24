@@ -253,7 +253,7 @@ class TestToNumeric(tm.TestCase):
         res = pd.to_numeric(s, errors='ignore')
         tm.assert_series_equal(res, pd.Series([[10.0, 2], 1.0, 'apple']))
 
-        with self.assertRaisesRegexp(TypeError, "Invalid object type"):
+        with tm.assertRaisesRegexp(TypeError, "Invalid object type"):
             pd.to_numeric(s)
 
     def test_downcast(self):
@@ -274,7 +274,7 @@ class TestToNumeric(tm.TestCase):
         smallest_float_dtype = float_32_char
 
         for data in (mixed_data, int_data, date_data):
-            with self.assertRaisesRegexp(ValueError, msg):
+            with tm.assertRaisesRegexp(ValueError, msg):
                 pd.to_numeric(data, downcast=invalid_downcast)
 
             expected = np.array([1, 2, 3], dtype=np.int64)
