@@ -947,7 +947,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     -------
     numeric_array : array of converted object values to numerical ones
     """
-    # fastpath for ints/floats - try to convert in one shot based on first value
+    # fastpath for ints - try to convert all based on first value
     cdef object val = values[0]
     if util.is_integer_object(val):
         try:
@@ -956,16 +956,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                 return maybe_ints
         except (ValueError, OverflowError, TypeError):
             pass
-    elif util.is_float_object(val):
-        try:
-            maybe_floats = values.astype('f8')
-            lmask = np.isnan(maybe_floats)
-            rmask = np.isnan(values)
-            if ((lmask == rmask).all()
-                and (maybe_floats[lmask] == values[lmask]).all()):
-                return maybe_floats
-        except (ValueError, OverflowError, TypeError):
-            pass
+
     # otherwise, iterate and do full infererence
     cdef:
         int status, maybe_int
@@ -985,10 +976,11 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             seen.saw_null()
             floats[i] = complexes[i] = nan
         elif util.is_float_object(val):
-            if val != val:
+            fval = val
+            if fval != fval:
                 seen.null_ = True
 
-            floats[i] = complexes[i] = val
+            floats[i] = complexes[i] = fval
             seen.float_ = True
         elif util.is_integer_object(val):
             floats[i] = complexes[i] = val
