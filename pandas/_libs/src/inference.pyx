@@ -959,7 +959,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     elif util.is_float_object(val):
         try:
             maybe_floats = values.astype('f8')
-            if (maybe_floats == values).all():
+            lmask = np.isnan(maybe_floats)
+            rmask = np.isnan(values)
+            if ((lmask == rmask).all()
+                and (maybe_floats[lmask] == values[lmask]).all()):
                 return maybe_floats
         except ValueError:
             pass
