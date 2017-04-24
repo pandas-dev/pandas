@@ -18,7 +18,7 @@ class TestPandasDtype(tm.TestCase):
     # Per issue GH15520
     def test_invalid_dtype_error(self):
         msg = 'not understood'
-        invalid_list = [pd.Timestamp, 'pd.Timestamp']
+        invalid_list = [pd.Timestamp, 'pd.Timestamp', list]
         for dtype in invalid_list:
             with tm.assertRaisesRegexp(TypeError, msg):
                 pandas_dtype(dtype)

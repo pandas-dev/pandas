@@ -1207,10 +1207,9 @@ class TestStringMethods(tm.TestCase):
         tm.assert_frame_equal(extract_one_noname, no_match_index)
 
     def test_empty_str_methods(self):
-        empty_str = empty = Series(dtype=str)
+        empty_str = empty = Series(dtype=object)
         empty_int = Series(dtype=int)
         empty_bool = Series(dtype=bool)
-        empty_list = Series(dtype=list)
         empty_bytes = Series(dtype=object)
 
         # GH7241
@@ -1241,24 +1240,23 @@ class TestStringMethods(tm.TestCase):
             DataFrame(columns=[0, 1], dtype=str),
             empty.str.extract('()()', expand=False))
         tm.assert_frame_equal(DataFrame(dtype=str), empty.str.get_dummies())
-        tm.assert_series_equal(empty_str, empty_list.str.join(''))
+        tm.assert_series_equal(empty_str, empty_str.str.join(''))
         tm.assert_series_equal(empty_int, empty.str.len())
-        tm.assert_series_equal(empty_list, empty_list.str.findall('a'))
+        tm.assert_series_equal(empty_str, empty_str.str.findall('a'))
         tm.assert_series_equal(empty_int, empty.str.find('a'))
         tm.assert_series_equal(empty_int, empty.str.rfind('a'))
         tm.assert_series_equal(empty_str, empty.str.pad(42))
         tm.assert_series_equal(empty_str, empty.str.center(42))
-        tm.assert_series_equal(empty_list, empty.str.split('a'))
-        tm.assert_series_equal(empty_list, empty.str.rsplit('a'))
-        tm.assert_series_equal(empty_list,
+        tm.assert_series_equal(empty_str, empty.str.split('a'))
+        tm.assert_series_equal(empty_str, empty.str.rsplit('a'))
+        tm.assert_series_equal(empty_str,
                                empty.str.partition('a', expand=False))
-        tm.assert_series_equal(empty_list,
+        tm.assert_series_equal(empty_str,
                                empty.str.rpartition('a', expand=False))
         tm.assert_series_equal(empty_str, empty.str.slice(stop=1))
         tm.assert_series_equal(empty_str, empty.str.slice(step=1))
         tm.assert_series_equal(empty_str, empty.str.strip())
         tm.assert_series_equal(empty_str, empty.str.lstrip())
-        tm.assert_series_equal(empty_str, empty.str.rstrip())
         tm.assert_series_equal(empty_str, empty.str.rstrip())
         tm.assert_series_equal(empty_str, empty.str.wrap(42))
         tm.assert_series_equal(empty_str, empty.str.get(0))
