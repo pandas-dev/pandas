@@ -971,7 +971,7 @@ class TestHDFStore(Base, tm.TestCase):
     def test_latin_encoding(self):
 
         if compat.PY2:
-            self.assertRaisesRegexp(
+            tm.assertRaisesRegexp(
                 TypeError, r'\[unicode\] is not implemented as a table column')
             return
 

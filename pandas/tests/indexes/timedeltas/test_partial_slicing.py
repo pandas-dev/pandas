@@ -75,9 +75,9 @@ class TestSlicing(tm.TestCase):
 
     def test_slice_with_zero_step_raises(self):
         ts = Series(np.arange(20), timedelta_range('0', periods=20, freq='H'))
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts[::0])
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.loc[::0])
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.loc[::0])
+        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                              lambda: ts[::0])
+        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                              lambda: ts.loc[::0])
+        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                              lambda: ts.loc[::0])

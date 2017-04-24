@@ -556,7 +556,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         df = pd.DataFrame(np.random.randint(1, 10, (4, 12)),
                           columns=cols,
                           index=['A', 'C', 'G', 'T'])
-        self.assertRaisesRegexp(ValueError, 'transform must return a scalar '
-                                'value for each group.*', df.groupby
-                                (axis=1, level=1).transform,
-                                lambda z: z.div(z.sum(axis=1), axis=0))
+        tm.assertRaisesRegexp(ValueError, 'transform must return a scalar '
+                              'value for each group.*', df.groupby
+                              (axis=1, level=1).transform,
+                              lambda z: z.div(z.sum(axis=1), axis=0))
