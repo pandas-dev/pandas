@@ -96,7 +96,7 @@ cdef class Seen(object):
     encountered when trying to perform type conversions.
     """
 
-    cdef public:
+    cdef:
         bint int_             # seen_int
         bint bool_            # seen_bool
         bint null_            # seen_null
@@ -185,7 +185,7 @@ cdef class Seen(object):
         self.null_ = 1
         self.float_ = 1
 
-    def saw_int(self, val):
+    cdef saw_int(self, object val):
         """
         Set flags indicating that an integer value was encountered.
 
@@ -196,7 +196,7 @@ cdef class Seen(object):
         """
         self.int_ = 1
         self.sint_ = self.sint_ or (val < 0)
-        self.uint_ = self.uint_ or (val > iINT64_MAX)
+        self.uint_ = self.uint_ or (val > oINT64_MAX)
 
     @property
     def numeric_(self):
@@ -908,11 +908,15 @@ cpdef bint is_interval_array(ndarray[object] values):
 cdef extern from "parse_helper.h":
     inline int floatify(object, double *result, int *maybe_int) except -1
 
-cdef int64_t iINT64_MAX = <int64_t> INT64_MAX
-cdef int64_t iINT64_MIN = <int64_t> INT64_MIN
-cdef uint64_t iUINT64_MAX = <uint64_t> UINT64_MAX
+# constants that will be compared to potentially arbitrarily large
+# python int
+cdef object oINT64_MAX = <int64_t> INT64_MAX
+cdef object oINT64_MIN = <int64_t> INT64_MIN
+cdef object oUINT64_MAX = <uint64_t> UINT64_MAX
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def maybe_convert_numeric(ndarray[object] values, set na_values,
                           bint convert_empty=True, bint coerce_numeric=False):
     """
@@ -943,6 +947,17 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     -------
     numeric_array : array of converted object values to numerical ones
     """
+    # fastpath for ints - try to convert all based on first value
+    cdef object val = values[0]
+    if util.is_integer_object(val):
+        try:
+            maybe_ints = values.astype('i8')
+            if (maybe_ints == values).all():
+                return maybe_ints
+        except (ValueError, OverflowError, TypeError):
+            pass
+
+    # otherwise, iterate and do full infererence
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
@@ -952,7 +967,6 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         ndarray[int64_t] ints = np.empty(n, dtype='i8')
         ndarray[uint64_t] uints = np.empty(n, dtype='u8')
         ndarray[uint8_t] bools = np.empty(n, dtype='u1')
-        object val
         float64_t fval
 
     for i in range(n):
@@ -962,21 +976,23 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             seen.saw_null()
             floats[i] = complexes[i] = nan
         elif util.is_float_object(val):
-            if val != val:
+            fval = val
+            if fval != fval:
                 seen.null_ = True
 
-            floats[i] = complexes[i] = val
+            floats[i] = complexes[i] = fval
             seen.float_ = True
         elif util.is_integer_object(val):
             floats[i] = complexes[i] = val
 
-            as_int = int(val)
-            seen.saw_int(as_int)
+            val = int(val)
+            seen.saw_int(val)
 
-            if as_int >= 0:
-                uints[i] = as_int
-            if as_int <= iINT64_MAX:
-                ints[i] = as_int
+            if val >= 0:
+                uints[i] = val
+
+            if val <= oINT64_MAX:
+                ints[i] = val
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
@@ -1017,12 +1033,12 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                         seen.saw_int(as_int)
 
                     if not (seen.float_ or as_int in na_values):
-                        if as_int < iINT64_MIN or as_int > iUINT64_MAX:
+                        if as_int < oINT64_MIN or as_int > oUINT64_MAX:
                             raise ValueError('Integer out of range.')
 
                         if as_int >= 0:
                             uints[i] = as_int
-                        if as_int <= iINT64_MAX:
+                        if as_int <= oINT64_MAX:
                             ints[i] = as_int
                 else:
                     seen.float_ = True
@@ -1053,6 +1069,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     return ints
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                           bint safe=0, bint convert_datetime=0,
                           bint convert_timedelta=0):
