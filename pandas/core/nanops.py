@@ -381,6 +381,7 @@ def nanstd(values, axis=None, skipna=True, ddof=1):
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
 
+    values = _values_from_object(values)
     dtype = values.dtype
     mask = isnull(values)
     if is_any_int_dtype(values):
@@ -489,6 +490,7 @@ def nanskew(values, axis=None, skipna=True):
 
     """
 
+    values = _values_from_object(values)
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -543,6 +545,7 @@ def nankurt(values, axis=None, skipna=True):
     central moment.
 
     """
+    values = _values_from_object(values)
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
