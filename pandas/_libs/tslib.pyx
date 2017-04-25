@@ -1420,9 +1420,13 @@ cdef class _TSObject:
 
 cpdef _get_utcoffset(tzinfo, obj):
     try:
-        return tzinfo._utcoffset
+        offset = tzinfo._utcoffset
     except AttributeError:
-        return tzinfo.utcoffset(obj)
+        offset = tzinfo.utcoffset(obj)
+    if offset is None:
+        raise NotImplementedError("Handling of tzinfo '{}' without "
+                                  "utcoffset not implemented".format(tzinfo))
+    return offset
 
 # helper to extract datetime and int64 from several different possibilities
 cdef convert_to_tsobject(object ts, object tz, object unit,
