@@ -748,7 +748,7 @@ def pandas_dtype(dtype):
     # also catch some valid dtypes such as object, np.object_ and 'object'
     # which we safeguard against by catching them earlier and returning
     # np.dtype(valid_dtype) before this condition is evaluated.
-    if dtype in [object, np.object_, 'object']:
+    if dtype in [object, np.object_, 'object', 'O']:
         return npdtype
     elif npdtype.kind == 'O':
         raise TypeError('dtype {0} not understood'.format(dtype))
