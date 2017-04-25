@@ -591,6 +591,23 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             pytest.raises(TypeError, lambda: getattr(df2, meth)(
                 axis=1, numeric_only=False))
 
+    def test_mixed_ops(self):
+        # GH 16116
+        df = DataFrame({'int': [1, 2, 3, 4],
+                        'float': [1., 2., 3., 4.],
+                        'str': ['a', 'b', 'c', 'd']})
+
+        for op in ['mean', 'std', 'var', 'skew',
+                   'kurt', 'sem']:
+            result = getattr(df, op)()
+            assert len(result) == 2
+
+            if nanops._USE_BOTTLENECK:
+                nanops._USE_BOTTLENECK = False
+                result = getattr(df, op)()
+                assert len(result) == 2
+                nanops._USE_BOTTLENECK = True
+
     def test_cumsum(self):
         self.tsframe.loc[5:10, 0] = nan
         self.tsframe.loc[10:15, 1] = nan
