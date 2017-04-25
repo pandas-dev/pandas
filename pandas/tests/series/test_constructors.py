@@ -30,6 +30,14 @@ from .common import TestData
 
 class TestSeriesConstructors(TestData, tm.TestCase):
 
+    def test_invalid_dtype(self):
+        # GH15520
+        msg = 'not understood'
+        invalid_list = [pd.Timestamp, 'pd.Timestamp', list]
+        for dtype in invalid_list:
+            with tm.assertRaisesRegexp(TypeError, msg):
+                Series([], name='time', dtype=dtype)
+
     def test_scalar_conversion(self):
 
         # Pass in scalar is disabled
