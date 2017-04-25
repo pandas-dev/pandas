@@ -597,7 +597,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                         'float': [1., 2., 3., 4.],
                         'str': ['a', 'b', 'c', 'd']})
 
-        for op in ['mean', 'std']:
+        for op in ['mean', 'std', 'var', 'skew',
+                   'kurt', 'sem']:
             result = getattr(df, op)()
             assert len(result) == 2
 

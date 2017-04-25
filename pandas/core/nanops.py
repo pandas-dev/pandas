@@ -490,6 +490,7 @@ def nanskew(values, axis=None, skipna=True):
 
     """
 
+    values = _values_from_object(values)
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -544,6 +545,7 @@ def nankurt(values, axis=None, skipna=True):
     central moment.
 
     """
+    values = _values_from_object(values)
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
