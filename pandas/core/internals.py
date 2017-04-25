@@ -3807,7 +3807,7 @@ class BlockManager(PandasObject):
         """
         if not allow_duplicates and item in self.items:
             # Should this be a different kind of error??
-            raise ValueError('cannot insert %s, already exists' % item)
+            raise ValueError('cannot insert {}, already exists'.format(item))
 
         if not isinstance(loc, int):
             raise TypeError("loc must be int")
