@@ -2235,6 +2235,22 @@ Thur,Lunch,Yes,51.51,17"""
         }, columns=['month', 'feature', 'a'])
         tm.assert_frame_equal(df.reset_index(), expected)
 
+    def test_reset_index_multiindex_columns(self):
+        levels = [['A', ''], ['B', 'b']]
+        df = pd.DataFrame([[0, 2], [1, 3]],
+                          columns=pd.MultiIndex.from_tuples(levels))
+        expected = df.copy()
+        df.index.name = 'A'
+        result = df[['B']].reset_index()
+        tm.assert_frame_equal(result, expected)
+
+        # GH 16120
+        # already existing column
+        with tm.assertRaisesRegexp(ValueError,
+                                   ("cannot insert \('A', ''\), "
+                                    "already exists")):
+            df.reset_index()
+
     def test_set_index_period(self):
         # GH 6631
         df = DataFrame(np.random.random(6))
