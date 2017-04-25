@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import (
     is_scalar)
 from pandas.core.common import _asarray_tuplesafe
 from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.algorithms import take_1d
 
 
 from pandas.util.decorators import Appender, cache_readonly
@@ -470,8 +471,10 @@ class CategoricalIndex(Index, base.PandasDelegate):
             codes = target.codes
         else:
             if isinstance(target, CategoricalIndex):
-                target = target.categories
-            codes = self.categories.get_indexer(target)
+                code_indexer = self.categories.get_indexer(target.categories)
+                codes = take_1d(code_indexer, target.codes, fill_value=-1)
+            else:
+                codes = self.categories.get_indexer(target)
 
         indexer, _ = self._engine.get_indexer_non_unique(codes)
 
