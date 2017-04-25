@@ -1888,6 +1888,15 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         self.assertEqual(len(result), 0)
         self.assertEqual(result.index.name, 'foo')
 
+    def test_to_frame_with_falsey_names(self):
+        # GH 16114
+        result = Series(name=0).to_frame().dtypes
+        expected = Series({0: np.float64})
+        tm.assert_series_equal(result, expected)
+
+        result = DataFrame(Series(name=0)).dtypes
+        tm.assert_series_equal(result, expected)
+
 
 class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
 
