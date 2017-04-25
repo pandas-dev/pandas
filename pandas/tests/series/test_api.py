@@ -1,11 +1,13 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 import numpy as np
 import pandas as pd
 
 from pandas import Index, Series, DataFrame, date_range
-from pandas.tseries.index import Timestamp
+from pandas.core.indexes.datetimes import Timestamp
 
 from pandas.compat import range
 from pandas import compat
@@ -32,13 +34,13 @@ class SharedWithSparse(object):
         # making a copy
 
         self.ts.index.name = None
-        self.assertIsNone(self.ts.index.name)
-        self.assertIs(self.ts, self.ts)
+        assert self.ts.index.name is None
+        assert self.ts is self.ts
 
         cp = self.ts.copy()
         cp.index.name = 'foo'
         printing.pprint_thing(self.ts.index.name)
-        self.assertIsNone(self.ts.index.name)
+        assert self.ts.index.name is None
 
     def test_append_preserve_name(self):
         result = self.ts[:5].append(self.ts[5:])
@@ -58,9 +60,9 @@ class SharedWithSparse(object):
         cp = self.ts.copy()
         cp.name = 'something else'
         result = self.ts + cp
-        self.assertIsNone(result.name)
+        assert result.name is None
         result = self.ts.add(cp)
-        self.assertIsNone(result.name)
+        assert result.name is None
 
         ops = ['add', 'sub', 'mul', 'div', 'truediv', 'floordiv', 'mod', 'pow']
         ops = ops + ['r' + op for op in ops]
@@ -74,7 +76,7 @@ class SharedWithSparse(object):
             cp = self.ts.copy()
             cp.name = 'changed'
             result = getattr(s, op)(cp)
-            self.assertIsNone(result.name)
+            assert result.name is None
 
     def test_combine_first_name(self):
         result = self.ts.combine_first(self.ts[:5])
@@ -148,8 +150,8 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
     def test_not_hashable(self):
         s_empty = Series()
         s = Series([1])
-        self.assertRaises(TypeError, hash, s_empty)
-        self.assertRaises(TypeError, hash, s)
+        pytest.raises(TypeError, hash, s_empty)
+        pytest.raises(TypeError, hash, s)
 
     def test_contains(self):
         tm.assert_contains_all(self.ts.index, self.ts)
@@ -166,16 +168,16 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         s = pd.Series(vals)
         self.assertEqual(s.dtype, 'datetime64[ns]')
         for res, exp in zip(s, vals):
-            self.assertIsInstance(res, pd.Timestamp)
+            assert isinstance(res, pd.Timestamp)
             self.assertEqual(res, exp)
-            self.assertIsNone(res.tz)
+            assert res.tz is None
 
         vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
                 pd.Timestamp('2011-01-02', tz='US/Eastern')]
         s = pd.Series(vals)
         self.assertEqual(s.dtype, 'datetime64[ns, US/Eastern]')
         for res, exp in zip(s, vals):
-            self.assertIsInstance(res, pd.Timestamp)
+            assert isinstance(res, pd.Timestamp)
             self.assertEqual(res, exp)
             self.assertEqual(res.tz, exp.tz)
 
@@ -184,7 +186,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         s = pd.Series(vals)
         self.assertEqual(s.dtype, 'timedelta64[ns]')
         for res, exp in zip(s, vals):
-            self.assertIsInstance(res, pd.Timedelta)
+            assert isinstance(res, pd.Timedelta)
             self.assertEqual(res, exp)
 
         # period (object dtype, not boxed)
@@ -193,7 +195,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         s = pd.Series(vals)
         self.assertEqual(s.dtype, 'object')
         for res, exp in zip(s, vals):
-            self.assertIsInstance(res, pd.Period)
+            assert isinstance(res, pd.Period)
             self.assertEqual(res, exp)
             self.assertEqual(res.freq, 'M')
 
@@ -201,10 +203,10 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
         # to .keys() in a list()
         getkeys = self.ts.keys
-        self.assertIs(getkeys(), self.ts.index)
+        assert getkeys() is self.ts.index
 
     def test_values(self):
-        self.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
+        tm.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
 
     def test_iteritems(self):
         for idx, val in compat.iteritems(self.series):
@@ -218,7 +220,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))
-        with tm.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             s.info()
 
     def test_copy(self):
@@ -339,7 +341,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
         # str accessor only valid with string values
         s = Series(range(5))
-        with self.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
+        with tm.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
             s.str.repeat(2)
 
     def test_empty_method(self):

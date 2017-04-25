@@ -3,6 +3,7 @@
 from warnings import catch_warnings
 from numpy.random import randn
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas.compat import lrange
@@ -63,8 +64,8 @@ class TestJoin(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        self.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_right_outer_join(self):
         left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
@@ -89,8 +90,8 @@ class TestJoin(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        self.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_cython_inner_join(self):
         left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
@@ -113,8 +114,8 @@ class TestJoin(tm.TestCase):
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        self.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        self.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_left_outer_join(self):
         joined_key2 = merge(self.df, self.df2, on='key2')
@@ -152,25 +153,25 @@ class TestJoin(tm.TestCase):
         joined = merge(self.df, self.df2, on='key2',
                        suffixes=['.foo', '.bar'])
 
-        self.assertIn('key1.foo', joined)
-        self.assertIn('key1.bar', joined)
+        assert 'key1.foo' in joined
+        assert 'key1.bar' in joined
 
     def test_handle_overlap_arbitrary_key(self):
         joined = merge(self.df, self.df2,
                        left_on='key2', right_on='key1',
                        suffixes=['.foo', '.bar'])
-        self.assertIn('key1.foo', joined)
-        self.assertIn('key2.bar', joined)
+        assert 'key1.foo' in joined
+        assert 'key2.bar' in joined
 
     def test_join_on(self):
         target = self.target
         source = self.source
 
         merged = target.join(source, on='C')
-        self.assert_series_equal(merged['MergedA'], target['A'],
-                                 check_names=False)
-        self.assert_series_equal(merged['MergedD'], target['D'],
-                                 check_names=False)
+        tm.assert_series_equal(merged['MergedA'], target['A'],
+                               check_names=False)
+        tm.assert_series_equal(merged['MergedD'], target['D'],
+                               check_names=False)
 
         # join with duplicates (fix regression from DataFrame/Matrix merge)
         df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
@@ -193,15 +194,15 @@ class TestJoin(tm.TestCase):
         self.assertTrue(np.isnan(joined['three']['c']))
 
         # merge column not p resent
-        self.assertRaises(KeyError, target.join, source, on='E')
+        pytest.raises(KeyError, target.join, source, on='E')
 
         # overlap
         source_copy = source.copy()
         source_copy['A'] = 0
-        self.assertRaises(ValueError, target.join, source_copy, on='A')
+        pytest.raises(ValueError, target.join, source_copy, on='A')
 
     def test_join_on_fails_with_different_right_index(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
                             'b': np.random.randn(3)})
             df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
@@ -210,7 +211,7 @@ class TestJoin(tm.TestCase):
             merge(df, df2, left_on='a', right_index=True)
 
     def test_join_on_fails_with_different_left_index(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
                             'b': np.random.randn(3)},
                            index=tm.makeCustomIndex(10, 2))
@@ -219,7 +220,7 @@ class TestJoin(tm.TestCase):
             merge(df, df2, right_on='b', left_index=True)
 
     def test_join_on_fails_with_different_column_counts(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df = DataFrame({'a': np.random.choice(['m', 'f'], size=3),
                             'b': np.random.randn(3)})
             df2 = DataFrame({'a': np.random.choice(['m', 'f'], size=10),
@@ -250,12 +251,12 @@ class TestJoin(tm.TestCase):
         # nothing to merge
         merged = self.target.join(self.source.reindex([]), on='C')
         for col in self.source:
-            self.assertIn(col, merged)
+            assert col in merged
             self.assertTrue(merged[col].isnull().all())
 
         merged2 = self.target.join(self.source.reindex([]), on='C',
                                    how='inner')
-        self.assert_index_equal(merged2.columns, merged.columns)
+        tm.assert_index_equal(merged2.columns, merged.columns)
         self.assertEqual(len(merged2), 0)
 
     def test_join_on_inner(self):
@@ -266,11 +267,11 @@ class TestJoin(tm.TestCase):
 
         expected = df.join(df2, on='key')
         expected = expected[expected['value'].notnull()]
-        self.assert_series_equal(joined['key'], expected['key'],
-                                 check_dtype=False)
-        self.assert_series_equal(joined['value'], expected['value'],
-                                 check_dtype=False)
-        self.assert_index_equal(joined.index, expected.index)
+        tm.assert_series_equal(joined['key'], expected['key'],
+                               check_dtype=False)
+        tm.assert_series_equal(joined['value'], expected['value'],
+                               check_dtype=False)
+        tm.assert_index_equal(joined.index, expected.index)
 
     def test_join_on_singlekey_list(self):
         df = DataFrame({'key': ['a', 'a', 'b', 'b', 'c']})
@@ -530,7 +531,7 @@ class TestJoin(tm.TestCase):
 
         # smoke test
         joined = left.join(right, on='key', sort=False)
-        self.assert_index_equal(joined.index, pd.Index(lrange(4)))
+        tm.assert_index_equal(joined.index, pd.Index(lrange(4)))
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index
@@ -588,7 +589,7 @@ class TestJoin(tm.TestCase):
         joined = df_list[0].join(df_list[1:], how='inner')
         _check_diff_index(df_list, joined, df.index[2:8])
 
-        self.assertRaises(ValueError, df_list[0].join, df_list[1:], on='a')
+        pytest.raises(ValueError, df_list[0].join, df_list[1:], on='a')
 
     def test_join_many_mixed(self):
         df = DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
@@ -710,10 +711,10 @@ class TestJoin(tm.TestCase):
             tm.assert_panel_equal(joined, expected)
 
             # edge cases
-            self.assertRaises(ValueError, panels[0].join, panels[1:],
-                              how='outer', lsuffix='foo', rsuffix='bar')
-            self.assertRaises(ValueError, panels[0].join, panels[1:],
-                              how='right')
+            pytest.raises(ValueError, panels[0].join, panels[1:],
+                          how='outer', lsuffix='foo', rsuffix='bar')
+            pytest.raises(ValueError, panels[0].join, panels[1:],
+                          how='right')
 
 
 def _check_join(left, right, result, join_col, how='left',

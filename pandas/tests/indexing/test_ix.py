@@ -1,5 +1,7 @@
 """ test indexing with ix """
 
+import pytest
+
 from warnings import catch_warnings
 
 import numpy as np
@@ -96,7 +98,7 @@ class TestIX(tm.TestCase):
                 with catch_warnings(record=True):
                     df.ix[key]
 
-                self.assertRaises(TypeError, lambda: df.loc[key])
+                pytest.raises(TypeError, lambda: df.loc[key])
 
         df = pd.DataFrame(np.random.randn(5, 4), columns=list('ABCD'),
                           index=pd.date_range('2012-01-01', periods=5))
@@ -116,7 +118,7 @@ class TestIX(tm.TestCase):
                 with catch_warnings(record=True):
                     expected = df.ix[key]
             except KeyError:
-                self.assertRaises(KeyError, lambda: df.loc[key])
+                pytest.raises(KeyError, lambda: df.loc[key])
                 continue
 
             result = df.loc[key]
@@ -184,7 +186,7 @@ class TestIX(tm.TestCase):
         key = 4.0, 2012
 
         # emits a PerformanceWarning, ok
-        with self.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning):
             tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
@@ -298,14 +300,14 @@ class TestIX(tm.TestCase):
             np.random.randn(2, 5), index=["row%s" % i for i in range(2)],
             columns=["col%s" % i for i in range(5)])
         with catch_warnings(record=True):
-            self.assertRaises(ValueError, df.ix.__setitem__, (2, 0), 100)
+            pytest.raises(ValueError, df.ix.__setitem__, (2, 0), 100)
 
     def test_ix_setitem_out_of_bounds_axis_1(self):
         df = pd.DataFrame(
             np.random.randn(5, 2), index=["row%s" % i for i in range(5)],
             columns=["col%s" % i for i in range(2)])
         with catch_warnings(record=True):
-            self.assertRaises(ValueError, df.ix.__setitem__, (0, 2), 100)
+            pytest.raises(ValueError, df.ix.__setitem__, (0, 2), 100)
 
     def test_ix_empty_list_indexer_is_ok(self):
         with catch_warnings(record=True):

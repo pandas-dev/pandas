@@ -1,10 +1,12 @@
 """ test the scalar Timedelta """
+import pytest
+
 import numpy as np
 from datetime import timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.tseries.timedeltas import _coerce_scalar_to_timedelta_type as ct
+from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
                     to_timedelta, compat)
 from pandas._libs.tslib import iNaT, NaTType
@@ -112,15 +114,15 @@ class TestTimedeltas(tm.TestCase):
 
         # currently invalid as it has a - on the hhmmdd part (only allowed on
         # the days)
-        self.assertRaises(ValueError,
-                          lambda: Timedelta('-10 days -1 h 1.5m 1s 3us'))
+        pytest.raises(ValueError,
+                      lambda: Timedelta('-10 days -1 h 1.5m 1s 3us'))
 
         # only leading neg signs are allowed
-        self.assertRaises(ValueError,
-                          lambda: Timedelta('10 days -1 h 1.5m 1s 3us'))
+        pytest.raises(ValueError,
+                      lambda: Timedelta('10 days -1 h 1.5m 1s 3us'))
 
         # no units specified
-        self.assertRaises(ValueError, lambda: Timedelta('3.1415'))
+        pytest.raises(ValueError, lambda: Timedelta('3.1415'))
 
         # invalid construction
         tm.assertRaisesRegexp(ValueError, "cannot construct a Timedelta",
@@ -167,12 +169,12 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(to_timedelta(pd.offsets.Hour(2)),
                          Timedelta(u'0 days, 02:00:00'))
 
-        self.assertRaises(ValueError, lambda: Timedelta(u'foo bar'))
+        pytest.raises(ValueError, lambda: Timedelta(u'foo bar'))
 
     def test_overflow_on_construction(self):
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         value = pd.Timedelta('1day').value * 20169940
-        self.assertRaises(OverflowError, pd.Timedelta, value)
+        pytest.raises(OverflowError, pd.Timedelta, value)
 
     def test_total_seconds_scalar(self):
         # GH 10939
@@ -246,9 +248,9 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(rng.microseconds, 0)
         self.assertEqual(rng.nanoseconds, 0)
 
-        self.assertRaises(AttributeError, lambda: rng.hours)
-        self.assertRaises(AttributeError, lambda: rng.minutes)
-        self.assertRaises(AttributeError, lambda: rng.milliseconds)
+        pytest.raises(AttributeError, lambda: rng.hours)
+        pytest.raises(AttributeError, lambda: rng.minutes)
+        pytest.raises(AttributeError, lambda: rng.milliseconds)
 
         # GH 10050
         check(rng.days)
@@ -268,9 +270,9 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(rng.seconds, 10 * 3600 + 11 * 60 + 12)
         self.assertEqual(rng.microseconds, 100 * 1000 + 123)
         self.assertEqual(rng.nanoseconds, 456)
-        self.assertRaises(AttributeError, lambda: rng.hours)
-        self.assertRaises(AttributeError, lambda: rng.minutes)
-        self.assertRaises(AttributeError, lambda: rng.milliseconds)
+        pytest.raises(AttributeError, lambda: rng.hours)
+        pytest.raises(AttributeError, lambda: rng.minutes)
+        pytest.raises(AttributeError, lambda: rng.milliseconds)
 
         # components
         tup = pd.to_timedelta(-1, 'us').components
@@ -392,7 +394,7 @@ class TestTimedeltas(tm.TestCase):
 
         # invalid
         for freq in ['Y', 'M', 'foobar']:
-            self.assertRaises(ValueError, lambda: t1.round(freq))
+            pytest.raises(ValueError, lambda: t1.round(freq))
 
         t1 = timedelta_range('1 days', periods=3, freq='1 min 2 s 3 us')
         t2 = -1 * t1
@@ -441,7 +443,7 @@ class TestTimedeltas(tm.TestCase):
 
         # invalid
         for freq in ['Y', 'M', 'foobar']:
-            self.assertRaises(ValueError, lambda: t1.round(freq))
+            pytest.raises(ValueError, lambda: t1.round(freq))
 
     def test_contains(self):
         # Checking for any NaT-like objects
@@ -503,8 +505,8 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(ct(' - 10000D '), -conv(np.timedelta64(10000, 'D')))
 
         # invalid
-        self.assertRaises(ValueError, ct, '1foo')
-        self.assertRaises(ValueError, ct, 'foo')
+        pytest.raises(ValueError, ct, '1foo')
+        pytest.raises(ValueError, ct, 'foo')
 
     def test_full_format_converters(self):
         def conv(v):
@@ -532,7 +534,7 @@ class TestTimedeltas(tm.TestCase):
             d1 + np.timedelta64(1000 * (6 * 3600 + 1) + 10, 'ms')))
 
         # invalid
-        self.assertRaises(ValueError, ct, '- 1days, 00')
+        pytest.raises(ValueError, ct, '- 1days, 00')
 
     def test_overflow(self):
         # GH 9442
@@ -550,9 +552,9 @@ class TestTimedeltas(tm.TestCase):
                                     1000))
 
         # sum
-        self.assertRaises(ValueError, lambda: (s - s.min()).sum())
+        pytest.raises(ValueError, lambda: (s - s.min()).sum())
         s1 = s[0:10000]
-        self.assertRaises(ValueError, lambda: (s1 - s1.min()).sum())
+        pytest.raises(ValueError, lambda: (s1 - s1.min()).sum())
         s2 = s[0:1000]
         result = (s2 - s2.min()).sum()
 
@@ -585,27 +587,26 @@ class TestTimedeltas(tm.TestCase):
 
         # GH 12727
         # timedelta limits correspond to int64 boundaries
-        self.assertTrue(min_td.value == np.iinfo(np.int64).min + 1)
-        self.assertTrue(max_td.value == np.iinfo(np.int64).max)
+        assert min_td.value == np.iinfo(np.int64).min + 1
+        assert max_td.value == np.iinfo(np.int64).max
 
         # Beyond lower limit, a NAT before the Overflow
-        self.assertIsInstance(min_td - Timedelta(1, 'ns'),
-                              NaTType)
+        assert isinstance(min_td - Timedelta(1, 'ns'), NaTType)
 
-        with tm.assertRaises(OverflowError):
+        with pytest.raises(OverflowError):
             min_td - Timedelta(2, 'ns')
 
-        with tm.assertRaises(OverflowError):
+        with pytest.raises(OverflowError):
             max_td + Timedelta(1, 'ns')
 
         # Same tests using the internal nanosecond values
         td = Timedelta(min_td.value - 1, 'ns')
-        self.assertIsInstance(td, NaTType)
+        assert isinstance(td, NaTType)
 
-        with tm.assertRaises(OverflowError):
+        with pytest.raises(OverflowError):
             Timedelta(min_td.value - 2, 'ns')
 
-        with tm.assertRaises(OverflowError):
+        with pytest.raises(OverflowError):
             Timedelta(max_td.value + 1, 'ns')
 
     def test_timedelta_arithmetic(self):
@@ -699,10 +700,10 @@ class TestTimedeltas(tm.TestCase):
 
         for l, r in [(td, 'a'), ('a', td)]:
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 l + r
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 l > r
 
             self.assertFalse(l == r)

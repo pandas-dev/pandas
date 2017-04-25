@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 import numpy as np
 import pandas as pd
 import pandas._libs.lib as lib
@@ -72,7 +74,7 @@ class TestSeriesReplace(TestData, tm.TestCase):
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
         # malformed
-        self.assertRaises(ValueError, ser.replace, [1, 2, 3], [np.nan, 0])
+        pytest.raises(ValueError, ser.replace, [1, 2, 3], [np.nan, 0])
 
         # make sure that we aren't just masking a TypeError because bools don't
         # implement indexing
@@ -117,7 +119,7 @@ class TestSeriesReplace(TestData, tm.TestCase):
 
         # make sure things don't get corrupted when fillna call fails
         s = ser.copy()
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.replace([1, 2, 3], inplace=True, method='crash_cymbal')
         tm.assert_series_equal(s, ser)
 

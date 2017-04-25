@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime, date
 
 import numpy as np
@@ -68,7 +70,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                 getattr(s.dt, prop)
 
             result = s.dt.to_pydatetime()
-            self.assertIsInstance(result, np.ndarray)
+            assert isinstance(result, np.ndarray)
             self.assertTrue(result.dtype == object)
 
             result = s.dt.tz_localize('US/Eastern')
@@ -138,7 +140,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             getattr(s.dt, prop)
 
         result = s.dt.to_pydatetime()
-        self.assertIsInstance(result, np.ndarray)
+        assert isinstance(result, np.ndarray)
         self.assertTrue(result.dtype == object)
 
         result = s.dt.tz_convert('CET')
@@ -169,15 +171,15 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                 getattr(s.dt, prop)
 
             result = s.dt.components
-            self.assertIsInstance(result, DataFrame)
+            assert isinstance(result, DataFrame)
             tm.assert_index_equal(result.index, s.index)
 
             result = s.dt.to_pytimedelta()
-            self.assertIsInstance(result, np.ndarray)
+            assert isinstance(result, np.ndarray)
             self.assertTrue(result.dtype == object)
 
             result = s.dt.total_seconds()
-            self.assertIsInstance(result, pd.Series)
+            assert isinstance(result, pd.Series)
             self.assertTrue(result.dtype == 'float64')
 
             freq_result = s.dt.freq
@@ -258,7 +260,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             def f():
                 s.dt.hour[0] = 5
 
-            self.assertRaises(com.SettingWithCopyError, f)
+            pytest.raises(com.SettingWithCopyError, f)
 
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
@@ -309,13 +311,13 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
                              '2015/03/04', '2015/03/05'], dtype=np.object_)
         # dtype may be S10 or U10 depending on python version
-        self.assert_numpy_array_equal(result, expected, check_dtype=False)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
         period_index = period_range('20150301', periods=5)
         result = period_index.strftime("%Y/%m/%d")
         expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
                              '2015/03/04', '2015/03/05'], dtype='=U10')
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         s = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14,
                                                               32, 1)])
@@ -364,12 +366,12 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
     def test_dt_accessor_api(self):
         # GH 9322
-        from pandas.tseries.common import (CombinedDatetimelikeProperties,
-                                           DatetimeProperties)
-        self.assertIs(Series.dt, CombinedDatetimelikeProperties)
+        from pandas.core.indexes.accessors import (
+            CombinedDatetimelikeProperties, DatetimeProperties)
+        assert Series.dt is CombinedDatetimelikeProperties
 
         s = Series(date_range('2000-01-01', periods=3))
-        self.assertIsInstance(s.dt, DatetimeProperties)
+        assert isinstance(s.dt, DatetimeProperties)
 
         for s in [Series(np.arange(5)), Series(list('abcde')),
                   Series(np.random.randn(5))]:
@@ -379,7 +381,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             self.assertFalse(hasattr(s, 'dt'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
-        from pandas.tseries.timedeltas import to_timedelta
+        from pandas.core.tools.timedeltas import to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
         b = datetime(1993, 6, 22, 13, 30)

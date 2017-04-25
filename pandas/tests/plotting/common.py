@@ -358,7 +358,7 @@ class TestPlotBase(tm.TestCase):
             result = self._get_axes_layout(_flatten(axes))
             self.assertEqual(result, layout)
 
-        self.assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             visible_axes[0].figure.get_size_inches(),
             np.array(figsize, dtype=np.float64))
 
@@ -439,13 +439,13 @@ class TestPlotBase(tm.TestCase):
 
             self.assertTrue(isinstance(returned, types[return_type]))
             if return_type == 'both':
-                self.assertIsInstance(returned.ax, Axes)
-                self.assertIsInstance(returned.lines, dict)
+                assert isinstance(returned.ax, Axes)
+                assert isinstance(returned.lines, dict)
         else:
             # should be fixed when the returning default is changed
             if return_type is None:
                 for r in self._flatten_visible(returned):
-                    self.assertIsInstance(r, Axes)
+                    assert isinstance(r, Axes)
                 return
 
             self.assertTrue(isinstance(returned, Series))
@@ -460,8 +460,8 @@ class TestPlotBase(tm.TestCase):
                 elif return_type == 'both':
                     if check_ax_title:
                         self.assertEqual(value.ax.get_title(), key)
-                    self.assertIsInstance(value.ax, Axes)
-                    self.assertIsInstance(value.lines, dict)
+                    assert isinstance(value.ax, Axes)
+                    assert isinstance(value.lines, dict)
                 elif return_type == 'dict':
                     line = value['medians'][0]
                     axes = line.axes if self.mpl_ge_1_5_0 else line.get_axes()

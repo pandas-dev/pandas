@@ -226,14 +226,14 @@ class UltraJSONTests(TestCase):
     def test_invalidDoublePrecision(self):
         input = 30.12345678901234567890
 
-        self.assertRaises(ValueError, ujson.encode, input, double_precision=20)
-        self.assertRaises(ValueError, ujson.encode, input, double_precision=-1)
+        pytest.raises(ValueError, ujson.encode, input, double_precision=20)
+        pytest.raises(ValueError, ujson.encode, input, double_precision=-1)
 
         # will throw typeError
-        self.assertRaises(TypeError, ujson.encode, input, double_precision='9')
+        pytest.raises(TypeError, ujson.encode, input, double_precision='9')
         # will throw typeError
-        self.assertRaises(TypeError, ujson.encode,
-                          input, double_precision=None)
+        pytest.raises(TypeError, ujson.encode,
+                      input, double_precision=None)
 
     def test_encodeStringConversion2(self):
         input = "A string \\ / \b \f \n \r \t"
@@ -446,7 +446,7 @@ class UltraJSONTests(TestCase):
         roundtrip = ujson.decode(ujson.encode(val, date_unit='ns'))
         self.assertEqual(roundtrip, stamp.value)
 
-        self.assertRaises(ValueError, ujson.encode, val, date_unit='foo')
+        pytest.raises(ValueError, ujson.encode, val, date_unit='foo')
 
     def test_encodeToUTF8(self):
         input = "\xe6\x97\xa5\xd1\x88"
@@ -912,7 +912,7 @@ class UltraJSONTests(TestCase):
             def __str__(self):
                 return str(self.val)
 
-        self.assertRaises(OverflowError, ujson.encode, _TestObject("foo"))
+        pytest.raises(OverflowError, ujson.encode, _TestObject("foo"))
         self.assertEqual('"foo"', ujson.encode(_TestObject("foo"),
                                                default_handler=str))
 
@@ -1101,7 +1101,7 @@ class NumpyJSONTests(TestCase):
         def will_raise():
             ujson.encode(np.array(1))
 
-        self.assertRaises(TypeError, will_raise)
+        pytest.raises(TypeError, will_raise)
 
     def testArrayNumpyExcept(self):
 
@@ -1452,7 +1452,7 @@ class PandasJSONTests(TestCase):
         tm.assert_index_equal(i, outp)
 
     def test_datetimeindex(self):
-        from pandas.tseries.index import date_range
+        from pandas.core.indexes.datetimes import date_range
 
         rng = date_range('1/1/2000', periods=20)
 

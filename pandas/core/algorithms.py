@@ -14,6 +14,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype, is_signed_integer_dtype,
     is_integer_dtype, is_complex_dtype,
+    is_object_dtype,
     is_categorical_dtype, is_sparse,
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
@@ -63,6 +64,35 @@ def _ensure_data(values, dtype=None):
 
     """
 
+    # we check some simple dtypes first
+    try:
+        if is_bool_dtype(values) or is_bool_dtype(dtype):
+            # we are actually coercing to uint64
+            # until our algos suppport uint8 directly (see TODO)
+            return np.asarray(values).astype('uint64'), 'bool', 'uint64'
+        elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
+            return _ensure_int64(values), 'int64', 'int64'
+        elif (is_unsigned_integer_dtype(values) or
+              is_unsigned_integer_dtype(dtype)):
+            return _ensure_uint64(values), 'uint64', 'uint64'
+        elif is_float_dtype(values) or is_float_dtype(dtype):
+            return _ensure_float64(values), 'float64', 'float64'
+        elif is_object_dtype(values) and dtype is None:
+            return _ensure_object(np.asarray(values)), 'object', 'object'
+        elif is_complex_dtype(values) or is_complex_dtype(dtype):
+
+            # ignore the fact that we are casting to float
+            # which discards complex parts
+            with catch_warnings(record=True):
+                values = _ensure_float64(values)
+            return values, 'float64', 'float64'
+
+    except (TypeError, ValueError):
+        # if we are trying to coerce to a dtype
+        # and it is incompat this will fall thru to here
+        return _ensure_object(values), 'object', 'object'
+
+    # datetimelike
     if (needs_i8_conversion(values) or
             is_period_dtype(dtype) or
             is_datetime64_any_dtype(dtype) or
@@ -94,43 +124,9 @@ def _ensure_data(values, dtype=None):
 
         return values, dtype, 'int64'
 
+    # we have failed, return object
     values = np.asarray(values)
-
-    try:
-        if is_bool_dtype(values) or is_bool_dtype(dtype):
-            # we are actually coercing to uint64
-            # until our algos suppport uint8 directly (see TODO)
-            values = values.astype('uint64')
-            dtype = 'bool'
-            ndtype = 'uint64'
-        elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
-            values = _ensure_int64(values)
-            ndtype = dtype = 'int64'
-        elif (is_unsigned_integer_dtype(values) or
-              is_unsigned_integer_dtype(dtype)):
-            values = _ensure_uint64(values)
-            ndtype = dtype = 'uint64'
-        elif is_complex_dtype(values) or is_complex_dtype(dtype):
-
-            # ignore the fact that we are casting to float
-            # which discards complex parts
-            with catch_warnings(record=True):
-                values = _ensure_float64(values)
-            ndtype = dtype = 'float64'
-        elif is_float_dtype(values) or is_float_dtype(dtype):
-            values = _ensure_float64(values)
-            ndtype = dtype = 'float64'
-        else:
-            values = _ensure_object(values)
-            ndtype = dtype = 'object'
-
-    except (TypeError, ValueError):
-        # if we are trying to coerce to a dtype
-        # and it is incompat this will fall thru to here
-        values = _ensure_object(values)
-        ndtype = dtype = 'object'
-
-    return values, dtype, ndtype
+    return _ensure_object(values), 'object', 'object'
 
 
 def _reconstruct_data(values, dtype, original):
@@ -165,7 +161,11 @@ def _ensure_arraylike(values):
     """
     if not isinstance(values, (np.ndarray, ABCCategorical,
                                ABCIndexClass, ABCSeries)):
-        values = np.array(values)
+        inferred = lib.infer_dtype(values)
+        if inferred in ['mixed', 'string', 'unicode']:
+            values = np.asarray(values, dtype=object)
+        else:
+            values = np.asarray(values)
     return values
 
 
@@ -465,7 +465,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     if not is_list_like(values):
         raise TypeError("Only list-like objects are allowed to be passed to"
                         "safe_sort as values")
-    values = np.array(values, copy=False)
+    values = np.asarray(values)
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
@@ -547,6 +547,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     PeriodIndex
     """
 
+    values = _ensure_arraylike(values)
     original = values
     values, dtype, _ = _ensure_data(values)
     (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)

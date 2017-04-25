@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime, timedelta
 import itertools
 
@@ -285,10 +287,10 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
                              columns=["A", "B", "C"],
                              dtype=dtype)
 
-        self.assertRaises(NotImplementedError, f,
-                          [("A", "datetime64[h]"),
-                           ("B", "str"),
-                           ("C", "int32")])
+        pytest.raises(NotImplementedError, f,
+                      [("A", "datetime64[h]"),
+                       ("B", "str"),
+                       ("C", "int32")])
 
         # these work (though results may be unexpected)
         f('int64')
@@ -517,8 +519,8 @@ starting,ending,measure
                         'd': [None, None, None],
                         'e': [3.14, 0.577, 2.773]})
 
-        self.assert_index_equal(df._get_numeric_data().columns,
-                                pd.Index(['a', 'b', 'e']))
+        tm.assert_index_equal(df._get_numeric_data().columns,
+                              pd.Index(['a', 'b', 'e']))
 
     def test_strange_column_corruption_issue(self):
         # (wesm) Unclear how exactly this is related to internal matters

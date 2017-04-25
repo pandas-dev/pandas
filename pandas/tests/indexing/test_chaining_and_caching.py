@@ -326,7 +326,7 @@ class TestChaining(tm.TestCase):
         def f():
             df[['c']][mask] = df[['b']][mask]
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        pytest.raises(com.SettingWithCopyError, f)
 
         # invalid warning as we are returning a new object
         # GH 8730
@@ -353,7 +353,7 @@ class TestChaining(tm.TestCase):
         # 0.12
         def check(result, expected):
             tm.assert_numpy_array_equal(result, expected)
-            tm.assertIsInstance(result, np.ndarray)
+            assert isinstance(result, np.ndarray)
 
         df = DataFrame({'A': 5 * [np.zeros(3)], 'B': 5 * [np.ones(3)]})
         expected = df['A'].iloc[2]
@@ -373,15 +373,15 @@ class TestChaining(tm.TestCase):
         df['A']  # cache series
         with catch_warnings(record=True):
             df.ix["Hello Friend"] = df.ix[0]
-        self.assertIn("Hello Friend", df['A'].index)
-        self.assertIn("Hello Friend", df['B'].index)
+        assert "Hello Friend" in df['A'].index
+        assert "Hello Friend" in df['B'].index
 
         with catch_warnings(record=True):
             panel = tm.makePanel()
             panel.ix[0]  # get first item into cache
             panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-            self.assertIn("A+1", panel.ix[0].columns)
-            self.assertIn("A+1", panel.ix[1].columns)
+            assert "A+1" in panel.ix[0].columns
+            assert "A+1" in panel.ix[1].columns
 
         # 5216
         # make sure that we don't try to set a dead cache

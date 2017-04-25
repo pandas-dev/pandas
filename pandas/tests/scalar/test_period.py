@@ -1,9 +1,11 @@
+import pytest
+
 import numpy as np
 from datetime import datetime, date, timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.tseries.period as period
+import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -20,7 +22,7 @@ class TestPeriodProperties(tm.TestCase):
         for freq in ['A', 'M', 'D', 'H']:
             p = Period('2000-01-01 00:00:00', freq=freq)
             self.assertTrue(p.is_leap_year)
-            self.assertIsInstance(p.is_leap_year, bool)
+            assert isinstance(p.is_leap_year, bool)
 
             p = Period('1999-01-01 00:00:00', freq=freq)
             self.assertFalse(p.is_leap_year)
@@ -35,24 +37,24 @@ class TestPeriodProperties(tm.TestCase):
         p = Period(ordinal=-1, freq='Q-DEC')
         self.assertEqual(p.year, 1969)
         self.assertEqual(p.quarter, 4)
-        self.assertIsInstance(p, Period)
+        assert isinstance(p, Period)
 
         p = Period(ordinal=-2, freq='Q-DEC')
         self.assertEqual(p.year, 1969)
         self.assertEqual(p.quarter, 3)
-        self.assertIsInstance(p, Period)
+        assert isinstance(p, Period)
 
         p = Period(ordinal=-2, freq='M')
         self.assertEqual(p.year, 1969)
         self.assertEqual(p.month, 11)
-        self.assertIsInstance(p, Period)
+        assert isinstance(p, Period)
 
     def test_period_cons_quarterly(self):
         # bugs in scikits.timeseries
         for month in MONTHS:
             freq = 'Q-%s' % month
             exp = Period('1989Q3', freq=freq)
-            self.assertIn('1989Q3', str(exp))
+            assert '1989Q3' in str(exp)
             stamp = exp.to_timestamp('D', how='end')
             p = Period(stamp, freq=freq)
             self.assertEqual(p, exp)
@@ -69,7 +71,7 @@ class TestPeriodProperties(tm.TestCase):
             stamp = exp.to_timestamp('D', how='end') + timedelta(days=30)
             p = Period(stamp, freq=freq)
             self.assertEqual(p, exp + 1)
-            self.assertIsInstance(p, Period)
+            assert isinstance(p, Period)
 
     def test_period_cons_weekly(self):
         for num in range(10, 17):
@@ -80,35 +82,35 @@ class TestPeriodProperties(tm.TestCase):
                 result = Period(daystr, freq=freq)
                 expected = Period(daystr, freq='D').asfreq(freq)
                 self.assertEqual(result, expected)
-                self.assertIsInstance(result, Period)
+                assert isinstance(result, Period)
 
     def test_period_from_ordinal(self):
         p = pd.Period('2011-01', freq='M')
         res = pd.Period._from_ordinal(p.ordinal, freq='M')
         self.assertEqual(p, res)
-        self.assertIsInstance(res, Period)
+        assert isinstance(res, Period)
 
     def test_period_cons_nat(self):
         p = Period('NaT', freq='M')
-        self.assertIs(p, pd.NaT)
+        assert p is pd.NaT
 
         p = Period('nat', freq='W-SUN')
-        self.assertIs(p, pd.NaT)
+        assert p is pd.NaT
 
         p = Period(tslib.iNaT, freq='D')
-        self.assertIs(p, pd.NaT)
+        assert p is pd.NaT
 
         p = Period(tslib.iNaT, freq='3D')
-        self.assertIs(p, pd.NaT)
+        assert p is pd.NaT
 
         p = Period(tslib.iNaT, freq='1D1H')
-        self.assertIs(p, pd.NaT)
+        assert p is pd.NaT
 
         p = Period('NaT')
-        self.assertIs(p, pd.NaT)
+        assert p is pd.NaT
 
         p = Period(tslib.iNaT)
-        self.assertIs(p, pd.NaT)
+        assert p is pd.NaT
 
     def test_period_cons_mult(self):
         p1 = Period('2011-01', freq='3M')
@@ -293,7 +295,7 @@ class TestPeriodProperties(tm.TestCase):
         i4 = Period('2005', freq='M')
         i5 = Period('2005', freq='m')
 
-        self.assertRaises(ValueError, i1.__ne__, i4)
+        pytest.raises(ValueError, i1.__ne__, i4)
         self.assertEqual(i4, i5)
 
         i1 = Period.now('Q')
@@ -332,9 +334,9 @@ class TestPeriodProperties(tm.TestCase):
                           freq='U')
         self.assertEqual(i1, expected)
 
-        self.assertRaises(ValueError, Period, ordinal=200701)
+        pytest.raises(ValueError, Period, ordinal=200701)
 
-        self.assertRaises(ValueError, Period, '2007-1-1', freq='X')
+        pytest.raises(ValueError, Period, '2007-1-1', freq='X')
 
     def test_construction_bday(self):
 
@@ -493,9 +495,9 @@ class TestPeriodProperties(tm.TestCase):
                           freq='U')
         self.assertEqual(i1, expected)
 
-        self.assertRaises(ValueError, Period, ordinal=200701)
+        pytest.raises(ValueError, Period, ordinal=200701)
 
-        self.assertRaises(ValueError, Period, '2007-1-1', freq='X')
+        pytest.raises(ValueError, Period, '2007-1-1', freq='X')
 
     def test_freq_str(self):
         i1 = Period('1982', freq='Min')
@@ -516,16 +518,16 @@ class TestPeriodProperties(tm.TestCase):
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
         for exp, freqs in iteritems(cases):
             for freq in freqs:
-                with self.assertRaisesRegexp(ValueError, msg):
+                with tm.assertRaisesRegexp(ValueError, msg):
                     Period('2016-03-01 09:00', freq=freq)
-                with self.assertRaisesRegexp(ValueError, msg):
+                with tm.assertRaisesRegexp(ValueError, msg):
                     Period(ordinal=1, freq=freq)
 
             # check supported freq-aliases still works
             p1 = Period('2016-03-01 09:00', freq=exp)
             p2 = Period(ordinal=1, freq=exp)
-            tm.assertIsInstance(p1, Period)
-            tm.assertIsInstance(p2, Period)
+            assert isinstance(p1, Period)
+            assert isinstance(p2, Period)
 
     def test_hash(self):
         self.assertEqual(hash(Period('2011-01', freq='M')),
@@ -542,14 +544,14 @@ class TestPeriodProperties(tm.TestCase):
 
     def test_repr(self):
         p = Period('Jan-2000')
-        self.assertIn('2000-01', repr(p))
+        assert '2000-01' in repr(p)
 
         p = Period('2000-12-15')
-        self.assertIn('2000-12-15', repr(p))
+        assert '2000-12-15' in repr(p)
 
     def test_repr_nat(self):
         p = Period('nat', freq='M')
-        self.assertIn(repr(tslib.NaT), repr(p))
+        assert repr(tslib.NaT) in repr(p)
 
     def test_millisecond_repr(self):
         p = Period('2000-01-01 12:15:02.123')
@@ -565,14 +567,14 @@ class TestPeriodProperties(tm.TestCase):
         p = Period('2000-1-1 12:34:12', freq='S')
         res = p.strftime('%Y-%m-%d %H:%M:%S')
         self.assertEqual(res, '2000-01-01 12:34:12')
-        tm.assertIsInstance(res, text_type)  # GH3363
+        assert isinstance(res, text_type)  # GH3363
 
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')
         result = left - right
         self.assertEqual(result, 4)
 
-        with self.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             left - Period('2007-01', freq='M')
 
     def test_to_timestamp(self):
@@ -760,7 +762,7 @@ class TestPeriodProperties(tm.TestCase):
         self.assertEqual(exp.days_in_month, 29)
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=7)
 
     def test_properties_daily(self):
@@ -851,13 +853,13 @@ class TestPeriodProperties(tm.TestCase):
         expected = Period('2007-01', freq='2M')
         self.assertEqual(Period(year=2007, month=1, freq='2M'), expected)
 
-        self.assertRaises(ValueError, Period, datetime.now())
-        self.assertRaises(ValueError, Period, datetime.now().date())
-        self.assertRaises(ValueError, Period, 1.6, freq='D')
-        self.assertRaises(ValueError, Period, ordinal=1.6, freq='D')
-        self.assertRaises(ValueError, Period, ordinal=2, value=1, freq='D')
-        self.assertIs(Period(None), pd.NaT)
-        self.assertRaises(ValueError, Period, month=1)
+        pytest.raises(ValueError, Period, datetime.now())
+        pytest.raises(ValueError, Period, datetime.now().date())
+        pytest.raises(ValueError, Period, 1.6, freq='D')
+        pytest.raises(ValueError, Period, ordinal=1.6, freq='D')
+        pytest.raises(ValueError, Period, ordinal=2, value=1, freq='D')
+        assert Period(None) is pd.NaT
+        pytest.raises(ValueError, Period, month=1)
 
         p = Period('2007-01-01', freq='D')
 
@@ -888,9 +890,9 @@ class TestPeriodProperties(tm.TestCase):
         self.assertEqual(p.freq, 'U')
 
     def test_badinput(self):
-        self.assertRaises(ValueError, Period, '-2000', 'A')
-        self.assertRaises(tslib.DateParseError, Period, '0', 'A')
-        self.assertRaises(tslib.DateParseError, Period, '1/1/-2000', 'A')
+        pytest.raises(ValueError, Period, '-2000', 'A')
+        pytest.raises(tslib.DateParseError, Period, '0', 'A')
+        pytest.raises(tslib.DateParseError, Period, '1/1/-2000', 'A')
 
     def test_multiples(self):
         result1 = Period('1989', freq='2A')
@@ -916,11 +918,11 @@ class TestPeriodProperties(tm.TestCase):
 class TestPeriodField(tm.TestCase):
 
     def test_get_period_field_raises_on_out_of_range(self):
-        self.assertRaises(ValueError, libperiod.get_period_field, -1, 0, 0)
+        pytest.raises(ValueError, libperiod.get_period_field, -1, 0, 0)
 
     def test_get_period_field_array_raises_on_out_of_range(self):
-        self.assertRaises(ValueError, libperiod.get_period_field_arr, -1,
-                          np.empty(1), 0)
+        pytest.raises(ValueError, libperiod.get_period_field_arr, -1,
+                      np.empty(1), 0)
 
 
 class TestComparisons(tm.TestCase):
@@ -936,7 +938,7 @@ class TestComparisons(tm.TestCase):
         self.assertEqual(self.january1, self.january2)
 
     def test_equal_Raises_Value(self):
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             self.january1 == self.day
 
     def test_notEqual(self):
@@ -947,43 +949,43 @@ class TestComparisons(tm.TestCase):
         self.assertTrue(self.february > self.january1)
 
     def test_greater_Raises_Value(self):
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             self.january1 > self.day
 
     def test_greater_Raises_Type(self):
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.january1 > 1
 
     def test_greaterEqual(self):
         self.assertTrue(self.january1 >= self.january2)
 
     def test_greaterEqual_Raises_Value(self):
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             self.january1 >= self.day
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             print(self.january1 >= 1)
 
     def test_smallerEqual(self):
         self.assertTrue(self.january1 <= self.january2)
 
     def test_smallerEqual_Raises_Value(self):
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             self.january1 <= self.day
 
     def test_smallerEqual_Raises_Type(self):
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.january1 <= 1
 
     def test_smaller(self):
         self.assertTrue(self.january1 < self.february)
 
     def test_smaller_Raises_Value(self):
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             self.january1 < self.day
 
     def test_smaller_Raises_Type(self):
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.january1 < 1
 
     def test_sort(self):
@@ -1018,12 +1020,12 @@ class TestMethods(tm.TestCase):
 
     def test_add_pdnat(self):
         p = pd.Period('2011-01', freq='M')
-        self.assertIs(p + pd.NaT, pd.NaT)
-        self.assertIs(pd.NaT + p, pd.NaT)
+        assert p + pd.NaT is pd.NaT
+        assert pd.NaT + p is pd.NaT
 
         p = pd.Period('NaT', freq='M')
-        self.assertIs(p + pd.NaT, pd.NaT)
-        self.assertIs(pd.NaT + p, pd.NaT)
+        assert p + pd.NaT is pd.NaT
+        assert pd.NaT + p is pd.NaT
 
     def test_add_raises(self):
         # GH 4731
@@ -1062,14 +1064,14 @@ class TestMethods(tm.TestCase):
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
-                with tm.assertRaises(period.IncompatibleFrequency):
+                with pytest.raises(period.IncompatibleFrequency):
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    with tm.assertRaises(period.IncompatibleFrequency):
+                    with pytest.raises(period.IncompatibleFrequency):
                         o + p
 
         for freq in ['M', '2M', '3M']:
@@ -1085,14 +1087,14 @@ class TestMethods(tm.TestCase):
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
-                with tm.assertRaises(period.IncompatibleFrequency):
+                with pytest.raises(period.IncompatibleFrequency):
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    with tm.assertRaises(period.IncompatibleFrequency):
+                    with pytest.raises(period.IncompatibleFrequency):
                         o + p
 
         # freq is Tick
@@ -1109,12 +1111,12 @@ class TestMethods(tm.TestCase):
 
             exp = Period('2011-04-03', freq=freq)
             self.assertEqual(p + np.timedelta64(2, 'D'), exp)
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 np.timedelta64(2, 'D') + p
 
             exp = Period('2011-04-02', freq=freq)
             self.assertEqual(p + np.timedelta64(3600 * 24, 's'), exp)
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 np.timedelta64(3600 * 24, 's') + p
 
             exp = Period('2011-03-30', freq=freq)
@@ -1128,14 +1130,14 @@ class TestMethods(tm.TestCase):
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(4, 'h'),
                       timedelta(hours=23)]:
-                with tm.assertRaises(period.IncompatibleFrequency):
+                with pytest.raises(period.IncompatibleFrequency):
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    with tm.assertRaises(period.IncompatibleFrequency):
+                    with pytest.raises(period.IncompatibleFrequency):
                         o + p
 
         for freq in ['H', '2H', '3H']:
@@ -1151,12 +1153,12 @@ class TestMethods(tm.TestCase):
 
             exp = Period('2011-04-01 12:00', freq=freq)
             self.assertEqual(p + np.timedelta64(3, 'h'), exp)
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 np.timedelta64(3, 'h') + p
 
             exp = Period('2011-04-01 10:00', freq=freq)
             self.assertEqual(p + np.timedelta64(3600, 's'), exp)
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 np.timedelta64(3600, 's') + p
 
             exp = Period('2011-04-01 11:00', freq=freq)
@@ -1170,14 +1172,14 @@ class TestMethods(tm.TestCase):
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(3200, 's'),
                       timedelta(hours=23, minutes=30)]:
-                with tm.assertRaises(period.IncompatibleFrequency):
+                with pytest.raises(period.IncompatibleFrequency):
                     p + o
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    with tm.assertRaises(period.IncompatibleFrequency):
+                    with pytest.raises(period.IncompatibleFrequency):
                         o + p
 
     def test_add_offset_nat(self):
@@ -1185,41 +1187,41 @@ class TestMethods(tm.TestCase):
         for freq in ['A', '2A', '3A']:
             p = Period('NaT', freq=freq)
             for o in [offsets.YearEnd(2)]:
-                self.assertIs(p + o, tslib.NaT)
-                self.assertIs(o + p, tslib.NaT)
+                assert p + o is tslib.NaT
+                assert o + p is tslib.NaT
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
-                self.assertIs(p + o, tslib.NaT)
+                assert p + o is tslib.NaT
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    self.assertIs(o + p, tslib.NaT)
+                    assert o + p is tslib.NaT
 
         for freq in ['M', '2M', '3M']:
             p = Period('NaT', freq=freq)
             for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
-                self.assertIs(p + o, tslib.NaT)
+                assert p + o is tslib.NaT
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    self.assertIs(o + p, tslib.NaT)
+                    assert o + p is tslib.NaT
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
-                self.assertIs(p + o, tslib.NaT)
+                assert p + o is tslib.NaT
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    self.assertIs(o + p, tslib.NaT)
+                    assert o + p is tslib.NaT
 
         # freq is Tick
         for freq in ['D', '2D', '3D']:
@@ -1227,55 +1229,55 @@ class TestMethods(tm.TestCase):
             for o in [offsets.Day(5), offsets.Hour(24), np.timedelta64(2, 'D'),
                       np.timedelta64(3600 * 24, 's'), timedelta(-2),
                       timedelta(hours=48)]:
-                self.assertIs(p + o, tslib.NaT)
+                assert p + o is tslib.NaT
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    self.assertIs(o + p, tslib.NaT)
+                    assert o + p is tslib.NaT
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(4, 'h'),
                       timedelta(hours=23)]:
-                self.assertIs(p + o, tslib.NaT)
+                assert p + o is tslib.NaT
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    self.assertIs(o + p, tslib.NaT)
+                    assert o + p is tslib.NaT
 
         for freq in ['H', '2H', '3H']:
             p = Period('NaT', freq=freq)
             for o in [offsets.Day(2), offsets.Hour(3), np.timedelta64(3, 'h'),
                       np.timedelta64(3600, 's'), timedelta(minutes=120),
                       timedelta(days=4, minutes=180)]:
-                self.assertIs(p + o, tslib.NaT)
+                assert p + o is tslib.NaT
 
                 if not isinstance(o, np.timedelta64):
-                    self.assertIs(o + p, tslib.NaT)
+                    assert o + p is tslib.NaT
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(3200, 's'),
                       timedelta(hours=23, minutes=30)]:
-                self.assertIs(p + o, tslib.NaT)
+                assert p + o is tslib.NaT
 
                 if isinstance(o, np.timedelta64):
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         o + p
                 else:
-                    self.assertIs(o + p, tslib.NaT)
+                    assert o + p is tslib.NaT
 
     def test_sub_pdnat(self):
         # GH 13071
         p = pd.Period('2011-01', freq='M')
-        self.assertIs(p - pd.NaT, pd.NaT)
-        self.assertIs(pd.NaT - p, pd.NaT)
+        assert p - pd.NaT is pd.NaT
+        assert pd.NaT - p is pd.NaT
 
         p = pd.Period('NaT', freq='M')
-        self.assertIs(p - pd.NaT, pd.NaT)
-        self.assertIs(pd.NaT - p, pd.NaT)
+        assert p - pd.NaT is pd.NaT
+        assert pd.NaT - p is pd.NaT
 
     def test_sub_offset(self):
         # freq is DateOffset
@@ -1286,7 +1288,7 @@ class TestMethods(tm.TestCase):
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
-                with tm.assertRaises(period.IncompatibleFrequency):
+                with pytest.raises(period.IncompatibleFrequency):
                     p - o
 
         for freq in ['M', '2M', '3M']:
@@ -1299,7 +1301,7 @@ class TestMethods(tm.TestCase):
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
-                with tm.assertRaises(period.IncompatibleFrequency):
+                with pytest.raises(period.IncompatibleFrequency):
                     p - o
 
         # freq is Tick
@@ -1321,7 +1323,7 @@ class TestMethods(tm.TestCase):
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(4, 'h'),
                       timedelta(hours=23)]:
-                with tm.assertRaises(period.IncompatibleFrequency):
+                with pytest.raises(period.IncompatibleFrequency):
                     p - o
 
         for freq in ['H', '2H', '3H']:
@@ -1342,7 +1344,7 @@ class TestMethods(tm.TestCase):
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(3200, 's'),
                       timedelta(hours=23, minutes=30)]:
-                with tm.assertRaises(period.IncompatibleFrequency):
+                with pytest.raises(period.IncompatibleFrequency):
                     p - o
 
     def test_sub_offset_nat(self):
@@ -1350,22 +1352,22 @@ class TestMethods(tm.TestCase):
         for freq in ['A', '2A', '3A']:
             p = Period('NaT', freq=freq)
             for o in [offsets.YearEnd(2)]:
-                self.assertIs(p - o, tslib.NaT)
+                assert p - o is tslib.NaT
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
-                self.assertIs(p - o, tslib.NaT)
+                assert p - o is tslib.NaT
 
         for freq in ['M', '2M', '3M']:
             p = Period('NaT', freq=freq)
             for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
-                self.assertIs(p - o, tslib.NaT)
+                assert p - o is tslib.NaT
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(365, 'D'),
                       timedelta(365)]:
-                self.assertIs(p - o, tslib.NaT)
+                assert p - o is tslib.NaT
 
         # freq is Tick
         for freq in ['D', '2D', '3D']:
@@ -1373,33 +1375,33 @@ class TestMethods(tm.TestCase):
             for o in [offsets.Day(5), offsets.Hour(24), np.timedelta64(2, 'D'),
                       np.timedelta64(3600 * 24, 's'), timedelta(-2),
                       timedelta(hours=48)]:
-                self.assertIs(p - o, tslib.NaT)
+                assert p - o is tslib.NaT
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(4, 'h'),
                       timedelta(hours=23)]:
-                self.assertIs(p - o, tslib.NaT)
+                assert p - o is tslib.NaT
 
         for freq in ['H', '2H', '3H']:
             p = Period('NaT', freq=freq)
             for o in [offsets.Day(2), offsets.Hour(3), np.timedelta64(3, 'h'),
                       np.timedelta64(3600, 's'), timedelta(minutes=120),
                       timedelta(days=4, minutes=180)]:
-                self.assertIs(p - o, tslib.NaT)
+                assert p - o is tslib.NaT
 
             for o in [offsets.YearBegin(2), offsets.MonthBegin(1),
                       offsets.Minute(), np.timedelta64(3200, 's'),
                       timedelta(hours=23, minutes=30)]:
-                self.assertIs(p - o, tslib.NaT)
+                assert p - o is tslib.NaT
 
     def test_nat_ops(self):
         for freq in ['M', '2M', '3M']:
             p = Period('NaT', freq=freq)
-            self.assertIs(p + 1, tslib.NaT)
-            self.assertIs(1 + p, tslib.NaT)
-            self.assertIs(p - 1, tslib.NaT)
-            self.assertIs(p - Period('2011-01', freq=freq), tslib.NaT)
-            self.assertIs(Period('2011-01', freq=freq) - p, tslib.NaT)
+            assert p + 1 is tslib.NaT
+            assert 1 + p is tslib.NaT
+            assert p - 1 is tslib.NaT
+            assert p - Period('2011-01', freq=freq) is tslib.NaT
+            assert Period('2011-01', freq=freq) - p is tslib.NaT
 
     def test_period_ops_offset(self):
         p = Period('2011-04-01', freq='D')

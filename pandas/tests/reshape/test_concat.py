@@ -272,20 +272,20 @@ class TestConcatAppendCommon(ConcatenateBase):
 
         res = dti.append(tdi)
         tm.assert_index_equal(res, exp)
-        tm.assertIsInstance(res[0], pd.Timestamp)
-        tm.assertIsInstance(res[-1], pd.Timedelta)
+        assert isinstance(res[0], pd.Timestamp)
+        assert isinstance(res[-1], pd.Timedelta)
 
         dts = pd.Series(dti)
         tds = pd.Series(tdi)
         res = dts.append(tds)
         tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
-        tm.assertIsInstance(res.iloc[0], pd.Timestamp)
-        tm.assertIsInstance(res.iloc[-1], pd.Timedelta)
+        assert isinstance(res.iloc[0], pd.Timestamp)
+        assert isinstance(res.iloc[-1], pd.Timedelta)
 
         res = pd.concat([dts, tds])
         tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
-        tm.assertIsInstance(res.iloc[0], pd.Timestamp)
-        tm.assertIsInstance(res.iloc[-1], pd.Timedelta)
+        assert isinstance(res.iloc[0], pd.Timestamp)
+        assert isinstance(res.iloc[-1], pd.Timedelta)
 
     def test_concatlike_datetimetz(self):
         # GH 7795
@@ -930,8 +930,8 @@ class TestConcatenate(ConcatenateBase):
                         levels=[level],
                         names=['group_key'])
 
-        self.assert_index_equal(result.columns.levels[0],
-                                Index(level, name='group_key'))
+        tm.assert_index_equal(result.columns.levels[0],
+                              Index(level, name='group_key'))
         self.assertEqual(result.columns.names[0], 'group_key')
 
     def test_concat_dataframe_keys_bug(self):
@@ -1102,19 +1102,19 @@ class TestConcatenate(ConcatenateBase):
                               ('baz', 'one'), ('baz', 'two')],
                         names=['first', 'second'])
         self.assertEqual(result.index.names, ('first', 'second') + (None,))
-        self.assert_index_equal(result.index.levels[0],
-                                Index(['baz', 'foo'], name='first'))
+        tm.assert_index_equal(result.index.levels[0],
+                              Index(['baz', 'foo'], name='first'))
 
     def test_concat_keys_levels_no_overlap(self):
         # GH #1406
         df = DataFrame(np.random.randn(1, 3), index=['a'])
         df2 = DataFrame(np.random.randn(1, 4), index=['b'])
 
-        self.assertRaises(ValueError, concat, [df, df],
-                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+        pytest.raises(ValueError, concat, [df, df],
+                      keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
 
-        self.assertRaises(ValueError, concat, [df, df2],
-                          keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
+        pytest.raises(ValueError, concat, [df, df2],
+                      keys=['one', 'two'], levels=[['foo', 'bar', 'baz']])
 
     def test_concat_rename_index(self):
         a = DataFrame(np.random.rand(3, 3),
@@ -1306,7 +1306,7 @@ class TestConcatenate(ConcatenateBase):
         # invalid concatente of mixed dims
         with catch_warnings(record=True):
             panel = tm.makePanel()
-            self.assertRaises(ValueError, lambda: concat([panel, s1], axis=1))
+            pytest.raises(ValueError, lambda: concat([panel, s1], axis=1))
 
     def test_empty_dtype_coerce(self):
 
@@ -1500,10 +1500,10 @@ class TestConcatenate(ConcatenateBase):
         pieces = [df[:5], None, None, df[5:]]
         result = concat(pieces)
         tm.assert_frame_equal(result, df)
-        self.assertRaises(ValueError, concat, [None, None])
+        pytest.raises(ValueError, concat, [None, None])
 
     def test_concat_datetime64_block(self):
-        from pandas.tseries.index import date_range
+        from pandas.core.indexes.datetimes import date_range
 
         rng = date_range('1/1/2000', periods=10)
 
@@ -1634,12 +1634,12 @@ class TestConcatenate(ConcatenateBase):
         # trying to concat a ndframe with a non-ndframe
         df1 = mkdf(10, 2)
         for obj in [1, dict(), [1, 2], (1, 2)]:
-            self.assertRaises(TypeError, lambda x: concat([df1, obj]))
+            pytest.raises(TypeError, lambda x: concat([df1, obj]))
 
     def test_concat_invalid_first_argument(self):
         df1 = mkdf(10, 2)
         df2 = mkdf(10, 2)
-        self.assertRaises(TypeError, concat, df1, df2)
+        pytest.raises(TypeError, concat, df1, df2)
 
         # generator ok though
         concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))
@@ -1861,7 +1861,7 @@ bar2,12,13,14,15
         s1 = pd.Series([1, 2, 3], name='x')
         s2 = pd.Series([4, 5, 6], name='y')
         res = pd.concat([s1, s2], axis=1, ignore_index=True)
-        self.assertIsInstance(res.columns, pd.RangeIndex)
+        assert isinstance(res.columns, pd.RangeIndex)
         exp = pd.DataFrame([[1, 4], [2, 5], [3, 6]])
         # use check_index_type=True to check the result have
         # RangeIndex (default index)
@@ -1872,7 +1872,7 @@ bar2,12,13,14,15
         s1 = pd.Series([1, 2, 3])
         s2 = pd.Series([4, 5, 6])
         res = pd.concat([s1, s2], axis=1, ignore_index=False)
-        self.assertIsInstance(res.columns, pd.RangeIndex)
+        assert isinstance(res.columns, pd.RangeIndex)
         exp = pd.DataFrame([[1, 4], [2, 5], [3, 6]])
         exp.columns = pd.RangeIndex(2)
         tm.assert_frame_equal(res, exp, check_index_type=True,

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
-from pandas import compat
+
+import numpy as np
 import pandas as pd
+
+from pandas import compat
 import pandas.io.formats.printing as printing
 import pandas.io.formats.format as fmt
 import pandas.util.testing as tm
@@ -148,7 +151,7 @@ class TestTableSchemaRepr(tm.TestCase):
             with opt, make_patch as mock_display:
                 handle = obj._ipython_display_()
                 self.assertEqual(mock_display.call_count, 1)
-                self.assertIsNone(handle)
+                assert handle is None
                 args, kwargs = mock_display.call_args
                 arg, = args  # just one argument
 
@@ -165,6 +168,18 @@ class TestTableSchemaRepr(tm.TestCase):
         expected = {'text/plain', 'text/html', 'text/latex',
                     'application/vnd.dataresource+json'}
         self.assertEqual(set(arg.keys()), expected)
+
+    def test_publishes_not_implemented(self):
+        # column MultiIndex
+        # GH 15996
+        midx = pd.MultiIndex.from_product([['A', 'B'], ['a', 'b', 'c']])
+        df = pd.DataFrame(np.random.randn(5, len(midx)), columns=midx)
+
+        make_patch = self.mock.patch('IPython.display.display')
+        opt = pd.option_context('display.html.table_schema', True)
+        with opt, make_patch as mock_display:  # noqa
+            with pytest.raises(NotImplementedError):
+                df._ipython_display_()
 
     def test_config_on(self):
         df = pd.DataFrame({"A": [1, 2]})

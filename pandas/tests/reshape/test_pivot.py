@@ -1,5 +1,8 @@
 from datetime import datetime, date, timedelta
 
+import pytest
+
+
 import numpy as np
 
 from collections import OrderedDict
@@ -384,7 +387,7 @@ class TestPivotTable(tm.TestCase):
         # no rows
         rtable = self.data.pivot_table(columns=['AA', 'BB'], margins=True,
                                        aggfunc=np.mean)
-        tm.assertIsInstance(rtable, Series)
+        assert isinstance(rtable, Series)
 
         table = self.data.pivot_table(index=['AA', 'BB'], margins=True,
                                       aggfunc='mean')
@@ -553,17 +556,17 @@ class TestPivotTable(tm.TestCase):
     def test_pivot_table_with_margins_set_margin_name(self):
         # GH 3335
         for margin_name in ['foo', 'one', 666, None, ['a', 'b']]:
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 # multi-index index
                 pivot_table(self.data, values='D', index=['A', 'B'],
                             columns=['C'], margins=True,
                             margins_name=margin_name)
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 # multi-index column
                 pivot_table(self.data, values='D', index=['C'],
                             columns=['A', 'B'], margins=True,
                             margins_name=margin_name)
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 # non-multi-index index/column
                 pivot_table(self.data, values='D', index=['A'],
                             columns=['B'], margins=True,
@@ -626,10 +629,10 @@ class TestPivotTable(tm.TestCase):
                              values='Quantity', aggfunc=np.sum)
         tm.assert_frame_equal(result, expected.T)
 
-        self.assertRaises(KeyError, lambda: pivot_table(
+        pytest.raises(KeyError, lambda: pivot_table(
             df, index=Grouper(freq='6MS', key='foo'),
             columns='Buyer', values='Quantity', aggfunc=np.sum))
-        self.assertRaises(KeyError, lambda: pivot_table(
+        pytest.raises(KeyError, lambda: pivot_table(
             df, index='Buyer',
             columns=Grouper(freq='6MS', key='foo'),
             values='Quantity', aggfunc=np.sum))
@@ -646,10 +649,10 @@ class TestPivotTable(tm.TestCase):
                              values='Quantity', aggfunc=np.sum)
         tm.assert_frame_equal(result, expected.T)
 
-        self.assertRaises(ValueError, lambda: pivot_table(
+        pytest.raises(ValueError, lambda: pivot_table(
             df, index=Grouper(freq='6MS', level='foo'),
             columns='Buyer', values='Quantity', aggfunc=np.sum))
-        self.assertRaises(ValueError, lambda: pivot_table(
+        pytest.raises(ValueError, lambda: pivot_table(
             df, index='Buyer',
             columns=Grouper(freq='6MS', level='foo'),
             values='Quantity', aggfunc=np.sum))
@@ -938,6 +941,44 @@ class TestPivotTable(tm.TestCase):
         expected = pd.DataFrame(expected_data,
                                 index=expected_index,
                                 columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_not_series(self):
+        # GH 4386
+        # pivot_table always returns a DataFrame
+        # when values is not list like and columns is None
+        # and aggfunc is not instance of list
+        df = DataFrame({'col1': [3, 4, 5],
+                        'col2': ['C', 'D', 'E'],
+                        'col3': [1, 3, 9]})
+
+        result = df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
+        m = MultiIndex.from_arrays([[1, 3, 9],
+                                    ['C', 'D', 'E']],
+                                   names=['col3', 'col2'])
+        expected = DataFrame([3, 4, 5],
+                             index=m, columns=['col1'])
+
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot_table(
+            'col1', index='col3', columns='col2', aggfunc=np.sum
+        )
+        expected = DataFrame([[3, np.NaN, np.NaN],
+                              [np.NaN, 4, np.NaN],
+                              [np.NaN, np.NaN, 5]],
+                             index=Index([1, 3, 9], name='col3'),
+                             columns=Index(['C', 'D', 'E'], name='col2'))
+
+        tm.assert_frame_equal(result, expected)
+
+        result = df.pivot_table('col1', index='col3', aggfunc=[np.sum])
+        m = MultiIndex.from_arrays([['sum'],
+                                    ['col1']])
+        expected = DataFrame([3, 4, 5],
+                             index=Index([1, 3, 9], name='col3'),
+                             columns=m)
+
         tm.assert_frame_equal(result, expected)
 
 

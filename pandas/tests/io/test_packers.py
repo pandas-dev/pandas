@@ -148,9 +148,9 @@ class TestAPI(TestPackers):
             def __init__(self):
                 self.read = 0
 
-        tm.assertRaises(ValueError, read_msgpack, path_or_buf=None)
-        tm.assertRaises(ValueError, read_msgpack, path_or_buf={})
-        tm.assertRaises(ValueError, read_msgpack, path_or_buf=A())
+        pytest.raises(ValueError, read_msgpack, path_or_buf=None)
+        pytest.raises(ValueError, read_msgpack, path_or_buf={})
+        pytest.raises(ValueError, read_msgpack, path_or_buf=A())
 
 
 class TestNumpy(TestPackers):
@@ -272,7 +272,7 @@ class TestBasic(TestPackers):
 
     def test_nat(self):
         nat_rec = self.encode_decode(NaT)
-        self.assertIs(NaT, nat_rec)
+        assert NaT is nat_rec
 
     def test_datetimes(self):
 
@@ -327,30 +327,30 @@ class TestIndex(TestPackers):
 
         for s, i in self.d.items():
             i_rec = self.encode_decode(i)
-            self.assert_index_equal(i, i_rec)
+            tm.assert_index_equal(i, i_rec)
 
         # datetime with no freq (GH5506)
         i = Index([Timestamp('20130101'), Timestamp('20130103')])
         i_rec = self.encode_decode(i)
-        self.assert_index_equal(i, i_rec)
+        tm.assert_index_equal(i, i_rec)
 
         # datetime with timezone
         i = Index([Timestamp('20130101 9:00:00'), Timestamp(
             '20130103 11:00:00')]).tz_localize('US/Eastern')
         i_rec = self.encode_decode(i)
-        self.assert_index_equal(i, i_rec)
+        tm.assert_index_equal(i, i_rec)
 
     def test_multi_index(self):
 
         for s, i in self.mi.items():
             i_rec = self.encode_decode(i)
-            self.assert_index_equal(i, i_rec)
+            tm.assert_index_equal(i, i_rec)
 
     def test_unicode(self):
         i = tm.makeUnicodeIndex(100)
 
         i_rec = self.encode_decode(i)
-        self.assert_index_equal(i, i_rec)
+        tm.assert_index_equal(i, i_rec)
 
     def categorical_index(self):
         # GH15487
@@ -486,7 +486,7 @@ class TestNDFrame(TestPackers):
         l = [self.frame['float'], self.frame['float']
              .A, self.frame['float'].B, None]
         l_rec = self.encode_decode(l)
-        self.assertIsInstance(l_rec, tuple)
+        assert isinstance(l_rec, tuple)
         check_arbitrary(l, l_rec)
 
     def test_iterator(self):
@@ -536,7 +536,7 @@ class TestSparse(TestPackers):
         # currently these are not implemetned
         # i_rec = self.encode_decode(obj)
         # comparator(obj, i_rec, **kwargs)
-        self.assertRaises(NotImplementedError, self.encode_decode, obj)
+        pytest.raises(NotImplementedError, self.encode_decode, obj)
 
     def test_sparse_series(self):
 

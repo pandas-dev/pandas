@@ -718,7 +718,7 @@ class MultiIndex(Index):
     @cache_readonly
     def _hashed_values(self):
         """ return a uint64 ndarray of my hashed values """
-        from pandas.tools.hashing import hash_tuples
+        from pandas.util.hashing import hash_tuples
         return hash_tuples(self)
 
     def _hashed_indexing_key(self, key):
@@ -740,7 +740,7 @@ class MultiIndex(Index):
         we need to stringify if we have mixed levels
 
         """
-        from pandas.tools.hashing import hash_tuples
+        from pandas.util.hashing import hash_tuples
 
         if not isinstance(key, tuple):
             return hash_tuples(key)
@@ -1634,6 +1634,23 @@ class MultiIndex(Index):
 
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
+
+    def _get_labels_for_sorting(self):
+        """
+        we categorizing our labels by using the
+        available catgories (all, not just observed)
+        excluding any missing ones (-1); this is in preparation
+        for sorting, where we need to disambiguate that -1 is not
+        a valid valid
+        """
+        from pandas.core.categorical import Categorical
+
+        def cats(label):
+            return np.arange(np.array(label).max() + 1 if len(label) else 0,
+                             dtype=label.dtype)
+
+        return [Categorical.from_codes(label, cats(label), ordered=True)
+                for label in self.labels]
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """

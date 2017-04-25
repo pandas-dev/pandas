@@ -53,11 +53,11 @@ from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.categorical import Categorical, CategoricalAccessor
 import pandas.core.strings as strings
-from pandas.tseries.common import (maybe_to_datetimelike,
-                                   CombinedDatetimelikeProperties)
-from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.tdi import TimedeltaIndex
-from pandas.tseries.period import PeriodIndex
+from pandas.core.indexes.accessors import (
+    maybe_to_datetimelike, CombinedDatetimelikeProperties)
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.util.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO
@@ -1754,7 +1754,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         elif isinstance(index, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
             labels = index._sort_levels_monotonic()
-            indexer = lexsort_indexer(labels.labels, orders=ascending)
+            indexer = lexsort_indexer(labels._get_labels_for_sorting(),
+                                      orders=ascending,
+                                      na_position=na_position)
         else:
             from pandas.core.sorting import nargsort
 
@@ -1772,6 +1774,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         indexer = _ensure_platform_int(indexer)
         new_index = index.take(indexer)
+        new_index = new_index._sort_levels_monotonic()
 
         new_values = self._values.take(indexer)
         result = self._constructor(new_values, index=new_index)

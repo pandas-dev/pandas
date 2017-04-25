@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 import numpy as np
 
 from pandas import Series, Timestamp
@@ -153,10 +155,10 @@ def test_random_state():
     assert com._random_state() is np.random
 
     # Error for floats or strings
-    with tm.assertRaises(ValueError):
+    with pytest.raises(ValueError):
         com._random_state('test')
 
-    with tm.assertRaises(ValueError):
+    with pytest.raises(ValueError):
         com._random_state(5.5)
 
 

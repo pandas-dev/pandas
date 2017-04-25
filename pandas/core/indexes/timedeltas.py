@@ -17,7 +17,8 @@ from pandas.core.dtypes.missing import isnull
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.common import _maybe_box, _values_from_object, is_bool_indexer
 
-from pandas.core.index import Index, Int64Index
+from pandas.core.indexes.base import Index
+from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
 from pandas.compat import u
 from pandas.tseries.frequencies import to_offset
@@ -27,9 +28,9 @@ from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
-from pandas.tseries.base import TimelikeOps, DatetimeIndexOpsMixin
-from pandas.tseries.timedeltas import (to_timedelta,
-                                       _coerce_scalar_to_timedelta_type)
+from pandas.core.indexes.datetimelike import TimelikeOps, DatetimeIndexOpsMixin
+from pandas.core.tools.timedeltas import (
+    to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timedelta, NaT, iNaT)

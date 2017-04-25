@@ -183,15 +183,15 @@ class TestDataFrameFormatting(tm.TestCase):
 
             for line, value in lzip(r.split('\n'), df['B']):
                 if adj.len(value) + 1 > max_len:
-                    self.assertIn('...', line)
+                    assert '...' in line
                 else:
-                    self.assertNotIn('...', line)
+                    assert '...' not in line
 
         with option_context("display.max_colwidth", 999999):
-            self.assertNotIn('...', repr(df))
+            assert '...' not in repr(df)
 
         with option_context("display.max_colwidth", max_len + 2):
-            self.assertNotIn('...', repr(df))
+            assert '...' not in repr(df)
 
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
@@ -412,7 +412,7 @@ class TestDataFrameFormatting(tm.TestCase):
         buf.getvalue()
 
         result = self.frame.to_string()
-        tm.assertIsInstance(result, compat.text_type)
+        assert isinstance(result, compat.text_type)
 
     def test_to_string_utf8_columns(self):
         n = u("\u05d0").encode('utf-8')
@@ -959,7 +959,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 self.assertTrue(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
-                self.assertIn('DataFrame Index', line)
+                assert 'DataFrame Index' in line
 
         reset_option('display.expand_frame_repr')
 
@@ -981,7 +981,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 self.assertTrue(len(wider_repr) < len(wide_repr))
 
             for line in wide_repr.splitlines()[1::13]:
-                self.assertIn('Level 0 Level 1', line)
+                assert 'Level 0 Level 1' in line
 
         reset_option('display.expand_frame_repr')
 
@@ -1126,10 +1126,10 @@ class TestDataFrameFormatting(tm.TestCase):
 
         buf = StringIO()
         retval = biggie.to_string(buf=buf)
-        self.assertIsNone(retval)
+        assert retval is None
         self.assertEqual(buf.getvalue(), s)
 
-        tm.assertIsInstance(s, compat.string_types)
+        assert isinstance(s, compat.string_types)
 
         # print in right order
         result = biggie.to_string(columns=['B', 'A'], col_space=17,
@@ -1177,7 +1177,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         self.assertEqual(df_s, expected)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.to_string(header=['X'])
 
     def test_to_string_no_index(self):
@@ -1631,7 +1631,7 @@ class TestSeriesFormatting(tm.TestCase):
         s = self.ts.to_string()
 
         retval = self.ts.to_string(buf=buf)
-        self.assertIsNone(retval)
+        assert retval is None
         self.assertEqual(buf.getvalue().strip(), s)
 
         # pass float_format
@@ -1875,9 +1875,9 @@ class TestSeriesFormatting(tm.TestCase):
             if line.startswith('dtype:'):
                 continue
             if _three_digit_exp():
-                self.assertIn('+010', line)
+                assert '+010' in line
             else:
-                self.assertIn('+10', line)
+                assert '+10' in line
 
     def test_datetimeindex(self):
 
@@ -2563,7 +2563,7 @@ def test_format_percentiles():
     expected = ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     assert result == expected
 
-    tm.assertRaises(ValueError, fmt.format_percentiles, [0.1, np.nan, 0.5])
-    tm.assertRaises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
-    tm.assertRaises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
-    tm.assertRaises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])
+    pytest.raises(ValueError, fmt.format_percentiles, [0.1, np.nan, 0.5])
+    pytest.raises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
+    pytest.raises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
+    pytest.raises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])

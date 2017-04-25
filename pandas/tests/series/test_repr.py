@@ -37,21 +37,26 @@ class TestSeriesRepr(TestData, tm.TestCase):
         self.assertEqual(repr(s), expected)
 
     def test_name_printing(self):
-        # test small series
+        # Test small Series.
         s = Series([0, 1, 2])
+
         s.name = "test"
-        self.assertIn("Name: test", repr(s))
+        assert "Name: test" in repr(s)
+
         s.name = None
-        self.assertNotIn("Name:", repr(s))
-        # test big series (diff code path)
+        assert "Name:" not in repr(s)
+
+        # Test big Series (diff code path).
         s = Series(lrange(0, 1000))
+
         s.name = "test"
-        self.assertIn("Name: test", repr(s))
+        assert "Name: test" in repr(s)
+
         s.name = None
-        self.assertNotIn("Name:", repr(s))
+        assert "Name:" not in repr(s)
 
         s = Series(index=date_range('20010101', '20020101'), name='test')
-        self.assertIn("Name: test", repr(s))
+        assert "Name: test" in repr(s)
 
     def test_repr(self):
         str(self.ts)
@@ -90,12 +95,12 @@ class TestSeriesRepr(TestData, tm.TestCase):
         # 0 as name
         ser = Series(np.random.randn(100), name=0)
         rep_str = repr(ser)
-        self.assertIn("Name: 0", rep_str)
+        assert "Name: 0" in rep_str
 
         # tidy repr
         ser = Series(np.random.randn(1001), name=0)
         rep_str = repr(ser)
-        self.assertIn("Name: 0", rep_str)
+        assert "Name: 0" in rep_str
 
         ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
         self.assertFalse("\t" in repr(ser))

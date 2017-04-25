@@ -76,7 +76,7 @@ class TestIsNull(tm.TestCase):
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
                   tm.makeObjectSeries(), tm.makeTimeSeries(),
                   tm.makePeriodSeries()]:
-            self.assertIsInstance(isnull(s), Series)
+            assert isinstance(isnull(s), Series)
 
         # frame
         for df in [tm.makeTimeDataFrame(), tm.makePeriodFrame(),
@@ -148,18 +148,18 @@ class TestIsNull(tm.TestCase):
         mask = isnull(idx)
         self.assertTrue(mask[0])
         exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
-        self.assert_numpy_array_equal(mask, exp)
+        tm.assert_numpy_array_equal(mask, exp)
 
         # GH 9129
         pidx = idx.to_period(freq='M')
         mask = isnull(pidx)
         self.assertTrue(mask[0])
         exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
-        self.assert_numpy_array_equal(mask, exp)
+        tm.assert_numpy_array_equal(mask, exp)
 
         mask = isnull(pidx[1:])
         exp = np.zeros(len(mask), dtype=bool)
-        self.assert_numpy_array_equal(mask, exp)
+        tm.assert_numpy_array_equal(mask, exp)
 
     def test_datetime_other_units(self):
         idx = pd.DatetimeIndex(['2011-01-01', 'NaT', '2011-01-02'])

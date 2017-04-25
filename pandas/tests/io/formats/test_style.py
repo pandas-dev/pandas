@@ -34,7 +34,7 @@ class TestStyler(TestCase):
         ]
 
     def test_init_non_pandas(self):
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             Styler([1, 2, 3])
 
     def test_init_series(self):
@@ -358,10 +358,10 @@ class TestStyler(TestCase):
 
     def test_nonunique_raises(self):
         df = pd.DataFrame([[1, 2]], columns=['A', 'A'])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.style
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             Styler(df)
 
     def test_caption(self):
@@ -494,9 +494,9 @@ class TestStyler(TestCase):
 
     def test_display_format_raises(self):
         df = pd.DataFrame(np.random.randn(2, 2))
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.style.format(5)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.style.format(True)
 
     def test_display_subset(self):
@@ -550,33 +550,33 @@ class TestStyler(TestCase):
 
     def test_bad_apply_shape(self):
         df = pd.DataFrame([[1, 2], [3, 4]])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.style._apply(lambda x: 'x', subset=pd.IndexSlice[[0, 1], :])
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.style._apply(lambda x: [''], subset=pd.IndexSlice[[0, 1], :])
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.style._apply(lambda x: ['', '', '', ''])
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.style._apply(lambda x: ['', '', ''], subset=1)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.style._apply(lambda x: ['', '', ''], axis=1)
 
     def test_apply_bad_return(self):
         def f(x):
             return ''
         df = pd.DataFrame([[1, 2], [3, 4]])
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.style._apply(f, axis=None)
 
     def test_apply_bad_labels(self):
         def f(x):
             return pd.DataFrame(index=[1, 2], columns=['a', 'b'])
         df = pd.DataFrame([[1, 2], [3, 4]])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.style._apply(f, axis=None)
 
     def test_get_level_lengths(self):
@@ -747,3 +747,11 @@ def test_from_custom_template(tmpdir):
     assert result.template is not Styler.template
     styler = result(pd.DataFrame({"A": [1, 2]}))
     assert styler.render()
+
+
+def test_shim():
+    # https://github.com/pandas-dev/pandas/pull/16059
+    # Remove in 0.21
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        from pandas.formats.style import Styler as _styler  # noqa

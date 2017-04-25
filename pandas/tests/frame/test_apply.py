@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime
 
 import warnings
@@ -23,29 +25,30 @@ class TestDataFrameApply(tm.TestCase, TestData):
         with np.errstate(all='ignore'):
             # ufunc
             applied = self.frame.apply(np.sqrt)
-            assert_series_equal(np.sqrt(self.frame['A']), applied['A'])
+            tm.assert_series_equal(np.sqrt(self.frame['A']), applied['A'])
 
             # aggregator
             applied = self.frame.apply(np.mean)
-            self.assertEqual(applied['A'], np.mean(self.frame['A']))
+            assert applied['A'] == np.mean(self.frame['A'])
 
             d = self.frame.index[0]
             applied = self.frame.apply(np.mean, axis=1)
-            self.assertEqual(applied[d], np.mean(self.frame.xs(d)))
-            self.assertIs(applied.index, self.frame.index)  # want this
+            assert applied[d] == np.mean(self.frame.xs(d))
+            assert applied.index is self.frame.index  # want this
 
         # invalid axis
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        self.assertRaises(ValueError, df.apply, lambda x: x, 2)
+        pytest.raises(ValueError, df.apply, lambda x: x, 2)
 
-        # GH9573
+        # see gh-9573
         df = DataFrame({'c0': ['A', 'A', 'B', 'B'],
                         'c1': ['C', 'C', 'D', 'D']})
         df = df.apply(lambda ts: ts.astype('category'))
-        self.assertEqual(df.shape, (4, 2))
-        self.assertTrue(isinstance(df['c0'].dtype, CategoricalDtype))
-        self.assertTrue(isinstance(df['c1'].dtype, CategoricalDtype))
+
+        assert df.shape == (4, 2)
+        assert isinstance(df['c0'].dtype, CategoricalDtype)
+        assert isinstance(df['c1'].dtype, CategoricalDtype)
 
     def test_apply_mixed_datetimelike(self):
         # mixed datetimelike
@@ -187,10 +190,10 @@ class TestDataFrameApply(tm.TestCase, TestData):
                 res = df.apply(f, axis=axis, raw=raw)
                 if is_reduction:
                     agg_axis = df._get_agg_axis(axis)
-                    tm.assertIsInstance(res, Series)
-                    self.assertIs(res.index, agg_axis)
+                    assert isinstance(res, Series)
+                    assert res.index is agg_axis
                 else:
-                    tm.assertIsInstance(res, DataFrame)
+                    assert isinstance(res, DataFrame)
 
             _checkit()
             _checkit(axis=1)
@@ -204,7 +207,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
             _check(no_index, lambda x: x.mean())
 
         result = no_cols.apply(lambda x: x.mean(), broadcast=True)
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
 
     def test_apply_with_args_kwds(self):
         def add_some(x, howmuch=0):
@@ -357,7 +360,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         s.index = MultiIndex.from_arrays([['a', 'a', 'b'], ['c', 'd', 'd']])
         s.columns = ['col1', 'col2']
         res = s.apply(lambda x: Series({'min': min(x), 'max': max(x)}), 1)
-        tm.assertIsInstance(res.index, MultiIndex)
+        assert isinstance(res.index, MultiIndex)
 
     def test_apply_dict(self):
 
@@ -385,7 +388,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
 
         # GH #465, function returning tuples
         result = self.frame.applymap(lambda x: (x, x))
-        tm.assertIsInstance(result['A'][0], tuple)
+        assert isinstance(result['A'][0], tuple)
 
         # GH 2909, object conversion to float in constructor?
         df = DataFrame(data=[1, 'a'])
@@ -528,17 +531,17 @@ class TestDataFrameAggregate(tm.TestCase, TestData):
         # cannot both transform and agg
         def f():
             self.frame.transform(['max', 'min'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.frame.agg(['max', 'sqrt'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.frame.transform(['max', 'sqrt'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
 

@@ -1,7 +1,10 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from collections import Counter, defaultdict, OrderedDict
+
 import numpy as np
 import pandas as pd
 
@@ -72,7 +75,7 @@ class TestSeriesApply(TestData, tm.TestCase):
 
         result = s.apply(str.split, args=(',', ))
         self.assertEqual(result[0], ['foo', 'bar'])
-        tm.assertIsInstance(result[0], list)
+        assert isinstance(result[0], list)
 
     def test_apply_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
@@ -204,22 +207,22 @@ class TestSeriesAggregate(TestData, tm.TestCase):
         # we are trying to transform with an aggregator
         def f():
             self.series.transform(['min', 'max'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.series.agg(['sqrt', 'max'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.series.transform(['sqrt', 'max'])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.series.agg({'foo': np.sqrt, 'bar': 'sum'})
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_demo(self):
         # demonstration tests
@@ -325,7 +328,7 @@ class TestSeriesMap(TestData, tm.TestCase):
 
         # function
         result = self.ts.map(lambda x: x * 2)
-        self.assert_series_equal(result, self.ts * 2)
+        tm.assert_series_equal(result, self.ts * 2)
 
         # GH 10324
         a = Series([1, 2, 3, 4])
@@ -333,9 +336,9 @@ class TestSeriesMap(TestData, tm.TestCase):
         c = Series(["even", "odd", "even", "odd"])
 
         exp = Series(["odd", "even", "odd", np.nan], dtype="category")
-        self.assert_series_equal(a.map(b), exp)
+        tm.assert_series_equal(a.map(b), exp)
         exp = Series(["odd", "even", "odd", np.nan])
-        self.assert_series_equal(a.map(c), exp)
+        tm.assert_series_equal(a.map(c), exp)
 
         a = Series(['a', 'b', 'c', 'd'])
         b = Series([1, 2, 3, 4],
@@ -343,9 +346,9 @@ class TestSeriesMap(TestData, tm.TestCase):
         c = Series([1, 2, 3, 4], index=Index(['b', 'c', 'd', 'e']))
 
         exp = Series([np.nan, 1, 2, 3])
-        self.assert_series_equal(a.map(b), exp)
+        tm.assert_series_equal(a.map(b), exp)
         exp = Series([np.nan, 1, 2, 3])
-        self.assert_series_equal(a.map(c), exp)
+        tm.assert_series_equal(a.map(c), exp)
 
         a = Series(['a', 'b', 'c', 'd'])
         b = Series(['B', 'C', 'D', 'E'], dtype='category',
@@ -354,9 +357,9 @@ class TestSeriesMap(TestData, tm.TestCase):
 
         exp = Series(pd.Categorical([np.nan, 'B', 'C', 'D'],
                                     categories=['B', 'C', 'D', 'E']))
-        self.assert_series_equal(a.map(b), exp)
+        tm.assert_series_equal(a.map(b), exp)
         exp = Series([np.nan, 'B', 'C', 'D'])
-        self.assert_series_equal(a.map(c), exp)
+        tm.assert_series_equal(a.map(c), exp)
 
     def test_map_compat(self):
         # related GH 8024
@@ -387,7 +390,7 @@ class TestSeriesMap(TestData, tm.TestCase):
 
         result = self.series.map(lambda x: Decimal(str(x)))
         self.assertEqual(result.dtype, np.object_)
-        tm.assertIsInstance(result[0], Decimal)
+        assert isinstance(result[0], Decimal)
 
     def test_map_na_exclusion(self):
         s = Series([1.5, np.nan, 3, np.nan, 5])
@@ -505,7 +508,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         tm.assert_series_equal(result, exp)
         self.assertEqual(result.dtype, np.object)
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             s.map(lambda x: x, na_action='ignore')
 
     def test_map_datetimetz(self):
@@ -526,7 +529,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         exp = pd.Series(list(range(24)) + [0], name='XX', dtype=np.int64)
         tm.assert_series_equal(result, exp)
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             s.map(lambda x: x, na_action='ignore')
 
         # not vectorized

@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
+import pytest
+
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 import sys
@@ -35,7 +38,7 @@ class SharedWithSparse(object):
             ind.name = None
             cp = self.frame.copy()
             getattr(cp, attr).name = 'foo'
-            self.assertIsNone(getattr(self.frame, attr).name)
+            assert getattr(self.frame, attr).name is None
 
     def test_getitem_pop_assign_name(self):
         s = self.frame['A']
@@ -60,11 +63,11 @@ class SharedWithSparse(object):
     def test_add_prefix_suffix(self):
         with_prefix = self.frame.add_prefix('foo#')
         expected = pd.Index(['foo#%s' % c for c in self.frame.columns])
-        self.assert_index_equal(with_prefix.columns, expected)
+        tm.assert_index_equal(with_prefix.columns, expected)
 
         with_suffix = self.frame.add_suffix('#foo')
         expected = pd.Index(['%s#foo' % c for c in self.frame.columns])
-        self.assert_index_equal(with_suffix.columns, expected)
+        tm.assert_index_equal(with_suffix.columns, expected)
 
 
 class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
@@ -85,8 +88,8 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         self.assertEqual(f._get_axis_name('rows'), 'index')
         self.assertEqual(f._get_axis_name('columns'), 'columns')
 
-        self.assertIs(f._get_axis(0), f.index)
-        self.assertIs(f._get_axis(1), f.columns)
+        assert f._get_axis(0) is f.index
+        assert f._get_axis(1) is f.columns
 
         assertRaisesRegexp(ValueError, 'No axis named', f._get_axis_number, 2)
         assertRaisesRegexp(ValueError, 'No axis.*foo', f._get_axis_name, 'foo')
@@ -96,7 +99,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     def test_keys(self):
         getkeys = self.frame.keys
-        self.assertIs(getkeys(), self.frame.columns)
+        assert getkeys() is self.frame.columns
 
     def test_column_contains_typeerror(self):
         try:
@@ -106,32 +109,32 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     def test_not_hashable(self):
         df = pd.DataFrame([1])
-        self.assertRaises(TypeError, hash, df)
-        self.assertRaises(TypeError, hash, self.empty)
+        pytest.raises(TypeError, hash, df)
+        pytest.raises(TypeError, hash, self.empty)
 
     def test_new_empty_index(self):
         df1 = DataFrame(randn(0, 3))
         df2 = DataFrame(randn(0, 3))
         df1.index.name = 'foo'
-        self.assertIsNone(df2.index.name)
+        assert df2.index.name is None
 
     def test_array_interface(self):
         with np.errstate(all='ignore'):
             result = np.sqrt(self.frame)
-        tm.assertIsInstance(result, type(self.frame))
-        self.assertIs(result.index, self.frame.index)
-        self.assertIs(result.columns, self.frame.columns)
+        assert isinstance(result, type(self.frame))
+        assert result.index is self.frame.index
+        assert result.columns is self.frame.columns
 
         assert_frame_equal(result, self.frame.apply(np.sqrt))
 
     def test_get_agg_axis(self):
         cols = self.frame._get_agg_axis(0)
-        self.assertIs(cols, self.frame.columns)
+        assert cols is self.frame.columns
 
         idx = self.frame._get_agg_axis(1)
-        self.assertIs(idx, self.frame.index)
+        assert idx is self.frame.index
 
-        self.assertRaises(ValueError, self.frame._get_agg_axis, 2)
+        pytest.raises(ValueError, self.frame._get_agg_axis, 2)
 
     def test_nonzero(self):
         self.assertTrue(self.empty.empty)
@@ -174,7 +177,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
                         'ints': lrange(5)}, columns=['floats', 'ints'])
 
         for tup in df.itertuples(index=False):
-            tm.assertIsInstance(tup[1], np.integer)
+            assert isinstance(tup[1], np.integer)
 
         df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[['a', 'a']]
@@ -204,7 +207,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
         self.assertFalse(hasattr(tup3, '_fields'))
-        self.assertIsInstance(tup3, tuple)
+        assert isinstance(tup3, tuple)
 
     def test_len(self):
         self.assertEqual(len(self.frame), len(self.frame.index))
@@ -278,7 +281,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         assert_frame_equal(df.T, df.swapaxes(0, 1))
         assert_frame_equal(df.T, df.swapaxes(1, 0))
         assert_frame_equal(df, df.swapaxes(0, 0))
-        self.assertRaises(ValueError, df.swapaxes, 2, 5)
+        pytest.raises(ValueError, df.swapaxes, 2, 5)
 
     def test_axis_aliases(self):
         f = self.frame

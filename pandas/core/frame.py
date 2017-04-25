@@ -82,9 +82,9 @@ from pandas.compat.numpy import function as nv
 from pandas.util.decorators import Appender, Substitution
 from pandas.util.validators import validate_bool_kwarg
 
-from pandas.tseries.period import PeriodIndex
-from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.tdi import TimedeltaIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 import pandas.core.base as base
 import pandas.core.common as com
@@ -296,7 +296,7 @@ class DataFrame(NDFrame):
                 if columns is None:
                     columns = data_columns
                 mgr = self._init_dict(data, index, columns, dtype=dtype)
-            elif getattr(data, 'name', None):
+            elif getattr(data, 'name', None) is not None:
                 mgr = self._init_dict({data.name: data}, index, columns,
                                       dtype=dtype)
             else:
@@ -1419,28 +1419,17 @@ class DataFrame(NDFrame):
                  index_label=None, startrow=0, startcol=0, engine=None,
                  merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
                  freeze_panes=None):
-        from pandas.io.excel import ExcelWriter
-        need_save = False
-        if encoding is None:
-            encoding = 'ascii'
 
-        if isinstance(excel_writer, compat.string_types):
-            excel_writer = ExcelWriter(excel_writer, engine=engine)
-            need_save = True
-
-        formatter = fmt.ExcelFormatter(self, na_rep=na_rep, cols=columns,
-                                       header=header,
-                                       float_format=float_format, index=index,
-                                       index_label=index_label,
-                                       merge_cells=merge_cells,
-                                       inf_rep=inf_rep)
-
-        formatted_cells = formatter.get_formatted_cells()
-        excel_writer.write_cells(formatted_cells, sheet_name,
-                                 startrow=startrow, startcol=startcol,
-                                 freeze_panes=freeze_panes)
-        if need_save:
-            excel_writer.save()
+        from pandas.io.formats.excel import ExcelFormatter
+        formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
+                                   header=header,
+                                   float_format=float_format, index=index,
+                                   index_label=index_label,
+                                   merge_cells=merge_cells,
+                                   inf_rep=inf_rep)
+        formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
+                        startcol=startcol, freeze_panes=freeze_panes,
+                        engine=engine)
 
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
@@ -3352,7 +3341,8 @@ it is assumed to be aliases for the column names.')
             # make sure that the axis is lexsorted to start
             # if not we need to reconstruct to get the correct indexer
             labels = labels._sort_levels_monotonic()
-            indexer = lexsort_indexer(labels.labels, orders=ascending,
+            indexer = lexsort_indexer(labels._get_labels_for_sorting(),
+                                      orders=ascending,
                                       na_position=na_position)
         else:
             from pandas.core.sorting import nargsort
@@ -3373,6 +3363,9 @@ it is assumed to be aliases for the column names.')
         new_data = self._data.take(indexer,
                                    axis=baxis,
                                    convert=False, verify=False)
+
+        # reconstruct axis if needed
+        new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
 
         if inplace:
             return self._update_inplace(new_data)

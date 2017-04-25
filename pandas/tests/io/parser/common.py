@@ -105,7 +105,7 @@ c,3
         expected = Series([1, 2, 3], name=1, index=idx)
         result = self.read_table(StringIO(data), sep=',', index_col=0,
                                  header=None, squeeze=True)
-        tm.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         tm.assert_series_equal(result, expected)
 
     def test_squeeze_no_view(self):
@@ -202,8 +202,8 @@ Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jakob
 Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\t"Furststiftische Hofdruckerei,  <Kempten""
 Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tGaller, Alois
 Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhandlung <Kempten>"""  # noqa
-        self.assertRaises(Exception, self.read_table, StringIO(bad_line_small),
-                          sep='\t')
+        pytest.raises(Exception, self.read_table, StringIO(bad_line_small),
+                      sep='\t')
 
         good_line_small = bad_line_small + '"'
         df = self.read_table(StringIO(good_line_small), sep='\t')
@@ -220,9 +220,9 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
                              [11, 12, 13, 14, 15]], dtype=np.int64)
         df = self.read_table(StringIO(data), sep=',')
         tm.assert_almost_equal(df.values, expected)
-        self.assert_index_equal(df.columns,
-                                Index(['A', 'B', 'C', 'Unnamed: 3',
-                                       'Unnamed: 4']))
+        tm.assert_index_equal(df.columns,
+                              Index(['A', 'B', 'C', 'Unnamed: 3',
+                                     'Unnamed: 4']))
 
     def test_duplicate_columns(self):
         # TODO: add test for condition 'mangle_dupe_cols=False'
@@ -261,9 +261,9 @@ c,4,5
         df = self.read_csv(self.csv1, index_col=0, parse_dates=True)
         df2 = self.read_table(self.csv1, sep=',', index_col=0,
                               parse_dates=True)
-        self.assert_index_equal(df.columns, pd.Index(['A', 'B', 'C', 'D']))
+        tm.assert_index_equal(df.columns, pd.Index(['A', 'B', 'C', 'D']))
         self.assertEqual(df.index.name, 'index')
-        self.assertIsInstance(
+        assert isinstance(
             df.index[0], (datetime, np.datetime64, Timestamp))
         self.assertEqual(df.values.dtype, np.float64)
         tm.assert_frame_equal(df, df2)
@@ -272,18 +272,16 @@ c,4,5
         df = self.read_csv(self.csv2, index_col=0, parse_dates=True)
         df2 = self.read_table(self.csv2, sep=',', index_col=0,
                               parse_dates=True)
-        self.assert_index_equal(df.columns,
-                                pd.Index(['A', 'B', 'C', 'D', 'E']))
-        self.assertIsInstance(df.index[0],
-                              (datetime, np.datetime64, Timestamp))
-        self.assertEqual(df.loc[:, ['A', 'B', 'C', 'D']].values.dtype,
-                         np.float64)
+        tm.assert_index_equal(df.columns,
+                              pd.Index(['A', 'B', 'C', 'D', 'E']))
+        assert isinstance(df.index[0], (datetime, np.datetime64, Timestamp))
+        assert df.loc[:, ['A', 'B', 'C', 'D']].values.dtype == np.float64
         tm.assert_frame_equal(df, df2)
 
     def test_read_table_unicode(self):
         fin = BytesIO(u('\u0141aski, Jan;1').encode('utf-8'))
         df1 = self.read_table(fin, sep=";", encoding="utf-8", header=None)
-        tm.assertIsInstance(df1[0].values[0], compat.text_type)
+        assert isinstance(df1[0].values[0], compat.text_type)
 
     def test_read_table_wrong_num_columns(self):
         # too few!
@@ -292,7 +290,7 @@ c,4,5
 6,7,8,9,10,11,12
 11,12,13,14,15,16
 """
-        self.assertRaises(ValueError, self.read_csv, StringIO(data))
+        pytest.raises(ValueError, self.read_csv, StringIO(data))
 
     def test_read_duplicate_index_explicit(self):
         data = """index,A,B,C,D
@@ -442,7 +440,7 @@ bar,foo"""
 
         tm.assert_frame_equal(reader.get_chunk(size=2), df.iloc[:2])
         tm.assert_frame_equal(reader.get_chunk(size=4), df.iloc[2:5])
-        with tm.assertRaises(StopIteration):
+        with pytest.raises(StopIteration):
             reader.get_chunk(size=3)
 
     def test_read_chunksize_named(self):
@@ -520,7 +518,7 @@ bar,foo"""
 
         treader = self.read_table(StringIO(self.data1), sep=',', index_col=0,
                                   iterator=True)
-        tm.assertIsInstance(treader, TextFileReader)
+        assert isinstance(treader, TextFileReader)
 
         # gh-3967: stopping iteration when chunksize is specified
         data = """A,B,C
@@ -547,7 +545,7 @@ baz,7,8,9
             # test bad parameter (skipfooter)
             reader = self.read_csv(StringIO(self.data1), index_col=0,
                                    iterator=True, skipfooter=1)
-            self.assertRaises(ValueError, reader.read, 3)
+            pytest.raises(ValueError, reader.read, 3)
 
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')
@@ -643,7 +641,7 @@ c,d
 2 2 2 e f
 """
         df = self.read_table(StringIO(data), sep=' ')
-        self.assertIsNone(df.index.name)
+        assert df.index.name is None
 
     def test_read_csv_parse_simple_list(self):
         text = """foo
@@ -687,7 +685,7 @@ bar"""
         # gh-2428: pls no segfault
         # gh-14086: raise more helpful FileNotFoundError
         path = '%s.csv' % tm.rands(10)
-        self.assertRaises(compat.FileNotFoundError, self.read_csv, path)
+        pytest.raises(compat.FileNotFoundError, self.read_csv, path)
 
     def test_missing_trailing_delimiters(self):
         data = """A,B,C,D
@@ -876,8 +874,8 @@ A,B,C
 4,,6
 7,8,9
 10,11,12\n"""
-        tm.assertRaises(ValueError, self.read_csv, StringIO(data),
-                        header=0, names=['a', 'b', 'c', 'd'])
+        pytest.raises(ValueError, self.read_csv, StringIO(data),
+                      header=0, names=['a', 'b', 'c', 'd'])
 
     def test_ignore_leading_whitespace(self):
         # see gh-3374, gh-6607
@@ -961,8 +959,8 @@ A,B,C
         # to cast to either int64 or uint64 will result in
         # an OverflowError being raised.
         for conv in (np.int64, np.uint64):
-            self.assertRaises(OverflowError, self.read_csv,
-                              StringIO(data), converters={'ID': conv})
+            pytest.raises(OverflowError, self.read_csv,
+                          StringIO(data), converters={'ID': conv})
 
         # These numbers fall right inside the int64-uint64 range,
         # so they should be parsed as string.
@@ -1082,18 +1080,18 @@ A,B,C
 
         # ESCAPED_CHAR
         data = "a,b,c\n4,5,6\n\\"
-        self.assertRaises(Exception, self.read_csv,
-                          StringIO(data), escapechar='\\')
+        pytest.raises(Exception, self.read_csv,
+                      StringIO(data), escapechar='\\')
 
         # ESCAPE_IN_QUOTED_FIELD
         data = 'a,b,c\n4,5,6\n"\\'
-        self.assertRaises(Exception, self.read_csv,
-                          StringIO(data), escapechar='\\')
+        pytest.raises(Exception, self.read_csv,
+                      StringIO(data), escapechar='\\')
 
         # IN_QUOTED_FIELD
         data = 'a,b,c\n4,5,6\n"'
-        self.assertRaises(Exception, self.read_csv,
-                          StringIO(data), escapechar='\\')
+        pytest.raises(Exception, self.read_csv,
+                      StringIO(data), escapechar='\\')
 
     def test_uneven_lines_with_usecols(self):
         # See gh-12203
@@ -1245,7 +1243,7 @@ c   1   2   3   4
         df = self.read_table(StringIO(data), sep=r'\s+')
         expected = self.read_csv(StringIO(re.sub('[ ]+', ',', data)),
                                  index_col=0)
-        self.assertIsNone(expected.index.name)
+        assert expected.index.name is None
         tm.assert_frame_equal(df, expected)
 
         data = '    a b c\n1 2 3 \n4 5  6\n 7 8 9'
@@ -1314,8 +1312,8 @@ eight,1,2,3"""
                         break
 
                 if self.engine == 'c':
-                    tm.assertRaises(Exception, self.read_table,
-                                    f, squeeze=True, header=None)
+                    pytest.raises(Exception, self.read_table,
+                                  f, squeeze=True, header=None)
                 else:
                     result = self.read_table(f, squeeze=True, header=None)
                     expected = Series(['DDD', 'EEE', 'FFF', 'GGG'], name=0)
@@ -1405,11 +1403,11 @@ j,-inF"""
     def test_raise_on_no_columns(self):
         # single newline
         data = "\n"
-        self.assertRaises(EmptyDataError, self.read_csv, StringIO(data))
+        pytest.raises(EmptyDataError, self.read_csv, StringIO(data))
 
         # test with more than a single newline
         data = "\n\n\n"
-        self.assertRaises(EmptyDataError, self.read_csv, StringIO(data))
+        pytest.raises(EmptyDataError, self.read_csv, StringIO(data))
 
     def test_compact_ints_use_unsigned(self):
         # see gh-13323
@@ -1697,10 +1695,10 @@ j,-inF"""
         # see gh-15925
         data = 'a\n1\n1,2,3\n4\n5,6,7'
 
-        with tm.assertRaises(ParserError):
+        with pytest.raises(ParserError):
             self.read_csv(StringIO(data))
 
-        with tm.assertRaises(ParserError):
+        with pytest.raises(ParserError):
             self.read_csv(StringIO(data), error_bad_lines=True)
 
         expected = DataFrame({'a': [1, 4]})

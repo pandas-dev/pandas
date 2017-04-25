@@ -35,7 +35,7 @@ from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
                               _get_handle, UnicodeReader, UTF8Recoder,
                               BaseIterator,
                               _NA_VALUES, _infer_compression)
-from pandas.tseries import tools
+from pandas.core.tools import datetimes as tools
 
 from pandas.util.decorators import Appender
 
@@ -171,7 +171,7 @@ default False
     * list of ints or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
-        a single date column.
+      a single date column.
     * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result
       'foo'
 

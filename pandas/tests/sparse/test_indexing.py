@@ -220,7 +220,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         exp = orig.iloc[[1, -2, -4]].to_sparse()
         tm.assert_sp_series_equal(result, exp)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.iloc[[1, 3, 5]]
 
     def test_iloc_fill_value(self):
@@ -303,20 +303,20 @@ class TestSparseSeriesIndexing(tm.TestCase):
         s = pd.SparseSeries([1, np.nan, np.nan, 3, np.nan])
         self.assertEqual(s.get(0), 1)
         self.assertTrue(np.isnan(s.get(1)))
-        self.assertIsNone(s.get(5))
+        assert s.get(5) is None
 
         s = pd.SparseSeries([1, np.nan, 0, 3, 0], index=list('ABCDE'))
         self.assertEqual(s.get('A'), 1)
         self.assertTrue(np.isnan(s.get('B')))
         self.assertEqual(s.get('C'), 0)
-        self.assertIsNone(s.get('XX'))
+        assert s.get('XX') is None
 
         s = pd.SparseSeries([1, np.nan, 0, 3, 0], index=list('ABCDE'),
                             fill_value=0)
         self.assertEqual(s.get('A'), 1)
         self.assertTrue(np.isnan(s.get('B')))
         self.assertEqual(s.get('C'), 0)
-        self.assertIsNone(s.get('XX'))
+        assert s.get('XX') is None
 
     def test_take(self):
         orig = pd.Series([1, np.nan, np.nan, 3, np.nan],
@@ -792,7 +792,7 @@ class TestSparseDataFrameIndexing(tm.TestCase):
         exp = orig.iloc[[2], [1, 0]].to_sparse()
         tm.assert_sp_frame_equal(result, exp)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             sparse.iloc[[1, 3, 5]]
 
     def test_iloc_slice(self):

@@ -104,32 +104,32 @@ class TestMerge(tm.TestCase):
         assert_frame_equal(result, expected.loc[:, result.columns])
 
     def test_merge_misspecified(self):
-        self.assertRaises(ValueError, merge, self.left, self.right,
-                          left_index=True)
-        self.assertRaises(ValueError, merge, self.left, self.right,
-                          right_index=True)
+        pytest.raises(ValueError, merge, self.left, self.right,
+                      left_index=True)
+        pytest.raises(ValueError, merge, self.left, self.right,
+                      right_index=True)
 
-        self.assertRaises(ValueError, merge, self.left, self.left,
-                          left_on='key', on='key')
+        pytest.raises(ValueError, merge, self.left, self.left,
+                      left_on='key', on='key')
 
-        self.assertRaises(ValueError, merge, self.df, self.df2,
-                          left_on=['key1'], right_on=['key1', 'key2'])
+        pytest.raises(ValueError, merge, self.df, self.df2,
+                      left_on=['key1'], right_on=['key1', 'key2'])
 
     def test_index_and_on_parameters_confusion(self):
-        self.assertRaises(ValueError, merge, self.df, self.df2, how='left',
-                          left_index=False, right_index=['key1', 'key2'])
-        self.assertRaises(ValueError, merge, self.df, self.df2, how='left',
-                          left_index=['key1', 'key2'], right_index=False)
-        self.assertRaises(ValueError, merge, self.df, self.df2, how='left',
-                          left_index=['key1', 'key2'],
-                          right_index=['key1', 'key2'])
+        pytest.raises(ValueError, merge, self.df, self.df2, how='left',
+                      left_index=False, right_index=['key1', 'key2'])
+        pytest.raises(ValueError, merge, self.df, self.df2, how='left',
+                      left_index=['key1', 'key2'], right_index=False)
+        pytest.raises(ValueError, merge, self.df, self.df2, how='left',
+                      left_index=['key1', 'key2'],
+                      right_index=['key1', 'key2'])
 
     def test_merge_overlap(self):
         merged = merge(self.left, self.left, on='key')
         exp_len = (self.left['key'].value_counts() ** 2).sum()
         self.assertEqual(len(merged), exp_len)
-        self.assertIn('v1_x', merged)
-        self.assertIn('v1_y', merged)
+        assert 'v1_x' in merged
+        assert 'v1_y' in merged
 
     def test_merge_different_column_key_names(self):
         left = DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
@@ -238,23 +238,23 @@ class TestMerge(tm.TestCase):
         rkey = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on=lkey, right_on=rkey, how='outer')
-        self.assert_series_equal(merged['key_0'],
-                                 Series([1, 1, 1, 1, 2, 2, 3, 4, 5],
-                                        name='key_0'))
+        tm.assert_series_equal(merged['key_0'], Series([1, 1, 1, 1, 2,
+                                                        2, 3, 4, 5],
+                                                       name='key_0'))
 
         left = DataFrame({'value': lrange(3)})
         right = DataFrame({'rvalue': lrange(6)})
 
         key = np.array([0, 1, 1, 2, 2, 3], dtype=np.int64)
         merged = merge(left, right, left_index=True, right_on=key, how='outer')
-        self.assert_series_equal(merged['key_0'], Series(key, name='key_0'))
+        tm.assert_series_equal(merged['key_0'], Series(key, name='key_0'))
 
     def test_no_overlap_more_informative_error(self):
         dt = datetime.now()
         df1 = DataFrame({'x': ['a']}, index=[dt])
 
         df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
-        self.assertRaises(MergeError, merge, df1, df2)
+        pytest.raises(MergeError, merge, df1, df2)
 
     def test_merge_non_unique_indexes(self):
 
@@ -459,7 +459,7 @@ class TestMerge(tm.TestCase):
         nad = NotADataFrame(self.df)
         result = nad.merge(self.df2, on='key1')
 
-        tm.assertIsInstance(result, NotADataFrame)
+        assert isinstance(result, NotADataFrame)
 
     def test_join_append_timedeltas(self):
 
@@ -549,7 +549,7 @@ class TestMerge(tm.TestCase):
 
         # #2649, #10639
         df2.columns = ['key1', 'foo', 'foo']
-        self.assertRaises(ValueError, merge, df, df2)
+        pytest.raises(ValueError, merge, df, df2)
 
     def test_merge_on_datetime64tz(self):
 
@@ -663,9 +663,9 @@ class TestMerge(tm.TestCase):
         assert_frame_equal(test_custom_name, df_result_custom_name)
 
         # Check only accepts strings and booleans
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             merge(df1, df2, on='col1', how='outer', indicator=5)
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df1.merge(df2, on='col1', how='outer', indicator=5)
 
         # Check result integrity
@@ -689,20 +689,20 @@ class TestMerge(tm.TestCase):
         for i in ['_right_indicator', '_left_indicator', '_merge']:
             df_badcolumn = DataFrame({'col1': [1, 2], i: [2, 2]})
 
-            with tm.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 merge(df1, df_badcolumn, on='col1',
                       how='outer', indicator=True)
-            with tm.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 df1.merge(df_badcolumn, on='col1', how='outer', indicator=True)
 
         # Check for name conflict with custom name
         df_badcolumn = DataFrame(
             {'col1': [1, 2], 'custom_column_name': [2, 2]})
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             merge(df1, df_badcolumn, on='col1', how='outer',
                   indicator='custom_column_name')
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df1.merge(df_badcolumn, on='col1', how='outer',
                       indicator='custom_column_name')
 
@@ -1136,14 +1136,14 @@ class TestMergeMulti(tm.TestCase):
 
         def f():
             household.join(portfolio, how='inner')
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         portfolio2 = portfolio.copy()
         portfolio2.index.set_names(['household_id', 'foo'])
 
         def f():
             portfolio2.join(portfolio, how='inner')
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_join_multi_levels2(self):
 
@@ -1184,7 +1184,7 @@ class TestMergeMulti(tm.TestCase):
 
         def f():
             household.join(log_return, how='inner')
-        self.assertRaises(NotImplementedError, f)
+        pytest.raises(NotImplementedError, f)
 
         # this is the equivalency
         result = (merge(household.reset_index(), log_return.reset_index(),
@@ -1212,7 +1212,7 @@ class TestMergeMulti(tm.TestCase):
 
         def f():
             household.join(log_return, how='outer')
-        self.assertRaises(NotImplementedError, f)
+        pytest.raises(NotImplementedError, f)
 
 
 @pytest.fixture

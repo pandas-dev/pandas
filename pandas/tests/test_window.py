@@ -71,9 +71,9 @@ class TestApi(Base):
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         g = df.rolling(window=5)
-        self.assertRaises(KeyError, g.__getitem__, ['C'])  # g[['C']]
+        pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
 
-        self.assertRaises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
+        pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
         with tm.assertRaisesRegexp(KeyError, '^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
@@ -84,7 +84,7 @@ class TestApi(Base):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
         r = df.rolling(window=5)
         tm.assert_series_equal(r.A.sum(), r['A'].sum())
-        self.assertRaises(AttributeError, lambda: r.F)
+        pytest.raises(AttributeError, lambda: r.F)
 
     def tests_skip_nuisance(self):
 
@@ -191,7 +191,7 @@ class TestApi(Base):
             r.aggregate({'r1': {'A': ['mean', 'sum']},
                          'r2': {'B': ['mean', 'sum']}})
 
-        self.assertRaises(SpecificationError, f)
+        pytest.raises(SpecificationError, f)
 
         expected = pd.concat([r['A'].mean(), r['A'].std(), r['B'].mean(),
                               r['B'].std()], axis=1)
@@ -336,13 +336,13 @@ class TestWindow(Base):
 
             # not valid
             for w in [2., 'foo', np.array([2])]:
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     c(win_type='boxcar', window=2, min_periods=w)
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     c(win_type='boxcar', window=2, min_periods=1, center=w)
 
             for wt in ['foobar', 1]:
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     c(win_type=wt, window=2)
 
     def test_numpy_compat(self):
@@ -384,16 +384,16 @@ class TestRolling(Base):
 
             # GH 13383
             c(0)
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 c(-1)
 
             # not valid
             for w in [2., 'foo', np.array([2])]:
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     c(window=w)
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     c(window=2, min_periods=w)
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     c(window=2, min_periods=1, center=w)
 
     def test_constructor_with_win_type(self):
@@ -402,7 +402,7 @@ class TestRolling(Base):
         for o in [self.series, self.frame]:
             c = o.rolling
             c(0, win_type='boxcar')
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 c(-1, win_type='boxcar')
 
     def test_constructor_with_timedelta_window(self):
@@ -466,9 +466,9 @@ class TestExpanding(Base):
 
             # not valid
             for w in [2., 'foo', np.array([2])]:
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     c(min_periods=w)
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     c(min_periods=1, center=w)
 
     def test_numpy_compat(self):
@@ -509,28 +509,28 @@ class TestEWM(Base):
             c(halflife=0.75, alpha=None)
 
             # not valid: mutually exclusive
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 c(com=0.5, alpha=0.5)
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 c(span=1.5, halflife=0.75)
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 c(alpha=0.5, span=1.5)
 
             # not valid: com < 0
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 c(com=-0.5)
 
             # not valid: span < 1
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 c(span=0.5)
 
             # not valid: halflife <= 0
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 c(halflife=0)
 
             # not valid: alpha <= 0 or alpha > 1
             for alpha in (-0.5, 1.5):
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     c(alpha=alpha)
 
     def test_numpy_compat(self):
@@ -784,7 +784,7 @@ class TestMoments(Base):
         Series(np.ones(10)).rolling(window=3, center=True, axis=0).mean()
 
         # bad axis
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             Series(np.ones(10)).rolling(window=3, center=True, axis=1).mean()
 
         # ok ok
@@ -794,7 +794,7 @@ class TestMoments(Base):
                                              axis=1).mean()
 
         # bad axis
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             (DataFrame(np.ones((10, 10)))
              .rolling(window=3, center=True, axis=2).mean())
 
@@ -887,7 +887,7 @@ class TestMoments(Base):
         tm.assert_frame_equal(DataFrame(xp), rs)
 
         # invalid method
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             (DataFrame(vals).rolling(5, win_type='boxcar', center=True)
              .std())
 
@@ -1056,8 +1056,8 @@ class TestMoments(Base):
             b = mom.rolling_min(a, window=100, min_periods=1)
             tm.assert_almost_equal(b, np.ones(len(a)))
 
-            self.assertRaises(ValueError, mom.rolling_min, np.array([1, 2, 3]),
-                              window=3, min_periods=5)
+            pytest.raises(ValueError, mom.rolling_min, np.array([1, 2, 3]),
+                          window=3, min_periods=5)
 
     def test_rolling_max(self):
 
@@ -1069,8 +1069,8 @@ class TestMoments(Base):
             b = mom.rolling_max(a, window=100, min_periods=1)
             tm.assert_almost_equal(a, b)
 
-            self.assertRaises(ValueError, mom.rolling_max, np.array([1, 2, 3]),
-                              window=3, min_periods=5)
+            pytest.raises(ValueError, mom.rolling_max, np.array([1, 2, 3]),
+                          window=3, min_periods=5)
 
     def test_rolling_quantile(self):
         qs = [0.0, .1, .5, .9, 1.0]
@@ -1097,13 +1097,13 @@ class TestMoments(Base):
     def test_rolling_quantile_param(self):
         ser = Series([0.0, .1, .5, .9, 1.0])
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             ser.rolling(3).quantile(-0.1)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             ser.rolling(3).quantile(10.0)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             ser.rolling(3).quantile('foo')
 
     def test_rolling_apply(self):
@@ -1328,7 +1328,7 @@ class TestMoments(Base):
                 expected = get_result(
                     np.concatenate((arr, np.array([np.NaN] * 9))), 20)[9:]
 
-            self.assert_numpy_array_equal(result, expected)
+            tm.assert_numpy_array_equal(result, expected)
 
         if test_stable:
             result = get_result(self.arr + 1e9, window)
@@ -1380,7 +1380,7 @@ class TestMoments(Base):
         series_result = get_result(self.series, window=50)
         frame_result = get_result(self.frame, window=50)
 
-        tm.assertIsInstance(series_result, Series)
+        assert isinstance(series_result, Series)
         self.assertEqual(type(frame_result), DataFrame)
 
         # check time_rule works
@@ -1549,8 +1549,8 @@ class TestMoments(Base):
             B = mom.ewma(self.arr, span=20)
             tm.assert_almost_equal(A, B)
 
-            self.assertRaises(ValueError, mom.ewma, self.arr, com=9.5, span=20)
-            self.assertRaises(ValueError, mom.ewma, self.arr)
+            pytest.raises(ValueError, mom.ewma, self.arr, com=9.5, span=20)
+            pytest.raises(ValueError, mom.ewma, self.arr)
 
     def test_ewma_halflife_arg(self):
         with catch_warnings(record=True):
@@ -1558,13 +1558,13 @@ class TestMoments(Base):
             B = mom.ewma(self.arr, halflife=10.0)
             tm.assert_almost_equal(A, B)
 
-            self.assertRaises(ValueError, mom.ewma, self.arr, span=20,
-                              halflife=50)
-            self.assertRaises(ValueError, mom.ewma, self.arr, com=9.5,
-                              halflife=50)
-            self.assertRaises(ValueError, mom.ewma, self.arr, com=9.5, span=20,
-                              halflife=50)
-            self.assertRaises(ValueError, mom.ewma, self.arr)
+            pytest.raises(ValueError, mom.ewma, self.arr, span=20,
+                          halflife=50)
+            pytest.raises(ValueError, mom.ewma, self.arr, com=9.5,
+                          halflife=50)
+            pytest.raises(ValueError, mom.ewma, self.arr, com=9.5, span=20,
+                          halflife=50)
+            pytest.raises(ValueError, mom.ewma, self.arr)
 
     def test_ewma_alpha_old_api(self):
         # GH 10789
@@ -1580,13 +1580,13 @@ class TestMoments(Base):
     def test_ewma_alpha_arg_old_api(self):
         # GH 10789
         with catch_warnings(record=True):
-            self.assertRaises(ValueError, mom.ewma, self.arr)
-            self.assertRaises(ValueError, mom.ewma, self.arr,
-                              com=10.0, alpha=0.5)
-            self.assertRaises(ValueError, mom.ewma, self.arr,
-                              span=10.0, alpha=0.5)
-            self.assertRaises(ValueError, mom.ewma, self.arr,
-                              halflife=10.0, alpha=0.5)
+            pytest.raises(ValueError, mom.ewma, self.arr)
+            pytest.raises(ValueError, mom.ewma, self.arr,
+                          com=10.0, alpha=0.5)
+            pytest.raises(ValueError, mom.ewma, self.arr,
+                          span=10.0, alpha=0.5)
+            pytest.raises(ValueError, mom.ewma, self.arr,
+                          halflife=10.0, alpha=0.5)
 
     def test_ewm_alpha(self):
         # GH 10789
@@ -1602,34 +1602,34 @@ class TestMoments(Base):
     def test_ewm_alpha_arg(self):
         # GH 10789
         s = Series(self.arr)
-        self.assertRaises(ValueError, s.ewm)
-        self.assertRaises(ValueError, s.ewm, com=10.0, alpha=0.5)
-        self.assertRaises(ValueError, s.ewm, span=10.0, alpha=0.5)
-        self.assertRaises(ValueError, s.ewm, halflife=10.0, alpha=0.5)
+        pytest.raises(ValueError, s.ewm)
+        pytest.raises(ValueError, s.ewm, com=10.0, alpha=0.5)
+        pytest.raises(ValueError, s.ewm, span=10.0, alpha=0.5)
+        pytest.raises(ValueError, s.ewm, halflife=10.0, alpha=0.5)
 
     def test_ewm_domain_checks(self):
         # GH 12492
         s = Series(self.arr)
         # com must satisfy: com >= 0
-        self.assertRaises(ValueError, s.ewm, com=-0.1)
+        pytest.raises(ValueError, s.ewm, com=-0.1)
         s.ewm(com=0.0)
         s.ewm(com=0.1)
         # span must satisfy: span >= 1
-        self.assertRaises(ValueError, s.ewm, span=-0.1)
-        self.assertRaises(ValueError, s.ewm, span=0.0)
-        self.assertRaises(ValueError, s.ewm, span=0.9)
+        pytest.raises(ValueError, s.ewm, span=-0.1)
+        pytest.raises(ValueError, s.ewm, span=0.0)
+        pytest.raises(ValueError, s.ewm, span=0.9)
         s.ewm(span=1.0)
         s.ewm(span=1.1)
         # halflife must satisfy: halflife > 0
-        self.assertRaises(ValueError, s.ewm, halflife=-0.1)
-        self.assertRaises(ValueError, s.ewm, halflife=0.0)
+        pytest.raises(ValueError, s.ewm, halflife=-0.1)
+        pytest.raises(ValueError, s.ewm, halflife=0.0)
         s.ewm(halflife=0.1)
         # alpha must satisfy: 0 < alpha <= 1
-        self.assertRaises(ValueError, s.ewm, alpha=-0.1)
-        self.assertRaises(ValueError, s.ewm, alpha=0.0)
+        pytest.raises(ValueError, s.ewm, alpha=-0.1)
+        pytest.raises(ValueError, s.ewm, alpha=0.0)
         s.ewm(alpha=0.1)
         s.ewm(alpha=1.0)
-        self.assertRaises(ValueError, s.ewm, alpha=1.1)
+        pytest.raises(ValueError, s.ewm, alpha=1.1)
 
     def test_ew_empty_arrays(self):
         arr = np.array([], dtype=np.float64)
@@ -1692,7 +1692,7 @@ class TestMoments(Base):
 
     def _check_ew_structures(self, func, name):
         series_result = getattr(self.series.ewm(com=10), name)()
-        tm.assertIsInstance(series_result, Series)
+        assert isinstance(series_result, Series)
 
         frame_result = getattr(self.frame.ewm(com=10), name)()
         self.assertEqual(type(frame_result), DataFrame)
@@ -2396,7 +2396,7 @@ class TestMomentsConsistency(Base):
     def test_flex_binary_moment(self):
         # GH3155
         # don't blow the stack
-        self.assertRaises(TypeError, rwindow._flex_binary_moment, 5, 6, None)
+        pytest.raises(TypeError, rwindow._flex_binary_moment, 5, 6, None)
 
     def test_corr_sanity(self):
         # GH 3155
@@ -2485,7 +2485,7 @@ class TestMomentsConsistency(Base):
                 Series([1.]), Series([1.]), 50, min_periods=min_periods)
             tm.assert_series_equal(result, Series([np.NaN]))
 
-        self.assertRaises(Exception, func, A, randn(50), 20, min_periods=5)
+        pytest.raises(Exception, func, A, randn(50), 20, min_periods=5)
 
     def test_expanding_apply(self):
         ser = Series([])
@@ -2908,7 +2908,7 @@ class TestMomentsConsistency(Base):
 
     def _check_expanding_structures(self, func):
         series_result = func(self.series)
-        tm.assertIsInstance(series_result, Series)
+        assert isinstance(series_result, Series)
         frame_result = func(self.frame)
         self.assertEqual(type(frame_result), DataFrame)
 
@@ -3047,7 +3047,7 @@ class TestGrouperGrouping(tm.TestCase):
 
         def f():
             self.frame.groupby('A', foo=1)
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         g = self.frame.groupby('A')
         self.assertFalse(g.mutated)
@@ -3216,16 +3216,16 @@ class TestRollingTS(tm.TestCase):
         df = self.regular
 
         # not a valid freq
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.rolling(window='foobar')
 
         # not a datetimelike index
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.reset_index().rolling(window='foobar')
 
         # non-fixed freqs
         for freq in ['2MS', pd.offsets.MonthBegin(2)]:
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 df.rolling(window=freq)
 
         for freq in ['1D', pd.offsets.Day(2), '2ms']:
@@ -3233,11 +3233,11 @@ class TestRollingTS(tm.TestCase):
 
         # non-integer min_periods
         for minp in [1.0, 'foo', np.array([1, 2, 3])]:
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 df.rolling(window='1D', min_periods=minp)
 
         # center is not implemented
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             df.rolling(window='1D', center=True)
 
     def test_on(self):
@@ -3245,7 +3245,7 @@ class TestRollingTS(tm.TestCase):
         df = self.regular
 
         # not a valid column
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.rolling(window='2s', on='foobar')
 
         # column is valid
@@ -3254,7 +3254,7 @@ class TestRollingTS(tm.TestCase):
         df.rolling(window='2d', on='C').sum()
 
         # invalid columns
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.rolling(window='2d', on='B')
 
         # ok even though on non-selected
@@ -3279,11 +3279,11 @@ class TestRollingTS(tm.TestCase):
         df.index = reversed(df.index.tolist())
         self.assertFalse(df.index.is_monotonic)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.rolling('2s').sum()
 
         df = df.reset_index()
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.rolling('2s', on='A').sum()
 
     def test_frame_on(self):
@@ -3781,4 +3781,22 @@ class TestRollingTS(tm.TestCase):
         expected = df.set_index('date').groupby('name').apply(
             lambda x: x.rolling('180D')['amount'].sum())
         result = df.groupby('name').rolling('180D', on='date')['amount'].sum()
+        tm.assert_series_equal(result, expected)
+
+    def test_non_monotonic(self):
+        # GH 13966 (similar to #15130, closed by #15175)
+
+        dates = pd.date_range(start='2016-01-01 09:30:00',
+                              periods=20, freq='s')
+        df = pd.DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
+                           'B': np.concatenate((dates, dates)),
+                           'C': np.arange(40)})
+
+        result = df.groupby('A').rolling('4s', on='B').C.mean()
+        expected = df.set_index('B').groupby('A').apply(
+            lambda x: x.rolling('4s')['C'].mean())
+        tm.assert_series_equal(result, expected)
+
+        df2 = df.sort_values('B')
+        result = df2.groupby('A').rolling('4s', on='B').C.mean()
         tm.assert_series_equal(result, expected)

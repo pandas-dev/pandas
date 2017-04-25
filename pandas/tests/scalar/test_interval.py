@@ -26,19 +26,19 @@ class TestInterval(tm.TestCase):
         self.assertEqual(str(interval_left), "[0, 1)")
 
     def test_contains(self):
-        self.assertIn(0.5, self.interval)
-        self.assertIn(1, self.interval)
-        self.assertNotIn(0, self.interval)
-        self.assertRaises(TypeError, lambda: self.interval in self.interval)
+        assert 0.5 in self.interval
+        assert 1 in self.interval
+        assert 0 not in self.interval
+        pytest.raises(TypeError, lambda: self.interval in self.interval)
 
         interval = Interval(0, 1, closed='both')
-        self.assertIn(0, interval)
-        self.assertIn(1, interval)
+        assert 0 in interval
+        assert 1 in interval
 
         interval = Interval(0, 1, closed='neither')
-        self.assertNotIn(0, interval)
-        self.assertIn(0.5, interval)
-        self.assertNotIn(1, interval)
+        assert 0 not in interval
+        assert 0.5 in interval
+        assert 1 not in interval
 
     def test_equal(self):
         self.assertEqual(Interval(0, 1), Interval(0, 1, closed='right'))
@@ -46,7 +46,7 @@ class TestInterval(tm.TestCase):
         self.assertNotEqual(Interval(0, 1), 0)
 
     def test_comparison(self):
-        with self.assertRaisesRegexp(TypeError, 'unorderable types'):
+        with tm.assertRaisesRegexp(TypeError, 'unorderable types'):
             Interval(0, 1) < 2
 
         self.assertTrue(Interval(0, 1) < Interval(1, 2))

@@ -19,7 +19,6 @@ from contextlib import contextmanager
 from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
-import pytest
 import numpy as np
 
 import pandas as pd
@@ -52,7 +51,13 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
 
 from pandas.util import libtesting
 from pandas.io.common import urlopen
-slow = pytest.mark.slow
+try:
+    import pytest
+    slow = pytest.mark.slow
+except ImportError:
+    # Should be ok to just ignore. If you actually need
+    # slow then you'll hit an import error long before getting here.
+    pass
 
 
 N = 30
@@ -191,11 +196,35 @@ def assert_almost_equal(left, right, check_exact=False,
             **kwargs)
 
 
+def _check_isinstance(left, right, cls):
+    """
+    Helper method for our assert_* methods that ensures that
+    the two objects being compared have the right type before
+    proceeding with the comparison.
+
+    Parameters
+    ----------
+    left : The first object being compared.
+    right : The second object being compared.
+    cls : The class type to check against.
+
+    Raises
+    ------
+    AssertionError : Either `left` or `right` is not an instance of `cls`.
+    """
+
+    err_msg = "{0} Expected type {1}, found {2} instead"
+    cls_name = cls.__name__
+
+    if not isinstance(left, cls):
+        raise AssertionError(err_msg.format(cls_name, cls, type(left)))
+    if not isinstance(right, cls):
+        raise AssertionError(err_msg.format(cls_name, cls, type(right)))
+
+
 def assert_dict_equal(left, right, compare_keys=True):
 
-    assertIsInstance(left, dict, '[dict] ')
-    assertIsInstance(right, dict, '[dict] ')
-
+    _check_isinstance(left, right, dict)
     return libtesting.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
@@ -323,13 +352,8 @@ def _check_if_lzma():
 
 
 def _skip_if_no_lzma():
+    import pytest
     return _check_if_lzma() or pytest.skip('need backports.lzma to run')
-
-
-_mark_skipif_no_lzma = pytest.mark.skipif(
-    not _check_if_lzma(),
-    reason='need backports.lzma to run'
-)
 
 
 def _skip_if_no_xarray():
@@ -870,7 +894,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             assert_attr_equal('dtype', l, r, obj=obj)
             # allow string-like to have different inferred_types
             if l.inferred_type in ('string', 'unicode'):
-                assertIn(r.inferred_type, ('string', 'unicode'))
+                assert r.inferred_type in ('string', 'unicode')
             else:
                 assert_attr_equal('inferred_type', l, r, obj=obj)
 
@@ -883,8 +907,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         return values
 
     # instance validation
-    assertIsInstance(left, Index, '[index] ')
-    assertIsInstance(right, Index, '[index] ')
+    _check_isinstance(left, right, Index)
 
     # class / dtype comparison
     _check_types(left, right, obj=obj)
@@ -1037,50 +1060,9 @@ def is_sorted(seq):
     return assert_numpy_array_equal(seq, np.sort(np.array(seq)))
 
 
-def assertIs(first, second, msg=''):
-    """Checks that 'first' is 'second'"""
-    a, b = first, second
-    assert a is b, "%s: %r is not %r" % (msg.format(a, b), a, b)
-
-
-def assertIn(first, second, msg=''):
-    """Checks that 'first' is in 'second'"""
-    a, b = first, second
-    assert a in b, "%s: %r is not in %r" % (msg.format(a, b), a, b)
-
-
-def assertNotIn(first, second, msg=''):
-    """Checks that 'first' is not in 'second'"""
-    a, b = first, second
-    assert a not in b, "%s: %r is in %r" % (msg.format(a, b), a, b)
-
-
-def assertIsNone(expr, msg=''):
-    """Checks that 'expr' is None"""
-    return assertIs(expr, None, msg)
-
-
-def assertIsInstance(obj, cls, msg=''):
-    """Test that obj is an instance of cls
-    (which can be a class or a tuple of classes,
-    as supported by isinstance())."""
-    if not isinstance(obj, cls):
-        err_msg = "{0}Expected type {1}, found {2} instead"
-        raise AssertionError(err_msg.format(msg, cls, type(obj)))
-
-
-def assertNotIsInstance(obj, cls, msg=''):
-    """Test that obj is not an instance of cls
-    (which can be a class or a tuple of classes,
-    as supported by isinstance())."""
-    if isinstance(obj, cls):
-        err_msg = "{0}Input must not be type {1}"
-        raise AssertionError(err_msg.format(msg, cls))
-
-
 def assert_categorical_equal(left, right, check_dtype=True,
                              obj='Categorical', check_category_order=True):
-    """Test that categoricals are eqivalent
+    """Test that Categoricals are equivalent.
 
     Parameters
     ----------
@@ -1097,8 +1079,7 @@ def assert_categorical_equal(left, right, check_dtype=True,
         values are compared.  The ordered attribute is
         checked regardless.
     """
-    assertIsInstance(left, pd.Categorical, '[Categorical] ')
-    assertIsInstance(right, pd.Categorical, '[Categorical] ')
+    _check_isinstance(left, right, Categorical)
 
     if check_category_order:
         assert_index_equal(left.categories, right.categories,
@@ -1158,11 +1139,10 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     """
 
     # instance validation
-    # to show a detailed erorr message when classes are different
+    # Show a detailed error message when classes are different
     assert_class_equal(left, right, obj=obj)
     # both classes must be an np.ndarray
-    assertIsInstance(left, np.ndarray, '[ndarray] ')
-    assertIsInstance(right, np.ndarray, '[ndarray] ')
+    _check_isinstance(left, right, np.ndarray)
 
     def _get_base(obj):
         return obj.base if getattr(obj, 'base', None) is not None else obj
@@ -1250,13 +1230,12 @@ def assert_series_equal(left, right, check_dtype=True,
     """
 
     # instance validation
-    assertIsInstance(left, Series, '[Series] ')
-    assertIsInstance(right, Series, '[Series] ')
+    _check_isinstance(left, right, Series)
 
     if check_series_type:
         # ToDo: There are some tests using rhs is sparse
         # lhs is dense. Should use assert_class_equal in future
-        assertIsInstance(left, type(right))
+        assert isinstance(left, type(right))
         # assert_class_equal(left, right, obj=obj)
 
     # length comparison
@@ -1371,13 +1350,12 @@ def assert_frame_equal(left, right, check_dtype=True,
     """
 
     # instance validation
-    assertIsInstance(left, DataFrame, '[DataFrame] ')
-    assertIsInstance(right, DataFrame, '[DataFrame] ')
+    _check_isinstance(left, right, DataFrame)
 
     if check_frame_type:
         # ToDo: There are some tests using rhs is SparseDataFrame
         # lhs is DataFrame. Should use assert_class_equal in future
-        assertIsInstance(left, type(right))
+        assert isinstance(left, type(right))
         # assert_class_equal(left, right, obj=obj)
 
     # shape comparison
@@ -1516,17 +1494,14 @@ def assert_sp_array_equal(left, right, check_dtype=True):
         Whether to check the data dtype is identical.
     """
 
-    assertIsInstance(left, pd.SparseArray, '[SparseArray]')
-    assertIsInstance(right, pd.SparseArray, '[SparseArray]')
+    _check_isinstance(left, right, pd.SparseArray)
 
     assert_numpy_array_equal(left.sp_values, right.sp_values,
                              check_dtype=check_dtype)
 
     # SparseIndex comparison
-    assertIsInstance(
-        left.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
-    assertIsInstance(
-        right.sp_index, pd.core.sparse.libsparse.SparseIndex, '[SparseIndex]')
+    assert isinstance(left.sp_index, pd.core.sparse.libsparse.SparseIndex)
+    assert isinstance(right.sp_index, pd.core.sparse.libsparse.SparseIndex)
 
     if not left.sp_index.equals(right.sp_index):
         raise_assert_detail('SparseArray.index', 'index are not equal',
@@ -1559,8 +1534,7 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
     """
-    assertIsInstance(left, pd.SparseSeries, '[SparseSeries]')
-    assertIsInstance(right, pd.SparseSeries, '[SparseSeries]')
+    _check_isinstance(left, right, pd.SparseSeries)
 
     if check_series_type:
         assert_class_equal(left, right, obj=obj)
@@ -1597,8 +1571,7 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
     """
-    assertIsInstance(left, pd.SparseDataFrame, '[SparseDataFrame]')
-    assertIsInstance(right, pd.SparseDataFrame, '[SparseDataFrame]')
+    _check_isinstance(left, right, pd.SparseDataFrame)
 
     if check_frame_type:
         assert_class_equal(left, right, obj=obj)
@@ -1629,8 +1602,8 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
 
 
 def assert_sp_list_equal(left, right):
-    assertIsInstance(left, pd.SparseList, '[SparseList]')
-    assertIsInstance(right, pd.SparseList, '[SparseList]')
+    assert isinstance(left, pd.SparseList)
+    assert isinstance(right, pd.SparseList)
 
     assert_sp_array_equal(left.to_array(), right.to_array())
 
@@ -2450,57 +2423,23 @@ def stdin_encoding(encoding=None):
     sys.stdin = _stdin
 
 
-def assertRaises(_exception, _callable=None, *args, **kwargs):
-    """assertRaises that is usable as context manager or in a with statement
-
-    Exceptions that don't match the given Exception type fall through::
-
-    >>> with assertRaises(ValueError):
-    ...     raise TypeError("banana")
-    ...
-    Traceback (most recent call last):
-        ...
-    TypeError: banana
-
-    If it raises the given Exception type, the test passes
-    >>> with assertRaises(KeyError):
-    ...     dct = dict()
-    ...     dct["apple"]
-
-    If the expected error doesn't occur, it raises an error.
-    >>> with assertRaises(KeyError):
-    ...     dct = {'apple':True}
-    ...     dct["apple"]
-    Traceback (most recent call last):
-        ...
-    AssertionError: KeyError not raised.
-
-    In addition to using it as a contextmanager, you can also use it as a
-    function, just like the normal assertRaises
-
-    >>> assertRaises(TypeError, ",".join, [1, 3, 5])
-    """
-    manager = _AssertRaisesContextmanager(exception=_exception)
-    # don't return anything if used in function form
-    if _callable is not None:
-        with manager:
-            _callable(*args, **kwargs)
-    else:
-        return manager
-
-
 def assertRaisesRegexp(_exception, _regexp, _callable=None, *args, **kwargs):
-    """ Port of assertRaisesRegexp from unittest in
-        Python 2.7 - used in with statement.
+    """
+    Check that the specified Exception is raised and that the error message
+    matches a given regular expression pattern. This may be a regular
+    expression object or a string containing a regular expression suitable
+    for use by `re.search()`.
 
-    Explanation from standard library:
-        Like assertRaises() but also tests that regexp matches on the
-        string representation of the raised exception. regexp may be a
-        regular expression object or a string containing a regular
-        expression suitable for use by re.search().
+    This is a port of the `assertRaisesRegexp` function from unittest in
+    Python 2.7. However, with our migration to `pytest`, please refrain
+    from using this. Instead, use the following paradigm:
 
-    You can pass either a regular expression
-    or a compiled regular expression object.
+    with pytest.raises(_exception) as exc_info:
+       func(*args, **kwargs)
+    exc_info.matches(reg_exp)
+
+    Examples
+    --------
     >>> assertRaisesRegexp(ValueError, 'invalid literal for.*XYZ',
     ...                                int, 'XYZ')
     >>> import re
@@ -2538,40 +2477,79 @@ item assignment"
 
 class _AssertRaisesContextmanager(object):
     """
-    Handles the behind the scenes work
-    for assertRaises and assertRaisesRegexp
+    Context manager behind assertRaisesRegexp.
     """
 
-    def __init__(self, exception, regexp=None, *args, **kwargs):
+    def __init__(self, exception, regexp=None):
+        """
+        Initialize an _AssertRaisesContextManager instance.
+
+        Parameters
+        ----------
+        exception : class
+            The expected Exception class.
+        regexp : str, default None
+            The regex to compare against the Exception message.
+        """
+
         self.exception = exception
+
         if regexp is not None and not hasattr(regexp, "search"):
             regexp = re.compile(regexp, re.DOTALL)
+
         self.regexp = regexp
 
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, trace_back):
         expected = self.exception
+
         if not exc_type:
-            name = getattr(expected, "__name__", str(expected))
-            raise AssertionError("{0} not raised.".format(name))
-        if issubclass(exc_type, expected):
-            return self.handle_success(exc_type, exc_value, traceback)
-        return self.handle_failure(exc_type, exc_value, traceback)
+            exp_name = getattr(expected, "__name__", str(expected))
+            raise AssertionError("{0} not raised.".format(exp_name))
 
-    def handle_failure(*args, **kwargs):
-        # Failed, so allow Exception to bubble up
-        return False
+        return self.exception_matches(exc_type, exc_value, trace_back)
 
-    def handle_success(self, exc_type, exc_value, traceback):
-        if self.regexp is not None:
-            val = str(exc_value)
-            if not self.regexp.search(val):
-                e = AssertionError('"%s" does not match "%s"' %
-                                   (self.regexp.pattern, str(val)))
-                raise_with_traceback(e, traceback)
-        return True
+    def exception_matches(self, exc_type, exc_value, trace_back):
+        """
+        Check that the Exception raised matches the expected Exception
+        and expected error message regular expression.
+
+        Parameters
+        ----------
+        exc_type : class
+            The type of Exception raised.
+        exc_value : Exception
+            The instance of `exc_type` raised.
+        trace_back : stack trace object
+            The traceback object associated with `exc_value`.
+
+        Returns
+        -------
+        is_matched : bool
+            Whether or not the Exception raised matches the expected
+            Exception class and expected error message regular expression.
+
+        Raises
+        ------
+        AssertionError : The error message provided does not match
+                         the expected error message regular expression.
+        """
+
+        if issubclass(exc_type, self.exception):
+            if self.regexp is not None:
+                val = str(exc_value)
+
+                if not self.regexp.search(val):
+                    e = AssertionError('"%s" does not match "%s"' %
+                                       (self.regexp.pattern, str(val)))
+                    raise_with_traceback(e, trace_back)
+
+            return True
+        else:
+            # Failed, so allow Exception to bubble up.
+            return False
 
 
 @contextmanager
@@ -2685,12 +2663,6 @@ def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
     yield
     expr._MIN_ELEMENTS = oldmin
     expr.set_use_numexpr(olduse)
-
-
-# Also provide all assert_* functions in the TestCase class
-for name, obj in inspect.getmembers(sys.modules[__name__]):
-    if inspect.isfunction(obj) and name.startswith('assert'):
-        setattr(TestCase, name, staticmethod(obj))
 
 
 def test_parallel(num_threads=2, kwargs_list=None):

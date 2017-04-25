@@ -171,7 +171,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                                       ' the File through the code..')})
 
         result = repr(df)
-        self.assertIn('StringCol', result)
+        assert 'StringCol' in result
 
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
@@ -189,7 +189,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
             self.assertEqual(result, df._repr_latex_())
 
         # GH 12182
-        self.assertIsNone(df._repr_latex_())
+        assert df._repr_latex_() is None
 
     @tm.capture_stdout
     def test_info(self):

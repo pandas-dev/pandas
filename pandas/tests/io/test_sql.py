@@ -38,7 +38,7 @@ from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import range, lrange, string_types, PY36
-from pandas.tseries.tools import format as date_format
+from pandas.core.tools.datetimes import format as date_format
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_table, read_sql_query
@@ -390,8 +390,8 @@ class PandasSQLTest(object):
         self.assertTrue(self.pandasSQL.has_table(
             'test_frame1'), 'Table not written to DB')
 
-        self.assertRaises(ValueError, self.pandasSQL.to_sql,
-                          self.test_frame1, 'test_frame1', if_exists='fail')
+        pytest.raises(ValueError, self.pandasSQL.to_sql,
+                      self.test_frame1, 'test_frame1', if_exists='fail')
 
         self.drop_table('test_frame1')
 
@@ -539,8 +539,8 @@ class _TestSQLApi(PandasSQLTest):
             sql.has_table('test_frame2', self.conn),
             'Table not written to DB')
 
-        self.assertRaises(ValueError, sql.to_sql, self.test_frame1,
-                          'test_frame2', self.conn, if_exists='fail')
+        pytest.raises(ValueError, sql.to_sql, self.test_frame1,
+                      'test_frame2', self.conn, if_exists='fail')
 
     def test_to_sql_replace(self):
         sql.to_sql(self.test_frame1, 'test_frame3',
@@ -590,8 +590,8 @@ class _TestSQLApi(PandasSQLTest):
     def test_to_sql_panel(self):
         with catch_warnings(record=True):
             panel = tm.makePanel()
-            self.assertRaises(NotImplementedError, sql.to_sql, panel,
-                              'test_panel', self.conn)
+            pytest.raises(NotImplementedError, sql.to_sql, panel,
+                          'test_panel', self.conn)
 
     def test_roundtrip(self):
         sql.to_sql(self.test_frame1, 'test_frame_roundtrip',
@@ -679,7 +679,7 @@ class _TestSQLApi(PandasSQLTest):
     def test_complex(self):
         df = DataFrame({'a': [1 + 1j, 2j]})
         # Complex data type should raise error
-        self.assertRaises(ValueError, df.to_sql, 'test_complex', self.conn)
+        pytest.raises(ValueError, df.to_sql, 'test_complex', self.conn)
 
     def test_to_sql_index_label(self):
         temp_frame = DataFrame({'col1': range(4)})
@@ -760,9 +760,9 @@ class _TestSQLApi(PandasSQLTest):
                          "Specified index_labels not written to database")
 
         # wrong length of index_label
-        self.assertRaises(ValueError, sql.to_sql, temp_frame,
-                          'test_index_label', self.conn, if_exists='replace',
-                          index_label='C')
+        pytest.raises(ValueError, sql.to_sql, temp_frame,
+                      'test_index_label', self.conn, if_exists='replace',
+                      index_label='C')
 
     def test_multiindex_roundtrip(self):
         df = DataFrame.from_records([(1, 2.1, 'line1'), (2, 1.5, 'line2')],
@@ -1080,8 +1080,8 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
     def test_con_string_import_error(self):
         if not SQLALCHEMY_INSTALLED:
             conn = 'mysql://root@localhost/pandas_nosetest'
-            self.assertRaises(ImportError, sql.read_sql, "SELECT * FROM iris",
-                              conn)
+            pytest.raises(ImportError, sql.read_sql, "SELECT * FROM iris",
+                          conn)
         else:
             pytest.skip('SQLAlchemy is installed')
 
@@ -1090,7 +1090,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
         iris_frame2 = sql.read_sql("SELECT * FROM iris", self.conn)
         tm.assert_frame_equal(iris_frame1, iris_frame2)
 
-        self.assertRaises(sql.DatabaseError, sql.read_sql, 'iris', self.conn)
+        pytest.raises(sql.DatabaseError, sql.read_sql, 'iris', self.conn)
 
     def test_safe_names_warning(self):
         # GH 6798
@@ -1250,7 +1250,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             iris_frame.columns.values, ['SepalLength', 'SepalLength'])
 
     def test_read_table_absent(self):
-        self.assertRaises(
+        pytest.raises(
             ValueError, sql.read_sql_table, "this_doesnt_exist", con=self.conn)
 
     def test_default_type_conversion(self):
@@ -1561,8 +1561,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         meta.reflect()
         sqltype = meta.tables['dtype_test2'].columns['B'].type
         self.assertTrue(isinstance(sqltype, sqlalchemy.TEXT))
-        self.assertRaises(ValueError, df.to_sql,
-                          'error', self.conn, dtype={'B': str})
+        pytest.raises(ValueError, df.to_sql,
+                      'error', self.conn, dtype={'B': str})
 
         # GH9083
         df.to_sql('dtype_test3', self.conn, dtype={'B': sqlalchemy.String(10)})
@@ -1857,8 +1857,8 @@ class _TestPostgreSQLAlchemy(object):
         res4 = sql.read_sql_table('test_schema_other', self.conn,
                                   schema='other')
         tm.assert_frame_equal(df, res4)
-        self.assertRaises(ValueError, sql.read_sql_table, 'test_schema_other',
-                          self.conn, schema='public')
+        pytest.raises(ValueError, sql.read_sql_table, 'test_schema_other',
+                      self.conn, schema='public')
 
         # different if_exists options
 
@@ -2060,8 +2060,8 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
 
         self.assertEqual(self._get_sqlite_column_type(
             'dtype_test2', 'B'), 'STRING')
-        self.assertRaises(ValueError, df.to_sql,
-                          'error', self.conn, dtype={'B': bool})
+        pytest.raises(ValueError, df.to_sql,
+                      'error', self.conn, dtype={'B': bool})
 
         # single dtype
         df.to_sql('single_dtype_test', self.conn, dtype='STRING')
@@ -2095,7 +2095,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
         df = DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
 
         # Raise error on blank
-        self.assertRaises(ValueError, df.to_sql, "", self.conn)
+        pytest.raises(ValueError, df.to_sql, "", self.conn)
 
         for ndx, weird_name in enumerate(
                 ['test_weird_name]', 'test_weird_name[',
@@ -2324,23 +2324,23 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
             self.drop_table(test_table_to_drop)
 
         # test if invalid value for if_exists raises appropriate error
-        self.assertRaises(ValueError,
-                          sql.to_sql,
-                          frame=df_if_exists_1,
-                          con=self.conn,
-                          name=table_name,
-                          if_exists='notvalidvalue')
+        pytest.raises(ValueError,
+                      sql.to_sql,
+                      frame=df_if_exists_1,
+                      con=self.conn,
+                      name=table_name,
+                      if_exists='notvalidvalue')
         clean_up(table_name)
 
         # test if_exists='fail'
         sql.to_sql(frame=df_if_exists_1, con=self.conn,
                    name=table_name, if_exists='fail')
-        self.assertRaises(ValueError,
-                          sql.to_sql,
-                          frame=df_if_exists_1,
-                          con=self.conn,
-                          name=table_name,
-                          if_exists='fail')
+        pytest.raises(ValueError,
+                      sql.to_sql,
+                      frame=df_if_exists_1,
+                      con=self.conn,
+                      name=table_name,
+                      if_exists='fail')
 
         # test if_exists='replace'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
@@ -2642,23 +2642,23 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
             self.drop_table(test_table_to_drop)
 
         # test if invalid value for if_exists raises appropriate error
-        self.assertRaises(ValueError,
-                          sql.to_sql,
-                          frame=df_if_exists_1,
-                          con=self.conn,
-                          name=table_name,
-                          if_exists='notvalidvalue')
+        pytest.raises(ValueError,
+                      sql.to_sql,
+                      frame=df_if_exists_1,
+                      con=self.conn,
+                      name=table_name,
+                      if_exists='notvalidvalue')
         clean_up(table_name)
 
         # test if_exists='fail'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,
                    if_exists='fail', index=False)
-        self.assertRaises(ValueError,
-                          sql.to_sql,
-                          frame=df_if_exists_1,
-                          con=self.conn,
-                          name=table_name,
-                          if_exists='fail')
+        pytest.raises(ValueError,
+                      sql.to_sql,
+                      frame=df_if_exists_1,
+                      con=self.conn,
+                      name=table_name,
+                      if_exists='fail')
 
         # test if_exists='replace'
         sql.to_sql(frame=df_if_exists_1, con=self.conn, name=table_name,

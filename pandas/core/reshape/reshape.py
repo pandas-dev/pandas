@@ -650,8 +650,15 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     drop_cols = []
     for key in unique_groups:
         loc = this.columns.get_loc(key)
-        slice_len = loc.stop - loc.start
+
         # can make more efficient?
+        # we almost always return a slice
+        # but if unsorted can get a boolean
+        # indexer
+        if not isinstance(loc, slice):
+            slice_len = len(loc)
+        else:
+            slice_len = loc.stop - loc.start
 
         if slice_len == 0:
             drop_cols.append(key)

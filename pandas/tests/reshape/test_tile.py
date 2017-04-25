@@ -1,4 +1,5 @@
 import os
+import pytest
 
 import numpy as np
 from pandas.compat import zip
@@ -85,18 +86,18 @@ class TestCut(tm.TestCase):
 
     def test_bins_not_monotonic(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
-        self.assertRaises(ValueError, cut, data, [0.1, 1.5, 1, 10])
+        pytest.raises(ValueError, cut, data, [0.1, 1.5, 1, 10])
 
     def test_wrong_num_labels(self):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
-        self.assertRaises(ValueError, cut, data, [0, 1, 10],
-                          labels=['foo', 'bar', 'baz'])
+        pytest.raises(ValueError, cut, data, [0, 1, 10],
+                      labels=['foo', 'bar', 'baz'])
 
     def test_cut_corner(self):
         # h3h
-        self.assertRaises(ValueError, cut, [], 2)
+        pytest.raises(ValueError, cut, [], 2)
 
-        self.assertRaises(ValueError, cut, [1, 2, 3], 0.5)
+        pytest.raises(ValueError, cut, [1, 2, 3], 0.5)
 
     def test_cut_out_of_range_more(self):
         # #1511
@@ -201,7 +202,7 @@ class TestCut(tm.TestCase):
 
         mask = isnull(result)
         ex_mask = (arr < -1) | (arr > 1)
-        self.assert_numpy_array_equal(mask, ex_mask)
+        tm.assert_numpy_array_equal(mask, ex_mask)
 
     def test_cut_pass_labels(self):
         arr = [50, 5, 10, 15, 20, 30, 70]
@@ -211,12 +212,12 @@ class TestCut(tm.TestCase):
         result = cut(arr, bins, labels=labels)
         exp = Categorical(['Medium'] + 4 * ['Small'] + ['Medium', 'Large'],
                           ordered=True)
-        self.assert_categorical_equal(result, exp)
+        tm.assert_categorical_equal(result, exp)
 
         result = cut(arr, bins, labels=Categorical.from_codes([0, 1, 2],
                                                               labels))
         exp = Categorical.from_codes([1] + 4 * [0] + [1, 2], labels)
-        self.assert_categorical_equal(result, exp)
+        tm.assert_categorical_equal(result, exp)
 
     def test_qcut_include_lowest(self):
         values = np.arange(10)
@@ -241,7 +242,7 @@ class TestCut(tm.TestCase):
         result = qcut([0, 2], 2)
         expected = Index([Interval(-0.001, 1), Interval(1, 2)]).astype(
             'category')
-        self.assert_categorical_equal(result, expected)
+        tm.assert_categorical_equal(result, expected)
 
     def test_round_frac(self):
         # it works
@@ -326,11 +327,11 @@ class TestCut(tm.TestCase):
         result = qcut(values, 3, duplicates='drop')
         tm.assert_index_equal(result.categories, expected)
 
-        self.assertRaises(ValueError, qcut, values, 3)
-        self.assertRaises(ValueError, qcut, values, 3, duplicates='raise')
+        pytest.raises(ValueError, qcut, values, 3)
+        pytest.raises(ValueError, qcut, values, 3, duplicates='raise')
 
         # invalid
-        self.assertRaises(ValueError, qcut, values, 3, duplicates='foo')
+        pytest.raises(ValueError, qcut, values, 3, duplicates='foo')
 
     def test_single_quantile(self):
         # issue 15431
@@ -489,14 +490,14 @@ class TestCut(tm.TestCase):
 
         def f():
             cut(date_range('20130101', periods=3), bins=[0, 2, 4])
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         result = cut(date_range('20130102', periods=5),
                      bins=date_range('20130101', periods=2))
         mask = result.categories.isnull()
-        self.assert_numpy_array_equal(mask, np.array([False]))
+        tm.assert_numpy_array_equal(mask, np.array([False]))
         mask = result.isnull()
-        self.assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             mask, np.array([False, True, True, True, True]))
 
 

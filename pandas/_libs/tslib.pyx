@@ -502,7 +502,7 @@ class Timestamp(_Timestamp):
         """
         Return an period of which this timestamp is an observation.
         """
-        from pandas.tseries.period import Period
+        from pandas import Period
 
         if freq is None:
             freq = self.freq

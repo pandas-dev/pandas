@@ -4,6 +4,7 @@
 
 
 import itertools
+import pytest
 
 from datetime import datetime
 
@@ -172,17 +173,17 @@ class TestSeriesPlots(TestPlotBase):
             masked = ax.lines[0].get_ydata()
             # remove nan for comparison purpose
             exp = np.array([1, 2, 3], dtype=np.float64)
-            self.assert_numpy_array_equal(np.delete(masked.data, 2), exp)
-            self.assert_numpy_array_equal(
+            tm.assert_numpy_array_equal(np.delete(masked.data, 2), exp)
+            tm.assert_numpy_array_equal(
                 masked.mask, np.array([False, False, True, False]))
 
             expected = np.array([1, 2, 0, 3], dtype=np.float64)
             ax = _check_plot_works(d.plot, stacked=True)
-            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
             ax = _check_plot_works(d.plot.area)
-            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
             ax = _check_plot_works(d.plot.area, stacked=False)
-            self.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
+            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
 
     def test_line_use_index_false(self):
         s = Series([1, 2, 3], index=['a', 'b', 'c'])
@@ -297,7 +298,7 @@ class TestSeriesPlots(TestPlotBase):
             self.assertEqual(t.get_fontsize(), 7)
 
         # includes negative value
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             series = Series([1, 2, 0, 4, -1], index=['a', 'b', 'c', 'd', 'e'])
             series.plot.pie()
 
@@ -356,7 +357,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.hist, figure=fig, ax=ax1)
         _check_plot_works(self.ts.hist, figure=fig, ax=ax2)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.ts.hist(by=self.ts.index, figure=fig)
 
     @slow
@@ -368,10 +369,10 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_hist_layout(self):
         df = self.hist_df
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.height.hist(layout=(1, 1))
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.height.hist(layout=[1, 1])
 
     @slow
@@ -530,7 +531,7 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(randn(2))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             x.plot(style='k--', color='k')
 
     @slow
@@ -636,7 +637,7 @@ class TestSeriesPlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 s.plot(kind=kind)
 
     @slow
@@ -652,12 +653,12 @@ class TestSeriesPlots(TestPlotBase):
         for kind in plotting._core._common_kinds:
             if not _ok_for_gaussian_kde(kind):
                 continue
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 s.plot(kind=kind)
 
     def test_invalid_kind(self):
         s = Series([1, 2])
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.plot(kind='aasdf')
 
     @slow
@@ -704,12 +705,12 @@ class TestSeriesPlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=1)
 
         # check incorrect lengths and types
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.plot(yerr=np.arange(11))
 
         s_err = ['zzz'] * 10
         # in mpl 1.5+ this is a TypeError
-        with tm.assertRaises((ValueError, TypeError)):
+        with pytest.raises((ValueError, TypeError)):
             s.plot(yerr=s_err)
 
     def test_table(self):

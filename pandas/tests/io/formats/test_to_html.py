@@ -1423,10 +1423,10 @@ class TestToHTML(tm.TestCase):
 
         buf = StringIO()
         retval = biggie.to_html(buf=buf)
-        self.assertIsNone(retval)
+        assert retval is None
         self.assertEqual(buf.getvalue(), s)
 
-        tm.assertIsInstance(s, compat.string_types)
+        assert isinstance(s, compat.string_types)
 
         biggie.to_html(columns=['B', 'A'], col_space=17)
         biggie.to_html(columns=['B', 'A'],
@@ -1466,7 +1466,7 @@ class TestToHTML(tm.TestCase):
     def test_to_html_columns_arg(self):
         frame = DataFrame(tm.getSeriesData())
         result = frame.to_html(columns=['A'])
-        self.assertNotIn('<th>B</th>', result)
+        assert '<th>B</th>' not in result
 
     def test_to_html_multiindex(self):
         columns = MultiIndex.from_tuples(list(zip(np.arange(2).repeat(2),
@@ -1660,7 +1660,7 @@ class TestToHTML(tm.TestCase):
                                '    </tr>\n'
                                '  </tbody>\n'
                                '</table>')
-        self.assertEqual(df.to_html(), expected_with_index)
+        assert df.to_html() == expected_with_index
 
         expected_without_index = ('<table border="1" class="dataframe">\n'
                                   '  <thead>\n'
@@ -1690,8 +1690,8 @@ class TestToHTML(tm.TestCase):
                                   '</table>')
         result = df.to_html(index=False)
         for i in index:
-            self.assertNotIn(i, result)
-        self.assertEqual(result, expected_without_index)
+            assert i not in result
+        assert result == expected_without_index
         df.index = Index(['foo', 'bar', 'baz'], name='idx')
         expected_with_index = ('<table border="1" class="dataframe">\n'
                                '  <thead>\n'
@@ -1729,8 +1729,8 @@ class TestToHTML(tm.TestCase):
                                '    </tr>\n'
                                '  </tbody>\n'
                                '</table>')
-        self.assertEqual(df.to_html(), expected_with_index)
-        self.assertEqual(df.to_html(index=False), expected_without_index)
+        assert df.to_html() == expected_with_index
+        assert df.to_html(index=False) == expected_without_index
 
         tuples = [('foo', 'car'), ('foo', 'bike'), ('bar', 'car')]
         df.index = MultiIndex.from_tuples(tuples)
@@ -1768,13 +1768,13 @@ class TestToHTML(tm.TestCase):
                                '    </tr>\n'
                                '  </tbody>\n'
                                '</table>')
-        self.assertEqual(df.to_html(), expected_with_index)
+        assert df.to_html() == expected_with_index
 
         result = df.to_html(index=False)
         for i in ['foo', 'bar', 'car', 'bike']:
-            self.assertNotIn(i, result)
+            assert i not in result
         # must be the same result as normal index
-        self.assertEqual(result, expected_without_index)
+        assert result == expected_without_index
 
         df.index = MultiIndex.from_tuples(tuples, names=['idx1', 'idx2'])
         expected_with_index = ('<table border="1" class="dataframe">\n'
@@ -1817,8 +1817,8 @@ class TestToHTML(tm.TestCase):
                                '    </tr>\n'
                                '  </tbody>\n'
                                '</table>')
-        self.assertEqual(df.to_html(), expected_with_index)
-        self.assertEqual(df.to_html(index=False), expected_without_index)
+        assert df.to_html() == expected_with_index
+        assert df.to_html(index=False) == expected_without_index
 
     def test_to_html_with_classes(self):
         df = DataFrame()
@@ -1859,3 +1859,13 @@ class TestToHTML(tm.TestCase):
           </tbody>
         </table>""")
         self.assertEqual(result, expected)
+
+    def test_to_html_notebook_has_style(self):
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        result = df.to_html(notebook=True)
+        assert "thead tr:only-child" in result
+
+    def test_to_html_notebook_has_no_style(self):
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        result = df.to_html()
+        assert "thead tr:only-child" not in result

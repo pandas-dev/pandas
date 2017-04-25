@@ -2,6 +2,8 @@
 
 """ Test cases for misc plot functions """
 
+import pytest
+
 from pandas import Series, DataFrame
 from pandas.compat import lmap
 import pandas.util.testing as tm
@@ -243,7 +245,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
-        from pandas.tools.plotting import parallel_coordinates
+        from pandas.plotting import parallel_coordinates
 
         df = DataFrame({"feat": [i for i in range(30)],
                         "class": [2 for _ in range(10)] +
@@ -310,14 +312,14 @@ class TestDataFramePlots(TestPlotBase):
         self.assertEqual([p.get_title() for p in plot], title)
 
         # Case len(title) > len(df)
-        self.assertRaises(ValueError, df.plot, subplots=True,
-                          title=title + ["kittens > puppies"])
+        pytest.raises(ValueError, df.plot, subplots=True,
+                      title=title + ["kittens > puppies"])
 
         # Case len(title) < len(df)
-        self.assertRaises(ValueError, df.plot, subplots=True, title=title[:2])
+        pytest.raises(ValueError, df.plot, subplots=True, title=title[:2])
 
         # Case subplots=False and title is of type list
-        self.assertRaises(ValueError, df.plot, subplots=False, title=title)
+        pytest.raises(ValueError, df.plot, subplots=False, title=title)
 
         # Case df with 3 numeric columns but layout of (2,2)
         plot = df.drop('SepalWidth', axis=1).plot(subplots=True, layout=(2, 2),

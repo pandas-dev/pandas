@@ -8,7 +8,7 @@ import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.errors import PerformanceWarning
-from pandas.tseries.index import cdate_range
+from pandas.core.indexes.datetimes import cdate_range
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp, Timedelta,
                     date_range, TimedeltaIndex, _np_version_under1p10, Index,
                     datetime, Float64Index, offsets, bdate_range)
@@ -41,14 +41,14 @@ class TestDatetimeIndexOps(Ops):
         # sanity check that the behavior didn't change
         # GH7206
         for op in ['year', 'day', 'second', 'weekday']:
-            self.assertRaises(TypeError, lambda x: getattr(self.dt_series, op))
+            pytest.raises(TypeError, lambda x: getattr(self.dt_series, op))
 
         # attribute access should still work!
         s = Series(dict(year=2000, month=1, day=10))
         self.assertEqual(s.year, 2000)
         self.assertEqual(s.month, 1)
         self.assertEqual(s.day, 10)
-        self.assertRaises(AttributeError, lambda: s.weekday)
+        pytest.raises(AttributeError, lambda: s.weekday)
 
     def test_asobject_tolist(self):
         idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
@@ -62,7 +62,7 @@ class TestDatetimeIndexOps(Ops):
         self.assertTrue(isinstance(result, Index))
 
         self.assertEqual(result.dtype, object)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -76,7 +76,7 @@ class TestDatetimeIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -89,7 +89,7 @@ class TestDatetimeIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -197,7 +197,7 @@ class TestDatetimeIndexOps(Ops):
         rng = date_range('1/1/2000', '1/1/2001')
 
         result = rng.repeat(5)
-        self.assertIsNone(result.freq)
+        assert result.freq is None
         self.assertEqual(len(result), 5 * len(rng))
 
         for tz in self.tz:
@@ -206,14 +206,14 @@ class TestDatetimeIndexOps(Ops):
                                     '2001-01-02', '2001-01-02'], tz=tz)
             for res in [index.repeat(2), np.repeat(index, 2)]:
                 tm.assert_index_equal(res, exp)
-                self.assertIsNone(res.freq)
+                assert res.freq is None
 
             index = pd.date_range('2001-01-01', periods=2, freq='2D', tz=tz)
             exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01',
                                     '2001-01-03', '2001-01-03'], tz=tz)
             for res in [index.repeat(2), np.repeat(index, 2)]:
                 tm.assert_index_equal(res, exp)
-                self.assertIsNone(res.freq)
+                assert res.freq is None
 
             index = pd.DatetimeIndex(['2001-01-01', 'NaT', '2003-01-01'],
                                      tz=tz)
@@ -223,7 +223,7 @@ class TestDatetimeIndexOps(Ops):
                                    tz=tz)
             for res in [index.repeat(3), np.repeat(index, 3)]:
                 tm.assert_index_equal(res, exp)
-                self.assertIsNone(res.freq)
+                assert res.freq is None
 
     def test_repeat(self):
         reps = 2
@@ -242,7 +242,7 @@ class TestDatetimeIndexOps(Ops):
 
             res = rng.repeat(reps)
             tm.assert_index_equal(res, expected_rng)
-            self.assertIsNone(res.freq)
+            assert res.freq is None
 
             tm.assert_index_equal(np.repeat(rng, reps), expected_rng)
             tm.assertRaisesRegexp(ValueError, msg, np.repeat,
@@ -446,16 +446,16 @@ Freq: D"""
         dti = date_range('20130101', periods=3)
         dti_tz = date_range('20130101', periods=3).tz_localize('US/Eastern')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti + dti
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti_tz + dti_tz
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti_tz + dti
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti + dti_tz
 
     def test_difference(self):
@@ -521,13 +521,13 @@ Freq: D"""
         result = dti_tz - dti_tz
         tm.assert_index_equal(result, expected)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti_tz - dti
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti - dti_tz
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             dti_tz - dti_tz2
 
         # isub
@@ -537,7 +537,7 @@ Freq: D"""
         # different length raises ValueError
         dti1 = date_range('20130101', periods=3)
         dti2 = date_range('20130101', periods=4)
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             dti1 - dti2
 
         # NaN propagation
@@ -555,10 +555,10 @@ Freq: D"""
         for freq in [None, 'D']:
             idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=freq)
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 idx - p
 
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 p - idx
 
     def test_comp_nat(self):
@@ -632,7 +632,7 @@ Freq: D"""
         for idx in map(DatetimeIndex,
                        ([0, 1, 0], [0, 0, -1], [0, -1, -1],
                         ['2015', '2015', '2016'], ['2015', '2015', '2014'])):
-            tm.assertIn(idx[0], idx)
+            assert idx[0] in idx
 
     def test_order(self):
         # with freq
@@ -644,31 +644,30 @@ Freq: D"""
 
         for idx in [idx1, idx2]:
             ordered = idx.sort_values()
-            self.assert_index_equal(ordered, idx)
-            self.assertEqual(ordered.freq, idx.freq)
+            tm.assert_index_equal(ordered, idx)
+            assert ordered.freq == idx.freq
 
             ordered = idx.sort_values(ascending=False)
             expected = idx[::-1]
-            self.assert_index_equal(ordered, expected)
-            self.assertEqual(ordered.freq, expected.freq)
-            self.assertEqual(ordered.freq.n, -1)
+            tm.assert_index_equal(ordered, expected)
+            assert ordered.freq == expected.freq
+            assert ordered.freq.n == -1
 
             ordered, indexer = idx.sort_values(return_indexer=True)
-            self.assert_index_equal(ordered, idx)
-            self.assert_numpy_array_equal(indexer,
-                                          np.array([0, 1, 2]),
-                                          check_dtype=False)
-            self.assertEqual(ordered.freq, idx.freq)
+            tm.assert_index_equal(ordered, idx)
+            tm.assert_numpy_array_equal(indexer, np.array([0, 1, 2]),
+                                        check_dtype=False)
+            assert ordered.freq == idx.freq
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
             expected = idx[::-1]
-            self.assert_index_equal(ordered, expected)
-            self.assert_numpy_array_equal(indexer,
-                                          np.array([2, 1, 0]),
-                                          check_dtype=False)
-            self.assertEqual(ordered.freq, expected.freq)
-            self.assertEqual(ordered.freq.n, -1)
+            tm.assert_index_equal(ordered, expected)
+            tm.assert_numpy_array_equal(indexer,
+                                        np.array([2, 1, 0]),
+                                        check_dtype=False)
+            assert ordered.freq == expected.freq
+            assert ordered.freq.n == -1
 
         # without freq
         for tz in self.tz:
@@ -694,27 +693,27 @@ Freq: D"""
 
             for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
                 ordered = idx.sort_values()
-                self.assert_index_equal(ordered, expected)
-                self.assertIsNone(ordered.freq)
+                tm.assert_index_equal(ordered, expected)
+                assert ordered.freq is None
 
                 ordered = idx.sort_values(ascending=False)
-                self.assert_index_equal(ordered, expected[::-1])
-                self.assertIsNone(ordered.freq)
+                tm.assert_index_equal(ordered, expected[::-1])
+                assert ordered.freq is None
 
                 ordered, indexer = idx.sort_values(return_indexer=True)
-                self.assert_index_equal(ordered, expected)
+                tm.assert_index_equal(ordered, expected)
 
                 exp = np.array([0, 4, 3, 1, 2])
-                self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
-                self.assertIsNone(ordered.freq)
+                tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+                assert ordered.freq is None
 
                 ordered, indexer = idx.sort_values(return_indexer=True,
                                                    ascending=False)
-                self.assert_index_equal(ordered, expected[::-1])
+                tm.assert_index_equal(ordered, expected[::-1])
 
                 exp = np.array([2, 1, 3, 4, 0])
-                self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
-                self.assertIsNone(ordered.freq)
+                tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+                assert ordered.freq is None
 
     def test_getitem(self):
         idx1 = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
@@ -728,40 +727,40 @@ Freq: D"""
             result = idx[0:5]
             expected = pd.date_range('2011-01-01', '2011-01-05', freq='D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx[0:10:2]
             expected = pd.date_range('2011-01-01', '2011-01-09', freq='2D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx[-20:-5:3]
             expected = pd.date_range('2011-01-12', '2011-01-24', freq='3D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx[4::-1]
             expected = DatetimeIndex(['2011-01-05', '2011-01-04', '2011-01-03',
                                       '2011-01-02', '2011-01-01'],
                                      freq='-1D', tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
     def test_drop_duplicates_metadata(self):
         # GH 10115
         idx = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
         result = idx.drop_duplicates()
-        self.assert_index_equal(idx, result)
+        tm.assert_index_equal(idx, result)
         self.assertEqual(idx.freq, result.freq)
 
         idx_dup = idx.append(idx)
-        self.assertIsNone(idx_dup.freq)  # freq is reset
+        assert idx_dup.freq is None  # freq is reset
         result = idx_dup.drop_duplicates()
-        self.assert_index_equal(idx, result)
-        self.assertIsNone(result.freq)
+        tm.assert_index_equal(idx, result)
+        assert result.freq is None
 
     def test_drop_duplicates(self):
         # to check Index/Series compat
@@ -797,34 +796,34 @@ Freq: D"""
             result = idx.take([0, 1, 2])
             expected = pd.date_range('2011-01-01', '2011-01-03', freq='D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.take([0, 2, 4])
             expected = pd.date_range('2011-01-01', '2011-01-05', freq='2D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.take([7, 4, 1])
             expected = pd.date_range('2011-01-08', '2011-01-02', freq='-3D',
                                      tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.take([3, 2, 5])
             expected = DatetimeIndex(['2011-01-04', '2011-01-03',
                                       '2011-01-06'],
                                      freq=None, tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertIsNone(result.freq)
+            tm.assert_index_equal(result, expected)
+            assert result.freq is None
 
             result = idx.take([-3, 2, 5])
             expected = DatetimeIndex(['2011-01-29', '2011-01-03',
                                       '2011-01-06'],
                                      freq=None, tz=idx.tz, name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertIsNone(result.freq)
+            tm.assert_index_equal(result, expected)
+            assert result.freq is None
 
     def test_take_invalid_kwargs(self):
         idx = pd.date_range('2011-01-01', '2011-01-31', freq='D', name='idx')
@@ -880,8 +879,8 @@ Freq: D"""
             tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
 
     def test_nat(self):
-        self.assertIs(pd.DatetimeIndex._na_value, pd.NaT)
-        self.assertIs(pd.DatetimeIndex([])._na_value, pd.NaT)
+        assert pd.DatetimeIndex._na_value is pd.NaT
+        assert pd.DatetimeIndex([])._na_value is pd.NaT
 
         for tz in [None, 'US/Eastern', 'UTC']:
             idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], tz=tz)
@@ -939,7 +938,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                            2345901.5])
         r2 = date_range(start=Timestamp('1710-10-01'), periods=5,
                         freq='D').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_2000(self):
@@ -947,7 +946,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                            2451605.5])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='D').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_hour(self):
@@ -956,7 +955,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
              2451601.625, 2451601.6666666666666666])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='H').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_minute(self):
@@ -965,7 +964,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
              2451601.5020833333333333, 2451601.5027777777777777])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='T').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_second(self):
@@ -974,7 +973,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
              2451601.5000347222222222, 2451601.5000462962962962])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='S').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
 
@@ -1127,7 +1126,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
-        self.assert_index_equal(cp, self.rng)
+        tm.assert_index_equal(cp, self.rng)
 
     def test_repr(self):
         # only really care that it works
@@ -1136,7 +1135,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
     def test_getitem(self):
         smaller = self.rng[:5]
         exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
-        self.assert_index_equal(smaller, exp)
+        tm.assert_index_equal(smaller, exp)
 
         self.assertEqual(smaller.offset, self.rng.offset)
 
@@ -1145,8 +1144,8 @@ class TestBusinessDatetimeIndex(tm.TestCase):
 
         fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
         self.assertEqual(len(fancy_indexed), 5)
-        tm.assertIsInstance(fancy_indexed, DatetimeIndex)
-        self.assertIsNone(fancy_indexed.freq)
+        assert isinstance(fancy_indexed, DatetimeIndex)
+        assert fancy_indexed.freq is None
 
         # 32-bit vs. 64-bit platforms
         self.assertEqual(self.rng[4], self.rng[np.int_(4)])
@@ -1154,7 +1153,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
     def test_getitem_matplotlib_hackaround(self):
         values = self.rng[:, None]
         expected = self.rng.values[:, None]
-        self.assert_numpy_array_equal(values, expected)
+        tm.assert_numpy_array_equal(values, expected)
 
     def test_shift(self):
         shifted = self.rng.shift(5)
@@ -1223,7 +1222,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
     def test_copy(self):
         cp = self.rng.copy()
         repr(cp)
-        self.assert_index_equal(cp, self.rng)
+        tm.assert_index_equal(cp, self.rng)
 
     def test_repr(self):
         # only really care that it works
@@ -1232,7 +1231,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
     def test_getitem(self):
         smaller = self.rng[:5]
         exp = DatetimeIndex(self.rng.view(np.ndarray)[:5])
-        self.assert_index_equal(smaller, exp)
+        tm.assert_index_equal(smaller, exp)
         self.assertEqual(smaller.offset, self.rng.offset)
 
         sliced = self.rng[::5]
@@ -1240,8 +1239,8 @@ class TestCustomDatetimeIndex(tm.TestCase):
 
         fancy_indexed = self.rng[[4, 3, 2, 1, 0]]
         self.assertEqual(len(fancy_indexed), 5)
-        tm.assertIsInstance(fancy_indexed, DatetimeIndex)
-        self.assertIsNone(fancy_indexed.freq)
+        assert isinstance(fancy_indexed, DatetimeIndex)
+        assert fancy_indexed.freq is None
 
         # 32-bit vs. 64-bit platforms
         self.assertEqual(self.rng[4], self.rng[np.int_(4)])
@@ -1249,7 +1248,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
     def test_getitem_matplotlib_hackaround(self):
         values = self.rng[:, None]
         expected = self.rng.values[:, None]
-        self.assert_numpy_array_equal(values, expected)
+        tm.assert_numpy_array_equal(values, expected)
 
     def test_shift(self):
 

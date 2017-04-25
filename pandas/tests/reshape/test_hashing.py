@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import DataFrame, Series, Index, MultiIndex
-from pandas.tools.hashing import hash_array, hash_tuples, hash_pandas_object
+from pandas.util.hashing import hash_array, hash_tuples, hash_pandas_object
 import pandas.util.testing as tm
 
 
@@ -47,7 +47,7 @@ class TestHashing(tm.TestCase):
     def test_hash_array_errors(self):
 
         for val in [5, 'foo', pd.Timestamp('20130101')]:
-            self.assertRaises(TypeError, hash_array, val)
+            pytest.raises(TypeError, hash_array, val)
 
     def check_equal(self, obj, **kwargs):
         a = hash_pandas_object(obj, **kwargs)
@@ -73,7 +73,7 @@ class TestHashing(tm.TestCase):
         tups = [(1, 'one'), (1, 'two'), (2, 'one')]
         result = hash_tuples(tups)
         expected = hash_pandas_object(MultiIndex.from_tuples(tups)).values
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         result = hash_tuples(tups[0])
         self.assertEqual(result, expected[0])
@@ -81,7 +81,7 @@ class TestHashing(tm.TestCase):
     def test_hash_tuples_err(self):
 
         for val in [5, 'foo', pd.Timestamp('20130101')]:
-            self.assertRaises(TypeError, hash_tuples, val)
+            pytest.raises(TypeError, hash_tuples, val)
 
     def test_multiindex_unique(self):
         mi = MultiIndex.from_tuples([(118, 472), (236, 118),
@@ -221,7 +221,7 @@ class TestHashing(tm.TestCase):
         # this only matters for object dtypes
         def f():
             hash_pandas_object(Series(list('abc')), hash_key='foo')
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_alread_encoded(self):
         # if already encoded then ok
@@ -258,12 +258,12 @@ class TestHashing(tm.TestCase):
         # these should be different!
         result1 = hash_array(np.asarray(L[0:1], dtype=object), 'utf8')
         expected1 = np.array([14963968704024874985], dtype=np.uint64)
-        self.assert_numpy_array_equal(result1, expected1)
+        tm.assert_numpy_array_equal(result1, expected1)
 
         result2 = hash_array(np.asarray(L[1:2], dtype=object), 'utf8')
         expected2 = np.array([16428432627716348016], dtype=np.uint64)
-        self.assert_numpy_array_equal(result2, expected2)
+        tm.assert_numpy_array_equal(result2, expected2)
 
         result = hash_array(np.asarray(L, dtype=object), 'utf8')
-        self.assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             result, np.concatenate([expected1, expected2], axis=0))

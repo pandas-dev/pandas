@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import csv
+import pytest
 
 from numpy import nan
 import numpy as np
@@ -94,8 +95,8 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
             assert_frame_equal(xp, rs)
 
-            self.assertRaises(ValueError, self.frame2.to_csv, path,
-                              header=['AA', 'X'])
+            pytest.raises(ValueError, self.frame2.to_csv, path,
+                          header=['AA', 'X'])
 
     def test_to_csv_from_csv3(self):
 
@@ -603,7 +604,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             exp = tsframe[:0]
             exp.index = []
 
-            self.assert_index_equal(recons.columns, exp.columns)
+            tm.assert_index_equal(recons.columns, exp.columns)
             self.assertEqual(len(recons), 0)
 
     def test_to_csv_float32_nanrep(self):
@@ -883,7 +884,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         # Make sure we return string for consistency with
         # Series.to_csv()
         csv_str = self.frame.to_csv(path_or_buf=None)
-        self.assertIsInstance(csv_str, str)
+        assert isinstance(csv_str, str)
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
@@ -908,7 +909,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             text = f.read().decode('utf8')
             f.close()
             for col in df.columns:
-                self.assertIn(col, text)
+                assert col in text
 
     def test_to_csv_compression_bz2(self):
         # GH7615
@@ -931,7 +932,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             text = f.read().decode('utf8')
             f.close()
             for col in df.columns:
-                self.assertIn(col, text)
+                assert col in text
 
     def test_to_csv_compression_xz(self):
         # GH11852
@@ -965,8 +966,8 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         with ensure_clean() as filename:
             # zip compression is not supported and should raise ValueError
             import zipfile
-            self.assertRaises(zipfile.BadZipfile, df.to_csv,
-                              filename, compression="zip")
+            pytest.raises(zipfile.BadZipfile, df.to_csv,
+                          filename, compression="zip")
 
     def test_to_csv_date_format(self):
         with ensure_clean('__tmp_to_csv_date_format__') as path:

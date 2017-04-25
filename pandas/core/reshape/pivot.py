@@ -170,7 +170,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                              margins_name=margins_name)
 
     # discard the top level
-    if values_passed and not values_multi and not table.empty:
+    if values_passed and not values_multi and not table.empty and \
+       (table.columns.nlevels > 1):
         table = table[values[0]]
 
     if len(index) == 0 and len(columns) > 0:

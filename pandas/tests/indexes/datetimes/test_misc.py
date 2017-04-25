@@ -1,5 +1,6 @@
-import numpy as np
+import pytest
 
+import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (Index, DatetimeIndex, datetime, offsets,
@@ -13,7 +14,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                            2345901.5])
         r2 = date_range(start=Timestamp('1710-10-01'), periods=5,
                         freq='D').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_2000(self):
@@ -21,7 +22,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
                            2451605.5])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='D').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_hour(self):
@@ -30,7 +31,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
              2451601.625, 2451601.6666666666666666])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='H').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_minute(self):
@@ -39,7 +40,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
              2451601.5020833333333333, 2451601.5027777777777777])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='T').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
     def test_second(self):
@@ -48,7 +49,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
              2451601.5000347222222222, 2451601.5000462962962962])
         r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
                         freq='S').to_julian_date()
-        self.assertIsInstance(r2, Float64Index)
+        assert isinstance(r2, Float64Index)
         tm.assert_index_equal(r1, r2)
 
 
@@ -61,7 +62,7 @@ class TestTimeSeries(tm.TestCase):
 
         expected = Index(rng.to_pydatetime(), dtype=object)
 
-        self.assert_numpy_array_equal(idx.values, expected.values)
+        tm.assert_numpy_array_equal(idx.values, expected.values)
 
     def test_range_edges(self):
         # GH 13672
@@ -291,7 +292,7 @@ class TestDatetime64(tm.TestCase):
         # CBD requires np >= 1.7
         bday_egypt = offsets.CustomBusinessDay(weekmask='Sun Mon Tue Wed Thu')
         dti = date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
-        self.assertRaises(ValueError, lambda: dti.is_month_start)
+        pytest.raises(ValueError, lambda: dti.is_month_start)
 
         dti = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
 
@@ -337,5 +338,5 @@ class TestDatetime64(tm.TestCase):
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
 
-        self.assert_index_equal(dti.nanosecond,
-                                pd.Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(dti.nanosecond,
+                              pd.Index(np.arange(10, dtype=np.int64)))

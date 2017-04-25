@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from collections import Iterable
 from datetime import datetime, timedelta
 import operator
@@ -13,8 +15,8 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, isnull, bdate_range,
                     NaT, date_range, timedelta_range,
                     _np_version_under1p8)
-from pandas.tseries.index import Timestamp
-from pandas.tseries.tdi import Timedelta
+from pandas.core.indexes.datetimes import Timestamp
+from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
 
 from pandas.compat import range, zip
@@ -34,12 +36,12 @@ class TestSeriesOperators(TestData, tm.TestCase):
         val = datetime(2000, 1, 4)
         result = series > val
         expected = Series([x > val for x in series])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         val = series[5]
         result = series > val
         expected = Series([x > val for x in series])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_comparisons(self):
         left = np.random.randn(10)
@@ -246,12 +248,12 @@ class TestSeriesOperators(TestData, tm.TestCase):
     def test_operators_timedelta64(self):
 
         # invalid ops
-        self.assertRaises(Exception, self.objSeries.__add__, 1)
-        self.assertRaises(Exception, self.objSeries.__add__,
-                          np.array(1, dtype=np.int64))
-        self.assertRaises(Exception, self.objSeries.__sub__, 1)
-        self.assertRaises(Exception, self.objSeries.__sub__,
-                          np.array(1, dtype=np.int64))
+        pytest.raises(Exception, self.objSeries.__add__, 1)
+        pytest.raises(Exception, self.objSeries.__add__,
+                      np.array(1, dtype=np.int64))
+        pytest.raises(Exception, self.objSeries.__sub__, 1)
+        pytest.raises(Exception, self.objSeries.__sub__,
+                      np.array(1, dtype=np.int64))
 
         # seriese ops
         v1 = date_range('2012-1-1', periods=3, freq='D')
@@ -275,7 +277,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         # scalar Timestamp on rhs
         maxa = df['A'].max()
-        tm.assertIsInstance(maxa, Timestamp)
+        assert isinstance(maxa, Timestamp)
 
         resultb = df['A'] - df['A'].max()
         self.assertEqual(resultb.dtype, 'timedelta64[ns]')
@@ -325,13 +327,13 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # GH 13006
         result = np.float64(0) > pd.Series([1, 2, 3])
         expected = 0.0 > pd.Series([1, 2, 3])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         result = pd.Series([1, 2, 3]) < np.float64(0)
         expected = pd.Series([1, 2, 3]) < 0.0
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         result = np.array([0, 1, 2])[0] > pd.Series([0, 1, 2])
         expected = 0.0 > pd.Series([1, 2, 3])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_timedeltas_with_DateOffset(self):
 
@@ -530,8 +532,8 @@ class TestSeriesOperators(TestData, tm.TestCase):
         for op in ['__add__', '__sub__']:
             sop = getattr(s1, op, None)
             if sop is not None:
-                self.assertRaises(TypeError, sop, 1)
-                self.assertRaises(TypeError, sop, s2.values)
+                pytest.raises(TypeError, sop, 1)
+                pytest.raises(TypeError, sop, s2.values)
 
     def test_timedelta64_conversions(self):
         startdate = Series(date_range('2013-01-01', '2013-01-03'))
@@ -562,11 +564,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # astype
         s = Series(date_range('20130101', periods=3))
         result = s.astype(object)
-        self.assertIsInstance(result.iloc[0], datetime)
+        assert isinstance(result.iloc[0], datetime)
         self.assertTrue(result.dtype == np.object_)
 
         result = s1.astype(object)
-        self.assertIsInstance(result.iloc[0], timedelta)
+        assert isinstance(result.iloc[0], timedelta)
         self.assertTrue(result.dtype == np.object_)
 
     def test_timedelta64_equal_timedelta_supported_ops(self):
@@ -696,12 +698,12 @@ class TestSeriesOperators(TestData, tm.TestCase):
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
         assert_series_equal(result, exp)
-        self.assertRaises(TypeError, lambda: td1[0] - dt1)
+        pytest.raises(TypeError, lambda: td1[0] - dt1)
 
         result = dt2 - td2[0]
         exp = (dt2.dt.tz_localize(None) - td2[0]).dt.tz_localize(tz)
         assert_series_equal(result, exp)
-        self.assertRaises(TypeError, lambda: td2[0] - dt2)
+        pytest.raises(TypeError, lambda: td2[0] - dt2)
 
         result = dt1 + td1
         exp = (dt1.dt.tz_localize(None) + td1).dt.tz_localize(tz)
@@ -719,8 +721,8 @@ class TestSeriesOperators(TestData, tm.TestCase):
         exp = (dt2.dt.tz_localize(None) - td2).dt.tz_localize(tz)
         assert_series_equal(result, exp)
 
-        self.assertRaises(TypeError, lambda: td1 - dt1)
-        self.assertRaises(TypeError, lambda: td2 - dt2)
+        pytest.raises(TypeError, lambda: td1 - dt1)
+        pytest.raises(TypeError, lambda: td2 - dt2)
 
     def test_sub_datetime_compat(self):
         # GH 14088
@@ -768,7 +770,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         assert_series_equal(datetime_series - single_nat_dtype_datetime,
                             nat_series_dtype_timedelta)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             -single_nat_dtype_datetime + datetime_series
 
         assert_series_equal(datetime_series - single_nat_dtype_timedelta,
@@ -787,7 +789,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         assert_series_equal(nat_series_dtype_timestamp -
                             single_nat_dtype_datetime,
                             nat_series_dtype_timedelta)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             -single_nat_dtype_datetime + nat_series_dtype_timestamp
 
         assert_series_equal(nat_series_dtype_timestamp -
@@ -797,7 +799,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
                             nat_series_dtype_timestamp,
                             nat_series_dtype_timestamp)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             timedelta_series - single_nat_dtype_datetime
 
         # addition
@@ -881,13 +883,13 @@ class TestSeriesOperators(TestData, tm.TestCase):
         assert_series_equal(timedelta_series * nan, nat_series_dtype_timedelta)
         assert_series_equal(nan * timedelta_series, nat_series_dtype_timedelta)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             datetime_series * 1
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             nat_series_dtype_timestamp * 1
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             datetime_series * 1.0
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             nat_series_dtype_timestamp * 1.0
 
         # division
@@ -896,9 +898,9 @@ class TestSeriesOperators(TestData, tm.TestCase):
         assert_series_equal(timedelta_series / 2.0,
                             Series([NaT, Timedelta('0.5s')]))
         assert_series_equal(timedelta_series / nan, nat_series_dtype_timedelta)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             nat_series_dtype_timestamp / 1.0
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             nat_series_dtype_timestamp / 1
 
     def test_ops_datetimelike_align(self):
@@ -1030,12 +1032,12 @@ class TestSeriesOperators(TestData, tm.TestCase):
         s2 = Series(date_range('20010101', periods=5))
 
         for (x, y) in [(s, s2), (s2, s)]:
-            self.assertRaises(TypeError, lambda: x == y)
-            self.assertRaises(TypeError, lambda: x != y)
-            self.assertRaises(TypeError, lambda: x >= y)
-            self.assertRaises(TypeError, lambda: x > y)
-            self.assertRaises(TypeError, lambda: x < y)
-            self.assertRaises(TypeError, lambda: x <= y)
+            pytest.raises(TypeError, lambda: x == y)
+            pytest.raises(TypeError, lambda: x != y)
+            pytest.raises(TypeError, lambda: x >= y)
+            pytest.raises(TypeError, lambda: x > y)
+            pytest.raises(TypeError, lambda: x < y)
+            pytest.raises(TypeError, lambda: x <= y)
 
     def test_more_na_comparisons(self):
         for dtype in [None, object]:
@@ -1133,11 +1135,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
     def test_comparison_different_length(self):
         a = Series(['a', 'b', 'c'])
         b = Series(['b', 'a'])
-        self.assertRaises(ValueError, a.__lt__, b)
+        pytest.raises(ValueError, a.__lt__, b)
 
         a = Series([1, 2])
         b = Series([2, 3, 4])
-        self.assertRaises(ValueError, a.__eq__, b)
+        pytest.raises(ValueError, a.__eq__, b)
 
     def test_comparison_label_based(self):
 
@@ -1216,7 +1218,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
             assert_series_equal(result, expected)
 
         for v in [np.nan, 'foo']:
-            self.assertRaises(TypeError, lambda: t | v)
+            pytest.raises(TypeError, lambda: t | v)
 
         for v in [False, 0]:
             result = Series([True, False, True], index=index) | v
@@ -1233,7 +1235,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
             expected = Series([False, False, False], index=index)
             assert_series_equal(result, expected)
         for v in [np.nan]:
-            self.assertRaises(TypeError, lambda: t & v)
+            pytest.raises(TypeError, lambda: t & v)
 
     def test_comparison_flex_basic(self):
         left = pd.Series(np.random.randn(10))
@@ -1311,13 +1313,13 @@ class TestSeriesOperators(TestData, tm.TestCase):
         const = 2
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             result = getattr(s, op)(const).get_dtype_counts()
-            self.assert_series_equal(result, Series([1], ['bool']))
+            tm.assert_series_equal(result, Series([1], ['bool']))
 
         # empty Series
         empty = s.iloc[:0]
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             result = getattr(empty, op)(const).get_dtype_counts()
-            self.assert_series_equal(result, Series([1], ['bool']))
+            tm.assert_series_equal(result, Series([1], ['bool']))
 
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
@@ -1388,11 +1390,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
         expected = Series([1, 1, 3, 3], dtype='int32')
         assert_series_equal(res, expected)
 
-        self.assertRaises(TypeError, lambda: s_1111 & 'a')
-        self.assertRaises(TypeError, lambda: s_1111 & ['a', 'b', 'c', 'd'])
-        self.assertRaises(TypeError, lambda: s_0123 & np.NaN)
-        self.assertRaises(TypeError, lambda: s_0123 & 3.14)
-        self.assertRaises(TypeError, lambda: s_0123 & [0.1, 4, 3.14, 2])
+        pytest.raises(TypeError, lambda: s_1111 & 'a')
+        pytest.raises(TypeError, lambda: s_1111 & ['a', 'b', 'c', 'd'])
+        pytest.raises(TypeError, lambda: s_0123 & np.NaN)
+        pytest.raises(TypeError, lambda: s_0123 & 3.14)
+        pytest.raises(TypeError, lambda: s_0123 & [0.1, 4, 3.14, 2])
 
         # s_0123 will be all false now because of reindexing like s_tft
         if compat.PY3:
@@ -1435,7 +1437,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         def tester(a, b):
             return a & b
 
-        self.assertRaises(TypeError, tester, s, datetime(2005, 1, 1))
+        pytest.raises(TypeError, tester, s, datetime(2005, 1, 1))
 
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
         s[::2] = np.nan
@@ -1452,8 +1454,8 @@ class TestSeriesOperators(TestData, tm.TestCase):
         # this is an alignment issue; these are equivalent
         # https://github.com/pandas-dev/pandas/issues/5284
 
-        self.assertRaises(ValueError, lambda: d.__and__(s, axis='columns'))
-        self.assertRaises(ValueError, tester, s, d)
+        pytest.raises(ValueError, lambda: d.__and__(s, axis='columns'))
+        pytest.raises(ValueError, tester, s, d)
 
         # this is wrong as its not a boolean result
         # result = d.__and__(s,axis='index')
@@ -1480,7 +1482,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         added = self.ts + int_ts
         expected = Series(self.ts.values[:-5] + int_ts.values,
                           index=self.ts.index[:-5], name='ts')
-        self.assert_series_equal(added[:-5], expected)
+        tm.assert_series_equal(added[:-5], expected)
 
     def test_operators_reverse_object(self):
         # GH 56
@@ -1627,10 +1629,10 @@ class TestSeriesOperators(TestData, tm.TestCase):
         assert_frame_equal(result, expected)
 
         # really raise this time
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             datetime.now() + self.ts
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.ts + datetime.now()
 
     def test_series_radd_more(self):
@@ -1643,7 +1645,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         for d in data:
             for dtype in [None, object]:
                 s = Series(d, dtype=dtype)
-                with tm.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     'foo_' + s
 
         for dtype in [None, object]:
@@ -1680,7 +1682,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         for d in data:
             for dtype in [None, object]:
                 s = DataFrame(d, dtype=dtype)
-                with tm.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     'foo_' + s
 
         for dtype in [None, object]:

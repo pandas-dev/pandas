@@ -1,10 +1,12 @@
+import pytest
+
 import numpy as np
 from datetime import timedelta
 
 import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
-import pandas.tseries.period as period
+import pandas.core.indexes.period as period
 from pandas import (DatetimeIndex, PeriodIndex, period_range, Series, Period,
                     _np_version_under1p10, Index, Timedelta, offsets)
 
@@ -37,7 +39,7 @@ class TestPeriodIndexOps(Ops):
         result = idx.asobject
         self.assertTrue(isinstance(result, Index))
         self.assertEqual(result.dtype, object)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
         self.assertEqual(idx.tolist(), expected_list)
 
@@ -54,13 +56,13 @@ class TestPeriodIndexOps(Ops):
         tm.assert_index_equal(result, expected)
         for i in [0, 1, 3]:
             self.assertEqual(result[i], expected[i])
-        self.assertIs(result[2], pd.NaT)
+        assert result[2] is pd.NaT
         self.assertEqual(result.name, expected.name)
 
         result_list = idx.tolist()
         for i in [0, 1, 3]:
             self.assertEqual(result_list[i], expected_list[i])
-        self.assertIs(result_list[2], pd.NaT)
+        assert result_list[2] is pd.NaT
 
     def test_minmax(self):
 
@@ -86,15 +88,15 @@ class TestPeriodIndexOps(Ops):
             # Return NaT
             obj = PeriodIndex([], freq='M')
             result = getattr(obj, op)()
-            self.assertIs(result, tslib.NaT)
+            assert result is tslib.NaT
 
             obj = PeriodIndex([pd.NaT], freq='M')
             result = getattr(obj, op)()
-            self.assertIs(result, tslib.NaT)
+            assert result is tslib.NaT
 
             obj = PeriodIndex([pd.NaT, pd.NaT, pd.NaT], freq='M')
             result = getattr(obj, op)()
-            self.assertIs(result, tslib.NaT)
+            assert result is tslib.NaT
 
     def test_numpy_minmax(self):
         pr = pd.period_range(start='2016-01-15', end='2016-01-20')
@@ -287,10 +289,10 @@ Freq: Q-DEC"""
         other = pd.period_range('1/6/2000', freq='D', periods=5)
 
         # previously performed setop union, now raises TypeError (GH14164)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             rng + other
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             rng += other
 
         # offset
@@ -392,10 +394,10 @@ Freq: Q-DEC"""
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             rng - other
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             rng -= other
 
         # offset
@@ -554,12 +556,12 @@ Freq: Q-DEC"""
         # GH 10115
         idx = pd.period_range('2011-01-01', '2011-01-31', freq='D', name='idx')
         result = idx.drop_duplicates()
-        self.assert_index_equal(idx, result)
+        tm.assert_index_equal(idx, result)
         self.assertEqual(idx.freq, result.freq)
 
         idx_dup = idx.append(idx)  # freq will not be reset
         result = idx_dup.drop_duplicates()
-        self.assert_index_equal(idx, result)
+        tm.assert_index_equal(idx, result)
         self.assertEqual(idx.freq, result.freq)
 
     def test_drop_duplicates(self):
@@ -594,26 +596,24 @@ Freq: Q-DEC"""
         iidx = Index([2011, 2012, 2013], name='idx')
         for idx in [pidx, iidx]:
             ordered = idx.sort_values()
-            self.assert_index_equal(ordered, idx)
+            tm.assert_index_equal(ordered, idx)
             _check_freq(ordered, idx)
 
             ordered = idx.sort_values(ascending=False)
-            self.assert_index_equal(ordered, idx[::-1])
+            tm.assert_index_equal(ordered, idx[::-1])
             _check_freq(ordered, idx[::-1])
 
             ordered, indexer = idx.sort_values(return_indexer=True)
-            self.assert_index_equal(ordered, idx)
-            self.assert_numpy_array_equal(indexer,
-                                          np.array([0, 1, 2]),
-                                          check_dtype=False)
+            tm.assert_index_equal(ordered, idx)
+            tm.assert_numpy_array_equal(indexer, np.array([0, 1, 2]),
+                                        check_dtype=False)
             _check_freq(ordered, idx)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
-            self.assert_index_equal(ordered, idx[::-1])
-            self.assert_numpy_array_equal(indexer,
-                                          np.array([2, 1, 0]),
-                                          check_dtype=False)
+            tm.assert_index_equal(ordered, idx[::-1])
+            tm.assert_numpy_array_equal(indexer, np.array([2, 1, 0]),
+                                        check_dtype=False)
             _check_freq(ordered, idx[::-1])
 
         pidx = PeriodIndex(['2011', '2013', '2015', '2012',
@@ -625,27 +625,26 @@ Freq: Q-DEC"""
         iexpected = Index([2011, 2011, 2012, 2013, 2015], name='idx')
         for idx, expected in [(pidx, pexpected), (iidx, iexpected)]:
             ordered = idx.sort_values()
-            self.assert_index_equal(ordered, expected)
+            tm.assert_index_equal(ordered, expected)
             _check_freq(ordered, idx)
 
             ordered = idx.sort_values(ascending=False)
-            self.assert_index_equal(ordered, expected[::-1])
+            tm.assert_index_equal(ordered, expected[::-1])
             _check_freq(ordered, idx)
 
             ordered, indexer = idx.sort_values(return_indexer=True)
-            self.assert_index_equal(ordered, expected)
+            tm.assert_index_equal(ordered, expected)
 
             exp = np.array([0, 4, 3, 1, 2])
-            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+            tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             _check_freq(ordered, idx)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
-            self.assert_index_equal(ordered, expected[::-1])
+            tm.assert_index_equal(ordered, expected[::-1])
 
             exp = np.array([2, 1, 3, 4, 0])
-            self.assert_numpy_array_equal(indexer, exp,
-                                          check_dtype=False)
+            tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             _check_freq(ordered, idx)
 
         pidx = PeriodIndex(['2011', '2013', 'NaT', '2011'], name='pidx',
@@ -654,13 +653,13 @@ Freq: Q-DEC"""
         result = pidx.sort_values()
         expected = PeriodIndex(['NaT', '2011', '2011', '2013'],
                                name='pidx', freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.freq, 'D')
 
         result = pidx.sort_values(ascending=False)
         expected = PeriodIndex(
             ['2013', '2011', '2011', 'NaT'], name='pidx', freq='D')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         self.assertEqual(result.freq, 'D')
 
     def test_order(self):
@@ -669,30 +668,28 @@ Freq: Q-DEC"""
                               freq=freq, name='idx')
 
             ordered = idx.sort_values()
-            self.assert_index_equal(ordered, idx)
+            tm.assert_index_equal(ordered, idx)
             self.assertEqual(ordered.freq, idx.freq)
 
             ordered = idx.sort_values(ascending=False)
             expected = idx[::-1]
-            self.assert_index_equal(ordered, expected)
+            tm.assert_index_equal(ordered, expected)
             self.assertEqual(ordered.freq, expected.freq)
             self.assertEqual(ordered.freq, freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True)
-            self.assert_index_equal(ordered, idx)
-            self.assert_numpy_array_equal(indexer,
-                                          np.array([0, 1, 2]),
-                                          check_dtype=False)
+            tm.assert_index_equal(ordered, idx)
+            tm.assert_numpy_array_equal(indexer, np.array([0, 1, 2]),
+                                        check_dtype=False)
             self.assertEqual(ordered.freq, idx.freq)
             self.assertEqual(ordered.freq, freq)
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
             expected = idx[::-1]
-            self.assert_index_equal(ordered, expected)
-            self.assert_numpy_array_equal(indexer,
-                                          np.array([2, 1, 0]),
-                                          check_dtype=False)
+            tm.assert_index_equal(ordered, expected)
+            tm.assert_numpy_array_equal(indexer, np.array([2, 1, 0]),
+                                        check_dtype=False)
             self.assertEqual(ordered.freq, expected.freq)
             self.assertEqual(ordered.freq, freq)
 
@@ -715,26 +712,26 @@ Freq: Q-DEC"""
 
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
             ordered = idx.sort_values()
-            self.assert_index_equal(ordered, expected)
+            tm.assert_index_equal(ordered, expected)
             self.assertEqual(ordered.freq, 'D')
 
             ordered = idx.sort_values(ascending=False)
-            self.assert_index_equal(ordered, expected[::-1])
+            tm.assert_index_equal(ordered, expected[::-1])
             self.assertEqual(ordered.freq, 'D')
 
             ordered, indexer = idx.sort_values(return_indexer=True)
-            self.assert_index_equal(ordered, expected)
+            tm.assert_index_equal(ordered, expected)
 
             exp = np.array([0, 4, 3, 1, 2])
-            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+            tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertEqual(ordered.freq, 'D')
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
-            self.assert_index_equal(ordered, expected[::-1])
+            tm.assert_index_equal(ordered, expected[::-1])
 
             exp = np.array([2, 1, 3, 4, 0])
-            self.assert_numpy_array_equal(indexer, exp, check_dtype=False)
+            tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             self.assertEqual(ordered.freq, 'D')
 
     def test_nat_new(self):
@@ -752,7 +749,7 @@ Freq: Q-DEC"""
         # GH 9903
         idx = pd.PeriodIndex([], name='xxx', freq='H')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             # period shift doesn't accept freq
             idx.shift(1, freq='H')
 
@@ -790,8 +787,8 @@ Freq: Q-DEC"""
             tm.assert_index_equal(res, exp)
 
     def test_nat(self):
-        self.assertIs(pd.PeriodIndex._na_value, pd.NaT)
-        self.assertIs(pd.PeriodIndex([], freq='M')._na_value, pd.NaT)
+        assert pd.PeriodIndex._na_value is pd.NaT
+        assert pd.PeriodIndex([], freq='M')._na_value is pd.NaT
 
         idx = pd.PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
         self.assertTrue(idx._can_hold_na)
@@ -890,29 +887,29 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
                 with tm.assertRaisesRegexp(TypeError, msg):
                     obj + ng
 
-                with tm.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     # error message differs between PY2 and 3
                     ng + obj
 
                 with tm.assertRaisesRegexp(TypeError, msg):
                     obj - ng
 
-                with tm.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     np.add(obj, ng)
 
                 if _np_version_under1p10:
-                    self.assertIs(np.add(ng, obj), NotImplemented)
+                    assert np.add(ng, obj) is NotImplemented
                 else:
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         np.add(ng, obj)
 
-                with tm.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     np.subtract(obj, ng)
 
                 if _np_version_under1p10:
-                    self.assertIs(np.subtract(ng, obj), NotImplemented)
+                    assert np.subtract(ng, obj) is NotImplemented
                 else:
-                    with tm.assertRaises(TypeError):
+                    with pytest.raises(TypeError):
                         np.subtract(ng, obj)
 
     def test_pi_ops_nat(self):
@@ -1017,7 +1014,7 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
 
         result = np.subtract(pd.Period('2012-01', freq='M'), idx)
         if _np_version_under1p10:
-            self.assertIs(result, NotImplemented)
+            assert result is NotImplemented
         else:
             tm.assert_index_equal(result, exp)
 
@@ -1204,49 +1201,49 @@ class TestPeriodIndexComparisons(tm.TestCase):
             p = Period('2011-02', freq=freq)
 
             exp = np.array([False, True, False, False])
-            self.assert_numpy_array_equal(base == p, exp)
-            self.assert_numpy_array_equal(p == base, exp)
+            tm.assert_numpy_array_equal(base == p, exp)
+            tm.assert_numpy_array_equal(p == base, exp)
 
             exp = np.array([True, False, True, True])
-            self.assert_numpy_array_equal(base != p, exp)
-            self.assert_numpy_array_equal(p != base, exp)
+            tm.assert_numpy_array_equal(base != p, exp)
+            tm.assert_numpy_array_equal(p != base, exp)
 
             exp = np.array([False, False, True, True])
-            self.assert_numpy_array_equal(base > p, exp)
-            self.assert_numpy_array_equal(p < base, exp)
+            tm.assert_numpy_array_equal(base > p, exp)
+            tm.assert_numpy_array_equal(p < base, exp)
 
             exp = np.array([True, False, False, False])
-            self.assert_numpy_array_equal(base < p, exp)
-            self.assert_numpy_array_equal(p > base, exp)
+            tm.assert_numpy_array_equal(base < p, exp)
+            tm.assert_numpy_array_equal(p > base, exp)
 
             exp = np.array([False, True, True, True])
-            self.assert_numpy_array_equal(base >= p, exp)
-            self.assert_numpy_array_equal(p <= base, exp)
+            tm.assert_numpy_array_equal(base >= p, exp)
+            tm.assert_numpy_array_equal(p <= base, exp)
 
             exp = np.array([True, True, False, False])
-            self.assert_numpy_array_equal(base <= p, exp)
-            self.assert_numpy_array_equal(p >= base, exp)
+            tm.assert_numpy_array_equal(base <= p, exp)
+            tm.assert_numpy_array_equal(p >= base, exp)
 
             idx = PeriodIndex(['2011-02', '2011-01', '2011-03',
                                '2011-05'], freq=freq)
 
             exp = np.array([False, False, True, False])
-            self.assert_numpy_array_equal(base == idx, exp)
+            tm.assert_numpy_array_equal(base == idx, exp)
 
             exp = np.array([True, True, False, True])
-            self.assert_numpy_array_equal(base != idx, exp)
+            tm.assert_numpy_array_equal(base != idx, exp)
 
             exp = np.array([False, True, False, False])
-            self.assert_numpy_array_equal(base > idx, exp)
+            tm.assert_numpy_array_equal(base > idx, exp)
 
             exp = np.array([True, False, False, True])
-            self.assert_numpy_array_equal(base < idx, exp)
+            tm.assert_numpy_array_equal(base < idx, exp)
 
             exp = np.array([False, True, True, False])
-            self.assert_numpy_array_equal(base >= idx, exp)
+            tm.assert_numpy_array_equal(base >= idx, exp)
 
             exp = np.array([True, False, True, True])
-            self.assert_numpy_array_equal(base <= idx, exp)
+            tm.assert_numpy_array_equal(base <= idx, exp)
 
             # different base freq
             msg = "Input has different freq=A-DEC from PeriodIndex"
@@ -1279,43 +1276,43 @@ class TestPeriodIndexComparisons(tm.TestCase):
 
             result = idx1 > Period('2011-02', freq=freq)
             exp = np.array([False, False, False, True])
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
             result = Period('2011-02', freq=freq) < idx1
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
 
             result = idx1 == Period('NaT', freq=freq)
             exp = np.array([False, False, False, False])
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
             result = Period('NaT', freq=freq) == idx1
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
 
             result = idx1 != Period('NaT', freq=freq)
             exp = np.array([True, True, True, True])
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
             result = Period('NaT', freq=freq) != idx1
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
 
             idx2 = PeriodIndex(['2011-02', '2011-01', '2011-04',
                                 'NaT'], freq=freq)
             result = idx1 < idx2
             exp = np.array([True, False, False, False])
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
 
             result = idx1 == idx2
             exp = np.array([False, False, False, False])
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
 
             result = idx1 != idx2
             exp = np.array([True, True, True, True])
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
 
             result = idx1 == idx1
             exp = np.array([True, True, False, True])
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
 
             result = idx1 != idx1
             exp = np.array([False, False, True, False])
-            self.assert_numpy_array_equal(result, exp)
+            tm.assert_numpy_array_equal(result, exp)
 
             diff = PeriodIndex(['2011-02', '2011-01', '2011-04',
                                 'NaT'], freq='4M')

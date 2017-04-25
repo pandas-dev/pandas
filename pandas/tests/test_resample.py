@@ -4,6 +4,7 @@ from warnings import catch_warnings
 from datetime import datetime, timedelta
 from functools import partial
 
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -19,12 +20,12 @@ from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
 from pandas.tseries.frequencies import MONTHS, DAYS
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.index import date_range
+from pandas.core.indexes.datetimes import date_range
 from pandas.tseries.offsets import Minute, BDay
-from pandas.tseries.period import period_range, PeriodIndex, Period
-from pandas.tseries.resample import (DatetimeIndex, TimeGrouper,
-                                     DatetimeIndexResampler)
-from pandas.tseries.tdi import timedelta_range, TimedeltaIndex
+from pandas.core.indexes.period import period_range, PeriodIndex, Period
+from pandas.core.resample import (DatetimeIndex, TimeGrouper,
+                                  DatetimeIndexResampler)
+from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
 from pandas._libs.period import IncompatibleFrequency
@@ -70,12 +71,12 @@ class TestResampleAPI(tm.TestCase):
 
         r = self.series.resample('H')
         result = r.mean()
-        self.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         self.assertEqual(len(result), 217)
 
         r = self.series.to_frame().resample('H')
         result = r.mean()
-        self.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
         self.assertEqual(len(result), 217)
 
     def test_api_changes_v018(self):
@@ -84,7 +85,7 @@ class TestResampleAPI(tm.TestCase):
         # to .resample(......).how()
 
         r = self.series.resample('H')
-        self.assertIsInstance(r, DatetimeIndexResampler)
+        assert isinstance(r, DatetimeIndexResampler)
 
         for how in ['sum', 'mean', 'prod', 'min', 'max', 'var', 'std']:
             with tm.assert_produces_warning(FutureWarning,
@@ -107,18 +108,18 @@ class TestResampleAPI(tm.TestCase):
 
         # invalids as these can be setting operations
         r = self.series.resample('H')
-        self.assertRaises(ValueError, lambda: r.iloc[0])
-        self.assertRaises(ValueError, lambda: r.iat[0])
-        self.assertRaises(ValueError, lambda: r.loc[0])
-        self.assertRaises(ValueError, lambda: r.loc[
+        pytest.raises(ValueError, lambda: r.iloc[0])
+        pytest.raises(ValueError, lambda: r.iat[0])
+        pytest.raises(ValueError, lambda: r.loc[0])
+        pytest.raises(ValueError, lambda: r.loc[
             Timestamp('2013-01-01 00:00:00', offset='H')])
-        self.assertRaises(ValueError, lambda: r.at[
+        pytest.raises(ValueError, lambda: r.at[
             Timestamp('2013-01-01 00:00:00', offset='H')])
 
         def f():
             r[0] = 5
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # str/repr
         r = self.series.resample('H')
@@ -146,7 +147,7 @@ class TestResampleAPI(tm.TestCase):
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
-                self.assertIsInstance(getattr(r, op)(2), pd.Series)
+                assert isinstance(getattr(r, op)(2), pd.Series)
 
         # unary numeric ops
         for op in ['__pos__', '__neg__', '__abs__', '__inv__']:
@@ -157,7 +158,7 @@ class TestResampleAPI(tm.TestCase):
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
-                self.assertIsInstance(getattr(r, op)(), pd.Series)
+                assert isinstance(getattr(r, op)(), pd.Series)
 
         # comparison ops
         for op in ['__lt__', '__le__', '__gt__', '__ge__', '__eq__', '__ne__']:
@@ -165,7 +166,7 @@ class TestResampleAPI(tm.TestCase):
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
-                self.assertIsInstance(getattr(r, op)(2), pd.Series)
+                assert isinstance(getattr(r, op)(2), pd.Series)
 
         # IPython introspection shouldn't trigger warning GH 13618
         for op in ['_repr_json', '_repr_latex',
@@ -178,7 +179,7 @@ class TestResampleAPI(tm.TestCase):
         df = self.series.to_frame('foo')
 
         # same as prior versions for DataFrame
-        self.assertRaises(KeyError, lambda: df.resample('H')[0])
+        pytest.raises(KeyError, lambda: df.resample('H')[0])
 
         # compat for Series
         # but we cannot be sure that we need a warning here
@@ -268,9 +269,9 @@ class TestResampleAPI(tm.TestCase):
     def test_select_bad_cols(self):
 
         g = self.frame.resample('H')
-        self.assertRaises(KeyError, g.__getitem__, ['D'])
+        pytest.raises(KeyError, g.__getitem__, ['D'])
 
-        self.assertRaises(KeyError, g.__getitem__, ['A', 'D'])
+        pytest.raises(KeyError, g.__getitem__, ['A', 'D'])
         with tm.assertRaisesRegexp(KeyError, '^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
@@ -283,13 +284,13 @@ class TestResampleAPI(tm.TestCase):
 
         # getting
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertRaises(AttributeError, lambda: r.F)
+            pytest.raises(AttributeError, lambda: r.F)
 
         # setting
         def f():
             r.F = 'bah'
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_api_compat_before_use(self):
 
@@ -371,7 +372,7 @@ class TestResampleAPI(tm.TestCase):
         result = r.fillna(method='bfill')
         assert_series_equal(result, expected)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             r.fillna(0)
 
     def test_apply_without_aggregation(self):
@@ -598,7 +599,7 @@ class TestResampleAPI(tm.TestCase):
                     t[['A']].agg({'A': ['sum', 'std'],
                                   'B': ['mean', 'std']})
 
-            self.assertRaises(SpecificationError, f)
+            pytest.raises(SpecificationError, f)
 
     def test_agg_nested_dicts(self):
 
@@ -625,7 +626,7 @@ class TestResampleAPI(tm.TestCase):
             def f():
                 t.aggregate({'r1': {'A': ['mean', 'sum']},
                              'r2': {'B': ['mean', 'sum']}})
-                self.assertRaises(ValueError, f)
+                pytest.raises(ValueError, f)
 
         for t in cases:
             expected = pd.concat([t['A'].mean(), t['A'].std(), t['B'].mean(),
@@ -658,23 +659,23 @@ class TestResampleAPI(tm.TestCase):
                               index=index)
 
         # non DatetimeIndex
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.resample('2D', level='v')
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.resample('2D', on='date', level='d')
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.resample('2D', on=['a', 'date'])
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.resample('2D', level=['a', 'date'])
 
         # upsampling not allowed
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.resample('2D', level='d').asfreq()
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.resample('2D', on='date').asfreq()
 
         exp = df_exp.resample('2D').sum()
@@ -754,7 +755,7 @@ class Base(object):
     def test_raises_on_non_datetimelike_index(self):
         # this is a non datetimelike index
         xp = DataFrame()
-        self.assertRaises(TypeError, lambda: xp.resample('A').mean())
+        pytest.raises(TypeError, lambda: xp.resample('A').mean())
 
     def test_resample_empty_series(self):
         # GH12771 & GH12868
@@ -839,7 +840,7 @@ class Base(object):
 
             # GH 13022, 7687 - TODO: fix resample w/ TimedeltaIndex
             if isinstance(expected.index, TimedeltaIndex):
-                with tm.assertRaises(AssertionError):
+                with pytest.raises(AssertionError):
                     assert_frame_equal(result_agg, expected)
                     assert_frame_equal(result_how, expected)
             else:
@@ -1344,10 +1345,10 @@ class TestDatetimeIndex(Base, tm.TestCase):
         s = Series(range(len(index)), index=index)
 
         a = s.loc[:'4-15-2000'].resample('30T').ohlc()
-        self.assertIsInstance(a, DataFrame)
+        assert isinstance(a, DataFrame)
 
         b = s.loc[:'4-14-2000'].resample('30T').ohlc()
-        self.assertIsInstance(b, DataFrame)
+        assert isinstance(b, DataFrame)
 
         # GH12348
         # raising on odd period
@@ -1412,7 +1413,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         bs = s.resample('B', closed='right', label='right').mean()
         result = bs.resample('8H').mean()
         self.assertEqual(len(result), 22)
-        tm.assertIsInstance(result.index.freq, offsets.DateOffset)
+        assert isinstance(result.index.freq, offsets.DateOffset)
         self.assertEqual(result.index.freq, offsets.Hour(8))
 
     def test_resample_timestamp_to_period(self):
@@ -1476,7 +1477,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         rng2 = rng.repeat(2).values
         ts = Series(np.random.randn(len(rng2)), index=rng2)
 
-        self.assertRaises(Exception, ts.asfreq, 'B')
+        pytest.raises(Exception, ts.asfreq, 'B')
 
     def test_resample_axis1(self):
         rng = date_range('1/1/2000', '2/29/2000')
@@ -1576,7 +1577,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         resampled = ts.resample('5min', base=2).mean()
         exp_rng = date_range('12/31/1999 23:57:00', '1/1/2000 01:57',
                              freq='5min')
-        self.assert_index_equal(resampled.index, exp_rng)
+        tm.assert_index_equal(resampled.index, exp_rng)
 
     def test_resample_base_with_timedeltaindex(self):
 
@@ -1590,8 +1591,8 @@ class TestDatetimeIndex(Base, tm.TestCase):
         exp_without_base = timedelta_range(start='0s', end='25s', freq='2s')
         exp_with_base = timedelta_range(start='5s', end='29s', freq='2s')
 
-        self.assert_index_equal(without_base.index, exp_without_base)
-        self.assert_index_equal(with_base.index, exp_with_base)
+        tm.assert_index_equal(without_base.index, exp_without_base)
+        tm.assert_index_equal(with_base.index, exp_with_base)
 
     def test_resample_categorical_data_with_timedeltaindex(self):
         # GH #12169
@@ -1622,7 +1623,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
         result = ts.resample('M', kind='period').mean()
         exp_index = period_range('Jan-2000', 'Dec-2000', freq='M')
-        self.assert_index_equal(result.index, exp_index)
+        tm.assert_index_equal(result.index, exp_index)
 
     def test_period_with_agg(self):
 
@@ -1785,7 +1786,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
         result = ts.resample('5t', closed='right', label='left').mean()
         ex_index = date_range('1999-12-31 23:55', periods=4, freq='5t')
-        self.assert_index_equal(result.index, ex_index)
+        tm.assert_index_equal(result.index, ex_index)
 
         len0pts = _simple_pts('2007-01', '2010-05', freq='M')[:0]
         # it works
@@ -1811,7 +1812,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         result = ts.resample('20min').aggregate(['mean', 'sum'])
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
 
     def test_resample_not_monotonic(self):
         rng = pd.date_range('2012-06-12', periods=200, freq='h')
@@ -2252,10 +2253,10 @@ class TestPeriodIndex(Base, tm.TestCase):
                               np.arange(len(index), dtype=np.int64),
                               index], names=['v', 'd']))
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             df.resample('2D', on='date')
 
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             df.resample('2D', level='d')
 
     def test_annual_upsample_D_s_f(self):
@@ -2318,10 +2319,10 @@ class TestPeriodIndex(Base, tm.TestCase):
     def test_not_subperiod(self):
         # These are incompatible period rules for resampling
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='w-wed')
-        self.assertRaises(ValueError, lambda: ts.resample('a-dec').mean())
-        self.assertRaises(ValueError, lambda: ts.resample('q-mar').mean())
-        self.assertRaises(ValueError, lambda: ts.resample('M').mean())
-        self.assertRaises(ValueError, lambda: ts.resample('w-thu').mean())
+        pytest.raises(ValueError, lambda: ts.resample('a-dec').mean())
+        pytest.raises(ValueError, lambda: ts.resample('q-mar').mean())
+        pytest.raises(ValueError, lambda: ts.resample('M').mean())
+        pytest.raises(ValueError, lambda: ts.resample('w-thu').mean())
 
     def test_basic_upsample(self):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
@@ -2422,7 +2423,7 @@ class TestPeriodIndex(Base, tm.TestCase):
 
     def test_resample_incompat_freq(self):
 
-        with self.assertRaises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency):
             pd.Series(range(3), index=pd.period_range(
                 start='2000', periods=3, freq='M')).resample('W').mean()
 
@@ -2548,7 +2549,7 @@ class TestPeriodIndex(Base, tm.TestCase):
     def test_cant_fill_missing_dups(self):
         rng = PeriodIndex([2000, 2005, 2005, 2007, 2007], freq='A')
         s = Series(np.random.randn(5), index=rng)
-        self.assertRaises(Exception, lambda: s.resample('A').ffill())
+        pytest.raises(Exception, lambda: s.resample('A').ffill())
 
     def test_resample_5minute(self):
         rng = period_range('1/1/2000', '1/5/2000', freq='T')
@@ -2665,7 +2666,7 @@ class TestPeriodIndex(Base, tm.TestCase):
 
         ex_index = date_range(start='1/1/2012 9:30', freq='10min', periods=3)
 
-        self.assert_index_equal(result.index, ex_index)
+        tm.assert_index_equal(result.index, ex_index)
         assert_series_equal(result, exp)
 
     def test_quarterly_resampling(self):
@@ -3049,7 +3050,7 @@ class TestTimeGrouper(tm.TestCase):
 
         # it works!
         result = grouped.apply(f)
-        self.assert_index_equal(result.index, df.index)
+        tm.assert_index_equal(result.index, df.index)
 
     def test_panel_aggregation(self):
         ind = pd.date_range('1/1/2000', periods=100)
