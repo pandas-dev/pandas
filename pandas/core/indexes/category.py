@@ -507,7 +507,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
             indexer = self.categories._convert_list_indexer(keyarr, kind=kind)
             return Index(self.codes).get_indexer_for(indexer)
 
-        indexer = self.categories.get_indexer(keyarr)
+        indexer = self.categories.get_indexer(np.asarray(keyarr))
         if (indexer == -1).any():
             raise KeyError(
                 "a list-indexer must only "

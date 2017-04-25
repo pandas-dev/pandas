@@ -490,8 +490,8 @@ class TestGetDummies(tm.TestCase):
                              'cat_x', 'cat_y']]
         assert_frame_equal(result, expected)
 
-    # GH12402 Add a new parameter `drop_first` to avoid collinearity
     def test_basic_drop_first(self):
+        # GH12402 Add a new parameter `drop_first` to avoid collinearity
         # Basic case
         s_list = list('abc')
         s_series = Series(s_list)

@@ -4,7 +4,7 @@ import pytest
 
 import pandas as pd
 import numpy as np
-from pandas import Series, DataFrame
+from pandas import Series, DataFrame, Timestamp
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 from pandas.util import testing as tm
 
@@ -407,3 +407,26 @@ class TestCategoricalIndex(tm.TestCase):
 
         res = (cat[['A']] == 'foo')
         tm.assert_frame_equal(res, exp)
+
+    def test_get_indexer_array(self):
+        arr = np.array([Timestamp('1999-12-31 00:00:00'),
+                        Timestamp('2000-12-31 00:00:00')], dtype=object)
+        cats = [Timestamp('1999-12-31 00:00:00'),
+                Timestamp('2000-12-31 00:00:00')]
+        ci = pd.CategoricalIndex(cats,
+                                 categories=cats,
+                                 ordered=False, dtype='category')
+        result = ci.get_indexer(arr)
+        expected = np.array([0, 1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_with_categorical_index(self):
+        # GH 16115
+        cats = pd.Categorical([Timestamp('12-31-1999'),
+                               Timestamp('12-31-2000')])
+
+        expected = DataFrame([[1, 0], [0, 1]], dtype='uint8',
+                             index=[0, 1], columns=cats)
+        dummies = pd.get_dummies(cats)
+        result = dummies[[c for c in dummies.columns]]
+        assert_frame_equal(result, expected)
