@@ -381,6 +381,7 @@ def nanstd(values, axis=None, skipna=True, ddof=1):
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
 
+    values = _values_from_object(values)
     dtype = values.dtype
     mask = isnull(values)
     if is_any_int_dtype(values):
