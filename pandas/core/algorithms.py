@@ -216,10 +216,7 @@ def _get_data_algo(values, func_map):
 
         # its cheaper to use a String Hash Table than Object
         if lib.infer_dtype(values) in ['string']:
-            try:
-                f = func_map['string']
-            except KeyError:
-                pass
+            ndtype = 'string'
 
     f = func_map.get(ndtype, func_map['object'])
 
