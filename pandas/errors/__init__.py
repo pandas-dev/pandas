@@ -55,3 +55,11 @@ class ParserWarning(Warning):
     one specified by the user due to lack of support or functionality for
     parsing particular attributes of a CSV file with the requsted engine
     """
+
+
+class UnserializableWarning(Warning):
+    """
+    Warnng that is raised when a DataFrame cannot be serialzed.
+
+    .. versionadded:: 0.20.0
+    """

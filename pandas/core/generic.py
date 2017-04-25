@@ -43,6 +43,7 @@ from pandas.core.internals import BlockManager
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.missing as missing
+from pandas.errors import UnserializableWarning
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.formats.format import format_percentiles
 from pandas.tseries.frequencies import to_offset
@@ -138,7 +139,12 @@ class NDFrame(PandasObject, SelectionMixin):
         # Series doesn't define _repr_html_ or _repr_latex_
         latex = self._repr_latex_() if hasattr(self, '_repr_latex_') else None
         html = self._repr_html_() if hasattr(self, '_repr_html_') else None
-        table_schema = self._repr_table_schema_()
+        try:
+            table_schema = self._repr_table_schema_()
+        except Exception as e:
+            warnings.warn("Cannot create table schema representation. "
+                          "{}".format(e), UnserializableWarning)
+            table_schema = None
         # We need the inital newline since we aren't going through the
         # usual __repr__. See
         # https://github.com/pandas-dev/pandas/pull/14904#issuecomment-277829277
