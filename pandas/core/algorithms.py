@@ -161,7 +161,11 @@ def _ensure_arraylike(values):
     """
     if not isinstance(values, (np.ndarray, ABCCategorical,
                                ABCIndexClass, ABCSeries)):
-        values = np.array(values)
+        inferred = lib.infer_dtype(values)
+        if inferred in ['mixed', 'string', 'unicode']:
+            values = np.asarray(values, dtype=object)
+        else:
+            values = np.asarray(values)
     return values
 
 

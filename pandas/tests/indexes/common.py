@@ -323,6 +323,7 @@ class Base(object):
 
             idx = ind[[0] * 5]
             idx_unique = ind[[0]]
+
             # We test against `idx_unique`, so first we make sure it's unique
             # and doesn't contain nans.
             self.assertTrue(idx_unique.is_unique)
@@ -336,7 +337,6 @@ class Base(object):
                 tm.assert_index_equal(result, idx_unique)
 
             # nans:
-
             if not ind._can_hold_na:
                 continue
 
