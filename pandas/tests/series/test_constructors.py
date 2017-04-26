@@ -35,7 +35,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         msg = 'not understood'
         invalid_list = [pd.Timestamp, 'pd.Timestamp', list]
         for dtype in invalid_list:
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 Series([], name='time', dtype=dtype)
 
     def test_scalar_conversion(self):
