@@ -14,7 +14,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.dtypes.common import (
-    _coerce_to_dtype, is_categorical_dtype,
+    is_categorical_dtype,
     is_bool,
     is_integer, is_integer_dtype,
     is_float_dtype,
@@ -28,7 +28,8 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_scalar,
     _is_unorderable_exception,
-    _ensure_platform_int)
+    _ensure_platform_int,
+    pandas_dtype)
 from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
 from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
@@ -2872,7 +2873,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     """
 
     if dtype is not None:
-        dtype = _coerce_to_dtype(dtype)
+        dtype = pandas_dtype(dtype)
 
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)

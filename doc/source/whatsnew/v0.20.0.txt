@@ -1605,6 +1605,7 @@ Conversion
 - Bug in the return type of ``pd.unique`` on a ``Categorical``, which was returning an ndarray and not a ``Categorical`` (:issue:`15903`)
 - Bug in ``Index.to_series()`` where the index was not copied (and so mutating later would change the original), (:issue:`15949`)
 - Bug in indexing with partial string indexing with a len-1 DataFrame (:issue:`16071`)
+- Bug in ``Series`` construction where passing invalid dtype didn't raise an error. (:issue:`15520`)
 
 Indexing
 ^^^^^^^^
