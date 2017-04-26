@@ -1241,7 +1241,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
 Some new subpackages are created with public functionality that is not directly
 exposed in the top-level namespace: ``pandas.errors``, ``pandas.plotting`` and
 ``pandas.testing`` (more details below). Together with ``pandas.api.types`` and
-certain functions in  the ``pandas.io`` and ``pandas.tseries`` submodules,
+certain functions in the ``pandas.io`` and ``pandas.tseries`` submodules,
 these are now the public subpackages.
 
 
@@ -1276,7 +1276,7 @@ The following are now part of this API:
 ``pandas.testing``
 ^^^^^^^^^^^^^^^^^^
 
-We are adding a standard module that exposes the public testing functions in ``pandas.testing`` (:issue:`9895`. Those functions can be used when writing tests for functionality using pandas objects.
+We are adding a standard module that exposes the public testing functions in ``pandas.testing`` (:issue:`9895`). Those functions can be used when writing tests for functionality using pandas objects.
 
 The following testing functions are now part of this API:
 
@@ -1295,13 +1295,14 @@ A new public ``pandas.plotting`` module has been added that holds plotting funct
 
 .. _whatsnew_0200.privacy.development:
 
-Other Developement Changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Other Development Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
 - Require at least 0.23 version of cython to avoid problems with character encodings (:issue:`14699`)
-- Reorganization of timeseries tests (:issue:`14854`)
-- Reorganization of date converter tests (:issue:`15707`)
+- Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
+- Reorganization of tests directory layout (:issue:`14854`, :issue:`15707`).
+
 
 .. _whatsnew_0200.deprecations:
 

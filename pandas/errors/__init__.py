@@ -59,7 +59,7 @@ class ParserWarning(Warning):
 
 class UnserializableWarning(Warning):
     """
-    Warnng that is raised when a DataFrame cannot be serialzed.
+    Warning that is raised when a DataFrame cannot be serialized.
 
     .. versionadded:: 0.20.0
     """
