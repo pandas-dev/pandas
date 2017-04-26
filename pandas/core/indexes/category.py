@@ -10,7 +10,8 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_interval_dtype,
     is_scalar)
-from pandas.core.common import _asarray_tuplesafe
+from pandas.core.common import (_asarray_tuplesafe,
+                                _values_from_object)
 from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.algorithms import take_1d
 
@@ -353,6 +354,22 @@ class CategoricalIndex(Index, base.PandasDelegate):
             raise KeyError(key)
         return self._engine.get_loc(codes)
 
+    def get_value(self, series, key):
+        """
+        Fast lookup of value from 1-dimensional ndarray. Only use this if you
+        know what you're doing
+        """
+        try:
+            k = _values_from_object(key)
+            k = self._convert_scalar_indexer(k, kind='getitem')
+            indexer = self.get_loc(k)
+            return series.iloc[indexer]
+        except (KeyError, TypeError):
+            pass
+
+        # we might be a positional inexer
+        return super(CategoricalIndex, self).get_value(series, key)
+
     def _can_reindex(self, indexer):
         """ always allow reindexing """
         pass
@@ -507,7 +524,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
             indexer = self.categories._convert_list_indexer(keyarr, kind=kind)
             return Index(self.codes).get_indexer_for(indexer)
 
-        indexer = self.categories.get_indexer(keyarr)
+        indexer = self.categories.get_indexer(np.asarray(keyarr))
         if (indexer == -1).any():
             raise KeyError(
                 "a list-indexer must only "
