@@ -315,7 +315,6 @@ thead {
     vertical-align: bottom;
 }
 tr, th, td {
-    text-align: right;
     vertical-align: middle;
     padding: 0.5em 0.5em;
     line-height: normal;
@@ -325,6 +324,9 @@ tr, th, td {
 }
 th {
     font-weight: bold;
+}
+th.col_heading {
+    text-align: right;
 }
 tbody tr:nth-child(odd) {
     background: #f5f5f5;
