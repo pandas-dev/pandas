@@ -2408,85 +2408,100 @@ def test_styler_to_excel(engine):
         styled.to_excel(writer, sheet_name='styled')
         ExcelFormatter(styled, style_converter=custom_converter).write(
             writer, sheet_name='custom')
+        writer.save()
 
-    # For engines other than openpyxl 2, we only smoke test
-    if engine != 'openpyxl':
-        return
-    if not openpyxl_compat.is_compat(major_ver=2):
-        pytest.skip('incompatible openpyxl version')
+        if engine not in ('openpyxl', 'xlsxwriter'):
+            # For other engines, we only smoke test
+            return
+        openpyxl = pytest.importorskip('openpyxl')
+        if not openpyxl_compat.is_compat(major_ver=2):
+            pytest.skip('incompatible openpyxl version')
 
-    # (1) compare DataFrame.to_excel and Styler.to_excel when unstyled
-    n_cells = 0
-    for col1, col2 in zip(writer.sheets['frame'].columns,
-                          writer.sheets['unstyled'].columns):
-        assert len(col1) == len(col2)
-        for cell1, cell2 in zip(col1, col2):
-            assert cell1.value == cell2.value
-            assert_equal_style(cell1, cell2)
-            n_cells += 1
+        wb = openpyxl.load_workbook(path)
 
-    # ensure iteration actually happened:
-    assert n_cells == (10 + 1) * (3 + 1)
-
-    # (2) check styling with default converter
-    n_cells = 0
-    for col1, col2 in zip(writer.sheets['frame'].columns,
-                          writer.sheets['styled'].columns):
-        assert len(col1) == len(col2)
-        for cell1, cell2 in zip(col1, col2):
-            ref = '%s%d' % (cell2.column, cell2.row)
-            # XXX: this isn't as strong a test as ideal; we should
-            #      differences are exclusive
-            if ref == 'B2':
-                assert not cell1.font.bold
-                assert cell2.font.bold
-            elif ref == 'C3':
-                assert cell1.font.color.rgb != cell2.font.color.rgb
-                assert cell2.font.color.rgb == '000000FF'
-            elif ref == 'D4':
-                assert cell1.font.underline != cell2.font.underline
-                assert cell2.font.underline == 'single'
-            elif ref == 'B5':
-                assert not cell1.border.left.style
-                assert (cell2.border.top.style ==
-                        cell2.border.right.style ==
-                        cell2.border.bottom.style ==
-                        cell2.border.left.style ==
-                        'medium')
-            elif ref == 'C6':
-                assert not cell1.font.italic
-                assert cell2.font.italic
-            elif ref == 'D7':
-                assert (cell1.alignment.horizontal !=
-                        cell2.alignment.horizontal)
-                assert cell2.alignment.horizontal == 'right'
-            elif ref == 'B8':
-                assert cell1.fill.fgColor.rgb != cell2.fill.fgColor.rgb
-                assert cell1.fill.patternType != cell2.fill.patternType
-                assert cell2.fill.fgColor.rgb == '00FF0000'
-                assert cell2.fill.patternType == 'solid'
-            else:
+        # (1) compare DataFrame.to_excel and Styler.to_excel when unstyled
+        n_cells = 0
+        for col1, col2 in zip(wb['frame'].columns,
+                              wb['unstyled'].columns):
+            assert len(col1) == len(col2)
+            for cell1, cell2 in zip(col1, col2):
+                assert cell1.value == cell2.value
                 assert_equal_style(cell1, cell2)
+                n_cells += 1
 
-            assert cell1.value == cell2.value
-            n_cells += 1
+        # ensure iteration actually happened:
+        assert n_cells == (10 + 1) * (3 + 1)
 
-    assert n_cells == (10 + 1) * (3 + 1)
+        # (2) check styling with default converter
 
-    # (3) check styling with custom converter
-    n_cells = 0
-    for col1, col2 in zip(writer.sheets['frame'].columns,
-                          writer.sheets['custom'].columns):
-        assert len(col1) == len(col2)
-        for cell1, cell2 in zip(col1, col2):
-            ref = '%s%d' % (cell2.column, cell2.row)
-            if ref in ('B2', 'C3', 'D4', 'B5', 'C6', 'D7', 'B8'):
-                assert not cell1.font.bold
-                assert cell2.font.bold
-            else:
-                assert_equal_style(cell1, cell2)
+        # XXX: openpyxl (as at 2.4) prefixes colors with 00, xlsxwriter with FF
+        alpha = '00' if engine == 'openpyxl' else 'FF'
 
-            assert cell1.value == cell2.value
-            n_cells += 1
+        n_cells = 0
+        for col1, col2 in zip(wb['frame'].columns,
+                              wb['styled'].columns):
+            assert len(col1) == len(col2)
+            for cell1, cell2 in zip(col1, col2):
+                ref = '%s%d' % (cell2.column, cell2.row)
+                # XXX: this isn't as strong a test as ideal; we should
+                #      confirm that differences are exclusive
+                if ref == 'B2':
+                    assert not cell1.font.bold
+                    assert cell2.font.bold
+                elif ref == 'C3':
+                    assert cell1.font.color.rgb != cell2.font.color.rgb
+                    assert cell2.font.color.rgb == alpha + '0000FF'
+                elif ref == 'D4':
+                    # This fails with engine=xlsxwriter due to
+                    # https://bitbucket.org/openpyxl/openpyxl/issues/800
+                    if engine == 'xlsxwriter' \
+                       and (LooseVersion(openpyxl.__version__) <
+                            LooseVersion('2.4.6')):
+                        pass
+                    else:
+                        assert cell1.font.underline != cell2.font.underline
+                        assert cell2.font.underline == 'single'
+                elif ref == 'B5':
+                    assert not cell1.border.left.style
+                    assert (cell2.border.top.style ==
+                            cell2.border.right.style ==
+                            cell2.border.bottom.style ==
+                            cell2.border.left.style ==
+                            'medium')
+                elif ref == 'C6':
+                    assert not cell1.font.italic
+                    assert cell2.font.italic
+                elif ref == 'D7':
+                    assert (cell1.alignment.horizontal !=
+                            cell2.alignment.horizontal)
+                    assert cell2.alignment.horizontal == 'right'
+                elif ref == 'B8':
+                    assert cell1.fill.fgColor.rgb != cell2.fill.fgColor.rgb
+                    assert cell1.fill.patternType != cell2.fill.patternType
+                    assert cell2.fill.fgColor.rgb == alpha + 'FF0000'
+                    assert cell2.fill.patternType == 'solid'
+                else:
+                    assert_equal_style(cell1, cell2)
 
-    assert n_cells == (10 + 1) * (3 + 1)
+                assert cell1.value == cell2.value
+                n_cells += 1
+
+        assert n_cells == (10 + 1) * (3 + 1)
+
+        # (3) check styling with custom converter
+        n_cells = 0
+        for col1, col2 in zip(wb['frame'].columns,
+                              wb['custom'].columns):
+            assert len(col1) == len(col2)
+            for cell1, cell2 in zip(col1, col2):
+                ref = '%s%d' % (cell2.column, cell2.row)
+                if ref in ('B2', 'C3', 'D4', 'B5', 'C6', 'D7', 'B8'):
+                    assert not cell1.font.bold
+                    assert cell2.font.bold
+                else:
+                    assert_equal_style(cell1, cell2)
+
+                assert cell1.value == cell2.value
+                n_cells += 1
+
+        assert n_cells == (10 + 1) * (3 + 1)
