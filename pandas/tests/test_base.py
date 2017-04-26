@@ -45,7 +45,7 @@ class CheckImmutable(object):
     mutable_regex = re.compile('does not support mutable operations')
 
     def check_mutable_error(self, *args, **kwargs):
-        # Pass whatever function you normally would to assertRaisesRegexp
+        # Pass whatever function you normally would to assert_raises_regex
         # (after the Exception kind).
         tm.assert_raises_regex(
             TypeError, self.mutable_regex, *args, **kwargs)
