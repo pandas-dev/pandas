@@ -2913,6 +2913,45 @@ class TestPeriodIndex(Base):
         result = s.resample('12H', kind='period').ohlc()
         assert_frame_equal(result, expected)
 
+    def test_resample_with_nat(self):
+        # GH 13224
+        index = PeriodIndex([pd.NaT, '1970-01-01 00:00:00', pd.NaT,
+                             '1970-01-01 00:00:01', '1970-01-01 00:00:02'],
+                            freq='S')
+        frame = DataFrame([2, 3, 5, 7, 11], index=index)
+
+        index_1s = PeriodIndex(['1970-01-01 00:00:00', '1970-01-01 00:00:01',
+                                '1970-01-01 00:00:02'], freq='S')
+        frame_1s = DataFrame([3, 7, 11], index=index_1s)
+        result_1s = frame.resample('1s').mean()
+        assert_frame_equal(result_1s, frame_1s)
+
+        index_2s = PeriodIndex(['1970-01-01 00:00:00',
+                                '1970-01-01 00:00:02'], freq='2S')
+        frame_2s = DataFrame([5, 11], index=index_2s)
+        result_2s = frame.resample('2s').mean()
+        assert_frame_equal(result_2s, frame_2s)
+
+        index_3s = PeriodIndex(['1970-01-01 00:00:00'], freq='3S')
+        frame_3s = DataFrame([7], index=index_3s)
+        result_3s = frame.resample('3s').mean()
+        assert_frame_equal(result_3s, frame_3s)
+
+        pi = PeriodIndex(['1970-01-01 00:00:00', pd.NaT,
+                          '1970-01-01 00:00:02'], freq='S')
+        frame = DataFrame([2, 3, 5], index=pi)
+        expected_index = period_range(pi[0], periods=len(pi), freq=pi.freq)
+        expected = DataFrame([2, np.NaN, 5], index=expected_index)
+        result = frame.resample('1s').mean()
+        assert_frame_equal(result, expected)
+
+        pi = PeriodIndex([pd.NaT] * 3, freq='S')
+        frame = DataFrame([2, 3, 5], index=pi)
+        expected_index = PeriodIndex(data=[], freq=pi.freq)
+        expected = DataFrame([], index=expected_index)
+        result = frame.resample('1s').mean()
+        assert_frame_equal(result, expected)
+
 
 class TestTimedeltaIndex(Base):
     _index_factory = lambda x: timedelta_range
