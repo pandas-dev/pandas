@@ -1288,14 +1288,16 @@ class TestTimeZones(tm.TestCase):
         result_dt = dt.replace(tzinfo=tzinfo)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
 
-        assert result_dt.timestamp() == result_pd.timestamp()
+        if hasattr(result_dt, 'timestamp'):  # New method in Py 3.3
+            assert result_dt.timestamp() == result_pd.timestamp()
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
 
         result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
 
-        assert result_dt.timestamp() == result_pd.timestamp()
+        if hasattr(result_dt, 'timestamp'):  # New method in Py 3.3
+            assert result_dt.timestamp() == result_pd.timestamp()
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
 
