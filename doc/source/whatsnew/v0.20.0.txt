@@ -1631,7 +1631,8 @@ Indexing
 - Bug in the display of ``.info()`` where a qualifier (+) would always be displayed with a ``MultiIndex`` that contains only non-strings (:issue:`15245`)
 - Bug in ``pd.concat()`` where the names of ``MultiIndex`` of resulting ``DataFrame`` are not handled correctly when ``None`` is presented in the names of ``MultiIndex`` of input ``DataFrame`` (:issue:`15787`)
 - Bug in ``DataFrame.sort_index()`` and ``Series.sort_index()`` where ``na_position`` doesn't work with a ``MultiIndex`` (:issue:`14784`, :issue:`16604`)
- - Bug in in ``pd.concat()`` when combining objects with a ``CategoricalIndex`` (:issue:`16111`)
+- Bug in in ``pd.concat()`` when combining objects with a ``CategoricalIndex`` (:issue:`16111`)
+- Bug in indexing with a scalar and a ``CategoricalIndex`` (:issue:`16123`)
 
 I/O
 ^^^
