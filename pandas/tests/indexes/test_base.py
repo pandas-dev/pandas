@@ -206,10 +206,10 @@ class TestIndex(Base, tm.TestCase):
         data = [np.nan]
         msg = "cannot convert"
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Index(data, dtype='int64')
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Index(data, dtype='uint64')
 
         # This, however, should not break
@@ -1062,10 +1062,10 @@ class TestIndex(Base, tm.TestCase):
         # GH10411
         idx = Index(np.arange(10))
 
-        with tm.assertRaisesRegexp(ValueError, 'tolerance argument'):
+        with tm.assert_raises_regex(ValueError, 'tolerance argument'):
             idx.get_indexer([1, 0], tolerance=1)
 
-        with tm.assertRaisesRegexp(ValueError, 'limit argument'):
+        with tm.assert_raises_regex(ValueError, 'limit argument'):
             idx.get_indexer([1, 0], limit=1)
 
     def test_get_indexer_nearest(self):
@@ -1099,7 +1099,7 @@ class TestIndex(Base, tm.TestCase):
             tm.assert_numpy_array_equal(actual, np.array(expected,
                                                          dtype=np.intp))
 
-        with tm.assertRaisesRegexp(ValueError, 'limit argument'):
+        with tm.assert_raises_regex(ValueError, 'limit argument'):
             idx.get_indexer([1, 0], method='nearest', limit=1)
 
     def test_get_indexer_nearest_decreasing(self):
@@ -1154,9 +1154,9 @@ class TestIndex(Base, tm.TestCase):
             with pytest.raises(KeyError):
                 idx.get_loc(1.1, method, tolerance=0.05)
 
-        with tm.assertRaisesRegexp(ValueError, 'must be numeric'):
+        with tm.assert_raises_regex(ValueError, 'must be numeric'):
             idx.get_loc(1.1, 'nearest', tolerance='invalid')
-        with tm.assertRaisesRegexp(ValueError, 'tolerance .* valid if'):
+        with tm.assert_raises_regex(ValueError, 'tolerance .* valid if'):
             idx.get_loc(1.1, tolerance=1)
 
         idx = pd.Index(['a', 'c'])
@@ -1450,8 +1450,8 @@ class TestIndex(Base, tm.TestCase):
                    MultiIndex.from_tuples([('foo', '1'), ('bar', '3')]),
                    PeriodIndex(start='2000', end='2010', freq='A')]
         for idx in indices:
-            with tm.assertRaisesRegexp(AttributeError,
-                                       'only use .str accessor'):
+            with tm.assert_raises_regex(AttributeError,
+                                        'only use .str accessor'):
                 idx.str.repeat(2)
 
         idx = Index(['a b c', 'd e', 'f'])
@@ -1526,9 +1526,9 @@ class TestIndex(Base, tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -1537,8 +1537,8 @@ class TestIndex(Base, tm.TestCase):
     def test_reshape_raise(self):
         msg = "reshaping is not supported"
         idx = pd.Index([0, 1, 2])
-        tm.assertRaisesRegexp(NotImplementedError, msg,
-                              idx.reshape, idx.shape)
+        tm.assert_raises_regex(NotImplementedError, msg,
+                               idx.reshape, idx.shape)
 
     def test_reindex_preserves_name_if_target_is_list_or_ndarray(self):
         # GH6552
@@ -1617,11 +1617,11 @@ class TestIndex(Base, tm.TestCase):
         mi2 = MultiIndex.from_tuples([(1, 2), (4, 6)])
         tm.assert_numpy_array_equal(df.index == mi2, np.array([True, False]))
         mi3 = MultiIndex.from_tuples([(1, 2), (4, 5), (8, 9)])
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             df.index == mi3
 
         index_a = Index(['foo', 'bar', 'baz'])
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             df.index == index_a
         tm.assert_numpy_array_equal(index_a == mi3,
                                     np.array([False, False, False]))
@@ -1821,10 +1821,10 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def test_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assertRaisesRegexp(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>' not supported"):
                 result = idx.argsort()
         elif PY3:
-            with tm.assertRaisesRegexp(TypeError, "unorderable types"):
+            with tm.assert_raises_regex(TypeError, "unorderable types"):
                 result = idx.argsort()
         else:
             result = idx.argsort()
@@ -1834,10 +1834,10 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def test_numpy_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assertRaisesRegexp(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>' not supported"):
                 result = np.argsort(idx)
         elif PY3:
-            with tm.assertRaisesRegexp(TypeError, "unorderable types"):
+            with tm.assert_raises_regex(TypeError, "unorderable types"):
                 result = np.argsort(idx)
         else:
             result = np.argsort(idx)
@@ -2002,7 +2002,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
         tm.assert_index_equal(nanidx.dropna(), idx)
 
         msg = "invalid how option: xxx"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             pd.Index([1, 2, 3]).dropna(how='xxx')
 
     def test_get_combined_index(self):

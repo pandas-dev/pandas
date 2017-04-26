@@ -101,7 +101,8 @@ class TestToOffset(tm.TestCase):
         assert (result == expected)
 
         # malformed
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 2h20m'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 2h20m'):
             frequencies.to_offset('2h20m')
 
     def test_to_offset_negative(self):
@@ -123,17 +124,23 @@ class TestToOffset(tm.TestCase):
 
     def test_to_offset_invalid(self):
         # GH 13930
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: U1'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: U1'):
             frequencies.to_offset('U1')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -U'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: -U'):
             frequencies.to_offset('-U')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 3U1'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 3U1'):
             frequencies.to_offset('3U1')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -2-3U'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: -2-3U'):
             frequencies.to_offset('-2-3U')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -2D:3H'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: -2D:3H'):
             frequencies.to_offset('-2D:3H')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 1.5.0S'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 1.5.0S'):
             frequencies.to_offset('1.5.0S')
 
         # split offsets with spaces are valid
@@ -146,10 +153,11 @@ class TestToOffset(tm.TestCase):
 
         # special cases
         assert frequencies.to_offset('2SMS-15') == offsets.SemiMonthBegin(2)
-        with tm.assertRaisesRegexp(ValueError,
-                                   'Invalid frequency: 2SMS-15-15'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 2SMS-15-15'):
             frequencies.to_offset('2SMS-15-15')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 2SMS-15D'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 2SMS-15D'):
             frequencies.to_offset('2SMS-15D')
 
     def test_to_offset_leading_zero(self):
@@ -244,7 +252,8 @@ class TestToOffset(tm.TestCase):
                            'SMS-1', 'SMS-28', 'SMS-30',
                            'SMS-BAR', 'BSMS', 'SMS--2']
         for invalid_anchor in invalid_anchors:
-            with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: '):
+            with tm.assert_raises_regex(ValueError,
+                                        'Invalid frequency: '):
                 frequencies.to_offset(invalid_anchor)
 
 
@@ -306,7 +315,7 @@ def test_period_str_to_code():
 
         msg = frequencies._INVALID_FREQ_ERROR
         for alias in aliases:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 frequencies._period_str_to_code(alias)
 
     _assert_depr("M", 3000, ["MTH", "MONTH", "MONTHLY"])
@@ -780,7 +789,7 @@ class TestFrequencyInference(tm.TestCase):
         for freq in ['Y']:
 
             msg = frequencies._INVALID_FREQ_ERROR
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 s = Series(period_range('2013', periods=10, freq=freq))
             pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
 
@@ -807,10 +816,10 @@ class TestFrequencyInference(tm.TestCase):
 
         msg = frequencies._INVALID_FREQ_ERROR
         for freq in freqs:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 frequencies.get_offset(freq)
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 date_range('2011-01-01', periods=5, freq=freq)
 
 

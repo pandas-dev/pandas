@@ -154,8 +154,8 @@ class TestScalar(Base, tm.TestCase):
         df.columns = ['x', 'x', 'z']
 
         # Check that we get the correct value in the KeyError
-        tm.assertRaisesRegexp(KeyError, r"\['y'\] not in index",
-                              lambda: df[['x', 'y', 'z']])
+        tm.assert_raises_regex(KeyError, r"\['y'\] not in index",
+                               lambda: df[['x', 'y', 'z']])
 
     def test_at_with_tz(self):
         # gh-15822

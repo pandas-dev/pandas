@@ -578,7 +578,8 @@ class TestGroupByFilter(tm.TestCase):
             ['worst', 'd', 'y'],
             ['best', 'd', 'z'],
         ], columns=['a', 'b', 'c'])
-        with tm.assertRaisesRegexp(TypeError, 'filter function returned a.*'):
+        with tm.assert_raises_regex(TypeError,
+                                    'filter function returned a.*'):
             df.groupby('c').filter(lambda g: g['a'] == 'best')
 
     def test_filter_non_bool_raises(self):
@@ -591,7 +592,8 @@ class TestGroupByFilter(tm.TestCase):
             ['worst', 'd', 1],
             ['best', 'd', 1],
         ], columns=['a', 'b', 'c'])
-        with tm.assertRaisesRegexp(TypeError, 'filter function returned a.*'):
+        with tm.assert_raises_regex(TypeError,
+                                    'filter function returned a.*'):
             df.groupby('a').filter(lambda g: g.c.mean())
 
     def test_filter_dropna_with_empty_groups(self):

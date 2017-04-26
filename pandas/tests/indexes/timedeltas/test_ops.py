@@ -87,16 +87,18 @@ class TestTimedeltaIndexOps(Ops):
         self.assertEqual(np.max(td), Timedelta('16820 days'))
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, errmsg, np.min, td, out=0)
-        tm.assertRaisesRegexp(ValueError, errmsg, np.max, td, out=0)
+        tm.assert_raises_regex(ValueError, errmsg, np.min, td, out=0)
+        tm.assert_raises_regex(ValueError, errmsg, np.max, td, out=0)
 
         self.assertEqual(np.argmin(td), 0)
         self.assertEqual(np.argmax(td), 5)
 
         if not _np_version_under1p10:
             errmsg = "the 'out' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, errmsg, np.argmin, td, out=0)
-            tm.assertRaisesRegexp(ValueError, errmsg, np.argmax, td, out=0)
+            tm.assert_raises_regex(
+                ValueError, errmsg, np.argmin, td, out=0)
+            tm.assert_raises_regex(
+                ValueError, errmsg, np.argmax, td, out=0)
 
     def test_round(self):
         td = pd.timedelta_range(start='16801 days', periods=5, freq='30Min')
@@ -115,14 +117,14 @@ class TestTimedeltaIndexOps(Ops):
         self.assertEqual(elt.round(freq='H'), expected_elt)
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             td.round(freq='foo')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             elt.round(freq='foo')
 
         msg = "<MonthEnd> is a non-fixed frequency"
-        tm.assertRaisesRegexp(ValueError, msg, td.round, freq='M')
-        tm.assertRaisesRegexp(ValueError, msg, elt.round, freq='M')
+        tm.assert_raises_regex(ValueError, msg, td.round, freq='M')
+        tm.assert_raises_regex(ValueError, msg, elt.round, freq='M')
 
     def test_representation(self):
         idx1 = TimedeltaIndex([], freq='D')
@@ -262,7 +264,7 @@ Freq: D"""
 
         idx = TimedeltaIndex(['1 day', '2 day'])
         msg = "cannot subtract a datelike from a TimedeltaIndex"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             idx - Timestamp('2011-01-01')
 
         result = Timestamp('2011-01-01') + idx
@@ -497,7 +499,7 @@ Freq: D"""
 
     def test_comp_nat(self):
         left = pd.TimedeltaIndex([pd.Timedelta('1 days'), pd.NaT,
-                                 pd.Timedelta('3 days')])
+                                  pd.Timedelta('3 days')])
         right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
 
         for l, r in [(left, right), (left.asobject, right.asobject)]:
@@ -751,16 +753,16 @@ Freq: D"""
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assertRaisesRegexp(TypeError, msg, idx.take,
-                              indices, foo=2)
+        tm.assert_raises_regex(TypeError, msg, idx.take,
+                               indices, foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, idx.take,
-                              indices, out=indices)
+        tm.assert_raises_regex(ValueError, msg, idx.take,
+                               indices, out=indices)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, idx.take,
-                              indices, mode='clip')
+        tm.assert_raises_regex(ValueError, msg, idx.take,
+                               indices, mode='clip')
 
     def test_infer_freq(self):
         # GH 11018
@@ -1248,22 +1250,22 @@ class TestSlicing(tm.TestCase):
     def test_add_overflow(self):
         # see gh-14068
         msg = "too (big|large) to convert"
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             to_timedelta(106580, 'D') + Timestamp('2000')
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             Timestamp('2000') + to_timedelta(106580, 'D')
 
         _NaT = int(pd.NaT) + 1
         msg = "Overflow in int64 addition"
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             to_timedelta([106580], 'D') + Timestamp('2000')
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             Timestamp('2000') + to_timedelta([106580], 'D')
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             to_timedelta([_NaT]) - Timedelta('1 days')
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             to_timedelta(['5 days', _NaT]) - Timedelta('1 days')
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             (to_timedelta([_NaT, '5 days', '1 hours']) -
              to_timedelta(['7 seconds', _NaT, '4 hours']))
 

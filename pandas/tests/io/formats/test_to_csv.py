@@ -31,7 +31,7 @@ $1$,$2$
                 self.assertEqual(f.read(), expected)
 
         with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(TypeError, 'quotechar'):
+            with tm.assert_raises_regex(TypeError, 'quotechar'):
                 df.to_csv(path, quoting=1, quotechar=None)
 
     def test_to_csv_doublequote(self):
@@ -49,7 +49,7 @@ $1$,$2$
 
         from _csv import Error
         with tm.ensure_clean('test.csv') as path:
-            with tm.assertRaisesRegexp(Error, 'escapechar'):
+            with tm.assert_raises_regex(Error, 'escapechar'):
                 df.to_csv(path, doublequote=False)  # no escapechar set
 
     def test_to_csv_escapechar(self):

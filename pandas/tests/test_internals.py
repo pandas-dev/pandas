@@ -1090,8 +1090,8 @@ class TestBlockPlacement(tm.TestCase):
 
     def test_unbounded_slice_raises(self):
         def assert_unbounded_slice_error(slc):
-            tm.assertRaisesRegexp(ValueError, "unbounded slice",
-                                  lambda: BlockPlacement(slc))
+            tm.assert_raises_regex(ValueError, "unbounded slice",
+                                   lambda: BlockPlacement(slc))
 
         assert_unbounded_slice_error(slice(None, None))
         assert_unbounded_slice_error(slice(10, None))

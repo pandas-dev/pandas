@@ -971,7 +971,7 @@ class TestHDFStore(Base, tm.TestCase):
     def test_latin_encoding(self):
 
         if compat.PY2:
-            tm.assertRaisesRegexp(
+            tm.assert_raises_regex(
                 TypeError, r'\[unicode\] is not implemented as a table column')
             return
 
@@ -2563,7 +2563,7 @@ class TestHDFStore(Base, tm.TestCase):
                 for t in terms:
                     store.select('p4d', t)
 
-                with tm.assertRaisesRegexp(
+                with tm.assert_raises_regex(
                         TypeError, 'Only named functions are supported'):
                     store.select(
                         'wp',
@@ -2575,8 +2575,9 @@ class TestHDFStore(Base, tm.TestCase):
                 expected = Panel({-1: wpneg[-1]})
                 tm.assert_panel_equal(res, expected)
 
-                with tm.assertRaisesRegexp(NotImplementedError,
-                                           'Unary addition not supported'):
+                with tm.assert_raises_regex(NotImplementedError,
+                                            'Unary addition '
+                                            'not supported'):
                     store.select('wpneg', 'items == +1')
 
     def test_term_compat(self):
@@ -4388,7 +4389,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             def f():
                 store.select('df')
-            tm.assertRaisesRegexp(ClosedFileError, 'file is not open', f)
+            tm.assert_raises_regex(ClosedFileError, 'file is not open', f)
 
     def test_pytables_native_read(self):
 

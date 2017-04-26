@@ -251,7 +251,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         # no setting allowed
         s = Series(date_range('20130101', periods=5, freq='D'), name='xxx')
-        with tm.assertRaisesRegexp(ValueError, "modifications"):
+        with tm.assert_raises_regex(ValueError, "modifications"):
             s.dt.hour = 5
 
         # trying to set a copy
@@ -265,8 +265,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(date_range('20130101', periods=5, freq='D'))
-        with tm.assertRaisesRegexp(AttributeError,
-                                   "You cannot add any new attribute"):
+        with tm.assert_raises_regex(AttributeError,
+                                    "You cannot add any new attribute"):
             s.dt.xlabel = "a"
 
     def test_strftime(self):
@@ -375,8 +375,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         for s in [Series(np.arange(5)), Series(list('abcde')),
                   Series(np.random.randn(5))]:
-            with tm.assertRaisesRegexp(AttributeError,
-                                       "only use .dt accessor"):
+            with tm.assert_raises_regex(AttributeError,
+                                        "only use .dt accessor"):
                 s.dt
             self.assertFalse(hasattr(s, 'dt'))
 

@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 
 def test_mut_exclusive():
     msg = "mutually exclusive arguments: '[ab]' and '[ab]'"
-    with tm.assertRaisesRegexp(TypeError, msg):
+    with tm.assert_raises_regex(TypeError, msg):
         com._mut_exclusive(a=1, b=2)
     assert com._mut_exclusive(a=1, b=None) == 1
     assert com._mut_exclusive(major=None, major_axis=None) is None

@@ -2423,7 +2423,8 @@ def stdin_encoding(encoding=None):
     sys.stdin = _stdin
 
 
-def assertRaisesRegexp(_exception, _regexp, _callable=None, *args, **kwargs):
+def assert_raises_regex(_exception, _regexp, _callable=None,
+                        *args, **kwargs):
     """
     Check that the specified Exception is raised and that the error message
     matches a given regular expression pattern. This may be a regular
@@ -2440,27 +2441,26 @@ def assertRaisesRegexp(_exception, _regexp, _callable=None, *args, **kwargs):
 
     Examples
     --------
-    >>> assertRaisesRegexp(ValueError, 'invalid literal for.*XYZ',
-    ...                                int, 'XYZ')
+    >>> assert_raises_regex(ValueError, 'invalid literal for.*XYZ', int, 'XYZ')
     >>> import re
-    >>> assertRaisesRegexp(ValueError, re.compile('literal'), int, 'XYZ')
+    >>> assert_raises_regex(ValueError, re.compile('literal'), int, 'XYZ')
 
     If an exception of a different type is raised, it bubbles up.
 
-    >>> assertRaisesRegexp(TypeError, 'literal', int, 'XYZ')
+    >>> assert_raises_regex(TypeError, 'literal', int, 'XYZ')
     Traceback (most recent call last):
         ...
     ValueError: invalid literal for int() with base 10: 'XYZ'
     >>> dct = dict()
-    >>> assertRaisesRegexp(KeyError, 'pear', dct.__getitem__, 'apple')
+    >>> assert_raises_regex(KeyError, 'pear', dct.__getitem__, 'apple')
     Traceback (most recent call last):
         ...
     AssertionError: "pear" does not match "'apple'"
 
     You can also use this in a with statement.
-    >>> with assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+    >>> with assert_raises_regex(TypeError, 'unsupported operand type\(s\)'):
     ...     1 + {}
-    >>> with assertRaisesRegexp(TypeError, 'banana'):
+    >>> with assert_raises_regex(TypeError, 'banana'):
     ...     'apple'[0] = 'b'
     Traceback (most recent call last):
         ...
@@ -2477,7 +2477,7 @@ item assignment"
 
 class _AssertRaisesContextmanager(object):
     """
-    Context manager behind assertRaisesRegexp.
+    Context manager behind `assert_raises_regex`.
     """
 
     def __init__(self, exception, regexp=None):

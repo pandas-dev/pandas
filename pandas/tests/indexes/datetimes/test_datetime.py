@@ -40,7 +40,7 @@ class TestDatetimeIndex(tm.TestCase):
                                      tolerance=np.timedelta64(1, 'D')), 1)
         self.assertEqual(idx.get_loc('2000-01-01T12', method='nearest',
                                      tolerance=timedelta(1)), 1)
-        with tm.assertRaisesRegexp(ValueError, 'must be convertible'):
+        with tm.assert_raises_regex(ValueError, 'must be convertible'):
             idx.get_loc('2000-01-01T12', method='nearest', tolerance='foo')
         with pytest.raises(KeyError):
             idx.get_loc('2000-01-01T03', method='nearest', tolerance='2 hours')
@@ -212,8 +212,8 @@ class TestDatetimeIndex(tm.TestCase):
 
     def test_hash_error(self):
         index = date_range('20010101', periods=10)
-        with tm.assertRaisesRegexp(TypeError, "unhashable type: %r" %
-                                   type(index).__name__):
+        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
+                                    type(index).__name__):
             hash(index)
 
     def test_stringified_slice_with_tz(self):
@@ -508,9 +508,9 @@ class TestDatetimeIndex(tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -539,9 +539,9 @@ class TestDatetimeIndex(tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -645,8 +645,9 @@ class TestDatetimeIndex(tm.TestCase):
         joins = 'left', 'right', 'inner', 'outer'
 
         for join in joins:
-            with tm.assertRaisesRegexp(ValueError, 'can only call with other '
-                                       'PeriodIndex-ed objects'):
+            with tm.assert_raises_regex(ValueError,
+                                        'can only call with other '
+                                        'PeriodIndex-ed objects'):
                 df.columns.join(s.index, how=join)
 
     def test_factorize(self):
@@ -755,12 +756,12 @@ class TestDatetimeIndex(tm.TestCase):
     def test_slice_with_zero_step_raises(self):
         ts = Series(np.arange(20),
                     date_range('2014-01-01', periods=20, freq='MS'))
-        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                              lambda: ts[::0])
-        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                              lambda: ts.loc[::0])
-        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                              lambda: ts.loc[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: ts[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: ts.loc[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: ts.loc[::0])
 
     def test_slice_bounds_empty(self):
         # GH 14354

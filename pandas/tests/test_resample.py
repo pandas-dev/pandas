@@ -272,7 +272,7 @@ class TestResampleAPI(tm.TestCase):
         pytest.raises(KeyError, g.__getitem__, ['D'])
 
         pytest.raises(KeyError, g.__getitem__, ['A', 'D'])
-        with tm.assertRaisesRegexp(KeyError, '^[^A]+$'):
+        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'D']]
@@ -983,11 +983,11 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
         for func in ('min', 'max', 'sum', 'prod',
                      'mean', 'var', 'std'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(r, func),
-                                  func, 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(r, func), axis=1)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(r, func),
+                                   func, 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(r, func), axis=1)
 
     def test_resample_how_callables(self):
         # GH 7929
@@ -3081,17 +3081,18 @@ class TestTimeGrouper(tm.TestCase):
         for name, func in zip(index_names, index_funcs):
             index = func(n)
             df = DataFrame({'a': np.random.randn(n)}, index=index)
-            with tm.assertRaisesRegexp(TypeError,
-                                       "Only valid with DatetimeIndex, "
-                                       "TimedeltaIndex or PeriodIndex, "
-                                       "but got an instance of %r" % name):
+            with tm.assert_raises_regex(TypeError,
+                                        "Only valid with "
+                                        "DatetimeIndex, TimedeltaIndex "
+                                        "or PeriodIndex, but got an "
+                                        "instance of %r" % name):
                 df.groupby(TimeGrouper('D'))
 
         # PeriodIndex gives a specific error message
         df = DataFrame({'a': np.random.randn(n)}, index=tm.makePeriodIndex(n))
-        with tm.assertRaisesRegexp(TypeError,
-                                   "axis must be a DatetimeIndex, but "
-                                   "got an instance of 'PeriodIndex'"):
+        with tm.assert_raises_regex(TypeError,
+                                    "axis must be a DatetimeIndex, but "
+                                    "got an instance of 'PeriodIndex'"):
             df.groupby(TimeGrouper('D'))
 
     def test_aaa_group_order(self):

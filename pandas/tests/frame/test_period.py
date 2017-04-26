@@ -106,7 +106,8 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_index_equal(result.columns, exp_index)
 
         # invalid axis
-        tm.assertRaisesRegexp(ValueError, 'axis', df.to_timestamp, axis=2)
+        tm.assert_raises_regex(
+            ValueError, 'axis', df.to_timestamp, axis=2)
 
         result1 = df.to_timestamp('5t', axis=1)
         result2 = df.to_timestamp('t', axis=1)

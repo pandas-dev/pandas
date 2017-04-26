@@ -550,8 +550,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
             # Unimplemented numeric_only parameter.
             if 'numeric_only' in compat.signature(f).args:
-                tm.assertRaisesRegexp(NotImplementedError, name, f,
-                                      self.series, numeric_only=True)
+                tm.assert_raises_regex(NotImplementedError, name, f,
+                                       self.series, numeric_only=True)
 
         testit()
 
@@ -596,12 +596,12 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         tm.assert_series_equal(np.compress(cond, s), expected)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.compress,
-                              cond, s, axis=1)
+        tm.assert_raises_regex(ValueError, msg, np.compress,
+                               cond, s, axis=1)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.compress,
-                              cond, s, out=s)
+        tm.assert_raises_regex(ValueError, msg, np.compress,
+                               cond, s, out=s)
 
     def test_round(self):
         self.ts.index.name = "index_name"
@@ -619,7 +619,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_series_equal(out, expected)
 
         msg = "the 'out' parameter is not supported"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             np.round(s, decimals=0, out=s)
 
     def test_built_in_round(self):
@@ -1184,8 +1184,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         if not _np_version_under1p10:
             msg = "the 'out' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, msg, np.argmin,
-                                  Series(data), out=data)
+            tm.assert_raises_regex(ValueError, msg, np.argmin,
+                                   Series(data), out=data)
 
     def test_idxmax(self):
         # test idxmax
@@ -1240,8 +1240,8 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         if not _np_version_under1p10:
             msg = "the 'out' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, msg, np.argmax,
-                                  Series(data), out=data)
+            tm.assert_raises_regex(ValueError, msg, np.argmax,
+                                   Series(data), out=data)
 
     def test_ptp(self):
         N = 1000
@@ -1307,7 +1307,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert_series_equal(np.repeat(s, 2), expected)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.repeat, s, 2, axis=0)
+        tm.assert_raises_regex(ValueError, msg, np.repeat, s, 2, axis=0)
 
     def test_searchsorted(self):
         s = Series([1, 2, 3])
@@ -1483,11 +1483,13 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             msg = "'foo' is an invalid keyword argument for this function"
-            tm.assertRaisesRegexp(TypeError, msg, a.reshape, (2, 2), foo=2)
+            tm.assert_raises_regex(
+                TypeError, msg, a.reshape, (2, 2), foo=2)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             msg = r"reshape\(\) got an unexpected keyword argument 'foo'"
-            tm.assertRaisesRegexp(TypeError, msg, a.reshape, a.shape, foo=2)
+            tm.assert_raises_regex(
+                TypeError, msg, a.reshape, a.shape, foo=2)
 
     def test_numpy_reshape(self):
         a = Series([1, 2, 3, 4])
@@ -1697,7 +1699,7 @@ class TestNLargestNSmallest(object):
         args = 2, len(r), 0, -1
         methods = r.nlargest, r.nsmallest
         for method, arg in product(methods, args):
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 method(arg)
 
     @pytest.mark.parametrize(
@@ -1729,9 +1731,9 @@ class TestNLargestNSmallest(object):
         assert_series_equal(s.nsmallest(), s.iloc[[2, 3, 0, 4]])
 
         msg = 'keep must be either "first", "last"'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             s.nsmallest(keep='invalid')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             s.nlargest(keep='invalid')
 
         # GH 15297

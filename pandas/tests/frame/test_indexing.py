@@ -28,8 +28,7 @@ from pandas.core.dtypes.common import (
     is_scalar)
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+                                 assert_frame_equal)
 from pandas.core.indexing import IndexingError
 
 import pandas.util.testing as tm
@@ -53,7 +52,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
             assert self.frame[key] is not None
 
         assert 'random' not in self.frame
-        with assertRaisesRegexp(KeyError, 'random'):
+        with tm.assert_raises_regex(KeyError, 'random'):
             self.frame['random']
 
         df = self.frame.copy()
@@ -116,9 +115,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         self.assertEqual(result.columns.name, 'foo')
 
-        with assertRaisesRegexp(KeyError, 'not in index'):
+        with tm.assert_raises_regex(KeyError, 'not in index'):
             self.frame[['B', 'A', 'food']]
-        with assertRaisesRegexp(KeyError, 'not in index'):
+        with tm.assert_raises_regex(KeyError, 'not in index'):
             self.frame[Index(['B', 'A', 'foo'])]
 
         # tuples
@@ -152,12 +151,13 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_series_equal(self.frame['B'], data['A'], check_names=False)
         assert_series_equal(self.frame['A'], data['B'], check_names=False)
 
-        with assertRaisesRegexp(ValueError,
-                                'Columns must be same length as key'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Columns must be same length as key'):
             data[['A']] = self.frame[['A', 'B']]
 
-        with assertRaisesRegexp(ValueError, 'Length of values does not match '
-                                'length of index'):
+        with tm.assert_raises_regex(ValueError, 'Length of values '
+                                    'does not match '
+                                    'length of index'):
             data['A'] = range(len(data.index) - 1)
 
         df = DataFrame(0, lrange(3), ['tt1', 'tt2'], dtype=np.int_)
@@ -239,13 +239,13 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         subframe = self.tsframe[indexer]
 
         tm.assert_index_equal(subindex, subframe.index)
-        with assertRaisesRegexp(ValueError, 'Item wrong length'):
+        with tm.assert_raises_regex(ValueError, 'Item wrong length'):
             self.tsframe[indexer[:-1]]
 
         subframe_obj = self.tsframe[indexer_obj]
         assert_frame_equal(subframe_obj, subframe)
 
-        with tm.assertRaisesRegexp(ValueError, 'boolean values only'):
+        with tm.assert_raises_regex(ValueError, 'boolean values only'):
             self.tsframe[self.tsframe]
 
         # test that Series work
@@ -522,8 +522,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         values[values == 2] = 3
         assert_almost_equal(df.values, values)
 
-        with assertRaisesRegexp(TypeError, 'Must pass DataFrame with boolean '
-                                'values only'):
+        with tm.assert_raises_regex(TypeError, 'Must pass '
+                                    'DataFrame with '
+                                    'boolean values only'):
             df[df * 0] = 2
 
         # index with DataFrame
@@ -1350,7 +1351,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
     def test_getitem_setitem_fancy_exceptions(self):
         ix = self.frame.iloc
-        with assertRaisesRegexp(IndexingError, 'Too many indexers'):
+        with tm.assert_raises_regex(IndexingError, 'Too many indexers'):
             ix[:, :, :]
 
         with pytest.raises(IndexingError):
@@ -1664,7 +1665,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         with pytest.raises(KeyError):
             self.frame.lookup([self.frame.index[0]], ['xyz'])
 
-        with tm.assertRaisesRegexp(ValueError, 'same size'):
+        with tm.assert_raises_regex(ValueError, 'same size'):
             self.frame.lookup(['a', 'b', 'c'], ['a'])
 
     def test_set_value(self):
@@ -2289,7 +2290,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         df1[df1 > 2.0 * df2] = -1
         assert_frame_equal(df1, expected)
-        with assertRaisesRegexp(ValueError, 'Item wrong length'):
+        with tm.assert_raises_regex(ValueError, 'Item wrong length'):
             df1[df1.index[:-1] > 2] = -1
 
     def test_boolean_indexing_mixed(self):
@@ -2320,7 +2321,8 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(df2, expected)
 
         df['foo'] = 'test'
-        with tm.assertRaisesRegexp(TypeError, 'boolean setting on mixed-type'):
+        with tm.assert_raises_regex(TypeError, 'boolean setting '
+                                    'on mixed-type'):
             df[df > 0.3] = 1
 
     def test_where(self):
@@ -2498,7 +2500,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         ]
 
         for cond in conds:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 df.where(cond)
 
         df['b'] = 2
@@ -2514,7 +2516,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         ]
 
         for cond in conds:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 df.where(cond)
 
     def test_where_dataframe_col_match(self):
@@ -2527,7 +2529,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         cond.columns = ["a", "b", "c"]  # Columns no longer match.
         msg = "Boolean array expected for the condition"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df.where(cond)
 
     def test_where_ndframe_align(self):
@@ -2535,7 +2537,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
 
         cond = [True]
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df.where(cond)
 
         expected = DataFrame([[1, 2, 3], [np.nan, np.nan, np.nan]])
@@ -2544,7 +2546,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         tm.assert_frame_equal(out, expected)
 
         cond = np.array([False, True, False, True])
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df.where(cond)
 
         expected = DataFrame([[np.nan, np.nan, np.nan], [4, 5, 6]])
@@ -2632,7 +2634,8 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df = DataFrame([{'A': 1, 'B': np.nan, 'C': 'Test'}, {
                        'A': np.nan, 'B': 'Test', 'C': np.nan}])
         expected = df.where(~isnull(df), None)
-        with tm.assertRaisesRegexp(TypeError, 'boolean setting on mixed-type'):
+        with tm.assert_raises_regex(TypeError, 'boolean setting '
+                                    'on mixed-type'):
             df.where(~isnull(df), None, inplace=True)
 
     def test_where_align(self):
@@ -2890,7 +2893,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         dg = df.pivot_table(index='i', columns='c',
                             values=['x', 'y'])
 
-        with assertRaisesRegexp(TypeError, "is an invalid key"):
+        with tm.assert_raises_regex(TypeError, "is an invalid key"):
             str(dg[:, 0])
 
         index = Index(range(2), name='i')

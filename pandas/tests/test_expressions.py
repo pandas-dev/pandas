@@ -390,22 +390,22 @@ class TestExpressions(tm.TestCase):
                 f = getattr(operator, name)
                 err_msg = re.escape(msg % op)
 
-                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(df, df)
 
-                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(df.a, df.b)
 
-                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(df.a, True)
 
-                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(False, df.a)
 
-                with tm.assertRaisesRegexp(TypeError, err_msg):
+                with tm.assert_raises_regex(TypeError, err_msg):
                     f(False, df)
 
-                with tm.assertRaisesRegexp(TypeError, err_msg):
+                with tm.assert_raises_regex(TypeError, err_msg):
                     f(df, True)
 
     def test_bool_ops_warn_on_arithmetic(self):

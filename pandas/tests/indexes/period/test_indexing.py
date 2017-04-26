@@ -103,10 +103,10 @@ class TestGetItem(tm.TestCase):
         tm.assert_series_equal(exp, result)
 
         ts = ts[10:].append(ts[10:])
-        tm.assertRaisesRegexp(KeyError,
-                              "left slice bound for non-unique "
-                              "label: '2008'",
-                              ts.__getitem__, slice('2008', '2009'))
+        tm.assert_raises_regex(KeyError,
+                               "left slice bound for non-unique "
+                               "label: '2008'",
+                               ts.__getitem__, slice('2008', '2009'))
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
@@ -311,9 +311,9 @@ class TestIndexing(tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):

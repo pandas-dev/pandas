@@ -20,8 +20,7 @@ import pandas as pd
 
 from pandas.util.testing import (assert_numpy_array_equal,
                                  assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+                                 assert_frame_equal)
 
 import pandas.util.testing as tm
 
@@ -423,10 +422,10 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             # ndim >= 3
             ndim_5 = np.ones(self.frame.shape + (3, 4, 5))
             msg = "Unable to coerce to Series/DataFrame"
-            with assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 f(self.frame, ndim_5)
 
-            with assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 getattr(self.frame, op)(ndim_5)
 
         # res_add = self.frame.add(self.frame)
@@ -448,9 +447,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
         result = self.frame[:0].add(self.frame)
         assert_frame_equal(result, self.frame * np.nan)
-        with assertRaisesRegexp(NotImplementedError, 'fill_value'):
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
             self.frame.add(self.frame.iloc[0], fill_value=3)
-        with assertRaisesRegexp(NotImplementedError, 'fill_value'):
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
             self.frame.add(self.frame.iloc[0], axis='index', fill_value=3)
 
     def test_binary_ops_align(self):
@@ -589,7 +588,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             # NAs
             msg = "Unable to coerce to Series/DataFrame"
             assert_frame_equal(f(np.nan), o(df, np.nan))
-            with assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 f(ndim_5)
 
         # Series
@@ -921,8 +920,8 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             result = func(df1, df2)
             tm.assert_numpy_array_equal(result.values,
                                         func(df1.values, df2.values))
-            with tm.assertRaisesRegexp(ValueError,
-                                       'Wrong number of dimensions'):
+            with tm.assert_raises_regex(ValueError,
+                                        'Wrong number of dimensions'):
                 func(df1, ndim_5)
 
             result2 = func(self.simple, row)
@@ -933,9 +932,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             tm.assert_numpy_array_equal(result3.values,
                                         func(self.frame.values, 0))
 
-            with tm.assertRaisesRegexp(ValueError,
-                                       'Can only compare identically'
-                                       '-labeled DataFrame'):
+            with tm.assert_raises_regex(ValueError,
+                                        'Can only compare identically'
+                                        '-labeled DataFrame'):
                 func(self.simple, self.simple[:2])
 
         test_comp(operator.eq)
@@ -1179,10 +1178,10 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         # length mismatch
         msg = 'Unable to coerce to Series, length must be 3: given 2'
         for val in [[1, 2], (1, 2), np.array([1, 2])]:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 align(df, val, 'index')
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 align(df, val, 'columns')
 
         val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -1196,10 +1195,10 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         # shape mismatch
         msg = 'Unable to coerce to DataFrame, shape must be'
         val = np.array([[1, 2, 3], [4, 5, 6]])
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             align(df, val, 'index')
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             align(df, val, 'columns')
 
         val = np.zeros((3, 3, 3))

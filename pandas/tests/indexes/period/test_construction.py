@@ -181,7 +181,7 @@ class TestPeriodIndex(tm.TestCase):
         self.assertEqual(res.dtype, 'period[M]')
 
         msg = 'specified freq and dtype are different'
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             PeriodIndex(['2011-01'], freq='M', dtype='period[D]')
 
     def test_constructor_empty(self):
@@ -190,7 +190,7 @@ class TestPeriodIndex(tm.TestCase):
         self.assertEqual(len(idx), 0)
         self.assertEqual(idx.freq, 'M')
 
-        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+        with tm.assert_raises_regex(ValueError, 'freq not specified'):
             pd.PeriodIndex([])
 
     def test_constructor_pi_nat(self):
@@ -216,35 +216,35 @@ class TestPeriodIndex(tm.TestCase):
         idx = PeriodIndex([pd.NaT, pd.NaT, '2011-01', '2011-01'], freq='M')
         tm.assert_index_equal(idx, exp)
 
-        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+        with tm.assert_raises_regex(ValueError, 'freq not specified'):
             PeriodIndex([pd.NaT, pd.NaT])
 
-        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+        with tm.assert_raises_regex(ValueError, 'freq not specified'):
             PeriodIndex(np.array([pd.NaT, pd.NaT]))
 
-        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+        with tm.assert_raises_regex(ValueError, 'freq not specified'):
             PeriodIndex(['NaT', 'NaT'])
 
-        with tm.assertRaisesRegexp(ValueError, 'freq not specified'):
+        with tm.assert_raises_regex(ValueError, 'freq not specified'):
             PeriodIndex(np.array(['NaT', 'NaT']))
 
     def test_constructor_incompat_freq(self):
         msg = "Input has different freq=D from PeriodIndex\\(freq=M\\)"
 
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             PeriodIndex([Period('2011-01', freq='M'), pd.NaT,
                          Period('2011-01', freq='D')])
 
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             PeriodIndex(np.array([Period('2011-01', freq='M'), pd.NaT,
                                   Period('2011-01', freq='D')]))
 
         # first element is pd.NaT
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             PeriodIndex([pd.NaT, Period('2011-01', freq='M'),
                          Period('2011-01', freq='D')])
 
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             PeriodIndex(np.array([pd.NaT, Period('2011-01', freq='M'),
                                   Period('2011-01', freq='D')]))
 
@@ -332,15 +332,15 @@ class TestPeriodIndex(tm.TestCase):
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -1M')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             PeriodIndex(['2011-01'], freq='-1M')
 
         msg = ('Frequency must be positive, because it' ' represents span: 0M')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             PeriodIndex(['2011-01'], freq='0M')
 
         msg = ('Frequency must be positive, because it' ' represents span: 0M')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             period_range('2011-01', periods=3, freq='0M')
 
     def test_constructor_freq_mult_dti_compat(self):
@@ -437,11 +437,11 @@ class TestPeriodIndex(tm.TestCase):
         end_intv = Period('2006-12-31', ('w', 1))
 
         msg = 'Start and end must have same freq'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             PeriodIndex(start=start, end=end_intv)
 
         msg = 'Must specify 2 of start, end, periods'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             PeriodIndex(start=start)
 
     def test_recreate_from_data(self):

@@ -923,7 +923,7 @@ class UltraJSONTests(TestCase):
 
         def my_handler_raises(obj):
             raise TypeError("I raise for anything")
-        with tm.assertRaisesRegexp(TypeError, "I raise for anything"):
+        with tm.assert_raises_regex(TypeError, "I raise for anything"):
             ujson.encode(_TestObject("foo"), default_handler=my_handler_raises)
 
         def my_int_handler(obj):

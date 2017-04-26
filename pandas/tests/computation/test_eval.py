@@ -29,9 +29,8 @@ from pandas.core.computation.ops import (
 import pandas.core.computation.expr as expr
 import pandas.util.testing as tm
 from pandas.util.testing import (assert_frame_equal, randbool,
-                                 assertRaisesRegexp, assert_numpy_array_equal,
-                                 assert_produces_warning, assert_series_equal,
-                                 slow)
+                                 assert_numpy_array_equal, assert_series_equal,
+                                 assert_produces_warning, slow)
 from pandas.compat import PY3, reduce
 
 _series_frame_incompatible = _bool_ops_syms
@@ -1677,17 +1676,17 @@ class TestMathPythonPython(tm.TestCase):
 
     def test_undefined_func(self):
         df = DataFrame({'a': np.random.randn(10)})
-        with tm.assertRaisesRegexp(ValueError,
-                                   "\"mysin\" is not a supported function"):
+        with tm.assert_raises_regex(
+                ValueError, "\"mysin\" is not a supported function"):
             df.eval("mysin(a)",
                     engine=self.engine,
                     parser=self.parser)
 
     def test_keyword_arg(self):
         df = DataFrame({'a': np.random.randn(10)})
-        with tm.assertRaisesRegexp(TypeError,
-                                   "Function \"sin\" does not support "
-                                   "keyword arguments"):
+        with tm.assert_raises_regex(TypeError,
+                                    "Function \"sin\" does not support "
+                                    "keyword arguments"):
             df.eval("sin(x=a)",
                     engine=self.engine,
                     parser=self.parser)
@@ -1748,16 +1747,16 @@ class TestScope(object):
 
 def test_invalid_engine():
     tm.skip_if_no_ne()
-    assertRaisesRegexp(KeyError, 'Invalid engine \'asdf\' passed',
-                       pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
-                       engine='asdf')
+    tm.assert_raises_regex(KeyError, 'Invalid engine \'asdf\' passed',
+                           pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
+                           engine='asdf')
 
 
 def test_invalid_parser():
     tm.skip_if_no_ne()
-    assertRaisesRegexp(KeyError, 'Invalid parser \'asdf\' passed',
-                       pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
-                       parser='asdf')
+    tm.assert_raises_regex(KeyError, 'Invalid parser \'asdf\' passed',
+                           pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
+                           parser='asdf')
 
 
 _parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
@@ -1795,18 +1794,20 @@ def test_invalid_local_variable_reference(engine, parser):
 
     for _expr in exprs:
         if parser != 'pandas':
-            with tm.assertRaisesRegexp(SyntaxError, "The '@' prefix is only"):
+            with tm.assert_raises_regex(SyntaxError,
+                                        "The '@' prefix is only"):
                 pd.eval(_expr, engine=engine, parser=parser)
         else:
-            with tm.assertRaisesRegexp(SyntaxError, "The '@' prefix is not"):
+            with tm.assert_raises_regex(SyntaxError,
+                                        "The '@' prefix is not"):
                 pd.eval(_expr, engine=engine, parser=parser)
 
 
 def test_numexpr_builtin_raises(engine, parser):
     sin, dotted_line = 1, 2
     if engine == 'numexpr':
-        with tm.assertRaisesRegexp(NumExprClobberingError,
-                                   'Variables in expression .+'):
+        with tm.assert_raises_regex(NumExprClobberingError,
+                                    'Variables in expression .+'):
             pd.eval('sin + dotted_line', engine=engine, parser=parser)
     else:
         res = pd.eval('sin + dotted_line', engine=engine, parser=parser)
@@ -1815,20 +1816,21 @@ def test_numexpr_builtin_raises(engine, parser):
 
 def test_bad_resolver_raises(engine, parser):
     cannot_resolve = 42, 3.0
-    with tm.assertRaisesRegexp(TypeError, 'Resolver of type .+'):
+    with tm.assert_raises_regex(TypeError, 'Resolver of type .+'):
         pd.eval('1 + 2', resolvers=cannot_resolve, engine=engine,
                 parser=parser)
 
 
 def test_empty_string_raises(engine, parser):
     # GH 13139
-    with tm.assertRaisesRegexp(ValueError, 'expr cannot be an empty string'):
+    with tm.assert_raises_regex(ValueError,
+                                'expr cannot be an empty string'):
         pd.eval('', engine=engine, parser=parser)
 
 
 def test_more_than_one_expression_raises(engine, parser):
-    with tm.assertRaisesRegexp(SyntaxError,
-                               'only a single expression is allowed'):
+    with tm.assert_raises_regex(SyntaxError,
+                                'only a single expression is allowed'):
         pd.eval('1 + 1; 2 + 2', engine=engine, parser=parser)
 
 

@@ -59,7 +59,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             idx.get_loc(idx[1], 'pad', tolerance=np.timedelta64(0, 's')), 1)
         self.assertEqual(idx.get_loc(idx[1], 'pad', tolerance=timedelta(0)), 1)
 
-        with tm.assertRaisesRegexp(ValueError, 'must be convertible'):
+        with tm.assert_raises_regex(ValueError, 'must be convertible'):
             idx.get_loc(idx[1], method='nearest', tolerance='foo')
 
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
@@ -235,9 +235,9 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -461,8 +461,8 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
     def test_hash_error(self):
         index = timedelta_range('1 days', periods=10)
-        with tm.assertRaisesRegexp(TypeError, "unhashable type: %r" %
-                                   type(index).__name__):
+        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
+                                    type(index).__name__):
             hash(index)
 
     def test_append_join_nondatetimeindex(self):

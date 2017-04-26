@@ -13,7 +13,6 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     notnull, isnull)
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
-from pandas.util.testing import assertRaisesRegexp
 from pandas._libs.tslib import iNaT
 
 import pandas.util.testing as tm
@@ -91,26 +90,26 @@ class Base(object):
     def test_numeric_compat(self):
 
         idx = self.create_index()
-        tm.assertRaisesRegexp(TypeError, "cannot perform __mul__",
-                              lambda: idx * 1)
-        tm.assertRaisesRegexp(TypeError, "cannot perform __mul__",
-                              lambda: 1 * idx)
+        tm.assert_raises_regex(TypeError, "cannot perform __mul__",
+                               lambda: idx * 1)
+        tm.assert_raises_regex(TypeError, "cannot perform __mul__",
+                               lambda: 1 * idx)
 
         div_err = "cannot perform __truediv__" if PY3 \
                   else "cannot perform __div__"
-        tm.assertRaisesRegexp(TypeError, div_err, lambda: idx / 1)
-        tm.assertRaisesRegexp(TypeError, div_err, lambda: 1 / idx)
-        tm.assertRaisesRegexp(TypeError, "cannot perform __floordiv__",
-                              lambda: idx // 1)
-        tm.assertRaisesRegexp(TypeError, "cannot perform __floordiv__",
-                              lambda: 1 // idx)
+        tm.assert_raises_regex(TypeError, div_err, lambda: idx / 1)
+        tm.assert_raises_regex(TypeError, div_err, lambda: 1 / idx)
+        tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
+                               lambda: idx // 1)
+        tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
+                               lambda: 1 // idx)
 
     def test_logical_compat(self):
         idx = self.create_index()
-        tm.assertRaisesRegexp(TypeError, 'cannot perform all',
-                              lambda: idx.all())
-        tm.assertRaisesRegexp(TypeError, 'cannot perform any',
-                              lambda: idx.any())
+        tm.assert_raises_regex(TypeError, 'cannot perform all',
+                               lambda: idx.all())
+        tm.assert_raises_regex(TypeError, 'cannot perform any',
+                               lambda: idx.any())
 
     def test_boolean_context_compat(self):
 
@@ -121,7 +120,7 @@ class Base(object):
             if idx:
                 pass
 
-        tm.assertRaisesRegexp(ValueError, 'The truth value of a', f)
+        tm.assert_raises_regex(ValueError, 'The truth value of a', f)
 
     def test_reindex_base(self):
         idx = self.create_index()
@@ -130,7 +129,7 @@ class Base(object):
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
 
-        with tm.assertRaisesRegexp(ValueError, 'Invalid fill method'):
+        with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
             idx.get_indexer(idx, method='invalid')
 
     def test_ndarray_compat_properties(self):
@@ -178,7 +177,7 @@ class Base(object):
             ind.names = ["apple", "banana", "carrot"]
 
         for ind in self.indices.values():
-            assertRaisesRegexp(ValueError, "^Length", testit, ind)
+            tm.assert_raises_regex(ValueError, "^Length", testit, ind)
 
     def test_set_name_methods(self):
         new_name = "This is the new name for this index"
@@ -198,10 +197,10 @@ class Base(object):
             assert res is None
             self.assertEqual(ind.name, new_name)
             self.assertEqual(ind.names, [new_name])
-            # with assertRaisesRegexp(TypeError, "list-like"):
+            # with tm.assert_raises_regex(TypeError, "list-like"):
             #    # should still fail even if it would be the right length
             #    ind.set_names("a")
-            with assertRaisesRegexp(ValueError, "Level must be None"):
+            with tm.assert_raises_regex(ValueError, "Level must be None"):
                 ind.set_names("a", level=0)
 
             # rename in place just leaves tuples and other containers alone
@@ -212,8 +211,8 @@ class Base(object):
 
     def test_hash_error(self):
         for ind in self.indices.values():
-            with tm.assertRaisesRegexp(TypeError, "unhashable type: %r" %
-                                       type(ind).__name__):
+            with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
+                                        type(ind).__name__):
                 hash(ind)
 
     def test_copy_name(self):
@@ -427,16 +426,16 @@ class Base(object):
             # backwards compatibility concerns
             if isinstance(type(ind), (CategoricalIndex, RangeIndex)):
                 msg = "the 'axis' parameter is not supported"
-                tm.assertRaisesRegexp(ValueError, msg,
-                                      np.argsort, ind, axis=1)
+                tm.assert_raises_regex(ValueError, msg,
+                                       np.argsort, ind, axis=1)
 
                 msg = "the 'kind' parameter is not supported"
-                tm.assertRaisesRegexp(ValueError, msg, np.argsort,
-                                      ind, kind='mergesort')
+                tm.assert_raises_regex(ValueError, msg, np.argsort,
+                                       ind, kind='mergesort')
 
                 msg = "the 'order' parameter is not supported"
-                tm.assertRaisesRegexp(ValueError, msg, np.argsort,
-                                      ind, order=('a', 'b'))
+                tm.assert_raises_regex(ValueError, msg, np.argsort,
+                                       ind, order=('a', 'b'))
 
     def test_pickle(self):
         for ind in self.indices.values():
@@ -467,16 +466,16 @@ class Base(object):
         indices = [1, 2]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assertRaisesRegexp(TypeError, msg, idx.take,
-                              indices, foo=2)
+        tm.assert_raises_regex(TypeError, msg, idx.take,
+                               indices, foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, idx.take,
-                              indices, out=indices)
+        tm.assert_raises_regex(ValueError, msg, idx.take,
+                               indices, out=indices)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, idx.take,
-                              indices, mode='clip')
+        tm.assert_raises_regex(ValueError, msg, idx.take,
+                               indices, mode='clip')
 
     def test_repeat(self):
         rep = 2
@@ -496,8 +495,8 @@ class Base(object):
         tm.assert_index_equal(np.repeat(i, rep), expected)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.repeat,
-                              i, rep, axis=0)
+        tm.assert_raises_regex(ValueError, msg, np.repeat,
+                               i, rep, axis=0)
 
     def test_where(self):
         i = self.create_index()
@@ -533,9 +532,10 @@ class Base(object):
 
             for method in methods:
                 for case in cases:
-                    assertRaisesRegexp(TypeError,
-                                       "Input must be Index or array-like",
-                                       method, case)
+                    tm.assert_raises_regex(TypeError,
+                                           "Input must be Index "
+                                           "or array-like",
+                                           method, case)
 
     def test_intersection_base(self):
         for name, idx in compat.iteritems(self.indices):
@@ -554,7 +554,7 @@ class Base(object):
             for case in cases:
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assertRaisesRegexp(ValueError, msg):
+                    with tm.assert_raises_regex(ValueError, msg):
                         result = first.intersection(case)
                 elif isinstance(idx, CategoricalIndex):
                     pass
@@ -564,7 +564,7 @@ class Base(object):
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
-                with tm.assertRaisesRegexp(TypeError, msg):
+                with tm.assert_raises_regex(TypeError, msg):
                     result = first.intersection([1, 2, 3])
 
     def test_union_base(self):
@@ -581,7 +581,7 @@ class Base(object):
             for case in cases:
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assertRaisesRegexp(ValueError, msg):
+                    with tm.assert_raises_regex(ValueError, msg):
                         result = first.union(case)
                 elif isinstance(idx, CategoricalIndex):
                     pass
@@ -591,7 +591,7 @@ class Base(object):
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
-                with tm.assertRaisesRegexp(TypeError, msg):
+                with tm.assert_raises_regex(TypeError, msg):
                     result = first.union([1, 2, 3])
 
     def test_difference_base(self):
@@ -612,7 +612,7 @@ class Base(object):
             for case in cases:
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assertRaisesRegexp(ValueError, msg):
+                    with tm.assert_raises_regex(ValueError, msg):
                         result = first.difference(case)
                 elif isinstance(idx, CategoricalIndex):
                     pass
@@ -625,7 +625,7 @@ class Base(object):
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
-                with tm.assertRaisesRegexp(TypeError, msg):
+                with tm.assert_raises_regex(TypeError, msg):
                     result = first.difference([1, 2, 3])
 
     def test_symmetric_difference(self):
@@ -645,7 +645,7 @@ class Base(object):
             for case in cases:
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assertRaisesRegexp(ValueError, msg):
+                    with tm.assert_raises_regex(ValueError, msg):
                         result = first.symmetric_difference(case)
                 elif isinstance(idx, CategoricalIndex):
                     pass
@@ -655,7 +655,7 @@ class Base(object):
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
-                with tm.assertRaisesRegexp(TypeError, msg):
+                with tm.assert_raises_regex(TypeError, msg):
                     result = first.symmetric_difference([1, 2, 3])
 
         # 12591 deprecated
@@ -728,7 +728,7 @@ class Base(object):
         index_b = index_a[0:-1]
         index_c = index_a[0:-1].append(index_a[-2:-1])
         index_d = index_a[0:1]
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == index_b
         expected1 = np.array([True] * n)
         expected2 = np.array([True] * (n - 1) + [False])
@@ -740,7 +740,7 @@ class Base(object):
         array_b = np.array(index_a[0:-1])
         array_c = np.array(index_a[0:-1].append(index_a[-2:-1]))
         array_d = np.array(index_a[0:1])
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == array_b
         tm.assert_numpy_array_equal(index_a == array_a, expected1)
         tm.assert_numpy_array_equal(index_a == array_c, expected2)
@@ -750,22 +750,22 @@ class Base(object):
         series_b = Series(array_b)
         series_c = Series(array_c)
         series_d = Series(array_d)
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == series_b
         tm.assert_numpy_array_equal(index_a == series_a, expected1)
         tm.assert_numpy_array_equal(index_a == series_c, expected2)
 
         # cases where length is 1 for one of them
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == index_d
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == series_d
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == array_d
         msg = "Can only compare identically-labeled Series objects"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             series_a == series_d
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             series_a == array_d
 
         # comparing with a scalar should broadcast; note that we are excluding
@@ -875,7 +875,7 @@ class Base(object):
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
                 msg = "isnull is not defined for MultiIndex"
-                with tm.assertRaisesRegexp(NotImplementedError, msg):
+                with tm.assert_raises_regex(NotImplementedError, msg):
                     idx.fillna(idx[0])
             else:
                 idx = index.copy()
@@ -884,7 +884,7 @@ class Base(object):
                 self.assertFalse(result is idx)
 
                 msg = "'value' must be a scalar, passed: "
-                with tm.assertRaisesRegexp(TypeError, msg):
+                with tm.assert_raises_regex(TypeError, msg):
                     idx.fillna([idx[0]])
 
                 idx = index.copy()
@@ -918,7 +918,7 @@ class Base(object):
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
                 msg = "isnull is not defined for MultiIndex"
-                with tm.assertRaisesRegexp(NotImplementedError, msg):
+                with tm.assert_raises_regex(NotImplementedError, msg):
                     idx.isnull()
             else:
 

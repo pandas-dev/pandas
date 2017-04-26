@@ -1870,7 +1870,7 @@ def raise_wrapper(major_ver):
             else:
                 msg = (r'Installed openpyxl is not supported at this '
                        r'time\. Use.+')
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     orig_method(self, *args, **kwargs)
         return wrapped
     return versioned_raise_wrapper
@@ -2292,7 +2292,7 @@ class XlsxWriterTests_NoMerge(ExcelWriterBase, tm.TestCase):
 class ExcelWriterEngineTests(tm.TestCase):
 
     def test_ExcelWriter_dispatch(self):
-        with tm.assertRaisesRegexp(ValueError, 'No engine'):
+        with tm.assert_raises_regex(ValueError, 'No engine'):
             ExcelWriter('nothing')
 
         try:

@@ -779,7 +779,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # assert_series_equal(result, comp)
 
         # bad axis
-        tm.assertRaisesRegexp(ValueError, 'No axis named 2', f, axis=2)
+        tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
         # make sure works on mixed-type frame
         getattr(self.mixed_frame, name)(axis=0)
         getattr(self.mixed_frame, name)(axis=1)
@@ -1749,7 +1749,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(out, expected)
 
         msg = "the 'out' parameter is not supported"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             np.round(df, decimals=0, out=df)
 
     def test_round_mixed_type(self):
@@ -1897,7 +1897,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         exp = a.dot(a.iloc[0])
         tm.assert_series_equal(result, exp)
 
-        with tm.assertRaisesRegexp(ValueError, 'Dot product shape mismatch'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Dot product shape mismatch'):
             a.dot(row[:-1])
 
         a = np.random.rand(1, 5)
@@ -1914,7 +1915,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
         df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
 
-        with tm.assertRaisesRegexp(ValueError, 'aligned'):
+        with tm.assert_raises_regex(ValueError, 'aligned'):
             df.dot(df2)
 
 
@@ -1986,7 +1987,7 @@ class TestNLargestNSmallest(object):
 
             error_msg = self.dtype_error_msg_template.format(
                 column='b', method=method, dtype='object')
-            with tm.assertRaisesRegexp(TypeError, error_msg):
+            with tm.assert_raises_regex(TypeError, error_msg):
                 getattr(df, method)(n, order)
         else:
             ascending = method == 'nsmallest'
@@ -2003,7 +2004,7 @@ class TestNLargestNSmallest(object):
         df = df_main_dtypes
         error_msg = self.dtype_error_msg_template.format(
             column=columns[1], method=method, dtype=df[columns[1]].dtype)
-        with tm.assertRaisesRegexp(TypeError, error_msg):
+        with tm.assert_raises_regex(TypeError, error_msg):
             getattr(df, method)(2, columns)
 
     def test_n_all_dtypes(self, df_main_dtypes):

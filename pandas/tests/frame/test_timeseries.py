@@ -16,9 +16,7 @@ from pandas import (DataFrame, Series, Index,
 import pandas as pd
 import pandas.tseries.offsets as offsets
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 from pandas.compat import product
@@ -220,8 +218,9 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         assert_frame_equal(shifted2, shifted3)
         assert_frame_equal(ps, shifted2.shift(-1, 'B'))
 
-        assertRaisesRegexp(ValueError, 'does not match PeriodIndex freq',
-                           ps.shift, freq='D')
+        tm.assert_raises_regex(ValueError,
+                               'does not match PeriodIndex freq',
+                               ps.shift, freq='D')
 
         # shift other axis
         # GH 6371
@@ -281,7 +280,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         shifted3 = ps.tshift(freq=offsets.BDay())
         assert_frame_equal(shifted, shifted3)
 
-        assertRaisesRegexp(ValueError, 'does not match', ps.tshift, freq='M')
+        tm.assert_raises_regex(
+            ValueError, 'does not match', ps.tshift, freq='M')
 
         # DatetimeIndex
         shifted = self.tsframe.tshift(1)

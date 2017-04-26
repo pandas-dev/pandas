@@ -452,10 +452,10 @@ class TestCategorical(tm.TestCase):
         # This should be a boolean.
         ordered = np.array([0, 1, 2])
 
-        with tm.assertRaisesRegexp(exp_err, exp_msg):
+        with tm.assert_raises_regex(exp_err, exp_msg):
             Categorical([1, 2, 3], ordered=ordered)
 
-        with tm.assertRaisesRegexp(exp_err, exp_msg):
+        with tm.assert_raises_regex(exp_err, exp_msg):
             Categorical.from_codes([0, 0, 1], categories=['a', 'b', 'c'],
                                    ordered=ordered)
 
@@ -587,16 +587,16 @@ class TestCategorical(tm.TestCase):
                                     check_dtype=False)
 
         msg = "the 'kind' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.argsort,
-                              c, kind='mergesort')
+        tm.assert_raises_regex(ValueError, msg, np.argsort,
+                               c, kind='mergesort')
 
         msg = "the 'axis' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.argsort,
-                              c, axis=0)
+        tm.assert_raises_regex(ValueError, msg, np.argsort,
+                               c, axis=0)
 
         msg = "the 'order' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.argsort,
-                              c, order='C')
+        tm.assert_raises_regex(ValueError, msg, np.argsort,
+                               c, order='C')
 
     def test_na_flags_int_categories(self):
         # #1457
@@ -835,9 +835,9 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         # removed in 0.19.0
         msg = "can\'t set attribute"
-        with tm.assertRaisesRegexp(AttributeError, msg):
+        with tm.assert_raises_regex(AttributeError, msg):
             cat.ordered = True
-        with tm.assertRaisesRegexp(AttributeError, msg):
+        with tm.assert_raises_regex(AttributeError, msg):
             cat.ordered = False
 
     def test_set_categories(self):
@@ -1955,7 +1955,7 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         # invalid accessor
         pytest.raises(AttributeError, lambda: Series([1, 2, 3]).cat)
-        tm.assertRaisesRegexp(
+        tm.assert_raises_regex(
             AttributeError,
             r"Can only use .cat accessor with a 'category' dtype",
             lambda: Series([1, 2, 3]).cat)
@@ -3987,7 +3987,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_categorical_equal(np.repeat(cat, 2), exp)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.repeat, cat, 2, axis=1)
+        tm.assert_raises_regex(ValueError, msg, np.repeat, cat, 2, axis=1)
 
     def test_reshape(self):
         cat = pd.Categorical([], categories=["a", "b"])
@@ -4012,7 +4012,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             msg = "can only specify one unknown dimension"
             cat = pd.Categorical(["a", "b"], categories=["a", "b"])
-            tm.assertRaisesRegexp(ValueError, msg, cat.reshape, (-2, -1))
+            tm.assert_raises_regex(ValueError, msg, cat.reshape, (-2, -1))
 
     def test_numpy_reshape(self):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -4021,8 +4021,8 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             msg = "the 'order' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, msg, np.reshape,
-                                  cat, cat.shape, order='F')
+            tm.assert_raises_regex(ValueError, msg, np.reshape,
+                                   cat, cat.shape, order='F')
 
     def test_na_actions(self):
 
@@ -4223,15 +4223,16 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         assert isinstance(s.cat, CategoricalAccessor)
 
         invalid = Series([1])
-        with tm.assertRaisesRegexp(AttributeError, "only use .cat accessor"):
+        with tm.assert_raises_regex(AttributeError,
+                                    "only use .cat accessor"):
             invalid.cat
         self.assertFalse(hasattr(invalid, 'cat'))
 
     def test_cat_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         c = Series(list('aabbcde')).astype('category')
-        with tm.assertRaisesRegexp(AttributeError,
-                                   "You cannot add any new attribute"):
+        with tm.assert_raises_regex(AttributeError,
+                                    "You cannot add any new attribute"):
             c.cat.xlabel = "a"
 
     def test_str_accessor_api_for_categorical(self):
@@ -4304,8 +4305,9 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                 tm.assert_series_equal(res, exp)
 
         invalid = Series([1, 2, 3]).astype('category')
-        with tm.assertRaisesRegexp(AttributeError,
-                                   "Can only use .str accessor with string"):
+        with tm.assert_raises_regex(AttributeError,
+                                    "Can only use .str "
+                                    "accessor with string"):
             invalid.str
         self.assertFalse(hasattr(invalid, 'str'))
 
@@ -4385,7 +4387,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                 tm.assert_almost_equal(res, exp)
 
         invalid = Series([1, 2, 3]).astype('category')
-        with tm.assertRaisesRegexp(
+        with tm.assert_raises_regex(
                 AttributeError, "Can only use .dt accessor with datetimelike"):
             invalid.dt
         self.assertFalse(hasattr(invalid, 'str'))

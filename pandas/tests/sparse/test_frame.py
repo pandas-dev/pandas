@@ -151,10 +151,10 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                       level=1)
 
         # wrong length index / columns
-        with tm.assertRaisesRegexp(ValueError, "^Index length"):
+        with tm.assert_raises_regex(ValueError, "^Index length"):
             SparseDataFrame(self.frame.values, index=self.frame.index[:-1])
 
-        with tm.assertRaisesRegexp(ValueError, "^Column length"):
+        with tm.assert_raises_regex(ValueError, "^Column length"):
             SparseDataFrame(self.frame.values, columns=self.frame.columns[:-1])
 
     # GH 9272
@@ -798,8 +798,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         right = self.frame.loc[:, ['B', 'D']]
         pytest.raises(Exception, left.join, right)
 
-        with tm.assertRaisesRegexp(ValueError,
-                                   'Other Series must have a name'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Other Series must have a name'):
             self.frame.join(Series(
                 np.random.randn(len(self.frame)), index=self.frame.index))
 
@@ -1042,7 +1042,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_sp_frame_equal(result, sdf)
 
         msg = "the 'axes' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.transpose, sdf, axes=1)
+        tm.assert_raises_regex(ValueError, msg, np.transpose, sdf, axes=1)
 
     def test_combine_first(self):
         df = self.frame
@@ -1303,12 +1303,12 @@ class TestSparseDataFrameAnalytics(tm.TestCase):
         tm.assert_sp_frame_equal(result, expected)
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                              self.frame, dtype=np.int64)
+        tm.assert_raises_regex(ValueError, msg, np.cumsum,
+                               self.frame, dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                              self.frame, out=result)
+        tm.assert_raises_regex(ValueError, msg, np.cumsum,
+                               self.frame, out=result)
 
     def test_numpy_func_call(self):
         # no exception should be raised even though

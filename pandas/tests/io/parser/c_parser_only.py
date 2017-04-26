@@ -96,7 +96,7 @@ nan 2
 3.0 3
 """
         # fallback casting, but not castable
-        with tm.assertRaisesRegexp(ValueError, 'cannot safely convert'):
+        with tm.assert_raises_regex(ValueError, 'cannot safely convert'):
             self.read_csv(StringIO(data), sep=r'\s+', header=None,
                           names=['a', 'b'], dtype={'a': np.int32})
 

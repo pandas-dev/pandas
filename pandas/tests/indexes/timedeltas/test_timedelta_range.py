@@ -37,10 +37,10 @@ class TestTimedeltas(tm.TestCase):
         arr = np.arange(10).reshape(2, 5)
         df = pd.DataFrame(np.arange(10).reshape(2, 5))
         for arg in (arr, df):
-            with tm.assertRaisesRegexp(TypeError, "1-d array"):
+            with tm.assert_raises_regex(TypeError, "1-d array"):
                 to_timedelta(arg)
             for errors in ['ignore', 'raise', 'coerce']:
-                with tm.assertRaisesRegexp(TypeError, "1-d array"):
+                with tm.assert_raises_regex(TypeError, "1-d array"):
                     to_timedelta(arg, errors=errors)
 
         # issue10583

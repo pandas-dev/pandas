@@ -122,8 +122,8 @@ class TestSlicing(tm.TestCase):
         tm.assert_series_equal(s['2005-1-1 00:01:00'], s.iloc[10:])
 
         self.assertEqual(s[Timestamp('2005-1-1 00:00:59.999990')], s.iloc[0])
-        tm.assertRaisesRegexp(KeyError, '2005-1-1 00:00:00',
-                              lambda: s['2005-1-1 00:00:00'])
+        tm.assert_raises_regex(KeyError, '2005-1-1 00:00:00',
+                               lambda: s['2005-1-1 00:00:00'])
 
     def test_partial_slicing_dataframe(self):
         # GH14856
@@ -249,14 +249,14 @@ class TestSlicing(tm.TestCase):
         timestamp = pd.Timestamp('2014-01-10')
 
         tm.assert_series_equal(nonmonotonic['2014-01-10':], expected)
-        tm.assertRaisesRegexp(KeyError,
-                              r"Timestamp\('2014-01-10 00:00:00'\)",
-                              lambda: nonmonotonic[timestamp:])
+        tm.assert_raises_regex(KeyError,
+                               r"Timestamp\('2014-01-10 00:00:00'\)",
+                               lambda: nonmonotonic[timestamp:])
 
         tm.assert_series_equal(nonmonotonic.loc['2014-01-10':], expected)
-        tm.assertRaisesRegexp(KeyError,
-                              r"Timestamp\('2014-01-10 00:00:00'\)",
-                              lambda: nonmonotonic.loc[timestamp:])
+        tm.assert_raises_regex(KeyError,
+                               r"Timestamp\('2014-01-10 00:00:00'\)",
+                               lambda: nonmonotonic.loc[timestamp:])
 
     def test_loc_datetime_length_one(self):
         # GH16071

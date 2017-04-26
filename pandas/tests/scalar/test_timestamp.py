@@ -172,9 +172,9 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(result, eval(repr(result)))
 
     def test_constructor_invalid(self):
-        with tm.assertRaisesRegexp(TypeError, 'Cannot convert input'):
+        with tm.assert_raises_regex(TypeError, 'Cannot convert input'):
             Timestamp(slice(2))
-        with tm.assertRaisesRegexp(ValueError, 'Cannot convert Period'):
+        with tm.assert_raises_regex(ValueError, 'Cannot convert Period'):
             Timestamp(Period('1000-01-01'))
 
     def test_constructor_positional(self):
@@ -245,7 +245,7 @@ class TestTimestamp(tm.TestCase):
             self.assertEqual(ts.offset, 'D')
 
         msg = "Can only specify freq or offset, not both"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             Timestamp('2011-01-01', offset='D', freq='D')
 
     def test_constructor_offset_depr_fromordinal(self):
@@ -260,7 +260,7 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(base.toordinal(), ts.toordinal())
 
         msg = "Can only specify freq or offset, not both"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             Timestamp.fromordinal(base.toordinal(), offset='D', freq='D')
 
     def test_conversion(self):
@@ -393,14 +393,14 @@ class TestTimestamp(tm.TestCase):
                       ambiguous='infer')
 
         # GH 8025
-        with tm.assertRaisesRegexp(TypeError,
-                                   'Cannot localize tz-aware Timestamp, use '
-                                   'tz_convert for conversions'):
+        with tm.assert_raises_regex(TypeError,
+                                    'Cannot localize tz-aware Timestamp, '
+                                    'use tz_convert for conversions'):
             Timestamp('2011-01-01', tz='US/Eastern').tz_localize('Asia/Tokyo')
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   'Cannot convert tz-naive Timestamp, use '
-                                   'tz_localize to localize'):
+        with tm.assert_raises_regex(TypeError,
+                                    'Cannot convert tz-naive Timestamp, '
+                                    'use tz_localize to localize'):
             Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
 
     def test_tz_localize_nonexistent(self):
@@ -710,7 +710,7 @@ class TestTimestamp(tm.TestCase):
             _check_round(freq, expected)
 
         msg = frequencies._INVALID_FREQ_ERROR
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             stamp.round('foo')
 
     def test_class_ops_pytz(self):

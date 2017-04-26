@@ -1321,22 +1321,22 @@ class TestCrosstab(tm.TestCase):
                            'c': [1, 1, np.nan, 1, 1]})
 
         error = 'values cannot be used without an aggfunc.'
-        with tm.assertRaisesRegexp(ValueError, error):
+        with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, values=df.c)
 
         error = 'aggfunc cannot be used without values'
-        with tm.assertRaisesRegexp(ValueError, error):
+        with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, aggfunc=np.mean)
 
         error = 'Not a valid normalize argument'
-        with tm.assertRaisesRegexp(ValueError, error):
+        with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, normalize='42')
 
-        with tm.assertRaisesRegexp(ValueError, error):
+        with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, normalize=42)
 
         error = 'Not a valid margins argument'
-        with tm.assertRaisesRegexp(ValueError, error):
+        with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, normalize='all', margins=42)
 
     def test_crosstab_with_categorial_columns(self):

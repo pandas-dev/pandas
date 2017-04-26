@@ -440,7 +440,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
 
                 msg = ("iLocation based boolean indexing cannot use an "
                        "indexable as a mask")
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     s.iloc[indexer]
 
 

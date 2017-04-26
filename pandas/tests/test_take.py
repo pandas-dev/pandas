@@ -32,7 +32,7 @@ class TestTake(tm.TestCase):
                 expected[3] = np.nan
                 tm.assert_almost_equal(out, expected)
             else:
-                with tm.assertRaisesRegexp(TypeError, self.fill_error):
+                with tm.assert_raises_regex(TypeError, self.fill_error):
                     algos.take_1d(data, indexer, out=out)
                 # no exception o/w
                 data.take(indexer, out=out)
@@ -123,7 +123,8 @@ class TestTake(tm.TestCase):
                 tm.assert_almost_equal(out1, expected1)
             else:
                 for i, out in enumerate([out0, out1]):
-                    with tm.assertRaisesRegexp(TypeError, self.fill_error):
+                    with tm.assert_raises_regex(TypeError,
+                                                self.fill_error):
                         algos.take_nd(data, indexer, out=out, axis=i)
                     # no exception o/w
                     data.take(indexer, out=out, axis=i)
@@ -235,7 +236,8 @@ class TestTake(tm.TestCase):
                 tm.assert_almost_equal(out2, expected2)
             else:
                 for i, out in enumerate([out0, out1, out2]):
-                    with tm.assertRaisesRegexp(TypeError, self.fill_error):
+                    with tm.assert_raises_regex(TypeError,
+                                                self.fill_error):
                         algos.take_nd(data, indexer, out=out, axis=i)
                     # no exception o/w
                     data.take(indexer, out=out, axis=i)

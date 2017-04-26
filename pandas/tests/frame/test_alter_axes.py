@@ -18,9 +18,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype)
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 
@@ -36,7 +34,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         _ = self.mixed_frame['foo']  # noqa
         self.mixed_frame.index = idx
         assert self.mixed_frame['foo'].index is idx
-        with assertRaisesRegexp(ValueError, 'Length mismatch'):
+        with tm.assert_raises_regex(ValueError, 'Length mismatch'):
             self.mixed_frame.index = idx[::2]
 
     def test_set_index_cast(self):
@@ -111,7 +109,8 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         assert_frame_equal(df3, expected_nodrop)
 
         # corner case
-        with assertRaisesRegexp(ValueError, 'Index has duplicate keys'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Index has duplicate keys'):
             df.set_index('A', verify_integrity=True)
 
         # append
@@ -136,7 +135,8 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                         'C': ['a', 'b', 'c', 'd', 'e'],
                         'D': np.random.randn(5),
                         'E': np.random.randn(5)})
-        with assertRaisesRegexp(ValueError, 'Index has duplicate keys'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Index has duplicate keys'):
             df.set_index('A', verify_integrity=True, inplace=True)
         assert 'A' in df
 
@@ -338,7 +338,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
     def test_set_columns(self):
         cols = Index(np.arange(len(self.mixed_frame.columns)))
         self.mixed_frame.columns = cols
-        with assertRaisesRegexp(ValueError, 'Length mismatch'):
+        with tm.assert_raises_regex(ValueError, 'Length mismatch'):
             self.mixed_frame.columns = cols[::2]
 
     def test_dti_set_index_reindex(self):

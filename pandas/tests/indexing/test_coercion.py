@@ -423,12 +423,12 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
 
         # ToDo: must coerce to object
         msg = "Passed item and index have different timezone"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             obj.insert(1, pd.Timestamp('2012-01-01', tz='US/Eastern'))
 
         # ToDo: must coerce to object
         msg = "cannot insert DatetimeIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, 1)
 
     def test_insert_index_datetime64tz(self):
@@ -445,17 +445,17 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
 
         # ToDo: must coerce to object
         msg = "Passed item and index have different timezone"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             obj.insert(1, pd.Timestamp('2012-01-01'))
 
         # ToDo: must coerce to object
         msg = "Passed item and index have different timezone"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             obj.insert(1, pd.Timestamp('2012-01-01', tz='Asia/Tokyo'))
 
         # ToDo: must coerce to object
         msg = "cannot insert DatetimeIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, 1)
 
     def test_insert_index_timedelta64(self):
@@ -469,12 +469,12 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
 
         # ToDo: must coerce to object
         msg = "cannot insert TimedeltaIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, pd.Timestamp('2012-01-01'))
 
         # ToDo: must coerce to object
         msg = "cannot insert TimedeltaIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, 1)
 
     def test_insert_index_period(self):
@@ -778,7 +778,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
 
         # ToDo: coerce to object
         msg = "cannot coerce a Timestamp with a tz on a naive Block"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.where(cond, pd.Timestamp('2012-01-01', tz='US/Eastern'))
 
         # ToDo: do not coerce to UTC, must be object
@@ -819,7 +819,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
         # ToDo: coerce to object
         msg = ("Index\\(\\.\\.\\.\\) must be called with a collection "
                "of some kind")
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.where(cond, pd.Timestamp('2012-01-01', tz='US/Eastern'))
 
         # ToDo: do not ignore timezone, must be object

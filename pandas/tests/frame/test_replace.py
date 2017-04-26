@@ -918,7 +918,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
 
     def test_replace_with_dict_with_bool_keys(self):
         df = DataFrame({0: [True, False], 1: [False, True]})
-        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
             df.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_replace_truthy(self):
@@ -929,7 +929,8 @@ class TestDataFrameReplace(tm.TestCase, TestData):
 
     def test_replace_int_to_int_chain(self):
         df = DataFrame({'a': lrange(1, 5)})
-        with tm.assertRaisesRegexp(ValueError, "Replacement not allowed .+"):
+        with tm.assert_raises_regex(ValueError,
+                                    "Replacement not allowed .+"):
             df.replace({'a': dict(zip(range(1, 5), range(2, 6)))})
 
     def test_replace_str_to_str_chain(self):
@@ -937,7 +938,8 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         astr = a.astype(str)
         bstr = np.arange(2, 6).astype(str)
         df = DataFrame({'a': astr})
-        with tm.assertRaisesRegexp(ValueError, "Replacement not allowed .+"):
+        with tm.assert_raises_regex(ValueError,
+                                    "Replacement not allowed .+"):
             df.replace({'a': dict(zip(astr, bstr))})
 
     def test_replace_swapping_bug(self):

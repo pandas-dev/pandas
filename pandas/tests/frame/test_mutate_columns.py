@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex
 
-from pandas.util.testing import assert_frame_equal, assertRaisesRegexp
+from pandas.util.testing import assert_frame_equal
 
 import pandas.util.testing as tm
 
@@ -91,7 +91,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         s = DataFrame({'foo': ['a', 'b', 'c', 'a'], 'fiz': [
                       'g', 'h', 'i', 'j']}).set_index('foo')
         msg = 'cannot reindex from a duplicate axis'
-        with assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df['newcol'] = s
 
         # GH 4107, more descriptive error message
@@ -99,7 +99,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
                        columns=['a', 'b', 'c', 'd'])
 
         msg = 'incompatible index of inserted column with frame index'
-        with assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             df['gr'] = df.groupby(['b', 'c']).count()
 
     def test_insert_benchmark(self):
@@ -143,7 +143,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         result = Series(dict(float64=4, float32=2, int32=1))
         self.assertTrue((df.get_dtype_counts() == result).all())
 
-        with assertRaisesRegexp(ValueError, 'already exists'):
+        with tm.assert_raises_regex(ValueError, 'already exists'):
             df.insert(1, 'a', df['b'])
         pytest.raises(ValueError, df.insert, 1, 'c', df['b'])
 

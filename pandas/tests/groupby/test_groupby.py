@@ -14,7 +14,7 @@ from pandas import (date_range, bdate_range, Timestamp,
 from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
-                                 assert_index_equal, assertRaisesRegexp)
+                                 assert_index_equal)
 from pandas.compat import (range, long, lrange, StringIO, lmap, lzip, map, zip,
                            builtins, OrderedDict, product as cart_product)
 from pandas import compat
@@ -82,7 +82,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
 
         pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
-        with assertRaisesRegexp(KeyError, '^[^A]+$'):
+        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'C']]
@@ -1874,16 +1874,14 @@ class TestGroupBy(MixIn, tm.TestCase):
         def j():
             frame.groupby()
 
-        tm.assertRaisesRegexp(TypeError,
-                              "You have to supply one of 'by' and 'level'",
-                              j)
+        tm.assert_raises_regex(TypeError, "You have to supply one of "
+                               "'by' and 'level'", j)
 
         def k():
             frame.groupby(by=None, level=None)
 
-        tm.assertRaisesRegexp(TypeError,
-                              "You have to supply one of 'by' and 'level'",
-                              k)
+        tm.assert_raises_regex(TypeError, "You have to supply one of "
+                               "'by' and 'level'", k)
 
     def test_groupby_level_mapper(self):
         frame = self.mframe
@@ -3753,10 +3751,10 @@ class TestGroupBy(MixIn, tm.TestCase):
         msg = "numpy operations are not valid with groupby"
 
         for func in ('mean', 'var', 'std', 'cumprod', 'cumsum'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(g, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(g, func), foo=1)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(g, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(g, func), foo=1)
 
     def test_grouping_string_repr(self):
         # GH 13394

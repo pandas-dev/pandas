@@ -699,23 +699,23 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         tm.assert_frame_equal(filtered, expected)
 
         # pass in None
-        with tm.assertRaisesRegexp(TypeError, 'Must pass'):
+        with tm.assert_raises_regex(TypeError, 'Must pass'):
             self.frame.filter()
-        with tm.assertRaisesRegexp(TypeError, 'Must pass'):
+        with tm.assert_raises_regex(TypeError, 'Must pass'):
             self.frame.filter(items=None)
-        with tm.assertRaisesRegexp(TypeError, 'Must pass'):
+        with tm.assert_raises_regex(TypeError, 'Must pass'):
             self.frame.filter(axis=1)
 
         # test mutually exclusive arguments
-        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$', like='bbi')
-        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$', axis=1)
-        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$')
-        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], like='bbi', axis=0)
-        with tm.assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], like='bbi')
 
         # objects

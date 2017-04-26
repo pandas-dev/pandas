@@ -234,9 +234,9 @@ class TestJoin(tm.TestCase):
         df = DataFrame({'a': [1, 1]})
 
         for obj in wrongly_typed:
-            with tm.assertRaisesRegexp(ValueError, str(type(obj))):
+            with tm.assert_raises_regex(ValueError, str(type(obj))):
                 merge(obj, df, left_on='a', right_on='a')
-            with tm.assertRaisesRegexp(ValueError, str(type(obj))):
+            with tm.assert_raises_regex(ValueError, str(type(obj))):
                 merge(df, obj, left_on='a', right_on='a')
 
     def test_join_on_pass_vector(self):

@@ -200,17 +200,21 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
     def test_select_dtypes_empty(self):
         df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
-        with tm.assertRaisesRegexp(ValueError, 'at least one of include or '
-                                   'exclude must be nonempty'):
+        with tm.assert_raises_regex(ValueError, 'at least one of '
+                                    'include or exclude '
+                                    'must be nonempty'):
             df.select_dtypes()
 
     def test_select_dtypes_raises_on_string(self):
         df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
-        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
+        with tm.assert_raises_regex(TypeError, 'include and exclude '
+                                    '.+ non-'):
             df.select_dtypes(include='object')
-        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
+        with tm.assert_raises_regex(TypeError, 'include and exclude '
+                                    '.+ non-'):
             df.select_dtypes(exclude='object')
-        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
+        with tm.assert_raises_regex(TypeError, 'include and exclude '
+                                    '.+ non-'):
             df.select_dtypes(include=int, exclude='object')
 
     def test_select_dtypes_bad_datetime64(self):
@@ -220,10 +224,10 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
-        with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
+        with tm.assert_raises_regex(ValueError, '.+ is too specific'):
             df.select_dtypes(include=['datetime64[D]'])
 
-        with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
+        with tm.assert_raises_regex(ValueError, '.+ is too specific'):
             df.select_dtypes(exclude=['datetime64[as]'])
 
     def test_select_dtypes_datetime_with_tz(self):
@@ -251,11 +255,11 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         except NameError:
             pass
         for dt in string_dtypes:
-            with tm.assertRaisesRegexp(TypeError,
-                                       'string dtypes are not allowed'):
+            with tm.assert_raises_regex(TypeError,
+                                        'string dtypes are not allowed'):
                 df.select_dtypes(include=[dt])
-            with tm.assertRaisesRegexp(TypeError,
-                                       'string dtypes are not allowed'):
+            with tm.assert_raises_regex(TypeError,
+                                        'string dtypes are not allowed'):
                 df.select_dtypes(exclude=[dt])
 
     def test_select_dtypes_bad_arg_raises(self):
@@ -266,7 +270,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
-        with tm.assertRaisesRegexp(TypeError, 'data type.*not understood'):
+        with tm.assert_raises_regex(TypeError, 'data type.'
+                                    '*not understood'):
             df.select_dtypes(['blargy, blarg, blarg'])
 
     def test_select_dtypes_typecodes(self):
@@ -396,7 +401,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         for this_type in types:
             for this_val in values:
                 df = DataFrame([this_val])
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     df.astype(this_type)
 
     def test_astype_str(self):

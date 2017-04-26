@@ -108,13 +108,14 @@ class TestMMapWrapper(tm.TestCase):
             msg = "[Errno 22]"
             err = mmap.error
 
-        tm.assertRaisesRegexp(err, msg, common.MMapWrapper, non_file)
+        tm.assert_raises_regex(err, msg, common.MMapWrapper, non_file)
 
         target = open(self.mmap_file, 'r')
         target.close()
 
         msg = "I/O operation on closed file"
-        tm.assertRaisesRegexp(ValueError, msg, common.MMapWrapper, target)
+        tm.assert_raises_regex(
+            ValueError, msg, common.MMapWrapper, target)
 
     def test_get_attr(self):
         with open(self.mmap_file, 'r') as target:

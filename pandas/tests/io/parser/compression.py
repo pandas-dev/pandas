@@ -45,18 +45,19 @@ class CompressionTests(object):
                 tmp.writestr(file_name, data)
             tmp.close()
 
-            tm.assertRaisesRegexp(ValueError, 'Multiple files',
-                                  self.read_csv, path, compression='zip')
+            tm.assert_raises_regex(ValueError, 'Multiple files',
+                                   self.read_csv, path, compression='zip')
 
-            tm.assertRaisesRegexp(ValueError, 'Multiple files',
-                                  self.read_csv, path, compression='infer')
+            tm.assert_raises_regex(ValueError, 'Multiple files',
+                                   self.read_csv, path,
+                                   compression='infer')
 
         with tm.ensure_clean() as path:
             tmp = zipfile.ZipFile(path, mode='w')
             tmp.close()
 
-            tm.assertRaisesRegexp(ValueError, 'Zero files',
-                                  self.read_csv, path, compression='zip')
+            tm.assert_raises_regex(ValueError, 'Zero files',
+                                   self.read_csv, path, compression='zip')
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:
@@ -167,5 +168,5 @@ class CompressionTests(object):
 
     def test_invalid_compression(self):
         msg = 'Unrecognized compression type: sfark'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv('test_file.zip', compression='sfark')

@@ -612,7 +612,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
             # defined
             for op_str in ops:
                 op = getattr(get_ser, op_str, None)
-                with tm.assertRaisesRegexp(TypeError, 'operate'):
+                with tm.assert_raises_regex(TypeError, 'operate'):
                     op(test_ser)
 
         # ## timedelta64 ###
@@ -1260,7 +1260,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         #
         msg = 'No axis named 1 for object type'
         for op in ['eq', 'ne', 'le', 'le', 'gt', 'ge']:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 getattr(left, op)(right, axis=1)
 
     def test_comparison_flex_alignment(self):
@@ -1539,23 +1539,23 @@ class TestSeriesOperators(TestData, tm.TestCase):
         for l, r in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
 
             msg = "Can only compare identically-labeled Series objects"
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 l == r
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 l != r
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 l < r
 
             msg = "Can only compare identically-labeled DataFrame objects"
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 l.to_frame() == r.to_frame()
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 l.to_frame() != r.to_frame()
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 l.to_frame() < r.to_frame()
 
     def test_bool_ops_df_compat(self):

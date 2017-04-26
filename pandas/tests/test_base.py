@@ -47,7 +47,8 @@ class CheckImmutable(object):
     def check_mutable_error(self, *args, **kwargs):
         # Pass whatever function you normally would to assertRaisesRegexp
         # (after the Exception kind).
-        tm.assertRaisesRegexp(TypeError, self.mutable_regex, *args, **kwargs)
+        tm.assert_raises_regex(
+            TypeError, self.mutable_regex, *args, **kwargs)
 
     def test_no_mutable_funcs(self):
         def setitem():
@@ -831,7 +832,7 @@ class TestIndexOps(Ops):
                 result = idx.drop_duplicates(keep=False)
                 tm.assert_index_equal(result, idx[~expected])
 
-                with tm.assertRaisesRegexp(
+                with tm.assert_raises_regex(
                         TypeError, r"drop_duplicates\(\) got an unexpected "
                         "keyword argument"):
                     idx.drop_duplicates(inplace=True)
@@ -995,10 +996,10 @@ class TestTranspose(Ops):
 
     def test_transpose_non_default_axes(self):
         for obj in self.objs:
-            tm.assertRaisesRegexp(ValueError, self.errmsg,
-                                  obj.transpose, 1)
-            tm.assertRaisesRegexp(ValueError, self.errmsg,
-                                  obj.transpose, axes=1)
+            tm.assert_raises_regex(ValueError, self.errmsg,
+                                   obj.transpose, 1)
+            tm.assert_raises_regex(ValueError, self.errmsg,
+                                   obj.transpose, axes=1)
 
     def test_numpy_transpose(self):
         for obj in self.objs:
@@ -1007,8 +1008,8 @@ class TestTranspose(Ops):
             else:
                 tm.assert_series_equal(np.transpose(obj), obj)
 
-            tm.assertRaisesRegexp(ValueError, self.errmsg,
-                                  np.transpose, obj, axes=1)
+            tm.assert_raises_regex(ValueError, self.errmsg,
+                                   np.transpose, obj, axes=1)
 
 
 class TestNoNewAttributesMixin(tm.TestCase):

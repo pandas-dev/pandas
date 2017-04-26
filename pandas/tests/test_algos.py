@@ -133,15 +133,16 @@ class TestSafeSort(tm.TestCase):
             pytest.raises(TypeError, algos.safe_sort, arr)
 
     def test_exceptions(self):
-        with tm.assertRaisesRegexp(TypeError,
-                                   "Only list-like objects are allowed"):
+        with tm.assert_raises_regex(TypeError,
+                                    "Only list-like objects are allowed"):
             algos.safe_sort(values=1)
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "Only list-like objects or None"):
+        with tm.assert_raises_regex(TypeError,
+                                    "Only list-like objects or None"):
             algos.safe_sort(values=[0, 1, 2], labels=1)
 
-        with tm.assertRaisesRegexp(ValueError, "values should be unique"):
+        with tm.assert_raises_regex(ValueError,
+                                    "values should be unique"):
             algos.safe_sort(values=[0, 1, 2, 1], labels=[0, 1])
 
 
@@ -1152,7 +1153,7 @@ class TestRank(tm.TestCase):
         arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
         msg = "Array with ndim > 2 are not supported"
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             algos.rank(arr)
 
 
@@ -1335,27 +1336,27 @@ def test_int64_add_overflow():
     m = np.iinfo(np.int64).max
     n = np.iinfo(np.int64).min
 
-    with tm.assertRaisesRegexp(OverflowError, msg):
+    with tm.assert_raises_regex(OverflowError, msg):
         algos.checked_add_with_arr(np.array([m, m]), m)
-    with tm.assertRaisesRegexp(OverflowError, msg):
+    with tm.assert_raises_regex(OverflowError, msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]))
-    with tm.assertRaisesRegexp(OverflowError, msg):
+    with tm.assert_raises_regex(OverflowError, msg):
         algos.checked_add_with_arr(np.array([n, n]), n)
-    with tm.assertRaisesRegexp(OverflowError, msg):
+    with tm.assert_raises_regex(OverflowError, msg):
         algos.checked_add_with_arr(np.array([n, n]), np.array([n, n]))
-    with tm.assertRaisesRegexp(OverflowError, msg):
+    with tm.assert_raises_regex(OverflowError, msg):
         algos.checked_add_with_arr(np.array([m, n]), np.array([n, n]))
-    with tm.assertRaisesRegexp(OverflowError, msg):
+    with tm.assert_raises_regex(OverflowError, msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                    arr_mask=np.array([False, True]))
-    with tm.assertRaisesRegexp(OverflowError, msg):
+    with tm.assert_raises_regex(OverflowError, msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                    b_mask=np.array([False, True]))
-    with tm.assertRaisesRegexp(OverflowError, msg):
+    with tm.assert_raises_regex(OverflowError, msg):
         algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                    arr_mask=np.array([False, True]),
                                    b_mask=np.array([False, True]))
-    with tm.assertRaisesRegexp(OverflowError, msg):
+    with tm.assert_raises_regex(OverflowError, msg):
         with tm.assert_produces_warning(RuntimeWarning):
             algos.checked_add_with_arr(np.array([m, m]),
                                        np.array([np.nan, m]))
@@ -1364,15 +1365,15 @@ def test_int64_add_overflow():
     # the addition overflows. We don't check the result but just
     # the fact that an OverflowError is not raised.
     with pytest.raises(AssertionError):
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                        arr_mask=np.array([True, True]))
     with pytest.raises(AssertionError):
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                        b_mask=np.array([True, True]))
     with pytest.raises(AssertionError):
-        with tm.assertRaisesRegexp(OverflowError, msg):
+        with tm.assert_raises_regex(OverflowError, msg):
             algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]),
                                        arr_mask=np.array([True, False]),
                                        b_mask=np.array([False, True]))

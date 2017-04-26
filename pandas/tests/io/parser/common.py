@@ -44,7 +44,7 @@ bar2,12,13,14,15
 """
         # Parsers support only length-1 decimals
         msg = 'Only length-1 decimal markers supported'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(data), decimal='')
 
     def test_bad_stream_exception(self):
@@ -64,7 +64,7 @@ bar2,12,13,14,15
             msg = "'utf-8' codec can't decode byte"
         else:
             msg = "'utf8' codec can't decode byte"
-        with tm.assertRaisesRegexp(UnicodeDecodeError, msg):
+        with tm.assert_raises_regex(UnicodeDecodeError, msg):
             self.read_csv(stream)
         stream.close()
 
@@ -126,7 +126,7 @@ A,B,C
 2,3,4
 """
         msg = 'Expected 3 fields in line 4, saw 5'
-        with tm.assertRaisesRegexp(Exception, msg):
+        with tm.assert_raises_regex(Exception, msg):
             self.read_table(StringIO(data), sep=',',
                             header=1, comment='#')
 
@@ -140,7 +140,7 @@ skip
 2,3,4
 """
         msg = 'Expected 3 fields in line 6, saw 5'
-        with tm.assertRaisesRegexp(Exception, msg):
+        with tm.assert_raises_regex(Exception, msg):
             it = self.read_table(StringIO(data), sep=',',
                                  header=1, comment='#',
                                  iterator=True, chunksize=1,
@@ -157,7 +157,7 @@ skip
 2,3,4
 """
         msg = 'Expected 3 fields in line 6, saw 5'
-        with tm.assertRaisesRegexp(Exception, msg):
+        with tm.assert_raises_regex(Exception, msg):
             it = self.read_table(StringIO(data), sep=',', header=1,
                                  comment='#', iterator=True, chunksize=1,
                                  skiprows=[2])
@@ -173,7 +173,7 @@ skip
 2,3,4
 """
         msg = 'Expected 3 fields in line 6, saw 5'
-        with tm.assertRaisesRegexp(Exception, msg):
+        with tm.assert_raises_regex(Exception, msg):
             it = self.read_table(StringIO(data), sep=',', header=1,
                                  comment='#', iterator=True, chunksize=1,
                                  skiprows=[2])
@@ -190,7 +190,7 @@ A,B,C
 footer
 """
             msg = 'Expected 3 fields in line 4, saw 5'
-            with tm.assertRaisesRegexp(Exception, msg):
+            with tm.assert_raises_regex(Exception, msg):
                 self.read_table(StringIO(data), sep=',',
                                 header=1, comment='#',
                                 skipfooter=1)
@@ -385,13 +385,13 @@ bar,foo"""
 
         msg = r"'nrows' must be an integer >=0"
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows=1.2)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows='foo')
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows=-1)
 
     def test_read_chunksize(self):
@@ -407,13 +407,13 @@ bar,foo"""
         # with invalid chunksize value:
         msg = r"'chunksize' must be an integer >=1"
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), chunksize=1.3)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), chunksize='foo')
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), chunksize=0)
 
     def test_read_chunksize_and_nrows(self):
@@ -1104,7 +1104,7 @@ A,B,C
         # make sure that an error is still thrown
         # when the 'usecols' parameter is not provided
         msg = r"Expected \d+ fields in line \d+, saw \d+"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df = self.read_csv(StringIO(csv))
 
         expected = DataFrame({
@@ -1130,10 +1130,10 @@ A,B,C
         # throws the correct error, with or without usecols
         errmsg = "No columns to parse from file"
 
-        with tm.assertRaisesRegexp(EmptyDataError, errmsg):
+        with tm.assert_raises_regex(EmptyDataError, errmsg):
             self.read_csv(StringIO(''))
 
-        with tm.assertRaisesRegexp(EmptyDataError, errmsg):
+        with tm.assert_raises_regex(EmptyDataError, errmsg):
             self.read_csv(StringIO(''), usecols=usecols)
 
         expected = DataFrame(columns=usecols, index=[0], dtype=np.float64)
@@ -1172,7 +1172,8 @@ A,B,C
     def test_raise_on_sep_with_delim_whitespace(self):
         # see gh-6607
         data = 'a b c\n1 2 3'
-        with tm.assertRaisesRegexp(ValueError, 'you can only specify one'):
+        with tm.assert_raises_regex(ValueError,
+                                    'you can only specify one'):
             self.read_table(StringIO(data), sep=r'\s', delim_whitespace=True)
 
     def test_single_char_leading_whitespace(self):
@@ -1563,7 +1564,7 @@ j,-inF"""
             tm.assert_frame_equal(out, expected)
         else:
             msg = "NULL byte detected"
-            with tm.assertRaisesRegexp(ParserError, msg):
+            with tm.assert_raises_regex(ParserError, msg):
                 self.read_csv(StringIO(data), names=cols)
 
     def test_utf8_bom(self):
@@ -1681,13 +1682,13 @@ j,-inF"""
 
         msg = "Invalid file path or buffer object type"
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(InvalidBuffer())
 
         if PY3:
             from unittest import mock
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 self.read_csv(mock.Mock())
 
     @tm.capture_stderr

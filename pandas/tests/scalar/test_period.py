@@ -135,11 +135,11 @@ class TestPeriodProperties(tm.TestCase):
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -3M')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period('2011-01', freq='-3M')
 
         msg = ('Frequency must be positive, because it' ' represents span: 0M')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period('2011-01', freq='0M')
 
     def test_period_cons_combined(self):
@@ -185,28 +185,28 @@ class TestPeriodProperties(tm.TestCase):
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -25H')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period('2011-01', freq='-1D1H')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period('2011-01', freq='-1H1D')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period(ordinal=1, freq='-1D1H')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period(ordinal=1, freq='-1H1D')
 
         msg = ('Frequency must be positive, because it'
                ' represents span: 0D')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period('2011-01', freq='0D0H')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period(ordinal=1, freq='0D0H')
 
         # You can only combine together day and intraday offsets
         msg = ('Invalid frequency: 1W1D')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period('2011-01', freq='1W1D')
         msg = ('Invalid frequency: 1D1W')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period('2011-01', freq='1D1W')
 
     def test_timestamp_tz_arg(self):
@@ -518,9 +518,9 @@ class TestPeriodProperties(tm.TestCase):
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
         for exp, freqs in iteritems(cases):
             for freq in freqs:
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     Period('2016-03-01 09:00', freq=freq)
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     Period(ordinal=1, freq=freq)
 
             # check supported freq-aliases still works
@@ -762,7 +762,7 @@ class TestPeriodProperties(tm.TestCase):
         self.assertEqual(exp.days_in_month, 29)
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=7)
 
     def test_properties_daily(self):
@@ -1032,14 +1032,14 @@ class TestMethods(tm.TestCase):
         dt1 = Period(freq='D', year=2008, month=1, day=1)
         dt2 = Period(freq='D', year=2008, month=1, day=2)
         msg = r"unsupported operand type\(s\)"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             dt1 + "str"
 
         msg = r"unsupported operand type\(s\)"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             "str" + dt1
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             dt1 + dt2
 
     def test_sub(self):
@@ -1050,7 +1050,7 @@ class TestMethods(tm.TestCase):
         self.assertEqual(dt2 - dt1, 14)
 
         msg = r"Input has different freq=M from Period\(freq=D\)"
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             dt1 - pd.Period('2011-02', freq='M')
 
     def test_add_offset(self):
@@ -1414,8 +1414,8 @@ class TestMethods(tm.TestCase):
         self.assertEqual(result, exp)
 
         msg = r"Input cannot be converted to Period\(freq=D\)"
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             p + offsets.Hour(2)
 
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             p - offsets.Hour(2)

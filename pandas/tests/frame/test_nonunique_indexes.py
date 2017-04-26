@@ -9,9 +9,7 @@ from pandas.compat import lrange, u
 from pandas import DataFrame, Series, MultiIndex, date_range
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 
@@ -53,7 +51,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
                               [2, 1, 3, 5, 'bah']],
                              columns=['foo', 'bar', 'foo', 'hello', 'string'])
         check(df, expected)
-        with assertRaisesRegexp(ValueError, 'Length of value'):
+        with tm.assert_raises_regex(ValueError, 'Length of value'):
             df.insert(0, 'AnotherColumn', range(len(df.index) - 1))
 
         # insert same dtype
@@ -103,8 +101,8 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         check(df, expected)
 
         # insert a dup
-        assertRaisesRegexp(ValueError, 'cannot insert',
-                           df.insert, 2, 'new_col', 4.)
+        tm.assert_raises_regex(ValueError, 'cannot insert',
+                               df.insert, 2, 'new_col', 4.)
         df.insert(2, 'new_col', 4., allow_duplicates=True)
         expected = DataFrame([[1, 1, 4., 5., 'bah', 3],
                               [1, 2, 4., 5., 'bah', 3],

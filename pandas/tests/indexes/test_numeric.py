@@ -349,7 +349,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
         pytest.raises(KeyError, idx.get_loc, 1.5, method='pad',
                       tolerance=0.1)
 
-        with tm.assertRaisesRegexp(ValueError, 'must be numeric'):
+        with tm.assert_raises_regex(ValueError, 'must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
 
     def test_get_loc_na(self):
@@ -438,9 +438,9 @@ class TestFloat64Index(Numeric, tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -566,7 +566,7 @@ class NumericInt(Numeric):
                "{name} cannot contain NA").format(name=name)
 
         # fill_value=True
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -1]), fill_value=True)
 
         # allow_fill=False
@@ -575,9 +575,9 @@ class NumericInt(Numeric):
         expected = self._holder([2, 1, 3], name='xxx')
         tm.assert_index_equal(result, expected)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -672,11 +672,11 @@ class TestInt64Index(NumericInt, tm.TestCase):
 
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
-        with tm.assertRaisesRegexp(TypeError, 'casting'):
+        with tm.assert_raises_regex(TypeError, 'casting'):
             Int64Index(arr)
 
         arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
-        with tm.assertRaisesRegexp(TypeError, 'casting'):
+        with tm.assert_raises_regex(TypeError, 'casting'):
             Int64Index(arr_with_floats)
 
     def test_coerce_list(self):
