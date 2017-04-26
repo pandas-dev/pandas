@@ -14,7 +14,7 @@ from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
-from pandas.core.indexes.period import PeriodIndex, period_range
+from pandas.core.indexes.period import PeriodIndex
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -834,6 +834,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
     def _resampler_for_grouping(self):
         return PeriodIndexResamplerGroupby
 
+    def _get_binner_for_time(self):
+        if self.kind == 'timestamp':
+            return super(PeriodIndexResampler, self)._get_binner_for_time()
+        return self.groupby._get_period_bins(self.ax)
+
     def _convert_obj(self, obj):
         obj = super(PeriodIndexResampler, self)._convert_obj(obj)
 
@@ -858,29 +863,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         return obj
 
-    def aggregate(self, arg, *args, **kwargs):
-        result, how = self._aggregate(arg, *args, **kwargs)
-        if result is None:
-            result = self._downsample(arg, *args, **kwargs)
-
-        result = self._apply_loffset(result)
-        return result
-
-    agg = aggregate
-
-    def _get_new_index(self):
-        """ return our new index """
-        ax = self.ax
-
-        if len(ax) == 0:
-            values = []
-        else:
-            start = ax[0].asfreq(self.freq, how=self.convention)
-            end = ax[-1].asfreq(self.freq, how='end')
-            values = period_range(start, end, freq=self.freq).asi8
-
-        return ax._shallow_copy(values, freq=self.freq)
-
     def _downsample(self, how, **kwargs):
         """
         Downsample the cython defined function
@@ -898,21 +880,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         how = self._is_cython_func(how) or how
         ax = self.ax
 
-        new_index = self._get_new_index()
-
-        # Start vs. end of period
-        memb = ax.asfreq(self.freq, how=self.convention)
-
         if is_subperiod(ax.freq, self.freq):
             # Downsampling
-            if len(new_index) == 0:
-                bins = []
-            else:
-                i8 = memb.asi8
-                rng = np.arange(i8[0], i8[-1] + 1)
-                bins = memb.searchsorted(rng, side='right')
-            grouper = BinGrouper(bins, new_index)
-            return self._groupby_and_aggregate(how, grouper=grouper)
+            return self._groupby_and_aggregate(how, grouper=self.grouper)
         elif is_superperiod(ax.freq, self.freq):
             return self.asfreq()
         elif ax.freq == self.freq:
@@ -946,9 +916,10 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             return super(PeriodIndexResampler, self)._upsample(
                 method, limit=limit, fill_value=fill_value)
 
+        self._set_binner()
         ax = self.ax
         obj = self.obj
-        new_index = self._get_new_index()
+        new_index = self.binner
 
         # Start vs. end of period
         memb = ax.asfreq(self.freq, how=self.convention)
@@ -1290,6 +1261,29 @@ class TimeGrouper(Grouper):
         if ax.tzinfo:
             end_stamps = end_stamps.tz_localize(ax.tzinfo)
         bins = ax.searchsorted(end_stamps, side='left')
+
+        return binner, bins, labels
+
+    def _get_period_bins(self, ax):
+        if not isinstance(ax, PeriodIndex):
+            raise TypeError('axis must be a PeriodIndex, but got '
+                            'an instance of %r' % type(ax).__name__)
+
+        if not len(ax):
+            binner = labels = PeriodIndex(
+                data=[], freq=self.freq, name=ax.name)
+            return binner, [], labels
+
+        start = ax[0].asfreq(self.freq, how=self.convention)
+        end = ax[-1].asfreq(self.freq, how='end')
+
+        labels = binner = PeriodIndex(start=start, end=end,
+                                      freq=self.freq, name=ax.name)
+
+        memb = ax.asfreq(self.freq, how=self.convention)
+        i8 = memb.asi8
+        rng = np.arange(i8[0], i8[-1] + 1)
+        bins = memb.searchsorted(rng, side='right')
 
         return binner, bins, labels
 

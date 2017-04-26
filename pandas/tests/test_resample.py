@@ -3167,13 +3167,6 @@ class TestTimeGrouper(object):
                                         "instance of %r" % name):
                 df.groupby(TimeGrouper('D'))
 
-        # PeriodIndex gives a specific error message
-        df = DataFrame({'a': np.random.randn(n)}, index=tm.makePeriodIndex(n))
-        with tm.assert_raises_regex(TypeError,
-                                    "axis must be a DatetimeIndex, but "
-                                    "got an instance of 'PeriodIndex'"):
-            df.groupby(TimeGrouper('D'))
-
     def test_aaa_group_order(self):
         # GH 12840
         # check TimeGrouper perform stable sorts
