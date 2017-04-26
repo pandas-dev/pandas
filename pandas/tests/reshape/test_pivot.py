@@ -90,6 +90,39 @@ class TestPivotTable(tm.TestCase):
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
 
+    def test_pivot_table_dropna_margins(self):
+        # GH 14072
+        df = DataFrame([
+            [1, 'a', 'A'],
+            [1, 'b', 'B'],
+            [1, 'c', None]],
+            columns=['x', 'y', 'z'])
+
+        result_false = df.pivot_table(values='x', index='y', columns='z',
+                                      aggfunc='sum', fill_value=0,
+                                      margins=True, dropna=False)
+        expected_index = Series(['a', 'b', 'c', 'All'], name='y')
+        expected_columns = Series([None, 'A', 'B', 'All'], name='z')
+        expected_false = DataFrame([[0, 1, 0, 1],
+                                    [0, 0, 1, 1],
+                                    [1, 0, 0, 1],
+                                    [1, 1, 1, 3]],
+                                   index=expected_index,
+                                   columns=expected_columns)
+        tm.assert_frame_equal(expected_false, result_false)
+
+        result_true = df.pivot_table(values='x', index='y', columns='z',
+                                     aggfunc='sum', fill_value=0,
+                                     margins=True, dropna=True)
+        expected_index = Series(['a', 'b', 'All'], name='y')
+        expected_columns = Series(['A', 'B', 'All'], name='z')
+        expected_true = DataFrame([[1, 0, 1],
+                                   [0, 1, 1],
+                                   [1, 1, 2]],
+                                  index=expected_index,
+                                  columns=expected_columns)
+        tm.assert_frame_equal(expected_true, result_true)
+
     def test_pivot_table_dropna_categoricals(self):
         # GH 15193
         categories = ['a', 'b', 'c', 'd']

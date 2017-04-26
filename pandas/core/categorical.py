@@ -548,10 +548,6 @@ class Categorical(PandasObject):
 
         if not fastpath:
 
-            # Categories cannot contain NaN.
-            if categories.hasnans:
-                raise ValueError('Categorial categories cannot be null')
-
             # Categories must be unique.
             if not categories.is_unique:
                 raise ValueError('Categorical categories must be unique')

@@ -361,7 +361,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
-                 sort=True, group_keys=True, squeeze=False, **kwargs):
+                 sort=True, group_keys=True, squeeze=False, dropna=True,
+                 **kwargs):
 
         self._selection = selection
 
@@ -388,7 +389,8 @@ class _GroupBy(PandasObject, SelectionMixin):
                                                     axis=axis,
                                                     level=level,
                                                     sort=sort,
-                                                    mutated=self.mutated)
+                                                    mutated=self.mutated,
+                                                    dropna=dropna)
 
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
@@ -1614,7 +1616,7 @@ GroupBy._add_numeric_operations()
 
 
 @Appender(GroupBy.__doc__)
-def groupby(obj, by, **kwds):
+def groupby(obj, by, dropna=True, **kwds):
     if isinstance(obj, Series):
         klass = SeriesGroupBy
     elif isinstance(obj, DataFrame):
@@ -1622,7 +1624,7 @@ def groupby(obj, by, **kwds):
     else:  # pragma: no cover
         raise TypeError('invalid type: %s' % type(obj))
 
-    return klass(obj, by, **kwds)
+    return klass(obj, by, dropna=dropna, **kwds)
 
 
 def _get_axes(group):
@@ -2339,7 +2341,7 @@ class Grouping(object):
     """
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
-                 sort=True, in_axis=False):
+                 sort=True, in_axis=False, dropna=True):
 
         self.name = name
         self.level = level
@@ -2348,6 +2350,7 @@ class Grouping(object):
         self.sort = sort
         self.obj = obj
         self.in_axis = in_axis
+        self.dropna = dropna
 
         # right place for this?
         if isinstance(grouper, (Series, Index)) and name is None:
@@ -2468,7 +2471,7 @@ class Grouping(object):
     def _make_labels(self):
         if self._labels is None or self._group_index is None:
             labels, uniques = algorithms.factorize(
-                self.grouper, sort=self.sort)
+                self.grouper, sort=self.sort, dropna=self.dropna)
             uniques = Index(uniques, name=self.name)
             self._labels = labels
             self._group_index = uniques
@@ -2480,7 +2483,7 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
-                 mutated=False):
+                 mutated=False, dropna=True):
     """
     create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -2633,7 +2636,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                         name=name,
                         level=level,
                         sort=sort,
-                        in_axis=in_axis) \
+                        in_axis=in_axis,
+                        dropna=dropna) \
             if not isinstance(gpr, Grouping) else gpr
 
         groupings.append(ping)

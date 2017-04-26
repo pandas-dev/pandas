@@ -330,7 +330,7 @@ cdef class {{name}}HashTable(HashTable):
     @cython.boundscheck(False)
     def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
-                   bint check_null=True):
+                   bint check_null=True, bint dropna=True):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -642,7 +642,7 @@ cdef class StringHashTable(HashTable):
     @cython.boundscheck(False)
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=1):
+                   bint check_null=1, bint dropna=True):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -815,7 +815,7 @@ cdef class PyObjectHashTable(HashTable):
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=True):
+                   bint check_null=True, bint dropna=True):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -830,7 +830,11 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            if check_null and val != val or val is None:
+            if check_null and val != val:
+                labels[i] = na_sentinel
+                continue
+
+            if dropna and val is None:
                 labels[i] = na_sentinel
                 continue
 
@@ -968,5 +972,5 @@ cdef class MultiIndexHashTable(HashTable):
 
     def get_labels(self, object mi, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=True):
+                   bint check_null=True, bint dropna=True):
         raise NotImplementedError
