@@ -19,7 +19,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
                      _string_dtypes,
-                     _coerce_to_dtype,
+                     pandas_dtype,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
@@ -576,7 +576,7 @@ def astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
         need to be very careful as the result shape could change! """
     if not isinstance(dtype, np.dtype):
-        dtype = _coerce_to_dtype(dtype)
+        dtype = pandas_dtype(dtype)
 
     if issubclass(dtype.type, text_type):
         # in Py3 that's str, in Py2 that's unicode
