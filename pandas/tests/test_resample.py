@@ -2890,6 +2890,29 @@ class TestPeriodIndex(Base):
                 assert_frame_equal(result_agg, expected)
                 assert_frame_equal(result_how, expected)
 
+    def test_upsampling_ohlc(self):
+        # GH 13083
+        pi = PeriodIndex(start='2000', freq='D', periods=10)
+        s = Series(range(len(pi)), index=pi)
+        expected = s.to_timestamp().resample('H').ohlc().to_period()
+        # timestamp-based resampling doesn't include all sub-periods
+        # of the last original period, so extend accordingly:
+        pi_ext = PeriodIndex(start='2000', freq='H', periods=24 * len(pi))
+        expected = expected.reindex(pi_ext)
+        result = s.resample('H').ohlc()
+        assert_frame_equal(result, expected)
+
+    def test_upsampling_ohlc_freq_multiples(self):
+        pi = PeriodIndex(start='2000', freq='D', periods=10)
+        s = pd.Series(range(len(pi)), index=pi)
+        expected = s.to_timestamp().resample('12H').ohlc().to_period('12H')
+        # timestamp-based resampling doesn't include all sub-periods
+        # of the last original period, so extend accordingly:
+        pi_ext = PeriodIndex(start='2000', freq='12H', periods=2 * len(pi))
+        expected = expected.reindex(pi_ext)
+        result = s.resample('12H', kind='period').ohlc()
+        assert_frame_equal(result, expected)
+
 
 class TestTimedeltaIndex(Base):
     _index_factory = lambda x: timedelta_range

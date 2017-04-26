@@ -883,6 +883,12 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             # Downsampling
             return self._groupby_and_aggregate(how, grouper=self.grouper)
         elif is_superperiod(ax.freq, self.freq):
+            if how == 'ohlc':
+                # upsampling to subperiods is handled as an asfreq, which works
+                # for pure aggregating/reducing methods
+                # OHLC reduces along the time dimension, but creates multiple
+                # values for each period -> handle by _groupby_and_aggregate()
+                return self._groupby_and_aggregate(how, grouper=self.grouper)
             return self.asfreq()
         elif ax.freq == self.freq:
             return self.asfreq()
@@ -1278,7 +1284,10 @@ class TimeGrouper(Grouper):
         memb = ax.asfreq(self.freq, how=self.convention)
         i8 = memb.asi8
         freq_mult = self.freq.n
-        rng = np.arange(i8[0], i8[-1] + 1, freq_mult)
+        # when upsampling to subperiods, we need to generate enough bins
+        expected_bins_count = len(binner) * freq_mult
+        i8_extend = expected_bins_count - (i8[-1] - i8[0])
+        rng = np.arange(i8[0], i8[-1] + i8_extend, freq_mult)
         rng += freq_mult
         bins = memb.searchsorted(rng, side='left')
 
