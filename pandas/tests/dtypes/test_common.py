@@ -20,7 +20,7 @@ class TestPandasDtype(tm.TestCase):
         msg = 'not understood'
         invalid_list = [pd.Timestamp, 'pd.Timestamp', list]
         for dtype in invalid_list:
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 pandas_dtype(dtype)
 
         valid_list = [object, 'float64', np.object_, np.dtype('object'), 'O',
