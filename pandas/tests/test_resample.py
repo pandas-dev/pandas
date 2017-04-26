@@ -2294,12 +2294,17 @@ class TestPeriodIndex(Base):
                           index=pd.MultiIndex.from_arrays([
                               np.arange(len(index), dtype=np.int64),
                               index], names=['v', 'd']))
-
-        with pytest.raises(NotImplementedError):
-            df.resample('2D', on='date')
-
-        with pytest.raises(NotImplementedError):
-            df.resample('2D', level='d')
+        for freq in ['H', '12H', '2D', 'W']:
+            # check up- and downsampling with base freqs and freq multiples
+            with pytest.raises(NotImplementedError):
+                df.resample(freq, on='date')
+            with pytest.raises(NotImplementedError):
+                df.resample(freq, level='d')
+            for kind_param in ['timestamp', 'period']:
+                with pytest.raises(NotImplementedError):
+                    df.resample(freq, on='date', kind=kind_param)
+                with pytest.raises(NotImplementedError):
+                    df.resample(freq, level='d', kind=kind_param)
 
     def test_annual_upsample_D_s_f(self):
         self._check_annual_upsample_cases('D', 'start', 'ffill')
