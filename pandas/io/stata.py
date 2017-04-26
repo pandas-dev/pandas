@@ -1391,7 +1391,7 @@ class StataReader(StataParser, BaseIterator):
                     buf = buf[0:2] + buf[4:10]
                 else:
                     buf = buf[0:2] + buf[6:]
-                v_o = struct.unpack('Q', buf)[0]
+                v_o = struct.unpack(self.byteorder + 'Q', buf)[0]
             typ = struct.unpack('B', self.path_or_buf.read(1))[0]
             length = struct.unpack(self.byteorder + 'I',
                                    self.path_or_buf.read(4))[0]
