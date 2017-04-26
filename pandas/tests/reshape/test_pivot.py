@@ -1494,7 +1494,7 @@ class TestPivotAnnual(tm.TestCase):
             self.assertTrue(isleapyear(2000))
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertFalse(isleapyear(2001))
+            assert not isleapyear(2001)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.assertTrue(isleapyear(2004))

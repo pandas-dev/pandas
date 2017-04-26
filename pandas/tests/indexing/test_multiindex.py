@@ -816,7 +816,7 @@ class TestMultiIndexSlicers(tm.TestCase):
                              C=[1, 2, 1, 3],
                              D=[1, 2, 3, 4]))
               .set_index(['A', 'B', 'C']).sort_index())
-        self.assertFalse(df.index.is_unique)
+        assert not df.index.is_unique
         expected = (DataFrame(dict(A=['foo', 'foo'], B=['a', 'a'],
                                    C=[1, 1], D=[1, 3]))
                     .set_index(['A', 'B', 'C']).sort_index())
@@ -832,12 +832,12 @@ class TestMultiIndexSlicers(tm.TestCase):
                              C=[1, 2, 1, 2],
                              D=[1, 2, 3, 4]))
               .set_index(['A', 'B', 'C']).sort_index())
-        self.assertFalse(df.index.is_unique)
+        assert not df.index.is_unique
         expected = (DataFrame(dict(A=['foo', 'foo'], B=['a', 'a'],
                                    C=[1, 1], D=[1, 3]))
                     .set_index(['A', 'B', 'C']).sort_index())
         result = df.loc[(slice(None), slice(None), 1), :]
-        self.assertFalse(result.index.is_unique)
+        assert not result.index.is_unique
         tm.assert_frame_equal(result, expected)
 
         # GH12896

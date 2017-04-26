@@ -103,9 +103,9 @@ class TestSeriesRepr(TestData, tm.TestCase):
         assert "Name: 0" in rep_str
 
         ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
-        self.assertFalse("\t" in repr(ser))
-        self.assertFalse("\r" in repr(ser))
-        self.assertFalse("a\n" in repr(ser))
+        assert "\t" not in repr(ser)
+        assert "\r" not in repr(ser)
+        assert "a\n" not in repr(ser)
 
         # with empty series (#4651)
         s = Series([], dtype=np.int64, name='foo')

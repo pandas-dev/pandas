@@ -114,8 +114,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(
             'foo' in self.cf.describe_option('l', _print_desc=False))
         # current value is reported
-        self.assertFalse(
-            'bar' in self.cf.describe_option('l', _print_desc=False))
+        assert 'bar' not in self.cf.describe_option('l', _print_desc=False)
         self.cf.set_option("l", "bar")
         self.assertTrue(
             'bar' in self.cf.describe_option('l', _print_desc=False))

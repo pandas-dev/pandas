@@ -346,10 +346,10 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         assert isinstance(list(result.values())[0][0], Timedelta)
 
         idx = TimedeltaIndex(['3d', '1d', '2d'])
-        self.assertFalse(idx.equals(list(idx)))
+        assert not idx.equals(list(idx))
 
         non_td = Index(list('abc'))
-        self.assertFalse(idx.equals(list(non_td)))
+        assert not idx.equals(list(non_td))
 
     def test_map(self):
 

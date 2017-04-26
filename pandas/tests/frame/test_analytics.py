@@ -558,11 +558,11 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
         result = nanops.nanvar(arr, axis=0)
-        self.assertFalse((result < 0).any())
+        assert not (result < 0).any()
         if nanops._USE_BOTTLENECK:
             nanops._USE_BOTTLENECK = False
             result = nanops.nanvar(arr, axis=0)
-            self.assertFalse((result < 0).any())
+            assert not (result < 0).any()
             nanops._USE_BOTTLENECK = True
 
     def test_numeric_only_flag(self):
@@ -671,11 +671,11 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
         result = nanops.nansem(arr, axis=0)
-        self.assertFalse((result < 0).any())
+        assert not (result < 0).any()
         if nanops._USE_BOTTLENECK:
             nanops._USE_BOTTLENECK = False
             result = nanops.nansem(arr, axis=0)
-            self.assertFalse((result < 0).any())
+            assert not (result < 0).any()
             nanops._USE_BOTTLENECK = True
 
     def test_skew(self):
@@ -1131,8 +1131,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
             if name == 'any':
-                self.assertFalse(r0.any())
-                self.assertFalse(r1.any())
+                assert not r0.any()
+                assert not r1.any()
             else:
                 self.assertTrue(r0.all())
                 self.assertTrue(r1.all())
@@ -1801,13 +1801,13 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         median = self.frame.median().median()
 
         capped = self.frame.clip_upper(median)
-        self.assertFalse((capped.values > median).any())
+        assert not (capped.values > median).any()
 
         floored = self.frame.clip_lower(median)
-        self.assertFalse((floored.values < median).any())
+        assert not (floored.values < median).any()
 
         double = self.frame.clip(upper=median, lower=median)
-        self.assertFalse((double.values != median).any())
+        assert not (double.values != median).any()
 
     def test_dataframe_clip(self):
         # GH #2747

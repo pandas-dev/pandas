@@ -67,7 +67,7 @@ class TestHashing(tm.TestCase):
             a = hash_pandas_object(obj, index=True)
             b = hash_pandas_object(obj, index=False)
             if len(obj):
-                self.assertFalse((a == b).all())
+                assert not (a == b).all()
 
     def test_hash_tuples(self):
         tups = [(1, 'one'), (1, 'two'), (2, 'one')]
@@ -240,13 +240,13 @@ class TestHashing(tm.TestCase):
             length = 2**(l + 8) + 1
             s = tm.rands_array(length, 2)
             result = hash_array(s, 'utf8')
-            self.assertFalse(result[0] == result[1])
+            assert not result[0] == result[1]
 
         for l in range(8):
             length = 2**(l + 8)
             s = tm.rands_array(length, 2)
             result = hash_array(s, 'utf8')
-            self.assertFalse(result[0] == result[1])
+            assert not result[0] == result[1]
 
     def test_hash_collisions(self):
 

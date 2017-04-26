@@ -330,10 +330,10 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def test_is_monotonic(self):
         self.assertTrue(self.index.is_monotonic)
         self.assertTrue(self.index.is_monotonic_increasing)
-        self.assertFalse(self.index.is_monotonic_decreasing)
+        assert not self.index.is_monotonic_decreasing
 
         index = RangeIndex(4, 0, -1)
-        self.assertFalse(index.is_monotonic)
+        assert not index.is_monotonic
         self.assertTrue(index.is_monotonic_decreasing)
 
         index = RangeIndex(1, 2)
@@ -374,19 +374,19 @@ class TestRangeIndex(Numeric, tm.TestCase):
             return
 
         same_values_different_type = Index(i, dtype=object)
-        self.assertFalse(i.identical(same_values_different_type))
+        assert not i.identical(same_values_different_type)
 
         i = self.index.copy(dtype=object)
         i = i.rename('foo')
         same_values = Index(i, dtype=object)
         self.assertTrue(same_values.identical(self.index.copy(dtype=object)))
 
-        self.assertFalse(i.identical(self.index))
+        assert not i.identical(self.index)
         self.assertTrue(Index(same_values, name='foo', dtype=object).identical(
             i))
 
-        self.assertFalse(self.index.copy(dtype=object)
-                         .identical(self.index.copy(dtype='int64')))
+        assert not self.index.copy(dtype=object).identical(
+            self.index.copy(dtype='int64'))
 
     def test_get_indexer(self):
         target = RangeIndex(10)
@@ -423,7 +423,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                           5, 4, 3, 2, 1, 0], dtype=np.intp)
 
         assert isinstance(res, Int64Index)
-        self.assertFalse(isinstance(res, RangeIndex))
+        assert not isinstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
@@ -437,7 +437,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         tm.assert_index_equal(res, noidx_res)
 
         assert isinstance(res, Int64Index)
-        self.assertFalse(isinstance(res, RangeIndex))
+        assert not isinstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
@@ -785,7 +785,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
                 continue
             idx = self.indices[ind]
             self.assertTrue(idx.is_unique)
-            self.assertFalse(idx.has_duplicates)
+            assert not idx.has_duplicates
 
     def test_ufunc_compat(self):
         idx = RangeIndex(5)

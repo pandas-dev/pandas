@@ -646,7 +646,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
     def test_all_any(self):
         ts = tm.makeTimeSeries()
         bool_series = ts > 0
-        self.assertFalse(bool_series.all())
+        assert not bool_series.all()
         self.assertTrue(bool_series.any())
 
         # Alternative types, with implicit 'object' dtype.
@@ -660,7 +660,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertTrue(s1.all(skipna=False))  # nan && True => True
         self.assertTrue(s1.all(skipna=True))
         self.assertTrue(np.isnan(s2.any(skipna=False)))  # nan || False => nan
-        self.assertFalse(s2.any(skipna=True))
+        assert not s2.any(skipna=True)
 
         # Check level.
         s = pd.Series([False, False, True, True, False, True],
@@ -699,7 +699,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             p = p.astype('float64')
             result = p['first'] % p['second']
             result2 = p['second'] % p['first']
-            self.assertFalse(np.array_equal(result, result2))
+            assert not np.array_equal(result, result2)
 
             # GH 9144
             s = Series([0, 1])
@@ -1362,14 +1362,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
     def test_is_unique(self):
         # GH11946
         s = Series(np.random.randint(0, 10, size=1000))
-        self.assertFalse(s.is_unique)
+        assert not s.is_unique
         s = Series(np.arange(1000))
         self.assertTrue(s.is_unique)
 
     def test_is_monotonic(self):
 
         s = Series(np.random.randint(0, 10, size=1000))
-        self.assertFalse(s.is_monotonic)
+        assert not s.is_monotonic
         s = Series(np.arange(1000))
         self.assertTrue(s.is_monotonic)
         self.assertTrue(s.is_monotonic_increasing)
@@ -1380,7 +1380,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.assertTrue(s.is_monotonic)
         self.assertTrue(s.is_monotonic_increasing)
         s = Series(list(reversed(s.tolist())))
-        self.assertFalse(s.is_monotonic)
+        assert not s.is_monotonic
         self.assertTrue(s.is_monotonic_decreasing)
 
     def test_sort_index_level(self):

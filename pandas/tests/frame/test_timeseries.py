@@ -350,7 +350,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         index = self.tsframe.index
         truncated = self.tsframe.truncate(index[5], index[10])
         truncated.values[:] = 5.
-        self.assertFalse((self.tsframe.values[5:11] == 5).any())
+        assert not (self.tsframe.values[5:11] == 5).any()
 
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(offsets.BMonthEnd())

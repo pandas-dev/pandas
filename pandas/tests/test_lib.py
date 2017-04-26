@@ -152,7 +152,7 @@ class TestIndexing(tm.TestCase):
         for case in [[4, 2, 0, -2], [2, 2, 1, 0], [0, 1, 2, 1]]:
             indices = np.array(case, dtype=np.int64)
             maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
-            self.assertFalse(isinstance(maybe_slice, slice))
+            assert not isinstance(maybe_slice, slice)
             tm.assert_numpy_array_equal(maybe_slice, indices)
             tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 

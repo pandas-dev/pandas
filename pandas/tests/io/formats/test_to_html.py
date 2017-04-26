@@ -1461,7 +1461,7 @@ class TestToHTML(tm.TestCase):
     def test_to_html_with_no_bold(self):
         x = DataFrame({'x': np.random.randn(5)})
         ashtml = x.to_html(bold_rows=False)
-        self.assertFalse('<strong' in ashtml[ashtml.find("</thead>")])
+        assert '<strong' not in ashtml[ashtml.find("</thead>")]
 
     def test_to_html_columns_arg(self):
         frame = DataFrame(tm.getSeriesData())

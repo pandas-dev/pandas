@@ -1452,7 +1452,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         cop = DataFrame(self.frame, copy=True)
         cop['A'] = 5
         self.assertTrue((cop['A'] == 5).all())
-        self.assertFalse((self.frame['A'] == 5).all())
+        assert not (self.frame['A'] == 5).all()
 
     def test_constructor_ndarray_copy(self):
         df = DataFrame(self.frame.values)
@@ -1462,7 +1462,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         df = DataFrame(self.frame.values, copy=True)
         self.frame.values[6] = 6
-        self.assertFalse((df.values[6] == 6).all())
+        assert not (df.values[6] == 6).all()
 
     def test_constructor_series_copy(self):
         series = self.frame._series
@@ -1470,7 +1470,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         df = DataFrame({'A': series['A']})
         df['A'][:] = 5
 
-        self.assertFalse((series['A'] == 5).all())
+        assert not (series['A'] == 5).all()
 
     def test_constructor_with_nas(self):
         # GH 5016
@@ -1512,7 +1512,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         # from #1074
         d = DataFrame({'a': [np.nan, False]})
         self.assertEqual(d['a'].dtype, np.object_)
-        self.assertFalse(d['a'][1])
+        assert not d['a'][1]
 
     def test_from_records_to_records(self):
         # from numpy documentation
