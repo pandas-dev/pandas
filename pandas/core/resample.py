@@ -849,16 +849,15 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                    " use .set_index(...) to explicitly set index")
             raise NotImplementedError(msg)
 
-        offset = to_offset(self.freq)
-        if offset.n > 1:
-            if self.kind == 'period':  # pragma: no cover
-                print('Warning: multiple of frequency -> timestamps')
-
-            # Cannot have multiple of periods, convert to timestamp
+        if self.loffset is not None:
+            if self.kind == 'period':
+                print('Warning: loffset -> convert PeriodIndex to timestamps')
+                # Cannot apply loffset/timedelta to PeriodIndex -> convert to
+                # timestamps
             self.kind = 'timestamp'
 
         # convert to timestamp
-        if not (self.kind is None or self.kind == 'period'):
+        if self.kind == 'timestamp':
             obj = obj.to_timestamp(how=self.convention)
 
         return obj
@@ -1278,8 +1277,10 @@ class TimeGrouper(Grouper):
 
         memb = ax.asfreq(self.freq, how=self.convention)
         i8 = memb.asi8
-        rng = np.arange(i8[0], i8[-1] + 1)
-        bins = memb.searchsorted(rng, side='right')
+        freq_mult = self.freq.n
+        rng = np.arange(i8[0], i8[-1] + 1, freq_mult)
+        rng += freq_mult
+        bins = memb.searchsorted(rng, side='left')
 
         return binner, bins, labels
 
