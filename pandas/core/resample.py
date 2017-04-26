@@ -1099,23 +1099,6 @@ class TimeGrouper(Grouper):
         r._set_binner()
         return r.binner, r.grouper, r.obj
 
-    def _get_binner_for_resample(self, kind=None):
-        # create the BinGrouper
-        # assume that self.set_grouper(obj) has already been called
-
-        ax = self.ax
-        if kind is None:
-            kind = self.kind
-        if kind is None or kind == 'timestamp':
-            self.binner, bins, binlabels = self._get_time_bins(ax)
-        elif kind == 'timedelta':
-            self.binner, bins, binlabels = self._get_time_delta_bins(ax)
-        else:
-            self.binner, bins, binlabels = self._get_time_period_bins(ax)
-
-        self.grouper = BinGrouper(bins, binlabels)
-        return self.binner, self.grouper, self.obj
-
     def _get_binner_for_grouping(self, obj):
         # return an ordering of the transformed group labels,
         # suitable for multi-grouping, e.g the labels for
