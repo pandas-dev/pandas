@@ -788,4 +788,19 @@ def pandas_dtype(dtype):
     elif isinstance(dtype, ExtensionDtype):
         return dtype
 
-    return np.dtype(dtype)
+    try:
+        npdtype = np.dtype(dtype)
+    except (TypeError, ValueError):
+        raise
+
+    # Any invalid dtype (such as pd.Timestamp) should raise an error.
+    # np.dtype(invalid_type).kind = 0 for such objects. However, this will
+    # also catch some valid dtypes such as object, np.object_ and 'object'
+    # which we safeguard against by catching them earlier and returning
+    # np.dtype(valid_dtype) before this condition is evaluated.
+    if dtype in [object, np.object_, 'object', 'O']:
+        return npdtype
+    elif npdtype.kind == 'O':
+        raise TypeError('dtype {0} not understood'.format(dtype))
+
+    return npdtype
