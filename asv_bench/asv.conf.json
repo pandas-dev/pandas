@@ -46,7 +46,6 @@
         "numexpr": [],
         "pytables": [null, ""],  // platform dependent, see excludes below
         "tables": [null, ""],
-        "libpython": [null, ""],
         "openpyxl": [],
         "xlsxwriter": [],
         "xlrd": [],
@@ -80,10 +79,6 @@
         {"environment_type": "conda", "pytables": null},
         {"environment_type": "(?!conda).*", "tables": null},
         {"environment_type": "(?!conda).*", "pytables": ""},
-        // On conda&win32, install libpython
-        {"sys_platform": "(?!win32).*", "libpython": ""},
-        {"environment_type": "conda", "sys_platform": "win32", "libpython": null},
-        {"environment_type": "(?!conda).*", "libpython": ""}
     ],
     "include": [],
 
