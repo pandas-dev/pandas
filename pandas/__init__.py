@@ -77,6 +77,7 @@ tslib = _DeprecatedModule(deprmod='pandas.tslib',
                           moved={'Timestamp': 'pandas.Timestamp',
                                  'Timedelta': 'pandas.Timedelta',
                                  'NaT': 'pandas.NaT',
+                                 'NaTType': 'type(pandas.NaT)',
                                  'OutOfBoundsDatetime': 'pandas.errors.OutOfBoundsDatetime'})
 
 # use the closest tagged version if possible

@@ -1246,7 +1246,7 @@ these are now the public subpackages.
 
 
 - The function :func:`~pandas.api.types.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
-
+- The type import ``pandas.tslib.NaTType`` is deprecated and can be replaced by using ``type(pandas.NaT)`` (:issue:`16146`)
 
 .. _whatsnew_0200.privacy.errors:
 
