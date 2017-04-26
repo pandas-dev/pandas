@@ -1217,7 +1217,7 @@ If indicated, a deprecation warning will be issued if you reference theses modul
 
     "pandas.lib", "pandas._libs.lib", "X"
     "pandas.tslib", "pandas._libs.tslib", "X"
-    "pandas.computation", "pandas.core.computation", ""
+    "pandas.computation", "pandas.core.computation", "X"
     "pandas.msgpack", "pandas.io.msgpack", ""
     "pandas.index", "pandas._libs.index", ""
     "pandas.algos", "pandas._libs.algos", ""
