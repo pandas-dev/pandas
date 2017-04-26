@@ -61,7 +61,7 @@ pear:tomato
         data = 'a\n1'
         msg = 'Invalid dialect'
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(data), dialect=InvalidDialect)
 
     def test_dialect_conflict(self):

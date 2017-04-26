@@ -67,10 +67,11 @@ class TestFwfParsing(tm.TestCase):
             StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
         tm.assert_frame_equal(df, expected)
 
-        with tm.assertRaisesRegexp(ValueError, "must specify only one of"):
+        with tm.assert_raises_regex(ValueError,
+                                    "must specify only one of"):
             read_fwf(StringIO(data3), colspecs=colspecs, widths=[6, 10, 10, 7])
 
-        with tm.assertRaisesRegexp(ValueError, "Must specify either"):
+        with tm.assert_raises_regex(ValueError, "Must specify either"):
             read_fwf(StringIO(data3), colspecs=None, widths=None)
 
     def test_BytesIO_input(self):
@@ -93,9 +94,9 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   'column specifications must be a list or '
-                                   'tuple.+'):
+        with tm.assert_raises_regex(TypeError,
+                                    'column specifications must '
+                                    'be a list or tuple.+'):
             pd.io.parsers.FixedWidthReader(StringIO(data),
                                            {'a': 1}, ',', '#')
 
@@ -109,8 +110,9 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   'Each column specification must be.+'):
+        with tm.assert_raises_regex(TypeError,
+                                    'Each column specification '
+                                    'must be.+'):
             read_fwf(StringIO(data), [('a', 1)])
 
     def test_fwf_colspecs_None(self):

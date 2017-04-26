@@ -271,7 +271,7 @@ class TestPeriodIndex(tm.TestCase):
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -2A')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             result.to_period(freq='-2A')
 
     def test_to_timestamp_pi_mult(self):
@@ -386,7 +386,7 @@ class TestPeriodIndex(tm.TestCase):
         self.assertEqual(prng.freq, 'M')
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             date_range('01-Jan-2012', periods=8, freq='EOM')
 
     def test_period_dt64_round_trip(self):
@@ -439,11 +439,13 @@ class TestPeriodIndex(tm.TestCase):
             self.assertEqual(pidx.searchsorted(p2), 3)
 
             msg = "Input has different freq=H from PeriodIndex"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='H'))
 
             msg = "Input has different freq=5D from PeriodIndex"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
             with tm.assert_produces_warning(FutureWarning):

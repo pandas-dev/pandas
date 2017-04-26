@@ -20,8 +20,7 @@ import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+                                 assert_frame_equal)
 
 import pandas.util.testing as tm
 
@@ -91,11 +90,14 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         assert f._get_axis(0) is f.index
         assert f._get_axis(1) is f.columns
 
-        assertRaisesRegexp(ValueError, 'No axis named', f._get_axis_number, 2)
-        assertRaisesRegexp(ValueError, 'No axis.*foo', f._get_axis_name, 'foo')
-        assertRaisesRegexp(ValueError, 'No axis.*None', f._get_axis_name, None)
-        assertRaisesRegexp(ValueError, 'No axis named', f._get_axis_number,
-                           None)
+        tm.assert_raises_regex(
+            ValueError, 'No axis named', f._get_axis_number, 2)
+        tm.assert_raises_regex(
+            ValueError, 'No axis.*foo', f._get_axis_name, 'foo')
+        tm.assert_raises_regex(
+            ValueError, 'No axis.*None', f._get_axis_name, None)
+        tm.assert_raises_regex(ValueError, 'No axis named',
+                               f._get_axis_number, None)
 
     def test_keys(self):
         getkeys = self.frame.keys

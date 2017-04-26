@@ -15,9 +15,7 @@ from pandas.compat import lrange
 from pandas.tests.frame.common import TestData
 
 import pandas.util.testing as tm
-from pandas.util.testing import (assertRaisesRegexp,
-                                 assert_frame_equal,
-                                 assert_series_equal)
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameConcatCommon(tm.TestCase, TestData):
@@ -78,11 +76,13 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
                        columns=['foo', 'bar', 'baz', 'qux'])
 
         series = df.loc[4]
-        with assertRaisesRegexp(ValueError, 'Indexes have overlapping values'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Indexes have overlapping values'):
             df.append(series, verify_integrity=True)
         series.name = None
-        with assertRaisesRegexp(TypeError, 'Can only append a Series if '
-                                'ignore_index=True'):
+        with tm.assert_raises_regex(TypeError,
+                                    'Can only append a Series if '
+                                    'ignore_index=True'):
             df.append(series, verify_integrity=True)
 
         result = df.append(series[::-1], ignore_index=True)
@@ -270,7 +270,7 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
 
         other = DataFrame([[2., nan],
                            [nan, 7]], index=[1, 3], columns=[1, 2])
-        with assertRaisesRegexp(ValueError, "Data overlaps"):
+        with tm.assert_raises_regex(ValueError, "Data overlaps"):
             df.update(other, raise_conflict=True)
 
     def test_update_from_non_df(self):
@@ -419,7 +419,7 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         assert_frame_equal(concatted_1_series, expected_columns_series)
 
         # Testing ValueError
-        with assertRaisesRegexp(ValueError, 'No axis named'):
+        with tm.assert_raises_regex(ValueError, 'No axis named'):
             pd.concat([series1, series2], axis='something')
 
     def test_concat_numerical_names(self):

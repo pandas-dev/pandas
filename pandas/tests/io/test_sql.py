@@ -984,7 +984,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
         # using driver that will not be installed on Travis to trigger error
         # in sqlalchemy.create_engine -> test passing of this error to user
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
-        with tm.assertRaisesRegexp(ImportError, "pg8000"):
+        with tm.assert_raises_regex(ImportError, "pg8000"):
             sql.read_sql("select * from table", db_uri)
 
     def _make_iris_table_metadata(self):
@@ -2380,8 +2380,8 @@ class TestSQLFlavorDeprecation(tm.TestCase):
         msg = 'is not supported'
 
         for func in self.funcs:
-            tm.assertRaisesRegexp(ValueError, msg, getattr(sql, func),
-                                  self.con, flavor='mysql')
+            tm.assert_raises_regex(ValueError, msg, getattr(sql, func),
+                                   self.con, flavor='mysql')
 
     def test_deprecated_flavor(self):
         for func in self.funcs:

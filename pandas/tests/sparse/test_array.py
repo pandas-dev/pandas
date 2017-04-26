@@ -11,7 +11,7 @@ import numpy as np
 from pandas import _np_version_under1p8
 from pandas.core.sparse.api import SparseArray, SparseSeries
 from pandas.core.sparse.libsparse import IntIndex
-from pandas.util.testing import assert_almost_equal, assertRaisesRegexp
+from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 
 
@@ -142,8 +142,8 @@ class TestSparseArray(tm.TestCase):
         self.assertEqual(self.zarr[7], 5)
 
         errmsg = re.compile("bounds")
-        assertRaisesRegexp(IndexError, errmsg, lambda: self.arr[11])
-        assertRaisesRegexp(IndexError, errmsg, lambda: self.arr[-11])
+        tm.assert_raises_regex(IndexError, errmsg, lambda: self.arr[11])
+        tm.assert_raises_regex(IndexError, errmsg, lambda: self.arr[-11])
         self.assertEqual(self.arr[-1], self.arr[len(self.arr) - 1])
 
     def test_take(self):
@@ -179,21 +179,22 @@ class TestSparseArray(tm.TestCase):
         tm.assert_sp_array_equal(self.arr.take([-4, -3, -2]), exp)
 
     def test_bad_take(self):
-        assertRaisesRegexp(IndexError, "bounds", lambda: self.arr.take(11))
+        tm.assert_raises_regex(
+            IndexError, "bounds", lambda: self.arr.take(11))
         pytest.raises(IndexError, lambda: self.arr.take(-11))
 
     def test_take_invalid_kwargs(self):
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assertRaisesRegexp(TypeError, msg, self.arr.take,
-                              [2, 3], foo=2)
+        tm.assert_raises_regex(TypeError, msg, self.arr.take,
+                               [2, 3], foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, self.arr.take,
-                              [2, 3], out=self.arr)
+        tm.assert_raises_regex(ValueError, msg, self.arr.take,
+                               [2, 3], out=self.arr)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, self.arr.take,
-                              [2, 3], mode='clip')
+        tm.assert_raises_regex(ValueError, msg, self.arr.take,
+                               [2, 3], mode='clip')
 
     def test_take_filling(self):
         # similar tests as GH 12631
@@ -215,9 +216,9 @@ class TestSparseArray(tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             sparse.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             sparse.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -247,9 +248,9 @@ class TestSparseArray(tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             sparse.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             sparse.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -283,12 +284,12 @@ class TestSparseArray(tm.TestCase):
         def setslice():
             self.arr[1:5] = 2
 
-        assertRaisesRegexp(TypeError, "item assignment", setitem)
-        assertRaisesRegexp(TypeError, "item assignment", setslice)
+        tm.assert_raises_regex(TypeError, "item assignment", setitem)
+        tm.assert_raises_regex(TypeError, "item assignment", setslice)
 
     def test_constructor_from_too_large_array(self):
-        assertRaisesRegexp(TypeError, "expected dimension <= 1 data",
-                           SparseArray, np.arange(10).reshape((2, 5)))
+        tm.assert_raises_regex(TypeError, "expected dimension <= 1 data",
+                               SparseArray, np.arange(10).reshape((2, 5)))
 
     def test_constructor_from_sparse(self):
         res = SparseArray(self.zarr)
@@ -354,16 +355,16 @@ class TestSparseArray(tm.TestCase):
         self.assertFalse((self.arr.sp_values[:3] == 27).any())
 
         msg = "unable to coerce current fill_value nan to int64 dtype"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.arr.astype('i8')
 
         arr = SparseArray([0, np.nan, 0, 1])
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             arr.astype('i8')
 
         arr = SparseArray([0, np.nan, 0, 1], fill_value=0)
         msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             arr.astype('i8')
 
     def test_astype_all(self):
@@ -390,11 +391,11 @@ class TestSparseArray(tm.TestCase):
 
         # coerces to int
         msg = "unable to set fill_value 3\\.1 to int64 dtype"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             arr.fill_value = 3.1
 
         msg = "unable to set fill_value nan to int64 dtype"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             arr.fill_value = np.nan
 
         arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
@@ -403,17 +404,17 @@ class TestSparseArray(tm.TestCase):
 
         # coerces to bool
         msg = "unable to set fill_value 0 to bool dtype"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             arr.fill_value = 0
 
         msg = "unable to set fill_value nan to bool dtype"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             arr.fill_value = np.nan
 
         # invalid
         msg = "fill_value must be a scalar"
         for val in [[1, 2, 3], np.array([1, 2]), (1, 2, 3)]:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 arr.fill_value = val
 
     def test_copy_shallow(self):
@@ -682,12 +683,12 @@ class TestSparseArrayAnalytics(tm.TestCase):
         self.assertEqual(out, 40.0)
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.sum,
-                              SparseArray(data), dtype=np.int64)
+        tm.assert_raises_regex(ValueError, msg, np.sum,
+                               SparseArray(data), dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.sum,
-                              SparseArray(data), out=out)
+        tm.assert_raises_regex(ValueError, msg, np.sum,
+                               SparseArray(data), out=out)
 
     def test_cumsum(self):
         non_null_data = np.array([1, 2, 3, 4, 5], dtype=float)
@@ -711,7 +712,7 @@ class TestSparseArrayAnalytics(tm.TestCase):
 
             axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
             msg = "axis\\(={axis}\\) out of bounds".format(axis=axis)
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 SparseArray(data).cumsum(axis=axis)
 
     def test_numpy_cumsum(self):
@@ -735,12 +736,12 @@ class TestSparseArrayAnalytics(tm.TestCase):
             tm.assert_sp_array_equal(out, expected)
 
             msg = "the 'dtype' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                                  SparseArray(data), dtype=np.int64)
+            tm.assert_raises_regex(ValueError, msg, np.cumsum,
+                                   SparseArray(data), dtype=np.int64)
 
             msg = "the 'out' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                                  SparseArray(data), out=out)
+            tm.assert_raises_regex(ValueError, msg, np.cumsum,
+                                   SparseArray(data), out=out)
 
     def test_mean(self):
         data = np.arange(10).astype(float)
@@ -761,12 +762,12 @@ class TestSparseArrayAnalytics(tm.TestCase):
         self.assertEqual(out, 40.0 / 9)
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.mean,
-                              SparseArray(data), dtype=np.int64)
+        tm.assert_raises_regex(ValueError, msg, np.mean,
+                               SparseArray(data), dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.mean,
-                              SparseArray(data), out=out)
+        tm.assert_raises_regex(ValueError, msg, np.mean,
+                               SparseArray(data), out=out)
 
     def test_ufunc(self):
         # GH 13853 make sure ufunc is applied to fill_value

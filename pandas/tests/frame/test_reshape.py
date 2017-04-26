@@ -17,9 +17,7 @@ from pandas import (DataFrame, Index, Series, MultiIndex, date_range,
                     Timedelta, Period)
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 
@@ -67,7 +65,7 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         data = DataFrame({'a': ['bar', 'bar', 'foo', 'foo', 'foo'],
                           'b': ['one', 'two', 'one', 'one', 'two'],
                           'c': [1., 2., 3., 3., 4.]})
-        with assertRaisesRegexp(ValueError, 'duplicate entries'):
+        with tm.assert_raises_regex(ValueError, 'duplicate entries'):
             data.pivot('a', 'b', 'c')
 
     def test_pivot_empty(self):

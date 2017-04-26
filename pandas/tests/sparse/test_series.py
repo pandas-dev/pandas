@@ -506,12 +506,12 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
                                np.take(sp.to_dense(), indices, axis=0))
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.take,
-                              sp, indices, out=np.empty(sp.shape))
+        tm.assert_raises_regex(ValueError, msg, np.take,
+                               sp, indices, out=np.empty(sp.shape))
 
         msg = "the 'mode' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.take,
-                              sp, indices, mode='clip')
+        tm.assert_raises_regex(ValueError, msg, np.take,
+                               sp, indices, mode='clip')
 
     def test_setitem(self):
         self.bseries[5] = 7.
@@ -703,8 +703,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         first_series = SparseSeries(values1,
                                     sparse_index=IntIndex(length, index1),
                                     fill_value=nan)
-        with tm.assertRaisesRegexp(TypeError,
-                                   'new index must be a SparseIndex'):
+        with tm.assert_raises_regex(TypeError,
+                                    'new index must be a SparseIndex'):
             reindexed = first_series.sparse_reindex(0)  # noqa
 
     def test_repr(self):
@@ -797,7 +797,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # must have NaN fill value
         data = {'a': SparseSeries(np.arange(7), sparse_index=expected2,
                                   fill_value=0)}
-        with tm.assertRaisesRegexp(TypeError, "NaN fill value"):
+        with tm.assert_raises_regex(TypeError, "NaN fill value"):
             spf.homogenize(data)
 
     def test_fill_value_corner(self):
@@ -1332,7 +1332,7 @@ class TestSparseSeriesAnalytics(tm.TestCase):
 
         axis = 1  # Series is 1-D, so only axis = 0 is valid.
         msg = "No axis named {axis}".format(axis=axis)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.bseries.cumsum(axis=axis)
 
     def test_numpy_cumsum(self):
@@ -1345,12 +1345,12 @@ class TestSparseSeriesAnalytics(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                              self.bseries, dtype=np.int64)
+        tm.assert_raises_regex(ValueError, msg, np.cumsum,
+                               self.bseries, dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                              self.zbseries, out=result)
+        tm.assert_raises_regex(ValueError, msg, np.cumsum,
+                               self.zbseries, out=result)
 
     def test_numpy_func_call(self):
         # no exception should be raised even though

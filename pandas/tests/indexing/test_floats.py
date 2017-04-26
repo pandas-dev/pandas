@@ -48,9 +48,9 @@ class TestFloatIndexers(tm.TestCase):
 
             def f():
                 s.iloc[3.0]
-            tm.assertRaisesRegexp(TypeError,
-                                  'cannot do positional indexing',
-                                  f)
+            tm.assert_raises_regex(TypeError,
+                                   'cannot do positional indexing',
+                                   f)
 
             def f():
                 s.iloc[3.0] = 0

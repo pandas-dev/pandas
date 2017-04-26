@@ -83,7 +83,7 @@ class TestOrderedMerge(tm.TestCase):
             ([None, None], none_pat)
         ]
         for df_seq, pattern in test_cases:
-            tm.assertRaisesRegexp(ValueError, pattern, pd.concat, df_seq)
+            tm.assert_raises_regex(ValueError, pattern, pd.concat, df_seq)
 
         pd.concat([pd.DataFrame()])
         pd.concat([None, pd.DataFrame()])

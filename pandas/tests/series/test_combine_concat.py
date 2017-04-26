@@ -55,9 +55,9 @@ class TestSeriesCombine(TestData, tm.TestCase):
                                exp, check_index_type=True)
 
         msg = 'Indexes have overlapping values:'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             s1.append(s2, verify_integrity=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             pd.concat([s1, s2], verify_integrity=True)
 
     def test_combine_first(self):

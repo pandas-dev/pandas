@@ -219,8 +219,8 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_invalid(self):
-        with tm.assertRaisesRegexp(TypeError,
-                                   'is not a valid type for skipping rows'):
+        with tm.assert_raises_regex(TypeError, 'is not a valid type '
+                                    'for skipping rows'):
             self.read_html(self.spam_data, '.*Water.*', skiprows='asdf')
 
     def test_index(self):
@@ -302,7 +302,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     @tm.slow
     def test_invalid_table_attrs(self):
         url = self.banklist_data
-        with tm.assertRaisesRegexp(ValueError, 'No tables found'):
+        with tm.assert_raises_regex(ValueError, 'No tables found'):
             self.read_html(url, 'First Federal Bank of Florida',
                            attrs={'id': 'tasdfable'})
 
@@ -353,8 +353,8 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
             assert isinstance(df, DataFrame)
 
     def test_negative_skiprows(self):
-        with tm.assertRaisesRegexp(ValueError,
-                                   r'\(you passed a negative value\)'):
+        with tm.assert_raises_regex(ValueError,
+                                    r'\(you passed a negative value\)'):
             self.read_html(self.spam_data, 'Water', skiprows=-1)
 
     @network
@@ -652,9 +652,10 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     def test_computer_sales_page(self):
         data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        with tm.assertRaisesRegexp(ParserError, r"Passed header=\[0,1\] are "
-                                   "too many rows for this multi_index "
-                                   "of columns"):
+        with tm.assert_raises_regex(ParserError,
+                                    r"Passed header=\[0,1\] are "
+                                    r"too many rows for this "
+                                    r"multi_index of columns"):
             self.read_html(data, header=[0, 1])
 
     def test_wikipedia_states_table(self):

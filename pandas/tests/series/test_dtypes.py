@@ -50,7 +50,7 @@ class TestSeriesDtypes(TestData):
         msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
         s = Series([value])
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             s.astype(dtype)
 
     @pytest.mark.parametrize("dtype", [int, np.int8, np.int64])

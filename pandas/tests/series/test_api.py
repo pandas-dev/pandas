@@ -341,7 +341,8 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
         # str accessor only valid with string values
         s = Series(range(5))
-        with tm.assertRaisesRegexp(AttributeError, 'only use .str accessor'):
+        with tm.assert_raises_regex(AttributeError,
+                                    'only use .str accessor'):
             s.str.repeat(2)
 
     def test_empty_method(self):

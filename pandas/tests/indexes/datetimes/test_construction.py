@@ -246,7 +246,8 @@ class TestDatetimeIndex(tm.TestCase):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           name='idx')
 
-        with tm.assertRaisesRegexp(TypeError, 'data is already tz-aware'):
+        with tm.assert_raises_regex(TypeError,
+                                    'data is already tz-aware'):
             DatetimeIndex([Timestamp('2011-01-01 10:00'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='Asia/Tokyo', name='idx')
@@ -256,7 +257,8 @@ class TestDatetimeIndex(tm.TestCase):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='US/Eastern', name='idx')
 
-        with tm.assertRaisesRegexp(TypeError, 'data is already tz-aware'):
+        with tm.assert_raises_regex(TypeError,
+                                    'data is already tz-aware'):
             # passing tz should results in DatetimeIndex, then mismatch raises
             # TypeError
             Index([pd.NaT, Timestamp('2011-01-01 10:00'),

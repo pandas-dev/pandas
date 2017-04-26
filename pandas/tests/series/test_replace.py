@@ -78,7 +78,7 @@ class TestSeriesReplace(TestData, tm.TestCase):
 
         # make sure that we aren't just masking a TypeError because bools don't
         # implement indexing
-        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
             ser.replace([1, 2], [np.nan, 0])
 
         ser = pd.Series([0, 1, 2, 3, 4])
@@ -186,7 +186,7 @@ class TestSeriesReplace(TestData, tm.TestCase):
 
     def test_replace_with_dict_with_bool_keys(self):
         s = pd.Series([True, False, True])
-        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
             s.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_replace2(self):

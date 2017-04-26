@@ -290,37 +290,40 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
     def test_constructor_error_msgs(self):
         msg = "Empty data passed with indices specified."
         # passing an empty array with columns specified.
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame(np.empty(0), columns=list('abc'))
 
         msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
         # mix dict and array, wrong size
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame({'A': {'a': 'a', 'b': 'b'},
                        'B': ['a', 'b', 'c']})
 
         # wrong size ndarray, GH 3105
         msg = r"Shape of passed values is \(3, 4\), indices imply \(3, 3\)"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame(np.arange(12).reshape((4, 3)),
                       columns=['foo', 'bar', 'baz'],
                       index=pd.date_range('2000-01-01', periods=3))
 
         # higher dim raise exception
-        with tm.assertRaisesRegexp(ValueError, 'Must pass 2-d input'):
+        with tm.assert_raises_regex(ValueError, 'Must pass 2-d input'):
             DataFrame(np.zeros((3, 3, 3)), columns=['A', 'B', 'C'], index=[1])
 
         # wrong size axis labels
-        with tm.assertRaisesRegexp(ValueError, "Shape of passed values is "
-                                   r"\(3, 2\), indices imply \(3, 1\)"):
+        with tm.assert_raises_regex(ValueError, "Shape of passed values "
+                                    "is \(3, 2\), indices "
+                                    "imply \(3, 1\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B', 'C'], index=[1])
 
-        with tm.assertRaisesRegexp(ValueError, "Shape of passed values is "
-                                   r"\(3, 2\), indices imply \(2, 2\)"):
+        with tm.assert_raises_regex(ValueError, "Shape of passed values "
+                                    "is \(3, 2\), indices "
+                                    "imply \(2, 2\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
 
-        with tm.assertRaisesRegexp(ValueError, 'If using all scalar values, '
-                                   'you must pass an index'):
+        with tm.assert_raises_regex(ValueError, "If using all scalar "
+                                    "values, you must pass "
+                                    "an index"):
             DataFrame({'a': False, 'b': True})
 
     def test_constructor_with_embedded_frames(self):
@@ -542,14 +545,14 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # wrong size axis labels
         msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame(mat, columns=['A', 'B', 'C'], index=[1])
         msg = r'Shape of passed values is \(3, 2\), indices imply \(2, 2\)'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame(mat, columns=['A', 'B'], index=[1, 2])
 
         # higher dim raise exception
-        with tm.assertRaisesRegexp(ValueError, 'Must pass 2-d input'):
+        with tm.assert_raises_regex(ValueError, 'Must pass 2-d input'):
             DataFrame(empty((3, 3, 3)), columns=['A', 'B', 'C'],
                       index=[1])
 
@@ -739,7 +742,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         exp = DataFrame({'a': df['a'].values, 'b': [True] * 10})
 
         tm.assert_frame_equal(df, exp)
-        with tm.assertRaisesRegexp(ValueError, 'must pass an index'):
+        with tm.assert_raises_regex(ValueError, 'must pass an index'):
             DataFrame({'a': False, 'b': True})
 
     def test_constructor_DataFrame(self):
@@ -772,13 +775,13 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # corner, silly
         # TODO: Fix this Exception to be better...
-        with tm.assertRaisesRegexp(ValueError, 'constructor not '
-                                   'properly called'):
+        with tm.assert_raises_regex(ValueError, 'constructor not '
+                                    'properly called'):
             DataFrame((1, 2, 3))
 
         # can't cast
         mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
-        with tm.assertRaisesRegexp(ValueError, 'cast'):
+        with tm.assert_raises_regex(ValueError, 'cast'):
             DataFrame(mat, index=[0, 1], columns=[0], dtype=float)
 
         dm = DataFrame(DataFrame(self.frame._series))
@@ -1004,8 +1007,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
     def test_constructor_ragged(self):
         data = {'A': randn(10),
                 'B': randn(8)}
-        with tm.assertRaisesRegexp(ValueError,
-                                   'arrays must all be same length'):
+        with tm.assert_raises_regex(ValueError,
+                                    'arrays must all be same length'):
             DataFrame(data)
 
     def test_constructor_scalar(self):
@@ -1027,7 +1030,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         self.assertTrue(result.index.is_monotonic)
 
         # ordering ambiguous, raise exception
-        with tm.assertRaisesRegexp(ValueError, 'ambiguous ordering'):
+        with tm.assert_raises_regex(ValueError, 'ambiguous ordering'):
             DataFrame({'A': ['a', 'b'], 'B': {'a': 'a', 'b': 'b'}})
 
         # this is OK though
@@ -1155,8 +1158,9 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         tm.assert_frame_equal(recons, self.mixed_frame)
         self.assertEqual(recons['A'].dtype, np.float64)
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   "Must pass columns with orient='index'"):
+        with tm.assert_raises_regex(TypeError,
+                                    "Must pass columns with "
+                                    "orient='index'"):
             DataFrame.from_items(row_items, orient='index')
 
         # orient='index', but thar be tuples
@@ -1183,7 +1187,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                         'B': list(self.frame['B'])}, columns=['A', 'B'])
         tm.assert_frame_equal(df, self.frame.loc[:, ['A', 'B']])
 
-        with tm.assertRaisesRegexp(ValueError, 'does not match index length'):
+        with tm.assert_raises_regex(ValueError, 'does not match '
+                                    'index length'):
             DataFrame({'A': self.frame['A'], 'B': list(self.frame['B'])[:-2]})
 
     def test_constructor_miscast_na_int_dtype(self):
@@ -1192,8 +1197,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_iterator_failure(self):
-        with tm.assertRaisesRegexp(TypeError, 'iterator'):
-            df = DataFrame(iter([1, 2, 3]))  # noqa
+        with tm.assert_raises_regex(TypeError, 'iterator'):
+            DataFrame(iter([1, 2, 3]))
 
     def test_constructor_column_duplicates(self):
         # it works! #2079
@@ -1242,7 +1247,8 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         pytest.raises(ValueError, DataFrame, 'a', [1, 2])
         pytest.raises(ValueError, DataFrame, 'a', columns=['a', 'c'])
-        with tm.assertRaisesRegexp(TypeError, 'incompatible data and dtype'):
+        with tm.assert_raises_regex(TypeError, 'incompatible data '
+                                    'and dtype'):
             DataFrame('a', [1, 2], ['a', 'c'], float)
 
     def test_constructor_with_datetimes(self):
@@ -1526,7 +1532,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         # wrong length
         msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame.from_records(arr, index=index[:-1])
 
         indexed_frame = DataFrame.from_records(arr, index='f1')

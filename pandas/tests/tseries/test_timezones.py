@@ -1335,8 +1335,8 @@ class TestTimeZones(tm.TestCase):
         # Can't localize if already tz-aware
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         ts = Series(1, index=rng)
-        tm.assertRaisesRegexp(TypeError, 'Already tz-aware', ts.tz_localize,
-                              'US/Eastern')
+        tm.assert_raises_regex(TypeError, 'Already tz-aware',
+                               ts.tz_localize, 'US/Eastern')
 
     def test_series_frame_tz_convert(self):
         rng = date_range('1/1/2011', periods=200, freq='D', tz='US/Eastern')
@@ -1359,8 +1359,8 @@ class TestTimeZones(tm.TestCase):
         # can't convert tz-naive
         rng = date_range('1/1/2011', periods=200, freq='D')
         ts = Series(1, index=rng)
-        tm.assertRaisesRegexp(TypeError, "Cannot convert tz-naive",
-                              ts.tz_convert, 'US/Eastern')
+        tm.assert_raises_regex(TypeError, "Cannot convert tz-naive",
+                               ts.tz_convert, 'US/Eastern')
 
     def test_tz_convert_roundtrip(self):
         for tz in self.timezones:

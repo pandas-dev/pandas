@@ -161,10 +161,12 @@ class TestSeriesPeriod(tm.TestCase):
 
             # different base freq
             msg = "Input has different freq=A-DEC from Period"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 base <= Period('2011', freq='A')
 
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 Period('2011', freq='A') >= base
 
     def test_comp_series_period_series(self):
@@ -199,7 +201,8 @@ class TestSeriesPeriod(tm.TestCase):
 
             # different base freq
             msg = "Input has different freq=A-DEC from Period"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 base <= s2
 
     def test_comp_series_period_object(self):
@@ -244,5 +247,5 @@ class TestSeriesPeriod(tm.TestCase):
         for kind in ['inner', 'outer', 'left', 'right']:
             ts.align(ts[::2], join=kind)
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             ts + ts.asfreq('D', how="end")

@@ -23,9 +23,8 @@ from pandas.compat import range, lrange, StringIO, OrderedDict, signature
 from pandas.tseries.offsets import BDay, MonthEnd
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
-                                 ensure_clean, assertRaisesRegexp,
-                                 makeCustomDataframe as mkdf,
-                                 makeMixedDataFrame)
+                                 ensure_clean, makeMixedDataFrame,
+                                 makeCustomDataframe as mkdf)
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
 
@@ -180,8 +179,8 @@ class SafeForLongAndSparse(object):
 
         # Unimplemented numeric_only parameter.
         if 'numeric_only' in signature(f).args:
-            tm.assertRaisesRegexp(NotImplementedError, name, f,
-                                  numeric_only=True)
+            tm.assert_raises_regex(NotImplementedError, name, f,
+                                   numeric_only=True)
 
 
 class SafeForSparse(object):
@@ -227,10 +226,10 @@ class SafeForSparse(object):
         self.assertEqual(self.panel._get_axis_number('major'), 1)
         self.assertEqual(self.panel._get_axis_number('minor'), 2)
 
-        with tm.assertRaisesRegexp(ValueError, "No axis named foo"):
+        with tm.assert_raises_regex(ValueError, "No axis named foo"):
             self.panel._get_axis_number('foo')
 
-        with tm.assertRaisesRegexp(ValueError, "No axis named foo"):
+        with tm.assert_raises_regex(ValueError, "No axis named foo"):
             self.panel.__ge__(self.panel, axis='foo')
 
     def test_get_axis_name(self):
@@ -514,9 +513,10 @@ class CheckIndexing(object):
 
             # bad shape
             p = Panel(np.random.randn(4, 3, 2))
-            with tm.assertRaisesRegexp(ValueError,
-                                       r"shape of value must be \(3, 2\), "
-                                       r"shape of given object was \(4, 2\)"):
+            with tm.assert_raises_regex(ValueError,
+                                        r"shape of value must be "
+                                        r"\(3, 2\), shape of given "
+                                        r"object was \(4, 2\)"):
                 p[0] = np.random.randn(4, 2)
 
     def test_setitem_ndarray(self):
@@ -874,8 +874,9 @@ class CheckIndexing(object):
                     result = self.panel.get_value(item, mjr, mnr)
                     expected = self.panel[item][mnr][mjr]
                     assert_almost_equal(result, expected)
-        with tm.assertRaisesRegexp(TypeError,
-                                   "There must be an argument for each axis"):
+        with tm.assert_raises_regex(TypeError,
+                                    "There must be an argument "
+                                    "for each axis"):
             self.panel.get_value('a')
 
     def test_set_value(self):
@@ -897,7 +898,7 @@ class CheckIndexing(object):
 
             msg = ("There must be an argument for each "
                    "axis plus the value provided")
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 self.panel.set_value('a')
 
 
@@ -1041,7 +1042,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
     def test_constructor_fails_with_not_3d_input(self):
         with catch_warnings(record=True):
-            with tm.assertRaisesRegexp(ValueError, "The number of dimensions required is 3"):  # noqa
+            with tm.assert_raises_regex(ValueError, "The number of dimensions required is 3"):  # noqa
                     Panel(np.random.randn(10, 2))
 
     def test_consolidate(self):
@@ -1181,28 +1182,31 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 Panel(np.random.randn(3, 4, 5),
                       lrange(4), lrange(5), lrange(5))
 
-            assertRaisesRegexp(ValueError,
-                               r"Shape of passed values is \(3, 4, 5\), "
-                               r"indices imply \(4, 5, 5\)",
-                               testit)
+            tm.assert_raises_regex(ValueError,
+                                   r"Shape of passed values is "
+                                   r"\(3, 4, 5\), indices imply "
+                                   r"\(4, 5, 5\)",
+                                   testit)
 
             def testit():
                 Panel(np.random.randn(3, 4, 5),
                       lrange(5), lrange(4), lrange(5))
 
-            assertRaisesRegexp(ValueError,
-                               r"Shape of passed values is \(3, 4, 5\), "
-                               r"indices imply \(5, 4, 5\)",
-                               testit)
+            tm.assert_raises_regex(ValueError,
+                                   r"Shape of passed values is "
+                                   r"\(3, 4, 5\), indices imply "
+                                   r"\(5, 4, 5\)",
+                                   testit)
 
             def testit():
                 Panel(np.random.randn(3, 4, 5),
                       lrange(5), lrange(5), lrange(4))
 
-            assertRaisesRegexp(ValueError,
-                               r"Shape of passed values is \(3, 4, 5\), "
-                               r"indices imply \(5, 5, 4\)",
-                               testit)
+            tm.assert_raises_regex(ValueError,
+                                   r"Shape of passed values is "
+                                   r"\(3, 4, 5\), indices imply "
+                                   r"\(5, 5, 4\)",
+                                   testit)
 
     def test_conform(self):
         with catch_warnings(record=True):
@@ -1660,12 +1664,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(result, expected)
 
             # duplicate axes
-            with tm.assertRaisesRegexp(TypeError,
-                                       'not enough/duplicate arguments'):
+            with tm.assert_raises_regex(TypeError,
+                                        'not enough/duplicate arguments'):
                 self.panel.transpose('minor', maj='major', minor='items')
 
-            with tm.assertRaisesRegexp(ValueError,
-                                       'repeated axis in transpose'):
+            with tm.assert_raises_regex(ValueError,
+                                        'repeated axis in transpose'):
                 self.panel.transpose('minor', 'major', major='minor',
                                      minor='items')
 
@@ -1867,7 +1871,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         with catch_warnings(record=True):
             df = DataFrame({'a': [0, 0, 1], 'b': [1, 1, 1], 'c': [1, 2, 3]})
             idf = df.set_index(['a', 'b'])
-            assertRaisesRegexp(
+            tm.assert_raises_regex(
                 ValueError, 'non-uniquely indexed', idf.to_panel)
 
     def test_panel_dups(self):
@@ -1992,8 +1996,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             shifted3 = ps.tshift(freq=BDay())
             assert_panel_equal(shifted, shifted3)
 
-            assertRaisesRegexp(ValueError, 'does not match',
-                               ps.tshift, freq='M')
+            tm.assert_raises_regex(ValueError, 'does not match',
+                                   ps.tshift, freq='M')
 
             # DatetimeIndex
             panel = make_test_panel()
@@ -2108,7 +2112,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(expected, result)
 
             msg = "the 'out' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, msg, np.round, p, out=p)
+            tm.assert_raises_regex(ValueError, msg, np.round, p, out=p)
 
     def test_multiindex_get(self):
         with catch_warnings(record=True):
@@ -2540,8 +2544,8 @@ class TestLongPanel(tm.TestCase):
     def test_to_sparse(self):
         if isinstance(self.panel, Panel):
             msg = 'sparsifying is not supported'
-            tm.assertRaisesRegexp(NotImplementedError, msg,
-                                  self.panel.to_sparse)
+            tm.assert_raises_regex(NotImplementedError, msg,
+                                   self.panel.to_sparse)
 
     def test_truncate(self):
         with catch_warnings(record=True):

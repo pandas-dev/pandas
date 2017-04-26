@@ -24,17 +24,17 @@ class PythonParserTests(object):
 
         # see gh-15925 (comment)
         msg = "skipfooter must be an integer"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(text), skipfooter="foo")
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(text), skipfooter=1.5)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(text), skipfooter=True)
 
         msg = "skipfooter cannot be negative"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(text), skipfooter=-1)
 
     def test_sniff_delimiter(self):
@@ -208,13 +208,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         data = 'a,,b\n1,,a\n2,,"2,,b"'
         msg = 'ignored when a multi-char delimiter is used'
 
-        with tm.assertRaisesRegexp(ParserError, msg):
+        with tm.assert_raises_regex(ParserError, msg):
             self.read_csv(StringIO(data), sep=',,')
 
         # We expect no match, so there should be an assertion
         # error out of the inner context manager.
         with pytest.raises(AssertionError):
-            with tm.assertRaisesRegexp(ParserError, msg):
+            with tm.assert_raises_regex(ParserError, msg):
                 self.read_csv(StringIO(data), sep=',,',
                               quoting=csv.QUOTE_NONE)
 
@@ -226,11 +226,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         for data in ('a\n1\n"b"a',
                      'a,b,c\ncat,foo,bar\ndog,foo,"baz'):
-            with tm.assertRaisesRegexp(ParserError, msg):
+            with tm.assert_raises_regex(ParserError, msg):
                 self.read_csv(StringIO(data), skipfooter=1)
 
             # We expect no match, so there should be an assertion
             # error out of the inner context manager.
             with pytest.raises(AssertionError):
-                with tm.assertRaisesRegexp(ParserError, msg):
+                with tm.assert_raises_regex(ParserError, msg):
                     self.read_csv(StringIO(data))

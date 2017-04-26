@@ -17,9 +17,8 @@ import pandas as pd
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
                                  assert_frame_equal,
-                                 ensure_clean,
-                                 makeCustomDataframe as mkdf,
-                                 assertRaisesRegexp, slow)
+                                 ensure_clean, slow,
+                                 makeCustomDataframe as mkdf)
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
@@ -588,13 +587,13 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
             for i in [6, 7]:
                 msg = 'len of {i}, but only 5 lines in file'.format(i=i)
-                with assertRaisesRegexp(ParserError, msg):
+                with tm.assert_raises_regex(ParserError, msg):
                     read_csv(path, tupleize_cols=False,
                              header=lrange(i), index_col=0)
 
             # write with cols
-            with assertRaisesRegexp(TypeError, 'cannot specify cols with a '
-                                    'MultiIndex'):
+            with tm.assert_raises_regex(TypeError, 'cannot specify cols '
+                                        'with a MultiIndex'):
                 df.to_csv(path, tupleize_cols=False, columns=['foo', 'bar'])
 
         with ensure_clean('__tmp_to_csv_multiindex__') as path:
@@ -1106,11 +1105,11 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         self.assertEqual(result, expected)
 
         msg = "need to escape, but no escapechar set"
-        tm.assertRaisesRegexp(csv.Error, msg, df.to_csv,
-                              quoting=csv.QUOTE_NONE)
-        tm.assertRaisesRegexp(csv.Error, msg, df.to_csv,
-                              quoting=csv.QUOTE_NONE,
-                              escapechar=None)
+        tm.assert_raises_regex(csv.Error, msg, df.to_csv,
+                               quoting=csv.QUOTE_NONE)
+        tm.assert_raises_regex(csv.Error, msg, df.to_csv,
+                               quoting=csv.QUOTE_NONE,
+                               escapechar=None)
 
         expected = """\
 ,c_bool,c_float,c_int,c_string
