@@ -250,13 +250,11 @@ class Ops(tm.TestCase):
                 operand2 = 'other'
                 op = op_map[op_name]
                 expected_str = ' '.join([operand1, op, operand2])
-                self.assertTrue(expected_str in getattr(klass,
-                                                        op_name).__doc__)
+                assert expected_str in getattr(klass, op_name).__doc__
 
                 # reverse version of the binary ops
                 expected_str = ' '.join([operand2, op, operand1])
-                self.assertTrue(expected_str in getattr(klass, 'r' +
-                                                        op_name).__doc__)
+                assert expected_str in getattr(klass, 'r' + op_name).__doc__
 
 
 class TestIndexOps(Ops):
@@ -282,8 +280,8 @@ class TestIndexOps(Ops):
 
                 # noinspection PyComparisonWithNone
                 result = o != None  # noqa
-                self.assertTrue(result.iat[0])
-                self.assertTrue(result.iat[1])
+                assert result.iat[0]
+                assert result.iat[1]
 
                 result = None == o  # noqa
                 assert not result.iat[0]
@@ -292,8 +290,8 @@ class TestIndexOps(Ops):
                 # this fails for numpy < 1.9
                 # and oddly for *some* platforms
                 # result = None != o  # noqa
-                # self.assertTrue(result.iat[0])
-                # self.assertTrue(result.iat[1])
+                # assert result.iat[0]
+                # assert result.iat[1]
 
                 result = None > o
                 assert not result.iat[0]
@@ -355,10 +353,10 @@ class TestIndexOps(Ops):
                 self.assertEqual(getattr(obj, op)(), 2.0)
 
                 obj = klass([np.nan])
-                self.assertTrue(pd.isnull(getattr(obj, op)()))
+                assert pd.isnull(getattr(obj, op)())
 
                 obj = klass([])
-                self.assertTrue(pd.isnull(getattr(obj, op)()))
+                assert pd.isnull(getattr(obj, op)())
 
                 obj = klass([pd.NaT, datetime(2011, 11, 1)])
                 # check DatetimeIndex monotonic path
@@ -423,12 +421,12 @@ class TestIndexOps(Ops):
 
             result = o.value_counts()
             tm.assert_series_equal(result, expected_s)
-            self.assertTrue(result.index.name is None)
+            assert result.index.name is None
             self.assertEqual(result.name, 'a')
 
             result = o.unique()
             if isinstance(o, Index):
-                self.assertTrue(isinstance(result, o.__class__))
+                assert isinstance(result, o.__class__)
                 tm.assert_index_equal(result, orig)
             elif is_datetimetz(o):
                 # datetimetz Series returns array of Timestamp
@@ -511,11 +509,11 @@ class TestIndexOps(Ops):
 
                 result_s_na = o.value_counts(dropna=False)
                 tm.assert_series_equal(result_s_na, expected_s_na)
-                self.assertTrue(result_s_na.index.name is None)
+                assert result_s_na.index.name is None
                 self.assertEqual(result_s_na.name, 'a')
                 result_s = o.value_counts()
                 tm.assert_series_equal(o.value_counts(), expected_s)
-                self.assertTrue(result_s.index.name is None)
+                assert result_s.index.name is None
                 self.assertEqual(result_s.name, 'a')
 
                 result = o.unique()
@@ -530,7 +528,7 @@ class TestIndexOps(Ops):
                 else:
                     tm.assert_numpy_array_equal(result[1:], values[2:])
 
-                    self.assertTrue(pd.isnull(result[0]))
+                    assert pd.isnull(result[0])
                     self.assertEqual(result.dtype, orig.dtype)
 
                 self.assertEqual(o.nunique(), 8)
@@ -691,7 +689,7 @@ class TestIndexOps(Ops):
                 tm.assert_index_equal(unique, exp_idx)
             else:
                 tm.assert_numpy_array_equal(unique[:3], expected)
-                self.assertTrue(pd.isnull(unique[3]))
+                assert pd.isnull(unique[3])
 
             self.assertEqual(s.nunique(), 3)
             self.assertEqual(s.nunique(dropna=False), 4)
@@ -793,7 +791,7 @@ class TestIndexOps(Ops):
                 expected = np.array([False] * len(original), dtype=bool)
                 duplicated = original.duplicated()
                 tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
+                assert duplicated.dtype == bool
                 result = original.drop_duplicates()
                 tm.assert_index_equal(result, original)
                 assert result is not original
@@ -807,7 +805,7 @@ class TestIndexOps(Ops):
                                     dtype=bool)
                 duplicated = idx.duplicated()
                 tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
+                assert duplicated.dtype == bool
                 tm.assert_index_equal(idx.drop_duplicates(), original)
 
                 base = [False] * len(idx)
@@ -817,7 +815,7 @@ class TestIndexOps(Ops):
 
                 duplicated = idx.duplicated(keep='last')
                 tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
+                assert duplicated.dtype == bool
                 result = idx.drop_duplicates(keep='last')
                 tm.assert_index_equal(result, idx[~expected])
 
@@ -828,7 +826,7 @@ class TestIndexOps(Ops):
 
                 duplicated = idx.duplicated(keep=False)
                 tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
+                assert duplicated.dtype == bool
                 result = idx.drop_duplicates(keep=False)
                 tm.assert_index_equal(result, idx[~expected])
 
@@ -951,7 +949,7 @@ class TestIndexOps(Ops):
             if (is_object_dtype(o) or (isinstance(o, Series) and
                                        is_object_dtype(o.index))):
                 # if there are objects, only deep will pick them up
-                self.assertTrue(res_deep > res)
+                assert res_deep > res
             else:
                 self.assertEqual(res, res_deep)
 
@@ -965,16 +963,16 @@ class TestIndexOps(Ops):
             # sys.getsizeof will call the .memory_usage with
             # deep=True, and add on some GC overhead
             diff = res_deep - sys.getsizeof(o)
-            self.assertTrue(abs(diff) < 100)
+            assert abs(diff) < 100
 
     def test_searchsorted(self):
         # See gh-12238
         for o in self.objs:
             index = np.searchsorted(o, max(o))
-            self.assertTrue(0 <= index <= len(o))
+            assert 0 <= index <= len(o)
 
             index = np.searchsorted(o, max(o), sorter=range(len(o)))
-            self.assertTrue(0 <= index <= len(o))
+            assert 0 <= index <= len(o)
 
     def test_validate_bool_args(self):
         invalid_values = [1, "True", [1, 2, 3], 5.0]

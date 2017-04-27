@@ -808,7 +808,7 @@ class CheckIndexing(object):
         cp = self.panel.copy()
         obj = cp.loc[indexer]
         obj.values[:] = 0
-        self.assertTrue((obj.values == 0).all())
+        assert (obj.values == 0).all()
         comp(cp.loc[indexer].reindex_like(obj), obj)
 
     def test_logical_with_nas(self):
@@ -1047,13 +1047,13 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
     def test_consolidate(self):
         with catch_warnings(record=True):
-            self.assertTrue(self.panel._data.is_consolidated())
+            assert self.panel._data.is_consolidated()
 
             self.panel['foo'] = 1.
             assert not self.panel._data.is_consolidated()
 
             panel = self.panel._consolidate()
-            self.assertTrue(panel._data.is_consolidated())
+            assert panel._data.is_consolidated()
 
     def test_ctor_dict(self):
         with catch_warnings(record=True):
@@ -1134,10 +1134,10 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 :50]  # unique random int  keys
             d = OrderedDict([(k, mkdf(10, 5)) for k in keys])
             p = Panel(d)
-            self.assertTrue(list(p.items) == keys)
+            assert list(p.items) == keys
 
             p = Panel.from_dict(d)
-            self.assertTrue(list(p.items) == keys)
+            assert list(p.items) == keys
 
     def test_constructor_resize(self):
         with catch_warnings(record=True):
@@ -1440,7 +1440,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             result = self.panel.reindex(
                 major=self.panel.major_axis, copy=False)
             assert_panel_equal(result, self.panel)
-            self.assertTrue(result is self.panel)
+            assert result is self.panel
 
     def test_reindex_multi(self):
         with catch_warnings(record=True):
@@ -1550,7 +1550,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
     def test_fillna(self):
         with catch_warnings(record=True):
             filled = self.panel.fillna(0)
-            self.assertTrue(np.isfinite(filled.values).all())
+            assert np.isfinite(filled.values).all()
 
             filled = self.panel.fillna(method='backfill')
             assert_frame_equal(filled['ItemA'],
@@ -1695,7 +1695,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(result, expected)
 
             panel.values[0, 1, 1] = np.nan
-            self.assertTrue(notnull(result.values[1, 0, 1]))
+            assert notnull(result.values[1, 0, 1])
 
     def test_to_frame(self):
         with catch_warnings(record=True):
@@ -1864,7 +1864,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                                   [0, 1, 2, 3, 4, 5, 2, 3, 4, 5]])
 
             panel = df.to_panel()
-            self.assertTrue(isnull(panel[0].loc[1, [0, 1]]).all())
+            assert isnull(panel[0].loc[1, [0, 1]]).all()
 
     def test_to_panel_duplicates(self):
         # #2441
@@ -2127,8 +2127,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             f2 = wp.loc['a']
             assert_panel_equal(f1, f2)
 
-            self.assertTrue((f1.items == [1, 2]).all())
-            self.assertTrue((f2.items == [1, 2]).all())
+            assert (f1.items == [1, 2]).all()
+            assert (f2.items == [1, 2]).all()
 
             ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
                                          names=['first', 'second'])
@@ -2140,10 +2140,10 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             wp = Panel(self.panel._data)
             wp.items = ind
             f1 = wp['a']
-            self.assertTrue((f1.items == [1, 2]).all())
+            assert (f1.items == [1, 2]).all()
 
             f1 = wp[('b', 1)]
-            self.assertTrue((f1.columns == ['A', 'B', 'C', 'D']).all())
+            assert (f1.columns == ['A', 'B', 'C', 'D']).all()
 
     def test_repr_empty(self):
         with catch_warnings(record=True):
@@ -2165,7 +2165,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             # don't copy
             renamed_nocopy = self.panel.rename_axis(mapper, axis=0, copy=False)
             renamed_nocopy['foo'] = 3.
-            self.assertTrue((self.panel['ItemA'].values == 3).all())
+            assert (self.panel['ItemA'].values == 3).all()
 
     def test_get_attr(self):
         assert_frame_equal(self.panel['ItemA'], self.panel.ItemA)
@@ -2413,18 +2413,18 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                           **{'raise_conflict': True})
 
     def test_all_any(self):
-        self.assertTrue((self.panel.all(axis=0).values == nanall(
-            self.panel, axis=0)).all())
-        self.assertTrue((self.panel.all(axis=1).values == nanall(
-            self.panel, axis=1).T).all())
-        self.assertTrue((self.panel.all(axis=2).values == nanall(
-            self.panel, axis=2).T).all())
-        self.assertTrue((self.panel.any(axis=0).values == nanany(
-            self.panel, axis=0)).all())
-        self.assertTrue((self.panel.any(axis=1).values == nanany(
-            self.panel, axis=1).T).all())
-        self.assertTrue((self.panel.any(axis=2).values == nanany(
-            self.panel, axis=2).T).all())
+        assert (self.panel.all(axis=0).values == nanall(
+            self.panel, axis=0)).all()
+        assert (self.panel.all(axis=1).values == nanall(
+            self.panel, axis=1).T).all()
+        assert (self.panel.all(axis=2).values == nanall(
+            self.panel, axis=2).T).all()
+        assert (self.panel.any(axis=0).values == nanany(
+            self.panel, axis=0)).all()
+        assert (self.panel.any(axis=1).values == nanany(
+            self.panel, axis=1).T).all()
+        assert (self.panel.any(axis=2).values == nanany(
+            self.panel, axis=2).T).all()
 
     def test_all_any_unhandled(self):
         pytest.raises(NotImplementedError, self.panel.all, bool_only=True)
@@ -2532,10 +2532,10 @@ class TestLongPanel(tm.TestCase):
             return (arr[1:] > arr[:-1]).any()
 
         sorted_minor = self.panel.sort_index(level=1)
-        self.assertTrue(is_sorted(sorted_minor.index.labels[1]))
+        assert is_sorted(sorted_minor.index.labels[1])
 
         sorted_major = sorted_minor.sort_index(level=0)
-        self.assertTrue(is_sorted(sorted_major.index.labels[0]))
+        assert is_sorted(sorted_major.index.labels[0])
 
     def test_to_string(self):
         buf = StringIO()

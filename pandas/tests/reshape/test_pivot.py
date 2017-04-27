@@ -514,7 +514,7 @@ class TestPivotTable(tm.TestCase):
                                  columns=['Index', 'Symbol', 'Year'],
                                  aggfunc='mean')
 
-        self.assertTrue(pivoted.columns.is_monotonic)
+        assert pivoted.columns.is_monotonic
 
     def test_pivot_complex_aggfunc(self):
         f = OrderedDict([('D', ['std']), ('E', ['sum'])])
@@ -1491,10 +1491,10 @@ class TestPivotAnnual(tm.TestCase):
 
     def test_isleapyear_deprecate(self):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertTrue(isleapyear(2000))
+            assert isleapyear(2000)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             assert not isleapyear(2001)
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertTrue(isleapyear(2004))
+            assert isleapyear(2004)

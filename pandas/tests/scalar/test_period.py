@@ -21,14 +21,14 @@ class TestPeriodProperties(tm.TestCase):
         # GH 13727
         for freq in ['A', 'M', 'D', 'H']:
             p = Period('2000-01-01 00:00:00', freq=freq)
-            self.assertTrue(p.is_leap_year)
+            assert p.is_leap_year
             assert isinstance(p.is_leap_year, bool)
 
             p = Period('1999-01-01 00:00:00', freq=freq)
             assert not p.is_leap_year
 
             p = Period('2004-01-01 00:00:00', freq=freq)
-            self.assertTrue(p.is_leap_year)
+            assert p.is_leap_year
 
             p = Period('2100-01-01 00:00:00', freq=freq)
             assert not p.is_leap_year
@@ -946,7 +946,7 @@ class TestComparisons(tm.TestCase):
         self.assertNotEqual(self.january1, self.february)
 
     def test_greater(self):
-        self.assertTrue(self.february > self.january1)
+        assert self.february > self.january1
 
     def test_greater_Raises_Value(self):
         with pytest.raises(period.IncompatibleFrequency):
@@ -957,7 +957,7 @@ class TestComparisons(tm.TestCase):
             self.january1 > 1
 
     def test_greaterEqual(self):
-        self.assertTrue(self.january1 >= self.january2)
+        assert self.january1 >= self.january2
 
     def test_greaterEqual_Raises_Value(self):
         with pytest.raises(period.IncompatibleFrequency):
@@ -967,7 +967,7 @@ class TestComparisons(tm.TestCase):
             print(self.january1 >= 1)
 
     def test_smallerEqual(self):
-        self.assertTrue(self.january1 <= self.january2)
+        assert self.january1 <= self.january2
 
     def test_smallerEqual_Raises_Value(self):
         with pytest.raises(period.IncompatibleFrequency):
@@ -978,7 +978,7 @@ class TestComparisons(tm.TestCase):
             self.january1 <= 1
 
     def test_smaller(self):
-        self.assertTrue(self.january1 < self.february)
+        assert self.january1 < self.february
 
     def test_smaller_Raises_Value(self):
         with pytest.raises(period.IncompatibleFrequency):

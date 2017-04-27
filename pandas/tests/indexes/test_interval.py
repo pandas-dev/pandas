@@ -27,28 +27,28 @@ class TestIntervalIndex(Base, tm.TestCase):
     def test_constructors(self):
         expected = self.index
         actual = IntervalIndex.from_breaks(np.arange(3), closed='right')
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         alternate = IntervalIndex.from_breaks(np.arange(3), closed='left')
         assert not expected.equals(alternate)
 
         actual = IntervalIndex.from_intervals([Interval(0, 1), Interval(1, 2)])
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = IntervalIndex([Interval(0, 1), Interval(1, 2)])
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = IntervalIndex.from_arrays(np.arange(2), np.arange(2) + 1,
                                            closed='right')
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = Index([Interval(0, 1), Interval(1, 2)])
         assert isinstance(actual, IntervalIndex)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = Index(expected)
         assert isinstance(actual, IntervalIndex)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
     def test_constructors_other(self):
 
@@ -106,8 +106,8 @@ class TestIntervalIndex(Base, tm.TestCase):
 
             expected_scalar_type = type(idx[0])
             i = result[0]
-            self.assertTrue(isinstance(i.left, expected_scalar_type))
-            self.assertTrue(isinstance(i.right, expected_scalar_type))
+            assert isinstance(i.left, expected_scalar_type)
+            assert isinstance(i.right, expected_scalar_type)
 
     def test_constructors_error(self):
 
@@ -158,7 +158,7 @@ class TestIntervalIndex(Base, tm.TestCase):
                                     np.array([True, True]))
 
         index = self.index_with_nan
-        self.assertTrue(index.hasnans)
+        assert index.hasnans
         tm.assert_numpy_array_equal(index.notnull(),
                                     np.array([True, False, True]))
         tm.assert_numpy_array_equal(index.isnull(),
@@ -193,8 +193,8 @@ class TestIntervalIndex(Base, tm.TestCase):
     def test_equals(self):
 
         idx = self.index
-        self.assertTrue(idx.equals(idx))
-        self.assertTrue(idx.equals(idx.copy()))
+        assert idx.equals(idx)
+        assert idx.equals(idx.copy())
 
         assert not idx.equals(idx.astype(object))
         assert not idx.equals(np.array(idx))
@@ -216,11 +216,11 @@ class TestIntervalIndex(Base, tm.TestCase):
         result = idx.astype(object)
         tm.assert_index_equal(result, Index(idx.values, dtype='object'))
         assert not idx.equals(result)
-        self.assertTrue(idx.equals(IntervalIndex.from_intervals(result)))
+        assert idx.equals(IntervalIndex.from_intervals(result))
 
         result = idx.astype('interval')
         tm.assert_index_equal(result, idx)
-        self.assertTrue(result.equals(idx))
+        assert result.equals(idx)
 
         result = idx.astype('category')
         expected = pd.Categorical(idx, ordered=True)
@@ -243,12 +243,12 @@ class TestIntervalIndex(Base, tm.TestCase):
     def test_delete(self):
         expected = IntervalIndex.from_breaks([1, 2])
         actual = self.index.delete(0)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
     def test_insert(self):
         expected = IntervalIndex.from_breaks(range(4))
         actual = self.index.insert(2, Interval(2, 3))
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         pytest.raises(ValueError, self.index.insert, 0, 1)
         pytest.raises(ValueError, self.index.insert, 0,
@@ -256,27 +256,27 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_take(self):
         actual = self.index.take([0, 1])
-        self.assertTrue(self.index.equals(actual))
+        assert self.index.equals(actual)
 
         expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2])
         actual = self.index.take([0, 0, 1])
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
     def test_monotonic_and_unique(self):
-        self.assertTrue(self.index.is_monotonic)
-        self.assertTrue(self.index.is_unique)
+        assert self.index.is_monotonic
+        assert self.index.is_unique
 
         idx = IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)])
-        self.assertTrue(idx.is_monotonic)
-        self.assertTrue(idx.is_unique)
+        assert idx.is_monotonic
+        assert idx.is_unique
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 2)])
         assert not idx.is_monotonic
-        self.assertTrue(idx.is_unique)
+        assert idx.is_unique
 
         idx = IntervalIndex.from_tuples([(0, 2), (0, 2)])
         assert not idx.is_unique
-        self.assertTrue(idx.is_monotonic)
+        assert idx.is_monotonic
 
     @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
     def test_repr(self):
@@ -514,10 +514,10 @@ class TestIntervalIndex(Base, tm.TestCase):
         other = IntervalIndex.from_arrays([2], [3])
         expected = IntervalIndex.from_arrays(range(3), range(1, 4))
         actual = self.index.union(other)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = other.union(self.index)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         tm.assert_index_equal(self.index.union(self.index), self.index)
         tm.assert_index_equal(self.index.union(self.index[:1]),
@@ -527,7 +527,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         other = IntervalIndex.from_breaks([1, 2, 3])
         expected = IntervalIndex.from_breaks([1, 2])
         actual = self.index.intersection(other)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         tm.assert_index_equal(self.index.intersection(self.index),
                               self.index)

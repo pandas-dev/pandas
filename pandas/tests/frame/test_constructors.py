@@ -280,12 +280,12 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         tuples = [(2, 3), (3, 3), (3, 3)]
         mi = MultiIndex.from_tuples(tuples)
         df = DataFrame(index=mi, columns=mi)
-        self.assertTrue(pd.isnull(df).values.ravel().all())
+        assert pd.isnull(df).values.ravel().all()
 
         tuples = [(3, 3), (2, 3), (3, 3)]
         mi = MultiIndex.from_tuples(tuples)
         df = DataFrame(index=mi, columns=mi)
-        self.assertTrue(pd.isnull(df).values.ravel().all())
+        assert pd.isnull(df).values.ravel().all()
 
     def test_constructor_error_msgs(self):
         msg = "Empty data passed with indices specified."
@@ -594,7 +594,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         # what is this even checking??
         mat = ma.masked_all((2, 3), dtype=float)
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
-        self.assertTrue(np.all(~np.asarray(frame == frame)))
+        assert np.all(~np.asarray(frame == frame))
 
     def test_constructor_maskedarray_nonfloat(self):
         # masked int promoted to float
@@ -604,7 +604,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         self.assertEqual(len(frame.index), 2)
         self.assertEqual(len(frame.columns), 3)
-        self.assertTrue(np.all(~np.asarray(frame == frame)))
+        assert np.all(~np.asarray(frame == frame))
 
         # cast type
         frame = DataFrame(mat, columns=['A', 'B', 'C'],
@@ -626,7 +626,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         self.assertEqual(len(frame.index), 2)
         self.assertEqual(len(frame.columns), 3)
-        self.assertTrue(isnull(frame).values.all())
+        assert isnull(frame).values.all()
 
         # cast type
         frame = DataFrame(mat, columns=['A', 'B', 'C'],
@@ -648,7 +648,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         self.assertEqual(len(frame.index), 2)
         self.assertEqual(len(frame.columns), 3)
-        self.assertTrue(np.all(~np.asarray(frame == frame)))
+        assert np.all(~np.asarray(frame == frame))
 
         # cast type
         frame = DataFrame(mat, columns=['A', 'B', 'C'],
@@ -817,7 +817,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         # GH #484
         l = [[1, 'a'], [2, 'b']]
         df = DataFrame(data=l, columns=["num", "str"])
-        self.assertTrue(is_integer_dtype(df['num']))
+        assert is_integer_dtype(df['num'])
         self.assertEqual(df['str'].dtype, np.object_)
 
         # GH 4851
@@ -1027,7 +1027,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         data['B'] = Series([4, 3, 2, 1], index=['bar', 'qux', 'baz', 'foo'])
 
         result = DataFrame(data)
-        self.assertTrue(result.index.is_monotonic)
+        assert result.index.is_monotonic
 
         # ordering ambiguous, raise exception
         with tm.assert_raises_regex(ValueError, 'ambiguous ordering'):
@@ -1344,13 +1344,13 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         # GH 8411
         dr = date_range('20130101', periods=3)
         df = DataFrame({'value': dr})
-        self.assertTrue(df.iat[0, 0].tz is None)
+        assert df.iat[0, 0].tz is None
         dr = date_range('20130101', periods=3, tz='UTC')
         df = DataFrame({'value': dr})
-        self.assertTrue(str(df.iat[0, 0].tz) == 'UTC')
+        assert str(df.iat[0, 0].tz) == 'UTC'
         dr = date_range('20130101', periods=3, tz='US/Eastern')
         df = DataFrame({'value': dr})
-        self.assertTrue(str(df.iat[0, 0].tz) == 'US/Eastern')
+        assert str(df.iat[0, 0].tz) == 'US/Eastern'
 
         # GH 7822
         # preserver an index with a tz on dict construction
@@ -1451,14 +1451,14 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
     def test_constructor_frame_copy(self):
         cop = DataFrame(self.frame, copy=True)
         cop['A'] = 5
-        self.assertTrue((cop['A'] == 5).all())
+        assert (cop['A'] == 5).all()
         assert not (self.frame['A'] == 5).all()
 
     def test_constructor_ndarray_copy(self):
         df = DataFrame(self.frame.values)
 
         self.frame.values[5] = 5
-        self.assertTrue((df.values[5] == 5).all())
+        assert (df.values[5] == 5).all()
 
         df = DataFrame(self.frame.values, copy=True)
         self.frame.values[6] = 6
@@ -1551,7 +1551,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
                   (None, 2, 5, 3)]
 
         df = DataFrame.from_records(tuples, columns=['a', 'b', 'c', 'd'])
-        self.assertTrue(np.isnan(df['c'][0]))
+        assert np.isnan(df['c'][0])
 
     def test_from_records_iterator(self):
         arr = np.array([(1.0, 1.0, 2, 2), (3.0, 3.0, 4, 4), (5., 5., 6, 6),
@@ -1628,7 +1628,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
 
         df = DataFrame.from_records(tuples, columns=['a'], coerce_float=True)
         self.assertEqual(df['a'].dtype, np.float64)
-        self.assertTrue(np.isnan(df['a'].values[-1]))
+        assert np.isnan(df['a'].values[-1])
 
     def test_from_records_duplicates(self):
         result = DataFrame.from_records([(1, 2, 3), (4, 5, 6)],
@@ -1890,7 +1890,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         result = DataFrame.from_records([], index='foo',
                                         columns=['foo', 'bar'])
 
-        self.assertTrue(np.array_equal(result.columns, ['bar']))
+        assert np.array_equal(result.columns, ['bar'])
         self.assertEqual(len(result), 0)
         self.assertEqual(result.index.name, 'foo')
 
@@ -1917,8 +1917,8 @@ class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
 
         # construction
         df = DataFrame({'A': idx, 'B': dr})
-        self.assertTrue(df['A'].dtype, 'M8[ns, US/Eastern')
-        self.assertTrue(df['A'].name == 'A')
+        assert df['A'].dtype, 'M8[ns, US/Eastern'
+        assert df['A'].name == 'A'
         tm.assert_series_equal(df['A'], Series(idx, name='A'))
         tm.assert_series_equal(df['B'], Series(dr, name='B'))
 
@@ -1951,7 +1951,7 @@ class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
 
         # it works!
         d = DataFrame({'A': 'foo', 'B': ts}, index=dr)
-        self.assertTrue(d['B'].isnull().all())
+        assert d['B'].isnull().all()
 
     def test_frame_timeseries_to_records(self):
         index = date_range('1/1/2000', periods=10)

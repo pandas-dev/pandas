@@ -343,8 +343,8 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         # corr() with lag needs Series of at least length 2
         if len(self.ts) <= 2:
-            self.assertTrue(np.isnan(corr1))
-            self.assertTrue(np.isnan(corr2))
+            assert np.isnan(corr1)
+            assert np.isnan(corr2)
         else:
             self.assertEqual(corr1, corr2)
 
@@ -356,8 +356,8 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         # corr() with lag needs Series of at least length 2
         if len(self.ts) <= 2:
-            self.assertTrue(np.isnan(corr1))
-            self.assertTrue(np.isnan(corr2))
+            assert np.isnan(corr1)
+            assert np.isnan(corr2)
         else:
             self.assertEqual(corr1, corr2)
 
@@ -393,7 +393,7 @@ class TestTimeSeries(TestData, tm.TestCase):
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
         ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        self.assertTrue(ser.index.is_all_dates)
+        assert ser.index.is_all_dates
         assert isinstance(ser.index, DatetimeIndex)
 
     def test_empty_series_ops(self):
@@ -487,7 +487,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         dates = np.asarray(rng)
 
         series = Series(dates)
-        self.assertTrue(np.issubdtype(series.dtype, np.dtype('M8[ns]')))
+        assert np.issubdtype(series.dtype, np.dtype('M8[ns]'))
 
     def test_series_repr_nat(self):
         series = Series([0, 1000, 2000, iNaT], dtype='M8[ns]')
@@ -602,9 +602,9 @@ class TestTimeSeries(TestData, tm.TestCase):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = Series(np.random.randn(len(rng)), index=rng)
         rs = ts.at_time(rng[1])
-        self.assertTrue((rs.index.hour == rng[1].hour).all())
-        self.assertTrue((rs.index.minute == rng[1].minute).all())
-        self.assertTrue((rs.index.second == rng[1].second).all())
+        assert (rs.index.hour == rng[1].hour).all()
+        assert (rs.index.minute == rng[1].minute).all()
+        assert (rs.index.second == rng[1].second).all()
 
         result = ts.at_time('9:30')
         expected = ts.at_time(time(9, 30))
@@ -667,14 +667,14 @@ class TestTimeSeries(TestData, tm.TestCase):
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
-                    self.assertTrue(t >= stime)
+                    assert t >= stime
                 else:
-                    self.assertTrue(t > stime)
+                    assert t > stime
 
                 if inc_end:
-                    self.assertTrue(t <= etime)
+                    assert t <= etime
                 else:
-                    self.assertTrue(t < etime)
+                    assert t < etime
 
         result = ts.between_time('00:00', '01:00')
         expected = ts.between_time(stime, etime)
@@ -699,14 +699,14 @@ class TestTimeSeries(TestData, tm.TestCase):
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
-                    self.assertTrue((t >= stime) or (t <= etime))
+                    assert (t >= stime) or (t <= etime)
                 else:
-                    self.assertTrue((t > stime) or (t <= etime))
+                    assert (t > stime) or (t <= etime)
 
                 if inc_end:
-                    self.assertTrue((t <= etime) or (t >= stime))
+                    assert (t <= etime) or (t >= stime)
                 else:
-                    self.assertTrue((t < etime) or (t >= stime))
+                    assert (t < etime) or (t >= stime)
 
     def test_between_time_types(self):
         # GH11818
@@ -830,13 +830,13 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         # GH4606
         p = tm.round_trip_pickle(NaT)
-        self.assertTrue(p is NaT)
+        assert p is NaT
 
         idx = pd.to_datetime(['2013-01-01', NaT, '2014-01-06'])
         idx_p = tm.round_trip_pickle(idx)
-        self.assertTrue(idx_p[0] == idx[0])
-        self.assertTrue(idx_p[1] is NaT)
-        self.assertTrue(idx_p[2] == idx[2])
+        assert idx_p[0] == idx[0]
+        assert idx_p[1] is NaT
+        assert idx_p[2] == idx[2]
 
         # GH11002
         # don't infer freq
@@ -900,12 +900,12 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         result = df.TS.max()
         exp = Timestamp(df.TS.iat[-1])
-        self.assertTrue(isinstance(result, Timestamp))
+        assert isinstance(result, Timestamp)
         self.assertEqual(result, exp)
 
         result = df.TS.min()
         exp = Timestamp(df.TS.iat[0])
-        self.assertTrue(isinstance(result, Timestamp))
+        assert isinstance(result, Timestamp)
         self.assertEqual(result, exp)
 
     def test_from_M8_structured(self):
@@ -918,7 +918,7 @@ class TestTimeSeries(TestData, tm.TestCase):
         self.assertEqual(df['Forecasting'][0], dates[0][1])
 
         s = Series(arr['Date'])
-        self.assertTrue(s[0], Timestamp)
+        assert s[0], Timestamp
         self.assertEqual(s[0], dates[0][0])
 
         s = Series.from_array(arr['Date'], Index([0]))
@@ -933,4 +933,4 @@ class TestTimeSeries(TestData, tm.TestCase):
 
         index = MultiIndex(levels=levels, labels=labels)
 
-        self.assertTrue(isinstance(index.get_level_values(0)[0], Timestamp))
+        assert isinstance(index.get_level_values(0)[0], Timestamp)

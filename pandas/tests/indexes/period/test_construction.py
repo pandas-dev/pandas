@@ -135,15 +135,15 @@ class TestPeriodIndex(tm.TestCase):
 
         result = PeriodIndex(idx, freq=offsets.MonthEnd())
         tm.assert_index_equal(result, idx)
-        self.assertTrue(result.freq, 'M')
+        assert result.freq, 'M'
 
         result = PeriodIndex(idx, freq='2M')
         tm.assert_index_equal(result, idx.asfreq('2M'))
-        self.assertTrue(result.freq, '2M')
+        assert result.freq, '2M'
 
         result = PeriodIndex(idx, freq=offsets.MonthEnd(2))
         tm.assert_index_equal(result, idx.asfreq('2M'))
-        self.assertTrue(result.freq, '2M')
+        assert result.freq, '2M'
 
         result = PeriodIndex(idx, freq='D')
         exp = idx.asfreq('D', 'e')
@@ -405,13 +405,13 @@ class TestPeriodIndex(tm.TestCase):
         end_intv = Period('2006-12-31', '1w')
         i2 = PeriodIndex(end=end_intv, periods=10)
         self.assertEqual(len(i1), len(i2))
-        self.assertTrue((i1 == i2).all())
+        assert (i1 == i2).all()
         self.assertEqual(i1.freq, i2.freq)
 
         end_intv = Period('2006-12-31', ('w', 1))
         i2 = PeriodIndex(end=end_intv, periods=10)
         self.assertEqual(len(i1), len(i2))
-        self.assertTrue((i1 == i2).all())
+        assert (i1 == i2).all()
         self.assertEqual(i1.freq, i2.freq)
 
         end_intv = Period('2005-05-01', 'B')
@@ -467,7 +467,7 @@ class TestPeriodIndex(tm.TestCase):
             assert isinstance(res, Index)
 
             # preserve element types
-            self.assertTrue(all(isinstance(resi, t) for resi in res))
+            assert all(isinstance(resi, t) for resi in res)
 
             # lastly, values should compare equal
             tm.assert_index_equal(res, expected)

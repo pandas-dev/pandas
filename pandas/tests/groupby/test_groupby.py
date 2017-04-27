@@ -446,8 +446,8 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         grouped = df.groupby('B')
         c = grouped.count()
-        self.assertTrue(c.columns.nlevels == 1)
-        self.assertTrue(c.columns.size == 3)
+        assert c.columns.nlevels == 1
+        assert c.columns.size == 3
 
     def test_groupby_dict_mapping(self):
         # GH #679
@@ -798,7 +798,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
             assert_series_equal(agged, expected, check_dtype=False)
 
-            # self.assertTrue(issubclass(agged.dtype.type, np.integer))
+            # assert issubclass(agged.dtype.type, np.integer)
 
             # explicity return a float from my function
             def f(x):
@@ -808,7 +808,7 @@ class TestGroupBy(MixIn, tm.TestCase):
             expected = Series([4, 2], index=['bar', 'foo'])
 
             assert_series_equal(agged, expected, check_dtype=False)
-            self.assertTrue(issubclass(agged.dtype.type, np.dtype(dtype).type))
+            assert issubclass(agged.dtype.type, np.dtype(dtype).type)
 
     def test_indices_concatenation_order(self):
 
@@ -995,7 +995,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         for k, v in compat.iteritems(groups):
             samething = self.tsframe.index.take(indices[k])
-            self.assertTrue((samething == v).all())
+            assert (samething == v).all()
 
     def test_grouping_is_iterable(self):
         # this code path isn't used anywhere else
@@ -1637,16 +1637,16 @@ class TestGroupBy(MixIn, tm.TestCase):
                         'ss': 4 * ['mama']})
 
         result = aa.groupby('nn').max()
-        self.assertTrue('ss' in result)
+        assert 'ss' in result
 
         result = aa.groupby('nn').max(numeric_only=False)
-        self.assertTrue('ss' in result)
+        assert 'ss' in result
 
         result = aa.groupby('nn').min()
-        self.assertTrue('ss' in result)
+        assert 'ss' in result
 
         result = aa.groupby('nn').min(numeric_only=False)
-        self.assertTrue('ss' in result)
+        assert 'ss' in result
 
     def test_arg_passthru(self):
         # make sure that we are passing thru kwargs
@@ -1970,11 +1970,11 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_apply_frame_yield_constant(self):
         # GH13568
         result = self.df.groupby(['A', 'B']).apply(len)
-        self.assertTrue(isinstance(result, Series))
+        assert isinstance(result, Series)
         assert result.name is None
 
         result = self.df.groupby(['A', 'B'])[['C', 'D']].apply(len)
-        self.assertTrue(isinstance(result, Series))
+        assert isinstance(result, Series)
         assert result.name is None
 
     def test_apply_frame_to_series(self):
@@ -2459,7 +2459,7 @@ class TestGroupBy(MixIn, tm.TestCase):
             return g
 
         result = grouped.apply(f)
-        self.assertTrue('value3' in result)
+        assert 'value3' in result
 
     def test_groupby_wrong_multi_labels(self):
         from pandas import read_csv
@@ -2562,7 +2562,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         inds = np.tile(lrange(10), 10)
 
         result = obj.groupby(inds).agg(Series.median)
-        self.assertTrue(result.isnull().all())
+        assert result.isnull().all()
 
     def test_series_grouper_noncontig_index(self):
         index = Index(tm.rands_array(10, 100))
@@ -3254,7 +3254,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         lexsorted_mi = MultiIndex.from_tuples(
             [('a', ''), ('b1', 'c1'), ('b2', 'c2')], names=['b', 'c'])
         lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
-        self.assertTrue(lexsorted_df.columns.is_lexsorted())
+        assert lexsorted_df.columns.is_lexsorted()
 
         # define the non-lexsorted version
         not_lexsorted_df = DataFrame(columns=['a', 'b', 'c', 'd'],

@@ -39,7 +39,7 @@ bar2,12,13,14,15
         expanded_name = common._expand_user(filename)
 
         self.assertNotEqual(expanded_name, filename)
-        self.assertTrue(isabs(expanded_name))
+        assert isabs(expanded_name)
         self.assertEqual(os.path.expanduser(filename), expanded_name)
 
     def test_expand_user_normal_path(self):
@@ -69,7 +69,7 @@ bar2,12,13,14,15
         filename = '~/sometest'
         filepath_or_buffer, _, _ = common.get_filepath_or_buffer(filename)
         self.assertNotEqual(filepath_or_buffer, filename)
-        self.assertTrue(isabs(filepath_or_buffer))
+        assert isabs(filepath_or_buffer)
         self.assertEqual(os.path.expanduser(filename), filepath_or_buffer)
 
     def test_get_filepath_or_buffer_with_buffer(self):
@@ -127,7 +127,7 @@ class TestMMapWrapper(tm.TestCase):
         attrs.append('__next__')
 
         for attr in attrs:
-            self.assertTrue(hasattr(wrapper, attr))
+            assert hasattr(wrapper, attr)
 
         assert not hasattr(wrapper, 'foo')
 

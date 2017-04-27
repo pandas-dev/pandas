@@ -411,7 +411,7 @@ class TestIndex(Base, tm.TestCase):
 
     def test_equals_object(self):
         # same
-        self.assertTrue(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'c'])))
+        assert Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'c']))
 
         # different length
         assert not Index(['a', 'b', 'c']).equals(Index(['a', 'b']))
@@ -466,14 +466,14 @@ class TestIndex(Base, tm.TestCase):
         i1 = Index(['a', 'b', 'c'])
         i2 = Index(['a', 'b', 'c'])
 
-        self.assertTrue(i1.identical(i2))
+        assert i1.identical(i2)
 
         i1 = i1.rename('foo')
-        self.assertTrue(i1.equals(i2))
+        assert i1.equals(i2)
         assert not i1.identical(i2)
 
         i2 = i2.rename('foo')
-        self.assertTrue(i1.identical(i2))
+        assert i1.identical(i2)
 
         i3 = Index([('a', 'a'), ('a', 'b'), ('b', 'a')])
         i4 = Index([('a', 'a'), ('a', 'b'), ('b', 'a')], tupleize_cols=False)
@@ -481,8 +481,8 @@ class TestIndex(Base, tm.TestCase):
 
     def test_is_(self):
         ind = Index(range(10))
-        self.assertTrue(ind.is_(ind))
-        self.assertTrue(ind.is_(ind.view().view().view().view()))
+        assert ind.is_(ind)
+        assert ind.is_(ind.view().view().view().view())
         assert not ind.is_(Index(range(10)))
         assert not ind.is_(ind.copy())
         assert not ind.is_(ind.copy(deep=False))
@@ -491,11 +491,11 @@ class TestIndex(Base, tm.TestCase):
         assert not ind.is_(np.array(range(10)))
 
         # quasi-implementation dependent
-        self.assertTrue(ind.is_(ind.view()))
+        assert ind.is_(ind.view())
         ind2 = ind.view()
         ind2.name = 'bob'
-        self.assertTrue(ind.is_(ind2))
-        self.assertTrue(ind2.is_(ind))
+        assert ind.is_(ind2)
+        assert ind2.is_(ind)
         # doesn't matter if Indices are *actually* views of underlying data,
         assert not ind.is_(Index(ind.values))
         arr = np.array(range(1, 11))
@@ -506,7 +506,7 @@ class TestIndex(Base, tm.TestCase):
     def test_asof(self):
         d = self.dateIndex[0]
         self.assertEqual(self.dateIndex.asof(d), d)
-        self.assertTrue(isnull(self.dateIndex.asof(d - timedelta(1))))
+        assert isnull(self.dateIndex.asof(d - timedelta(1)))
 
         d = self.dateIndex[-1]
         self.assertEqual(self.dateIndex.asof(d + timedelta(1)), d)
@@ -585,9 +585,9 @@ class TestIndex(Base, tm.TestCase):
         for idx in [self.strIndex, self.intIndex, self.floatIndex]:
             empty_idx = idx.__class__([])
 
-            self.assertTrue(idx[[]].identical(empty_idx))
-            self.assertTrue(idx[empty_iarr].identical(empty_idx))
-            self.assertTrue(idx[empty_barr].identical(empty_idx))
+            assert idx[[]].identical(empty_idx)
+            assert idx[empty_iarr].identical(empty_idx)
+            assert idx[empty_barr].identical(empty_idx)
 
             # np.ndarray only accepts ndarray of int & bool dtypes, so should
             # Index.
@@ -604,7 +604,7 @@ class TestIndex(Base, tm.TestCase):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
         intersect = first.intersection(second)
-        self.assertTrue(tm.equalContents(intersect, second))
+        assert tm.equalContents(intersect, second)
 
         # Corner cases
         inter = first.intersection(first)
@@ -671,13 +671,13 @@ class TestIndex(Base, tm.TestCase):
         second = self.strIndex[:10]
         everything = self.strIndex[:20]
         union = first.union(second)
-        self.assertTrue(tm.equalContents(union, everything))
+        assert tm.equalContents(union, everything)
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             result = first.union(case)
-            self.assertTrue(tm.equalContents(result, everything))
+            assert tm.equalContents(result, everything)
 
         # Corner cases
         union = first.union(first)
@@ -753,8 +753,8 @@ class TestIndex(Base, tm.TestCase):
         else:
             appended = np.append(self.strIndex, self.dateIndex.astype('O'))
 
-        self.assertTrue(tm.equalContents(firstCat, appended))
-        self.assertTrue(tm.equalContents(secondCat, self.strIndex))
+        assert tm.equalContents(firstCat, appended)
+        assert tm.equalContents(secondCat, self.strIndex)
         tm.assert_contains_all(self.strIndex, firstCat)
         tm.assert_contains_all(self.strIndex, secondCat)
         tm.assert_contains_all(self.dateIndex, firstCat)
@@ -871,7 +871,7 @@ class TestIndex(Base, tm.TestCase):
         # different names
         result = first.difference(second)
 
-        self.assertTrue(tm.equalContents(result, answer))
+        assert tm.equalContents(result, answer)
         self.assertEqual(result.name, None)
 
         # same names
@@ -881,7 +881,7 @@ class TestIndex(Base, tm.TestCase):
 
         # with empty
         result = first.difference([])
-        self.assertTrue(tm.equalContents(result, first))
+        assert tm.equalContents(result, first)
         self.assertEqual(result.name, first.name)
 
         # with everythin
@@ -895,12 +895,12 @@ class TestIndex(Base, tm.TestCase):
         idx2 = Index([2, 3, 4, 5])
         result = idx1.symmetric_difference(idx2)
         expected = Index([1, 5])
-        self.assertTrue(tm.equalContents(result, expected))
+        assert tm.equalContents(result, expected)
         assert result.name is None
 
         # __xor__ syntax
         expected = idx1 ^ idx2
-        self.assertTrue(tm.equalContents(result, expected))
+        assert tm.equalContents(result, expected)
         assert result.name is None
 
         # multiIndex
@@ -908,7 +908,7 @@ class TestIndex(Base, tm.TestCase):
         idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
         result = idx1.symmetric_difference(idx2)
         expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
-        self.assertTrue(tm.equalContents(result, expected))
+        assert tm.equalContents(result, expected)
 
         # nans:
         # GH 13514 change: {nan} - {nan} == {}
@@ -930,30 +930,30 @@ class TestIndex(Base, tm.TestCase):
         idx2 = np.array([2, 3, 4, 5])
         expected = Index([1, 5])
         result = idx1.symmetric_difference(idx2)
-        self.assertTrue(tm.equalContents(result, expected))
+        assert tm.equalContents(result, expected)
         self.assertEqual(result.name, 'idx1')
 
         result = idx1.symmetric_difference(idx2, result_name='new_name')
-        self.assertTrue(tm.equalContents(result, expected))
+        assert tm.equalContents(result, expected)
         self.assertEqual(result.name, 'new_name')
 
     def test_is_numeric(self):
         assert not self.dateIndex.is_numeric()
         assert not self.strIndex.is_numeric()
-        self.assertTrue(self.intIndex.is_numeric())
-        self.assertTrue(self.floatIndex.is_numeric())
+        assert self.intIndex.is_numeric()
+        assert self.floatIndex.is_numeric()
         assert not self.catIndex.is_numeric()
 
     def test_is_object(self):
-        self.assertTrue(self.strIndex.is_object())
-        self.assertTrue(self.boolIndex.is_object())
+        assert self.strIndex.is_object()
+        assert self.boolIndex.is_object()
         assert not self.catIndex.is_object()
         assert not self.intIndex.is_object()
         assert not self.dateIndex.is_object()
         assert not self.floatIndex.is_object()
 
     def test_is_all_dates(self):
-        self.assertTrue(self.dateIndex.is_all_dates)
+        assert self.dateIndex.is_all_dates
         assert not self.strIndex.is_all_dates
         assert not self.intIndex.is_all_dates
 
@@ -1475,17 +1475,16 @@ class TestIndex(Base, tm.TestCase):
     def test_tab_completion(self):
         # GH 9910
         idx = Index(list('abcd'))
-        self.assertTrue('str' in dir(idx))
+        assert 'str' in dir(idx)
 
         idx = Index(range(4))
-        self.assertTrue('str' not in dir(idx))
+        assert 'str' not in dir(idx)
 
     def test_indexing_doesnt_change_class(self):
         idx = Index([1, 2, 3, 'a', 'b', 'c'])
 
-        self.assertTrue(idx[1:3].identical(pd.Index([2, 3], dtype=np.object_)))
-        self.assertTrue(idx[[0, 1]].identical(pd.Index(
-            [1, 2], dtype=np.object_)))
+        assert idx[1:3].identical(pd.Index([2, 3], dtype=np.object_))
+        assert idx[[0, 1]].identical(pd.Index([1, 2], dtype=np.object_))
 
     def test_outer_join_sort(self):
         left_idx = Index(np.random.permutation(15))
@@ -1876,19 +1875,19 @@ class TestMixedIntIndex(Base, tm.TestCase):
         idx = pd.Index([1, 2], name='MyName')
         idx1 = idx.copy()
 
-        self.assertTrue(idx.equals(idx1))
+        assert idx.equals(idx1)
         self.assertEqual(idx.name, 'MyName')
         self.assertEqual(idx1.name, 'MyName')
 
         idx2 = idx.copy(name='NewName')
 
-        self.assertTrue(idx.equals(idx2))
+        assert idx.equals(idx2)
         self.assertEqual(idx.name, 'MyName')
         self.assertEqual(idx2.name, 'NewName')
 
         idx3 = idx.copy(names=['NewName'])
 
-        self.assertTrue(idx.equals(idx3))
+        assert idx.equals(idx3)
         self.assertEqual(idx.name, 'MyName')
         self.assertEqual(idx.names, ['MyName'])
         self.assertEqual(idx3.name, 'NewName')
@@ -1918,10 +1917,10 @@ class TestMixedIntIndex(Base, tm.TestCase):
                 with tm.assert_produces_warning(RuntimeWarning):
                     # unorderable types
                     result = first.union(case)
-                    self.assertTrue(tm.equalContents(result, idx))
+                    assert tm.equalContents(result, idx)
             else:
                 result = first.union(case)
-                self.assertTrue(tm.equalContents(result, idx))
+                assert tm.equalContents(result, idx)
 
     def test_intersection_base(self):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
@@ -1937,7 +1936,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
                  for klass in [np.array, Series, list]]
         for case in cases:
             result = first.intersection(case)
-            self.assertTrue(tm.equalContents(result, second))
+            assert tm.equalContents(result, second)
 
     def test_difference_base(self):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
@@ -2037,8 +2036,8 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):
             r = repr(pd.Index(np.arange(1000)))
-            self.assertTrue(len(r) < 200)
-            self.assertTrue("..." in r)
+            assert len(r) < 200
+            assert "..." in r
 
     def test_int_name_format(self):
         index = Index(['a', 'b', 'c'], name=0)

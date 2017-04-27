@@ -78,7 +78,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
 
         samesize_frame = frame.dropna(subset=['bar'])
         assert_series_equal(frame['foo'], original)
-        self.assertTrue((frame['bar'] == 5).all())
+        assert (frame['bar'] == 5).all()
         inp_frame2.dropna(subset=['bar'], inplace=True)
         tm.assert_index_equal(samesize_frame.index, self.frame.index)
         tm.assert_index_equal(inp_frame2.index, self.frame.index)
@@ -187,13 +187,12 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         tf.loc[tf.index[-5:], 'A'] = nan
 
         zero_filled = self.tsframe.fillna(0)
-        self.assertTrue((zero_filled.loc[zero_filled.index[:5], 'A'] == 0
-                         ).all())
+        assert (zero_filled.loc[zero_filled.index[:5], 'A'] == 0).all()
 
         padded = self.tsframe.fillna(method='pad')
-        self.assertTrue(np.isnan(padded.loc[padded.index[:5], 'A']).all())
-        self.assertTrue((padded.loc[padded.index[-5:], 'A'] ==
-                         padded.loc[padded.index[-5], 'A']).all())
+        assert np.isnan(padded.loc[padded.index[:5], 'A']).all()
+        assert (padded.loc[padded.index[-5:], 'A'] ==
+                padded.loc[padded.index[-5], 'A']).all()
 
         # mixed type
         mf = self.mixed_frame
@@ -502,7 +501,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         mf.loc[mf.index[-10:], 'A'] = nan
 
         filled = self.mixed_frame.fillna(value=0)
-        self.assertTrue((filled.loc[filled.index[5:20], 'foo'] == 0).all())
+        assert (filled.loc[filled.index[5:20], 'foo'] == 0).all()
         del self.mixed_frame['foo']
 
         empty_float = self.frame.reindex(columns=[])

@@ -84,7 +84,7 @@ class TestIX(tm.TestCase):
             if is_scalar(expected):
                 self.assertEqual(result, expected)
             else:
-                self.assertTrue(expected.equals(result))
+                assert expected.equals(result)
 
         # failure cases for .loc, but these work for .ix
         df = pd.DataFrame(np.random.randn(5, 4), columns=list('ABCD'))

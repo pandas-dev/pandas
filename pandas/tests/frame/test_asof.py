@@ -23,17 +23,17 @@ class TestFrameAsof(TestData, tm.TestCase):
                            freq='25s')
 
         result = df.asof(dates)
-        self.assertTrue(result.notnull().all(1).all())
+        assert result.notnull().all(1).all()
         lb = df.index[14]
         ub = df.index[30]
 
         dates = list(dates)
         result = df.asof(dates)
-        self.assertTrue(result.notnull().all(1).all())
+        assert result.notnull().all(1).all()
 
         mask = (result.index >= lb) & (result.index < ub)
         rs = result[mask]
-        self.assertTrue((rs == 14).all(1).all())
+        assert (rs == 14).all(1).all()
 
     def test_subset(self):
         N = 10

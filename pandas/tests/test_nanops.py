@@ -347,7 +347,7 @@ class TestnanopsDataFrame(tm.TestCase):
                 np_result = s.values.mean()
                 self.assertEqual(result, a)
                 self.assertEqual(result, np_result)
-                self.assertTrue(result.dtype == np.float64)
+                assert result.dtype == np.float64
 
     def test_returned_dtype(self):
 
@@ -362,15 +362,9 @@ class TestnanopsDataFrame(tm.TestCase):
             for method in group_a + group_b:
                 result = getattr(s, method)()
                 if is_integer_dtype(dtype) and method in group_a:
-                    self.assertTrue(
-                        result.dtype == np.float64,
-                        "return dtype expected from %s is np.float64, "
-                        "got %s instead" % (method, result.dtype))
+                    assert result.dtype == np.float64
                 else:
-                    self.assertTrue(
-                        result.dtype == dtype,
-                        "return dtype expected from %s is %s, "
-                        "got %s instead" % (method, dtype, result.dtype))
+                    assert result.dtype == dtype
 
     def test_nanmedian(self):
         with warnings.catch_warnings(record=True):
@@ -657,7 +651,7 @@ class TestnanopsDataFrame(tm.TestCase):
             try:
                 res0 = func(value, *args, **kwargs)
                 if correct:
-                    self.assertTrue(res0)
+                    assert res0
                 else:
                     assert not res0
             except BaseException as exc:
@@ -736,12 +730,12 @@ class TestnanopsDataFrame(tm.TestCase):
                 raise
 
     def test__bn_ok_dtype(self):
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_float.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_complex.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_int.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_bool.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_str.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_utf.dtype, 'test'))
+        assert nanops._bn_ok_dtype(self.arr_float.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_complex.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_int.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_bool.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_str.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_utf.dtype, 'test')
         assert not nanops._bn_ok_dtype(self.arr_date.dtype, 'test')
         assert not nanops._bn_ok_dtype(self.arr_tdelta.dtype, 'test')
         assert not nanops._bn_ok_dtype(self.arr_obj.dtype, 'test')
@@ -761,30 +755,24 @@ class TestEnsureNumeric(tm.TestCase):
     def test_ndarray(self):
         # Test numeric ndarray
         values = np.array([1, 2, 3])
-        self.assertTrue(np.allclose(nanops._ensure_numeric(values), values),
-                        'Failed for numeric ndarray')
+        assert np.allclose(nanops._ensure_numeric(values), values)
 
         # Test object ndarray
         o_values = values.astype(object)
-        self.assertTrue(np.allclose(nanops._ensure_numeric(o_values), values),
-                        'Failed for object ndarray')
+        assert np.allclose(nanops._ensure_numeric(o_values), values)
 
         # Test convertible string ndarray
         s_values = np.array(['1', '2', '3'], dtype=object)
-        self.assertTrue(np.allclose(nanops._ensure_numeric(s_values), values),
-                        'Failed for convertible string ndarray')
+        assert np.allclose(nanops._ensure_numeric(s_values), values)
 
         # Test non-convertible string ndarray
         s_values = np.array(['foo', 'bar', 'baz'], dtype=object)
         pytest.raises(ValueError, lambda: nanops._ensure_numeric(s_values))
 
     def test_convertable_values(self):
-        self.assertTrue(np.allclose(nanops._ensure_numeric('1'), 1.0),
-                        'Failed for convertible integer string')
-        self.assertTrue(np.allclose(nanops._ensure_numeric('1.1'), 1.1),
-                        'Failed for convertible float string')
-        self.assertTrue(np.allclose(nanops._ensure_numeric('1+1j'), 1 + 1j),
-                        'Failed for convertible complex string')
+        assert np.allclose(nanops._ensure_numeric('1'), 1.0)
+        assert np.allclose(nanops._ensure_numeric('1.1'), 1.1)
+        assert np.allclose(nanops._ensure_numeric('1+1j'), 1 + 1j)
 
     def test_non_convertable_values(self):
         pytest.raises(TypeError, lambda: nanops._ensure_numeric('foo'))
@@ -883,14 +871,14 @@ class TestNanvarFixedValues(tm.TestCase):
             for ddof in range(3):
                 var = nanops.nanvar(samples, skipna=True, axis=axis, ddof=ddof)
                 tm.assert_almost_equal(var[:3], variance[axis, ddof])
-                self.assertTrue(np.isnan(var[3]))
+                assert np.isnan(var[3])
 
         # Test nanstd.
         for axis in range(2):
             for ddof in range(3):
                 std = nanops.nanstd(samples, skipna=True, axis=axis, ddof=ddof)
                 tm.assert_almost_equal(std[:3], variance[axis, ddof] ** 0.5)
-                self.assertTrue(np.isnan(std[3]))
+                assert np.isnan(std[3])
 
     def test_nanstd_roundoff(self):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
@@ -943,7 +931,7 @@ class TestNanskewFixedValues(tm.TestCase):
     def test_nans(self):
         samples = np.hstack([self.samples, np.nan])
         skew = nanops.nanskew(samples, skipna=False)
-        self.assertTrue(np.isnan(skew))
+        assert np.isnan(skew)
 
     def test_nans_skipna(self):
         samples = np.hstack([self.samples, np.nan])
@@ -993,7 +981,7 @@ class TestNankurtFixedValues(tm.TestCase):
     def test_nans(self):
         samples = np.hstack([self.samples, np.nan])
         kurt = nanops.nankurt(samples, skipna=False)
-        self.assertTrue(np.isnan(kurt))
+        assert np.isnan(kurt)
 
     def test_nans_skipna(self):
         samples = np.hstack([self.samples, np.nan])

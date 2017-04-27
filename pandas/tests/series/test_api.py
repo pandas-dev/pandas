@@ -124,28 +124,28 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
         # GH 9910
         s = Series(list('abcd'))
         # Series of str values should have .str but not .dt/.cat in __dir__
-        self.assertTrue('str' in dir(s))
-        self.assertTrue('dt' not in dir(s))
-        self.assertTrue('cat' not in dir(s))
+        assert 'str' in dir(s)
+        assert 'dt' not in dir(s)
+        assert 'cat' not in dir(s)
 
         # similiarly for .dt
         s = Series(date_range('1/1/2015', periods=5))
-        self.assertTrue('dt' in dir(s))
-        self.assertTrue('str' not in dir(s))
-        self.assertTrue('cat' not in dir(s))
+        assert 'dt' in dir(s)
+        assert 'str' not in dir(s)
+        assert 'cat' not in dir(s)
 
-        # similiarly for .cat, but with the twist that str and dt should be
-        # there if the categories are of that type first cat and str
+        # Similarly for .cat, but with the twist that str and dt should be
+        # there if the categories are of that type first cat and str.
         s = Series(list('abbcd'), dtype="category")
-        self.assertTrue('cat' in dir(s))
-        self.assertTrue('str' in dir(s))  # as it is a string categorical
-        self.assertTrue('dt' not in dir(s))
+        assert 'cat' in dir(s)
+        assert 'str' in dir(s)  # as it is a string categorical
+        assert 'dt' not in dir(s)
 
         # similar to cat and str
         s = Series(date_range('1/1/2015', periods=5)).astype("category")
-        self.assertTrue('cat' in dir(s))
-        self.assertTrue('str' not in dir(s))
-        self.assertTrue('dt' in dir(s))  # as it is a datetime categorical
+        assert 'cat' in dir(s)
+        assert 'str' not in dir(s)
+        assert 'dt' in dir(s)  # as it is a datetime categorical
 
     def test_not_hashable(self):
         s_empty = Series()
@@ -238,12 +238,12 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
 
             if deep is None or deep is True:
                 # Did not modify original Series
-                self.assertTrue(np.isnan(s2[0]))
+                assert np.isnan(s2[0])
                 assert not np.isnan(s[0])
             else:
                 # we DID modify the original Series
-                self.assertTrue(np.isnan(s2[0]))
-                self.assertTrue(np.isnan(s[0]))
+                assert np.isnan(s2[0])
+                assert np.isnan(s[0])
 
         # GH 11794
         # copy of tz-aware

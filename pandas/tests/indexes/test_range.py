@@ -125,7 +125,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
         # pass thru w and w/o copy
         index = RangeIndex(1, 5, 2)
         result = RangeIndex(index, copy=False)
-        self.assertTrue(result.identical(index))
+        assert result.identical(index)
 
         result = RangeIndex(index, copy=True)
         tm.assert_index_equal(result, index, exact=True)
@@ -172,16 +172,16 @@ class TestRangeIndex(Numeric, tm.TestCase):
         copy = RangeIndex(orig)
         copy.name = 'copy'
 
-        self.assertTrue(orig.name, 'original')
-        self.assertTrue(copy.name, 'copy')
+        assert orig.name, 'original'
+        assert copy.name, 'copy'
 
         new = Index(copy)
-        self.assertTrue(new.name, 'copy')
+        assert new.name, 'copy'
 
         new.name = 'new'
-        self.assertTrue(orig.name, 'original')
-        self.assertTrue(new.name, 'copy')
-        self.assertTrue(new.name, 'new')
+        assert orig.name, 'original'
+        assert new.name, 'copy'
+        assert new.name, 'new'
 
     def test_numeric_compat2(self):
         # validate that we are handling the RangeIndex overrides to numeric ops
@@ -259,8 +259,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
     def test_copy(self):
         i = RangeIndex(5, name='Foo')
         i_copy = i.copy()
-        self.assertTrue(i_copy is not i)
-        self.assertTrue(i_copy.identical(i))
+        assert i_copy is not i
+        assert i_copy.identical(i)
         self.assertEqual(i_copy._start, 0)
         self.assertEqual(i_copy._stop, 5)
         self.assertEqual(i_copy._step, 1)
@@ -273,7 +273,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
             expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
         else:
             expected = "RangeIndex(start=0, stop=5, step=1, name=u'Foo')"
-        self.assertTrue(result, expected)
+        assert result, expected
 
         result = eval(result)
         tm.assert_index_equal(result, i, exact=True)
@@ -328,28 +328,28 @@ class TestRangeIndex(Numeric, tm.TestCase):
         self.assertEqual(self.index.dtype, np.int64)
 
     def test_is_monotonic(self):
-        self.assertTrue(self.index.is_monotonic)
-        self.assertTrue(self.index.is_monotonic_increasing)
+        assert self.index.is_monotonic
+        assert self.index.is_monotonic_increasing
         assert not self.index.is_monotonic_decreasing
 
         index = RangeIndex(4, 0, -1)
         assert not index.is_monotonic
-        self.assertTrue(index.is_monotonic_decreasing)
+        assert index.is_monotonic_decreasing
 
         index = RangeIndex(1, 2)
-        self.assertTrue(index.is_monotonic)
-        self.assertTrue(index.is_monotonic_increasing)
-        self.assertTrue(index.is_monotonic_decreasing)
+        assert index.is_monotonic
+        assert index.is_monotonic_increasing
+        assert index.is_monotonic_decreasing
 
         index = RangeIndex(2, 1)
-        self.assertTrue(index.is_monotonic)
-        self.assertTrue(index.is_monotonic_increasing)
-        self.assertTrue(index.is_monotonic_decreasing)
+        assert index.is_monotonic
+        assert index.is_monotonic_increasing
+        assert index.is_monotonic_decreasing
 
         index = RangeIndex(1, 1)
-        self.assertTrue(index.is_monotonic)
-        self.assertTrue(index.is_monotonic_increasing)
-        self.assertTrue(index.is_monotonic_decreasing)
+        assert index.is_monotonic
+        assert index.is_monotonic_increasing
+        assert index.is_monotonic_decreasing
 
     def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
@@ -357,8 +357,8 @@ class TestRangeIndex(Numeric, tm.TestCase):
                        (RangeIndex(1, 2, 3), RangeIndex(1, 3, 4)),
                        (RangeIndex(0, -9, -2), RangeIndex(0, -10, -2))]
         for left, right in equiv_pairs:
-            self.assertTrue(left.equals(right))
-            self.assertTrue(right.equals(left))
+            assert left.equals(right)
+            assert right.equals(left)
 
     def test_logical_compat(self):
         idx = self.create_index()
@@ -367,7 +367,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
     def test_identical(self):
         i = Index(self.index.copy())
-        self.assertTrue(i.identical(self.index))
+        assert i.identical(self.index)
 
         # we don't allow object dtype for RangeIndex
         if isinstance(self.index, RangeIndex):
@@ -379,11 +379,10 @@ class TestRangeIndex(Numeric, tm.TestCase):
         i = self.index.copy(dtype=object)
         i = i.rename('foo')
         same_values = Index(i, dtype=object)
-        self.assertTrue(same_values.identical(self.index.copy(dtype=object)))
+        assert same_values.identical(self.index.copy(dtype=object))
 
         assert not i.identical(self.index)
-        self.assertTrue(Index(same_values, name='foo', dtype=object).identical(
-            i))
+        assert Index(same_values, name='foo', dtype=object).identical(i)
 
         assert not self.index.copy(dtype=object).identical(
             self.index.copy(dtype='int64'))
@@ -689,7 +688,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
 
         # memory savings vs int index
         i = RangeIndex(0, 1000)
-        self.assertTrue(i.nbytes < i.astype(int).nbytes / 10)
+        assert i.nbytes < i.astype(int).nbytes / 10
 
         # constant memory usage
         i2 = RangeIndex(0, 10)
@@ -784,7 +783,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
             if not len(ind):
                 continue
             idx = self.indices[ind]
-            self.assertTrue(idx.is_unique)
+            assert idx.is_unique
             assert not idx.has_duplicates
 
     def test_ufunc_compat(self):

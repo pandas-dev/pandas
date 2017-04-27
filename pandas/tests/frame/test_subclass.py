@@ -50,26 +50,26 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         cdf = CustomDataFrame(data)
 
         # Did we get back our own DF class?
-        self.assertTrue(isinstance(cdf, CustomDataFrame))
+        assert isinstance(cdf, CustomDataFrame)
 
         # Do we get back our own Series class after selecting a column?
         cdf_series = cdf.col1
-        self.assertTrue(isinstance(cdf_series, CustomSeries))
+        assert isinstance(cdf_series, CustomSeries)
         self.assertEqual(cdf_series.custom_series_function(), 'OK')
 
         # Do we get back our own DF class after slicing row-wise?
         cdf_rows = cdf[1:5]
-        self.assertTrue(isinstance(cdf_rows, CustomDataFrame))
+        assert isinstance(cdf_rows, CustomDataFrame)
         self.assertEqual(cdf_rows.custom_frame_function(), 'OK')
 
         # Make sure sliced part of multi-index frame is custom class
         mcol = pd.MultiIndex.from_tuples([('A', 'A'), ('A', 'B')])
         cdf_multi = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
-        self.assertTrue(isinstance(cdf_multi['A'], CustomDataFrame))
+        assert isinstance(cdf_multi['A'], CustomDataFrame)
 
         mcol = pd.MultiIndex.from_tuples([('A', ''), ('B', '')])
         cdf_multi2 = CustomDataFrame([[0, 1], [2, 3]], columns=mcol)
-        self.assertTrue(isinstance(cdf_multi2['A'], CustomSeries))
+        assert isinstance(cdf_multi2['A'], CustomSeries)
 
     def test_dataframe_metadata(self):
         df = tm.SubclassedDataFrame({'X': [1, 2, 3], 'Y': [1, 2, 3]},
@@ -142,7 +142,7 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
             index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
             df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
             result = df.to_panel()
-            self.assertTrue(isinstance(result, SubclassedPanel))
+            assert isinstance(result, SubclassedPanel)
             expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
                                        items=['X', 'Y'], major_axis=[0],
                                        minor_axis=[0, 1, 2],

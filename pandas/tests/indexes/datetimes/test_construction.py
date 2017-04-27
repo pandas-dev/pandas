@@ -205,7 +205,7 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex(
             [Timestamp('2011-01-01'), Timestamp('2011-01-02')], name='idx')
         tm.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
+        assert isinstance(result, DatetimeIndex)
 
         # same tz results in DatetimeIndex
         result = DatetimeIndex([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
@@ -216,7 +216,7 @@ class TestDatetimeIndex(tm.TestCase):
                              Timestamp('2011-01-02 10:00')],
                             tz='Asia/Tokyo', name='idx')
         tm.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
+        assert isinstance(result, DatetimeIndex)
 
         # same tz results in DatetimeIndex (DST)
         result = DatetimeIndex([Timestamp('2011-01-01 10:00', tz='US/Eastern'),
@@ -227,7 +227,7 @@ class TestDatetimeIndex(tm.TestCase):
                              Timestamp('2011-08-01 10:00')],
                             tz='US/Eastern', name='idx')
         tm.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
+        assert isinstance(result, DatetimeIndex)
 
         # different tz coerces tz-naive to tz-awareIndex(dtype=object)
         result = DatetimeIndex([Timestamp('2011-01-01 10:00'),
@@ -237,7 +237,7 @@ class TestDatetimeIndex(tm.TestCase):
                              Timestamp('2011-01-02 10:00')],
                             tz='US/Eastern', name='idx')
         tm.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
+        assert isinstance(result, DatetimeIndex)
 
         # tz mismatch affecting to tz-aware raises TypeError/ValueError
 
@@ -491,15 +491,15 @@ class TestTimeSeries(tm.TestCase):
 
     def test_is_(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
-        self.assertTrue(dti.is_(dti))
-        self.assertTrue(dti.is_(dti.view()))
+        assert dti.is_(dti)
+        assert dti.is_(dti.view())
         assert not dti.is_(dti.copy())
 
     def test_index_cast_datetime64_other_units(self):
         arr = np.arange(0, 100, 10, dtype=np.int64).view('M8[D]')
         idx = Index(arr)
 
-        self.assertTrue((idx.values == tslib.cast_to_nanoseconds(arr)).all())
+        assert (idx.values == tslib.cast_to_nanoseconds(arr)).all()
 
     def test_constructor_int64_nocopy(self):
         # #1624
@@ -507,13 +507,13 @@ class TestTimeSeries(tm.TestCase):
         index = DatetimeIndex(arr)
 
         arr[50:100] = -1
-        self.assertTrue((index.asi8[50:100] == -1).all())
+        assert (index.asi8[50:100] == -1).all()
 
         arr = np.arange(1000, dtype=np.int64)
         index = DatetimeIndex(arr, copy=True)
 
         arr[50:100] = -1
-        self.assertTrue((index.asi8[50:100] != -1).all())
+        assert (index.asi8[50:100] != -1).all()
 
     def test_from_freq_recreate_from_data(self):
         freqs = ['M', 'Q', 'A', 'D', 'B', 'BH', 'T', 'S', 'L', 'U', 'H', 'N',
@@ -560,7 +560,7 @@ class TestTimeSeries(tm.TestCase):
         tm.assert_index_equal(idx7, idx8)
 
         for other in [idx2, idx3, idx4, idx5, idx6]:
-            self.assertTrue((idx1.values == other.values).all())
+            assert (idx1.values == other.values).all()
 
         sdate = datetime(1999, 12, 25)
         edate = datetime(2000, 1, 1)

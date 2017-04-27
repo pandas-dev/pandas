@@ -647,10 +647,10 @@ class TestStata(tm.TestCase):
         keys = ('var1', 'var2', 'var3')
         labels = ('label1', 'label2', 'label3')
         for k, v in compat.iteritems(sr_115):
-            self.assertTrue(k in sr_117)
-            self.assertTrue(v == sr_117[k])
-            self.assertTrue(k in keys)
-            self.assertTrue(v in labels)
+            assert k in sr_117
+            assert v == sr_117[k]
+            assert k in keys
+            assert v in labels
 
     def test_minimal_size_col(self):
         str_lens = (1, 100, 244)
@@ -667,8 +667,8 @@ class TestStata(tm.TestCase):
                 variables = sr.varlist
                 formats = sr.fmtlist
                 for variable, fmt, typ in zip(variables, formats, typlist):
-                    self.assertTrue(int(variable[1:]) == int(fmt[1:-1]))
-                    self.assertTrue(int(variable[1:]) == typ)
+                    assert int(variable[1:]) == int(fmt[1:-1])
+                    assert int(variable[1:]) == typ
 
     def test_excessively_long_string(self):
         str_lens = (1, 244, 500)
@@ -694,21 +694,21 @@ class TestStata(tm.TestCase):
             offset = valid_range[t][1]
             for i in range(0, 27):
                 val = StataMissingValue(offset + 1 + i)
-                self.assertTrue(val.string == expected_values[i])
+                assert val.string == expected_values[i]
 
         # Test extremes for floats
         val = StataMissingValue(struct.unpack('<f', b'\x00\x00\x00\x7f')[0])
-        self.assertTrue(val.string == '.')
+        assert val.string == '.'
         val = StataMissingValue(struct.unpack('<f', b'\x00\xd0\x00\x7f')[0])
-        self.assertTrue(val.string == '.z')
+        assert val.string == '.z'
 
         # Test extremes for floats
         val = StataMissingValue(struct.unpack(
             '<d', b'\x00\x00\x00\x00\x00\x00\xe0\x7f')[0])
-        self.assertTrue(val.string == '.')
+        assert val.string == '.'
         val = StataMissingValue(struct.unpack(
             '<d', b'\x00\x00\x00\x00\x00\x1a\xe0\x7f')[0])
-        self.assertTrue(val.string == '.z')
+        assert val.string == '.z'
 
     def test_missing_value_conversion(self):
         columns = ['int8_', 'int16_', 'int32_', 'float32_', 'float64_']
@@ -1216,7 +1216,7 @@ class TestStata(tm.TestCase):
         # GH 13923
         with pytest.raises(ValueError) as cm:
             read_stata(self.dta23, convert_categoricals=True)
-            tm.assertTrue('wolof' in cm.exception)
+            assert 'wolof' in cm.exception
 
     def test_stata_111(self):
         # 111 is an old version but still used by current versions of
@@ -1242,14 +1242,14 @@ class TestStata(tm.TestCase):
         with pytest.raises(ValueError) as cm:
             with tm.ensure_clean() as path:
                 df.to_stata(path)
-            tm.assertTrue('ColumnTooBig' in cm.exception)
+            assert 'ColumnTooBig' in cm.exception
 
         df.loc[2, 'ColumnTooBig'] = np.inf
         with pytest.raises(ValueError) as cm:
             with tm.ensure_clean() as path:
                 df.to_stata(path)
-            tm.assertTrue('ColumnTooBig' in cm.exception)
-            tm.assertTrue('infinity' in cm.exception)
+            assert 'ColumnTooBig' in cm.exception
+            assert 'infinity' in cm.exception
 
     def test_out_of_range_float(self):
         original = DataFrame({'ColumnOk': [0.0,
@@ -1274,8 +1274,8 @@ class TestStata(tm.TestCase):
         with pytest.raises(ValueError) as cm:
             with tm.ensure_clean() as path:
                 original.to_stata(path)
-            tm.assertTrue('ColumnTooBig' in cm.exception)
-            tm.assertTrue('infinity' in cm.exception)
+            assert 'ColumnTooBig' in cm.exception
+            assert 'infinity' in cm.exception
 
     def test_invalid_encoding(self):
         # GH15723, validate encoding

@@ -123,7 +123,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(result, s)
 
         s[...] = 5
-        self.assertTrue((result == 5).all())
+        assert (result == 5).all()
 
     def test_getitem_negative_out_of_bounds(self):
         s = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
@@ -182,7 +182,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # test slice is a view
         result[:] = 0
-        self.assertTrue((s[1:3] == 0).all())
+        assert (s[1:3] == 0).all()
 
         # list of integers
         result = s.iloc[[0, 2, 3, 4, 5]]
@@ -211,10 +211,10 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         s = Series(lrange(10), lrange(10))
         s[-12:] = 0
-        self.assertTrue((s == 0).all())
+        assert (s == 0).all()
 
         s[:-12] = 5
-        self.assertTrue((s == 0).all())
+        assert (s == 0).all()
 
     def test_getitem_int64(self):
         idx = np.int64(5)
@@ -335,8 +335,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
         s[:4] = 0
-        self.assertTrue((s[:4] == 0).all())
-        self.assertTrue(not (s[4:] == 0).any())
+        assert (s[:4] == 0).all()
+        assert not (s[4:] == 0).any()
 
     def test_getitem_setitem_datetime_tz_pytz(self):
         tm._skip_if_no_pytz()
@@ -572,7 +572,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
     def test_getitem_unordered_dup(self):
         obj = Series(lrange(5), index=['c', 'a', 'a', 'b', 'b'])
-        self.assertTrue(is_scalar(obj['c']))
+        assert is_scalar(obj['c'])
         self.assertEqual(obj['c'], 0)
 
     def test_getitem_dups_with_missing(self):
@@ -725,8 +725,8 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         self.ts[self.ts.index[5]] = np.NaN
         self.ts[[1, 2, 17]] = np.NaN
         self.ts[6] = np.NaN
-        self.assertTrue(np.isnan(self.ts[6]))
-        self.assertTrue(np.isnan(self.ts[2]))
+        assert np.isnan(self.ts[6])
+        assert np.isnan(self.ts[2])
         self.ts[np.isnan(self.ts)] = 5
         assert not np.isnan(self.ts[2])
 
@@ -735,7 +735,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
                         index=tm.makeIntIndex(20))
 
         series[::2] = 0
-        self.assertTrue((series[::2] == 0).all())
+        assert (series[::2] == 0).all()
 
         # set item that's not contained
         s = self.series.copy()
@@ -804,7 +804,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_setslice(self):
         sl = self.ts[5:20]
         self.assertEqual(len(sl), len(sl.index))
-        self.assertTrue(sl.index.is_unique)
+        assert sl.index.is_unique
 
     def test_basic_getitem_setitem_corner(self):
         # invalid tuples, e.g. self.ts[:, None] vs. self.ts[:, 2]
@@ -949,12 +949,12 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         # this is OK
         cp = s.copy()
         cp.iloc[4:10] = 0
-        self.assertTrue((cp.iloc[4:10] == 0).all())
+        assert (cp.iloc[4:10] == 0).all()
 
         # so is this
         cp = s.copy()
         cp.iloc[3:11] = 0
-        self.assertTrue((cp.iloc[3:11] == 0).values.all())
+        assert (cp.iloc[3:11] == 0).values.all()
 
         result = s.iloc[2:6]
         result2 = s.loc[3:11]
@@ -1173,7 +1173,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = Series(range(10)).astype(float)
         s[8] = None
         result = s[8]
-        self.assertTrue(isnull(result))
+        assert isnull(result)
 
         s = Series(range(10)).astype(float)
         s[s > 8] = None
@@ -1515,24 +1515,24 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         w = s.where(s > 1, 'X')
 
         assert not is_integer(w[0])
-        self.assertTrue(is_integer(w[1]))
-        self.assertTrue(is_integer(w[2]))
-        self.assertTrue(isinstance(w[0], str))
-        self.assertTrue(w.dtype == 'object')
+        assert is_integer(w[1])
+        assert is_integer(w[2])
+        assert isinstance(w[0], str)
+        assert w.dtype == 'object'
 
         w = s.where(s > 1, ['X', 'Y', 'Z'])
         assert not is_integer(w[0])
-        self.assertTrue(is_integer(w[1]))
-        self.assertTrue(is_integer(w[2]))
-        self.assertTrue(isinstance(w[0], str))
-        self.assertTrue(w.dtype == 'object')
+        assert is_integer(w[1])
+        assert is_integer(w[2])
+        assert isinstance(w[0], str)
+        assert w.dtype == 'object'
 
         w = s.where(s > 1, np.array(['X', 'Y', 'Z']))
         assert not is_integer(w[0])
-        self.assertTrue(is_integer(w[1]))
-        self.assertTrue(is_integer(w[2]))
-        self.assertTrue(isinstance(w[0], str))
-        self.assertTrue(w.dtype == 'object')
+        assert is_integer(w[1])
+        assert is_integer(w[2])
+        assert isinstance(w[0], str)
+        assert w.dtype == 'object'
 
     def test_setitem_boolean(self):
         mask = self.series > self.series.median()
@@ -1761,7 +1761,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # GH 8522
         s = Series([2, 3], index=[True, False])
-        self.assertTrue(s.index.is_object())
+        assert s.index.is_object()
         result = s.drop(True)
         expected = Series([3], index=[False])
         assert_series_equal(result, expected)
@@ -1775,9 +1775,9 @@ class TestSeriesIndexing(TestData, tm.TestCase):
                 diff_a = aa.index.difference(join_index)
                 diff_b = ab.index.difference(join_index)
                 if len(diff_a) > 0:
-                    self.assertTrue((aa.reindex(diff_a) == fill).all())
+                    assert (aa.reindex(diff_a) == fill).all()
                 if len(diff_b) > 0:
-                    self.assertTrue((ab.reindex(diff_b) == fill).all())
+                    assert (ab.reindex(diff_b) == fill).all()
 
             ea = a.reindex(join_index)
             eb = b.reindex(join_index)
@@ -1857,7 +1857,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         a = self.ts.copy()
         ra, _ = a.align(b, join='left', copy=False)
         ra[:5] = 5
-        self.assertTrue((a[:5] == 5).all())
+        assert (a[:5] == 5).all()
 
         # do copy
         a = self.ts.copy()
@@ -1871,7 +1871,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         b = self.ts[:5].copy()
         _, rb = a.align(b, join='right', copy=False)
         rb[:2] = 5
-        self.assertTrue((b[:2] == 5).all())
+        assert (b[:2] == 5).all()
 
     def test_align_same_index(self):
         a, b = self.ts.align(self.ts, copy=False)
@@ -1921,13 +1921,12 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         # __array_interface__ is not defined for older numpies
         # and on some pythons
         try:
-            self.assertTrue(np.may_share_memory(self.series.index,
-                                                identity.index))
-        except (AttributeError):
+            assert np.may_share_memory(self.series.index, identity.index)
+        except AttributeError:
             pass
 
-        self.assertTrue(identity.index.is_(self.series.index))
-        self.assertTrue(identity.index.identical(self.series.index))
+        assert identity.index.is_(self.series.index)
+        assert identity.index.identical(self.series.index)
 
         subIndex = self.series.index[10:20]
         subSeries = self.series.reindex(subIndex)
@@ -1942,7 +1941,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
             self.assertEqual(val, self.ts[idx])
         stuffSeries = self.ts.reindex(subIndex)
 
-        self.assertTrue(np.isnan(stuffSeries).all())
+        assert np.isnan(stuffSeries).all()
 
         # This is extremely important for the Cython code to not screw up
         nonContigIndex = self.ts.index[::2]
@@ -1970,10 +1969,10 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         series = Series(rng)
 
         result = series.reindex(lrange(15))
-        self.assertTrue(np.issubdtype(result.dtype, np.dtype('M8[ns]')))
+        assert np.issubdtype(result.dtype, np.dtype('M8[ns]'))
 
         mask = result.isnull()
-        self.assertTrue(mask[-5:].all())
+        assert mask[-5:].all()
         assert not mask[:-5].any()
 
     def test_reindex_with_datetimes(self):
@@ -2098,7 +2097,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         ts = self.ts[5:]
         bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
         filled_bool = bool_ts.reindex(self.ts.index, method='pad')
-        self.assertTrue(isnull(filled_bool[:5]).all())
+        assert isnull(filled_bool[:5]).all()
 
     def test_reindex_like(self):
         other = self.ts[::2]
@@ -2140,7 +2139,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         # don't upcast
         result = ints.reindex([1, 2, 3], fill_value=0)
         expected = Series([2, 3, 0], index=[1, 2, 3])
-        self.assertTrue(issubclass(result.dtype.type, np.integer))
+        assert issubclass(result.dtype.type, np.integer)
         assert_series_equal(result, expected)
 
         # -----------------------------------------------------------
@@ -2256,11 +2255,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         with pytest.raises(ValueError):
             series[1:3] = 1
 
-        self.assertTrue(
-            not array.any(),
-            msg='even though the ValueError was raised, the underlying'
-            ' array was still mutated!',
-        )
+        assert not array.any()
 
 
 class TestTimeSeriesDuplicates(tm.TestCase):
@@ -2290,14 +2285,14 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         self.assertEqual(self.dups.index.nunique(), 4)
 
         # #2563
-        self.assertTrue(isinstance(uniques, DatetimeIndex))
+        assert isinstance(uniques, DatetimeIndex)
 
         dups_local = self.dups.index.tz_localize('US/Eastern')
         dups_local.name = 'foo'
         result = dups_local.unique()
         expected = DatetimeIndex(expected, name='foo')
         expected = expected.tz_localize('US/Eastern')
-        self.assertTrue(result.tz is not None)
+        assert result.tz is not None
         self.assertEqual(result.name, 'foo')
         tm.assert_index_equal(result, expected)
 
@@ -2318,7 +2313,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
     def test_index_dupes_contains(self):
         d = datetime(2011, 12, 5, 20, 30)
         ix = DatetimeIndex([d, d])
-        self.assertTrue(d in ix)
+        assert d in ix
 
     def test_duplicate_dates_indexing(self):
         ts = self.dups
@@ -2401,7 +2396,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
 
             # it works!
             df.loc[timestamp]
-            self.assertTrue(len(df.loc[[timestamp]]) > 0)
+            assert len(df.loc[[timestamp]]) > 0
         finally:
             _index._SIZE_CUTOFF = old_cutoff
 
@@ -2417,7 +2412,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
 
             expected = ts[t]
             result = ts2[t]
-            self.assertTrue(expected == result)
+            assert expected == result
 
         # GH 3448 (ranges)
         def compare(slobj):
@@ -2447,7 +2442,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
 
         result = ts['2005']
         for t in result.index:
-            self.assertTrue(t.year == 2005)
+            assert t.year == 2005
 
     def test_indexing(self):
 
@@ -2541,7 +2536,7 @@ class TestDatetimeIndexing(tm.TestCase):
         s['1/2/2009'] = -2
         self.assertEqual(s[48], -2)
         s['1/2/2009':'2009-06-05'] = -3
-        self.assertTrue((s[48:54] == -3).all())
+        assert (s[48:54] == -3).all()
 
     def test_dti_snap(self):
         dti = DatetimeIndex(['1/1/2002', '1/2/2002', '1/3/2002', '1/4/2002',
@@ -2550,13 +2545,13 @@ class TestDatetimeIndexing(tm.TestCase):
         res = dti.snap(freq='W-MON')
         exp = date_range('12/31/2001', '1/7/2002', freq='w-mon')
         exp = exp.repeat([3, 4])
-        self.assertTrue((res == exp).all())
+        assert (res == exp).all()
 
         res = dti.snap(freq='B')
 
         exp = date_range('1/1/2002', '1/7/2002', freq='b')
         exp = exp.repeat([1, 1, 1, 2, 2])
-        self.assertTrue((res == exp).all())
+        assert (res == exp).all()
 
     def test_dti_reset_index_round_trip(self):
         dti = DatetimeIndex(start='1/1/2001', end='6/1/2001', freq='D')
@@ -2642,11 +2637,11 @@ class TestDatetimeIndexing(tm.TestCase):
 
         tst = DataFrame({'symbol': 'AAA', 'date': dates})
         result = tst.duplicated(['date', 'symbol'])
-        self.assertTrue((-result).all())
+        assert (-result).all()
 
         tst = DataFrame({'date': dates})
         result = tst.duplicated()
-        self.assertTrue((-result).all())
+        assert (-result).all()
 
 
 class TestNatIndexing(tm.TestCase):

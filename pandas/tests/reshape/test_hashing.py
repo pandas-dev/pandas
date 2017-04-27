@@ -86,9 +86,9 @@ class TestHashing(tm.TestCase):
     def test_multiindex_unique(self):
         mi = MultiIndex.from_tuples([(118, 472), (236, 118),
                                      (51, 204), (102, 51)])
-        self.assertTrue(mi.is_unique)
+        assert mi.is_unique
         result = hash_pandas_object(mi)
-        self.assertTrue(result.is_unique)
+        assert result.is_unique
 
     def test_multiindex_objects(self):
         mi = MultiIndex(levels=[['b', 'd', 'a'], [1, 2, 3]],
@@ -215,7 +215,7 @@ class TestHashing(tm.TestCase):
         obj = Series(list('abc'))
         a = hash_pandas_object(obj, hash_key='9876543210123456')
         b = hash_pandas_object(obj, hash_key='9876543210123465')
-        self.assertTrue((a != b).all())
+        assert (a != b).all()
 
     def test_invalid_key(self):
         # this only matters for object dtypes

@@ -171,9 +171,9 @@ class TestCut(tm.TestCase):
         labels, bins = qcut(arr, 4, retbins=True)
         ex_bins = quantile(arr, [0, .25, .5, .75, 1.])
         result = labels.categories.left.values
-        self.assertTrue(np.allclose(result, ex_bins[:-1], atol=1e-2))
+        assert np.allclose(result, ex_bins[:-1], atol=1e-2)
         result = labels.categories.right.values
-        self.assertTrue(np.allclose(result, ex_bins[1:], atol=1e-2))
+        assert np.allclose(result, ex_bins[1:], atol=1e-2)
 
         ex_levels = cut(arr, ex_bins, include_lowest=True)
         tm.assert_categorical_equal(labels, ex_levels)
@@ -236,7 +236,7 @@ class TestCut(tm.TestCase):
         arr[:20] = np.nan
 
         result = qcut(arr, 4)
-        self.assertTrue(isnull(result[:20]).all())
+        assert isnull(result[:20]).all()
 
     def test_qcut_index(self):
         result = qcut([0, 2], 2)
@@ -274,16 +274,16 @@ class TestCut(tm.TestCase):
         for lev in np.unique(result):
             s = lev.left
             e = lev.right
-            self.assertTrue(s != e)
+            assert s != e
 
             starts.append(float(s))
             ends.append(float(e))
 
         for (sp, sn), (ep, en) in zip(zip(starts[:-1], starts[1:]),
                                       zip(ends[:-1], ends[1:])):
-            self.assertTrue(sp < sn)
-            self.assertTrue(ep < en)
-            self.assertTrue(ep <= sn)
+            assert sp < sn
+            assert ep < en
+            assert ep <= sn
 
     def test_cut_return_intervals(self):
         s = Series([0, 1, 2, 3, 4, 5, 6, 7, 8])

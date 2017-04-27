@@ -37,18 +37,18 @@ class TestSeriesReplace(TestData, tm.TestCase):
         # replace list with a single value
         rs = ser.replace([np.nan, 'foo', 'bar'], -1)
 
-        self.assertTrue((rs[:5] == -1).all())
-        self.assertTrue((rs[6:10] == -1).all())
-        self.assertTrue((rs[20:30] == -1).all())
-        self.assertTrue((pd.isnull(ser[:5])).all())
+        assert (rs[:5] == -1).all()
+        assert (rs[6:10] == -1).all()
+        assert (rs[20:30] == -1).all()
+        assert (pd.isnull(ser[:5])).all()
 
         # replace with different values
         rs = ser.replace({np.nan: -1, 'foo': -2, 'bar': -3})
 
-        self.assertTrue((rs[:5] == -1).all())
-        self.assertTrue((rs[6:10] == -2).all())
-        self.assertTrue((rs[20:30] == -3).all())
-        self.assertTrue((pd.isnull(ser[:5])).all())
+        assert (rs[:5] == -1).all()
+        assert (rs[6:10] == -2).all()
+        assert (rs[20:30] == -3).all()
+        assert (pd.isnull(ser[:5])).all()
 
         # replace with different values with 2 lists
         rs2 = ser.replace([np.nan, 'foo', 'bar'], [-1, -2, -3])
@@ -57,9 +57,9 @@ class TestSeriesReplace(TestData, tm.TestCase):
         # replace inplace
         ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
 
-        self.assertTrue((ser[:5] == -1).all())
-        self.assertTrue((ser[6:10] == -1).all())
-        self.assertTrue((ser[20:30] == -1).all())
+        assert (ser[:5] == -1).all()
+        assert (ser[6:10] == -1).all()
+        assert (ser[20:30] == -1).all()
 
         ser = pd.Series([np.nan, 0, np.inf])
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
@@ -200,18 +200,18 @@ class TestSeriesReplace(TestData, tm.TestCase):
         # replace list with a single value
         rs = ser.replace([np.nan, 'foo', 'bar'], -1)
 
-        self.assertTrue((rs[:5] == -1).all())
-        self.assertTrue((rs[6:10] == -1).all())
-        self.assertTrue((rs[20:30] == -1).all())
-        self.assertTrue((pd.isnull(ser[:5])).all())
+        assert (rs[:5] == -1).all()
+        assert (rs[6:10] == -1).all()
+        assert (rs[20:30] == -1).all()
+        assert (pd.isnull(ser[:5])).all()
 
         # replace with different values
         rs = ser.replace({np.nan: -1, 'foo': -2, 'bar': -3})
 
-        self.assertTrue((rs[:5] == -1).all())
-        self.assertTrue((rs[6:10] == -2).all())
-        self.assertTrue((rs[20:30] == -3).all())
-        self.assertTrue((pd.isnull(ser[:5])).all())
+        assert (rs[:5] == -1).all()
+        assert (rs[6:10] == -2).all()
+        assert (rs[20:30] == -3).all()
+        assert (pd.isnull(ser[:5])).all()
 
         # replace with different values with 2 lists
         rs2 = ser.replace([np.nan, 'foo', 'bar'], [-1, -2, -3])
@@ -219,9 +219,9 @@ class TestSeriesReplace(TestData, tm.TestCase):
 
         # replace inplace
         ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
-        self.assertTrue((ser[:5] == -1).all())
-        self.assertTrue((ser[6:10] == -1).all())
-        self.assertTrue((ser[20:30] == -1).all())
+        assert (ser[:5] == -1).all()
+        assert (ser[6:10] == -1).all()
+        assert (ser[20:30] == -1).all()
 
     def test_replace_with_empty_dictlike(self):
         # GH 15289

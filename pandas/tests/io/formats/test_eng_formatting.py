@@ -184,7 +184,7 @@ class TestEngFormatter(tm.TestCase):
         pt = df.pivot_table(values='a', index='b', columns='c')
         fmt.set_eng_float_format(accuracy=1)
         result = pt.to_string()
-        self.assertTrue('NaN' in result)
+        assert 'NaN' in result
         tm.reset_display_options()
 
     def test_inf(self):

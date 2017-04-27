@@ -359,19 +359,19 @@ class TestBusinessDateRange(tm.TestCase):
         end = datetime(2011, 1, 3, tzinfo=tz('US/Eastern'))
 
         dr = date_range(start=start, periods=3)
-        self.assertTrue(dr.tz == tz('US/Eastern'))
-        self.assertTrue(dr[0] == start)
-        self.assertTrue(dr[2] == end)
+        assert dr.tz == tz('US/Eastern')
+        assert dr[0] == start
+        assert dr[2] == end
 
         dr = date_range(end=end, periods=3)
-        self.assertTrue(dr.tz == tz('US/Eastern'))
-        self.assertTrue(dr[0] == start)
-        self.assertTrue(dr[2] == end)
+        assert dr.tz == tz('US/Eastern')
+        assert dr[0] == start
+        assert dr[2] == end
 
         dr = date_range(start=start, end=end)
-        self.assertTrue(dr.tz == tz('US/Eastern'))
-        self.assertTrue(dr[0] == start)
-        self.assertTrue(dr[2] == end)
+        assert dr.tz == tz('US/Eastern')
+        assert dr[0] == start
+        assert dr[2] == end
 
     def test_range_closed(self):
         begin = datetime(2011, 1, 1)

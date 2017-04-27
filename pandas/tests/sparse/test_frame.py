@@ -91,7 +91,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
         # as of v0.15.0
         # this is now identical (but not is_a )
-        self.assertTrue(cp.index.identical(self.frame.index))
+        assert cp.index.identical(self.frame.index)
 
     def test_constructor(self):
         for col, series in compat.iteritems(self.frame):
@@ -171,7 +171,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
     def test_constructor_convert_index_once(self):
         arr = np.array([1.5, 2.5, 3.5])
         sdf = SparseDataFrame(columns=lrange(4), index=arr)
-        self.assertTrue(sdf[0].index is sdf[1].index)
+        assert sdf[0].index is sdf[1].index
 
     def test_constructor_from_series(self):
 
@@ -290,7 +290,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                         'B': [1, 2, nan, nan, nan]})
         sdf = df.to_sparse()
         assert isinstance(sdf, SparseDataFrame)
-        self.assertTrue(np.isnan(sdf.default_fill_value))
+        assert np.isnan(sdf.default_fill_value)
         assert isinstance(sdf['A'].sp_index, BlockIndex)
         tm.assert_frame_equal(sdf.to_dense(), df)
 
@@ -385,7 +385,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_op_corners(self):
         empty = self.empty + self.empty
-        self.assertTrue(empty.empty)
+        assert empty.empty
 
         foo = self.frame + self.empty
         assert isinstance(foo.index, DatetimeIndex)
@@ -411,7 +411,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
         # 2227
         result = self.frame.iloc[:, 0]
-        self.assertTrue(isinstance(result, SparseSeries))
+        assert isinstance(result, SparseSeries)
         tm.assert_sp_series_equal(result, self.frame['A'])
 
         # preserve sparse index type. #2251
@@ -515,7 +515,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
             # scalar value
             frame['J'] = 5
             self.assertEqual(len(frame['J'].sp_values), N)
-            self.assertTrue((frame['J'].sp_values == 5).all())
+            assert (frame['J'].sp_values == 5).all()
 
             frame['K'] = frame.default_fill_value
             self.assertEqual(len(frame['K'].sp_values), 0)
@@ -1099,7 +1099,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         # GH 8822
         nan_colname = DataFrame(Series(1.0, index=[0]), columns=[nan])
         nan_colname_sparse = nan_colname.to_sparse()
-        self.assertTrue(np.isnan(nan_colname_sparse.columns[0]))
+        assert np.isnan(nan_colname_sparse.columns[0])
 
     def test_isnull(self):
         # GH 8276

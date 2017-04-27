@@ -191,7 +191,7 @@ class TestiLoc(Base, tm.TestCase):
 
         # cross-sectional indexing
         result = df.iloc[0, 0]
-        self.assertTrue(isnull(result))
+        assert isnull(result)
 
         result = df.iloc[0, :]
         expected = Series([np.nan, 1, 3, 3], index=['A', 'B', 'A', 'B'],

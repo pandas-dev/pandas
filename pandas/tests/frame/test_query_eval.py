@@ -157,10 +157,10 @@ class TestDataFrameEval(tm.TestCase, TestData):
         df = DataFrame(randn(10, 2), columns=list('ab'))
         dict1 = {'a': 1}
         dict2 = {'b': 2}
-        self.assertTrue(df.eval('a + b', resolvers=[dict1, dict2]) ==
-                        dict1['a'] + dict2['b'])
-        self.assertTrue(pd.eval('a + b', resolvers=[dict1, dict2]) ==
-                        dict1['a'] + dict2['b'])
+        assert (df.eval('a + b', resolvers=[dict1, dict2]) ==
+                dict1['a'] + dict2['b'])
+        assert (pd.eval('a + b', resolvers=[dict1, dict2]) ==
+                dict1['a'] + dict2['b'])
 
 
 class TestDataFrameQueryWithMultiIndex(tm.TestCase):

@@ -68,9 +68,9 @@ class TestStyler(TestCase):
 
     def test_copy(self):
         s2 = copy.copy(self.styler)
-        self.assertTrue(self.styler is not s2)
-        self.assertTrue(self.styler.ctx is s2.ctx)  # shallow
-        self.assertTrue(self.styler._todo is s2._todo)
+        assert self.styler is not s2
+        assert self.styler.ctx is s2.ctx  # shallow
+        assert self.styler._todo is s2._todo
 
         self.styler._update_ctx(self.attrs)
         self.styler.highlight_max()
@@ -79,9 +79,9 @@ class TestStyler(TestCase):
 
     def test_deepcopy(self):
         s2 = copy.deepcopy(self.styler)
-        self.assertTrue(self.styler is not s2)
-        self.assertTrue(self.styler.ctx is not s2.ctx)
-        self.assertTrue(self.styler._todo is not s2._todo)
+        assert self.styler is not s2
+        assert self.styler.ctx is not s2.ctx
+        assert self.styler._todo is not s2._todo
 
         self.styler._update_ctx(self.attrs)
         self.styler.highlight_max()
@@ -91,11 +91,11 @@ class TestStyler(TestCase):
 
     def test_clear(self):
         s = self.df.style.highlight_max()._compute()
-        self.assertTrue(len(s.ctx) > 0)
-        self.assertTrue(len(s._todo) > 0)
+        assert len(s.ctx) > 0
+        assert len(s._todo) > 0
         s.clear()
-        self.assertTrue(len(s.ctx) == 0)
-        self.assertTrue(len(s._todo) == 0)
+        assert len(s.ctx) == 0
+        assert len(s._todo) == 0
 
     def test_render(self):
         df = pd.DataFrame({"A": [0, 1]})
@@ -367,42 +367,42 @@ class TestStyler(TestCase):
     def test_caption(self):
         styler = Styler(self.df, caption='foo')
         result = styler.render()
-        self.assertTrue(all(['caption' in result, 'foo' in result]))
+        assert all(['caption' in result, 'foo' in result])
 
         styler = self.df.style
         result = styler.set_caption('baz')
-        self.assertTrue(styler is result)
+        assert styler is result
         self.assertEqual(styler.caption, 'baz')
 
     def test_uuid(self):
         styler = Styler(self.df, uuid='abc123')
         result = styler.render()
-        self.assertTrue('abc123' in result)
+        assert 'abc123' in result
 
         styler = self.df.style
         result = styler.set_uuid('aaa')
-        self.assertTrue(result is styler)
+        assert result is styler
         self.assertEqual(result.uuid, 'aaa')
 
     def test_table_styles(self):
         style = [{'selector': 'th', 'props': [('foo', 'bar')]}]
         styler = Styler(self.df, table_styles=style)
         result = ' '.join(styler.render().split())
-        self.assertTrue('th { foo: bar; }' in result)
+        assert 'th { foo: bar; }' in result
 
         styler = self.df.style
         result = styler.set_table_styles(style)
-        self.assertTrue(styler is result)
+        assert styler is result
         self.assertEqual(styler.table_styles, style)
 
     def test_table_attributes(self):
         attributes = 'class="foo" data-bar'
         styler = Styler(self.df, table_attributes=attributes)
         result = styler.render()
-        self.assertTrue('class="foo" data-bar' in result)
+        assert 'class="foo" data-bar' in result
 
         result = self.df.style.set_table_attributes(attributes).render()
-        self.assertTrue('class="foo" data-bar' in result)
+        assert 'class="foo" data-bar' in result
 
     def test_precision(self):
         with pd.option_context('display.precision', 10):
@@ -412,7 +412,7 @@ class TestStyler(TestCase):
         self.assertEqual(s.precision, 2)
 
         s2 = s.set_precision(4)
-        self.assertTrue(s is s2)
+        assert s is s2
         self.assertEqual(s.precision, 4)
 
     def test_apply_none(self):
@@ -485,12 +485,10 @@ class TestStyler(TestCase):
         df = pd.DataFrame(np.random.random(size=(2, 2)))
         ctx = df.style.format("{:0.1f}")._translate()
 
-        self.assertTrue(all(['display_value' in c for c in row]
-                            for row in ctx['body']))
-        self.assertTrue(all([len(c['display_value']) <= 3 for c in row[1:]]
-                            for row in ctx['body']))
-        self.assertTrue(
-            len(ctx['body'][0][1]['display_value'].lstrip('-')) <= 3)
+        assert all(['display_value' in c for c in row] for row in ctx['body'])
+        assert (all([len(c['display_value']) <= 3 for c in row[1:]]
+                    for row in ctx['body']))
+        assert len(ctx['body'][0][1]['display_value'].lstrip('-')) <= 3
 
     def test_display_format_raises(self):
         df = pd.DataFrame(np.random.randn(2, 2))
@@ -711,7 +709,7 @@ class TestStylerMatplotlibDep(TestCase):
         for axis in [0, 1, 'index', 'columns']:
             for cmap in [None, 'YlOrRd']:
                 result = df.style.background_gradient(cmap=cmap)._compute().ctx
-                self.assertTrue(all("#" in x[0] for x in result.values()))
+                assert all("#" in x[0] for x in result.values())
                 self.assertEqual(result[(0, 0)], result[(0, 1)])
                 self.assertEqual(result[(1, 0)], result[(1, 1)])
 

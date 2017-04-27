@@ -269,7 +269,7 @@ class TestExpressions(tm.TestCase):
         # ok, we only check on first part of expression
         result = expr._can_use_numexpr(operator.add, '+', self.frame,
                                        self.frame2, 'evaluate')
-        self.assertTrue(result)
+        assert result
 
     def test_binary_ops(self):
         def testit():
