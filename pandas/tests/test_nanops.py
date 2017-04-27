@@ -4,9 +4,10 @@ from __future__ import division, print_function
 from functools import partial
 
 import pytest
-
 import warnings
 import numpy as np
+
+import pandas as pd
 from pandas import Series, isnull, _np_version_under1p9
 from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
@@ -1003,3 +1004,16 @@ class TestNankurtFixedValues(tm.TestCase):
     @property
     def prng(self):
         return np.random.RandomState(1234)
+
+
+def test_use_bottleneck():
+
+    if nanops._BOTTLENECK_INSTALLED:
+
+        pd.set_option('use_bottleneck', True)
+        assert pd.get_option('use_bottleneck')
+
+        pd.set_option('use_bottleneck', False)
+        assert not pd.get_option('use_bottleneck')
+
+        pd.set_option('use_bottleneck', use_bn)
