@@ -1939,3 +1939,29 @@ Data types related functionality
    api.types.union_categoricals
    api.types.infer_dtype
    api.types.pandas_dtype
+
+Dtype introspection
+
+.. autosummary::
+   :toctree: generated/
+
+    api.types.is_bool_dtype
+    api.types.is_categorical_dtype
+    api.types.is_complex_dtype
+    api.types.is_datetime64_any_dtype
+    api.types.is_datetime64_dtype
+    api.types.is_datetime64_ns_dtype
+    api.types.is_datetime64tz_dtype
+    api.types.is_extension_type
+    api.types.is_float_dtype
+    api.types.is_int64_dtype
+    api.types.is_integer_dtype
+    api.types.is_interval_dtype
+    api.types.is_numeric_dtype
+    api.types.is_object_dtype
+    api.types.is_period_dtype
+    api.types.is_signed_integer_dtype
+    api.types.is_string_dtype
+    api.types.is_timedelta64_dtype
+    api.types.is_timedelta64_ns_dtype
+    api.types.is_unsigned_integer_dtype
