@@ -1242,7 +1242,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         levels = np.append(levels, np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
-    if drop_colidx is not False and len(levels) == 1:
+    if drop_idx is not False and len(levels) == 1:
         return get_empty_Frame(data, sparse)
 
     number_of_cols = len(levels)
