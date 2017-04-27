@@ -3034,7 +3034,7 @@ it is assumed to be aliases for the column names.')
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
                 col_name = names[i]
 
-                if multi_col:
+                if multi_col and not isinstance(col_name, tuple):
                     if col_fill is None:
                         col_name = tuple([col_name] * self.columns.nlevels)
                     else:
