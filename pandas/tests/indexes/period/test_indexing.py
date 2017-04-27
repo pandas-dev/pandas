@@ -81,7 +81,7 @@ class TestGetItem(tm.TestCase):
         pytest.raises(KeyError, ts.__getitem__, '2006')
 
         result = ts['2008']
-        self.assertTrue((result.index.year == 2008).all())
+        assert (result.index.year == 2008).all()
 
         result = ts['2008':'2009']
         self.assertEqual(len(result), 24)

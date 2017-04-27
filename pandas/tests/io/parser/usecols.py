@@ -44,8 +44,8 @@ a,b,c
         exp = self.read_csv(StringIO(data))
 
         self.assertEqual(len(result.columns), 2)
-        self.assertTrue((result['b'] == exp['b']).all())
-        self.assertTrue((result['c'] == exp['c']).all())
+        assert (result['b'] == exp['b']).all()
+        assert (result['c'] == exp['c']).all()
 
         tm.assert_frame_equal(result, result2)
 

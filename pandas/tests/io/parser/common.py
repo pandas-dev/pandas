@@ -693,7 +693,7 @@ bar"""
 1,3,3,
 1,4,5"""
         result = self.read_csv(StringIO(data))
-        self.assertTrue(result['D'].isnull()[1:].all())
+        assert result['D'].isnull()[1:].all()
 
     def test_skipinitialspace(self):
         s = ('"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
@@ -707,7 +707,7 @@ bar"""
         # it's 33 columns
         result = self.read_csv(sfile, names=lrange(33), na_values=['-9999.0'],
                                header=None, skipinitialspace=True)
-        self.assertTrue(pd.isnull(result.iloc[0, 29]))
+        assert pd.isnull(result.iloc[0, 29])
 
     def test_utf16_bom_skiprows(self):
         # #2298
@@ -794,8 +794,8 @@ A,B,C
                                quotechar='"', encoding='utf-8')
         self.assertEqual(result['SEARCH_TERM'][2],
                          'SLAGBORD, "Bergslagen", IKEA:s 1700-tals serie')
-        self.assertTrue(np.array_equal(result.columns,
-                                       ['SEARCH_TERM', 'ACTUAL_URL']))
+        tm.assert_index_equal(result.columns,
+                              Index(['SEARCH_TERM', 'ACTUAL_URL']))
 
     def test_int64_min_issues(self):
         # #2599
@@ -831,7 +831,7 @@ A,B,C
                                           17007000002000192,
                                           17007000002000194]})
 
-        self.assertTrue(np.array_equal(result['Numbers'], expected['Numbers']))
+        assert np.array_equal(result['Numbers'], expected['Numbers'])
 
     def test_chunks_have_consistent_numerical_type(self):
         integers = [str(i) for i in range(499999)]
@@ -840,7 +840,7 @@ A,B,C
         with tm.assert_produces_warning(False):
             df = self.read_csv(StringIO(data))
         # Assert that types were coerced.
-        self.assertTrue(type(df.a[0]) is np.float64)
+        assert type(df.a[0]) is np.float64
         self.assertEqual(df.a.dtype, np.float)
 
     def test_warn_if_chunks_have_mismatched_type(self):
@@ -862,10 +862,10 @@ A,B,C
         data = "65248E10 11\n55555E55 22\n"
 
         result = self.read_csv(StringIO(data), header=None, sep=' ')
-        self.assertTrue(result[0].dtype == np.float64)
+        assert result[0].dtype == np.float64
 
         result = self.read_csv(StringIO(data), header=None, sep=r'\s+')
-        self.assertTrue(result[0].dtype == np.float64)
+        assert result[0].dtype == np.float64
 
     def test_catch_too_many_names(self):
         # see gh-5156
@@ -953,7 +953,7 @@ A,B,C
         # 13007854817840016671868 > UINT64_MAX, so this
         # will overflow and return object as the dtype.
         result = self.read_csv(StringIO(data))
-        self.assertTrue(result['ID'].dtype == object)
+        assert result['ID'].dtype == object
 
         # 13007854817840016671868 > UINT64_MAX, so attempts
         # to cast to either int64 or uint64 will result in

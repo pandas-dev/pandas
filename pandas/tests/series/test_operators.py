@@ -121,7 +121,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
             result = p['first'] / p['second']
             assert_series_equal(result, p['first'].astype('float64'),
                                 check_names=False)
-            self.assertTrue(result.name is None)
+            assert result.name is None
             assert not np.array_equal(result, p['second'] / p['first'])
 
             # inf signing
@@ -565,11 +565,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
         s = Series(date_range('20130101', periods=3))
         result = s.astype(object)
         assert isinstance(result.iloc[0], datetime)
-        self.assertTrue(result.dtype == np.object_)
+        assert result.dtype == np.object_
 
         result = s1.astype(object)
         assert isinstance(result.iloc[0], timedelta)
-        self.assertTrue(result.dtype == np.object_)
+        assert result.dtype == np.object_
 
     def test_timedelta64_equal_timedelta_supported_ops(self):
         ser = Series([Timestamp('20130301'), Timestamp('20130228 23:00:00'),
@@ -1466,7 +1466,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         empty = Series([], index=Index([]))
 
         result = series + empty
-        self.assertTrue(np.isnan(result).all())
+        assert np.isnan(result).all()
 
         result = empty + Series([], index=Index([]))
         self.assertEqual(len(result), 0)
@@ -1777,8 +1777,8 @@ class TestSeriesOperators(TestData, tm.TestCase):
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
         expected = [True, True, False, True, True]
-        self.assertTrue(tm.equalContents(ts.index != 5, expected))
-        self.assertTrue(tm.equalContents(~(ts.index == 5), expected))
+        assert tm.equalContents(ts.index != 5, expected)
+        assert tm.equalContents(~(ts.index == 5), expected)
 
     def test_operators_na_handling(self):
         from decimal import Decimal
@@ -1788,8 +1788,8 @@ class TestSeriesOperators(TestData, tm.TestCase):
 
         result = s + s.shift(1)
         result2 = s.shift(1) + s
-        self.assertTrue(isnull(result[0]))
-        self.assertTrue(isnull(result2[0]))
+        assert isnull(result[0])
+        assert isnull(result2[0])
 
         s = Series(['foo', 'bar', 'baz', np.nan])
         result = 'prefix_' + s

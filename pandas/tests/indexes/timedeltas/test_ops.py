@@ -33,7 +33,7 @@ class TestTimedeltaIndexOps(Ops):
                          Timedelta('3 days'), Timedelta('4 days')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
         result = idx.asobject
-        self.assertTrue(isinstance(result, Index))
+        assert isinstance(result, Index)
 
         self.assertEqual(result.dtype, object)
         tm.assert_index_equal(result, expected)
@@ -46,7 +46,7 @@ class TestTimedeltaIndexOps(Ops):
                          Timedelta('4 days')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
         result = idx.asobject
-        self.assertTrue(isinstance(result, Index))
+        assert isinstance(result, Index)
         self.assertEqual(result.dtype, object)
         tm.assert_index_equal(result, expected)
         self.assertEqual(result.name, expected.name)
@@ -56,7 +56,7 @@ class TestTimedeltaIndexOps(Ops):
 
         # monotonic
         idx1 = TimedeltaIndex(['1 days', '2 days', '3 days'])
-        self.assertTrue(idx1.is_monotonic)
+        assert idx1.is_monotonic
 
         # non-monotonic
         idx2 = TimedeltaIndex(['1 days', np.nan, '3 days', 'NaT'])
@@ -71,13 +71,13 @@ class TestTimedeltaIndexOps(Ops):
         for op in ['min', 'max']:
             # Return NaT
             obj = TimedeltaIndex([])
-            self.assertTrue(pd.isnull(getattr(obj, op)()))
+            assert pd.isnull(getattr(obj, op)())
 
             obj = TimedeltaIndex([pd.NaT])
-            self.assertTrue(pd.isnull(getattr(obj, op)()))
+            assert pd.isnull(getattr(obj, op)())
 
             obj = TimedeltaIndex([pd.NaT, pd.NaT, pd.NaT])
-            self.assertTrue(pd.isnull(getattr(obj, op)()))
+            assert pd.isnull(getattr(obj, op)())
 
     def test_numpy_minmax(self):
         dr = pd.date_range(start='2016-01-15', end='2016-01-20')
@@ -825,7 +825,7 @@ Freq: D"""
         assert pd.TimedeltaIndex([])._na_value is pd.NaT
 
         idx = pd.TimedeltaIndex(['1 days', '2 days'])
-        self.assertTrue(idx._can_hold_na)
+        assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
         assert not idx.hasnans
@@ -833,21 +833,21 @@ Freq: D"""
                                     np.array([], dtype=np.intp))
 
         idx = pd.TimedeltaIndex(['1 days', 'NaT'])
-        self.assertTrue(idx._can_hold_na)
+        assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        self.assertTrue(idx.hasnans)
+        assert idx.hasnans
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 
     def test_equals(self):
         # GH 13107
         idx = pd.TimedeltaIndex(['1 days', '2 days', 'NaT'])
-        self.assertTrue(idx.equals(idx))
-        self.assertTrue(idx.equals(idx.copy()))
-        self.assertTrue(idx.equals(idx.asobject))
-        self.assertTrue(idx.asobject.equals(idx))
-        self.assertTrue(idx.asobject.equals(idx.asobject))
+        assert idx.equals(idx)
+        assert idx.equals(idx.copy())
+        assert idx.equals(idx.asobject)
+        assert idx.asobject.equals(idx)
+        assert idx.asobject.equals(idx.asobject)
         assert not idx.equals(list(idx))
         assert not idx.equals(pd.Series(idx))
 
@@ -870,18 +870,18 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(-td, Timedelta(-10, unit='d'))
         self.assertEqual(+td, Timedelta(10, unit='d'))
         self.assertEqual(td - td, Timedelta(0, unit='ns'))
-        self.assertTrue((td - pd.NaT) is pd.NaT)
+        assert (td - pd.NaT) is pd.NaT
         self.assertEqual(td + td, Timedelta(20, unit='d'))
-        self.assertTrue((td + pd.NaT) is pd.NaT)
+        assert (td + pd.NaT) is pd.NaT
         self.assertEqual(td * 2, Timedelta(20, unit='d'))
-        self.assertTrue((td * pd.NaT) is pd.NaT)
+        assert (td * pd.NaT) is pd.NaT
         self.assertEqual(td / 2, Timedelta(5, unit='d'))
         self.assertEqual(td // 2, Timedelta(5, unit='d'))
         self.assertEqual(abs(td), td)
         self.assertEqual(abs(-td), td)
         self.assertEqual(td / td, 1)
-        self.assertTrue((td / pd.NaT) is np.nan)
-        self.assertTrue((td // pd.NaT) is np.nan)
+        assert (td / pd.NaT) is np.nan
+        assert (td // pd.NaT) is np.nan
 
         # invert
         self.assertEqual(-td, Timedelta('-10d'))
@@ -995,11 +995,11 @@ class TestTimedeltas(tm.TestCase):
         other = Other()
 
         td = Timedelta('1 day')
-        self.assertTrue(td.__add__(other) is NotImplemented)
-        self.assertTrue(td.__sub__(other) is NotImplemented)
-        self.assertTrue(td.__truediv__(other) is NotImplemented)
-        self.assertTrue(td.__mul__(other) is NotImplemented)
-        self.assertTrue(td.__floordiv__(other) is NotImplemented)
+        assert td.__add__(other) is NotImplemented
+        assert td.__sub__(other) is NotImplemented
+        assert td.__truediv__(other) is NotImplemented
+        assert td.__mul__(other) is NotImplemented
+        assert td.__floordiv__(other) is NotImplemented
 
     def test_ops_error_str(self):
         # GH 13624

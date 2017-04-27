@@ -788,8 +788,8 @@ class TestAppend(ConcatenateBase):
         b = df[5:].loc[:, ['strings', 'ints', 'floats']]
 
         appended = a.append(b)
-        self.assertTrue(isnull(appended['strings'][0:4]).all())
-        self.assertTrue(isnull(appended['bools'][5:]).all())
+        assert isnull(appended['strings'][0:4]).all()
+        assert isnull(appended['bools'][5:]).all()
 
     def test_append_many(self):
         chunks = [self.frame[:5], self.frame[5:10],
@@ -802,8 +802,8 @@ class TestAppend(ConcatenateBase):
         chunks[-1]['foo'] = 'bar'
         result = chunks[0].append(chunks[1:])
         tm.assert_frame_equal(result.loc[:, self.frame.columns], self.frame)
-        self.assertTrue((result['foo'][15:] == 'bar').all())
-        self.assertTrue(result['foo'][:15].isnull().all())
+        assert (result['foo'][15:] == 'bar').all()
+        assert result['foo'][:15].isnull().all()
 
     def test_append_preserve_index_name(self):
         # #980
@@ -1479,8 +1479,8 @@ class TestConcatenate(ConcatenateBase):
 
         s2.name = None
         result = concat([s, s2], axis=1)
-        self.assertTrue(np.array_equal(
-            result.columns, Index(['A', 0], dtype='object')))
+        tm.assert_index_equal(result.columns,
+                              Index(['A', 0], dtype='object'))
 
         # must reindex, #2603
         s = Series(randn(3), index=['c', 'a', 'b'], name='A')
@@ -1512,8 +1512,8 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame({'time': rng})
 
         result = concat([df, df])
-        self.assertTrue((result.iloc[:10]['time'] == rng).all())
-        self.assertTrue((result.iloc[10:]['time'] == rng).all())
+        assert (result.iloc[:10]['time'] == rng).all()
+        assert (result.iloc[10:]['time'] == rng).all()
 
     def test_concat_timedelta64_block(self):
         from pandas import to_timedelta
@@ -1523,8 +1523,8 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame({'time': rng})
 
         result = concat([df, df])
-        self.assertTrue((result.iloc[:10]['time'] == rng).all())
-        self.assertTrue((result.iloc[10:]['time'] == rng).all())
+        assert (result.iloc[:10]['time'] == rng).all()
+        assert (result.iloc[10:]['time'] == rng).all()
 
     def test_concat_keys_with_none(self):
         # #1649
@@ -1593,7 +1593,7 @@ class TestConcatenate(ConcatenateBase):
         s2 = Series(randn(len(dates)), index=dates, name='value')
 
         result = concat([s1, s2], axis=1, ignore_index=True)
-        self.assertTrue(np.array_equal(result.columns, [0, 1]))
+        assert np.array_equal(result.columns, [0, 1])
 
     def test_concat_iterables(self):
         from collections import deque, Iterable

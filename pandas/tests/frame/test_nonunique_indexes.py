@@ -151,7 +151,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         df = DataFrame([[1, 2.5], [3, 4.5]], index=[1, 2], columns=['x', 'x'])
         result = df.values
         expected = np.array([[1, 2.5], [3, 4.5]])
-        self.assertTrue((result == expected).all().all())
+        assert (result == expected).all().all()
 
         # rename, GH 4403
         df4 = DataFrame(
@@ -448,7 +448,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         expected = np.array([[1, 2, 'a', 'b'], [1, 2, 'a', 'b']],
                             dtype=object)
 
-        self.assertTrue(np.array_equal(result, expected))
+        assert np.array_equal(result, expected)
 
     def test_set_value_by_index(self):
         # See gh-12344

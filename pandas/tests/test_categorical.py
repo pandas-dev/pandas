@@ -140,14 +140,14 @@ class TestCategorical(tm.TestCase):
         c1 = Categorical(list('aabca'), categories=list('abc'), ordered=False)
         c2 = Categorical(list('aabca'), categories=list('cab'), ordered=False)
         c3 = Categorical(list('aabca'), categories=list('cab'), ordered=True)
-        self.assertTrue(c1.is_dtype_equal(c1))
-        self.assertTrue(c2.is_dtype_equal(c2))
-        self.assertTrue(c3.is_dtype_equal(c3))
+        assert c1.is_dtype_equal(c1)
+        assert c2.is_dtype_equal(c2)
+        assert c3.is_dtype_equal(c3)
         assert not c1.is_dtype_equal(c2)
         assert not c1.is_dtype_equal(c3)
         assert not c1.is_dtype_equal(Index(list('aabca')))
         assert not c1.is_dtype_equal(c1.astype(object))
-        self.assertTrue(c1.is_dtype_equal(CategoricalIndex(c1)))
+        assert c1.is_dtype_equal(CategoricalIndex(c1))
         assert not (c1.is_dtype_equal(
             CategoricalIndex(c1, categories=list('cab'))))
         assert not c1.is_dtype_equal(CategoricalIndex(c1, ordered=True))
@@ -216,51 +216,51 @@ class TestCategorical(tm.TestCase):
 
         # This should result in integer categories, not float!
         cat = pd.Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        self.assertTrue(is_integer_dtype(cat.categories))
+        assert is_integer_dtype(cat.categories)
 
         # https://github.com/pandas-dev/pandas/issues/3678
         cat = pd.Categorical([np.nan, 1, 2, 3])
-        self.assertTrue(is_integer_dtype(cat.categories))
+        assert is_integer_dtype(cat.categories)
 
         # this should result in floats
         cat = pd.Categorical([np.nan, 1, 2., 3])
-        self.assertTrue(is_float_dtype(cat.categories))
+        assert is_float_dtype(cat.categories)
 
         cat = pd.Categorical([np.nan, 1., 2., 3.])
-        self.assertTrue(is_float_dtype(cat.categories))
+        assert is_float_dtype(cat.categories)
 
         # This doesn't work -> this would probably need some kind of "remember
         # the original type" feature to try to cast the array interface result
         # to...
 
         # vals = np.asarray(cat[cat.notnull()])
-        # self.assertTrue(is_integer_dtype(vals))
+        # assert is_integer_dtype(vals)
 
         # corner cases
         cat = pd.Categorical([1])
-        self.assertTrue(len(cat.categories) == 1)
-        self.assertTrue(cat.categories[0] == 1)
-        self.assertTrue(len(cat.codes) == 1)
-        self.assertTrue(cat.codes[0] == 0)
+        assert len(cat.categories) == 1
+        assert cat.categories[0] == 1
+        assert len(cat.codes) == 1
+        assert cat.codes[0] == 0
 
         cat = pd.Categorical(["a"])
-        self.assertTrue(len(cat.categories) == 1)
-        self.assertTrue(cat.categories[0] == "a")
-        self.assertTrue(len(cat.codes) == 1)
-        self.assertTrue(cat.codes[0] == 0)
+        assert len(cat.categories) == 1
+        assert cat.categories[0] == "a"
+        assert len(cat.codes) == 1
+        assert cat.codes[0] == 0
 
         # Scalars should be converted to lists
         cat = pd.Categorical(1)
-        self.assertTrue(len(cat.categories) == 1)
-        self.assertTrue(cat.categories[0] == 1)
-        self.assertTrue(len(cat.codes) == 1)
-        self.assertTrue(cat.codes[0] == 0)
+        assert len(cat.categories) == 1
+        assert cat.categories[0] == 1
+        assert len(cat.codes) == 1
+        assert cat.codes[0] == 0
 
         cat = pd.Categorical([1], categories=1)
-        self.assertTrue(len(cat.categories) == 1)
-        self.assertTrue(cat.categories[0] == 1)
-        self.assertTrue(len(cat.codes) == 1)
-        self.assertTrue(cat.codes[0] == 0)
+        assert len(cat.categories) == 1
+        assert cat.categories[0] == 1
+        assert len(cat.codes) == 1
+        assert cat.codes[0] == 0
 
         # Catch old style constructor useage: two arrays, codes + categories
         # We can only catch two cases:
@@ -360,7 +360,7 @@ class TestCategorical(tm.TestCase):
             tm.assert_numpy_array_equal(c.codes, exp)
 
             result = repr(c)
-            self.assertTrue('NaT' in result)
+            assert 'NaT' in result
 
     def test_constructor_from_index_series_datetimetz(self):
         idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
@@ -618,7 +618,7 @@ class TestCategorical(tm.TestCase):
     def test_describe(self):
         # string type
         desc = self.factor.describe()
-        self.assertTrue(self.factor.ordered)
+        assert self.factor.ordered
         exp_index = pd.CategoricalIndex(['a', 'b', 'c'], name='categories',
                                         ordered=self.factor.ordered)
         expected = DataFrame({'counts': [3, 2, 3],
@@ -792,7 +792,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         cat = Categorical([0, 1, 2], ordered=False)
         assert not cat.ordered
         cat = Categorical([0, 1, 2], ordered=True)
-        self.assertTrue(cat.ordered)
+        assert cat.ordered
 
     def test_ordered_api(self):
         # GH 9347
@@ -807,12 +807,12 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         cat3 = pd.Categorical(["a", "c", "b"], ordered=True)
         tm.assert_index_equal(cat3.categories, Index(['a', 'b', 'c']))
-        self.assertTrue(cat3.ordered)
+        assert cat3.ordered
 
         cat4 = pd.Categorical(["a", "c", "b"], categories=['b', 'c', 'a'],
                               ordered=True)
         tm.assert_index_equal(cat4.categories, Index(['b', 'c', 'a']))
-        self.assertTrue(cat4.ordered)
+        assert cat4.ordered
 
     def test_set_ordered(self):
 
@@ -820,16 +820,16 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         cat2 = cat.as_unordered()
         assert not cat2.ordered
         cat2 = cat.as_ordered()
-        self.assertTrue(cat2.ordered)
+        assert cat2.ordered
         cat2.as_unordered(inplace=True)
         assert not cat2.ordered
         cat2.as_ordered(inplace=True)
-        self.assertTrue(cat2.ordered)
+        assert cat2.ordered
 
-        self.assertTrue(cat2.set_ordered(True).ordered)
+        assert cat2.set_ordered(True).ordered
         assert not cat2.set_ordered(False).ordered
         cat2.set_ordered(True, inplace=True)
-        self.assertTrue(cat2.ordered)
+        assert cat2.ordered
         cat2.set_ordered(False, inplace=True)
         assert not cat2.ordered
 
@@ -1168,7 +1168,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
                           categories=['d', 'c', 'b', 'a'], ordered=True)
         _min = cat.min()
         _max = cat.max()
-        self.assertTrue(np.isnan(_min))
+        assert np.isnan(_min)
         self.assertEqual(_max, "b")
 
         _min = cat.min(numeric_only=True)
@@ -1180,7 +1180,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
                           ordered=True)
         _min = cat.min()
         _max = cat.max()
-        self.assertTrue(np.isnan(_min))
+        assert np.isnan(_min)
         self.assertEqual(_max, 1)
 
         _min = cat.min(numeric_only=True)
@@ -1433,17 +1433,16 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         cat = pd.Categorical([1, 2, 3])
 
         # .categories is an index, so we include the hashtable
-        self.assertTrue(cat.nbytes > 0 and cat.nbytes <= cat.memory_usage())
-        self.assertTrue(cat.nbytes > 0 and
-                        cat.nbytes <= cat.memory_usage(deep=True))
+        assert 0 < cat.nbytes <= cat.memory_usage()
+        assert 0 < cat.nbytes <= cat.memory_usage(deep=True)
 
         cat = pd.Categorical(['foo', 'foo', 'bar'])
-        self.assertTrue(cat.memory_usage(deep=True) > cat.nbytes)
+        assert cat.memory_usage(deep=True) > cat.nbytes
 
         # sys.getsizeof will call the .memory_usage with
         # deep=True, and add on some GC overhead
         diff = cat.memory_usage(deep=True) - sys.getsizeof(cat)
-        self.assertTrue(abs(diff) < 100)
+        assert abs(diff) < 100
 
     def test_searchsorted(self):
         # https://github.com/pandas-dev/pandas/issues/8420
@@ -1640,23 +1639,23 @@ class TestCategoricalAsBlock(tm.TestCase):
 
         # GH 8453
         result = Categorical(['foo', 'bar', 'baz'])
-        self.assertTrue(result.codes.dtype == 'int8')
+        assert result.codes.dtype == 'int8'
 
         result = Categorical(['foo%05d' % i for i in range(400)])
-        self.assertTrue(result.codes.dtype == 'int16')
+        assert result.codes.dtype == 'int16'
 
         result = Categorical(['foo%05d' % i for i in range(40000)])
-        self.assertTrue(result.codes.dtype == 'int32')
+        assert result.codes.dtype == 'int32'
 
         # adding cats
         result = Categorical(['foo', 'bar', 'baz'])
-        self.assertTrue(result.codes.dtype == 'int8')
+        assert result.codes.dtype == 'int8'
         result = result.add_categories(['foo%05d' % i for i in range(400)])
-        self.assertTrue(result.codes.dtype == 'int16')
+        assert result.codes.dtype == 'int16'
 
         # removing cats
         result = result.remove_categories(['foo%05d' % i for i in range(300)])
-        self.assertTrue(result.codes.dtype == 'int8')
+        assert result.codes.dtype == 'int8'
 
     def test_basic(self):
 
@@ -1893,7 +1892,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # so this WILL change values
         cat = Categorical(["a", "b", "c", "a"])
         s = pd.Series(cat)
-        self.assertTrue(s.values is cat)
+        assert s.values is cat
         s.cat.categories = [1, 2, 3]
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
@@ -2816,14 +2815,14 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                                                     ], ordered=True))
         _min = cat.min()
         _max = cat.max()
-        self.assertTrue(np.isnan(_min))
+        assert np.isnan(_min)
         self.assertEqual(_max, "b")
 
         cat = Series(Categorical(
             [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True))
         _min = cat.min()
         _max = cat.max()
-        self.assertTrue(np.isnan(_min))
+        assert np.isnan(_min)
         self.assertEqual(_max, 1)
 
     def test_mode(self):
@@ -3188,7 +3187,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # frame
         res_df = df.iloc[2:4, :]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(is_categorical_dtype(res_df["cats"]))
+        assert is_categorical_dtype(res_df["cats"])
 
         # row
         res_row = df.iloc[2, :]
@@ -3198,7 +3197,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # col
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(is_categorical_dtype(res_col))
+        assert is_categorical_dtype(res_col)
 
         # single value
         res_val = df.iloc[2, 0]
@@ -3208,7 +3207,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # frame
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(is_categorical_dtype(res_df["cats"]))
+        assert is_categorical_dtype(res_df["cats"])
 
         # row
         res_row = df.loc["j", :]
@@ -3218,7 +3217,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(is_categorical_dtype(res_col))
+        assert is_categorical_dtype(res_col)
 
         # single value
         res_val = df.loc["j", "cats"]
@@ -3229,7 +3228,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # res_df = df.loc["j":"k",[0,1]] # doesn't work?
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(is_categorical_dtype(res_df["cats"]))
+        assert is_categorical_dtype(res_df["cats"])
 
         # row
         res_row = df.loc["j", :]
@@ -3239,7 +3238,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(is_categorical_dtype(res_col))
+        assert is_categorical_dtype(res_col)
 
         # single value
         res_val = df.loc["j", df.columns[0]]
@@ -3272,23 +3271,23 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(is_categorical_dtype(res_df["cats"]))
+        assert is_categorical_dtype(res_df["cats"])
 
         res_df = df.iloc[[2, 3]]
         tm.assert_frame_equal(res_df, exp_df)
-        self.assertTrue(is_categorical_dtype(res_df["cats"]))
+        assert is_categorical_dtype(res_df["cats"])
 
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        self.assertTrue(is_categorical_dtype(res_col))
+        assert is_categorical_dtype(res_col)
 
         res_df = df.iloc[:, slice(0, 2)]
         tm.assert_frame_equal(res_df, df)
-        self.assertTrue(is_categorical_dtype(res_df["cats"]))
+        assert is_categorical_dtype(res_df["cats"])
 
         res_df = df.iloc[:, [0, 1]]
         tm.assert_frame_equal(res_df, df)
-        self.assertTrue(is_categorical_dtype(res_df["cats"]))
+        assert is_categorical_dtype(res_df["cats"])
 
     def test_slicing_doc_examples(self):
 
@@ -3784,22 +3783,22 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         # vs scalar
         assert not (a == 'a').all()
-        self.assertTrue(((a != 'a') == ~(a == 'a')).all())
+        assert ((a != 'a') == ~(a == 'a')).all()
 
         assert not ('a' == a).all()
-        self.assertTrue((a == 'a')[0])
-        self.assertTrue(('a' == a)[0])
+        assert (a == 'a')[0]
+        assert ('a' == a)[0]
         assert not ('a' != a)[0]
 
         # vs list-like
-        self.assertTrue((a == a).all())
+        assert (a == a).all()
         assert not (a != a).all()
 
-        self.assertTrue((a == list(a)).all())
-        self.assertTrue((a == b).all())
-        self.assertTrue((b == a).all())
-        self.assertTrue(((~(a == b)) == (a != b)).all())
-        self.assertTrue(((~(b == a)) == (b != a)).all())
+        assert (a == list(a)).all()
+        assert (a == b).all()
+        assert (b == a).all()
+        assert ((~(a == b)) == (a != b)).all()
+        assert ((~(b == a)) == (b != a)).all()
 
         assert not (a == c).all()
         assert not (c == a).all()
@@ -3807,15 +3806,15 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         assert not (d == a).all()
 
         # vs a cat-like
-        self.assertTrue((a == e).all())
-        self.assertTrue((e == a).all())
+        assert (a == e).all()
+        assert (e == a).all()
         assert not (a == f).all()
         assert not (f == a).all()
 
-        self.assertTrue(((~(a == e) == (a != e)).all()))
-        self.assertTrue(((~(e == a) == (e != a)).all()))
-        self.assertTrue(((~(a == f) == (a != f)).all()))
-        self.assertTrue(((~(f == a) == (f != a)).all()))
+        assert ((~(a == e) == (a != e)).all())
+        assert ((~(e == a) == (e != a)).all())
+        assert ((~(a == f) == (a != f)).all())
+        assert ((~(f == a) == (f != a)).all())
 
         # non-equality is not comparable
         pytest.raises(TypeError, lambda: a < b)

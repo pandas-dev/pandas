@@ -13,15 +13,15 @@ class TestMisc(tm.TestCase):
     def test_max_len_string_array(self):
 
         arr = a = np.array(['foo', 'b', np.nan], dtype='object')
-        self.assertTrue(lib.max_len_string_array(arr), 3)
+        assert lib.max_len_string_array(arr), 3
 
         # unicode
         arr = a.astype('U').astype(object)
-        self.assertTrue(lib.max_len_string_array(arr), 3)
+        assert lib.max_len_string_array(arr), 3
 
         # bytes for python3
         arr = a.astype('S').astype(object)
-        self.assertTrue(lib.max_len_string_array(arr), 3)
+        assert lib.max_len_string_array(arr), 3
 
         # raises
         pytest.raises(TypeError,
@@ -139,13 +139,13 @@ class TestIndexing(tm.TestCase):
         for step in [1, 2, 4, 5, 8, 9]:
             indices = np.arange(0, 9, step, dtype=np.int64)
             maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
-            self.assertTrue(isinstance(maybe_slice, slice))
+            assert isinstance(maybe_slice, slice)
             tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
             # reverse
             indices = indices[::-1]
             maybe_slice = lib.maybe_indices_to_slice(indices, len(target))
-            self.assertTrue(isinstance(maybe_slice, slice))
+            assert isinstance(maybe_slice, slice)
             tm.assert_numpy_array_equal(target[indices], target[maybe_slice])
 
         # not slice
@@ -189,16 +189,16 @@ class TestIndexing(tm.TestCase):
     def test_maybe_booleans_to_slice(self):
         arr = np.array([0, 0, 1, 1, 1, 0, 1], dtype=np.uint8)
         result = lib.maybe_booleans_to_slice(arr)
-        self.assertTrue(result.dtype == np.bool_)
+        assert result.dtype == np.bool_
 
         result = lib.maybe_booleans_to_slice(arr[:0])
-        self.assertTrue(result == slice(0, 0))
+        assert result == slice(0, 0)
 
     def test_get_reverse_indexer(self):
         indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype=np.int64)
         result = lib.get_reverse_indexer(indexer, 5)
         expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
-        self.assertTrue(np.array_equal(result, expected))
+        assert np.array_equal(result, expected)
 
 
 class TestNullObj(tm.TestCase):

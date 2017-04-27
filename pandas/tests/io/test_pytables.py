@@ -338,10 +338,10 @@ class TestHDFStore(Base, tm.TestCase):
             pandas.set_option('io.hdf.default_format', 'table')
             _maybe_remove(store, 'df')
             store.put('df', df)
-            self.assertTrue(store.get_storer('df').is_table)
+            assert store.get_storer('df').is_table
             _maybe_remove(store, 'df2')
             store.append('df2', df)
-            self.assertTrue(store.get_storer('df').is_table)
+            assert store.get_storer('df').is_table
 
             pandas.set_option('io.hdf.default_format', None)
 
@@ -358,10 +358,10 @@ class TestHDFStore(Base, tm.TestCase):
             pandas.set_option('io.hdf.default_format', 'table')
             df.to_hdf(path, 'df3')
             with HDFStore(path) as store:
-                self.assertTrue(store.get_storer('df3').is_table)
+                assert store.get_storer('df3').is_table
             df.to_hdf(path, 'df4', append=True)
             with HDFStore(path) as store:
-                self.assertTrue(store.get_storer('df4').is_table)
+                assert store.get_storer('df4').is_table
 
             pandas.set_option('io.hdf.default_format', None)
 
@@ -376,14 +376,14 @@ class TestHDFStore(Base, tm.TestCase):
                 store['foo/bar'] = tm.makePanel()
             self.assertEqual(len(store), 5)
             expected = set(['/a', '/b', '/c', '/d', '/foo/bar'])
-            self.assertTrue(set(store.keys()) == expected)
-            self.assertTrue(set(store) == expected)
+            assert set(store.keys()) == expected
+            assert set(store) == expected
 
     def test_iter_empty(self):
 
         with ensure_clean_store(self.path) as store:
             # GH 12221
-            self.assertTrue(list(store) == [])
+            assert list(store) == []
 
     def test_repr(self):
 
@@ -549,7 +549,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             # truncation ok here
             store.open('w')
-            self.assertTrue(store.is_open)
+            assert store.is_open
             self.assertEqual(len(store), 0)
             store.close()
             assert not store.is_open
@@ -559,7 +559,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             # reopen as read
             store.open('r')
-            self.assertTrue(store.is_open)
+            assert store.is_open
             self.assertEqual(len(store), 1)
             self.assertEqual(store._mode, 'r')
             store.close()
@@ -567,7 +567,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             # reopen as append
             store.open('a')
-            self.assertTrue(store.is_open)
+            assert store.is_open
             self.assertEqual(len(store), 1)
             self.assertEqual(store._mode, 'a')
             store.close()
@@ -575,7 +575,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             # reopen as append (again)
             store.open('a')
-            self.assertTrue(store.is_open)
+            assert store.is_open
             self.assertEqual(len(store), 1)
             self.assertEqual(store._mode, 'a')
             store.close()
@@ -1232,7 +1232,7 @@ class TestHDFStore(Base, tm.TestCase):
                 def check_indexers(key, indexers):
                     for i, idx in enumerate(indexers):
                         descr = getattr(store.root, key).table.description
-                        self.assertTrue(getattr(descr, idx)._v_pos == i)
+                        assert getattr(descr, idx)._v_pos == i
 
                 # append then change (will take existing schema)
                 indexers = ['items', 'major_axis', 'minor_axis']
@@ -2280,7 +2280,7 @@ class TestHDFStore(Base, tm.TestCase):
 
                 # deleted number (entire table)
                 n = store.remove('wp', [])
-                self.assertTrue(n == 120)
+                assert n == 120
 
                 # non - empty where
                 _maybe_remove(store, 'wp')
@@ -2300,7 +2300,7 @@ class TestHDFStore(Base, tm.TestCase):
                 _maybe_remove(store, 'wp1')
                 store.put('wp1', wp, format='t')
                 n = store.remove('wp1', start=32)
-                self.assertTrue(n == 120 - 32)
+                assert n == 120 - 32
                 result = store.select('wp1')
                 expected = wp.reindex(major_axis=wp.major_axis[:32 // 4])
                 assert_panel_equal(result, expected)
@@ -2308,7 +2308,7 @@ class TestHDFStore(Base, tm.TestCase):
                 _maybe_remove(store, 'wp2')
                 store.put('wp2', wp, format='t')
                 n = store.remove('wp2', start=-32)
-                self.assertTrue(n == 32)
+                assert n == 32
                 result = store.select('wp2')
                 expected = wp.reindex(major_axis=wp.major_axis[:-32 // 4])
                 assert_panel_equal(result, expected)
@@ -2317,7 +2317,7 @@ class TestHDFStore(Base, tm.TestCase):
                 _maybe_remove(store, 'wp3')
                 store.put('wp3', wp, format='t')
                 n = store.remove('wp3', stop=32)
-                self.assertTrue(n == 32)
+                assert n == 32
                 result = store.select('wp3')
                 expected = wp.reindex(major_axis=wp.major_axis[32 // 4:])
                 assert_panel_equal(result, expected)
@@ -2325,7 +2325,7 @@ class TestHDFStore(Base, tm.TestCase):
                 _maybe_remove(store, 'wp4')
                 store.put('wp4', wp, format='t')
                 n = store.remove('wp4', stop=-32)
-                self.assertTrue(n == 120 - 32)
+                assert n == 120 - 32
                 result = store.select('wp4')
                 expected = wp.reindex(major_axis=wp.major_axis[-32 // 4:])
                 assert_panel_equal(result, expected)
@@ -2334,7 +2334,7 @@ class TestHDFStore(Base, tm.TestCase):
                 _maybe_remove(store, 'wp5')
                 store.put('wp5', wp, format='t')
                 n = store.remove('wp5', start=16, stop=-16)
-                self.assertTrue(n == 120 - 32)
+                assert n == 120 - 32
                 result = store.select('wp5')
                 expected = wp.reindex(
                     major_axis=(wp.major_axis[:16 // 4]
@@ -2344,7 +2344,7 @@ class TestHDFStore(Base, tm.TestCase):
                 _maybe_remove(store, 'wp6')
                 store.put('wp6', wp, format='t')
                 n = store.remove('wp6', start=16, stop=16)
-                self.assertTrue(n == 0)
+                assert n == 0
                 result = store.select('wp6')
                 expected = wp.reindex(major_axis=wp.major_axis)
                 assert_panel_equal(result, expected)
@@ -2358,7 +2358,7 @@ class TestHDFStore(Base, tm.TestCase):
                 crit = 'major_axis=date'
                 store.put('wp7', wp, format='t')
                 n = store.remove('wp7', where=[crit], stop=80)
-                self.assertTrue(n == 28)
+                assert n == 28
                 result = store.select('wp7')
                 expected = wp.reindex(major_axis=wp.major_axis.difference(
                     wp.major_axis[np.arange(0, 20, 3)]))
@@ -2377,7 +2377,7 @@ class TestHDFStore(Base, tm.TestCase):
                 crit4 = 'major_axis=date4'
                 store.put('wp3', wp, format='t')
                 n = store.remove('wp3', where=[crit4])
-                self.assertTrue(n == 36)
+                assert n == 36
 
                 result = store.select('wp3')
                 expected = wp.reindex(
@@ -2392,10 +2392,10 @@ class TestHDFStore(Base, tm.TestCase):
                 crit1 = 'major_axis>date'
                 crit2 = "minor_axis=['A', 'D']"
                 n = store.remove('wp', where=[crit1])
-                self.assertTrue(n == 56)
+                assert n == 56
 
                 n = store.remove('wp', where=[crit2])
-                self.assertTrue(n == 32)
+                assert n == 32
 
                 result = store['wp']
                 expected = wp.truncate(after=date).reindex(minor=['B', 'C'])
@@ -2819,7 +2819,7 @@ class TestHDFStore(Base, tm.TestCase):
             df['foo'] = np.random.randn(len(df))
             store['df'] = df
             recons = store['df']
-            self.assertTrue(recons._data.is_consolidated())
+            assert recons._data.is_consolidated()
 
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal)
@@ -4184,7 +4184,7 @@ class TestHDFStore(Base, tm.TestCase):
             # out of range
             result = store.select(
                 'df', "columns=['A']", start=30, stop=40)
-            self.assertTrue(len(result) == 0)
+            assert len(result) == 0
             expected = df.loc[30:40, ['A']]
             tm.assert_frame_equal(result, expected)
 
@@ -4495,8 +4495,7 @@ class TestHDFStore(Base, tm.TestCase):
                             if propindexes:
                                 for a in orig_t.axes:
                                     if a.is_indexed:
-                                        self.assertTrue(
-                                            new_t[a.name].is_indexed)
+                                        assert new_t[a.name].is_indexed
 
                 finally:
                     safe_close(store)
@@ -4803,8 +4802,8 @@ class TestHDFStore(Base, tm.TestCase):
             other = read_hdf(path, 'df')
 
             tm.assert_frame_equal(df, other)
-            self.assertTrue(df.equals(other))
-            self.assertTrue(other.equals(df))
+            assert df.equals(other)
+            assert other.equals(df)
 
     def test_round_trip_equals(self):
         # GH 9330
@@ -4814,8 +4813,8 @@ class TestHDFStore(Base, tm.TestCase):
             df.to_hdf(path, 'df', format='table')
             other = read_hdf(path, 'df')
             tm.assert_frame_equal(df, other)
-            self.assertTrue(df.equals(other))
-            self.assertTrue(other.equals(df))
+            assert df.equals(other)
+            assert other.equals(df)
 
     def test_preserve_timedeltaindex_type(self):
         # GH9635
@@ -4851,7 +4850,7 @@ class TestHDFStore(Base, tm.TestCase):
             cols2load = list('BCD')
             cols2load_original = list(cols2load)
             df_loaded = read_hdf(path, 'df', columns=cols2load)  # noqa
-            self.assertTrue(cols2load_original == cols2load)
+            assert cols2load_original == cols2load
 
     def test_to_hdf_with_object_column_names(self):
         # GH9057
@@ -4902,7 +4901,7 @@ class TestHDFStore(Base, tm.TestCase):
             store = HDFStore(path, mode='r')
             indirect = read_hdf(store, 'df')
             tm.assert_frame_equal(direct, indirect)
-            self.assertTrue(store.is_open)
+            assert store.is_open
             store.close()
 
     def test_read_hdf_iterator(self):
@@ -4916,7 +4915,7 @@ class TestHDFStore(Base, tm.TestCase):
             df.to_hdf(path, 'df', mode='w', format='t')
             direct = read_hdf(path, 'df')
             iterator = read_hdf(path, 'df', iterator=True)
-            self.assertTrue(isinstance(iterator, TableIterator))
+            assert isinstance(iterator, TableIterator)
             indirect = next(iterator.__iter__())
             tm.assert_frame_equal(direct, indirect)
             iterator.store.close()
@@ -5023,7 +5022,7 @@ class TestHDFStore(Base, tm.TestCase):
 
             cutoff = 1000000000.0006
             result = store.select('test', "A < %.4f" % cutoff)
-            self.assertTrue(result.empty)
+            assert result.empty
 
             cutoff = 1000000000.0010
             result = store.select('test', "A > %.4f" % cutoff)

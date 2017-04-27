@@ -91,7 +91,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
     def test_constructor_dtype(self):
         arr = SparseSeries([np.nan, 1, 2, np.nan])
         self.assertEqual(arr.dtype, np.float64)
-        self.assertTrue(np.isnan(arr.fill_value))
+        assert np.isnan(arr.fill_value)
 
         arr = SparseSeries([np.nan, 1, 2, np.nan], fill_value=0)
         self.assertEqual(arr.dtype, np.float64)
@@ -99,7 +99,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         arr = SparseSeries([0, 1, 2, 4], dtype=np.int64, fill_value=np.nan)
         self.assertEqual(arr.dtype, np.int64)
-        self.assertTrue(np.isnan(arr.fill_value))
+        assert np.isnan(arr.fill_value)
 
         arr = SparseSeries([0, 1, 2, 4], dtype=np.int64)
         self.assertEqual(arr.dtype, np.int64)
@@ -230,9 +230,9 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_constructor(self):
         # test setup guys
-        self.assertTrue(np.isnan(self.bseries.fill_value))
+        assert np.isnan(self.bseries.fill_value)
         assert isinstance(self.bseries.sp_index, BlockIndex)
-        self.assertTrue(np.isnan(self.iseries.fill_value))
+        assert np.isnan(self.iseries.fill_value)
         assert isinstance(self.iseries.sp_index, IntIndex)
 
         self.assertEqual(self.zbseries.fill_value, 0)
@@ -289,8 +289,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         data = 5
         sp = SparseSeries(data, np.arange(100))
         sp = sp.reindex(np.arange(200))
-        self.assertTrue((sp.loc[:99] == data).all())
-        self.assertTrue(isnull(sp.loc[100:]).all())
+        assert (sp.loc[:99] == data).all()
+        assert isnull(sp.loc[100:]).all()
 
         data = np.nan
         sp = SparseSeries(data, np.arange(100))
@@ -805,13 +805,13 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         cop.fill_value = 0
         result = self.bseries / cop
 
-        self.assertTrue(np.isnan(result.fill_value))
+        assert np.isnan(result.fill_value)
 
         cop2 = self.zbseries.copy()
         cop2.fill_value = 1
         result = cop2 / cop
         # 1 / 0 is inf
-        self.assertTrue(np.isinf(result.fill_value))
+        assert np.isinf(result.fill_value)
 
     def test_fill_value_when_combine_const(self):
         # GH12723

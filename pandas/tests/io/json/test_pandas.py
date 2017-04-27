@@ -349,38 +349,38 @@ class TestPandasContainer(tm.TestCase):
     def test_frame_from_json_nones(self):
         df = DataFrame([[1, 2], [4, 5, 6]])
         unser = read_json(df.to_json())
-        self.assertTrue(np.isnan(unser[2][0]))
+        assert np.isnan(unser[2][0])
 
         df = DataFrame([['1', '2'], ['4', '5', '6']])
         unser = read_json(df.to_json())
-        self.assertTrue(np.isnan(unser[2][0]))
+        assert np.isnan(unser[2][0])
         unser = read_json(df.to_json(), dtype=False)
-        self.assertTrue(unser[2][0] is None)
+        assert unser[2][0] is None
         unser = read_json(df.to_json(), convert_axes=False, dtype=False)
-        self.assertTrue(unser['2']['0'] is None)
+        assert unser['2']['0'] is None
 
         unser = read_json(df.to_json(), numpy=False)
-        self.assertTrue(np.isnan(unser[2][0]))
+        assert np.isnan(unser[2][0])
         unser = read_json(df.to_json(), numpy=False, dtype=False)
-        self.assertTrue(unser[2][0] is None)
+        assert unser[2][0] is None
         unser = read_json(df.to_json(), numpy=False,
                           convert_axes=False, dtype=False)
-        self.assertTrue(unser['2']['0'] is None)
+        assert unser['2']['0'] is None
 
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
         df = DataFrame([[1, 2], [4, 5, 6]])
         df.loc[0, 2] = np.inf
         unser = read_json(df.to_json())
-        self.assertTrue(np.isnan(unser[2][0]))
+        assert np.isnan(unser[2][0])
         unser = read_json(df.to_json(), dtype=False)
-        self.assertTrue(np.isnan(unser[2][0]))
+        assert np.isnan(unser[2][0])
 
         df.loc[0, 2] = np.NINF
         unser = read_json(df.to_json())
-        self.assertTrue(np.isnan(unser[2][0]))
+        assert np.isnan(unser[2][0])
         unser = read_json(df.to_json(), dtype=False)
-        self.assertTrue(np.isnan(unser[2][0]))
+        assert np.isnan(unser[2][0])
 
     @pytest.mark.skipif(is_platform_32bit(),
                         reason="not compliant on 32-bit, xref #15865")
@@ -427,7 +427,7 @@ class TestPandasContainer(tm.TestCase):
         # mixed type
         df = DataFrame(columns=['jim', 'joe'])
         df['joe'] = df['joe'].astype('i8')
-        self.assertTrue(df._is_mixed_type)
+        assert df._is_mixed_type
         assert_frame_equal(read_json(df.to_json(), dtype=dict(df.dtypes)), df,
                            check_index_type=False)
 
@@ -440,7 +440,7 @@ class TestPandasContainer(tm.TestCase):
         df = DataFrame(vals, index=list('abcd'),
                        columns=['1st', '2nd', '3rd', '4th', '5th'])
 
-        self.assertTrue(df._is_mixed_type)
+        assert df._is_mixed_type
         right = df.copy()
 
         for orient in ['split', 'index', 'columns']:
@@ -637,7 +637,7 @@ class TestPandasContainer(tm.TestCase):
         json = self.ts.to_json()
         result = read_json(json, typ='series')
         assert_series_equal(result, self.ts, check_names=False)
-        self.assertTrue(result.name is None)
+        assert result.name is None
 
     def test_convert_dates(self):
 

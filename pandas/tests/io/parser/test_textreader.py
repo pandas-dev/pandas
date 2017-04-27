@@ -253,14 +253,14 @@ aaaaa,5"""
         self.assertEqual(result[0].dtype, 'S5')
 
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaaa'], dtype='S5')
-        self.assertTrue((result[0] == ex_values).all())
+        assert (result[0] == ex_values).all()
         self.assertEqual(result[1].dtype, 'i4')
 
         reader = _make_reader(dtype='S4')
         result = reader.read()
         self.assertEqual(result[0].dtype, 'S4')
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
-        self.assertTrue((result[0] == ex_values).all())
+        assert (result[0] == ex_values).all()
         self.assertEqual(result[1].dtype, 'S4')
 
     def test_numpy_string_dtype_as_recarray(self):
@@ -279,7 +279,7 @@ aaaaa,5"""
         result = reader.read()
         self.assertEqual(result['0'].dtype, 'S4')
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
-        self.assertTrue((result['0'] == ex_values).all())
+        assert (result['0'] == ex_values).all()
         self.assertEqual(result['1'].dtype, 'S4')
 
     def test_pass_dtype(self):
@@ -325,8 +325,8 @@ a,b,c
 
         exp = _make_reader().read()
         self.assertEqual(len(result), 2)
-        self.assertTrue((result[1] == exp[1]).all())
-        self.assertTrue((result[2] == exp[2]).all())
+        assert (result[1] == exp[1]).all()
+        assert (result[2] == exp[2]).all()
 
     def test_cr_delimited(self):
         def _test(text, **kwargs):
@@ -392,7 +392,7 @@ a,b,c
         # GH14867
         df = read_csv(StringIO(), chunksize=20, header=None,
                       names=['a', 'b', 'c'])
-        self.assertTrue(isinstance(df, TextFileReader))
+        assert isinstance(df, TextFileReader)
 
 
 def assert_array_dicts_equal(left, right):

@@ -63,7 +63,7 @@ bar,4,5,6
 baz,7,8,9
 """
         data = self.read_csv(StringIO(data))
-        self.assertTrue(data.index.equals(Index(['foo', 'bar', 'baz'])))
+        assert data.index.equals(Index(['foo', 'bar', 'baz']))
 
     def test_empty_index_col_scenarios(self):
         data = 'x,y,z'

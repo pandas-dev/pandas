@@ -129,8 +129,8 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         data = np.zeros((8, 4))
         df = DataFrame(data, index=index)
         r = df.to_records(index=True)['level_0']
-        self.assertTrue('bar' in r)
-        self.assertTrue('one' not in r)
+        assert 'bar' in r
+        assert 'one' not in r
 
     def test_to_records_with_Mapping_type(self):
         import email

@@ -163,7 +163,7 @@ class TestNumpy(TestPackers):
     def test_numpy_scalar_complex(self):
         x = np.complex64(np.random.rand() + 1j * np.random.rand())
         x_rec = self.encode_decode(x)
-        self.assertTrue(np.allclose(x, x_rec))
+        assert np.allclose(x, x_rec)
 
     def test_scalar_float(self):
         x = np.random.rand()
@@ -173,7 +173,7 @@ class TestNumpy(TestPackers):
     def test_scalar_complex(self):
         x = np.random.rand() + 1j * np.random.rand()
         x_rec = self.encode_decode(x)
-        self.assertTrue(np.allclose(x, x_rec))
+        assert np.allclose(x, x_rec)
 
     def test_list_numpy_float(self):
         x = [np.float32(np.random.rand()) for i in range(5)]
@@ -192,7 +192,7 @@ class TestNumpy(TestPackers):
             [np.complex128(np.random.rand() + 1j * np.random.rand())
              for i in range(5)]
         x_rec = self.encode_decode(x)
-        self.assertTrue(np.allclose(x, x_rec))
+        assert np.allclose(x, x_rec)
 
     def test_list_float(self):
         x = [np.random.rand() for i in range(5)]
@@ -207,7 +207,7 @@ class TestNumpy(TestPackers):
         x = [np.random.rand() for i in range(5)] + \
             [(np.random.rand() + 1j * np.random.rand()) for i in range(5)]
         x_rec = self.encode_decode(x)
-        self.assertTrue(np.allclose(x, x_rec))
+        assert np.allclose(x, x_rec)
 
     def test_dict_float(self):
         x = {'foo': 1.0, 'bar': 2.0}
@@ -247,8 +247,8 @@ class TestNumpy(TestPackers):
     def test_numpy_array_complex(self):
         x = (np.random.rand(5) + 1j * np.random.rand(5)).astype(np.complex128)
         x_rec = self.encode_decode(x)
-        self.assertTrue(all(map(lambda x, y: x == y, x, x_rec)) and
-                        x.dtype == x_rec.dtype)
+        assert (all(map(lambda x, y: x == y, x, x_rec)) and
+                x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
         x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]
@@ -613,7 +613,7 @@ class TestCompression(TestPackers):
             assert_frame_equal(value, expected)
             # make sure that we can write to the new frames
             for block in value._data.blocks:
-                self.assertTrue(block.values.flags.writeable)
+                assert block.values.flags.writeable
 
     def test_compression_zlib(self):
         if not _ZLIB_INSTALLED:
@@ -662,7 +662,7 @@ class TestCompression(TestPackers):
                 # make sure that we can write to the new frames even though
                 # we needed to copy the data
                 for block in value._data.blocks:
-                    self.assertTrue(block.values.flags.writeable)
+                    assert block.values.flags.writeable
                     # mutate the data in some way
                     block.values[0] += rhs[block.dtype]
 
@@ -695,14 +695,14 @@ class TestCompression(TestPackers):
             empty_unpacked = self.encode_decode(empty, compress=compress)
 
         tm.assert_numpy_array_equal(empty_unpacked, empty)
-        self.assertTrue(empty_unpacked.flags.writeable)
+        assert empty_unpacked.flags.writeable
 
         char = np.array([ord(b'a')], dtype='uint8')
         with tm.assert_produces_warning(None):
             char_unpacked = self.encode_decode(char, compress=compress)
 
         tm.assert_numpy_array_equal(char_unpacked, char)
-        self.assertTrue(char_unpacked.flags.writeable)
+        assert char_unpacked.flags.writeable
         # if this test fails I am sorry because the interpreter is now in a
         # bad state where b'a' points to 98 == ord(b'b').
         char_unpacked[0] = ord(b'b')
@@ -732,15 +732,15 @@ class TestCompression(TestPackers):
             pytest.skip('no blosc')
         df1 = DataFrame({'A': list('abcd')})
         df2 = DataFrame(df1, index=[1., 2., 3., 4.])
-        self.assertTrue(1 in self.encode_decode(df1['A'], compress='blosc'))
-        self.assertTrue(1. in self.encode_decode(df2['A'], compress='blosc'))
+        assert 1 in self.encode_decode(df1['A'], compress='blosc')
+        assert 1. in self.encode_decode(df2['A'], compress='blosc')
 
     def test_readonly_axis_zlib(self):
         # GH11880
         df1 = DataFrame({'A': list('abcd')})
         df2 = DataFrame(df1, index=[1., 2., 3., 4.])
-        self.assertTrue(1 in self.encode_decode(df1['A'], compress='zlib'))
-        self.assertTrue(1. in self.encode_decode(df2['A'], compress='zlib'))
+        assert 1 in self.encode_decode(df1['A'], compress='zlib')
+        assert 1. in self.encode_decode(df2['A'], compress='zlib')
 
     def test_readonly_axis_blosc_to_sql(self):
         # GH11880

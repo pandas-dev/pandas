@@ -130,14 +130,14 @@ class TestFloatIndexers(tm.TestCase):
 
                     s2 = s.copy()
                     s2.loc[3.0] = 10
-                    self.assertTrue(s2.index.is_object())
+                    assert s2.index.is_object()
 
                     for idxr in [lambda x: x.ix,
                                  lambda x: x]:
                         s2 = s.copy()
                         with catch_warnings(record=True):
                             idxr(s2)[3.0] = 0
-                        self.assertTrue(s2.index.is_object())
+                        assert s2.index.is_object()
 
             # fallsback to position selection, series only
             s = Series(np.arange(len(i)), index=i)
@@ -239,7 +239,7 @@ class TestFloatIndexers(tm.TestCase):
 
                 # contains
                 # coerce to equal int
-                self.assertTrue(3.0 in s)
+                assert 3.0 in s
 
     def test_scalar_float(self):
 
@@ -275,7 +275,7 @@ class TestFloatIndexers(tm.TestCase):
                     pytest.raises(KeyError, lambda: idxr(s)[3.5])
 
             # contains
-            self.assertTrue(3.0 in s)
+            assert 3.0 in s
 
             # iloc succeeds with an integer
             expected = s.iloc[3]
@@ -440,7 +440,7 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         idxr(sc)[l] = 0
                         result = idxr(sc)[l].values.ravel()
-                    self.assertTrue((result == 0).all())
+                    assert (result == 0).all()
 
                 # positional indexing
                 def f():
@@ -534,7 +534,7 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         idxr(sc)[l] = 0
                         result = idxr(sc)[l].values.ravel()
-                    self.assertTrue((result == 0).all())
+                    assert (result == 0).all()
 
                     # positional indexing
                     def f():
@@ -570,7 +570,7 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         idxr(s2)[l] = 0
                         result = idxr(s2)[l].values.ravel()
-                    self.assertTrue((result == 0).all())
+                    assert (result == 0).all()
 
     def test_floating_index_doc_example(self):
 

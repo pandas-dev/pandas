@@ -157,7 +157,7 @@ class UltraJSONTests(TestCase):
         num = -1e-45
         self.assertEqual(num, ujson.decode(ujson.encode(num)))
         num = -1e-145
-        self.assertTrue(np.allclose(num, ujson.decode(ujson.encode(num))))
+        assert np.allclose(num, ujson.decode(ujson.encode(num)))
 
     def test_encodeDictWithUnicodeKeys(self):
         input = {u("key1"): u("value1"), u("key1"):
@@ -1189,15 +1189,15 @@ class NumpyJSONTests(TestCase):
     def testArrayNumpyLabelled(self):
         input = {'a': []}
         output = ujson.loads(ujson.dumps(input), numpy=True, labelled=True)
-        self.assertTrue((np.empty((1, 0)) == output[0]).all())
-        self.assertTrue((np.array(['a']) == output[1]).all())
-        self.assertTrue(output[2] is None)
+        assert (np.empty((1, 0)) == output[0]).all()
+        assert (np.array(['a']) == output[1]).all()
+        assert output[2] is None
 
         input = [{'a': 42}]
         output = ujson.loads(ujson.dumps(input), numpy=True, labelled=True)
-        self.assertTrue((np.array([42]) == output[0]).all())
-        self.assertTrue(output[1] is None)
-        self.assertTrue((np.array([u('a')]) == output[2]).all())
+        assert (np.array([42]) == output[0]).all()
+        assert output[1] is None
+        assert (np.array([u('a')]) == output[2]).all()
 
         # Write out the dump explicitly so there is no dependency on iteration
         # order GH10837
@@ -1206,18 +1206,18 @@ class NumpyJSONTests(TestCase):
         output = ujson.loads(input_dumps, numpy=True, labelled=True)
         expectedvals = np.array(
             [42, 31, 24, 99, 2.4, 78], dtype=int).reshape((3, 2))
-        self.assertTrue((expectedvals == output[0]).all())
-        self.assertTrue(output[1] is None)
-        self.assertTrue((np.array([u('a'), 'b']) == output[2]).all())
+        assert (expectedvals == output[0]).all()
+        assert output[1] is None
+        assert (np.array([u('a'), 'b']) == output[2]).all()
 
         input_dumps = ('{"1": {"a": 42, "b":31}, "2": {"a": 24, "c": 99}, '
                        '"3": {"a": 2.4, "b": 78}}')
         output = ujson.loads(input_dumps, numpy=True, labelled=True)
         expectedvals = np.array(
             [42, 31, 24, 99, 2.4, 78], dtype=int).reshape((3, 2))
-        self.assertTrue((expectedvals == output[0]).all())
-        self.assertTrue((np.array(['1', '2', '3']) == output[1]).all())
-        self.assertTrue((np.array(['a', 'b']) == output[2]).all())
+        assert (expectedvals == output[0]).all()
+        assert (np.array(['1', '2', '3']) == output[1]).all()
+        assert (np.array(['a', 'b']) == output[2]).all()
 
 
 class PandasJSONTests(TestCase):
@@ -1228,27 +1228,27 @@ class PandasJSONTests(TestCase):
 
         # column indexed
         outp = DataFrame(ujson.decode(ujson.encode(df)))
-        self.assertTrue((df == outp).values.all())
+        assert (df == outp).values.all()
         tm.assert_index_equal(df.columns, outp.columns)
         tm.assert_index_equal(df.index, outp.index)
 
         dec = _clean_dict(ujson.decode(ujson.encode(df, orient="split")))
         outp = DataFrame(**dec)
-        self.assertTrue((df == outp).values.all())
+        assert (df == outp).values.all()
         tm.assert_index_equal(df.columns, outp.columns)
         tm.assert_index_equal(df.index, outp.index)
 
         outp = DataFrame(ujson.decode(ujson.encode(df, orient="records")))
         outp.index = df.index
-        self.assertTrue((df == outp).values.all())
+        assert (df == outp).values.all()
         tm.assert_index_equal(df.columns, outp.columns)
 
         outp = DataFrame(ujson.decode(ujson.encode(df, orient="values")))
         outp.index = df.index
-        self.assertTrue((df.values == outp.values).all())
+        assert (df.values == outp.values).all()
 
         outp = DataFrame(ujson.decode(ujson.encode(df, orient="index")))
-        self.assertTrue((df.transpose() == outp).values.all())
+        assert (df.transpose() == outp).values.all()
         tm.assert_index_equal(df.transpose().columns, outp.columns)
         tm.assert_index_equal(df.transpose().index, outp.index)
 
@@ -1258,20 +1258,20 @@ class PandasJSONTests(TestCase):
 
         # column indexed
         outp = DataFrame(ujson.decode(ujson.encode(df), numpy=True))
-        self.assertTrue((df == outp).values.all())
+        assert (df == outp).values.all()
         tm.assert_index_equal(df.columns, outp.columns)
         tm.assert_index_equal(df.index, outp.index)
 
         dec = _clean_dict(ujson.decode(ujson.encode(df, orient="split"),
                                        numpy=True))
         outp = DataFrame(**dec)
-        self.assertTrue((df == outp).values.all())
+        assert (df == outp).values.all()
         tm.assert_index_equal(df.columns, outp.columns)
         tm.assert_index_equal(df.index, outp.index)
 
         outp = DataFrame(ujson.decode(ujson.encode(df, orient="index"),
                                       numpy=True))
-        self.assertTrue((df.transpose() == outp).values.all())
+        assert (df.transpose() == outp).values.all()
         tm.assert_index_equal(df.transpose().columns, outp.columns)
         tm.assert_index_equal(df.transpose().index, outp.index)
 
@@ -1283,27 +1283,23 @@ class PandasJSONTests(TestCase):
 
         exp = {'df1': ujson.decode(ujson.encode(df)),
                'df2': ujson.decode(ujson.encode(df))}
-        self.assertTrue(ujson.decode(ujson.encode(nested)) == exp)
+        assert ujson.decode(ujson.encode(nested)) == exp
 
         exp = {'df1': ujson.decode(ujson.encode(df, orient="index")),
                'df2': ujson.decode(ujson.encode(df, orient="index"))}
-        self.assertTrue(ujson.decode(
-            ujson.encode(nested, orient="index")) == exp)
+        assert ujson.decode(ujson.encode(nested, orient="index")) == exp
 
         exp = {'df1': ujson.decode(ujson.encode(df, orient="records")),
                'df2': ujson.decode(ujson.encode(df, orient="records"))}
-        self.assertTrue(ujson.decode(
-            ujson.encode(nested, orient="records")) == exp)
+        assert ujson.decode(ujson.encode(nested, orient="records")) == exp
 
         exp = {'df1': ujson.decode(ujson.encode(df, orient="values")),
                'df2': ujson.decode(ujson.encode(df, orient="values"))}
-        self.assertTrue(ujson.decode(
-            ujson.encode(nested, orient="values")) == exp)
+        assert ujson.decode(ujson.encode(nested, orient="values")) == exp
 
         exp = {'df1': ujson.decode(ujson.encode(df, orient="split")),
                'df2': ujson.decode(ujson.encode(df, orient="split"))}
-        self.assertTrue(ujson.decode(
-            ujson.encode(nested, orient="split")) == exp)
+        assert ujson.decode(ujson.encode(nested, orient="split")) == exp
 
     def testDataFrameNumpyLabelled(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[
@@ -1312,19 +1308,19 @@ class PandasJSONTests(TestCase):
         # column indexed
         outp = DataFrame(*ujson.decode(ujson.encode(df),
                                        numpy=True, labelled=True))
-        self.assertTrue((df.T == outp).values.all())
+        assert (df.T == outp).values.all()
         tm.assert_index_equal(df.T.columns, outp.columns)
         tm.assert_index_equal(df.T.index, outp.index)
 
         outp = DataFrame(*ujson.decode(ujson.encode(df, orient="records"),
                                        numpy=True, labelled=True))
         outp.index = df.index
-        self.assertTrue((df == outp).values.all())
+        assert (df == outp).values.all()
         tm.assert_index_equal(df.columns, outp.columns)
 
         outp = DataFrame(*ujson.decode(ujson.encode(df, orient="index"),
                                        numpy=True, labelled=True))
-        self.assertTrue((df == outp).values.all())
+        assert (df == outp).values.all()
         tm.assert_index_equal(df.columns, outp.columns)
         tm.assert_index_equal(df.index, outp.index)
 
@@ -1384,27 +1380,23 @@ class PandasJSONTests(TestCase):
 
         exp = {'s1': ujson.decode(ujson.encode(s)),
                's2': ujson.decode(ujson.encode(s))}
-        self.assertTrue(ujson.decode(ujson.encode(nested)) == exp)
+        assert ujson.decode(ujson.encode(nested)) == exp
 
         exp = {'s1': ujson.decode(ujson.encode(s, orient="split")),
                's2': ujson.decode(ujson.encode(s, orient="split"))}
-        self.assertTrue(ujson.decode(
-            ujson.encode(nested, orient="split")) == exp)
+        assert ujson.decode(ujson.encode(nested, orient="split")) == exp
 
         exp = {'s1': ujson.decode(ujson.encode(s, orient="records")),
                's2': ujson.decode(ujson.encode(s, orient="records"))}
-        self.assertTrue(ujson.decode(
-            ujson.encode(nested, orient="records")) == exp)
+        assert ujson.decode(ujson.encode(nested, orient="records")) == exp
 
         exp = {'s1': ujson.decode(ujson.encode(s, orient="values")),
                's2': ujson.decode(ujson.encode(s, orient="values"))}
-        self.assertTrue(ujson.decode(
-            ujson.encode(nested, orient="values")) == exp)
+        assert ujson.decode(ujson.encode(nested, orient="values")) == exp
 
         exp = {'s1': ujson.decode(ujson.encode(s, orient="index")),
                's2': ujson.decode(ujson.encode(s, orient="index"))}
-        self.assertTrue(ujson.decode(
-            ujson.encode(nested, orient="index")) == exp)
+        assert ujson.decode(ujson.encode(nested, orient="index")) == exp
 
     def testIndex(self):
         i = Index([23, 45, 18, 98, 43, 11], name="index")
@@ -1419,13 +1411,13 @@ class PandasJSONTests(TestCase):
         dec = _clean_dict(ujson.decode(ujson.encode(i, orient="split")))
         outp = Index(**dec)
         tm.assert_index_equal(i, outp)
-        self.assertTrue(i.name == outp.name)
+        assert i.name == outp.name
 
         dec = _clean_dict(ujson.decode(ujson.encode(i, orient="split"),
                                        numpy=True))
         outp = Index(**dec)
         tm.assert_index_equal(i, outp)
-        self.assertTrue(i.name == outp.name)
+        assert i.name == outp.name
 
         outp = Index(ujson.decode(ujson.encode(i, orient="values")),
                      name='index')
@@ -1634,7 +1626,7 @@ class PandasJSONTests(TestCase):
         dec = ujson.decode(enc)
 
         for v in dec:
-            self.assertTrue(v in s)
+            assert v in s
 
 
 def _clean_dict(d):

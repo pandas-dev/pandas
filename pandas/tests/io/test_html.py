@@ -361,7 +361,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     def test_multiple_matches(self):
         url = 'https://docs.python.org/2/'
         dfs = self.read_html(url, match='Python')
-        self.assertTrue(len(dfs) > 1)
+        assert len(dfs) > 1
 
     @network
     def test_python_docs_table(self):

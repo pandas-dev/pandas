@@ -781,7 +781,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         # bools
         df = DataFrame({'bools': [True, False, True]})
         result = df.replace(False, True)
-        self.assertTrue(result.values.all())
+        assert result.values.all()
 
         # complex blocks
         df = DataFrame({'complex': [1j, 2j, 3j]})

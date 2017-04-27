@@ -496,7 +496,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
     def test_rename_nocopy(self):
         renamed = self.frame.rename(columns={'C': 'foo'}, copy=False)
         renamed['foo'] = 1.
-        self.assertTrue((self.frame['C'] == 1.).all())
+        assert (self.frame['C'] == 1.).all()
 
     def test_rename_inplace(self):
         self.frame.rename(columns={'C': 'foo'})
@@ -763,15 +763,15 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         self.assertEqual(df.set_index(df.index).index.names, ['A', 'B'])
 
         # Check that set_index isn't converting a MultiIndex into an Index
-        self.assertTrue(isinstance(df.set_index(df.index).index, MultiIndex))
+        assert isinstance(df.set_index(df.index).index, MultiIndex)
 
         # Check actual equality
         tm.assert_index_equal(df.set_index(df.index).index, mi)
 
         # Check that [MultiIndex, MultiIndex] yields a MultiIndex rather
         # than a pair of tuples
-        self.assertTrue(isinstance(df.set_index(
-            [df.index, df.index]).index, MultiIndex))
+        assert isinstance(df.set_index(
+            [df.index, df.index]).index, MultiIndex)
 
         # Check equality
         tm.assert_index_equal(df.set_index([df.index, df.index]).index, mi2)

@@ -662,17 +662,17 @@ class TestEvalNumexprPandas(tm.TestCase):
         x = 1
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, 1)
-        self.assertTrue(is_scalar(result))
+        assert is_scalar(result)
 
         x = 1.5
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, 1.5)
-        self.assertTrue(is_scalar(result))
+        assert is_scalar(result)
 
         x = False
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         self.assertEqual(result, False)
-        self.assertTrue(is_scalar(result))
+        assert is_scalar(result)
 
         x = np.array([1])
         result = pd.eval('x', engine=self.engine, parser=self.parser)
@@ -708,7 +708,7 @@ class TestEvalNumexprPandas(tm.TestCase):
                                  1000000000.0015]})
         cutoff = 1000000000.0006
         result = df.query("A < %.4f" % cutoff)
-        self.assertTrue(result.empty)
+        assert result.empty
 
         cutoff = 1000000000.0010
         result = df.query("A > %.4f" % cutoff)
@@ -1281,7 +1281,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
             df.eval('a = a + b', inplace=True)
             result = old_a + df.b
             assert_series_equal(result, df.a, check_names=False)
-            self.assertTrue(result.name is None)
+            assert result.name is None
 
         f()
 
@@ -1435,11 +1435,11 @@ class TestOperationsNumExprPandas(tm.TestCase):
         if self.parser != 'python':
             res = pd.eval('1 in [1, 2]', engine=self.engine,
                           parser=self.parser)
-            self.assertTrue(res)
+            assert res
 
             res = pd.eval('2 in (1, 2)', engine=self.engine,
                           parser=self.parser)
-            self.assertTrue(res)
+            assert res
 
             res = pd.eval('3 in (1, 2)', engine=self.engine,
                           parser=self.parser)
@@ -1447,23 +1447,23 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
             res = pd.eval('3 not in (1, 2)', engine=self.engine,
                           parser=self.parser)
-            self.assertTrue(res)
+            assert res
 
             res = pd.eval('[3] not in (1, 2)', engine=self.engine,
                           parser=self.parser)
-            self.assertTrue(res)
+            assert res
 
             res = pd.eval('[3] in ([3], 2)', engine=self.engine,
                           parser=self.parser)
-            self.assertTrue(res)
+            assert res
 
             res = pd.eval('[[3]] in [[[3]], 2]', engine=self.engine,
                           parser=self.parser)
-            self.assertTrue(res)
+            assert res
 
             res = pd.eval('(3,) in [(3,), 2]', engine=self.engine,
                           parser=self.parser)
-            self.assertTrue(res)
+            assert res
 
             res = pd.eval('(3,) not in [(3,), 2]', engine=self.engine,
                           parser=self.parser)
@@ -1471,7 +1471,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
             res = pd.eval('[(3,)] in [[(3,)], 2]', engine=self.engine,
                           parser=self.parser)
-            self.assertTrue(res)
+            assert res
         else:
             with pytest.raises(NotImplementedError):
                 pd.eval('1 in [1, 2]', engine=self.engine, parser=self.parser)

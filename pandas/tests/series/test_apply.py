@@ -373,17 +373,17 @@ class TestSeriesMap(TestData, tm.TestCase):
         right = Series({1: 11, 2: 22, 3: 33})
 
         self.assertEqual(left.dtype, np.float_)
-        self.assertTrue(issubclass(right.dtype.type, np.integer))
+        assert issubclass(right.dtype.type, np.integer)
 
         merged = left.map(right)
         self.assertEqual(merged.dtype, np.float_)
-        self.assertTrue(isnull(merged['d']))
-        self.assertTrue(not isnull(merged['c']))
+        assert isnull(merged['d'])
+        assert not isnull(merged['c'])
 
     def test_map_type_inference(self):
         s = Series(lrange(3))
         s2 = s.map(lambda x: np.where(x == 0, 0, 1))
-        self.assertTrue(issubclass(s2.dtype.type, np.integer))
+        assert issubclass(s2.dtype.type, np.integer)
 
     def test_map_decimal(self):
         from decimal import Decimal

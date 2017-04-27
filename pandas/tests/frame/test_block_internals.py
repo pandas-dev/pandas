@@ -71,16 +71,16 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         self.frame['E'] = 7.
         assert not self.frame._data.is_consolidated()
         _ = self.frame.as_matrix()  # noqa
-        self.assertTrue(self.frame._data.is_consolidated())
+        assert self.frame._data.is_consolidated()
 
     def test_modify_values(self):
         self.frame.values[5] = 5
-        self.assertTrue((self.frame.values[5] == 5).all())
+        assert (self.frame.values[5] == 5).all()
 
         # unconsolidated
         self.frame['E'] = 7.
         self.frame.values[6] = 6
-        self.assertTrue((self.frame.values[6] == 6).all())
+        assert (self.frame.values[6] == 6).all()
 
     def test_boolean_set_uncons(self):
         self.frame['E'] = 7.
@@ -307,12 +307,12 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         df1 = df0.reset_index()[["A", "B", "C"]]
         # this assert verifies that the above operations have
         # induced a block rearrangement
-        self.assertTrue(df0._data.blocks[0].dtype !=
-                        df1._data.blocks[0].dtype)
+        assert (df0._data.blocks[0].dtype != df1._data.blocks[0].dtype)
+
         # do the real tests
         assert_frame_equal(df0, df1)
-        self.assertTrue(df0.equals(df1))
-        self.assertTrue(df1.equals(df0))
+        assert df0.equals(df1)
+        assert df1.equals(df0)
 
     def test_copy_blocks(self):
         # API/ENH 9607
@@ -340,7 +340,7 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
                 _df.loc[:, column] = _df[column] + 1
 
         # make sure we did change the original DataFrame
-        self.assertTrue(_df[column].equals(df[column]))
+        assert _df[column].equals(df[column])
 
     def test_copy(self):
         cop = self.frame.copy()
@@ -400,7 +400,7 @@ starting,ending,measure
 
     def test_is_mixed_type(self):
         assert not self.frame._is_mixed_type
-        self.assertTrue(self.mixed_frame._is_mixed_type)
+        assert self.mixed_frame._is_mixed_type
 
     def test_get_numeric_data(self):
         # TODO(wesm): unused?
@@ -507,7 +507,7 @@ starting,ending,measure
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y['g'].sum()  # noqa
-            self.assertTrue(pd.isnull(Y['g']['c']))
+            assert pd.isnull(Y['g']['c'])
 
     def test_get_X_columns(self):
         # numeric and object columns
@@ -542,4 +542,4 @@ starting,ending,measure
 
         first = len(df.loc[pd.isnull(df[myid]), [myid]])
         second = len(df.loc[pd.isnull(df[myid]), [myid]])
-        self.assertTrue(first == second == 0)
+        assert first == second == 0

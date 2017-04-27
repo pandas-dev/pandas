@@ -31,7 +31,7 @@ class Base(object):
 
     def verify_pickle(self, index):
         unpickled = tm.round_trip_pickle(index)
-        self.assertTrue(index.equals(unpickled))
+        assert index.equals(unpickled)
 
     def test_pickle_compat_construction(self):
         # this is testing for pickle compat
@@ -134,8 +134,8 @@ class Base(object):
 
     def test_ndarray_compat_properties(self):
         idx = self.create_index()
-        self.assertTrue(idx.T.equals(idx))
-        self.assertTrue(idx.transpose().equals(idx))
+        assert idx.T.equals(idx)
+        assert idx.transpose().equals(idx)
 
         values = idx.values
         for prop in self._compat_props:
@@ -155,8 +155,8 @@ class Base(object):
         # test the string repr
         idx = self.create_index()
         idx.name = 'foo'
-        self.assertTrue("'foo'" in str(idx))
-        self.assertTrue(idx.__class__.__name__ in str(idx))
+        assert "'foo'" in str(idx)
+        assert idx.__class__.__name__ in str(idx)
 
     def test_dtype_str(self):
         for idx in self.indices.values():
@@ -304,7 +304,7 @@ class Base(object):
                 continue
             idx = self._holder([ind[0]] * 5)
             assert not idx.is_unique
-            self.assertTrue(idx.has_duplicates)
+            assert idx.has_duplicates
 
             # GH 10115
             # preserve names
@@ -325,7 +325,7 @@ class Base(object):
 
             # We test against `idx_unique`, so first we make sure it's unique
             # and doesn't contain nans.
-            self.assertTrue(idx_unique.is_unique)
+            assert idx_unique.is_unique
             try:
                 assert not idx_unique.hasnans
             except NotImplementedError:
@@ -349,7 +349,7 @@ class Base(object):
             vals_unique = vals[:2]
             idx_nan = ind._shallow_copy(vals)
             idx_unique_nan = ind._shallow_copy(vals_unique)
-            self.assertTrue(idx_unique_nan.is_unique)
+            assert idx_unique_nan.is_unique
 
             self.assertEqual(idx_nan.dtype, ind.dtype)
             self.assertEqual(idx_unique_nan.dtype, ind.dtype)
@@ -390,10 +390,10 @@ class Base(object):
                 # RangeIndex, IntervalIndex
                 # don't have engines
                 if not isinstance(index, (RangeIndex, IntervalIndex)):
-                    self.assertTrue(result2 > result)
+                    assert result2 > result
 
                 if index.inferred_type == 'object':
-                    self.assertTrue(result3 > result2)
+                    assert result3 > result2
 
             else:
 
@@ -453,7 +453,7 @@ class Base(object):
 
             result = ind.take(indexer)
             expected = ind[indexer]
-            self.assertTrue(result.equals(expected))
+            assert result.equals(expected)
 
             if not isinstance(ind,
                               (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
@@ -546,7 +546,7 @@ class Base(object):
             if isinstance(idx, CategoricalIndex):
                 pass
             else:
-                self.assertTrue(tm.equalContents(intersect, second))
+                assert tm.equalContents(intersect, second)
 
             # GH 10149
             cases = [klass(second.values)
@@ -560,7 +560,7 @@ class Base(object):
                     pass
                 else:
                     result = first.intersection(case)
-                    self.assertTrue(tm.equalContents(result, second))
+                    assert tm.equalContents(result, second)
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
@@ -573,7 +573,7 @@ class Base(object):
             second = idx[:5]
             everything = idx
             union = first.union(second)
-            self.assertTrue(tm.equalContents(union, everything))
+            assert tm.equalContents(union, everything)
 
             # GH 10149
             cases = [klass(second.values)
@@ -587,7 +587,7 @@ class Base(object):
                     pass
                 else:
                     result = first.union(case)
-                    self.assertTrue(tm.equalContents(result, everything))
+                    assert tm.equalContents(result, everything)
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
@@ -604,7 +604,7 @@ class Base(object):
             if isinstance(idx, CategoricalIndex):
                 pass
             else:
-                self.assertTrue(tm.equalContents(result, answer))
+                assert tm.equalContents(result, answer)
 
             # GH 10149
             cases = [klass(second.values)
@@ -621,7 +621,7 @@ class Base(object):
                     tm.assert_numpy_array_equal(result.asi8, answer.asi8)
                 else:
                     result = first.difference(case)
-                    self.assertTrue(tm.equalContents(result, answer))
+                    assert tm.equalContents(result, answer)
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
@@ -637,7 +637,7 @@ class Base(object):
             else:
                 answer = idx[[0, -1]]
                 result = first.symmetric_difference(second)
-                self.assertTrue(tm.equalContents(result, answer))
+                assert tm.equalContents(result, answer)
 
             # GH 10149
             cases = [klass(second.values)
@@ -651,7 +651,7 @@ class Base(object):
                     pass
                 else:
                     result = first.symmetric_difference(case)
-                    self.assertTrue(tm.equalContents(result, answer))
+                    assert tm.equalContents(result, answer)
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
@@ -671,7 +671,7 @@ class Base(object):
                 continue
 
             # test 0th element
-            self.assertTrue(idx[0:4].equals(result.insert(0, idx[0])))
+            assert idx[0:4].equals(result.insert(0, idx[0]))
 
     def test_delete_base(self):
 
@@ -686,12 +686,12 @@ class Base(object):
 
             expected = idx[1:]
             result = idx.delete(0)
-            self.assertTrue(result.equals(expected))
+            assert result.equals(expected)
             self.assertEqual(result.name, expected.name)
 
             expected = idx[:-1]
             result = idx.delete(-1)
-            self.assertTrue(result.equals(expected))
+            assert result.equals(expected)
             self.assertEqual(result.name, expected.name)
 
             with pytest.raises((IndexError, ValueError)):
@@ -701,9 +701,9 @@ class Base(object):
     def test_equals(self):
 
         for name, idx in compat.iteritems(self.indices):
-            self.assertTrue(idx.equals(idx))
-            self.assertTrue(idx.equals(idx.copy()))
-            self.assertTrue(idx.equals(idx.astype(object)))
+            assert idx.equals(idx)
+            assert idx.equals(idx.copy())
+            assert idx.equals(idx.astype(object))
 
             assert not idx.equals(list(idx))
             assert not idx.equals(np.array(idx))
@@ -711,8 +711,8 @@ class Base(object):
             # Cannot pass in non-int64 dtype to RangeIndex
             if not isinstance(idx, RangeIndex):
                 same_values = Index(idx, dtype=object)
-                self.assertTrue(idx.equals(same_values))
-                self.assertTrue(same_values.equals(idx))
+                assert idx.equals(same_values)
+                assert same_values.equals(idx)
 
             if idx.nlevels == 1:
                 # do not test MultiIndex
@@ -865,7 +865,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                self.assertTrue(idx.hasnans)
+                assert idx.hasnans
 
     def test_fillna(self):
         # GH 11343
@@ -905,7 +905,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                self.assertTrue(idx.hasnans)
+                assert idx.hasnans
 
     def test_nulls(self):
         # this is really a smoke test for the methods
@@ -936,4 +936,4 @@ class Base(object):
         # GH 15270
         index = self.create_index()
         assert not index.empty
-        self.assertTrue(index[:0].empty)
+        assert index[:0].empty

@@ -71,7 +71,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
             result = s.dt.to_pydatetime()
             assert isinstance(result, np.ndarray)
-            self.assertTrue(result.dtype == object)
+            assert result.dtype == object
 
             result = s.dt.tz_localize('US/Eastern')
             exp_values = DatetimeIndex(s.values).tz_localize('US/Eastern')
@@ -141,7 +141,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         result = s.dt.to_pydatetime()
         assert isinstance(result, np.ndarray)
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
         result = s.dt.tz_convert('CET')
         expected = Series(s._values.tz_convert('CET'),
@@ -176,11 +176,11 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
             result = s.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
-            self.assertTrue(result.dtype == object)
+            assert result.dtype == object
 
             result = s.dt.total_seconds()
             assert isinstance(result, pd.Series)
-            self.assertTrue(result.dtype == 'float64')
+            assert result.dtype == 'float64'
 
             freq_result = s.dt.freq
             self.assertEqual(freq_result, TimedeltaIndex(s.values,

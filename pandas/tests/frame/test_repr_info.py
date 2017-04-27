@@ -79,7 +79,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
     def test_repr_dimensions(self):
         df = DataFrame([[1, 2, ], [3, 4]])
         with option_context('display.show_dimensions', True):
-            self.assertTrue("2 rows x 2 columns" in repr(df))
+            assert "2 rows x 2 columns" in repr(df)
 
         with option_context('display.show_dimensions', False):
             assert "2 rows x 2 columns" not in repr(df)
@@ -211,7 +211,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         io = StringIO()
         df.info(buf=io, max_cols=101)
         rs = io.getvalue()
-        self.assertTrue(len(rs.splitlines()) > 100)
+        assert len(rs.splitlines()) > 100
         xp = rs
 
         set_option('display.max_info_columns', 101)
@@ -303,18 +303,18 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         # display memory usage case
         df.info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
-        self.assertTrue("memory usage: " in res[-1])
+        assert "memory usage: " in res[-1]
 
         # do not display memory usage cas
         df.info(buf=buf, memory_usage=False)
         res = buf.getvalue().splitlines()
-        self.assertTrue("memory usage: " not in res[-1])
+        assert "memory usage: " not in res[-1]
 
         df.info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
 
         # memory usage is a lower bound, so print it as XYZ+ MB
-        self.assertTrue(re.match(r"memory usage: [^+]+\+", res[-1]))
+        assert re.match(r"memory usage: [^+]+\+", res[-1])
 
         df.iloc[:, :5].info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
@@ -325,11 +325,11 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
         df_with_object_index.info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
-        self.assertTrue(re.match(r"memory usage: [^+]+\+", res[-1]))
+        assert re.match(r"memory usage: [^+]+\+", res[-1])
 
         df_with_object_index.info(buf=buf, memory_usage='deep')
         res = buf.getvalue().splitlines()
-        self.assertTrue(re.match(r"memory usage: [^+]+$", res[-1]))
+        assert re.match(r"memory usage: [^+]+$", res[-1])
 
         self.assertGreater(df_with_object_index.memory_usage(index=True,
                                                              deep=True).sum(),
@@ -380,7 +380,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         # sys.getsizeof will call the .memory_usage with
         # deep=True, and add on some GC overhead
         diff = df.memory_usage(deep=True).sum() - sys.getsizeof(df)
-        self.assertTrue(abs(diff) < 100)
+        assert abs(diff) < 100
 
     def test_info_memory_usage_qualified(self):
 
@@ -394,7 +394,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         df = DataFrame(1, columns=list('ab'),
                        index=list('ABC'))
         df.info(buf=buf)
-        self.assertTrue('+' in buf.getvalue())
+        assert '+' in buf.getvalue()
 
         buf = StringIO()
         df = DataFrame(1, columns=list('ab'),
@@ -408,7 +408,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                        index=pd.MultiIndex.from_product(
                            [range(3), ['foo', 'bar']]))
         df.info(buf=buf)
-        self.assertTrue('+' in buf.getvalue())
+        assert '+' in buf.getvalue()
 
     def test_info_memory_usage_bug_on_multiindex(self):
         # GH 14308
@@ -429,10 +429,10 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
         unstacked = df.unstack('id')
         self.assertEqual(df.values.nbytes, unstacked.values.nbytes)
-        self.assertTrue(memory_usage(df) > memory_usage(unstacked))
+        assert memory_usage(df) > memory_usage(unstacked)
 
         # high upper bound
-        self.assertTrue(memory_usage(unstacked) - memory_usage(df) < 2000)
+        assert memory_usage(unstacked) - memory_usage(df) < 2000
 
     def test_info_categorical(self):
         # GH14298

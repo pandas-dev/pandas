@@ -402,23 +402,23 @@ class CheckIndexing(object):
             df = panel4dc.iloc[0, 0]
             df.iloc[:] = 1
             panel4dc.iloc[0, 0] = df
-            self.assertTrue((panel4dc.iloc[0, 0].values == 1).all())
+            assert (panel4dc.iloc[0, 0].values == 1).all()
 
             # Series
             panel4dc = self.panel4d.copy()
             s = panel4dc.iloc[0, 0, :, 0]
             s.iloc[:] = 1
             panel4dc.iloc[0, 0, :, 0] = s
-            self.assertTrue((panel4dc.iloc[0, 0, :, 0].values == 1).all())
+            assert (panel4dc.iloc[0, 0, :, 0].values == 1).all()
 
             # scalar
             panel4dc = self.panel4d.copy()
             panel4dc.iloc[0] = 1
             panel4dc.iloc[1] = True
             panel4dc.iloc[2] = 'foo'
-            self.assertTrue((panel4dc.iloc[0].values == 1).all())
-            self.assertTrue(panel4dc.iloc[1].values.all())
-            self.assertTrue((panel4dc.iloc[2].values == 'foo').all())
+            assert (panel4dc.iloc[0].values == 1).all()
+            assert panel4dc.iloc[1].values.all()
+            assert (panel4dc.iloc[2].values == 'foo').all()
 
     def test_setitem_by_indexer_mixed_type(self):
 
@@ -431,9 +431,9 @@ class CheckIndexing(object):
             panel4dc.iloc[0] = 1
             panel4dc.iloc[1] = True
             panel4dc.iloc[2] = 'foo'
-            self.assertTrue((panel4dc.iloc[0].values == 1).all())
-            self.assertTrue(panel4dc.iloc[1].values.all())
-            self.assertTrue((panel4dc.iloc[2].values == 'foo').all())
+            assert (panel4dc.iloc[0].values == 1).all()
+            assert panel4dc.iloc[1].values.all()
+            assert (panel4dc.iloc[2].values == 'foo').all()
 
     def test_comparisons(self):
         with catch_warnings(record=True):
@@ -681,13 +681,13 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
 
     def test_consolidate(self):
         with catch_warnings(record=True):
-            self.assertTrue(self.panel4d._data.is_consolidated())
+            assert self.panel4d._data.is_consolidated()
 
             self.panel4d['foo'] = 1.
             assert not self.panel4d._data.is_consolidated()
 
             panel4d = self.panel4d._consolidate()
-            self.assertTrue(panel4d._data.is_consolidated())
+            assert panel4d._data.is_consolidated()
 
     def test_ctor_dict(self):
         with catch_warnings(record=True):
@@ -819,7 +819,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             result = self.panel4d.reindex(
                 major=self.panel4d.major_axis, copy=False)
             assert_panel4d_equal(result, self.panel4d)
-            self.assertTrue(result is self.panel4d)
+            assert result is self.panel4d
 
     def test_not_hashable(self):
         with catch_warnings(record=True):
@@ -859,7 +859,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
         with catch_warnings(record=True):
             assert not np.isfinite(self.panel4d.values).all()
             filled = self.panel4d.fillna(0)
-            self.assertTrue(np.isfinite(filled.values).all())
+            assert np.isfinite(filled.values).all()
 
             pytest.raises(NotImplementedError,
                           self.panel4d.fillna, method='pad')
@@ -949,7 +949,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
                                                       axis=0,
                                                       copy=False)
             renamed_nocopy['foo'] = 3.
-            self.assertTrue((self.panel4d['l1'].values == 3).all())
+            assert (self.panel4d['l1'].values == 3).all()
 
     def test_get_attr(self):
         assert_panel_equal(self.panel4d['l1'], self.panel4d.l1)

@@ -39,7 +39,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
 
         # GH7661
         result = Series([np.timedelta64('NaT')]).sum()
-        self.assertTrue(result is pd.NaT)
+        assert result is pd.NaT
 
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
@@ -90,11 +90,11 @@ class TestSeriesQuantile(TestData, tm.TestCase):
         # interpolation = linear (default case)
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='lower')
         self.assertEqual(q, np.percentile(np.array([1, 3, 4]), 50))
-        self.assertTrue(is_integer(q))
+        assert is_integer(q)
 
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='higher')
         self.assertEqual(q, np.percentile(np.array([1, 3, 4]), 50))
-        self.assertTrue(is_integer(q))
+        assert is_integer(q)
 
     @pytest.mark.skipif(not _np_version_under1p9,
                         reason="Numpy version is greater 1.9")
@@ -130,7 +130,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
 
         for s in cases:
             res = s.quantile(0.5)
-            self.assertTrue(np.isnan(res))
+            assert np.isnan(res)
 
             res = s.quantile([0.5])
             tm.assert_series_equal(res, pd.Series([np.nan], index=[0.5]))
@@ -167,12 +167,12 @@ class TestSeriesQuantile(TestData, tm.TestCase):
 
     def test_datetime_timedelta_quantiles(self):
         # covers #9694
-        self.assertTrue(pd.isnull(Series([], dtype='M8[ns]').quantile(.5)))
-        self.assertTrue(pd.isnull(Series([], dtype='m8[ns]').quantile(.5)))
+        assert pd.isnull(Series([], dtype='M8[ns]').quantile(.5))
+        assert pd.isnull(Series([], dtype='m8[ns]').quantile(.5))
 
     def test_quantile_nat(self):
         res = Series([pd.NaT, pd.NaT]).quantile(0.5)
-        self.assertTrue(res is pd.NaT)
+        assert res is pd.NaT
 
         res = Series([pd.NaT, pd.NaT]).quantile([0.5])
         tm.assert_series_equal(res, pd.Series([pd.NaT], index=[0.5]))
@@ -183,7 +183,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
         s = Series([], dtype='float64')
 
         res = s.quantile(0.5)
-        self.assertTrue(np.isnan(res))
+        assert np.isnan(res)
 
         res = s.quantile([0.5])
         exp = Series([np.nan], index=[0.5])
@@ -193,7 +193,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
         s = Series([], dtype='int64')
 
         res = s.quantile(0.5)
-        self.assertTrue(np.isnan(res))
+        assert np.isnan(res)
 
         res = s.quantile([0.5])
         exp = Series([np.nan], index=[0.5])
@@ -203,7 +203,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
         s = Series([], dtype='datetime64[ns]')
 
         res = s.quantile(0.5)
-        self.assertTrue(res is pd.NaT)
+        assert res is pd.NaT
 
         res = s.quantile([0.5])
         exp = Series([pd.NaT], index=[0.5])

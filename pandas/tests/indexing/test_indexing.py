@@ -87,8 +87,8 @@ class TestFancy(Base, tm.TestCase):
                               columns=['foo', 'bar', 'baz'])
 
             tm.assert_frame_equal(left, right)
-            self.assertTrue(is_integer_dtype(left['foo']))
-            self.assertTrue(is_integer_dtype(left['baz']))
+            assert is_integer_dtype(left['foo'])
+            assert is_integer_dtype(left['baz'])
 
         left = DataFrame(np.arange(6, dtype='int64').reshape(2, 3) / 10.0,
                          index=list('ab'),
@@ -99,8 +99,8 @@ class TestFancy(Base, tm.TestCase):
                           columns=['foo', 'bar', 'baz'])
 
         tm.assert_frame_equal(left, right)
-        self.assertTrue(is_float_dtype(left['foo']))
-        self.assertTrue(is_float_dtype(left['baz']))
+        assert is_float_dtype(left['foo'])
+        assert is_float_dtype(left['baz'])
 
     def test_dups_fancy_indexing(self):
 
@@ -430,7 +430,7 @@ class TestFancy(Base, tm.TestCase):
         # dtype should properly raises KeyError
         df = pd.DataFrame([1], pd.Index([pd.Timestamp('2011-01-01')],
                                         dtype=object))
-        self.assertTrue(df.index.is_all_dates)
+        assert df.index.is_all_dates
         with pytest.raises(KeyError):
             df['2011']
 
@@ -556,15 +556,15 @@ class TestFancy(Base, tm.TestCase):
             for s in [Series(range(5)),
                       Series(range(5), index=range(1, 6))]:
 
-                self.assertTrue(s.index.is_integer())
+                assert s.index.is_integer()
 
                 for indexer in [lambda x: x.ix,
                                 lambda x: x.loc,
                                 lambda x: x]:
                     s2 = s.copy()
                     indexer(s2)[0.1] = 0
-                    self.assertTrue(s2.index.is_floating())
-                    self.assertTrue(indexer(s2)[0.1] == 0)
+                    assert s2.index.is_floating()
+                    assert indexer(s2)[0.1] == 0
 
                     s2 = s.copy()
                     indexer(s2)[0.0] = 0
@@ -575,11 +575,11 @@ class TestFancy(Base, tm.TestCase):
 
                     s2 = s.copy()
                     indexer(s2)['0'] = 0
-                    self.assertTrue(s2.index.is_object())
+                    assert s2.index.is_object()
 
             for s in [Series(range(5), index=np.arange(5.))]:
 
-                self.assertTrue(s.index.is_floating())
+                assert s.index.is_floating()
 
                 for idxr in [lambda x: x.ix,
                              lambda x: x.loc,
@@ -587,8 +587,8 @@ class TestFancy(Base, tm.TestCase):
 
                     s2 = s.copy()
                     idxr(s2)[0.1] = 0
-                    self.assertTrue(s2.index.is_floating())
-                    self.assertTrue(idxr(s2)[0.1] == 0)
+                    assert s2.index.is_floating()
+                    assert idxr(s2)[0.1] == 0
 
                     s2 = s.copy()
                     idxr(s2)[0.0] = 0
@@ -596,7 +596,7 @@ class TestFancy(Base, tm.TestCase):
 
                     s2 = s.copy()
                     idxr(s2)['0'] = 0
-                    self.assertTrue(s2.index.is_object())
+                    assert s2.index.is_object()
 
 
 class TestMisc(Base, tm.TestCase):
@@ -776,7 +776,7 @@ class TestMisc(Base, tm.TestCase):
         ]
         for slice_ in slices:
             tslice_ = _non_reducing_slice(slice_)
-            self.assertTrue(isinstance(df.loc[tslice_], DataFrame))
+            assert isinstance(df.loc[tslice_], DataFrame)
 
     def test_list_slice(self):
         # like dataframe getitem

@@ -132,16 +132,16 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         # new item
         df['x'] = df['a'].astype('float32')
         result = Series(dict(float64=5, float32=1))
-        self.assertTrue((df.get_dtype_counts() == result).all())
+        assert (df.get_dtype_counts() == result).all()
 
         # replacing current (in different block)
         df['a'] = df['a'].astype('float32')
         result = Series(dict(float64=4, float32=2))
-        self.assertTrue((df.get_dtype_counts() == result).all())
+        assert (df.get_dtype_counts() == result).all()
 
         df['y'] = df['a'].astype('int32')
         result = Series(dict(float64=4, float32=2, int32=1))
-        self.assertTrue((df.get_dtype_counts() == result).all())
+        assert (df.get_dtype_counts() == result).all()
 
         with tm.assert_raises_regex(ValueError, 'already exists'):
             df.insert(1, 'a', df['b'])
@@ -222,7 +222,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         self.assertEqual(type(res), DataFrame)
         self.assertEqual(len(res), 2)
         self.assertEqual(len(df.columns), 1)
-        self.assertTrue("b" in df.columns)
+        assert "b" in df.columns
         assert "a" not in df.columns
         self.assertEqual(len(df.index), 2)
 

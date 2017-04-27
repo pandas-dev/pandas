@@ -61,10 +61,10 @@ class TestDataFrameApply(tm.TestCase, TestData):
     def test_apply_empty(self):
         # empty
         applied = self.empty.apply(np.sqrt)
-        self.assertTrue(applied.empty)
+        assert applied.empty
 
         applied = self.empty.apply(np.mean)
-        self.assertTrue(applied.empty)
+        assert applied.empty
 
         no_rows = self.frame[:0]
         result = no_rows.apply(lambda x: x.mean())
@@ -125,12 +125,12 @@ class TestDataFrameApply(tm.TestCase, TestData):
         agged = self.frame.apply(np.mean)
 
         for col, ts in compat.iteritems(broadcasted):
-            self.assertTrue((ts == agged[col]).all())
+            assert (ts == agged[col]).all()
 
         broadcasted = self.frame.apply(np.mean, axis=1, broadcast=True)
         agged = self.frame.apply(np.mean, axis=1)
         for idx in broadcasted.index:
-            self.assertTrue((broadcasted.xs(idx) == agged[idx]).all())
+            assert (broadcasted.xs(idx) == agged[idx]).all()
 
     def test_apply_raw(self):
         result0 = self.frame.apply(np.mean, raw=True)
@@ -452,7 +452,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         df = df.applymap(lambda x: x + BDay())
         df = df.applymap(lambda x: x + BDay())
 
-        self.assertTrue(df.x1.dtype == 'M8[ns]')
+        assert df.x1.dtype == 'M8[ns]'
 
     # See gh-12244
     def test_apply_non_numpy_dtype(self):

@@ -461,7 +461,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         data = "Date, test\n2012-01-01, 1\n,2"
         result = self.read_csv(StringIO(data), parse_dates=["Date"],
                                na_filter=False)
-        self.assertTrue(result['Date'].isnull()[1])
+        assert result['Date'].isnull()[1]
 
     def test_parse_dates_noconvert_thousands(self):
         # see gh-14066
@@ -520,7 +520,7 @@ date, time,a,b
                              datetime(2008, 2, 4, 6, 8, 0)])
 
         result = conv.parse_date_time(dates, times)
-        self.assertTrue((result == expected).all())
+        assert (result == expected).all()
 
         data = """\
 date, time, a, b
@@ -551,7 +551,7 @@ date, time, a, b
         days = np.array([3, 4])
         result = conv.parse_date_fields(years, months, days)
         expected = np.array([datetime(2007, 1, 3), datetime(2008, 2, 4)])
-        self.assertTrue((result == expected).all())
+        assert (result == expected).all()
 
         data = ("year, month, day, a\n 2001 , 01 , 10 , 10.\n"
                 "2001 , 02 , 1 , 11.")
@@ -575,7 +575,7 @@ date, time, a, b
         result = conv.parse_all_fields(years, months, days,
                                        hours, minutes, seconds)
 
-        self.assertTrue((result == expected).all())
+        assert (result == expected).all()
 
         data = """\
 year, month, day, hour, minute, second, a, b

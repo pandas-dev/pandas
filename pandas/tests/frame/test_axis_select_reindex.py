@@ -120,7 +120,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         lexsorted_mi = MultiIndex.from_tuples(
             [('a', ''), ('b1', 'c1'), ('b2', 'c2')], names=['b', 'c'])
         lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
-        self.assertTrue(lexsorted_df.columns.is_lexsorted())
+        assert lexsorted_df.columns.is_lexsorted()
 
         # define the non-lexsorted version
         not_lexsorted_df = DataFrame(columns=['a', 'b', 'c', 'd'],
@@ -172,14 +172,14 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
             for idx, val in compat.iteritems(newFrame[col]):
                 if idx in self.frame.index:
                     if np.isnan(val):
-                        self.assertTrue(np.isnan(self.frame[col][idx]))
+                        assert np.isnan(self.frame[col][idx])
                     else:
                         self.assertEqual(val, self.frame[col][idx])
                 else:
-                    self.assertTrue(np.isnan(val))
+                    assert np.isnan(val)
 
         for col, series in compat.iteritems(newFrame):
-            self.assertTrue(tm.equalContents(series.index, newFrame.index))
+            assert tm.equalContents(series.index, newFrame.index)
         emptyFrame = self.frame.reindex(Index([]))
         self.assertEqual(len(emptyFrame.index), 0)
 
@@ -190,15 +190,14 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
             for idx, val in compat.iteritems(nonContigFrame[col]):
                 if idx in self.frame.index:
                     if np.isnan(val):
-                        self.assertTrue(np.isnan(self.frame[col][idx]))
+                        assert np.isnan(self.frame[col][idx])
                     else:
                         self.assertEqual(val, self.frame[col][idx])
                 else:
-                    self.assertTrue(np.isnan(val))
+                    assert np.isnan(val)
 
         for col, series in compat.iteritems(nonContigFrame):
-            self.assertTrue(tm.equalContents(series.index,
-                                             nonContigFrame.index))
+            assert tm.equalContents(series.index, nonContigFrame.index)
 
         # corner cases
 
@@ -208,7 +207,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # length zero
         newFrame = self.frame.reindex([])
-        self.assertTrue(newFrame.empty)
+        assert newFrame.empty
         self.assertEqual(len(newFrame.columns), len(self.frame.columns))
 
         # length zero with columns reindexed with non-empty index
@@ -355,7 +354,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # axis=0
         result = df.reindex(lrange(15))
-        self.assertTrue(np.isnan(result.values[-5:]).all())
+        assert np.isnan(result.values[-5:]).all()
 
         result = df.reindex(lrange(15), fill_value=0)
         expected = df.reindex(lrange(15)).fillna(0)
@@ -847,11 +846,11 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         reindexed = frame.reindex(np.arange(10))
         self.assertEqual(reindexed.values.dtype, np.object_)
-        self.assertTrue(isnull(reindexed[0][1]))
+        assert isnull(reindexed[0][1])
 
         reindexed = frame.reindex(columns=lrange(3))
         self.assertEqual(reindexed.values.dtype, np.object_)
-        self.assertTrue(isnull(reindexed[1]).all())
+        assert isnull(reindexed[1]).all()
 
     def test_reindex_objects(self):
         reindexed = self.mixed_frame.reindex(columns=['foo', 'A', 'B'])

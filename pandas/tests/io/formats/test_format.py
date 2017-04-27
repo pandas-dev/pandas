@@ -148,7 +148,7 @@ class TestDataFrameFormatting(tm.TestCase):
         def check(null_counts, result):
             buf = StringIO()
             df.info(buf=buf, null_counts=null_counts)
-            self.assertTrue(('non-null' in buf.getvalue()) is result)
+            assert ('non-null' in buf.getvalue()) is result
 
         with option_context('display.max_info_rows', 20,
                             'display.max_info_columns', 20):
@@ -209,10 +209,10 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_repr_obeys_max_seq_limit(self):
         with option_context("display.max_seq_items", 2000):
-            self.assertTrue(len(printing.pprint_thing(lrange(1000))) > 1000)
+            assert len(printing.pprint_thing(lrange(1000))) > 1000
 
         with option_context("display.max_seq_items", 5):
-            self.assertTrue(len(printing.pprint_thing(lrange(1000))) < 100)
+            assert len(printing.pprint_thing(lrange(1000))) < 100
 
     def test_repr_set(self):
         self.assertEqual(printing.pprint_thing(set([1])), '{1}')
@@ -235,12 +235,12 @@ class TestDataFrameFormatting(tm.TestCase):
         index1 = [u("\u03c3"), u("\u03c4"), u("\u03c5"), u("\u03c6")]
         cols = [u("\u03c8")]
         df = DataFrame(data, columns=cols, index=index1)
-        self.assertTrue(type(df.__repr__()) == str)  # both py2 / 3
+        assert type(df.__repr__()) == str  # both py2 / 3
 
     def test_repr_no_backslash(self):
         with option_context('mode.sim_interactive', True):
             df = DataFrame(np.random.randn(10, 4))
-            self.assertTrue('\\' not in repr(df))
+            assert '\\' not in repr(df)
 
     def test_expand_frame_repr(self):
         df_small = DataFrame('hello', [0], [0])
@@ -255,16 +255,16 @@ class TestDataFrameFormatting(tm.TestCase):
                     assert not has_truncated_repr(df_small)
                     assert not has_expanded_repr(df_small)
                     assert not has_truncated_repr(df_wide)
-                    self.assertTrue(has_expanded_repr(df_wide))
-                    self.assertTrue(has_vertically_truncated_repr(df_tall))
-                    self.assertTrue(has_expanded_repr(df_tall))
+                    assert has_expanded_repr(df_wide)
+                    assert has_vertically_truncated_repr(df_tall)
+                    assert has_expanded_repr(df_tall)
 
                 with option_context('display.expand_frame_repr', False):
                     assert not has_truncated_repr(df_small)
                     assert not has_expanded_repr(df_small)
                     assert not has_horizontally_truncated_repr(df_wide)
                     assert not has_expanded_repr(df_wide)
-                    self.assertTrue(has_vertically_truncated_repr(df_tall))
+                    assert has_vertically_truncated_repr(df_tall)
                     assert not has_expanded_repr(df_tall)
 
     def test_repr_non_interactive(self):
@@ -296,7 +296,7 @@ class TestDataFrameFormatting(tm.TestCase):
                     assert not has_expanded_repr(mkframe(4))
                     assert not has_expanded_repr(mkframe(5))
                     assert not has_expanded_repr(df6)
-                    self.assertTrue(has_doubly_truncated_repr(df6))
+                    assert has_doubly_truncated_repr(df6)
 
                 with option_context('display.max_rows', 20,
                                     'display.max_columns', 10):
@@ -309,7 +309,7 @@ class TestDataFrameFormatting(tm.TestCase):
                                     'display.max_columns', 10):
                     # out vertical bounds can not result in exanded repr
                     assert not has_expanded_repr(df10)
-                    self.assertTrue(has_vertically_truncated_repr(df10))
+                    assert has_vertically_truncated_repr(df10)
 
             # width=None in terminal, auto detection
             with option_context('display.max_columns', 100, 'display.max_rows',
@@ -318,7 +318,7 @@ class TestDataFrameFormatting(tm.TestCase):
                 assert not has_expanded_repr(df)
                 df = mkframe((term_width // 7) + 2)
                 printing.pprint_thing(df._repr_fits_horizontal_())
-                self.assertTrue(has_expanded_repr(df))
+                assert has_expanded_repr(df)
 
     def test_str_max_colwidth(self):
         # GH 7856
@@ -330,15 +330,14 @@ class TestDataFrameFormatting(tm.TestCase):
                                       'c': 'stuff',
                                       'd': 1}])
         df.set_index(['a', 'b', 'c'])
-        self.assertTrue(
-            str(df) ==
+        assert str(df) == (
             '     a    b                                           c  d\n'
             '0  foo  bar  uncomfortably long line with lots of stuff  1\n'
             '1  foo  bar                                       stuff  1')
         with option_context('max_colwidth', 20):
-            self.assertTrue(str(df) == '     a    b                    c  d\n'
-                            '0  foo  bar  uncomfortably lo...  1\n'
-                            '1  foo  bar                stuff  1')
+            assert str(df) == ('     a    b                    c  d\n'
+                               '0  foo  bar  uncomfortably lo...  1\n'
+                               '1  foo  bar                stuff  1')
 
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
@@ -350,24 +349,24 @@ class TestDataFrameFormatting(tm.TestCase):
             with option_context('max_rows', None):
                 with option_context('max_columns', None):
                     # Wrap around with None
-                    self.assertTrue(has_expanded_repr(df))
+                    assert has_expanded_repr(df)
             with option_context('max_rows', 0):
                 with option_context('max_columns', 0):
                     # Truncate with auto detection.
-                    self.assertTrue(has_horizontally_truncated_repr(df))
+                    assert has_horizontally_truncated_repr(df)
 
             index = range(int(term_height * fac))
             df = DataFrame(index=index, columns=cols)
             with option_context('max_rows', 0):
                 with option_context('max_columns', None):
                     # Wrap around with None
-                    self.assertTrue(has_expanded_repr(df))
+                    assert has_expanded_repr(df)
                     # Truncate vertically
-                    self.assertTrue(has_vertically_truncated_repr(df))
+                    assert has_vertically_truncated_repr(df)
 
             with option_context('max_rows', None):
                 with option_context('max_columns', 0):
-                    self.assertTrue(has_horizontally_truncated_repr(df))
+                    assert has_horizontally_truncated_repr(df)
 
     def test_to_string_repr_unicode(self):
         buf = StringIO()
@@ -732,7 +731,7 @@ class TestDataFrameFormatting(tm.TestCase):
         c10 = len(df.to_string(col_space=10).split("\n")[1])
         c20 = len(df.to_string(col_space=20).split("\n")[1])
         c30 = len(df.to_string(col_space=30).split("\n")[1])
-        self.assertTrue(c10 < c20 < c30)
+        assert c10 < c20 < c30
 
         # GH 8230
         # col_space wasn't being applied with header=False
@@ -752,23 +751,20 @@ class TestDataFrameFormatting(tm.TestCase):
                             df = DataFrame(index=index(h), columns=column(w))
                             with option_context("display.max_rows", 15):
                                 if h == 20:
-                                    self.assertTrue(
-                                        has_vertically_truncated_repr(df))
+                                    assert has_vertically_truncated_repr(df)
                                 else:
                                     assert not has_vertically_truncated_repr(
                                         df)
                             with option_context("display.max_columns", 15):
                                 if w == 20:
-                                    self.assertTrue(
-                                        has_horizontally_truncated_repr(df))
+                                    assert has_horizontally_truncated_repr(df)
                                 else:
                                     assert not (
                                         has_horizontally_truncated_repr(df))
                             with option_context("display.max_rows", 15,
                                                 "display.max_columns", 15):
                                 if h == 20 and w == 20:
-                                    self.assertTrue(has_doubly_truncated_repr(
-                                        df))
+                                    assert has_doubly_truncated_repr(df)
                                 else:
                                     assert not has_doubly_truncated_repr(
                                         df)
@@ -778,7 +774,7 @@ class TestDataFrameFormatting(tm.TestCase):
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
         with option_context("display.max_rows", 7, "display.max_columns", 7):
-            self.assertTrue(has_doubly_truncated_repr(df))
+            assert has_doubly_truncated_repr(df)
 
     def test_truncate_with_different_dtypes(self):
 
@@ -793,7 +789,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         with pd.option_context('display.max_rows', 8):
             result = str(s)
-            self.assertTrue('object' in result)
+            assert 'object' in result
 
         # 12045
         df = DataFrame({'text': ['some words'] + [None] * 9})
@@ -801,7 +797,7 @@ class TestDataFrameFormatting(tm.TestCase):
         with pd.option_context('display.max_rows', 8,
                                'display.max_columns', 3):
             result = str(df)
-            self.assertTrue('None' in result)
+            assert 'None' in result
             assert 'NaN' not in result
 
     def test_datetimelike_frame(self):
@@ -813,10 +809,10 @@ class TestDataFrameFormatting(tm.TestCase):
 
         with option_context("display.max_rows", 5):
             result = str(df)
-            self.assertTrue('2013-01-01 00:00:00+00:00' in result)
-            self.assertTrue('NaT' in result)
-            self.assertTrue('...' in result)
-            self.assertTrue('[6 rows x 1 columns]' in result)
+            assert '2013-01-01 00:00:00+00:00' in result
+            assert 'NaT' in result
+            assert '...' in result
+            assert '[6 rows x 1 columns]' in result
 
         dts = [pd.Timestamp('2011-01-01', tz='US/Eastern')] * 5 + [pd.NaT] * 5
         df = pd.DataFrame({"dt": dts,
@@ -930,7 +926,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
             with option_context('display.width', 120):
                 wider_repr = repr(df)
-                self.assertTrue(len(wider_repr) < len(wide_repr))
+                assert len(wider_repr) < len(wide_repr)
 
         reset_option('display.expand_frame_repr')
 
@@ -956,7 +952,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
             with option_context('display.width', 150):
                 wider_repr = repr(df)
-                self.assertTrue(len(wider_repr) < len(wide_repr))
+                assert len(wider_repr) < len(wide_repr)
 
             for line in wide_repr.splitlines()[1::13]:
                 assert 'DataFrame Index' in line
@@ -978,7 +974,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
             with option_context('display.width', 150):
                 wider_repr = repr(df)
-                self.assertTrue(len(wider_repr) < len(wide_repr))
+                assert len(wider_repr) < len(wide_repr)
 
             for line in wide_repr.splitlines()[1::13]:
                 assert 'Level 0 Level 1' in line
@@ -1002,7 +998,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         with option_context('display.width', 150):
             wider_repr = repr(df)
-            self.assertTrue(len(wider_repr) < len(wide_repr))
+            assert len(wider_repr) < len(wide_repr)
 
         reset_option('display.expand_frame_repr')
 
@@ -1018,7 +1014,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
             with option_context('display.width', 150):
                 wider_repr = repr(df)
-                self.assertTrue(len(wider_repr) < len(wide_repr))
+                assert len(wider_repr) < len(wide_repr)
 
         reset_option('display.expand_frame_repr')
 
@@ -1028,8 +1024,8 @@ class TestDataFrameFormatting(tm.TestCase):
                             'b': ['c' * 70, 'd' * 80]})
 
             result = repr(df)
-            self.assertTrue('ccccc' in result)
-            self.assertTrue('ddddd' in result)
+            assert 'ccccc' in result
+            assert 'ddddd' in result
 
     def test_long_series(self):
         n = 1000
@@ -1141,8 +1137,8 @@ class TestDataFrameFormatting(tm.TestCase):
                             header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
         self.assertEqual(recons['A'].count(), biggie['A'].count())
-        self.assertTrue((np.abs(recons['A'].dropna() - biggie['A'].dropna()) <
-                         0.1).all())
+        assert (np.abs(recons['A'].dropna() -
+                       biggie['A'].dropna()) < 0.1).all()
 
         # expected = ['B', 'A']
         # self.assertEqual(header, expected)
@@ -1289,7 +1285,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
     def test_to_string_int_formatting(self):
         df = DataFrame({'x': [-15, 20, 25, -35]})
-        self.assertTrue(issubclass(df['x'].dtype.type, np.integer))
+        assert issubclass(df['x'].dtype.type, np.integer)
 
         output = df.to_string()
         expected = ('    x\n' '0 -15\n' '1  20\n' '2  25\n' '3 -35')
@@ -1353,8 +1349,8 @@ c  10  11  12  13  14\
         with option_context('display.max_rows', 10, 'display.max_columns', 40,
                             'display.width', 500, 'display.expand_frame_repr',
                             'info', 'display.show_dimensions', True):
-            self.assertTrue('5 rows' in str(df))
-            self.assertTrue('5 rows' in df._repr_html_())
+            assert '5 rows' in str(df)
+            assert '5 rows' in df._repr_html_()
         with option_context('display.max_rows', 10, 'display.max_columns', 40,
                             'display.width', 500, 'display.expand_frame_repr',
                             'info', 'display.show_dimensions', False):
@@ -1363,8 +1359,8 @@ c  10  11  12  13  14\
         with option_context('display.max_rows', 2, 'display.max_columns', 2,
                             'display.width', 500, 'display.expand_frame_repr',
                             'info', 'display.show_dimensions', 'truncate'):
-            self.assertTrue('5 rows' in str(df))
-            self.assertTrue('5 rows' in df._repr_html_())
+            assert '5 rows' in str(df)
+            assert '5 rows' in df._repr_html_()
         with option_context('display.max_rows', 10, 'display.max_columns', 40,
                             'display.width', 500, 'display.expand_frame_repr',
                             'info', 'display.show_dimensions', 'truncate'):
@@ -1384,7 +1380,7 @@ c  10  11  12  13  14\
 
         df = DataFrame([[1, 2], [3, 4]])
         fmt.set_option('display.show_dimensions', True)
-        self.assertTrue('2 rows' in df._repr_html_())
+        assert '2 rows' in df._repr_html_()
         fmt.set_option('display.show_dimensions', False)
         assert '2 rows' not in df._repr_html_()
 
@@ -1513,7 +1509,7 @@ c  10  11  12  13  14\
         with option_context('display.large_repr', 'info',
                             'display.max_columns', 1,
                             'display.max_info_columns', 4):
-            self.assertTrue(has_non_verbose_info_repr(df))
+            assert has_non_verbose_info_repr(df)
 
         with option_context('display.large_repr', 'info',
                             'display.max_columns', 1,
@@ -1576,17 +1572,17 @@ c  10  11  12  13  14\
             if line.startswith('dtype:'):
                 continue
             if _three_digit_exp():
-                self.assertTrue(('+010' in line) or skip)
+                assert ('+010' in line) or skip
             else:
-                self.assertTrue(('+10' in line) or skip)
+                assert ('+10' in line) or skip
             skip = False
 
     def test_dict_entries(self):
         df = DataFrame({'A': [{'a': 1, 'b': 2}]})
 
         val = df.to_string()
-        self.assertTrue("'a': 1" in val)
-        self.assertTrue("'b': 2" in val)
+        assert "'a': 1" in val
+        assert "'b': 2" in val
 
     def test_period(self):
         # GH 12615
@@ -1662,7 +1658,7 @@ class TestSeriesFormatting(tm.TestCase):
                    index=date_range('1/1/2000', periods=10), name=0)
 
         result = repr(s)
-        self.assertTrue('Freq: D, Name: 0' in result)
+        assert 'Freq: D, Name: 0' in result
 
     def test_to_string_mixed(self):
         s = Series(['foo', np.nan, -1.23, 4.56])
@@ -1884,17 +1880,17 @@ class TestSeriesFormatting(tm.TestCase):
         index = date_range('20130102', periods=6)
         s = Series(1, index=index)
         result = s.to_string()
-        self.assertTrue('2013-01-02' in result)
+        assert '2013-01-02' in result
 
         # nat in index
         s2 = Series(2, index=[Timestamp('20130111'), NaT])
         s = s2.append(s)
         result = s.to_string()
-        self.assertTrue('NaT' in result)
+        assert 'NaT' in result
 
         # nat in summary
         result = str(s2.index)
-        self.assertTrue('NaT' in result)
+        assert 'NaT' in result
 
     def test_timedelta64(self):
 
@@ -1909,47 +1905,47 @@ class TestSeriesFormatting(tm.TestCase):
         # adding NaTs
         y = s - s.shift(1)
         result = y.to_string()
-        self.assertTrue('1 days' in result)
-        self.assertTrue('00:00:00' not in result)
-        self.assertTrue('NaT' in result)
+        assert '1 days' in result
+        assert '00:00:00' not in result
+        assert 'NaT' in result
 
         # with frac seconds
         o = Series([datetime(2012, 1, 1, microsecond=150)] * 3)
         y = s - o
         result = y.to_string()
-        self.assertTrue('-1 days +23:59:59.999850' in result)
+        assert '-1 days +23:59:59.999850' in result
 
         # rounding?
         o = Series([datetime(2012, 1, 1, 1)] * 3)
         y = s - o
         result = y.to_string()
-        self.assertTrue('-1 days +23:00:00' in result)
-        self.assertTrue('1 days 23:00:00' in result)
+        assert '-1 days +23:00:00' in result
+        assert '1 days 23:00:00' in result
 
         o = Series([datetime(2012, 1, 1, 1, 1)] * 3)
         y = s - o
         result = y.to_string()
-        self.assertTrue('-1 days +22:59:00' in result)
-        self.assertTrue('1 days 22:59:00' in result)
+        assert '-1 days +22:59:00' in result
+        assert '1 days 22:59:00' in result
 
         o = Series([datetime(2012, 1, 1, 1, 1, microsecond=150)] * 3)
         y = s - o
         result = y.to_string()
-        self.assertTrue('-1 days +22:58:59.999850' in result)
-        self.assertTrue('0 days 22:58:59.999850' in result)
+        assert '-1 days +22:58:59.999850' in result
+        assert '0 days 22:58:59.999850' in result
 
         # neg time
         td = timedelta(minutes=5, seconds=3)
         s2 = Series(date_range('2012-1-1', periods=3, freq='D')) + td
         y = s - s2
         result = y.to_string()
-        self.assertTrue('-1 days +23:54:57' in result)
+        assert '-1 days +23:54:57' in result
 
         td = timedelta(microseconds=550)
         s2 = Series(date_range('2012-1-1', periods=3, freq='D')) + td
         y = s - td
         result = y.to_string()
-        self.assertTrue('2012-01-01 23:59:59.999450' in result)
+        assert '2012-01-01 23:59:59.999450' in result
 
         # no boxing of the actual elements
         td = Series(pd.timedelta_range('1 days', periods=3))
@@ -1961,7 +1957,7 @@ class TestSeriesFormatting(tm.TestCase):
         df['B'] = pd.to_datetime(df.B)
 
         result = repr(df.loc[0])
-        self.assertTrue('2012-01-01' in result)
+        assert '2012-01-01' in result
 
     def test_period(self):
         # GH 12615
@@ -2166,7 +2162,7 @@ class TestFloatArrayFormatter(tm.TestCase):
     def test_misc(self):
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
         result = obj.get_result()
-        self.assertTrue(len(result) == 0)
+        assert len(result) == 0
 
     def test_format(self):
         obj = fmt.FloatArrayFormatter(np.array([12, 0], dtype=np.float64))
@@ -2493,14 +2489,14 @@ class TestDatetimeIndexUnicode(tm.TestCase):
     def test_dates(self):
         text = str(pd.to_datetime([datetime(2013, 1, 1), datetime(2014, 1, 1)
                                    ]))
-        self.assertTrue("['2013-01-01'," in text)
-        self.assertTrue(", '2014-01-01']" in text)
+        assert "['2013-01-01'," in text
+        assert ", '2014-01-01']" in text
 
     def test_mixed(self):
         text = str(pd.to_datetime([datetime(2013, 1, 1), datetime(
             2014, 1, 1, 12), datetime(2014, 1, 1)]))
-        self.assertTrue("'2013-01-01 00:00:00'," in text)
-        self.assertTrue("'2014-01-01 00:00:00']" in text)
+        assert "'2013-01-01 00:00:00'," in text
+        assert "'2014-01-01 00:00:00']" in text
 
 
 class TestStringRepTimestamp(tm.TestCase):

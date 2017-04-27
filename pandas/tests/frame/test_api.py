@@ -139,7 +139,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         pytest.raises(ValueError, self.frame._get_agg_axis, 2)
 
     def test_nonzero(self):
-        self.assertTrue(self.empty.empty)
+        assert self.empty.empty
 
         assert not self.frame.empty
         assert not self.mixed_frame.empty
@@ -157,7 +157,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
             self.assertEqual(type(v), Series)
 
     def test_iter(self):
-        self.assertTrue(tm.equalContents(list(self.frame), self.frame.columns))
+        assert tm.equalContents(list(self.frame), self.frame.columns)
 
     def test_iterrows(self):
         for i, (k, v) in enumerate(self.frame.iterrows()):
@@ -223,7 +223,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
             for j, value in enumerate(row):
                 col = frameCols[j]
                 if np.isnan(value):
-                    self.assertTrue(np.isnan(frame[col][i]))
+                    assert np.isnan(frame[col][i])
                 else:
                     self.assertEqual(value, frame[col][i])
 
@@ -242,7 +242,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     def test_values(self):
         self.frame.values[:, 0] = 5.
-        self.assertTrue((self.frame.values[:, 0] == 5).all())
+        assert (self.frame.values[:, 0] == 5).all()
 
     def test_deepcopy(self):
         cp = deepcopy(self.frame)
@@ -260,7 +260,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         for idx, series in compat.iteritems(dft):
             for col, value in compat.iteritems(series):
                 if np.isnan(value):
-                    self.assertTrue(np.isnan(frame[col][idx]))
+                    assert np.isnan(frame[col][idx])
                 else:
                     self.assertEqual(value, frame[col][idx])
 
@@ -276,7 +276,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         dft = self.frame.T
         dft.values[:, 5:10] = 5
 
-        self.assertTrue((self.frame.values[5:10] == 5).all())
+        assert (self.frame.values[5:10] == 5).all()
 
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
@@ -323,15 +323,15 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         df = pd.DataFrame(index=[1], columns=[1])
         assert not df.empty
         df = DataFrame(index=['a', 'b'], columns=['c', 'd']).dropna()
-        self.assertTrue(df.empty)
-        self.assertTrue(df.T.empty)
+        assert df.empty
+        assert df.T.empty
         empty_frames = [pd.DataFrame(),
                         pd.DataFrame(index=[1]),
                         pd.DataFrame(columns=[1]),
                         pd.DataFrame({1: []})]
         for df in empty_frames:
-            self.assertTrue(df.empty)
-            self.assertTrue(df.T.empty)
+            assert df.empty
+            assert df.T.empty
 
     def test_with_datetimelikes(self):
 
@@ -352,7 +352,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
         def _check_f(base, f):
             result = f(base)
-            self.assertTrue(result is None)
+            assert result is None
 
         # -----DataFrame-----
 

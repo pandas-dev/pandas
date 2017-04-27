@@ -241,14 +241,14 @@ class TestInference(tm.TestCase):
 
     def test_isinf_scalar(self):
         # GH 11352
-        self.assertTrue(lib.isposinf_scalar(float('inf')))
-        self.assertTrue(lib.isposinf_scalar(np.inf))
+        assert lib.isposinf_scalar(float('inf'))
+        assert lib.isposinf_scalar(np.inf)
         assert not lib.isposinf_scalar(-np.inf)
         assert not lib.isposinf_scalar(1)
         assert not lib.isposinf_scalar('a')
 
-        self.assertTrue(lib.isneginf_scalar(float('-inf')))
-        self.assertTrue(lib.isneginf_scalar(-np.inf))
+        assert lib.isneginf_scalar(float('-inf'))
+        assert lib.isneginf_scalar(-np.inf)
         assert not lib.isneginf_scalar(np.inf)
         assert not lib.isneginf_scalar(1)
         assert not lib.isneginf_scalar('a')
@@ -305,17 +305,17 @@ class TestInference(tm.TestCase):
     def test_convert_infs(self):
         arr = np.array(['inf', 'inf', 'inf'], dtype='O')
         result = lib.maybe_convert_numeric(arr, set(), False)
-        self.assertTrue(result.dtype == np.float64)
+        assert result.dtype == np.float64
 
         arr = np.array(['-inf', '-inf', '-inf'], dtype='O')
         result = lib.maybe_convert_numeric(arr, set(), False)
-        self.assertTrue(result.dtype == np.float64)
+        assert result.dtype == np.float64
 
     def test_scientific_no_exponent(self):
         # See PR 12215
         arr = np.array(['42E', '2E', '99e', '6e'], dtype='O')
         result = lib.maybe_convert_numeric(arr, set(), False, True)
-        self.assertTrue(np.all(np.isnan(result)))
+        assert np.all(np.isnan(result))
 
     def test_convert_non_hashable(self):
         # GH13324
@@ -667,8 +667,8 @@ class TestTypeInference(tm.TestCase):
 
     def test_is_datetimelike_array_all_nan_nat_like(self):
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat')])
-        self.assertTrue(lib.is_datetime_array(arr))
-        self.assertTrue(lib.is_datetime64_array(arr))
+        assert lib.is_datetime_array(arr)
+        assert lib.is_datetime64_array(arr)
         assert not lib.is_timedelta_array(arr)
         assert not lib.is_timedelta64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
@@ -676,9 +676,9 @@ class TestTypeInference(tm.TestCase):
         arr = np.array([np.nan, pd.NaT, np.timedelta64('nat')])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
-        self.assertTrue(lib.is_timedelta_array(arr))
-        self.assertTrue(lib.is_timedelta64_array(arr))
-        self.assertTrue(lib.is_timedelta_or_timedelta64_array(arr))
+        assert lib.is_timedelta_array(arr)
+        assert lib.is_timedelta64_array(arr)
+        assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT, np.datetime64('nat'),
                         np.timedelta64('nat')])
@@ -689,11 +689,11 @@ class TestTypeInference(tm.TestCase):
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, pd.NaT])
-        self.assertTrue(lib.is_datetime_array(arr))
-        self.assertTrue(lib.is_datetime64_array(arr))
-        self.assertTrue(lib.is_timedelta_array(arr))
-        self.assertTrue(lib.is_timedelta64_array(arr))
-        self.assertTrue(lib.is_timedelta_or_timedelta64_array(arr))
+        assert lib.is_datetime_array(arr)
+        assert lib.is_datetime64_array(arr)
+        assert lib.is_timedelta_array(arr)
+        assert lib.is_timedelta64_array(arr)
+        assert lib.is_timedelta_or_timedelta64_array(arr)
 
         arr = np.array([np.nan, np.nan], dtype=object)
         assert not lib.is_datetime_array(arr)
@@ -749,7 +749,7 @@ class TestTypeInference(tm.TestCase):
         tm.assert_numpy_array_equal(out, expected)
 
     def test_is_period(self):
-        self.assertTrue(lib.is_period(pd.Period('2011-01', freq='M')))
+        assert lib.is_period(pd.Period('2011-01', freq='M'))
         assert not lib.is_period(pd.PeriodIndex(['2011-01'], freq='M'))
         assert not lib.is_period(pd.Timestamp('2011-01'))
         assert not lib.is_period(1)
@@ -778,15 +778,15 @@ class TestNumberScalar(tm.TestCase):
 
     def test_is_number(self):
 
-        self.assertTrue(is_number(True))
-        self.assertTrue(is_number(1))
-        self.assertTrue(is_number(1.1))
-        self.assertTrue(is_number(1 + 3j))
-        self.assertTrue(is_number(np.bool(False)))
-        self.assertTrue(is_number(np.int64(1)))
-        self.assertTrue(is_number(np.float64(1.1)))
-        self.assertTrue(is_number(np.complex128(1 + 3j)))
-        self.assertTrue(is_number(np.nan))
+        assert is_number(True)
+        assert is_number(1)
+        assert is_number(1.1)
+        assert is_number(1 + 3j)
+        assert is_number(np.bool(False))
+        assert is_number(np.int64(1))
+        assert is_number(np.float64(1.1))
+        assert is_number(np.complex128(1 + 3j))
+        assert is_number(np.nan)
 
         assert not is_number(None)
         assert not is_number('x')
@@ -799,12 +799,12 @@ class TestNumberScalar(tm.TestCase):
 
         # questionable
         assert not is_number(np.bool_(False))
-        self.assertTrue(is_number(np.timedelta64(1, 'D')))
+        assert is_number(np.timedelta64(1, 'D'))
 
     def test_is_bool(self):
-        self.assertTrue(is_bool(True))
-        self.assertTrue(is_bool(np.bool(False)))
-        self.assertTrue(is_bool(np.bool_(False)))
+        assert is_bool(True)
+        assert is_bool(np.bool(False))
+        assert is_bool(np.bool_(False))
 
         assert not is_bool(1)
         assert not is_bool(1.1)
@@ -824,8 +824,8 @@ class TestNumberScalar(tm.TestCase):
         assert not is_bool(Timedelta('1 days'))
 
     def test_is_integer(self):
-        self.assertTrue(is_integer(1))
-        self.assertTrue(is_integer(np.int64(1)))
+        assert is_integer(1)
+        assert is_integer(np.int64(1))
 
         assert not is_integer(True)
         assert not is_integer(1.1)
@@ -845,12 +845,12 @@ class TestNumberScalar(tm.TestCase):
         assert not is_integer(Timedelta('1 days'))
 
         # questionable
-        self.assertTrue(is_integer(np.timedelta64(1, 'D')))
+        assert is_integer(np.timedelta64(1, 'D'))
 
     def test_is_float(self):
-        self.assertTrue(is_float(1.1))
-        self.assertTrue(is_float(np.float64(1.1)))
-        self.assertTrue(is_float(np.nan))
+        assert is_float(1.1)
+        assert is_float(np.float64(1.1))
+        assert is_float(np.nan)
 
         assert not is_float(True)
         assert not is_float(1)
@@ -874,43 +874,43 @@ class TestNumberScalar(tm.TestCase):
         ts = pd.date_range('20130101', periods=3)
         tsa = pd.date_range('20130101', periods=3, tz='US/Eastern')
 
-        self.assertTrue(is_datetime64_dtype('datetime64'))
-        self.assertTrue(is_datetime64_dtype('datetime64[ns]'))
-        self.assertTrue(is_datetime64_dtype(ts))
+        assert is_datetime64_dtype('datetime64')
+        assert is_datetime64_dtype('datetime64[ns]')
+        assert is_datetime64_dtype(ts)
         assert not is_datetime64_dtype(tsa)
 
         assert not is_datetime64_ns_dtype('datetime64')
-        self.assertTrue(is_datetime64_ns_dtype('datetime64[ns]'))
-        self.assertTrue(is_datetime64_ns_dtype(ts))
-        self.assertTrue(is_datetime64_ns_dtype(tsa))
+        assert is_datetime64_ns_dtype('datetime64[ns]')
+        assert is_datetime64_ns_dtype(ts)
+        assert is_datetime64_ns_dtype(tsa)
 
-        self.assertTrue(is_datetime64_any_dtype('datetime64'))
-        self.assertTrue(is_datetime64_any_dtype('datetime64[ns]'))
-        self.assertTrue(is_datetime64_any_dtype(ts))
-        self.assertTrue(is_datetime64_any_dtype(tsa))
+        assert is_datetime64_any_dtype('datetime64')
+        assert is_datetime64_any_dtype('datetime64[ns]')
+        assert is_datetime64_any_dtype(ts)
+        assert is_datetime64_any_dtype(tsa)
 
         assert not is_datetime64tz_dtype('datetime64')
         assert not is_datetime64tz_dtype('datetime64[ns]')
         assert not is_datetime64tz_dtype(ts)
-        self.assertTrue(is_datetime64tz_dtype(tsa))
+        assert is_datetime64tz_dtype(tsa)
 
         for tz in ['US/Eastern', 'UTC']:
             dtype = 'datetime64[ns, {}]'.format(tz)
             assert not is_datetime64_dtype(dtype)
-            self.assertTrue(is_datetime64tz_dtype(dtype))
-            self.assertTrue(is_datetime64_ns_dtype(dtype))
-            self.assertTrue(is_datetime64_any_dtype(dtype))
+            assert is_datetime64tz_dtype(dtype)
+            assert is_datetime64_ns_dtype(dtype)
+            assert is_datetime64_any_dtype(dtype)
 
     def test_is_timedelta(self):
-        self.assertTrue(is_timedelta64_dtype('timedelta64'))
-        self.assertTrue(is_timedelta64_dtype('timedelta64[ns]'))
+        assert is_timedelta64_dtype('timedelta64')
+        assert is_timedelta64_dtype('timedelta64[ns]')
         assert not is_timedelta64_ns_dtype('timedelta64')
-        self.assertTrue(is_timedelta64_ns_dtype('timedelta64[ns]'))
+        assert is_timedelta64_ns_dtype('timedelta64[ns]')
 
         tdi = TimedeltaIndex([1e14, 2e14], dtype='timedelta64')
-        self.assertTrue(is_timedelta64_dtype(tdi))
-        self.assertTrue(is_timedelta64_ns_dtype(tdi))
-        self.assertTrue(is_timedelta64_ns_dtype(tdi.astype('timedelta64[ns]')))
+        assert is_timedelta64_dtype(tdi)
+        assert is_timedelta64_ns_dtype(tdi)
+        assert is_timedelta64_ns_dtype(tdi.astype('timedelta64[ns]'))
 
         # Conversion to Int64Index:
         assert not is_timedelta64_ns_dtype(tdi.astype('timedelta64'))
@@ -920,19 +920,19 @@ class TestNumberScalar(tm.TestCase):
 class Testisscalar(tm.TestCase):
 
     def test_isscalar_builtin_scalars(self):
-        self.assertTrue(is_scalar(None))
-        self.assertTrue(is_scalar(True))
-        self.assertTrue(is_scalar(False))
-        self.assertTrue(is_scalar(0.))
-        self.assertTrue(is_scalar(np.nan))
-        self.assertTrue(is_scalar('foobar'))
-        self.assertTrue(is_scalar(b'foobar'))
-        self.assertTrue(is_scalar(u('efoobar')))
-        self.assertTrue(is_scalar(datetime(2014, 1, 1)))
-        self.assertTrue(is_scalar(date(2014, 1, 1)))
-        self.assertTrue(is_scalar(time(12, 0)))
-        self.assertTrue(is_scalar(timedelta(hours=1)))
-        self.assertTrue(is_scalar(pd.NaT))
+        assert is_scalar(None)
+        assert is_scalar(True)
+        assert is_scalar(False)
+        assert is_scalar(0.)
+        assert is_scalar(np.nan)
+        assert is_scalar('foobar')
+        assert is_scalar(b'foobar')
+        assert is_scalar(u('efoobar'))
+        assert is_scalar(datetime(2014, 1, 1))
+        assert is_scalar(date(2014, 1, 1))
+        assert is_scalar(time(12, 0))
+        assert is_scalar(timedelta(hours=1))
+        assert is_scalar(pd.NaT)
 
     def test_isscalar_builtin_nonscalars(self):
         assert not is_scalar({})
@@ -944,15 +944,15 @@ class Testisscalar(tm.TestCase):
         assert not is_scalar(Ellipsis)
 
     def test_isscalar_numpy_array_scalars(self):
-        self.assertTrue(is_scalar(np.int64(1)))
-        self.assertTrue(is_scalar(np.float64(1.)))
-        self.assertTrue(is_scalar(np.int32(1)))
-        self.assertTrue(is_scalar(np.object_('foobar')))
-        self.assertTrue(is_scalar(np.str_('foobar')))
-        self.assertTrue(is_scalar(np.unicode_(u('foobar'))))
-        self.assertTrue(is_scalar(np.bytes_(b'foobar')))
-        self.assertTrue(is_scalar(np.datetime64('2014-01-01')))
-        self.assertTrue(is_scalar(np.timedelta64(1, 'h')))
+        assert is_scalar(np.int64(1))
+        assert is_scalar(np.float64(1.))
+        assert is_scalar(np.int32(1))
+        assert is_scalar(np.object_('foobar'))
+        assert is_scalar(np.str_('foobar'))
+        assert is_scalar(np.unicode_(u('foobar')))
+        assert is_scalar(np.bytes_(b'foobar'))
+        assert is_scalar(np.datetime64('2014-01-01'))
+        assert is_scalar(np.timedelta64(1, 'h'))
 
     def test_isscalar_numpy_zerodim_arrays(self):
         for zerodim in [np.array(1), np.array('foobar'),
@@ -960,7 +960,7 @@ class Testisscalar(tm.TestCase):
                         np.array(np.timedelta64(1, 'h')),
                         np.array(np.datetime64('NaT'))]:
             assert not is_scalar(zerodim)
-            self.assertTrue(is_scalar(lib.item_from_zerodim(zerodim)))
+            assert is_scalar(lib.item_from_zerodim(zerodim))
 
     def test_isscalar_numpy_arrays(self):
         assert not is_scalar(np.array([]))
@@ -968,9 +968,9 @@ class Testisscalar(tm.TestCase):
         assert not is_scalar(np.matrix('1; 2'))
 
     def test_isscalar_pandas_scalars(self):
-        self.assertTrue(is_scalar(Timestamp('2014-01-01')))
-        self.assertTrue(is_scalar(Timedelta(hours=1)))
-        self.assertTrue(is_scalar(Period('2014-01-01')))
+        assert is_scalar(Timestamp('2014-01-01'))
+        assert is_scalar(Timedelta(hours=1))
+        assert is_scalar(Period('2014-01-01'))
 
     def test_lisscalar_pandas_containers(self):
         assert not is_scalar(Series())

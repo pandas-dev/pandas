@@ -438,7 +438,7 @@ class TestTimestamp(tm.TestCase):
 
                 reset = localized.tz_localize(None)
                 self.assertEqual(reset, ts)
-                self.assertTrue(reset.tzinfo is None)
+                assert reset.tzinfo is None
 
     def test_tz_convert_roundtrip(self):
         for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']:
@@ -449,7 +449,7 @@ class TestTimestamp(tm.TestCase):
 
                 reset = converted.tz_convert(None)
                 self.assertEqual(reset, Timestamp(t))
-                self.assertTrue(reset.tzinfo is None)
+                assert reset.tzinfo is None
                 self.assertEqual(reset,
                                  converted.tz_convert('UTC').tz_localize(None))
 
@@ -487,11 +487,11 @@ class TestTimestamp(tm.TestCase):
         # Check that the delta between the times is less than 1s (arbitrarily
         # small)
         delta = Timedelta(seconds=1)
-        self.assertTrue(abs(ts_from_method - ts_from_string) < delta)
-        self.assertTrue(abs(ts_datetime - ts_from_method) < delta)
-        self.assertTrue(abs(ts_from_method_tz - ts_from_string_tz) < delta)
-        self.assertTrue(abs(ts_from_string_tz.tz_localize(None) -
-                            ts_from_method_tz.tz_localize(None)) < delta)
+        assert abs(ts_from_method - ts_from_string) < delta
+        assert abs(ts_datetime - ts_from_method) < delta
+        assert abs(ts_from_method_tz - ts_from_string_tz) < delta
+        assert (abs(ts_from_string_tz.tz_localize(None) -
+                    ts_from_method_tz.tz_localize(None)) < delta)
 
     def test_today(self):
 
@@ -505,11 +505,11 @@ class TestTimestamp(tm.TestCase):
         # Check that the delta between the times is less than 1s (arbitrarily
         # small)
         delta = Timedelta(seconds=1)
-        self.assertTrue(abs(ts_from_method - ts_from_string) < delta)
-        self.assertTrue(abs(ts_datetime - ts_from_method) < delta)
-        self.assertTrue(abs(ts_from_method_tz - ts_from_string_tz) < delta)
-        self.assertTrue(abs(ts_from_string_tz.tz_localize(None) -
-                            ts_from_method_tz.tz_localize(None)) < delta)
+        assert abs(ts_from_method - ts_from_string) < delta
+        assert abs(ts_datetime - ts_from_method) < delta
+        assert abs(ts_from_method_tz - ts_from_string_tz) < delta
+        assert (abs(ts_from_string_tz.tz_localize(None) -
+                    ts_from_method_tz.tz_localize(None)) < delta)
 
     def test_asm8(self):
         np.random.seed(7960929)
@@ -523,7 +523,7 @@ class TestTimestamp(tm.TestCase):
     def test_fields(self):
         def check(value, equal):
             # that we are int/long like
-            self.assertTrue(isinstance(value, (int, compat.long)))
+            assert isinstance(value, (int, compat.long))
             self.assertEqual(value, equal)
 
         # GH 10050
@@ -564,11 +564,11 @@ class TestTimestamp(tm.TestCase):
         ts = Timestamp('2014-01-01 00:00:00+01:00')
         starts = ['is_month_start', 'is_quarter_start', 'is_year_start']
         for start in starts:
-            self.assertTrue(getattr(ts, start))
+            assert getattr(ts, start)
         ts = Timestamp('2014-12-31 23:59:59+01:00')
         ends = ['is_month_end', 'is_year_end', 'is_quarter_end']
         for end in ends:
-            self.assertTrue(getattr(ts, end))
+            assert getattr(ts, end)
 
     def test_pprint(self):
         # GH12622
@@ -864,26 +864,26 @@ class TestTimestamp(tm.TestCase):
         self.assertEqual(val, val)
         assert not val != val
         assert not val < val
-        self.assertTrue(val <= val)
+        assert val <= val
         assert not val > val
-        self.assertTrue(val >= val)
+        assert val >= val
 
         other = datetime(2012, 5, 18)
         self.assertEqual(val, other)
         assert not val != other
         assert not val < other
-        self.assertTrue(val <= other)
+        assert val <= other
         assert not val > other
-        self.assertTrue(val >= other)
+        assert val >= other
 
         other = Timestamp(stamp + 100)
 
         self.assertNotEqual(val, other)
         self.assertNotEqual(val, other)
-        self.assertTrue(val < other)
-        self.assertTrue(val <= other)
-        self.assertTrue(other > val)
-        self.assertTrue(other >= val)
+        assert val < other
+        assert val <= other
+        assert other > val
+        assert other >= val
 
     def test_compare_invalid(self):
 
@@ -898,14 +898,14 @@ class TestTimestamp(tm.TestCase):
         assert not val == np.float64(1)
         assert not val == np.int64(1)
 
-        self.assertTrue(val != 'foo')
-        self.assertTrue(val != 10.0)
-        self.assertTrue(val != 1)
-        self.assertTrue(val != long(1))
-        self.assertTrue(val != [])
-        self.assertTrue(val != {'foo': 1})
-        self.assertTrue(val != np.float64(1))
-        self.assertTrue(val != np.int64(1))
+        assert val != 'foo'
+        assert val != 10.0
+        assert val != 1
+        assert val != long(1)
+        assert val != []
+        assert val != {'foo': 1}
+        assert val != np.float64(1)
+        assert val != np.int64(1)
 
         # ops testing
         df = DataFrame(np.random.randn(5, 2))
@@ -1086,14 +1086,14 @@ class TestTimestamp(tm.TestCase):
         # GH 13727
         for tz in [None, 'UTC', 'US/Eastern', 'Asia/Tokyo']:
             dt = Timestamp('2000-01-01 00:00:00', tz=tz)
-            self.assertTrue(dt.is_leap_year)
+            assert dt.is_leap_year
             assert isinstance(dt.is_leap_year, bool)
 
             dt = Timestamp('1999-01-01 00:00:00', tz=tz)
             assert not dt.is_leap_year
 
             dt = Timestamp('2004-01-01 00:00:00', tz=tz)
-            self.assertTrue(dt.is_leap_year)
+            assert dt.is_leap_year
 
             dt = Timestamp('2100-01-01 00:00:00', tz=tz)
             assert not dt.is_leap_year
@@ -1389,10 +1389,10 @@ class TestTimeSeries(tm.TestCase):
         self.assertNotEqual(stamp, datetime.min)
         self.assertNotEqual(stamp, datetime(1600, 1, 1))
         self.assertNotEqual(stamp, datetime(2700, 1, 1))
-        self.assertTrue(stamp > datetime(1600, 1, 1))
-        self.assertTrue(stamp >= datetime(1600, 1, 1))
-        self.assertTrue(stamp < datetime(2700, 1, 1))
-        self.assertTrue(stamp <= datetime(2700, 1, 1))
+        assert stamp > datetime(1600, 1, 1)
+        assert stamp >= datetime(1600, 1, 1)
+        assert stamp < datetime(2700, 1, 1)
+        assert stamp <= datetime(2700, 1, 1)
 
     def test_timestamp_equality(self):
 
@@ -1498,7 +1498,7 @@ class TestTimeSeries(tm.TestCase):
         result = np.array([Timestamp(datetime(*args)).week
                            for args in [(2000, 1, 1), (2000, 1, 2), (
                                2005, 1, 1), (2005, 1, 2)]])
-        self.assertTrue((result == [52, 52, 53, 53]).all())
+        assert (result == [52, 52, 53, 53]).all()
 
 
 class TestTsUtil(tm.TestCase):

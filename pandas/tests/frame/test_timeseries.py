@@ -122,14 +122,14 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         dates = np.asarray(rng)
 
         df = DataFrame({'A': np.random.randn(len(rng)), 'B': dates})
-        self.assertTrue(np.issubdtype(df['B'].dtype, np.dtype('M8[ns]')))
+        assert np.issubdtype(df['B'].dtype, np.dtype('M8[ns]'))
 
     def test_frame_add_datetime64_column(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
         df = DataFrame(index=np.arange(len(rng)))
 
         df['A'] = rng
-        self.assertTrue(np.issubdtype(df['A'].dtype, np.dtype('M8[ns]')))
+        assert np.issubdtype(df['A'].dtype, np.dtype('M8[ns]'))
 
     def test_frame_datetime64_pre1900_repr(self):
         df = DataFrame({'year': date_range('1/1/1700', periods=50,
@@ -154,7 +154,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
             ex_vals = to_datetime(vals.astype('O')).values
 
             self.assertEqual(df[unit].dtype, ns_dtype)
-            self.assertTrue((df[unit].values == ex_vals).all())
+            assert (df[unit].values == ex_vals).all()
 
         # Test insertion into existing datetime64 column
         df = DataFrame({'ints': np.arange(n)}, index=np.arange(n))
@@ -169,7 +169,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
             tmp['dates'] = vals
             ex_vals = to_datetime(vals.astype('O')).values
 
-            self.assertTrue((tmp['dates'].values == ex_vals).all())
+            assert (tmp['dates'].values == ex_vals).all()
 
     def test_shift(self):
         # naive shift
@@ -422,9 +422,9 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         rs = ts.at_time(rng[1])
-        self.assertTrue((rs.index.hour == rng[1].hour).all())
-        self.assertTrue((rs.index.minute == rng[1].minute).all())
-        self.assertTrue((rs.index.second == rng[1].second).all())
+        assert (rs.index.hour == rng[1].hour).all()
+        assert (rs.index.minute == rng[1].minute).all()
+        assert (rs.index.second == rng[1].second).all()
 
         result = ts.at_time('9:30')
         expected = ts.at_time(time(9, 30))
@@ -467,14 +467,14 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
-                    self.assertTrue(t >= stime)
+                    assert t >= stime
                 else:
-                    self.assertTrue(t > stime)
+                    assert t > stime
 
                 if inc_end:
-                    self.assertTrue(t <= etime)
+                    assert t <= etime
                 else:
-                    self.assertTrue(t < etime)
+                    assert t < etime
 
         result = ts.between_time('00:00', '01:00')
         expected = ts.between_time(stime, etime)
@@ -499,14 +499,14 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
-                    self.assertTrue((t >= stime) or (t <= etime))
+                    assert (t >= stime) or (t <= etime)
                 else:
-                    self.assertTrue((t > stime) or (t <= etime))
+                    assert (t > stime) or (t <= etime)
 
                 if inc_end:
-                    self.assertTrue((t <= etime) or (t >= stime))
+                    assert (t <= etime) or (t >= stime)
                 else:
-                    self.assertTrue((t < etime) or (t >= stime))
+                    assert (t < etime) or (t >= stime)
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.

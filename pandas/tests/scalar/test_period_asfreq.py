@@ -718,4 +718,4 @@ class TestFreqConversion(tm.TestCase):
         with tm.assert_raises_regex(ValueError, msg):
             pd.Period('2013-01', 'MS')
 
-        self.assertTrue(_period_code_map.get("MS") is None)
+        assert _period_code_map.get("MS") is None

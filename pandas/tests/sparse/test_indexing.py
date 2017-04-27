@@ -17,7 +17,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         sparse = self.sparse
 
         self.assertEqual(sparse[0], 1)
-        self.assertTrue(np.isnan(sparse[1]))
+        assert np.isnan(sparse[1])
         self.assertEqual(sparse[3], 3)
 
         result = sparse[[1, 3, 4]]
@@ -67,7 +67,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         sparse = orig.to_sparse(fill_value=0)
 
         self.assertEqual(sparse[0], 1)
-        self.assertTrue(np.isnan(sparse[1]))
+        assert np.isnan(sparse[1])
         self.assertEqual(sparse[2], 0)
         self.assertEqual(sparse[3], 3)
 
@@ -114,7 +114,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         sparse = self.sparse
 
         self.assertEqual(sparse.loc[0], 1)
-        self.assertTrue(np.isnan(sparse.loc[1]))
+        assert np.isnan(sparse.loc[1])
 
         result = sparse.loc[[1, 3, 4]]
         exp = orig.loc[[1, 3, 4]].to_sparse()
@@ -125,7 +125,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         exp = orig.loc[[1, 3, 4, 5]].to_sparse()
         tm.assert_sp_series_equal(result, exp)
         # padded with NaN
-        self.assertTrue(np.isnan(result[-1]))
+        assert np.isnan(result[-1])
 
         # dense array
         result = sparse.loc[orig % 2 == 1]
@@ -146,7 +146,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         sparse = orig.to_sparse()
 
         self.assertEqual(sparse.loc['A'], 1)
-        self.assertTrue(np.isnan(sparse.loc['B']))
+        assert np.isnan(sparse.loc['B'])
 
         result = sparse.loc[['A', 'C', 'D']]
         exp = orig.loc[['A', 'C', 'D']].to_sparse()
@@ -171,7 +171,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         sparse = orig.to_sparse(fill_value=0)
 
         self.assertEqual(sparse.loc['A'], 1)
-        self.assertTrue(np.isnan(sparse.loc['B']))
+        assert np.isnan(sparse.loc['B'])
 
         result = sparse.loc[['A', 'C', 'D']]
         exp = orig.loc[['A', 'C', 'D']].to_sparse(fill_value=0)
@@ -210,7 +210,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         sparse = self.sparse
 
         self.assertEqual(sparse.iloc[3], 3)
-        self.assertTrue(np.isnan(sparse.iloc[2]))
+        assert np.isnan(sparse.iloc[2])
 
         result = sparse.iloc[[1, 3, 4]]
         exp = orig.iloc[[1, 3, 4]].to_sparse()
@@ -228,7 +228,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
         sparse = orig.to_sparse(fill_value=0)
 
         self.assertEqual(sparse.iloc[3], 3)
-        self.assertTrue(np.isnan(sparse.iloc[1]))
+        assert np.isnan(sparse.iloc[1])
         self.assertEqual(sparse.iloc[4], 0)
 
         result = sparse.iloc[[1, 3, 4]]
@@ -250,26 +250,26 @@ class TestSparseSeriesIndexing(tm.TestCase):
         orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
         sparse = orig.to_sparse()
         self.assertEqual(sparse.at[0], orig.at[0])
-        self.assertTrue(np.isnan(sparse.at[1]))
-        self.assertTrue(np.isnan(sparse.at[2]))
+        assert np.isnan(sparse.at[1])
+        assert np.isnan(sparse.at[2])
         self.assertEqual(sparse.at[3], orig.at[3])
-        self.assertTrue(np.isnan(sparse.at[4]))
+        assert np.isnan(sparse.at[4])
 
         orig = pd.Series([1, np.nan, np.nan, 3, np.nan],
                          index=list('abcde'))
         sparse = orig.to_sparse()
         self.assertEqual(sparse.at['a'], orig.at['a'])
-        self.assertTrue(np.isnan(sparse.at['b']))
-        self.assertTrue(np.isnan(sparse.at['c']))
+        assert np.isnan(sparse.at['b'])
+        assert np.isnan(sparse.at['c'])
         self.assertEqual(sparse.at['d'], orig.at['d'])
-        self.assertTrue(np.isnan(sparse.at['e']))
+        assert np.isnan(sparse.at['e'])
 
     def test_at_fill_value(self):
         orig = pd.Series([1, np.nan, 0, 3, 0],
                          index=list('abcde'))
         sparse = orig.to_sparse(fill_value=0)
         self.assertEqual(sparse.at['a'], orig.at['a'])
-        self.assertTrue(np.isnan(sparse.at['b']))
+        assert np.isnan(sparse.at['b'])
         self.assertEqual(sparse.at['c'], orig.at['c'])
         self.assertEqual(sparse.at['d'], orig.at['d'])
         self.assertEqual(sparse.at['e'], orig.at['e'])
@@ -279,19 +279,19 @@ class TestSparseSeriesIndexing(tm.TestCase):
         sparse = self.sparse
 
         self.assertEqual(sparse.iat[0], orig.iat[0])
-        self.assertTrue(np.isnan(sparse.iat[1]))
-        self.assertTrue(np.isnan(sparse.iat[2]))
+        assert np.isnan(sparse.iat[1])
+        assert np.isnan(sparse.iat[2])
         self.assertEqual(sparse.iat[3], orig.iat[3])
-        self.assertTrue(np.isnan(sparse.iat[4]))
+        assert np.isnan(sparse.iat[4])
 
-        self.assertTrue(np.isnan(sparse.iat[-1]))
+        assert np.isnan(sparse.iat[-1])
         self.assertEqual(sparse.iat[-5], orig.iat[-5])
 
     def test_iat_fill_value(self):
         orig = pd.Series([1, np.nan, 0, 3, 0])
         sparse = orig.to_sparse()
         self.assertEqual(sparse.iat[0], orig.iat[0])
-        self.assertTrue(np.isnan(sparse.iat[1]))
+        assert np.isnan(sparse.iat[1])
         self.assertEqual(sparse.iat[2], orig.iat[2])
         self.assertEqual(sparse.iat[3], orig.iat[3])
         self.assertEqual(sparse.iat[4], orig.iat[4])
@@ -302,19 +302,19 @@ class TestSparseSeriesIndexing(tm.TestCase):
     def test_get(self):
         s = pd.SparseSeries([1, np.nan, np.nan, 3, np.nan])
         self.assertEqual(s.get(0), 1)
-        self.assertTrue(np.isnan(s.get(1)))
+        assert np.isnan(s.get(1))
         assert s.get(5) is None
 
         s = pd.SparseSeries([1, np.nan, 0, 3, 0], index=list('ABCDE'))
         self.assertEqual(s.get('A'), 1)
-        self.assertTrue(np.isnan(s.get('B')))
+        assert np.isnan(s.get('B'))
         self.assertEqual(s.get('C'), 0)
         assert s.get('XX') is None
 
         s = pd.SparseSeries([1, np.nan, 0, 3, 0], index=list('ABCDE'),
                             fill_value=0)
         self.assertEqual(s.get('A'), 1)
-        self.assertTrue(np.isnan(s.get('B')))
+        assert np.isnan(s.get('B'))
         self.assertEqual(s.get('C'), 0)
         assert s.get('XX') is None
 
@@ -458,7 +458,7 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         sparse = self.sparse
 
         self.assertEqual(sparse[0], orig[0])
-        self.assertTrue(np.isnan(sparse[1]))
+        assert np.isnan(sparse[1])
         self.assertEqual(sparse[3], orig[3])
 
         tm.assert_sp_series_equal(sparse['A'], orig['A'].to_sparse())
@@ -487,8 +487,8 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         sparse = self.sparse
 
         self.assertEqual(sparse['C', 0], orig['C', 0])
-        self.assertTrue(np.isnan(sparse['A', 1]))
-        self.assertTrue(np.isnan(sparse['B', 0]))
+        assert np.isnan(sparse['A', 1])
+        assert np.isnan(sparse['B', 0])
 
     def test_getitems_slice_multi(self):
         orig = self.orig
@@ -545,8 +545,8 @@ class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
         sparse = self.sparse
 
         self.assertEqual(sparse.loc['C', 0], orig.loc['C', 0])
-        self.assertTrue(np.isnan(sparse.loc['A', 1]))
-        self.assertTrue(np.isnan(sparse.loc['B', 0]))
+        assert np.isnan(sparse.loc['A', 1])
+        assert np.isnan(sparse.loc['B', 0])
 
     def test_loc_slice(self):
         orig = self.orig
@@ -646,7 +646,7 @@ class TestSparseDataFrameIndexing(tm.TestCase):
         sparse = orig.to_sparse()
 
         self.assertEqual(sparse.loc[0, 'x'], 1)
-        self.assertTrue(np.isnan(sparse.loc[1, 'z']))
+        assert np.isnan(sparse.loc[1, 'z'])
         self.assertEqual(sparse.loc[2, 'z'], 4)
 
         tm.assert_sp_series_equal(sparse.loc[0], orig.loc[0].to_sparse())
@@ -703,7 +703,7 @@ class TestSparseDataFrameIndexing(tm.TestCase):
         sparse = orig.to_sparse()
 
         self.assertEqual(sparse.loc['a', 'x'], 1)
-        self.assertTrue(np.isnan(sparse.loc['b', 'z']))
+        assert np.isnan(sparse.loc['b', 'z'])
         self.assertEqual(sparse.loc['c', 'z'], 4)
 
         tm.assert_sp_series_equal(sparse.loc['a'], orig.loc['a'].to_sparse())
@@ -763,7 +763,7 @@ class TestSparseDataFrameIndexing(tm.TestCase):
         sparse = orig.to_sparse()
 
         self.assertEqual(sparse.iloc[1, 1], 3)
-        self.assertTrue(np.isnan(sparse.iloc[2, 0]))
+        assert np.isnan(sparse.iloc[2, 0])
 
         tm.assert_sp_series_equal(sparse.iloc[0], orig.loc[0].to_sparse())
         tm.assert_sp_series_equal(sparse.iloc[1], orig.loc[1].to_sparse())
@@ -811,8 +811,8 @@ class TestSparseDataFrameIndexing(tm.TestCase):
                             index=list('ABCD'), columns=list('xyz'))
         sparse = orig.to_sparse()
         self.assertEqual(sparse.at['A', 'x'], orig.at['A', 'x'])
-        self.assertTrue(np.isnan(sparse.at['B', 'z']))
-        self.assertTrue(np.isnan(sparse.at['C', 'y']))
+        assert np.isnan(sparse.at['B', 'z'])
+        assert np.isnan(sparse.at['C', 'y'])
         self.assertEqual(sparse.at['D', 'x'], orig.at['D', 'x'])
 
     def test_at_fill_value(self):
@@ -823,8 +823,8 @@ class TestSparseDataFrameIndexing(tm.TestCase):
                             index=list('ABCD'), columns=list('xyz'))
         sparse = orig.to_sparse(fill_value=0)
         self.assertEqual(sparse.at['A', 'x'], orig.at['A', 'x'])
-        self.assertTrue(np.isnan(sparse.at['B', 'z']))
-        self.assertTrue(np.isnan(sparse.at['C', 'y']))
+        assert np.isnan(sparse.at['B', 'z'])
+        assert np.isnan(sparse.at['C', 'y'])
         self.assertEqual(sparse.at['D', 'x'], orig.at['D', 'x'])
 
     def test_iat(self):
@@ -835,11 +835,11 @@ class TestSparseDataFrameIndexing(tm.TestCase):
                             index=list('ABCD'), columns=list('xyz'))
         sparse = orig.to_sparse()
         self.assertEqual(sparse.iat[0, 0], orig.iat[0, 0])
-        self.assertTrue(np.isnan(sparse.iat[1, 2]))
-        self.assertTrue(np.isnan(sparse.iat[2, 1]))
+        assert np.isnan(sparse.iat[1, 2])
+        assert np.isnan(sparse.iat[2, 1])
         self.assertEqual(sparse.iat[2, 0], orig.iat[2, 0])
 
-        self.assertTrue(np.isnan(sparse.iat[-1, -2]))
+        assert np.isnan(sparse.iat[-1, -2])
         self.assertEqual(sparse.iat[-1, -1], orig.iat[-1, -1])
 
     def test_iat_fill_value(self):
@@ -850,11 +850,11 @@ class TestSparseDataFrameIndexing(tm.TestCase):
                             index=list('ABCD'), columns=list('xyz'))
         sparse = orig.to_sparse(fill_value=0)
         self.assertEqual(sparse.iat[0, 0], orig.iat[0, 0])
-        self.assertTrue(np.isnan(sparse.iat[1, 2]))
-        self.assertTrue(np.isnan(sparse.iat[2, 1]))
+        assert np.isnan(sparse.iat[1, 2])
+        assert np.isnan(sparse.iat[2, 1])
         self.assertEqual(sparse.iat[2, 0], orig.iat[2, 0])
 
-        self.assertTrue(np.isnan(sparse.iat[-1, -2]))
+        assert np.isnan(sparse.iat[-1, -2])
         self.assertEqual(sparse.iat[-1, -1], orig.iat[-1, -1])
 
     def test_take(self):

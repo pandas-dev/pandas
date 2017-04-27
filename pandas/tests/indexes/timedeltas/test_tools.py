@@ -32,7 +32,7 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(result.astype('int64'), iNaT)
 
         result = to_timedelta(['', ''])
-        self.assertTrue(isnull(result).all())
+        assert isnull(result).all()
 
         # pass thru
         result = to_timedelta(np.array([np.timedelta64(1, 's')]))
@@ -122,8 +122,7 @@ class TestTimedeltas(tm.TestCase):
 
         # time not supported ATM
         pytest.raises(ValueError, lambda: to_timedelta(time(second=1)))
-        self.assertTrue(to_timedelta(
-            time(second=1), errors='coerce') is pd.NaT)
+        assert to_timedelta(time(second=1), errors='coerce') is pd.NaT
 
         pytest.raises(ValueError, lambda: to_timedelta(['foo', 'bar']))
         tm.assert_index_equal(TimedeltaIndex([pd.NaT, pd.NaT]),

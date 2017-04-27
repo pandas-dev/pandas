@@ -148,7 +148,7 @@ class TestSeriesRepr(TestData, tm.TestCase):
         data = [8, 5, 3, 5]
         index1 = [u("\u03c3"), u("\u03c4"), u("\u03c5"), u("\u03c6")]
         df = Series(data, index=index1)
-        self.assertTrue(type(df.__repr__() == str))  # both py2 / 3
+        assert type(df.__repr__() == str)  # both py2 / 3
 
     def test_repr_max_rows(self):
         # GH 6863
@@ -176,7 +176,7 @@ class TestSeriesRepr(TestData, tm.TestCase):
         repr(ts)
 
         ts = tm.makeTimeSeries(1000)
-        self.assertTrue(repr(ts).splitlines()[-1].startswith('Freq:'))
+        assert repr(ts).splitlines()[-1].startswith('Freq:')
 
         ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]

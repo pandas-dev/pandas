@@ -451,17 +451,17 @@ class TestDatetimeIndex(tm.TestCase):
         idx = DatetimeIndex(['2000-01-04', '2000-01-01', '2000-01-02'])
 
         ordered = idx.sort_values()
-        self.assertTrue(ordered.is_monotonic)
+        assert ordered.is_monotonic
 
         ordered = idx.sort_values(ascending=False)
-        self.assertTrue(ordered[::-1].is_monotonic)
+        assert ordered[::-1].is_monotonic
 
         ordered, dexer = idx.sort_values(return_indexer=True)
-        self.assertTrue(ordered.is_monotonic)
+        assert ordered.is_monotonic
         tm.assert_numpy_array_equal(dexer, np.array([1, 2, 0], dtype=np.intp))
 
         ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
-        self.assertTrue(ordered[::-1].is_monotonic)
+        assert ordered[::-1].is_monotonic
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1], dtype=np.intp))
 
     def test_take(self):
@@ -570,15 +570,15 @@ class TestDatetimeIndex(tm.TestCase):
         c = DataFrame({'A': 'foo', 'B': dr}, index=dr)
 
         result = a.append(c)
-        self.assertTrue((result['B'] == dr).all())
+        assert (result['B'] == dr).all()
 
     def test_isin(self):
         index = tm.makeDateIndex(4)
         result = index.isin(index)
-        self.assertTrue(result.all())
+        assert result.all()
 
         result = index.isin(list(index))
-        self.assertTrue(result.all())
+        assert result.all()
 
         assert_almost_equal(index.isin([index[2], 5]),
                             np.array([False, False, True, False]))
@@ -587,13 +587,13 @@ class TestDatetimeIndex(tm.TestCase):
         rng = pd.date_range('1/1/2000', freq='12min', periods=10)
         result = pd.Index(rng).time
         expected = [t.time() for t in rng]
-        self.assertTrue((result == expected).all())
+        assert (result == expected).all()
 
     def test_date(self):
         rng = pd.date_range('1/1/2000', freq='12H', periods=10)
         result = pd.Index(rng).date
         expected = [t.date() for t in rng]
-        self.assertTrue((result == expected).all())
+        assert (result == expected).all()
 
     def test_does_not_convert_mixed_integer(self):
         df = tm.makeCustomDataframe(10, 10,

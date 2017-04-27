@@ -325,8 +325,8 @@ class TestLoc(Base, tm.TestCase):
 
         # want this to work
         result = df.loc[:, "A":"B"].iloc[0:2, :]
-        self.assertTrue((result.columns == ['A', 'B']).all())
-        self.assertTrue((result.index == ['A', 'B']).all())
+        assert (result.columns == ['A', 'B']).all()
+        assert (result.index == ['A', 'B']).all()
 
         # mixed type
         result = DataFrame({'a': [Timestamp('20130101')], 'b': [1]}).iloc[0]

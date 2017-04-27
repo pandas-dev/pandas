@@ -853,7 +853,7 @@ class TestMoments(Base):
         vals.fill(np.nan)
         with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
-            self.assertTrue(np.isnan(rs).all())
+            assert np.isnan(rs).all()
 
         # empty
         vals = np.array([])
@@ -865,7 +865,7 @@ class TestMoments(Base):
         vals = np.random.randn(5)
         with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 10, 'boxcar')
-            self.assertTrue(np.isnan(rs).all())
+            assert np.isnan(rs).all()
             self.assertEqual(len(rs), 5)
 
     def test_cmov_window_frame(self):
@@ -1144,7 +1144,7 @@ class TestMoments(Base):
         # it works!
         with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum)
-        self.assertTrue(isnull(result).all())
+        assert isnull(result).all()
 
         with catch_warnings(record=True):
             result = mom.rolling_apply(arr, 10, np.sum, min_periods=1)
@@ -1172,7 +1172,7 @@ class TestMoments(Base):
         with catch_warnings(record=True):
             result = mom.rolling_std(np.array([np.nan, np.nan, 3., 4., 5.]),
                                      3, min_periods=2)
-        self.assertTrue(np.isnan(result[2]))
+        assert np.isnan(result[2])
 
     def test_rolling_std_neg_sqrt(self):
         # unit test from Bottleneck
@@ -1184,11 +1184,11 @@ class TestMoments(Base):
                       0.00028718669878572767])
         with catch_warnings(record=True):
             b = mom.rolling_std(a, window=3)
-        self.assertTrue(np.isfinite(b[2:]).all())
+        assert np.isfinite(b[2:]).all()
 
         with catch_warnings(record=True):
             b = mom.ewmstd(a, span=3)
-        self.assertTrue(np.isfinite(b[2:]).all())
+        assert np.isfinite(b[2:]).all()
 
     def test_rolling_var(self):
         self._check_moment_func(mom.rolling_var, lambda x: np.var(x, ddof=1),
@@ -1226,25 +1226,25 @@ class TestMoments(Base):
 
         with catch_warnings(record=True):
             result = mom.rolling_sum(arr, 2)
-        self.assertTrue((result[1:] >= 0).all())
+        assert (result[1:] >= 0).all()
 
         with catch_warnings(record=True):
             result = mom.rolling_mean(arr, 2)
-        self.assertTrue((result[1:] >= 0).all())
+        assert (result[1:] >= 0).all()
 
         with catch_warnings(record=True):
             result = mom.rolling_var(arr, 2)
-        self.assertTrue((result[1:] >= 0).all())
+        assert (result[1:] >= 0).all()
 
         # #2527, ugh
         arr = np.array([0.00012456, 0.0003, 0])
         with catch_warnings(record=True):
             result = mom.rolling_mean(arr, 1)
-        self.assertTrue(result[-1] >= 0)
+        assert result[-1] >= 0
 
         with catch_warnings(record=True):
             result = mom.rolling_mean(-arr, 1)
-        self.assertTrue(result[-1] <= 0)
+        assert result[-1] <= 0
 
     def _check_moment_func(self, f, static_comp, name=None, window=50,
                            has_min_periods=True, has_center=True,
@@ -1297,16 +1297,16 @@ class TestMoments(Base):
 
             # min_periods is working correctly
             result = get_result(arr, 20, min_periods=15)
-            self.assertTrue(np.isnan(result[23]))
+            assert np.isnan(result[23])
             assert not np.isnan(result[24])
 
             assert not np.isnan(result[-6])
-            self.assertTrue(np.isnan(result[-5]))
+            assert np.isnan(result[-5])
 
             arr2 = randn(20)
             result = get_result(arr2, 10, min_periods=5)
-            self.assertTrue(isnull(result[3]))
-            self.assertTrue(notnull(result[4]))
+            assert isnull(result[3])
+            assert notnull(result[4])
 
             # min_periods=0
             result0 = get_result(arr, 20, min_periods=0)
@@ -1344,8 +1344,8 @@ class TestMoments(Base):
                     expected = get_result(self.arr, len(self.arr),
                                           min_periods=minp)
                     nan_mask = np.isnan(result)
-                    self.assertTrue(np.array_equal(nan_mask, np.isnan(
-                        expected)))
+                    tm.assert_numpy_array_equal(nan_mask, np.isnan(expected))
+
                     nan_mask = ~nan_mask
                     tm.assert_almost_equal(result[nan_mask],
                                            expected[nan_mask])
@@ -1353,7 +1353,8 @@ class TestMoments(Base):
                 result = get_result(self.arr, len(self.arr) + 1)
                 expected = get_result(self.arr, len(self.arr))
                 nan_mask = np.isnan(result)
-                self.assertTrue(np.array_equal(nan_mask, np.isnan(expected)))
+                tm.assert_numpy_array_equal(nan_mask, np.isnan(expected))
+
                 nan_mask = ~nan_mask
                 tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
 
@@ -1459,7 +1460,7 @@ class TestMoments(Base):
         arr[5] = 1
         with catch_warnings(record=True):
             result = mom.ewma(arr, span=100, adjust=False).sum()
-        self.assertTrue(np.abs(result - 1) < 1e-2)
+        assert np.abs(result - 1) < 1e-2
 
         s = Series([1.0, 2.0, 4.0, 8.0])
 
@@ -1659,18 +1660,18 @@ class TestMoments(Base):
         # check min_periods
         # GH 7898
         result = func(s, 50, min_periods=2)
-        self.assertTrue(np.isnan(result.values[:11]).all())
+        assert np.isnan(result.values[:11]).all()
         assert not np.isnan(result.values[11:]).any()
 
         for min_periods in (0, 1):
             result = func(s, 50, min_periods=min_periods)
             if func == mom.ewma:
-                self.assertTrue(np.isnan(result.values[:10]).all())
+                assert np.isnan(result.values[:10]).all()
                 assert not np.isnan(result.values[10:]).any()
             else:
                 # ewmstd, ewmvol, ewmvar (with bias=False) require at least two
                 # values
-                self.assertTrue(np.isnan(result.values[:11]).all())
+                assert np.isnan(result.values[:11]).all()
                 assert not np.isnan(result.values[11:]).any()
 
             # check series of length 0
@@ -1980,7 +1981,8 @@ class TestMomentsConsistency(Base):
 
             # check that correlation of a series with itself is either 1 or NaN
             corr_x_x = corr(x, x)
-            # self.assertTrue(_non_null_values(corr_x_x).issubset(set([1.]))) #
+
+            # assert _non_null_values(corr_x_x).issubset(set([1.]))
             # restore once rolling_cov(x, x) is identically equal to var(x)
 
             if is_constant:
@@ -2406,16 +2408,15 @@ class TestMomentsConsistency(Base):
              [0.84780328, 0.33394331], [0.78369152, 0.63919667]]))
 
         res = df[0].rolling(5, center=True).corr(df[1])
-        self.assertTrue(all([np.abs(np.nan_to_num(x)) <= 1 for x in res]))
+        assert all([np.abs(np.nan_to_num(x)) <= 1 for x in res])
 
         # and some fuzzing
-        for i in range(10):
+        for _ in range(10):
             df = DataFrame(np.random.rand(30, 2))
             res = df[0].rolling(5, center=True).corr(df[1])
             try:
-                self.assertTrue(all([np.abs(np.nan_to_num(x)) <= 1 for x in res
-                                     ]))
-            except:
+                assert all([np.abs(np.nan_to_num(x)) <= 1 for x in res])
+            except AssertionError:
                 print(res)
 
     def test_flex_binary_frame(self):
@@ -2465,7 +2466,7 @@ class TestMomentsConsistency(Base):
         B[-10:] = np.NaN
 
         result = func(A, B, 20, min_periods=5)
-        self.assertTrue(np.isnan(result.values[:14]).all())
+        assert np.isnan(result.values[:14]).all()
         assert not np.isnan(result.values[14:]).any()
 
         # GH 7898
@@ -2473,7 +2474,7 @@ class TestMomentsConsistency(Base):
             result = func(A, B, 20, min_periods=min_periods)
             # binary functions (ewmcov, ewmcorr) with bias=False require at
             # least two values
-            self.assertTrue(np.isnan(result.values[:11]).all())
+            assert np.isnan(result.values[:11]).all()
             assert not np.isnan(result.values[11:]).any()
 
             # check series of length 0
@@ -2890,13 +2891,13 @@ class TestMomentsConsistency(Base):
 
             # min_periods is working correctly
             result = func(arr, min_periods=15)
-            self.assertTrue(np.isnan(result[13]))
+            assert np.isnan(result[13])
             assert not np.isnan(result[14])
 
             arr2 = randn(20)
             result = func(arr2, min_periods=5)
-            self.assertTrue(isnull(result[3]))
-            self.assertTrue(notnull(result[4]))
+            assert isnull(result[3])
+            assert notnull(result[4])
 
             # min_periods=0
             result0 = func(arr, min_periods=0)
@@ -3052,7 +3053,7 @@ class TestGrouperGrouping(tm.TestCase):
         g = self.frame.groupby('A')
         assert not g.mutated
         g = self.frame.groupby('A', mutated=True)
-        self.assertTrue(g.mutated)
+        assert g.mutated
 
     def test_getitem(self):
         g = self.frame.groupby('A')
@@ -3268,11 +3269,11 @@ class TestRollingTS(tm.TestCase):
                                            freq='s'),
                         'B': range(5)})
 
-        self.assertTrue(df.A.is_monotonic)
+        assert df.A.is_monotonic
         df.rolling('2s', on='A').sum()
 
         df = df.set_index('A')
-        self.assertTrue(df.index.is_monotonic)
+        assert df.index.is_monotonic
         df.rolling('2s').sum()
 
         # non-monotonic
@@ -3666,11 +3667,11 @@ class TestRollingTS(tm.TestCase):
                                             freq='s'))
         expected = dfp.rolling(2, min_periods=1).min()
         result = dfp.rolling('2s').min()
-        self.assertTrue(((result - expected) < 0.01).all().bool())
+        assert ((result - expected) < 0.01).all().bool()
 
         expected = dfp.rolling(200, min_periods=1).min()
         result = dfp.rolling('200s').min()
-        self.assertTrue(((result - expected) < 0.01).all().bool())
+        assert ((result - expected) < 0.01).all().bool()
 
     def test_ragged_max(self):
 

@@ -42,9 +42,9 @@ class TestNth(MixIn, tm.TestCase):
         grouped['B'].nth(0)
 
         self.df.loc[self.df['A'] == 'foo', 'B'] = np.nan
-        self.assertTrue(isnull(grouped['B'].first()['foo']))
-        self.assertTrue(isnull(grouped['B'].last()['foo']))
-        self.assertTrue(isnull(grouped['B'].nth(0)['foo']))
+        assert isnull(grouped['B'].first()['foo'])
+        assert isnull(grouped['B'].last()['foo'])
+        assert isnull(grouped['B'].nth(0)['foo'])
 
         # v0.14.0 whatsnew
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
@@ -154,7 +154,7 @@ class TestNth(MixIn, tm.TestCase):
         expected = s.groupby(g).first()
         expected2 = s.groupby(g).apply(lambda x: x.iloc[0])
         assert_series_equal(expected2, expected, check_names=False)
-        self.assertTrue(expected.name, 0)
+        assert expected.name, 0
         self.assertEqual(expected.name, 1)
 
         # validate first

@@ -247,10 +247,10 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         index = tm.makeTimedeltaIndex(4)
         result = index.isin(index)
-        self.assertTrue(result.all())
+        assert result.all()
 
         result = index.isin(list(index))
-        self.assertTrue(result.all())
+        assert result.all()
 
         assert_almost_equal(index.isin([index[2], 5]),
                             np.array([False, False, True, False]))
@@ -483,7 +483,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         str(c)
 
         result = a.append(c)
-        self.assertTrue((result['B'] == td).all())
+        assert (result['B'] == td).all()
 
     def test_fields(self):
         rng = timedelta_range('1 days, 10:11:12.100123456', periods=2,
@@ -569,7 +569,7 @@ class TestSlicing(tm.TestCase):
         index = date_range('1/1/2000', periods=50, freq='B')
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
-        self.assertTrue(tm.equalContents(index, back))
+        assert tm.equalContents(index, back)
         self.assertEqual(shifted.freq, index.freq)
         self.assertEqual(shifted.freq, back.freq)
 

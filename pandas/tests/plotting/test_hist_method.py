@@ -394,8 +394,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         ax1, ax2 = df.hist(column='height', by=df.gender, sharex=True)
 
         # share x
-        self.assertTrue(ax1._shared_x_axes.joined(ax1, ax2))
-        self.assertTrue(ax2._shared_x_axes.joined(ax1, ax2))
+        assert ax1._shared_x_axes.joined(ax1, ax2)
+        assert ax2._shared_x_axes.joined(ax1, ax2)
 
         # don't share y
         assert not ax1._shared_y_axes.joined(ax1, ax2)
@@ -407,8 +407,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         ax1, ax2 = df.hist(column='height', by=df.gender, sharey=True)
 
         # share y
-        self.assertTrue(ax1._shared_y_axes.joined(ax1, ax2))
-        self.assertTrue(ax2._shared_y_axes.joined(ax1, ax2))
+        assert ax1._shared_y_axes.joined(ax1, ax2)
+        assert ax2._shared_y_axes.joined(ax1, ax2)
 
         # don't share x
         assert not ax1._shared_x_axes.joined(ax1, ax2)
@@ -421,8 +421,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                            sharey=True)
 
         # share both x and y
-        self.assertTrue(ax1._shared_x_axes.joined(ax1, ax2))
-        self.assertTrue(ax2._shared_x_axes.joined(ax1, ax2))
+        assert ax1._shared_x_axes.joined(ax1, ax2)
+        assert ax2._shared_x_axes.joined(ax1, ax2)
 
-        self.assertTrue(ax1._shared_y_axes.joined(ax1, ax2))
-        self.assertTrue(ax2._shared_y_axes.joined(ax1, ax2))
+        assert ax1._shared_y_axes.joined(ax1, ax2)
+        assert ax2._shared_y_axes.joined(ax1, ax2)

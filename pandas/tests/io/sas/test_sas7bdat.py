@@ -75,7 +75,7 @@ class TestSAS7BDAT(tm.TestCase):
                     y = 0
                     for x in rdr:
                         y += x.shape[0]
-                    self.assertTrue(y == rdr.row_count)
+                    assert y == rdr.row_count
                     rdr.close()
 
     def test_iterator_read_too_much(self):

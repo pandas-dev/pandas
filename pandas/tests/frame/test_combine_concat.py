@@ -464,7 +464,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
         combined = head.combine_first(tail)
         reordered_frame = self.frame.reindex(combined.index)
         assert_frame_equal(combined, reordered_frame)
-        self.assertTrue(tm.equalContents(combined.columns, self.frame.columns))
+        assert tm.equalContents(combined.columns, self.frame.columns)
         assert_series_equal(combined['A'], reordered_frame['A'])
 
         # same index
@@ -478,7 +478,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
 
         combined = fcopy.combine_first(fcopy2)
 
-        self.assertTrue((combined['A'] == 1).all())
+        assert (combined['A'] == 1).all()
         assert_series_equal(combined['B'], fcopy['B'])
         assert_series_equal(combined['C'], fcopy2['C'])
         assert_series_equal(combined['D'], fcopy['D'])
@@ -488,12 +488,12 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
         head['A'] = 1
 
         combined = head.combine_first(tail)
-        self.assertTrue((combined['A'][:10] == 1).all())
+        assert (combined['A'][:10] == 1).all()
 
         # reverse overlap
         tail['A'][:10] = 0
         combined = tail.combine_first(head)
-        self.assertTrue((combined['A'][:10] == 0).all())
+        assert (combined['A'][:10] == 0).all()
 
         # no overlap
         f = self.frame[:10]
@@ -510,13 +510,13 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
         assert_frame_equal(comb, self.frame)
 
         comb = self.frame.combine_first(DataFrame(index=["faz", "boo"]))
-        self.assertTrue("faz" in comb.index)
+        assert "faz" in comb.index
 
         # #2525
         df = DataFrame({'a': [1]}, index=[datetime(2012, 1, 1)])
         df2 = DataFrame({}, columns=['b'])
         result = df.combine_first(df2)
-        self.assertTrue('b' in result)
+        assert 'b' in result
 
     def test_combine_first_mixed_bug(self):
         idx = Index(['a', 'b', 'c', 'e'])

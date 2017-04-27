@@ -70,7 +70,7 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
             result = s.rename(name)
             self.assertEqual(result.name, name)
             tm.assert_numpy_array_equal(result.index.values, s.index.values)
-            self.assertTrue(s.name is None)
+            assert s.name is None
 
     def test_rename_set_name_inplace(self):
         s = Series(range(3), index=list('abc'))
@@ -94,8 +94,8 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
         s = Series([1, 2, 3])
         s2 = s._set_name('foo')
         self.assertEqual(s2.name, 'foo')
-        self.assertTrue(s.name is None)
-        self.assertTrue(s is not s2)
+        assert s.name is None
+        assert s is not s2
 
     def test_rename_inplace(self):
         renamer = lambda x: x.strftime('%Y%m%d')
@@ -109,7 +109,7 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
 
         s = Series(lrange(10))
         s.index = idx
-        self.assertTrue(s.index.is_all_dates)
+        assert s.index.is_all_dates
 
     def test_reset_index(self):
         df = tm.makeDataFrame()[:5]

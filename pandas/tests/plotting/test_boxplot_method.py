@@ -96,7 +96,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_boxplot_return_type_none(self):
         # GH 12216; return_type=None & by=None -> axes
         result = self.hist_df.boxplot()
-        self.assertTrue(isinstance(result, self.plt.Axes))
+        assert isinstance(result, self.plt.Axes)
 
     @slow
     def test_boxplot_return_type_legacy(self):
@@ -129,8 +129,8 @@ class TestDataFramePlots(TestPlotBase):
 
         def _check_ax_limits(col, ax):
             y_min, y_max = ax.get_ylim()
-            self.assertTrue(y_min <= col.min())
-            self.assertTrue(y_max >= col.max())
+            assert y_min <= col.min()
+            assert y_max >= col.max()
 
         df = self.hist_df.copy()
         df['age'] = np.random.randint(1, 20, df.shape[0])

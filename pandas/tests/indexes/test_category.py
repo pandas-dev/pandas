@@ -177,10 +177,10 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         ci = self.create_index(categories=list('cabdef'))
 
-        self.assertTrue('a' in ci)
-        self.assertTrue('z' not in ci)
-        self.assertTrue('e' not in ci)
-        self.assertTrue(np.nan not in ci)
+        assert 'a' in ci
+        assert 'z' not in ci
+        assert 'e' not in ci
+        assert np.nan not in ci
 
         # assert codes NOT in index
         assert 0 not in ci
@@ -188,7 +188,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         ci = CategoricalIndex(
             list('aabbca') + [np.nan], categories=list('cabdef'))
-        self.assertTrue(np.nan in ci)
+        assert np.nan in ci
 
     def test_min_max(self):
 
@@ -424,7 +424,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')
         assert not idx.is_unique
-        self.assertTrue(idx.has_duplicates)
+        assert idx.has_duplicates
 
         expected = CategoricalIndex([0], name='foo')
         tm.assert_index_equal(idx.drop_duplicates(), expected)
@@ -537,8 +537,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
         ci1 = CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=True)
         ci2 = CategoricalIndex(['a', 'b'], categories=['a', 'b', 'c'],
                                ordered=True)
-        self.assertTrue(ci1.identical(ci1))
-        self.assertTrue(ci1.identical(ci1.copy()))
+        assert ci1.identical(ci1)
+        assert ci1.identical(ci1.copy())
         assert not ci1.identical(ci2)
 
     def test_ensure_copied_data(self):
@@ -562,21 +562,21 @@ class TestCategoricalIndex(Base, tm.TestCase):
         ci2 = CategoricalIndex(['a', 'b'], categories=['a', 'b', 'c'],
                                ordered=True)
 
-        self.assertTrue(ci1.equals(ci1))
+        assert ci1.equals(ci1)
         assert not ci1.equals(ci2)
-        self.assertTrue(ci1.equals(ci1.astype(object)))
-        self.assertTrue(ci1.astype(object).equals(ci1))
+        assert ci1.equals(ci1.astype(object))
+        assert ci1.astype(object).equals(ci1)
 
-        self.assertTrue((ci1 == ci1).all())
+        assert (ci1 == ci1).all()
         assert not (ci1 != ci1).all()
         assert not (ci1 > ci1).all()
         assert not (ci1 < ci1).all()
-        self.assertTrue((ci1 <= ci1).all())
-        self.assertTrue((ci1 >= ci1).all())
+        assert (ci1 <= ci1).all()
+        assert (ci1 >= ci1).all()
 
         assert not (ci1 == 1).all()
-        self.assertTrue((ci1 == Index(['a', 'b'])).all())
-        self.assertTrue((ci1 == ci1.values).all())
+        assert (ci1 == Index(['a', 'b'])).all()
+        assert (ci1 == ci1.values).all()
 
         # invalid comparisons
         with tm.assert_raises_regex(ValueError, "Lengths must match"):
@@ -593,19 +593,19 @@ class TestCategoricalIndex(Base, tm.TestCase):
         ci = CategoricalIndex(list('aabca'), categories=['c', 'a', 'b'])
         assert not ci.equals(list('aabca'))
         assert not ci.equals(CategoricalIndex(list('aabca')))
-        self.assertTrue(ci.equals(ci.copy()))
+        assert ci.equals(ci.copy())
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])
         assert not ci.equals(list('aabca'))
         assert not ci.equals(CategoricalIndex(list('aabca')))
-        self.assertTrue(ci.equals(ci.copy()))
+        assert ci.equals(ci.copy())
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])
         assert not ci.equals(list('aabca') + [np.nan])
         assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan]))
-        self.assertTrue(ci.equals(ci.copy()))
+        assert ci.equals(ci.copy())
 
     def test_string_categorical_index_repr(self):
         # short

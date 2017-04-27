@@ -196,7 +196,7 @@ class TestDatetimeIndex(tm.TestCase):
         idx2 = to_datetime(['2012-11-06 15:11:09.006507',
                             '2012-11-06 15:11:09.006507'])
         rs = idx1.join(idx2, how='outer')
-        self.assertTrue(rs.is_monotonic)
+        assert rs.is_monotonic
 
 
 class TestBusinessDatetimeIndex(tm.TestCase):

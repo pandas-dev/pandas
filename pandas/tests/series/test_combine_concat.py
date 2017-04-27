@@ -74,7 +74,7 @@ class TestSeriesCombine(TestData, tm.TestCase):
 
         # Holes filled from input
         combined = series_copy.combine_first(series)
-        self.assertTrue(np.isfinite(combined).all())
+        assert np.isfinite(combined).all()
 
         tm.assert_series_equal(combined[::2], series[::2])
         tm.assert_series_equal(combined[1::2], series_copy[1::2])

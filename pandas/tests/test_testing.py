@@ -739,4 +739,4 @@ class TestLocale(tm.TestCase):
 
         # GH9744
         locales = tm.get_locales()
-        self.assertTrue(len(locales) >= 1)
+        assert len(locales) >= 1

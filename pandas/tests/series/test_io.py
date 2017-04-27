@@ -24,25 +24,25 @@ class TestSeriesToCSV(TestData, tm.TestCase):
             self.ts.to_csv(path)
             ts = Series.from_csv(path)
             assert_series_equal(self.ts, ts, check_names=False)
-            self.assertTrue(ts.name is None)
-            self.assertTrue(ts.index.name is None)
+            assert ts.name is None
+            assert ts.index.name is None
 
             # GH10483
             self.ts.to_csv(path, header=True)
             ts_h = Series.from_csv(path, header=0)
-            self.assertTrue(ts_h.name == 'ts')
+            assert ts_h.name == 'ts'
 
             self.series.to_csv(path)
             series = Series.from_csv(path)
             assert series.name is None
             assert series.index.name is None
             assert_series_equal(self.series, series, check_names=False)
-            self.assertTrue(series.name is None)
-            self.assertTrue(series.index.name is None)
+            assert series.name is None
+            assert series.index.name is None
 
             self.series.to_csv(path, header=True)
             series_h = Series.from_csv(path, header=0)
-            self.assertTrue(series_h.name == 'series')
+            assert series_h.name == 'series'
 
             outfile = open(path, 'w')
             outfile.write('1998-01-01|1.0\n1999-01-01|2.0')
@@ -163,7 +163,7 @@ class TestSeriesIO(TestData, tm.TestCase):
 
         s = SubclassedSeries([1, 2, 3], name='X')
         result = s.to_frame()
-        self.assertTrue(isinstance(result, SubclassedFrame))
+        assert isinstance(result, SubclassedFrame)
         expected = SubclassedFrame({'X': [1, 2, 3]})
         assert_frame_equal(result, expected)
 

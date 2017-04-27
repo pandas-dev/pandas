@@ -162,10 +162,10 @@ class TestMerge(tm.TestCase):
                        right_index=True, copy=True)
 
         merged['a'] = 6
-        self.assertTrue((left['a'] == 0).all())
+        assert (left['a'] == 0).all()
 
         merged['d'] = 'peekaboo'
-        self.assertTrue((right['d'] == 'bar').all())
+        assert (right['d'] == 'bar').all()
 
     def test_merge_nocopy(self):
         left = DataFrame({'a': 0, 'b': 1}, index=lrange(10))
@@ -175,10 +175,10 @@ class TestMerge(tm.TestCase):
                        right_index=True, copy=False)
 
         merged['a'] = 6
-        self.assertTrue((left['a'] == 6).all())
+        assert (left['a'] == 6).all()
 
         merged['d'] = 'peekaboo'
-        self.assertTrue((right['d'] == 'peekaboo').all())
+        assert (right['d'] == 'peekaboo').all()
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
@@ -229,8 +229,8 @@ class TestMerge(tm.TestCase):
         merged2 = merge(right, left, left_on=key, right_on='key', how='outer')
 
         assert_series_equal(merged['key'], merged2['key'])
-        self.assertTrue(merged['key'].notnull().all())
-        self.assertTrue(merged2['key'].notnull().all())
+        assert merged['key'].notnull().all()
+        assert merged2['key'].notnull().all()
 
         left = DataFrame({'value': lrange(5)}, columns=['value'])
         right = DataFrame({'rvalue': lrange(6)})
@@ -425,7 +425,7 @@ class TestMerge(tm.TestCase):
         exp = merge(df, new, on='var3', sort=False)
         assert_frame_equal(result, exp)
 
-        self.assertTrue((df.var3.unique() == result.var3.unique()).all())
+        assert (df.var3.unique() == result.var3.unique()).all()
 
     def test_merge_nan_right(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0, 1]})
@@ -671,19 +671,19 @@ class TestMerge(tm.TestCase):
         # Check result integrity
 
         test2 = merge(df1, df2, on='col1', how='left', indicator=True)
-        self.assertTrue((test2._merge != 'right_only').all())
+        assert (test2._merge != 'right_only').all()
         test2 = df1.merge(df2, on='col1', how='left', indicator=True)
-        self.assertTrue((test2._merge != 'right_only').all())
+        assert (test2._merge != 'right_only').all()
 
         test3 = merge(df1, df2, on='col1', how='right', indicator=True)
-        self.assertTrue((test3._merge != 'left_only').all())
+        assert (test3._merge != 'left_only').all()
         test3 = df1.merge(df2, on='col1', how='right', indicator=True)
-        self.assertTrue((test3._merge != 'left_only').all())
+        assert (test3._merge != 'left_only').all()
 
         test4 = merge(df1, df2, on='col1', how='inner', indicator=True)
-        self.assertTrue((test4._merge == 'both').all())
+        assert (test4._merge == 'both').all()
         test4 = df1.merge(df2, on='col1', how='inner', indicator=True)
-        self.assertTrue((test4._merge == 'both').all())
+        assert (test4._merge == 'both').all()
 
         # Check if working name in df
         for i in ['_right_indicator', '_left_indicator', '_merge']:
@@ -789,7 +789,7 @@ class TestMergeMulti(tm.TestCase):
             for sort in [False, True]:
                 res = left.join(right, on=icols, how='left', sort=sort)
 
-                self.assertTrue(len(left) < len(res) + 1)
+                assert len(left) < len(res) + 1
                 assert not res['4th'].isnull().any()
                 assert not res['5th'].isnull().any()
 
@@ -797,7 +797,7 @@ class TestMergeMulti(tm.TestCase):
                     res['4th'], - res['5th'], check_names=False)
                 result = bind_cols(res.iloc[:, :-2])
                 tm.assert_series_equal(res['4th'], result, check_names=False)
-                self.assertTrue(result.name is None)
+                assert result.name is None
 
                 if sort:
                     tm.assert_frame_equal(

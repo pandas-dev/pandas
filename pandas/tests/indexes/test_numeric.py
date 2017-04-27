@@ -228,11 +228,11 @@ class TestFloat64Index(Numeric, tm.TestCase):
 
         # nan handling
         result = Float64Index([np.nan, np.nan])
-        self.assertTrue(pd.isnull(result.values).all())
+        assert pd.isnull(result.values).all()
         result = Float64Index(np.array([np.nan]))
-        self.assertTrue(pd.isnull(result.values).all())
+        assert pd.isnull(result.values).all()
         result = Index(np.array([np.nan]))
-        self.assertTrue(pd.isnull(result.values).all())
+        assert pd.isnull(result.values).all()
 
     def test_constructor_invalid(self):
 
@@ -260,15 +260,15 @@ class TestFloat64Index(Numeric, tm.TestCase):
     def test_astype(self):
 
         result = self.float.astype(object)
-        self.assertTrue(result.equals(self.float))
-        self.assertTrue(self.float.equals(result))
+        assert result.equals(self.float)
+        assert self.float.equals(result)
         self.check_is_index(result)
 
         i = self.mixed.copy()
         i.name = 'foo'
         result = i.astype(object)
-        self.assertTrue(result.equals(i))
-        self.assertTrue(i.equals(result))
+        assert result.equals(i)
+        assert i.equals(result)
         self.check_is_index(result)
 
         # GH 12881
@@ -307,18 +307,18 @@ class TestFloat64Index(Numeric, tm.TestCase):
     def test_equals_numeric(self):
 
         i = Float64Index([1.0, 2.0])
-        self.assertTrue(i.equals(i))
-        self.assertTrue(i.identical(i))
+        assert i.equals(i)
+        assert i.identical(i)
 
         i2 = Float64Index([1.0, 2.0])
-        self.assertTrue(i.equals(i2))
+        assert i.equals(i2)
 
         i = Float64Index([1.0, np.nan])
-        self.assertTrue(i.equals(i))
-        self.assertTrue(i.identical(i))
+        assert i.equals(i)
+        assert i.identical(i)
 
         i2 = Float64Index([1.0, np.nan])
-        self.assertTrue(i.equals(i2))
+        assert i.equals(i2)
 
     def test_get_indexer(self):
         idx = Float64Index([0.0, 1.0, 2.0])
@@ -363,7 +363,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
         # representable by slice [0:2:2]
         # pytest.raises(KeyError, idx.slice_locs, np.nan)
         sliced = idx.slice_locs(np.nan)
-        self.assertTrue(isinstance(sliced, tuple))
+        assert isinstance(sliced, tuple)
         self.assertEqual(sliced, (0, 3))
 
         # not representable by slice
@@ -373,17 +373,17 @@ class TestFloat64Index(Numeric, tm.TestCase):
 
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
-        self.assertTrue(np.nan in i)
+        assert np.nan in i
 
     def test_contains_not_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
-        self.assertTrue(1.0 in i)
+        assert 1.0 in i
 
     def test_doesnt_contain_all_the_things(self):
         i = Float64Index([np.nan])
         assert not i.isin([0]).item()
         assert not i.isin([1]).item()
-        self.assertTrue(i.isin([np.nan]).item())
+        assert i.isin([np.nan]).item()
 
     def test_nan_multiple_containment(self):
         i = Float64Index([1.0, np.nan])
@@ -463,18 +463,18 @@ class NumericInt(Numeric):
         tm.assert_index_equal(i, self._holder(i_view, name='Foo'))
 
     def test_is_monotonic(self):
-        self.assertTrue(self.index.is_monotonic)
-        self.assertTrue(self.index.is_monotonic_increasing)
+        assert self.index.is_monotonic
+        assert self.index.is_monotonic_increasing
         assert not self.index.is_monotonic_decreasing
 
         index = self._holder([4, 3, 2, 1])
         assert not index.is_monotonic
-        self.assertTrue(index.is_monotonic_decreasing)
+        assert index.is_monotonic_decreasing
 
         index = self._holder([1])
-        self.assertTrue(index.is_monotonic)
-        self.assertTrue(index.is_monotonic_increasing)
-        self.assertTrue(index.is_monotonic_decreasing)
+        assert index.is_monotonic
+        assert index.is_monotonic_increasing
+        assert index.is_monotonic_decreasing
 
     def test_logical_compat(self):
         idx = self.create_index()
@@ -483,7 +483,7 @@ class NumericInt(Numeric):
 
     def test_identical(self):
         i = Index(self.index.copy())
-        self.assertTrue(i.identical(self.index))
+        assert i.identical(self.index)
 
         same_values_different_type = Index(i, dtype=object)
         assert not i.identical(same_values_different_type)
@@ -491,11 +491,10 @@ class NumericInt(Numeric):
         i = self.index.copy(dtype=object)
         i = i.rename('foo')
         same_values = Index(i, dtype=object)
-        self.assertTrue(same_values.identical(i))
+        assert same_values.identical(i)
 
         assert not i.identical(self.index)
-        self.assertTrue(Index(same_values, name='foo', dtype=object).identical(
-            i))
+        assert Index(same_values, name='foo', dtype=object).identical(i)
 
         assert not self.index.copy(dtype=object).identical(
             self.index.copy(dtype=self._dtype))
