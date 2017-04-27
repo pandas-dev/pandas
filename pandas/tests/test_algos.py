@@ -264,8 +264,8 @@ class TestFactorize(tm.TestCase):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype='int32')
             self.assertEqual(len(set(key)), len(set(expected)))
-            self.assertTrue(np.array_equal(
-                pd.isnull(key), expected == na_sentinel))
+            tm.assert_numpy_array_equal(pd.isnull(key),
+                                        expected == na_sentinel)
 
         # nan still maps to na_sentinel when sort=False
         key = np.array([0, np.nan, 1], dtype='O')
@@ -276,8 +276,7 @@ class TestFactorize(tm.TestCase):
 
         expected = np.array([2, -1, 0], dtype='int32')
         self.assertEqual(len(set(key)), len(set(expected)))
-        self.assertTrue(
-            np.array_equal(pd.isnull(key), expected == na_sentinel))
+        tm.assert_numpy_array_equal(pd.isnull(key), expected == na_sentinel)
 
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
@@ -926,7 +925,7 @@ class TestDuplicated(tm.TestCase):
     def test_unique_index(self):
         cases = [pd.Index([1, 2, 3]), pd.RangeIndex(0, 3)]
         for case in cases:
-            self.assertTrue(case.is_unique)
+            assert case.is_unique
             tm.assert_numpy_array_equal(case.duplicated(),
                                         np.array([False, False, False]))
 
@@ -947,7 +946,7 @@ class GroupVarTestMixin(object):
         expected_counts = counts + 3
 
         self.algo(out, counts, values, labels)
-        self.assertTrue(np.allclose(out, expected_out, self.rtol))
+        assert np.allclose(out, expected_out, self.rtol)
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_1d_flat_labels(self):
@@ -963,7 +962,7 @@ class GroupVarTestMixin(object):
 
         self.algo(out, counts, values, labels)
 
-        self.assertTrue(np.allclose(out, expected_out, self.rtol))
+        assert np.allclose(out, expected_out, self.rtol)
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_all_finite(self):
@@ -978,7 +977,7 @@ class GroupVarTestMixin(object):
         expected_counts = counts + 2
 
         self.algo(out, counts, values, labels)
-        self.assertTrue(np.allclose(out, expected_out, self.rtol))
+        assert np.allclose(out, expected_out, self.rtol)
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_some_nan(self):
@@ -1011,7 +1010,7 @@ class GroupVarTestMixin(object):
         self.algo(out, counts, values, labels)
 
         self.assertEqual(counts[0], 3)
-        self.assertTrue(out[0, 0] >= 0)
+        assert out[0, 0] >= 0
         tm.assert_almost_equal(out[0, 0], 0.0)
 
 

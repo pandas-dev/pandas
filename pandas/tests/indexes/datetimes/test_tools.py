@@ -296,7 +296,7 @@ class TestToDatetime(tm.TestCase):
         i = pd.DatetimeIndex([
             '2000-01-01 08:00:00+00:00'
         ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
-        self.assertTrue(is_datetime64_ns_dtype(i))
+        assert is_datetime64_ns_dtype(i)
 
         # tz coerceion
         result = pd.to_datetime(i, errors='coerce')
@@ -311,11 +311,11 @@ class TestToDatetime(tm.TestCase):
         # GH13176
         with pytest.raises(TypeError):
             to_datetime(False)
-        self.assertTrue(to_datetime(False, errors="coerce") is NaT)
+        assert to_datetime(False, errors="coerce") is NaT
         self.assertEqual(to_datetime(False, errors="ignore"), False)
         with pytest.raises(TypeError):
             to_datetime(True)
-        self.assertTrue(to_datetime(True, errors="coerce") is NaT)
+        assert to_datetime(True, errors="coerce") is NaT
         self.assertEqual(to_datetime(True, errors="ignore"), True)
         with pytest.raises(TypeError):
             to_datetime([False, datetime.today()])
@@ -626,7 +626,7 @@ class ToDatetimeMisc(tm.TestCase):
     def test_to_datetime_default(self):
         rs = to_datetime('2001')
         xp = datetime(2001, 1, 1)
-        self.assertTrue(rs, xp)
+        assert rs, xp
 
         # dayfirst is essentially broken
 
@@ -684,7 +684,7 @@ class ToDatetimeMisc(tm.TestCase):
         assert result is NaT
 
         result = to_datetime(['', ''])
-        self.assertTrue(isnull(result).all())
+        assert isnull(result).all()
 
         # ints
         result = Timestamp(0)
@@ -889,7 +889,7 @@ class TestGuessDatetimeFormat(tm.TestCase):
         ]
 
         for invalid_dt in invalid_dts:
-            self.assertTrue(tools._guess_datetime_format(invalid_dt) is None)
+            assert tools._guess_datetime_format(invalid_dt) is None
 
     def test_guess_datetime_format_nopadding(self):
         # GH 11142
@@ -926,7 +926,7 @@ class TestGuessDatetimeFormat(tm.TestCase):
         format_for_string_of_nans = tools._guess_datetime_format_for_array(
             np.array(
                 [np.nan, np.nan, np.nan], dtype='O'))
-        self.assertTrue(format_for_string_of_nans is None)
+        assert format_for_string_of_nans is None
 
 
 class TestToDatetimeInferFormat(tm.TestCase):
@@ -993,13 +993,13 @@ class TestDaysInMonth(tm.TestCase):
     # tests for issue #10154
 
     def test_day_not_in_month_coerce(self):
-        self.assertTrue(isnull(to_datetime('2015-02-29', errors='coerce')))
-        self.assertTrue(isnull(to_datetime('2015-02-29', format="%Y-%m-%d",
-                                           errors='coerce')))
-        self.assertTrue(isnull(to_datetime('2015-02-32', format="%Y-%m-%d",
-                                           errors='coerce')))
-        self.assertTrue(isnull(to_datetime('2015-04-31', format="%Y-%m-%d",
-                                           errors='coerce')))
+        assert isnull(to_datetime('2015-02-29', errors='coerce'))
+        assert isnull(to_datetime('2015-02-29', format="%Y-%m-%d",
+                                  errors='coerce'))
+        assert isnull(to_datetime('2015-02-32', format="%Y-%m-%d",
+                                  errors='coerce'))
+        assert isnull(to_datetime('2015-04-31', format="%Y-%m-%d",
+                                  errors='coerce'))
 
     def test_day_not_in_month_raise(self):
         pytest.raises(ValueError, to_datetime, '2015-02-29',
@@ -1037,8 +1037,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                              '1-1', )
 
         for good_date_string in good_date_strings:
-            self.assertTrue(tslib._does_string_look_like_datetime(
-                good_date_string))
+            assert tslib._does_string_look_like_datetime(good_date_string)
 
     def test_parsers(self):
 
@@ -1129,10 +1128,10 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         result2 = to_datetime('NaT')
         result3 = Timestamp('NaT')
         result4 = DatetimeIndex(['NaT'])[0]
-        self.assertTrue(result1 is tslib.NaT)
-        self.assertTrue(result1 is tslib.NaT)
-        self.assertTrue(result1 is tslib.NaT)
-        self.assertTrue(result1 is tslib.NaT)
+        assert result1 is tslib.NaT
+        assert result1 is tslib.NaT
+        assert result1 is tslib.NaT
+        assert result1 is tslib.NaT
 
     def test_parsers_quarter_invalid(self):
 
@@ -1388,7 +1387,7 @@ class TestArrayToDatetime(tm.TestCase):
 
         result = lib.try_parse_dates(arr, dayfirst=True)
         expected = [parse(d, dayfirst=True) for d in arr]
-        self.assertTrue(np.array_equal(result, expected))
+        assert np.array_equal(result, expected)
 
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)

@@ -32,10 +32,10 @@ class TestConfig(unittest.TestCase):
     def test_api(self):
 
         # the pandas object exposes the user API
-        self.assertTrue(hasattr(pd, 'get_option'))
-        self.assertTrue(hasattr(pd, 'set_option'))
-        self.assertTrue(hasattr(pd, 'reset_option'))
-        self.assertTrue(hasattr(pd, 'describe_option'))
+        assert hasattr(pd, 'get_option')
+        assert hasattr(pd, 'set_option')
+        assert hasattr(pd, 'reset_option')
+        assert hasattr(pd, 'describe_option')
 
     def test_is_one_of_factory(self):
         v = self.cf.is_one_of_factory([None, 12])
@@ -87,43 +87,30 @@ class TestConfig(unittest.TestCase):
         pytest.raises(KeyError, self.cf.describe_option, 'no.such.key')
 
         # we can get the description for any key we registered
-        self.assertTrue(
-            'doc' in self.cf.describe_option('a', _print_desc=False))
-        self.assertTrue(
-            'doc2' in self.cf.describe_option('b', _print_desc=False))
-        self.assertTrue(
-            'precated' in self.cf.describe_option('b', _print_desc=False))
-
-        self.assertTrue(
-            'doc3' in self.cf.describe_option('c.d.e1', _print_desc=False))
-        self.assertTrue(
-            'doc4' in self.cf.describe_option('c.d.e2', _print_desc=False))
+        assert 'doc' in self.cf.describe_option('a', _print_desc=False)
+        assert 'doc2' in self.cf.describe_option('b', _print_desc=False)
+        assert 'precated' in self.cf.describe_option('b', _print_desc=False)
+        assert 'doc3' in self.cf.describe_option('c.d.e1', _print_desc=False)
+        assert 'doc4' in self.cf.describe_option('c.d.e2', _print_desc=False)
 
         # if no doc is specified we get a default message
         # saying "description not available"
-        self.assertTrue(
-            'vailable' in self.cf.describe_option('f', _print_desc=False))
-        self.assertTrue(
-            'vailable' in self.cf.describe_option('g.h', _print_desc=False))
-        self.assertTrue(
-            'precated' in self.cf.describe_option('g.h', _print_desc=False))
-        self.assertTrue(
-            'k' in self.cf.describe_option('g.h', _print_desc=False))
+        assert 'vailable' in self.cf.describe_option('f', _print_desc=False)
+        assert 'vailable' in self.cf.describe_option('g.h', _print_desc=False)
+        assert 'precated' in self.cf.describe_option('g.h', _print_desc=False)
+        assert 'k' in self.cf.describe_option('g.h', _print_desc=False)
 
         # default is reported
-        self.assertTrue(
-            'foo' in self.cf.describe_option('l', _print_desc=False))
+        assert 'foo' in self.cf.describe_option('l', _print_desc=False)
         # current value is reported
         assert 'bar' not in self.cf.describe_option('l', _print_desc=False)
         self.cf.set_option("l", "bar")
-        self.assertTrue(
-            'bar' in self.cf.describe_option('l', _print_desc=False))
+        assert 'bar' in self.cf.describe_option('l', _print_desc=False)
 
     def test_case_insensitive(self):
         self.cf.register_option('KanBAN', 1, 'doc')
 
-        self.assertTrue(
-            'doc' in self.cf.describe_option('kanbaN', _print_desc=False))
+        assert 'doc' in self.cf.describe_option('kanbaN', _print_desc=False)
         self.assertEqual(self.cf.get_option('kanBaN'), 1)
         self.cf.set_option('KanBan', 2)
         self.assertEqual(self.cf.get_option('kAnBaN'), 2)
@@ -132,7 +119,7 @@ class TestConfig(unittest.TestCase):
         pytest.raises(KeyError, self.cf.get_option, 'no_such_option')
         self.cf.deprecate_option('KanBan')
 
-        self.assertTrue(self.cf._is_deprecated('kAnBaN'))
+        assert self.cf._is_deprecated('kAnBaN')
 
     def test_get_option(self):
         self.cf.register_option('a', 1, 'doc')
@@ -142,7 +129,7 @@ class TestConfig(unittest.TestCase):
         # gets of existing keys succeed
         self.assertEqual(self.cf.get_option('a'), 1)
         self.assertEqual(self.cf.get_option('b.c'), 'hullo')
-        self.assertTrue(self.cf.get_option('b.b') is None)
+        assert self.cf.get_option('b.b') is None
 
         # gets of non-existent keys fail
         pytest.raises(KeyError, self.cf.get_option, 'no_such_option')
@@ -154,7 +141,7 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(self.cf.get_option('a'), 1)
         self.assertEqual(self.cf.get_option('b.c'), 'hullo')
-        self.assertTrue(self.cf.get_option('b.b') is None)
+        assert self.cf.get_option('b.b') is None
 
         self.cf.set_option('a', 2)
         self.cf.set_option('b.c', 'wurld')
@@ -182,12 +169,12 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(self.cf.get_option('a'), 1)
         self.assertEqual(self.cf.get_option('b.c'), 'hullo')
-        self.assertTrue(self.cf.get_option('b.b') is None)
+        assert self.cf.get_option('b.b') is None
 
         self.cf.set_option('a', '2', 'b.c', None, 'b.b', 10.0)
 
         self.assertEqual(self.cf.get_option('a'), '2')
-        self.assertTrue(self.cf.get_option('b.c') is None)
+        assert self.cf.get_option('b.c') is None
         self.assertEqual(self.cf.get_option('b.b'), 10.0)
 
     def test_validation(self):
@@ -251,7 +238,7 @@ class TestConfig(unittest.TestCase):
         # we can deprecate non-existent options
         self.cf.deprecate_option('foo')
 
-        self.assertTrue(self.cf._is_deprecated('foo'))
+        assert self.cf._is_deprecated('foo')
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             try:
@@ -262,8 +249,7 @@ class TestConfig(unittest.TestCase):
                 self.fail("Nonexistent option didn't raise KeyError")
 
             self.assertEqual(len(w), 1)  # should have raised one warning
-            self.assertTrue(
-                'deprecated' in str(w[-1]))  # we get the default message
+            assert 'deprecated' in str(w[-1])  # we get the default message
 
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
         self.cf.register_option('b.c', 'hullo', 'doc2')
@@ -275,10 +261,8 @@ class TestConfig(unittest.TestCase):
             self.cf.get_option('a')
 
             self.assertEqual(len(w), 1)  # should have raised one warning
-            self.assertTrue(
-                'eprecated' in str(w[-1]))  # we get the default message
-            self.assertTrue(
-                'nifty_ver' in str(w[-1]))  # with the removal_ver quoted
+            assert 'eprecated' in str(w[-1])  # we get the default message
+            assert 'nifty_ver' in str(w[-1])  # with the removal_ver quoted
 
             pytest.raises(
                 KeyError, self.cf.deprecate_option, 'a')  # can't depr. twice
@@ -289,8 +273,7 @@ class TestConfig(unittest.TestCase):
             self.cf.get_option('b.c')
 
             self.assertEqual(len(w), 1)  # should have raised one warning
-            self.assertTrue(
-                'zounds!' in str(w[-1]))  # we get the custom message
+            assert 'zounds!' in str(w[-1])  # we get the custom message
 
         # test rerouting keys
         self.cf.register_option('d.a', 'foo', 'doc2')
@@ -304,24 +287,21 @@ class TestConfig(unittest.TestCase):
             self.assertEqual(self.cf.get_option('d.dep'), 'foo')
 
             self.assertEqual(len(w), 1)  # should have raised one warning
-            self.assertTrue(
-                'eprecated' in str(w[-1]))  # we get the custom message
+            assert 'eprecated' in str(w[-1])  # we get the custom message
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.cf.set_option('d.dep', 'baz')  # should overwrite "d.a"
 
             self.assertEqual(len(w), 1)  # should have raised one warning
-            self.assertTrue(
-                'eprecated' in str(w[-1]))  # we get the custom message
+            assert 'eprecated' in str(w[-1])  # we get the custom message
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.assertEqual(self.cf.get_option('d.dep'), 'baz')
 
             self.assertEqual(len(w), 1)  # should have raised one warning
-            self.assertTrue(
-                'eprecated' in str(w[-1]))  # we get the custom message
+            assert 'eprecated' in str(w[-1])  # we get the custom message
 
     def test_config_prefix(self):
         with self.cf.config_prefix("base"):
@@ -337,10 +317,8 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(self.cf.get_option('base.a'), 3)
         self.assertEqual(self.cf.get_option('base.b'), 4)
-        self.assertTrue(
-            'doc1' in self.cf.describe_option('base.a', _print_desc=False))
-        self.assertTrue(
-            'doc2' in self.cf.describe_option('base.b', _print_desc=False))
+        assert 'doc1' in self.cf.describe_option('base.a', _print_desc=False)
+        assert 'doc2' in self.cf.describe_option('base.b', _print_desc=False)
 
         self.cf.reset_option('base.a')
         self.cf.reset_option('base.b')

@@ -127,10 +127,10 @@ class TestPlotBase(tm.TestCase):
         axes = self._flatten_visible(axes)
         for ax in axes:
             if visible:
-                self.assertTrue(ax.get_legend() is not None)
+                assert ax.get_legend() is not None
                 self._check_text_labels(ax.get_legend().get_texts(), labels)
             else:
-                self.assertTrue(ax.get_legend() is None)
+                assert ax.get_legend() is None
 
     def _check_data(self, xp, rs):
         """
@@ -352,7 +352,7 @@ class TestPlotBase(tm.TestCase):
             self.assertEqual(len(visible_axes), axes_num)
             for ax in visible_axes:
                 # check something drawn on visible axes
-                self.assertTrue(len(ax.get_children()) > 0)
+                assert len(ax.get_children()) > 0
 
         if layout is not None:
             result = self._get_axes_layout(_flatten(axes))
@@ -437,7 +437,7 @@ class TestPlotBase(tm.TestCase):
             if return_type is None:
                 return_type = 'dict'
 
-            self.assertTrue(isinstance(returned, types[return_type]))
+            assert isinstance(returned, types[return_type])
             if return_type == 'both':
                 assert isinstance(returned.ax, Axes)
                 assert isinstance(returned.lines, dict)
@@ -448,11 +448,11 @@ class TestPlotBase(tm.TestCase):
                     assert isinstance(r, Axes)
                 return
 
-            self.assertTrue(isinstance(returned, Series))
+            assert isinstance(returned, Series)
 
             self.assertEqual(sorted(returned.keys()), sorted(expected_keys))
             for key, value in iteritems(returned):
-                self.assertTrue(isinstance(value, types[return_type]))
+                assert isinstance(value, types[return_type])
                 # check returned dict has correct mapping
                 if return_type == 'axes':
                     if check_ax_title:
@@ -504,13 +504,13 @@ class TestPlotBase(tm.TestCase):
                 spndx += 1
                 mpl.rc('axes', grid=True)
                 obj.plot(kind=kind, **kws)
-                self.assertTrue(is_grid_on())
+                assert is_grid_on()
 
                 self.plt.subplot(1, 4 * len(kinds), spndx)
                 spndx += 1
                 mpl.rc('axes', grid=False)
                 obj.plot(kind=kind, grid=True, **kws)
-                self.assertTrue(is_grid_on())
+                assert is_grid_on()
 
     def _maybe_unpack_cycler(self, rcParams, field='color'):
         """

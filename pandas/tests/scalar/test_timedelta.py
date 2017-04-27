@@ -55,11 +55,9 @@ class TestTimedeltas(tm.TestCase):
 
         # rounding cases
         self.assertEqual(Timedelta(82739999850000).value, 82739999850000)
-        self.assertTrue('0 days 22:58:59.999850' in str(Timedelta(
-            82739999850000)))
+        assert ('0 days 22:58:59.999850' in str(Timedelta(82739999850000)))
         self.assertEqual(Timedelta(123072001000000).value, 123072001000000)
-        self.assertTrue('1 days 10:11:12.001' in str(Timedelta(
-            123072001000000)))
+        assert ('1 days 10:11:12.001' in str(Timedelta(123072001000000)))
 
         # string conversion with/without leading zero
         # GH 9570
@@ -184,7 +182,7 @@ class TestTimedeltas(tm.TestCase):
         tm.assert_almost_equal(rng.total_seconds(), expt)
 
         rng = Timedelta(np.nan)
-        self.assertTrue(np.isnan(rng.total_seconds()))
+        assert np.isnan(rng.total_seconds())
 
     def test_repr(self):
 
@@ -202,20 +200,20 @@ class TestTimedeltas(tm.TestCase):
         for td in [Timedelta(10, unit='d'),
                    Timedelta('1 days, 10:11:12.012345')]:
             pydt = td.to_pytimedelta()
-            self.assertTrue(td == Timedelta(pydt))
+            assert td == Timedelta(pydt)
             self.assertEqual(td, pydt)
-            self.assertTrue(isinstance(pydt, timedelta) and not isinstance(
+            assert (isinstance(pydt, timedelta) and not isinstance(
                 pydt, Timedelta))
 
             self.assertEqual(td, np.timedelta64(td.value, 'ns'))
             td64 = td.to_timedelta64()
             self.assertEqual(td64, np.timedelta64(td.value, 'ns'))
             self.assertEqual(td, td64)
-            self.assertTrue(isinstance(td64, np.timedelta64))
+            assert isinstance(td64, np.timedelta64)
 
         # this is NOT equal and cannot be roundtriped (because of the nanos)
         td = Timedelta('1 days, 10:11:12.012345678')
-        self.assertTrue(td != td.to_pytimedelta())
+        assert td != td.to_pytimedelta()
 
     def test_freq_conversion(self):
 
@@ -240,7 +238,7 @@ class TestTimedeltas(tm.TestCase):
     def test_fields(self):
         def check(value):
             # that we are int/long like
-            self.assertTrue(isinstance(value, (int, compat.long)))
+            assert isinstance(value, (int, compat.long))
 
         # compat to datetime.timedelta
         rng = to_timedelta('1 days, 10:11:12')
@@ -261,7 +259,7 @@ class TestTimedeltas(tm.TestCase):
 
         td = Timedelta('-1 days, 10:11:12')
         self.assertEqual(abs(td), Timedelta('13:48:48'))
-        self.assertTrue(str(td) == "-1 days +10:11:12")
+        assert str(td) == "-1 days +10:11:12"
         self.assertEqual(-td, Timedelta('0 days 13:48:48'))
         self.assertEqual(-Timedelta('-1 days, 10:11:12').value, 49728000000000)
         self.assertEqual(Timedelta('-1 days, 10:11:12').value, -49728000000000)
@@ -455,13 +453,13 @@ class TestTimedeltas(tm.TestCase):
 
         td = to_timedelta([pd.NaT])
         for v in [pd.NaT, None, float('nan'), np.nan]:
-            self.assertTrue((v in td))
+            assert (v in td)
 
     def test_identity(self):
 
         td = Timedelta(10, unit='d')
-        self.assertTrue(isinstance(td, Timedelta))
-        self.assertTrue(isinstance(td, timedelta))
+        assert isinstance(td, Timedelta)
+        assert isinstance(td, timedelta)
 
     def test_short_format_converters(self):
         def conv(v):
@@ -547,10 +545,9 @@ class TestTimedeltas(tm.TestCase):
         expected = pd.Timedelta((pd.DatetimeIndex((s - s.min())).asi8 / len(s)
                                  ).sum())
 
-        # the computation is converted to float so might be some loss of
-        # precision
-        self.assertTrue(np.allclose(result.value / 1000, expected.value /
-                                    1000))
+        # the computation is converted to float so
+        # might be some loss of precision
+        assert np.allclose(result.value / 1000, expected.value / 1000)
 
         # sum
         pytest.raises(ValueError, lambda: (s - s.min()).sum())
@@ -575,8 +572,7 @@ class TestTimedeltas(tm.TestCase):
         self.assertEqual(d[v], 2)
 
         tds = timedelta_range('1 second', periods=20)
-        self.assertTrue(all(hash(td) == hash(td.to_pytimedelta()) for td in
-                            tds))
+        assert all(hash(td) == hash(td.to_pytimedelta()) for td in tds)
 
         # python timedeltas drop ns resolution
         ns_td = Timedelta(1, 'ns')
@@ -659,7 +655,7 @@ class TestTimedeltas(tm.TestCase):
 
         result = s.dt.components
         assert not result.iloc[0].isnull().all()
-        self.assertTrue(result.iloc[1].isnull().all())
+        assert result.iloc[1].isnull().all()
 
     def test_isoformat(self):
         td = Timedelta(days=6, minutes=50, seconds=3,
@@ -708,4 +704,4 @@ class TestTimedeltas(tm.TestCase):
                 l > r
 
             assert not l == r
-            self.assertTrue(l != r)
+            assert l != r

@@ -166,7 +166,7 @@ class TestToNumeric(tm.TestCase):
             to_numeric('XX', errors='raise')
 
         self.assertEqual(to_numeric('XX', errors='ignore'), 'XX')
-        self.assertTrue(np.isnan(to_numeric('XX', errors='coerce')))
+        assert np.isnan(to_numeric('XX', errors='coerce'))
 
     def test_numeric_dtypes(self):
         idx = pd.Index([1, 2, 3], name='xxx')

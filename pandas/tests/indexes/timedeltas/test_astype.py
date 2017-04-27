@@ -55,7 +55,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         result = idx.astype('timedelta64[ns]', copy=False)
         tm.assert_index_equal(result, idx)
-        self.assertTrue(result is idx)
+        assert result is idx
 
     def test_astype_raises(self):
         # GH 13149, GH 13209

@@ -41,7 +41,7 @@ class TestBuildSchema(tm.TestCase):
         }
         self.assertEqual(result, expected)
         result = build_table_schema(self.df)
-        self.assertTrue("pandas_version" in result)
+        assert "pandas_version" in result
 
     def test_series(self):
         s = pd.Series([1, 2, 3], name='foo')
@@ -51,7 +51,7 @@ class TestBuildSchema(tm.TestCase):
                     'primaryKey': ['index']}
         self.assertEqual(result, expected)
         result = build_table_schema(s)
-        self.assertTrue('pandas_version' in result)
+        assert 'pandas_version' in result
 
     def tets_series_unnamed(self):
         result = build_table_schema(pd.Series([1, 2, 3]), version=False)
@@ -194,7 +194,7 @@ class TestTableOrient(tm.TestCase):
         result = s.to_json(orient='table', date_format='iso')
         result = json.loads(result, object_pairs_hook=OrderedDict)
 
-        self.assertTrue("pandas_version" in result['schema'])
+        assert "pandas_version" in result['schema']
         result['schema'].pop('pandas_version')
 
         fields = [{'name': 'id', 'type': 'integer'},
@@ -217,7 +217,7 @@ class TestTableOrient(tm.TestCase):
         result = df.to_json(orient='table', date_format='iso')
         result = json.loads(result, object_pairs_hook=OrderedDict)
 
-        self.assertTrue("pandas_version" in result['schema'])
+        assert "pandas_version" in result['schema']
         result['schema'].pop('pandas_version')
 
         fields = [

@@ -162,25 +162,25 @@ class TestSparseIndexUnion(tm.TestCase):
         b = IntIndex(5, np.array([0, 2], dtype=np.int32))
         res = a.make_union(b)
         exp = IntIndex(5, np.array([0, 2, 3, 4], np.int32))
-        self.assertTrue(res.equals(exp))
+        assert res.equals(exp)
 
         a = IntIndex(5, np.array([], dtype=np.int32))
         b = IntIndex(5, np.array([0, 2], dtype=np.int32))
         res = a.make_union(b)
         exp = IntIndex(5, np.array([0, 2], np.int32))
-        self.assertTrue(res.equals(exp))
+        assert res.equals(exp)
 
         a = IntIndex(5, np.array([], dtype=np.int32))
         b = IntIndex(5, np.array([], dtype=np.int32))
         res = a.make_union(b)
         exp = IntIndex(5, np.array([], np.int32))
-        self.assertTrue(res.equals(exp))
+        assert res.equals(exp)
 
         a = IntIndex(5, np.array([0, 1, 2, 3, 4], dtype=np.int32))
         b = IntIndex(5, np.array([0, 1, 2, 3, 4], dtype=np.int32))
         res = a.make_union(b)
         exp = IntIndex(5, np.array([0, 1, 2, 3, 4], np.int32))
-        self.assertTrue(res.equals(exp))
+        assert res.equals(exp)
 
         a = IntIndex(5, np.array([0, 1], dtype=np.int32))
         b = IntIndex(4, np.array([0, 1], dtype=np.int32))
@@ -219,13 +219,13 @@ class TestSparseIndexIntersect(tm.TestCase):
     def test_intersect_empty(self):
         xindex = IntIndex(4, np.array([], dtype=np.int32))
         yindex = IntIndex(4, np.array([2, 3], dtype=np.int32))
-        self.assertTrue(xindex.intersect(yindex).equals(xindex))
-        self.assertTrue(yindex.intersect(xindex).equals(xindex))
+        assert xindex.intersect(yindex).equals(xindex)
+        assert yindex.intersect(xindex).equals(xindex)
 
         xindex = xindex.to_block_index()
         yindex = yindex.to_block_index()
-        self.assertTrue(xindex.intersect(yindex).equals(xindex))
-        self.assertTrue(yindex.intersect(xindex).equals(xindex))
+        assert xindex.intersect(yindex).equals(xindex)
+        assert yindex.intersect(xindex).equals(xindex)
 
     def test_intersect_identical(self):
         cases = [IntIndex(5, np.array([1, 2], dtype=np.int32)),
@@ -234,9 +234,9 @@ class TestSparseIndexIntersect(tm.TestCase):
                  IntIndex(5, np.array([], dtype=np.int32))]
 
         for case in cases:
-            self.assertTrue(case.intersect(case).equals(case))
+            assert case.intersect(case).equals(case)
             case = case.to_block_index()
-            self.assertTrue(case.intersect(case).equals(case))
+            assert case.intersect(case).equals(case)
 
 
 class TestSparseIndexCommon(tm.TestCase):
@@ -436,7 +436,7 @@ class TestBlockIndex(tm.TestCase):
     def test_equals(self):
         index = BlockIndex(10, [0, 4], [2, 5])
 
-        self.assertTrue(index.equals(index))
+        assert index.equals(index)
         assert not index.equals(BlockIndex(10, [0, 4], [2, 6]))
 
     def test_check_integrity(self):
@@ -534,7 +534,7 @@ class TestIntIndex(tm.TestCase):
 
     def test_equals(self):
         index = IntIndex(10, [0, 1, 2, 3, 4])
-        self.assertTrue(index.equals(index))
+        assert index.equals(index)
         assert not index.equals(IntIndex(10, [0, 1, 2, 3]))
 
     def test_to_block_index(self):
@@ -547,8 +547,8 @@ class TestIntIndex(tm.TestCase):
             xbindex = xindex.to_int_index().to_block_index()
             ybindex = yindex.to_int_index().to_block_index()
             assert isinstance(xbindex, BlockIndex)
-            self.assertTrue(xbindex.equals(xindex))
-            self.assertTrue(ybindex.equals(yindex))
+            assert xbindex.equals(xindex)
+            assert ybindex.equals(yindex)
 
         check_cases(_check_case)
 
@@ -578,7 +578,7 @@ class TestSparseOperators(tm.TestCase):
             result_int_vals, ri_index, ifill = sparse_op(x, xdindex, xfill, y,
                                                          ydindex, yfill)
 
-            self.assertTrue(rb_index.to_int_index().equals(ri_index))
+            assert rb_index.to_int_index().equals(ri_index)
             tm.assert_numpy_array_equal(result_block_vals, result_int_vals)
             self.assertEqual(bfill, ifill)
 

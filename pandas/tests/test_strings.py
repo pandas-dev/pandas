@@ -49,8 +49,7 @@ class TestStringMethods(tm.TestCase):
 
             for el in s:
                 # each element of the series is either a basestring/str or nan
-                self.assertTrue(isinstance(el, compat.string_types) or
-                                isnull(el))
+                assert isinstance(el, compat.string_types) or isnull(el)
 
         # desired behavior is to iterate until everything would be nan on the
         # next iter so make sure the last element of the iterator was 'l' in
@@ -2114,12 +2113,12 @@ class TestStringMethods(tm.TestCase):
         idx = Index(['a,b', 'c,d'], name='xxx')
         res = idx.str.split(',')
         exp = Index([['a', 'b'], ['c', 'd']], name='xxx')
-        self.assertTrue(res.nlevels, 1)
+        assert res.nlevels, 1
         tm.assert_index_equal(res, exp)
 
         res = idx.str.split(',', expand=True)
         exp = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')])
-        self.assertTrue(res.nlevels, 2)
+        assert res.nlevels, 2
         tm.assert_index_equal(res, exp)
 
     def test_partition_series(self):
@@ -2207,13 +2206,13 @@ class TestStringMethods(tm.TestCase):
         result = values.str.partition('_')
         exp = Index([('a', '_', 'b_c'), ('c', '_', 'd_e'), ('f', '_', 'g_h')])
         tm.assert_index_equal(result, exp)
-        self.assertTrue(isinstance(result, MultiIndex))
+        assert isinstance(result, MultiIndex)
         self.assertEqual(result.nlevels, 3)
 
         result = values.str.rpartition('_')
         exp = Index([('a_b', '_', 'c'), ('c_d', '_', 'e'), ('f_g', '_', 'h')])
         tm.assert_index_equal(result, exp)
-        self.assertTrue(isinstance(result, MultiIndex))
+        assert isinstance(result, MultiIndex)
         self.assertEqual(result.nlevels, 3)
 
     def test_partition_to_dataframe(self):
@@ -2259,13 +2258,13 @@ class TestStringMethods(tm.TestCase):
         idx = Index(['a,b', 'c,d'], name='xxx')
         res = idx.str.partition(',')
         exp = MultiIndex.from_tuples([('a', ',', 'b'), ('c', ',', 'd')])
-        self.assertTrue(res.nlevels, 3)
+        assert res.nlevels, 3
         tm.assert_index_equal(res, exp)
 
         # should preserve name
         res = idx.str.partition(',', expand=False)
         exp = Index(np.array([('a', ',', 'b'), ('c', ',', 'd')]), name='xxx')
-        self.assertTrue(res.nlevels, 1)
+        assert res.nlevels, 1
         tm.assert_index_equal(res, exp)
 
     def test_pipe_failures(self):
@@ -2720,14 +2719,14 @@ class TestStringMethods(tm.TestCase):
                      (['aa', datetime(2011, 1, 1)], 'mixed')]
         for values, tp in cases:
             idx = Index(values)
-            self.assertTrue(isinstance(Series(values).str, StringMethods))
-            self.assertTrue(isinstance(idx.str, StringMethods))
+            assert isinstance(Series(values).str, StringMethods)
+            assert isinstance(idx.str, StringMethods)
             self.assertEqual(idx.inferred_type, tp)
 
         for values, tp in cases:
             idx = Index(values)
-            self.assertTrue(isinstance(Series(values).str, StringMethods))
-            self.assertTrue(isinstance(idx.str, StringMethods))
+            assert isinstance(Series(values).str, StringMethods)
+            assert isinstance(idx.str, StringMethods)
             self.assertEqual(idx.inferred_type, tp)
 
         cases = [([1, np.nan], 'floating'),

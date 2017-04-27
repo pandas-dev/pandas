@@ -190,8 +190,8 @@ class TestJoin(tm.TestCase):
                          columns=['three'])
         joined = df_a.join(df_b, on='one')
         joined = joined.join(df_c, on='one')
-        self.assertTrue(np.isnan(joined['two']['c']))
-        self.assertTrue(np.isnan(joined['three']['c']))
+        assert np.isnan(joined['two']['c'])
+        assert np.isnan(joined['three']['c'])
 
         # merge column not p resent
         pytest.raises(KeyError, target.join, source, on='E')
@@ -252,7 +252,7 @@ class TestJoin(tm.TestCase):
         merged = self.target.join(self.source.reindex([]), on='C')
         for col in self.source:
             assert col in merged
-            self.assertTrue(merged[col].isnull().all())
+            assert merged[col].isnull().all()
 
         merged2 = self.target.join(self.source.reindex([]), on='C',
                                    how='inner')
@@ -422,7 +422,7 @@ class TestJoin(tm.TestCase):
         expected = expected.drop(['first', 'second'], axis=1)
         expected.index = joined.index
 
-        self.assertTrue(joined.index.is_monotonic)
+        assert joined.index.is_monotonic
         assert_frame_equal(joined, expected)
 
         # _assert_same_contents(expected, expected2.loc[:, expected.columns])
@@ -437,8 +437,8 @@ class TestJoin(tm.TestCase):
         # GH 9455, 12219
         with tm.assert_produces_warning(UserWarning):
             result = merge(new_df, other_df, left_index=True, right_index=True)
-        self.assertTrue(('b', 'mean') in result)
-        self.assertTrue('b' in result)
+        assert ('b', 'mean') in result
+        assert 'b' in result
 
     def test_join_float64_float32(self):
 

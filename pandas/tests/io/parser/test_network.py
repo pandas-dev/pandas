@@ -60,14 +60,14 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' +
                           ext, compression=comp)
-            self.assertTrue(isinstance(df, DataFrame))
+            assert isinstance(df, DataFrame)
             assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
 
         # Read public file from bucket with not-public contents
         df = read_csv('s3://cant_get_it/tips.csv')
-        self.assertTrue(isinstance(df, DataFrame))
+        assert isinstance(df, DataFrame)
         assert not df.empty
         tm.assert_frame_equal(read_csv(tm.get_data_path('tips.csv')), df)
 
@@ -75,7 +75,7 @@ class TestS3(tm.TestCase):
     def test_parse_public_s3n_bucket(self):
         # Read from AWS s3 as "s3n" URL
         df = read_csv('s3n://pandas-test/tips.csv', nrows=10)
-        self.assertTrue(isinstance(df, DataFrame))
+        assert isinstance(df, DataFrame)
         assert not df.empty
         tm.assert_frame_equal(read_csv(
             tm.get_data_path('tips.csv')).iloc[:10], df)
@@ -84,7 +84,7 @@ class TestS3(tm.TestCase):
     def test_parse_public_s3a_bucket(self):
         # Read from AWS s3 as "s3a" URL
         df = read_csv('s3a://pandas-test/tips.csv', nrows=10)
-        self.assertTrue(isinstance(df, DataFrame))
+        assert isinstance(df, DataFrame)
         assert not df.empty
         tm.assert_frame_equal(read_csv(
             tm.get_data_path('tips.csv')).iloc[:10], df)
@@ -94,7 +94,7 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' +
                           ext, nrows=10, compression=comp)
-            self.assertTrue(isinstance(df, DataFrame))
+            assert isinstance(df, DataFrame)
             assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')).iloc[:10], df)
@@ -112,7 +112,7 @@ class TestS3(tm.TestCase):
                 # Read a couple of chunks and make sure we see them
                 # properly.
                 df = df_reader.get_chunk()
-                self.assertTrue(isinstance(df, DataFrame))
+                assert isinstance(df, DataFrame)
                 assert not df.empty
                 true_df = local_tips.iloc[
                     chunksize * i_chunk: chunksize * (i_chunk + 1)]
@@ -131,7 +131,7 @@ class TestS3(tm.TestCase):
             for i_chunk in [0, 1, 2]:
                 # Read a couple of chunks and make sure we see them properly.
                 df = df_reader.get_chunk()
-                self.assertTrue(isinstance(df, DataFrame))
+                assert isinstance(df, DataFrame)
                 assert not df.empty
                 true_df = local_tips.iloc[
                     chunksize * i_chunk: chunksize * (i_chunk + 1)]
@@ -142,7 +142,7 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
                           compression=comp)
-            self.assertTrue(isinstance(df, DataFrame))
+            assert isinstance(df, DataFrame)
             assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
@@ -152,7 +152,7 @@ class TestS3(tm.TestCase):
         for ext in ['', '.gz', '.bz2']:
             df = read_csv('s3://pandas-test/tips.csv' + ext,
                           engine='python', compression='infer')
-            self.assertTrue(isinstance(df, DataFrame))
+            assert isinstance(df, DataFrame)
             assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
@@ -162,7 +162,7 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
                           nrows=10, compression=comp)
-            self.assertTrue(isinstance(df, DataFrame))
+            assert isinstance(df, DataFrame)
             assert not df.empty
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')).iloc[:10], df)

@@ -154,8 +154,8 @@ nan 2
             # round-trip should match float()
             self.assertEqual(roundtrip_val, float(text[2:]))
 
-        self.assertTrue(sum(precise_errors) <= sum(normal_errors))
-        self.assertTrue(max(precise_errors) <= max(normal_errors))
+        assert sum(precise_errors) <= sum(normal_errors)
+        assert max(precise_errors) <= max(normal_errors)
 
     def test_pass_dtype_as_recarray(self):
         if compat.is_platform_windows() and self.low_memory:
@@ -195,8 +195,8 @@ one,two
                                 converters={'a': str},
                                 dtype={'b': int, 'c': float},
                                 )
-        self.assertTrue((result.dtypes == [object, np.int, np.float]).all())
-        self.assertTrue((result2.dtypes == [object, np.float]).all())
+        assert (result.dtypes == [object, np.int, np.float]).all()
+        assert (result2.dtypes == [object, np.float]).all()
 
     def test_disable_bool_parsing(self):
         # #2090
@@ -208,7 +208,7 @@ Yes,,Yes
 No,No,No"""
 
         result = self.read_csv(StringIO(data), dtype=object)
-        self.assertTrue((result.dtypes == object).all())
+        assert (result.dtypes == object).all()
 
         result = self.read_csv(StringIO(data), dtype=object, na_filter=False)
         self.assertEqual(result['B'][2], '')
@@ -388,7 +388,7 @@ No,No,No"""
 
         df = self.read_csv(StringIO(test_input), sep='\t', nrows=1010)
 
-        self.assertTrue(df.size == 1010 * 10)
+        assert df.size == 1010 * 10
 
     def test_float_precision_round_trip_with_text(self):
         # gh-15140 - This should not segfault on Python 2.7+

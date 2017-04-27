@@ -161,7 +161,7 @@ class TestMaybe(tm.TestCase):
     def test_maybe_convert_string_to_array(self):
         result = maybe_convert_string_to_object('x')
         tm.assert_numpy_array_equal(result, np.array(['x'], dtype=object))
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
         result = maybe_convert_string_to_object(1)
         self.assertEqual(result, 1)
@@ -169,19 +169,19 @@ class TestMaybe(tm.TestCase):
         arr = np.array(['x', 'y'], dtype=str)
         result = maybe_convert_string_to_object(arr)
         tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
         # unicode
         arr = np.array(['x', 'y']).astype('U')
         result = maybe_convert_string_to_object(arr)
         tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
         # object
         arr = np.array(['x', 2], dtype=object)
         result = maybe_convert_string_to_object(arr)
         tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
     def test_maybe_convert_scalar(self):
 
@@ -220,17 +220,17 @@ class TestConvert(tm.TestCase):
         values = np.array([1, 2])
 
         out = maybe_convert_objects(values, copy=False)
-        self.assertTrue(values is out)
+        assert values is out
 
         out = maybe_convert_objects(values, copy=True)
-        self.assertTrue(values is not out)
+        assert values is not out
 
         values = np.array(['apply', 'banana'])
         out = maybe_convert_objects(values, copy=False)
-        self.assertTrue(values is out)
+        assert values is out
 
         out = maybe_convert_objects(values, copy=True)
-        self.assertTrue(values is not out)
+        assert values is not out
 
 
 class TestCommonTypes(tm.TestCase):

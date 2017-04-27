@@ -30,10 +30,10 @@ class TestToHTML(tm.TestCase):
             # and be very brittle about it.
             html = df.to_html(col_space=col_space)
             hdrs = [x for x in html.split(r"\n") if re.search(r"<th[>\s]", x)]
-            self.assertTrue(len(hdrs) > 0)
+            assert len(hdrs) > 0
             for h in hdrs:
-                self.assertTrue("min-width" in h)
-                self.assertTrue(str(col_space) in h)
+                assert "min-width" in h
+                assert str(col_space) in h
 
         df = DataFrame(np.random.random(size=(1, 3)))
 
@@ -45,7 +45,7 @@ class TestToHTML(tm.TestCase):
         data = {'c1': ['a', 'b'], 'c2': ['a', ''], 'data': [1, 2]}
         df = DataFrame(data).set_index(['c1', 'c2'])
         res = df.to_html()
-        self.assertTrue("rowspan" not in res)
+        assert "rowspan" not in res
 
     def test_to_html_unicode(self):
         df = DataFrame({u('\u03c3'): np.arange(10.)})
@@ -1403,13 +1403,13 @@ class TestToHTML(tm.TestCase):
         df = DataFrame({'A': [1, 2]})
         with pd.option_context('html.border', 0):
             result = df.to_html()
-            self.assertTrue('border="0"' in result)
-            self.assertTrue('border="0"' in df._repr_html_())
+            assert 'border="0"' in result
+            assert 'border="0"' in df._repr_html_()
 
     def test_to_html_border_zero(self):
         df = DataFrame({'A': [1, 2]})
         result = df.to_html(border=0)
-        self.assertTrue('border="0"' in result)
+        assert 'border="0"' in result
 
     def test_to_html(self):
         # big mixed

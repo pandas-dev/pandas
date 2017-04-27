@@ -333,7 +333,7 @@ class TestDataFramePlots(TestPlotBase):
 
             axes = df.plot(kind=kind, subplots=True, legend=False)
             for ax in axes:
-                self.assertTrue(ax.get_legend() is None)
+                assert ax.get_legend() is None
 
     @slow
     def test_subplots_timeseries(self):
@@ -663,7 +663,7 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(secondary_y=True, subplots=True)
         self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
         for ax in axes:
-            self.assertTrue(hasattr(ax, 'left_ax'))
+            assert hasattr(ax, 'left_ax')
             assert not hasattr(ax, 'right_ax')
             xmin, xmax = ax.get_xlim()
             lines = ax.get_lines()
@@ -955,8 +955,8 @@ class TestDataFramePlots(TestPlotBase):
         # identical to the values we supplied, normally we'd be on shaky ground
         # comparing floats for equality but here we expect them to be
         # identical.
-        self.assertTrue(np.array_equal(ax.collections[0].get_facecolor(),
-                                       rgba_array))
+        tm.assert_numpy_array_equal(ax.collections[0]
+                                    .get_facecolor(), rgba_array)
         # we don't test the colors of the faces in this next plot because they
         # are dependent on the spring colormap, which may change its colors
         # later.
@@ -1057,7 +1057,7 @@ class TestDataFramePlots(TestPlotBase):
                 raise ValueError
 
             # Check the ticks locates on integer
-            self.assertTrue((axis.get_ticklocs() == np.arange(len(df))).all())
+            assert (axis.get_ticklocs() == np.arange(len(df))).all()
 
             if align == 'center':
                 # Check whether the bar locates on center
@@ -1511,7 +1511,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_text_labels(ax.xaxis.get_label(), 'a')
         ax = df5.plot(y='c', label='LABEL_c', ax=ax)
         self._check_legend_labels(ax, labels=['LABEL_b', 'LABEL_c'])
-        self.assertTrue(df5.columns.tolist() == ['b', 'c'])
+        assert df5.columns.tolist() == ['b', 'c']
 
     def test_legend_name(self):
         multi = DataFrame(randn(4, 4),
@@ -1733,7 +1733,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_colors(linehandles, linecolors=custom_colors)
 
         for h in handles:
-            self.assertTrue(h.get_alpha() is None)
+            assert h.get_alpha() is None
         tm.close()
 
         ax = df.plot.area(colormap='jet')
@@ -1750,7 +1750,7 @@ class TestDataFramePlots(TestPlotBase):
                            if not isinstance(x, PolyCollection)]
             self._check_colors(linehandles, linecolors=jet_colors)
         for h in handles:
-            self.assertTrue(h.get_alpha() is None)
+            assert h.get_alpha() is None
         tm.close()
 
         # When stacked=False, alpha is set to 0.5
@@ -1974,7 +1974,7 @@ class TestDataFramePlots(TestPlotBase):
                        columns=['test'])
         ax = df.plot()
         xticks = ax.lines[0].get_xdata()
-        self.assertTrue(xticks[0] < xticks[1])
+        assert xticks[0] < xticks[1]
         ydata = ax.lines[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
 
@@ -2300,9 +2300,9 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, table=df)
 
         ax = df.plot()
-        self.assertTrue(len(ax.tables) == 0)
+        assert len(ax.tables) == 0
         plotting.table(ax, df.T)
-        self.assertTrue(len(ax.tables) == 1)
+        assert len(ax.tables) == 1
 
     def test_errorbar_scatter(self):
         df = DataFrame(

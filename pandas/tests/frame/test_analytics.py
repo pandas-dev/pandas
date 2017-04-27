@@ -81,11 +81,11 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                             'C': [np.nan, np.nan, np.nan, np.nan,
                                   np.nan, np.nan]})
             rs = df.corr(meth)
-            self.assertTrue(isnull(rs.loc['A', 'B']))
-            self.assertTrue(isnull(rs.loc['B', 'A']))
+            assert isnull(rs.loc['A', 'B'])
+            assert isnull(rs.loc['B', 'A'])
             self.assertEqual(rs.loc['A', 'A'], 1)
             self.assertEqual(rs.loc['B', 'B'], 1)
-            self.assertTrue(isnull(rs.loc['C', 'C']))
+            assert isnull(rs.loc['C', 'C'])
 
     def test_corr_constant(self):
         tm._skip_if_no_scipy()
@@ -96,7 +96,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             df = DataFrame({'A': [1, 1, 1, np.nan, np.nan, np.nan],
                             'B': [np.nan, np.nan, np.nan, 1, 1, 1]})
             rs = df.corr(meth)
-            self.assertTrue(isnull(rs.values).all())
+            assert isnull(rs.values).all()
 
     def test_corr_int(self):
         # dtypes other than float64 #1761
@@ -136,7 +136,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         tm.assert_frame_equal(expected, result)
 
         result = self.frame.cov(min_periods=len(self.frame) + 1)
-        self.assertTrue(isnull(result.values).all())
+        assert isnull(result.values).all()
 
         # with NAs
         frame = self.frame.copy()
@@ -234,7 +234,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         c2 = np.corrcoef(df1['a'], df2['a'])[0][1]
 
         tm.assert_almost_equal(c1, c2)
-        self.assertTrue(c1 < 1)
+        assert c1 < 1
 
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
@@ -710,7 +710,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         kurt = df.kurt()
         kurt2 = df.kurt(level=0).xs('bar')
         tm.assert_series_equal(kurt, kurt2, check_names=False)
-        self.assertTrue(kurt.name is None)
+        assert kurt.name is None
         self.assertEqual(kurt2.name, 'bar')
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
@@ -733,7 +733,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             df['a'] = lrange(len(df))
             result = getattr(df, name)()
             assert isinstance(result, Series)
-            self.assertTrue(len(result))
+            assert len(result)
 
         if has_skipna:
             def skipna_wrapper(x):
@@ -796,8 +796,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
             if not tm._incompat_bottleneck_version(name):
-                self.assertTrue(np.isnan(r0).all())
-                self.assertTrue(np.isnan(r1).all())
+                assert np.isnan(r0).all()
+                assert np.isnan(r1).all()
 
     def test_mode(self):
         df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],
@@ -864,7 +864,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         self.assertEqual(result[1], diffs.loc[0, 'B'])
 
         result = diffs.min(axis=1)
-        self.assertTrue((result == diffs.loc[0, 'B']).all())
+        assert (result == diffs.loc[0, 'B']).all()
 
         # max
         result = diffs.max()
@@ -872,7 +872,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         self.assertEqual(result[1], diffs.loc[2, 'B'])
 
         result = diffs.max(axis=1)
-        self.assertTrue((result == diffs['A']).all())
+        assert (result == diffs['A']).all()
 
         # abs
         result = diffs.abs()
@@ -924,8 +924,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         df['off2'] = df['time'] - df['time2']
         df._consolidate_inplace()
-        self.assertTrue(df['off1'].dtype == 'timedelta64[ns]')
-        self.assertTrue(df['off2'].dtype == 'timedelta64[ns]')
+        assert df['off1'].dtype == 'timedelta64[ns]'
+        assert df['off2'].dtype == 'timedelta64[ns]'
 
     def test_sum_corner(self):
         axis0 = self.empty.sum(0)
@@ -953,7 +953,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         the_mean = self.mixed_frame.mean(axis=0)
         the_sum = self.mixed_frame.sum(axis=0, numeric_only=True)
         tm.assert_index_equal(the_sum.index, the_mean.index)
-        self.assertTrue(len(the_mean.index) < len(self.mixed_frame.columns))
+        assert len(the_mean.index) < len(self.mixed_frame.columns)
 
         # xs sum mixed type, just want to know it works...
         the_mean = self.mixed_frame.mean(axis=1)
@@ -1134,8 +1134,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                 assert not r0.any()
                 assert not r1.any()
             else:
-                self.assertTrue(r0.all())
-                self.assertTrue(r1.all())
+                assert r0.all()
+                assert r1.all()
 
     # ----------------------------------------------------------------------
     # Isin
@@ -1820,10 +1820,9 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             lb_mask = df.values <= lb
             ub_mask = df.values >= ub
             mask = ~lb_mask & ~ub_mask
-            self.assertTrue((clipped_df.values[lb_mask] == lb).all())
-            self.assertTrue((clipped_df.values[ub_mask] == ub).all())
-            self.assertTrue((clipped_df.values[mask] ==
-                             df.values[mask]).all())
+            assert (clipped_df.values[lb_mask] == lb).all()
+            assert (clipped_df.values[ub_mask] == ub).all()
+            assert (clipped_df.values[mask] == df.values[mask]).all()
 
     def test_clip_against_series(self):
         # GH #6966
@@ -1884,11 +1883,11 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # Check series argument
         result = a.dot(b['one'])
         tm.assert_series_equal(result, expected['one'], check_names=False)
-        self.assertTrue(result.name is None)
+        assert result.name is None
 
         result = a.dot(b1['one'])
         tm.assert_series_equal(result, expected['one'], check_names=False)
-        self.assertTrue(result.name is None)
+        assert result.name is None
 
         # can pass correct-length arrays
         row = a.iloc[0].values

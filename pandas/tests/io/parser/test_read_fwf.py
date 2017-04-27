@@ -166,7 +166,7 @@ bar2,12,13,14,15
 
         for c in df.columns:
             res = df.loc[:, c]
-            self.assertTrue(len(res))
+            assert len(res)
 
     def test_fwf_for_uint8(self):
         data = """1421302965.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127

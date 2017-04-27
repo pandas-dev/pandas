@@ -25,7 +25,7 @@ class TestSparseArray(tm.TestCase):
     def test_constructor_dtype(self):
         arr = SparseArray([np.nan, 1, 2, np.nan])
         self.assertEqual(arr.dtype, np.float64)
-        self.assertTrue(np.isnan(arr.fill_value))
+        assert np.isnan(arr.fill_value)
 
         arr = SparseArray([np.nan, 1, 2, np.nan], fill_value=0)
         self.assertEqual(arr.dtype, np.float64)
@@ -33,7 +33,7 @@ class TestSparseArray(tm.TestCase):
 
         arr = SparseArray([0, 1, 2, 4], dtype=np.float64)
         self.assertEqual(arr.dtype, np.float64)
-        self.assertTrue(np.isnan(arr.fill_value))
+        assert np.isnan(arr.fill_value)
 
         arr = SparseArray([0, 1, 2, 4], dtype=np.int64)
         self.assertEqual(arr.dtype, np.int64)
@@ -55,7 +55,7 @@ class TestSparseArray(tm.TestCase):
         # GH 11856
         arr = SparseArray(['A', 'A', np.nan, 'B'], dtype=np.object)
         self.assertEqual(arr.dtype, np.object)
-        self.assertTrue(np.isnan(arr.fill_value))
+        assert np.isnan(arr.fill_value)
 
         arr = SparseArray(['A', 'A', np.nan, 'B'], dtype=np.object,
                           fill_value='A')
@@ -66,7 +66,7 @@ class TestSparseArray(tm.TestCase):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         tm.assert_sp_array_equal(arr, SparseArray([np.nan, 1, 2, np.nan]))
         self.assertEqual(arr.dtype, np.float64)
-        self.assertTrue(np.isnan(arr.fill_value))
+        assert np.isnan(arr.fill_value)
 
         arr = SparseArray(data=[1, 2, 3],
                           sparse_index=IntIndex(4, [1, 2, 3]),
@@ -133,7 +133,7 @@ class TestSparseArray(tm.TestCase):
 
     def test_get_item(self):
 
-        self.assertTrue(np.isnan(self.arr[1]))
+        assert np.isnan(self.arr[1])
         self.assertEqual(self.arr[2], 1)
         self.assertEqual(self.arr[7], 5)
 
@@ -147,8 +147,8 @@ class TestSparseArray(tm.TestCase):
         self.assertEqual(self.arr[-1], self.arr[len(self.arr) - 1])
 
     def test_take(self):
-        self.assertTrue(np.isnan(self.arr.take(0)))
-        self.assertTrue(np.isscalar(self.arr.take(2)))
+        assert np.isnan(self.arr.take(0))
+        assert np.isscalar(self.arr.take(2))
 
         # np.take in < 1.8 doesn't support scalar indexing
         if not _np_version_under1p8:
@@ -303,7 +303,7 @@ class TestSparseArray(tm.TestCase):
 
         not_copy = SparseArray(self.arr)
         not_copy.sp_values[:3] = 0
-        self.assertTrue((self.arr.sp_values[:3] == 0).all())
+        assert (self.arr.sp_values[:3] == 0).all()
 
     def test_constructor_bool(self):
         # GH 10648
@@ -331,7 +331,7 @@ class TestSparseArray(tm.TestCase):
 
         arr = SparseArray([True, False, True], dtype=np.bool, fill_value=True)
         self.assertEqual(arr.dtype, np.bool)
-        self.assertTrue(arr.fill_value)
+        assert arr.fill_value
 
     def test_constructor_float32(self):
         # GH 10648
@@ -400,7 +400,7 @@ class TestSparseArray(tm.TestCase):
 
         arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
         arr.fill_value = True
-        self.assertTrue(arr.fill_value)
+        assert arr.fill_value
 
         # coerces to bool
         msg = "unable to set fill_value 0 to bool dtype"
@@ -637,7 +637,7 @@ class TestSparseArray(tm.TestCase):
         # only fill_value will be changed
         s = SparseArray([0, 0, 0, 0], fill_value=np.nan)
         self.assertEqual(s.dtype, np.int64)
-        self.assertTrue(np.isnan(s.fill_value))
+        assert np.isnan(s.fill_value)
         res = s.fillna(-1)
         exp = SparseArray([0, 0, 0, 0], fill_value=-1)
         tm.assert_sp_array_equal(res, exp)

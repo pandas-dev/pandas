@@ -23,18 +23,18 @@ class TestSeriesAsof(TestData, tm.TestCase):
         dates = date_range('1/1/1990', periods=N * 3, freq='25s')
 
         result = ts.asof(dates)
-        self.assertTrue(notnull(result).all())
+        assert notnull(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         result = ts.asof(list(dates))
-        self.assertTrue(notnull(result).all())
+        assert notnull(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         mask = (result.index >= lb) & (result.index < ub)
         rs = result[mask]
-        self.assertTrue((rs == ts[lb]).all())
+        assert (rs == ts[lb]).all()
 
         val = result[result.index[result.index >= ub][0]]
         self.assertEqual(ts[ub], val)
@@ -63,7 +63,7 @@ class TestSeriesAsof(TestData, tm.TestCase):
 
         # no as of value
         d = ts.index[0] - offsets.BDay()
-        self.assertTrue(np.isnan(ts.asof(d)))
+        assert np.isnan(ts.asof(d))
 
     def test_with_nan(self):
         # basic asof test
@@ -98,19 +98,19 @@ class TestSeriesAsof(TestData, tm.TestCase):
         dates = date_range('1/1/1990', periods=N * 3, freq='37min')
 
         result = ts.asof(dates)
-        self.assertTrue(notnull(result).all())
+        assert notnull(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         result = ts.asof(list(dates))
-        self.assertTrue(notnull(result).all())
+        assert notnull(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         pix = PeriodIndex(result.index.values, freq='H')
         mask = (pix >= lb) & (pix < ub)
         rs = result[mask]
-        self.assertTrue((rs == ts[lb]).all())
+        assert (rs == ts[lb]).all()
 
         ts[5:10] = np.nan
         ts[15:20] = np.nan
@@ -130,7 +130,7 @@ class TestSeriesAsof(TestData, tm.TestCase):
 
         # no as of value
         d = ts.index[0].to_timestamp() - offsets.BDay()
-        self.assertTrue(isnull(ts.asof(d)))
+        assert isnull(ts.asof(d))
 
     def test_errors(self):
 

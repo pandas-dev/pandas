@@ -80,11 +80,11 @@ class TestGroupBy(tm.TestCase):
         for df in [df_original, df_sorted]:
             df = df.set_index('Date', drop=False)
             g = df.groupby(pd.TimeGrouper('6M'))
-            self.assertTrue(g.group_keys)
-            self.assertTrue(isinstance(g.grouper, pd.core.groupby.BinGrouper))
+            assert g.group_keys
+            assert isinstance(g.grouper, pd.core.groupby.BinGrouper)
             groups = g.groups
-            self.assertTrue(isinstance(groups, dict))
-            self.assertTrue(len(groups) == 3)
+            assert isinstance(groups, dict)
+            assert len(groups) == 3
 
     def test_timegrouper_with_reg_groups(self):
 
@@ -528,15 +528,15 @@ class TestGroupBy(tm.TestCase):
         df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
         df[1] = df[1].view('M8[ns]')
 
-        self.assertTrue(issubclass(df[1].dtype.type, np.datetime64))
+        assert issubclass(df[1].dtype.type, np.datetime64)
 
         result = df.groupby(level=0).first()
         got_dt = result[1].dtype
-        self.assertTrue(issubclass(got_dt.type, np.datetime64))
+        assert issubclass(got_dt.type, np.datetime64)
 
         result = df[1].groupby(level=0).first()
         got_dt = result.dtype
-        self.assertTrue(issubclass(got_dt.type, np.datetime64))
+        assert issubclass(got_dt.type, np.datetime64)
 
     def test_groupby_max_datetime64(self):
         # GH 5869

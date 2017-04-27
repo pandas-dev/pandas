@@ -319,13 +319,13 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         end_intv = Period('2006-12-31', '1w')
         i2 = PeriodIndex(end=end_intv, periods=10)
         self.assertEqual(len(i1), len(i2))
-        self.assertTrue((i1 == i2).all())
+        assert (i1 == i2).all()
         self.assertEqual(i1.freq, i2.freq)
 
         end_intv = Period('2006-12-31', ('w', 1))
         i2 = PeriodIndex(end=end_intv, periods=10)
         self.assertEqual(len(i1), len(i2))
-        self.assertTrue((i1 == i2).all())
+        assert (i1 == i2).all()
         self.assertEqual(i1.freq, i2.freq)
 
         try:
@@ -511,7 +511,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
     def test_contains(self):
         rng = period_range('2007-01', freq='M', periods=10)
 
-        self.assertTrue(Period('2007-01', freq='M') in rng)
+        assert Period('2007-01', freq='M') in rng
         assert not Period('2007-01', freq='D') in rng
         assert not Period('2007-01', freq='2M') in rng
 
@@ -524,10 +524,10 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         assert np.nan not in idx
 
         idx = pd.PeriodIndex(['2011-01', 'NaT', '2011-02'], freq='M')
-        self.assertTrue(pd.NaT in idx)
-        self.assertTrue(None in idx)
-        self.assertTrue(float('nan') in idx)
-        self.assertTrue(np.nan in idx)
+        assert pd.NaT in idx
+        assert None in idx
+        assert float('nan') in idx
+        assert np.nan in idx
 
     def test_periods_number_check(self):
         with pytest.raises(ValueError):
@@ -552,7 +552,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         expected = ts[1:3]
         tm.assert_series_equal(result, expected)
         result[:] = 1
-        self.assertTrue((ts[1:3] == 1).all())
+        assert (ts[1:3] == 1).all()
 
         # not monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq='A-JUN')
@@ -712,18 +712,18 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         assert not index.is_full
 
         index = PeriodIndex([2005, 2006, 2007], freq='A')
-        self.assertTrue(index.is_full)
+        assert index.is_full
 
         index = PeriodIndex([2005, 2005, 2007], freq='A')
         assert not index.is_full
 
         index = PeriodIndex([2005, 2005, 2006], freq='A')
-        self.assertTrue(index.is_full)
+        assert index.is_full
 
         index = PeriodIndex([2006, 2005, 2005], freq='A')
         pytest.raises(ValueError, getattr, index, 'is_full')
 
-        self.assertTrue(index[:0].is_full)
+        assert index[:0].is_full
 
     def test_with_multi_index(self):
         # #1705

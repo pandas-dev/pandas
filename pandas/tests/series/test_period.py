@@ -89,10 +89,10 @@ class TestSeriesPeriod(tm.TestCase):
         series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
 
         val = series[3]
-        self.assertTrue(isnull(val))
+        assert isnull(val)
 
         series[2] = val
-        self.assertTrue(isnull(series[2]))
+        assert isnull(series[2])
 
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')
@@ -109,10 +109,10 @@ class TestSeriesPeriod(tm.TestCase):
         assert self.series[4] is None
 
         self.series[5] = np.nan
-        self.assertTrue(np.isnan(self.series[5]))
+        assert np.isnan(self.series[5])
 
         self.series[5:7] = np.nan
-        self.assertTrue(np.isnan(self.series[6]))
+        assert np.isnan(self.series[6])
 
     def test_intercept_astype_object(self):
         expected = self.series.astype('object')
@@ -121,12 +121,12 @@ class TestSeriesPeriod(tm.TestCase):
                         'b': np.random.randn(len(self.series))})
 
         result = df.values.squeeze()
-        self.assertTrue((result[:, 0] == expected.values).all())
+        assert (result[:, 0] == expected.values).all()
 
         df = DataFrame({'a': self.series, 'b': ['foo'] * len(self.series)})
 
         result = df.values.squeeze()
-        self.assertTrue((result[:, 0] == expected.values).all())
+        assert (result[:, 0] == expected.values).all()
 
     def test_comp_series_period_scalar(self):
         # GH 13200

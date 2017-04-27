@@ -63,9 +63,8 @@ class TestResampleAPI(tm.TestCase):
     def test_str(self):
 
         r = self.series.resample('H')
-        self.assertTrue(
-            'DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, '
-            'label=left, convention=start, base=0]' in str(r))
+        assert ('DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, '
+                'label=left, convention=start, base=0]' in str(r))
 
     def test_api(self):
 
@@ -133,10 +132,10 @@ class TestResampleAPI(tm.TestCase):
             tm.assert_numpy_array_equal(np.array(r), np.array(r.mean()))
 
         # masquerade as Series/DataFrame as needed for API compat
-        self.assertTrue(isinstance(self.series.resample('H'), ABCSeries))
+        assert isinstance(self.series.resample('H'), ABCSeries)
         assert not isinstance(self.frame.resample('H'), ABCSeries)
         assert not isinstance(self.series.resample('H'), ABCDataFrame)
-        self.assertTrue(isinstance(self.frame.resample('H'), ABCDataFrame))
+        assert isinstance(self.frame.resample('H'), ABCDataFrame)
 
         # bin numeric ops
         for op in ['__add__', '__mul__', '__truediv__', '__div__', '__sub__']:
@@ -886,7 +885,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
             g._cython_agg_general(f)
 
         self.assertEqual(g.ngroups, 2593)
-        self.assertTrue(notnull(g.mean()).all())
+        assert notnull(g.mean()).all()
 
         # construct expected val
         arr = [1] + [5] * 2592
@@ -1118,47 +1117,46 @@ class TestDatetimeIndex(Base, tm.TestCase):
         result = s.resample('w-sun').last()
 
         self.assertEqual(len(result), 3)
-        self.assertTrue((result.index.dayofweek == [6, 6, 6]).all())
+        assert (result.index.dayofweek == [6, 6, 6]).all()
         self.assertEqual(result.iloc[0], s['1/2/2005'])
         self.assertEqual(result.iloc[1], s['1/9/2005'])
         self.assertEqual(result.iloc[2], s.iloc[-1])
 
         result = s.resample('W-MON').last()
         self.assertEqual(len(result), 2)
-        self.assertTrue((result.index.dayofweek == [0, 0]).all())
+        assert (result.index.dayofweek == [0, 0]).all()
         self.assertEqual(result.iloc[0], s['1/3/2005'])
         self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         result = s.resample('W-TUE').last()
         self.assertEqual(len(result), 2)
-        self.assertTrue((result.index.dayofweek == [1, 1]).all())
+        assert (result.index.dayofweek == [1, 1]).all()
         self.assertEqual(result.iloc[0], s['1/4/2005'])
         self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         result = s.resample('W-WED').last()
         self.assertEqual(len(result), 2)
-        self.assertTrue((result.index.dayofweek == [2, 2]).all())
+        assert (result.index.dayofweek == [2, 2]).all()
         self.assertEqual(result.iloc[0], s['1/5/2005'])
         self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         result = s.resample('W-THU').last()
         self.assertEqual(len(result), 2)
-        self.assertTrue((result.index.dayofweek == [3, 3]).all())
+        assert (result.index.dayofweek == [3, 3]).all()
         self.assertEqual(result.iloc[0], s['1/6/2005'])
         self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         result = s.resample('W-FRI').last()
         self.assertEqual(len(result), 2)
-        self.assertTrue((result.index.dayofweek == [4, 4]).all())
+        assert (result.index.dayofweek == [4, 4]).all()
         self.assertEqual(result.iloc[0], s['1/7/2005'])
         self.assertEqual(result.iloc[1], s['1/10/2005'])
 
         # to biz day
         result = s.resample('B').last()
         self.assertEqual(len(result), 7)
-        self.assertTrue((result.index.dayofweek == [
-            4, 0, 1, 2, 3, 4, 0
-        ]).all())
+        assert (result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all()
+
         self.assertEqual(result.iloc[0], s['1/2/2005'])
         self.assertEqual(result.iloc[1], s['1/3/2005'])
         self.assertEqual(result.iloc[5], s['1/9/2005'])
@@ -1451,13 +1449,13 @@ class TestDatetimeIndex(Base, tm.TestCase):
         resampled = ts.resample('5min', closed='right',
                                 label='right').ohlc()
 
-        self.assertTrue((resampled.loc['1/1/2000 00:00'] == ts[0]).all())
+        assert (resampled.loc['1/1/2000 00:00'] == ts[0]).all()
 
         exp = _ohlc(ts[1:31])
-        self.assertTrue((resampled.loc['1/1/2000 00:05'] == exp).all())
+        assert (resampled.loc['1/1/2000 00:05'] == exp).all()
 
         exp = _ohlc(ts['1/1/2000 5:55:01':])
-        self.assertTrue((resampled.loc['1/1/2000 6:00:00'] == exp).all())
+        assert (resampled.loc['1/1/2000 6:00:00'] == exp).all()
 
     def test_downsample_non_unique(self):
         rng = date_range('1/1/2000', '2/29/2000')
@@ -2588,7 +2586,7 @@ class TestPeriodIndex(Base, tm.TestCase):
 
         result = ts.resample('W-THU').asfreq()
 
-        self.assertTrue(result.isnull().all())
+        assert result.isnull().all()
 
         result = ts.resample('W-THU').asfreq().ffill()[:-1]
         expected = ts.asfreq('W-THU').ffill()

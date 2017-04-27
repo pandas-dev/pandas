@@ -548,7 +548,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             df = _make_frame(True)
             df.to_csv(path, tupleize_cols=False, index=False)
             result = read_csv(path, header=[0, 1], tupleize_cols=False)
-            self.assertTrue(all([x is None for x in result.columns.names]))
+            assert all([x is None for x in result.columns.names])
             result.columns.names = df.columns.names
             assert_frame_equal(df, result)
 

@@ -656,7 +656,7 @@ class XlrdTests(ReadingTestsBase):
             # parses okay
             read_excel(xlsx, 'Sheet1', index_col=0)
 
-        self.assertTrue(f.closed)
+        assert f.closed
 
     def test_creating_and_reading_multiple_sheets(self):
         # Test reading multiple sheets, from a runtime created excel file
@@ -1630,7 +1630,7 @@ class ExcelWriterBase(SharedItems):
     #     xlsaddrs += ["B1", "D1", "F1"]
     #     for xlsaddr in xlsaddrs:
     #         cell = ws.cell(xlsaddr)
-    #         self.assertTrue(cell.style.font.bold)
+    #         assert cell.style.font.bold
     #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
     #                           cell.style.borders.top.border_style)
     #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
@@ -1643,7 +1643,7 @@ class ExcelWriterBase(SharedItems):
     #                           cell.style.alignment.horizontal)
     #     mergedcells_addrs = ["C1", "E1", "G1"]
     #     for maddr in mergedcells_addrs:
-    #         self.assertTrue(ws.cell(maddr).merged)
+    #         assert ws.cell(maddr).merged
     #     os.remove(filename)
 
     def test_excel_010_hemstring(self):
@@ -1689,15 +1689,15 @@ class ExcelWriterBase(SharedItems):
                     # no nans
                     for r in range(len(res.index)):
                         for c in range(len(res.columns)):
-                            self.assertTrue(res.iloc[r, c] is not np.nan)
+                            assert res.iloc[r, c] is not np.nan
 
         res = roundtrip(DataFrame([0]))
         self.assertEqual(res.shape, (1, 1))
-        self.assertTrue(res.iloc[0, 0] is not np.nan)
+        assert res.iloc[0, 0] is not np.nan
 
         res = roundtrip(DataFrame([0]), False, None)
         self.assertEqual(res.shape, (1, 2))
-        self.assertTrue(res.iloc[0, 0] is not np.nan)
+        assert res.iloc[0, 0] is not np.nan
 
     def test_excel_010_hemstring_raises_NotImplementedError(self):
         # This test was failing only for j>1 and header=False,
@@ -1908,7 +1908,7 @@ class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
                   "alignment": {"horizontal": "center", "vertical": "top"}}
 
         xlsx_style = _Openpyxl1Writer._convert_to_style(hstyle)
-        self.assertTrue(xlsx_style.font.bold)
+        assert xlsx_style.font.bold
         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
                          xlsx_style.borders.top.border_style)
         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
@@ -2200,7 +2200,7 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
                   "alignment": {"horizontal": "center", "vertical": "top"}}
 
         xls_style = _XlwtWriter._convert_to_style(hstyle)
-        self.assertTrue(xls_style.font.bold)
+        assert xls_style.font.bold
         self.assertEqual(xlwt.Borders.THIN, xls_style.borders.top)
         self.assertEqual(xlwt.Borders.THIN, xls_style.borders.right)
         self.assertEqual(xlwt.Borders.THIN, xls_style.borders.bottom)
@@ -2332,8 +2332,8 @@ class ExcelWriterEngineTests(tm.TestCase):
 
         def check_called(func):
             func()
-            self.assertTrue(len(called_save) >= 1)
-            self.assertTrue(len(called_write_cells) >= 1)
+            assert len(called_save) >= 1
+            assert len(called_write_cells) >= 1
             del called_save[:]
             del called_write_cells[:]
 

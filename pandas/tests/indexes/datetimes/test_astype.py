@@ -105,7 +105,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         result = idx.astype('datetime64[ns]', copy=False)
         tm.assert_index_equal(result, idx)
-        self.assertTrue(result is idx)
+        assert result is idx
 
         idx_tz = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN], tz='EST')
         result = idx_tz.astype('datetime64[ns]')
@@ -251,7 +251,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=pytz.utc)
@@ -259,7 +259,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
@@ -267,7 +267,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
     def test_to_period_tz_dateutil(self):
@@ -282,7 +282,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.tzutc())
@@ -290,7 +290,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
@@ -298,7 +298,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
     def test_astype_object(self):
