@@ -101,14 +101,14 @@ cdef class Int64Factorizer:
                   na_sentinel=-1, check_null=True):
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel,
-                                       check_null)
+                                       check_null, refcheck=False)
 
         # sort on
         if sort:
             if labels.dtype != np.intp:
                 labels = labels.astype(np.intp)
 
-            sorter = self.uniques.to_array().argsort()
+            sorter = self.uniques.to_array(refcheck=False).argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.intp)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
 
@@ -142,12 +142,12 @@ def unique_label_indices(ndarray[int64_t, ndim=1] labels):
             if ret != 0:
                 if needs_resize(ud):
                     with gil:
-                        idx.resize()
+                        idx.resize(refcheck=False)
                 append_data_int64(ud, i)
 
     kh_destroy_int64(table)
 
-    arr = idx.to_array()
+    arr = idx.to_array(refcheck=False)
     arr = arr[labels[arr].argsort()]
 
     return arr[1:] if arr.size != 0 and labels[arr[0]] == -1 else arr
