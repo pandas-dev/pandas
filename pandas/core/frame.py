@@ -3020,43 +3020,33 @@ it is assumed to be aliases for the column names.')
                     new_index = self.index.droplevel(level)
 
             if not drop:
-                names = self.index.names
-                zipped = lzip(self.index.levels, self.index.labels)
-
-                multi_col = isinstance(self.columns, MultiIndex)
-                for i, (lev, lab) in reversed(list(enumerate(zipped))):
-                    col_name = names[i]
-                    if col_name is None:
-                        col_name = 'level_%d' % i
-
-                    if multi_col:
-                        if col_fill is None:
-                            col_name = tuple([col_name] * self.columns.nlevels)
-                        else:
-                            name_lst = [col_fill] * self.columns.nlevels
-                            lev_num = self.columns._get_level_number(col_level)
-                            name_lst[lev_num] = col_name
-                            col_name = tuple(name_lst)
-
-                    # to ndarray and maybe infer different dtype
-                    level_values = _maybe_casted_values(lev, lab)
-                    if level is None or i in level:
-                        new_obj.insert(0, col_name, level_values)
+                names = [n if n is not None else ('level_%d' % i)
+                         for (i, n) in enumerate(self.index.names)]
+                to_insert = lzip(self.index.levels, self.index.labels)
 
         elif not drop:
-            name = self.index.name
-            if name is None or name == 'index':
-                name = 'index' if 'index' not in self else 'level_0'
-            if isinstance(self.columns, MultiIndex):
-                if col_fill is None:
-                    name = tuple([name] * self.columns.nlevels)
-                else:
-                    name_lst = [col_fill] * self.columns.nlevels
-                    lev_num = self.columns._get_level_number(col_level)
-                    name_lst[lev_num] = name
-                    name = tuple(name_lst)
-            values = _maybe_casted_values(self.index)
-            new_obj.insert(0, name, values)
+            default = 'index' if 'index' not in self else 'level_0'
+            names = [default] if self.index.name is None else [self.index.name]
+            to_insert = ((self.index, None),)
+
+        if not drop:
+            multi_col = isinstance(self.columns, MultiIndex)
+            for i, (lev, lab) in reversed(list(enumerate(to_insert))):
+                col_name = names[i]
+
+                if multi_col:
+                    if col_fill is None:
+                        col_name = tuple([col_name] * self.columns.nlevels)
+                    else:
+                        name_lst = [col_fill] * self.columns.nlevels
+                        lev_num = self.columns._get_level_number(col_level)
+                        name_lst[lev_num] = col_name
+                        col_name = tuple(name_lst)
+
+                # to ndarray and maybe infer different dtype
+                level_values = _maybe_casted_values(lev, lab)
+                if level is None or i in level:
+                    new_obj.insert(0, col_name, level_values)
 
         new_obj.index = new_index
         if not inplace:
