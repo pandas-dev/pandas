@@ -58,6 +58,7 @@ from pandas.util.print_versions import show_versions
 from pandas.io.api import *
 from pandas.util._tester import test
 import pandas.testing
+from . import computation  # TODO: Remove when deprecated shim module is removed
 
 # extension module deprecations
 from pandas.util.depr_module import _DeprecatedModule
