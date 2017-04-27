@@ -100,11 +100,41 @@ def test_is_dict_like():
 
 
 def test_is_file_like():
+    class MockFile(object):
+        pass
+
     is_file = inference.is_file_like
 
     data = StringIO("data")
     assert is_file(data)
 
+    # No read / write attributes
+    # No iterator attributes
+    m = MockFile()
+    assert not is_file(m)
+
+    MockFile.write = lambda self: 0
+
+    # Write attribute but not an iterator
+    m = MockFile()
+    assert not is_file(m)
+
+    MockFile.__iter__ = lambda self: self
+    MockFile.__next__ = lambda self: 0
+    MockFile.next = MockFile.__next__
+
+    # Valid write-only file
+    m = MockFile()
+    assert is_file(m)
+
+    del MockFile.write
+    MockFile.read = lambda self: 0
+
+    # Valid read-only file
+    m = MockFile()
+    assert is_file(m)
+
+    # Iterator but no read / write attributes
     data = [1, 2, 3]
     assert not is_file(data)
 

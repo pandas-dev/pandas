@@ -176,3 +176,22 @@ class TestS3(tm.TestCase):
         # It's irrelevant here that this isn't actually a table.
         with pytest.raises(IOError):
             read_csv('s3://cant_get_it/')
+
+    @tm.network
+    def boto3_client_s3(self):
+        # see gh-16135
+
+        # boto3 is a dependency of s3fs
+        import boto3
+        client = boto3.client("s3")
+
+        key = "/tips.csv"
+        bucket = "pandas-test"
+        s3_object = client.get_object(Bucket=bucket, Key=key)
+
+        result = read_csv(s3_object["Body"])
+        assert isinstance(result, DataFrame)
+        assert not result.empty
+
+        expected = read_csv(tm.get_data_path('tips.csv'))
+        tm.assert_frame_equal(result, expected)
