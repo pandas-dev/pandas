@@ -862,18 +862,18 @@ class TestTimestamp(tm.TestCase):
         val = Timestamp(stamp)
 
         self.assertEqual(val, val)
-        self.assertFalse(val != val)
-        self.assertFalse(val < val)
+        assert not val != val
+        assert not val < val
         self.assertTrue(val <= val)
-        self.assertFalse(val > val)
+        assert not val > val
         self.assertTrue(val >= val)
 
         other = datetime(2012, 5, 18)
         self.assertEqual(val, other)
-        self.assertFalse(val != other)
-        self.assertFalse(val < other)
+        assert not val != other
+        assert not val < other
         self.assertTrue(val <= other)
-        self.assertFalse(val > other)
+        assert not val > other
         self.assertTrue(val >= other)
 
         other = Timestamp(stamp + 100)
@@ -889,14 +889,14 @@ class TestTimestamp(tm.TestCase):
 
         # GH 8058
         val = Timestamp('20130101 12:01:02')
-        self.assertFalse(val == 'foo')
-        self.assertFalse(val == 10.0)
-        self.assertFalse(val == 1)
-        self.assertFalse(val == long(1))
-        self.assertFalse(val == [])
-        self.assertFalse(val == {'foo': 1})
-        self.assertFalse(val == np.float64(1))
-        self.assertFalse(val == np.int64(1))
+        assert not val == 'foo'
+        assert not val == 10.0
+        assert not val == 1
+        assert not val == long(1)
+        assert not val == []
+        assert not val == {'foo': 1}
+        assert not val == np.float64(1)
+        assert not val == np.int64(1)
 
         self.assertTrue(val != 'foo')
         self.assertTrue(val != 10.0)
@@ -933,8 +933,8 @@ class TestTimestamp(tm.TestCase):
             pytest.raises(Exception, a.__eq__, b.to_pydatetime())
             pytest.raises(Exception, a.to_pydatetime().__eq__, b)
         else:
-            self.assertFalse(a == b.to_pydatetime())
-            self.assertFalse(a.to_pydatetime() == b)
+            assert not a == b.to_pydatetime()
+            assert not a.to_pydatetime() == b
 
     def test_cant_compare_tz_naive_w_aware_explicit_pytz(self):
         tm._skip_if_no_pytz()
@@ -956,8 +956,8 @@ class TestTimestamp(tm.TestCase):
             pytest.raises(Exception, a.__eq__, b.to_pydatetime())
             pytest.raises(Exception, a.to_pydatetime().__eq__, b)
         else:
-            self.assertFalse(a == b.to_pydatetime())
-            self.assertFalse(a.to_pydatetime() == b)
+            assert not a == b.to_pydatetime()
+            assert not a.to_pydatetime() == b
 
     def test_cant_compare_tz_naive_w_aware_dateutil(self):
         tm._skip_if_no_dateutil()
@@ -980,8 +980,8 @@ class TestTimestamp(tm.TestCase):
             pytest.raises(Exception, a.__eq__, b.to_pydatetime())
             pytest.raises(Exception, a.to_pydatetime().__eq__, b)
         else:
-            self.assertFalse(a == b.to_pydatetime())
-            self.assertFalse(a.to_pydatetime() == b)
+            assert not a == b.to_pydatetime()
+            assert not a.to_pydatetime() == b
 
     def test_delta_preserve_nanos(self):
         val = Timestamp(long(1337299200000000123))
@@ -1090,13 +1090,13 @@ class TestTimestamp(tm.TestCase):
             assert isinstance(dt.is_leap_year, bool)
 
             dt = Timestamp('1999-01-01 00:00:00', tz=tz)
-            self.assertFalse(dt.is_leap_year)
+            assert not dt.is_leap_year
 
             dt = Timestamp('2004-01-01 00:00:00', tz=tz)
             self.assertTrue(dt.is_leap_year)
 
             dt = Timestamp('2100-01-01 00:00:00', tz=tz)
-            self.assertFalse(dt.is_leap_year)
+            assert not dt.is_leap_year
 
 
 class TestTimestampNsOperations(tm.TestCase):
@@ -1383,9 +1383,9 @@ class TestTimeSeries(tm.TestCase):
         # e.g. datetime.min
         stamp = Timestamp('2012-01-01')
 
-        self.assertFalse(stamp == datetime.min)
-        self.assertFalse(stamp == datetime(1600, 1, 1))
-        self.assertFalse(stamp == datetime(2700, 1, 1))
+        assert not stamp == datetime.min
+        assert not stamp == datetime(1600, 1, 1)
+        assert not stamp == datetime(2700, 1, 1)
         self.assertNotEqual(stamp, datetime.min)
         self.assertNotEqual(stamp, datetime(1600, 1, 1))
         self.assertNotEqual(stamp, datetime(2700, 1, 1))

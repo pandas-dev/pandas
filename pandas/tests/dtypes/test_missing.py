@@ -49,12 +49,12 @@ class TestIsNull(tm.TestCase):
 
     def test_0d_array(self):
         self.assertTrue(isnull(np.array(np.nan)))
-        self.assertFalse(isnull(np.array(0.0)))
-        self.assertFalse(isnull(np.array(0)))
+        assert not isnull(np.array(0.0))
+        assert not isnull(np.array(0))
         # test object dtype
         self.assertTrue(isnull(np.array(np.nan, dtype=object)))
-        self.assertFalse(isnull(np.array(0.0, dtype=object)))
-        self.assertFalse(isnull(np.array(0, dtype=object)))
+        assert not isnull(np.array(0.0, dtype=object))
+        assert not isnull(np.array(0, dtype=object))
 
     def test_empty_object(self):
 
@@ -65,12 +65,12 @@ class TestIsNull(tm.TestCase):
             tm.assert_numpy_array_equal(result, expected)
 
     def test_isnull(self):
-        self.assertFalse(isnull(1.))
+        assert not isnull(1.)
         self.assertTrue(isnull(None))
         self.assertTrue(isnull(np.NaN))
         self.assertTrue(float('nan'))
-        self.assertFalse(isnull(np.inf))
-        self.assertFalse(isnull(-np.inf))
+        assert not isnull(np.inf)
+        assert not isnull(-np.inf)
 
         # series
         for s in [tm.makeFloatSeries(), tm.makeStringSeries(),
@@ -135,7 +135,7 @@ class TestIsNull(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_isnull_datetime(self):
-        self.assertFalse(isnull(datetime.now()))
+        assert not isnull(datetime.now())
         self.assertTrue(notnull(datetime.now()))
 
         idx = date_range('1/1/1990', periods=20)

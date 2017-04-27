@@ -299,7 +299,7 @@ class TestSparseArray(tm.TestCase):
     def test_constructor_copy(self):
         cp = SparseArray(self.arr, copy=True)
         cp.sp_values[:3] = 0
-        self.assertFalse((self.arr.sp_values[:3] == 0).any())
+        assert not (self.arr.sp_values[:3] == 0).any()
 
         not_copy = SparseArray(self.arr)
         not_copy.sp_values[:3] = 0
@@ -323,11 +323,11 @@ class TestSparseArray(tm.TestCase):
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
         self.assertEqual(arr.dtype, np.bool)
-        self.assertFalse(arr.fill_value)
+        assert not arr.fill_value
 
         arr = SparseArray([True, False, True], dtype=np.bool)
         self.assertEqual(arr.dtype, np.bool)
-        self.assertFalse(arr.fill_value)
+        assert not arr.fill_value
 
         arr = SparseArray([True, False, True], dtype=np.bool, fill_value=True)
         self.assertEqual(arr.dtype, np.bool)
@@ -352,7 +352,7 @@ class TestSparseArray(tm.TestCase):
     def test_astype(self):
         res = self.arr.astype('f8')
         res.sp_values[:3] = 27
-        self.assertFalse((self.arr.sp_values[:3] == 27).any())
+        assert not (self.arr.sp_values[:3] == 27).any()
 
         msg = "unable to coerce current fill_value nan to int64 dtype"
         with tm.assert_raises_regex(ValueError, msg):

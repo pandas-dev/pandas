@@ -117,7 +117,7 @@ class TestCategorical(tm.TestCase):
         # it works!
         arr = np.array([1, 2, 3, datetime.now()], dtype='O')
         factor = Categorical(arr, ordered=False)
-        self.assertFalse(factor.ordered)
+        assert not factor.ordered
 
         # this however will raise as cannot be sorted
         pytest.raises(
@@ -143,14 +143,14 @@ class TestCategorical(tm.TestCase):
         self.assertTrue(c1.is_dtype_equal(c1))
         self.assertTrue(c2.is_dtype_equal(c2))
         self.assertTrue(c3.is_dtype_equal(c3))
-        self.assertFalse(c1.is_dtype_equal(c2))
-        self.assertFalse(c1.is_dtype_equal(c3))
-        self.assertFalse(c1.is_dtype_equal(Index(list('aabca'))))
-        self.assertFalse(c1.is_dtype_equal(c1.astype(object)))
+        assert not c1.is_dtype_equal(c2)
+        assert not c1.is_dtype_equal(c3)
+        assert not c1.is_dtype_equal(Index(list('aabca')))
+        assert not c1.is_dtype_equal(c1.astype(object))
         self.assertTrue(c1.is_dtype_equal(CategoricalIndex(c1)))
-        self.assertFalse(c1.is_dtype_equal(
+        assert not (c1.is_dtype_equal(
             CategoricalIndex(c1, categories=list('cab'))))
-        self.assertFalse(c1.is_dtype_equal(CategoricalIndex(c1, ordered=True)))
+        assert not c1.is_dtype_equal(CategoricalIndex(c1, ordered=True))
 
     def test_constructor(self):
 
@@ -175,7 +175,7 @@ class TestCategorical(tm.TestCase):
 
         # The default should be unordered
         c1 = Categorical(["a", "b", "c", "a"])
-        self.assertFalse(c1.ordered)
+        assert not c1.ordered
 
         # Categorical as input
         c1 = Categorical(["a", "b", "c", "a"])
@@ -534,7 +534,7 @@ class TestCategorical(tm.TestCase):
 
         # Only categories with same ordering information can be compared
         cat_unorderd = cat.set_ordered(False)
-        self.assertFalse((cat > cat).any())
+        assert not (cat > cat).any()
 
         def f():
             cat > cat_unorderd
@@ -788,9 +788,9 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
     def test_construction_with_ordered(self):
         # GH 9347, 9190
         cat = Categorical([0, 1, 2])
-        self.assertFalse(cat.ordered)
+        assert not cat.ordered
         cat = Categorical([0, 1, 2], ordered=False)
-        self.assertFalse(cat.ordered)
+        assert not cat.ordered
         cat = Categorical([0, 1, 2], ordered=True)
         self.assertTrue(cat.ordered)
 
@@ -798,12 +798,12 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # GH 9347
         cat1 = pd.Categorical(["a", "c", "b"], ordered=False)
         tm.assert_index_equal(cat1.categories, Index(['a', 'b', 'c']))
-        self.assertFalse(cat1.ordered)
+        assert not cat1.ordered
 
         cat2 = pd.Categorical(["a", "c", "b"], categories=['b', 'c', 'a'],
                               ordered=False)
         tm.assert_index_equal(cat2.categories, Index(['b', 'c', 'a']))
-        self.assertFalse(cat2.ordered)
+        assert not cat2.ordered
 
         cat3 = pd.Categorical(["a", "c", "b"], ordered=True)
         tm.assert_index_equal(cat3.categories, Index(['a', 'b', 'c']))
@@ -818,20 +818,20 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
         cat2 = cat.as_unordered()
-        self.assertFalse(cat2.ordered)
+        assert not cat2.ordered
         cat2 = cat.as_ordered()
         self.assertTrue(cat2.ordered)
         cat2.as_unordered(inplace=True)
-        self.assertFalse(cat2.ordered)
+        assert not cat2.ordered
         cat2.as_ordered(inplace=True)
         self.assertTrue(cat2.ordered)
 
         self.assertTrue(cat2.set_ordered(True).ordered)
-        self.assertFalse(cat2.set_ordered(False).ordered)
+        assert not cat2.set_ordered(False).ordered
         cat2.set_ordered(True, inplace=True)
         self.assertTrue(cat2.ordered)
         cat2.set_ordered(False, inplace=True)
-        self.assertFalse(cat2.ordered)
+        assert not cat2.ordered
 
         # removed in 0.19.0
         msg = "can\'t set attribute"
@@ -1876,7 +1876,7 @@ class TestCategoricalAsBlock(tm.TestCase):
         # other one, IF you specify copy!
         cat = Categorical(["a", "b", "c", "a"])
         s = pd.Series(cat, copy=True)
-        self.assertFalse(s.cat is cat)
+        assert s.cat is not cat
         s.cat.categories = [1, 2, 3]
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         exp_cat = np.array(["a", "b", "c", "a"], dtype=np.object_)
@@ -3783,17 +3783,17 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         f = Categorical(list('acb'))
 
         # vs scalar
-        self.assertFalse((a == 'a').all())
+        assert not (a == 'a').all()
         self.assertTrue(((a != 'a') == ~(a == 'a')).all())
 
-        self.assertFalse(('a' == a).all())
+        assert not ('a' == a).all()
         self.assertTrue((a == 'a')[0])
         self.assertTrue(('a' == a)[0])
-        self.assertFalse(('a' != a)[0])
+        assert not ('a' != a)[0]
 
         # vs list-like
         self.assertTrue((a == a).all())
-        self.assertFalse((a != a).all())
+        assert not (a != a).all()
 
         self.assertTrue((a == list(a)).all())
         self.assertTrue((a == b).all())
@@ -3801,16 +3801,16 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         self.assertTrue(((~(a == b)) == (a != b)).all())
         self.assertTrue(((~(b == a)) == (b != a)).all())
 
-        self.assertFalse((a == c).all())
-        self.assertFalse((c == a).all())
-        self.assertFalse((a == d).all())
-        self.assertFalse((d == a).all())
+        assert not (a == c).all()
+        assert not (c == a).all()
+        assert not (a == d).all()
+        assert not (d == a).all()
 
         # vs a cat-like
         self.assertTrue((a == e).all())
         self.assertTrue((e == a).all())
-        self.assertFalse((a == f).all())
-        self.assertFalse((f == a).all())
+        assert not (a == f).all()
+        assert not (f == a).all()
 
         self.assertTrue(((~(a == e) == (a != e)).all()))
         self.assertTrue(((~(e == a) == (e != a)).all()))
@@ -4226,7 +4226,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         with tm.assert_raises_regex(AttributeError,
                                     "only use .cat accessor"):
             invalid.cat
-        self.assertFalse(hasattr(invalid, 'cat'))
+        assert not hasattr(invalid, 'cat')
 
     def test_cat_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
@@ -4309,7 +4309,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                                     "Can only use .str "
                                     "accessor with string"):
             invalid.str
-        self.assertFalse(hasattr(invalid, 'str'))
+        assert not hasattr(invalid, 'str')
 
     def test_dt_accessor_api_for_categorical(self):
         # https://github.com/pandas-dev/pandas/issues/10661
@@ -4390,7 +4390,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         with tm.assert_raises_regex(
                 AttributeError, "Can only use .dt accessor with datetimelike"):
             invalid.dt
-        self.assertFalse(hasattr(invalid, 'str'))
+        assert not hasattr(invalid, 'str')
 
     def test_concat_categorical(self):
         # See GH 10177

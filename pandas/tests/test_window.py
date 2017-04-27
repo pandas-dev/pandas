@@ -1298,9 +1298,9 @@ class TestMoments(Base):
             # min_periods is working correctly
             result = get_result(arr, 20, min_periods=15)
             self.assertTrue(np.isnan(result[23]))
-            self.assertFalse(np.isnan(result[24]))
+            assert not np.isnan(result[24])
 
-            self.assertFalse(np.isnan(result[-6]))
+            assert not np.isnan(result[-6])
             self.assertTrue(np.isnan(result[-5]))
 
             arr2 = randn(20)
@@ -1660,18 +1660,18 @@ class TestMoments(Base):
         # GH 7898
         result = func(s, 50, min_periods=2)
         self.assertTrue(np.isnan(result.values[:11]).all())
-        self.assertFalse(np.isnan(result.values[11:]).any())
+        assert not np.isnan(result.values[11:]).any()
 
         for min_periods in (0, 1):
             result = func(s, 50, min_periods=min_periods)
             if func == mom.ewma:
                 self.assertTrue(np.isnan(result.values[:10]).all())
-                self.assertFalse(np.isnan(result.values[10:]).any())
+                assert not np.isnan(result.values[10:]).any()
             else:
                 # ewmstd, ewmvol, ewmvar (with bias=False) require at least two
                 # values
                 self.assertTrue(np.isnan(result.values[:11]).all())
-                self.assertFalse(np.isnan(result.values[11:]).any())
+                assert not np.isnan(result.values[11:]).any()
 
             # check series of length 0
             result = func(Series([]), 50, min_periods=min_periods)
@@ -2010,11 +2010,11 @@ class TestMomentsConsistency(Base):
                 # check that var(x), std(x), and cov(x) are all >= 0
                 var_x = var(x)
                 std_x = std(x)
-                self.assertFalse((var_x < 0).any().any())
-                self.assertFalse((std_x < 0).any().any())
+                assert not (var_x < 0).any().any()
+                assert not (std_x < 0).any().any()
                 if cov:
                     cov_x_x = cov(x, x)
-                    self.assertFalse((cov_x_x < 0).any().any())
+                    assert not (cov_x_x < 0).any().any()
 
                     # check that var(x) == cov(x, x)
                     assert_equal(var_x, cov_x_x)
@@ -2029,7 +2029,7 @@ class TestMomentsConsistency(Base):
 
                 if is_constant:
                     # check that variance of constant series is identically 0
-                    self.assertFalse((var_x > 0).any().any())
+                    assert not (var_x > 0).any().any()
                     expected = x * np.nan
                     expected[count_x >= max(min_periods, 1)] = 0.
                     if var is var_unbiased:
@@ -2466,7 +2466,7 @@ class TestMomentsConsistency(Base):
 
         result = func(A, B, 20, min_periods=5)
         self.assertTrue(np.isnan(result.values[:14]).all())
-        self.assertFalse(np.isnan(result.values[14:]).any())
+        assert not np.isnan(result.values[14:]).any()
 
         # GH 7898
         for min_periods in (0, 1, 2):
@@ -2474,7 +2474,7 @@ class TestMomentsConsistency(Base):
             # binary functions (ewmcov, ewmcorr) with bias=False require at
             # least two values
             self.assertTrue(np.isnan(result.values[:11]).all())
-            self.assertFalse(np.isnan(result.values[11:]).any())
+            assert not np.isnan(result.values[11:]).any()
 
             # check series of length 0
             result = func(Series([]), Series([]), 50, min_periods=min_periods)
@@ -2891,7 +2891,7 @@ class TestMomentsConsistency(Base):
             # min_periods is working correctly
             result = func(arr, min_periods=15)
             self.assertTrue(np.isnan(result[13]))
-            self.assertFalse(np.isnan(result[14]))
+            assert not np.isnan(result[14])
 
             arr2 = randn(20)
             result = func(arr2, min_periods=5)
@@ -3050,7 +3050,7 @@ class TestGrouperGrouping(tm.TestCase):
         pytest.raises(TypeError, f)
 
         g = self.frame.groupby('A')
-        self.assertFalse(g.mutated)
+        assert not g.mutated
         g = self.frame.groupby('A', mutated=True)
         self.assertTrue(g.mutated)
 
@@ -3277,7 +3277,7 @@ class TestRollingTS(tm.TestCase):
 
         # non-monotonic
         df.index = reversed(df.index.tolist())
-        self.assertFalse(df.index.is_monotonic)
+        assert not df.index.is_monotonic
 
         with pytest.raises(ValueError):
             df.rolling('2s').sum()

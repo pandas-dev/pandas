@@ -332,7 +332,7 @@ class TestHDFStore(Base, tm.TestCase):
             pandas.set_option('io.hdf.default_format', 'fixed')
             _maybe_remove(store, 'df')
             store.put('df', df)
-            self.assertFalse(store.get_storer('df').is_table)
+            assert not store.get_storer('df').is_table
             pytest.raises(ValueError, store.append, 'df2', df)
 
             pandas.set_option('io.hdf.default_format', 'table')
@@ -352,7 +352,7 @@ class TestHDFStore(Base, tm.TestCase):
             pandas.set_option('io.hdf.default_format', 'fixed')
             df.to_hdf(path, 'df')
             with HDFStore(path) as store:
-                self.assertFalse(store.get_storer('df').is_table)
+                assert not store.get_storer('df').is_table
             pytest.raises(ValueError, df.to_hdf, path, 'df2', append=True)
 
             pandas.set_option('io.hdf.default_format', 'table')
@@ -545,14 +545,14 @@ class TestHDFStore(Base, tm.TestCase):
             # invalid mode change
             pytest.raises(PossibleDataLossError, store.open, 'w')
             store.close()
-            self.assertFalse(store.is_open)
+            assert not store.is_open
 
             # truncation ok here
             store.open('w')
             self.assertTrue(store.is_open)
             self.assertEqual(len(store), 0)
             store.close()
-            self.assertFalse(store.is_open)
+            assert not store.is_open
 
             store = HDFStore(path, mode='a')
             store['a'] = tm.makeTimeSeries()
@@ -563,7 +563,7 @@ class TestHDFStore(Base, tm.TestCase):
             self.assertEqual(len(store), 1)
             self.assertEqual(store._mode, 'r')
             store.close()
-            self.assertFalse(store.is_open)
+            assert not store.is_open
 
             # reopen as append
             store.open('a')
@@ -571,7 +571,7 @@ class TestHDFStore(Base, tm.TestCase):
             self.assertEqual(len(store), 1)
             self.assertEqual(store._mode, 'a')
             store.close()
-            self.assertFalse(store.is_open)
+            assert not store.is_open
 
             # reopen as append (again)
             store.open('a')
@@ -579,7 +579,7 @@ class TestHDFStore(Base, tm.TestCase):
             self.assertEqual(len(store), 1)
             self.assertEqual(store._mode, 'a')
             store.close()
-            self.assertFalse(store.is_open)
+            assert not store.is_open
 
     def test_open_args(self):
 
@@ -599,7 +599,7 @@ class TestHDFStore(Base, tm.TestCase):
             store.close()
 
             # the file should not have actually been written
-            self.assertFalse(os.path.exists(path))
+            assert not os.path.exists(path)
 
     def test_flush(self):
 

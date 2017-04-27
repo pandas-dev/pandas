@@ -16,7 +16,7 @@ class DatetimeLike(Base):
         # test the string repr
         idx = self.create_index()
         idx.name = 'foo'
-        self.assertFalse("length=%s" % len(idx) in str(idx))
+        assert not "length=%s" % len(idx) in str(idx)
         self.assertTrue("'foo'" in str(idx))
         self.assertTrue(idx.__class__.__name__ in str(idx))
 

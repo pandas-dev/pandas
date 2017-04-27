@@ -129,7 +129,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         not_lexsorted_df = not_lexsorted_df.pivot_table(
             index='a', columns=['b', 'c'], values='d')
         not_lexsorted_df = not_lexsorted_df.reset_index()
-        self.assertFalse(not_lexsorted_df.columns.is_lexsorted())
+        assert not not_lexsorted_df.columns.is_lexsorted()
 
         # compare the results
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
@@ -224,7 +224,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         # copy with no axes
         result = self.frame.reindex()
         assert_frame_equal(result, self.frame)
-        self.assertFalse(result is self.frame)
+        assert result is not self.frame
 
     def test_reindex_nan(self):
         df = pd.DataFrame([[1, 2], [3, 5], [7, 11], [9, 23]],

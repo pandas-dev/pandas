@@ -252,20 +252,20 @@ class TestDataFrameFormatting(tm.TestCase):
                                 'display.max_rows', 20,
                                 'display.show_dimensions', True):
                 with option_context('display.expand_frame_repr', True):
-                    self.assertFalse(has_truncated_repr(df_small))
-                    self.assertFalse(has_expanded_repr(df_small))
-                    self.assertFalse(has_truncated_repr(df_wide))
+                    assert not has_truncated_repr(df_small)
+                    assert not has_expanded_repr(df_small)
+                    assert not has_truncated_repr(df_wide)
                     self.assertTrue(has_expanded_repr(df_wide))
                     self.assertTrue(has_vertically_truncated_repr(df_tall))
                     self.assertTrue(has_expanded_repr(df_tall))
 
                 with option_context('display.expand_frame_repr', False):
-                    self.assertFalse(has_truncated_repr(df_small))
-                    self.assertFalse(has_expanded_repr(df_small))
-                    self.assertFalse(has_horizontally_truncated_repr(df_wide))
-                    self.assertFalse(has_expanded_repr(df_wide))
+                    assert not has_truncated_repr(df_small)
+                    assert not has_expanded_repr(df_small)
+                    assert not has_horizontally_truncated_repr(df_wide)
+                    assert not has_expanded_repr(df_wide)
                     self.assertTrue(has_vertically_truncated_repr(df_tall))
-                    self.assertFalse(has_expanded_repr(df_tall))
+                    assert not has_expanded_repr(df_tall)
 
     def test_repr_non_interactive(self):
         # in non interactive mode, there can be no dependency on the
@@ -274,8 +274,8 @@ class TestDataFrameFormatting(tm.TestCase):
 
         with option_context('mode.sim_interactive', False, 'display.width', 0,
                             'display.height', 0, 'display.max_rows', 5000):
-            self.assertFalse(has_truncated_repr(df))
-            self.assertFalse(has_expanded_repr(df))
+            assert not has_truncated_repr(df)
+            assert not has_expanded_repr(df)
 
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
@@ -293,29 +293,29 @@ class TestDataFrameFormatting(tm.TestCase):
             with option_context('display.width', term_width * 2):
                 with option_context('display.max_rows', 5,
                                     'display.max_columns', 5):
-                    self.assertFalse(has_expanded_repr(mkframe(4)))
-                    self.assertFalse(has_expanded_repr(mkframe(5)))
-                    self.assertFalse(has_expanded_repr(df6))
+                    assert not has_expanded_repr(mkframe(4))
+                    assert not has_expanded_repr(mkframe(5))
+                    assert not has_expanded_repr(df6)
                     self.assertTrue(has_doubly_truncated_repr(df6))
 
                 with option_context('display.max_rows', 20,
                                     'display.max_columns', 10):
                     # Out off max_columns boundary, but no extending
                     # since not exceeding width
-                    self.assertFalse(has_expanded_repr(df6))
-                    self.assertFalse(has_truncated_repr(df6))
+                    assert not has_expanded_repr(df6)
+                    assert not has_truncated_repr(df6)
 
                 with option_context('display.max_rows', 9,
                                     'display.max_columns', 10):
                     # out vertical bounds can not result in exanded repr
-                    self.assertFalse(has_expanded_repr(df10))
+                    assert not has_expanded_repr(df10)
                     self.assertTrue(has_vertically_truncated_repr(df10))
 
             # width=None in terminal, auto detection
             with option_context('display.max_columns', 100, 'display.max_rows',
                                 term_width * 20, 'display.width', None):
                 df = mkframe((term_width // 7) - 2)
-                self.assertFalse(has_expanded_repr(df))
+                assert not has_expanded_repr(df)
                 df = mkframe((term_width // 7) + 2)
                 printing.pprint_thing(df._repr_fits_horizontal_())
                 self.assertTrue(has_expanded_repr(df))
@@ -755,14 +755,14 @@ class TestDataFrameFormatting(tm.TestCase):
                                     self.assertTrue(
                                         has_vertically_truncated_repr(df))
                                 else:
-                                    self.assertFalse(
-                                        has_vertically_truncated_repr(df))
+                                    assert not has_vertically_truncated_repr(
+                                        df)
                             with option_context("display.max_columns", 15):
                                 if w == 20:
                                     self.assertTrue(
                                         has_horizontally_truncated_repr(df))
                                 else:
-                                    self.assertFalse(
+                                    assert not (
                                         has_horizontally_truncated_repr(df))
                             with option_context("display.max_rows", 15,
                                                 "display.max_columns", 15):
@@ -770,8 +770,8 @@ class TestDataFrameFormatting(tm.TestCase):
                                     self.assertTrue(has_doubly_truncated_repr(
                                         df))
                                 else:
-                                    self.assertFalse(has_doubly_truncated_repr(
-                                        df))
+                                    assert not has_doubly_truncated_repr(
+                                        df)
 
     def test_to_string_truncate_multilevel(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
@@ -802,7 +802,7 @@ class TestDataFrameFormatting(tm.TestCase):
                                'display.max_columns', 3):
             result = str(df)
             self.assertTrue('None' in result)
-            self.assertFalse('NaN' in result)
+            assert 'NaN' not in result
 
     def test_datetimelike_frame(self):
 
@@ -1358,8 +1358,8 @@ c  10  11  12  13  14\
         with option_context('display.max_rows', 10, 'display.max_columns', 40,
                             'display.width', 500, 'display.expand_frame_repr',
                             'info', 'display.show_dimensions', False):
-            self.assertFalse('5 rows' in str(df))
-            self.assertFalse('5 rows' in df._repr_html_())
+            assert '5 rows' not in str(df)
+            assert '5 rows' not in df._repr_html_()
         with option_context('display.max_rows', 2, 'display.max_columns', 2,
                             'display.width', 500, 'display.expand_frame_repr',
                             'info', 'display.show_dimensions', 'truncate'):
@@ -1368,8 +1368,8 @@ c  10  11  12  13  14\
         with option_context('display.max_rows', 10, 'display.max_columns', 40,
                             'display.width', 500, 'display.expand_frame_repr',
                             'info', 'display.show_dimensions', 'truncate'):
-            self.assertFalse('5 rows' in str(df))
-            self.assertFalse('5 rows' in df._repr_html_())
+            assert '5 rows' not in str(df)
+            assert '5 rows' not in df._repr_html_()
 
     def test_repr_html(self):
         self.frame._repr_html_()
@@ -1386,7 +1386,7 @@ c  10  11  12  13  14\
         fmt.set_option('display.show_dimensions', True)
         self.assertTrue('2 rows' in df._repr_html_())
         fmt.set_option('display.show_dimensions', False)
-        self.assertFalse('2 rows' in df._repr_html_())
+        assert '2 rows' not in df._repr_html_()
 
         tm.reset_display_options()
 
@@ -1518,7 +1518,7 @@ c  10  11  12  13  14\
         with option_context('display.large_repr', 'info',
                             'display.max_columns', 1,
                             'display.max_info_columns', 5):
-            self.assertFalse(has_non_verbose_info_repr(df))
+            assert not has_non_verbose_info_repr(df)
 
         # test verbose overrides
         # fmt.set_option('display.max_info_columns', 4)  # exceeded

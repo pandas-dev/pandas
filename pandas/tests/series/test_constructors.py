@@ -65,8 +65,8 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         self.assertEqual(mixed.dtype, np.object_)
         assert mixed[1] is np.NaN
 
-        self.assertFalse(self.empty.index.is_all_dates)
-        self.assertFalse(Series({}).index.is_all_dates)
+        assert not self.empty.index.is_all_dates
+        assert not Series({}).index.is_all_dates
         pytest.raises(Exception, Series, np.random.randn(3, 3),
                       index=np.arange(3))
 
@@ -265,7 +265,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
 
             # changes to origin of copy does not affect the copy
             x[0] = 2.
-            self.assertFalse(x.equals(y))
+            assert not x.equals(y)
             self.assertEqual(x[0], 2.)
             self.assertEqual(y[0], 1.)
 
@@ -354,7 +354,7 @@ class TestSeriesConstructors(TestData, tm.TestCase):
         # in theory this should be all nulls, but since
         # we are not specifying a dtype is ambiguous
         s = Series(iNaT, index=lrange(5))
-        self.assertFalse(isnull(s).all())
+        assert not isnull(s).all()
 
         s = Series(nan, dtype='M8[ns]', index=lrange(5))
         self.assertTrue(isnull(s).all())

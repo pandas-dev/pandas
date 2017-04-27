@@ -1050,7 +1050,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             self.assertTrue(self.panel._data.is_consolidated())
 
             self.panel['foo'] = 1.
-            self.assertFalse(self.panel._data.is_consolidated())
+            assert not self.panel._data.is_consolidated()
 
             panel = self.panel._consolidate()
             self.assertTrue(panel._data.is_consolidated())
@@ -1425,7 +1425,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             # this ok
             result = self.panel.reindex()
             assert_panel_equal(result, self.panel)
-            self.assertFalse(result is self.panel)
+            assert result is not self.panel
 
             # with filling
             smaller_major = self.panel.major_axis[::5]

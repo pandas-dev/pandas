@@ -60,7 +60,7 @@ class TestTimedeltaIndexOps(Ops):
 
         # non-monotonic
         idx2 = TimedeltaIndex(['1 days', np.nan, '3 days', 'NaT'])
-        self.assertFalse(idx2.is_monotonic)
+        assert not idx2.is_monotonic
 
         for idx in [idx1, idx2]:
             self.assertEqual(idx.min(), Timedelta('1 days')),
@@ -828,7 +828,7 @@ Freq: D"""
         self.assertTrue(idx._can_hold_na)
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        self.assertFalse(idx.hasnans)
+        assert not idx.hasnans
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
@@ -848,17 +848,17 @@ Freq: D"""
         self.assertTrue(idx.equals(idx.asobject))
         self.assertTrue(idx.asobject.equals(idx))
         self.assertTrue(idx.asobject.equals(idx.asobject))
-        self.assertFalse(idx.equals(list(idx)))
-        self.assertFalse(idx.equals(pd.Series(idx)))
+        assert not idx.equals(list(idx))
+        assert not idx.equals(pd.Series(idx))
 
         idx2 = pd.TimedeltaIndex(['2 days', '1 days', 'NaT'])
-        self.assertFalse(idx.equals(idx2))
-        self.assertFalse(idx.equals(idx2.copy()))
-        self.assertFalse(idx.equals(idx2.asobject))
-        self.assertFalse(idx.asobject.equals(idx2))
-        self.assertFalse(idx.asobject.equals(idx2.asobject))
-        self.assertFalse(idx.equals(list(idx2)))
-        self.assertFalse(idx.equals(pd.Series(idx2)))
+        assert not idx.equals(idx2)
+        assert not idx.equals(idx2.copy())
+        assert not idx.equals(idx2.asobject)
+        assert not idx.asobject.equals(idx2)
+        assert not idx.asobject.equals(idx2.asobject)
+        assert not idx.equals(list(idx2))
+        assert not idx.equals(pd.Series(idx2))
 
 
 class TestTimedeltas(tm.TestCase):

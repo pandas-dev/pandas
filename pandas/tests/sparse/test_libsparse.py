@@ -437,7 +437,7 @@ class TestBlockIndex(tm.TestCase):
         index = BlockIndex(10, [0, 4], [2, 5])
 
         self.assertTrue(index.equals(index))
-        self.assertFalse(index.equals(BlockIndex(10, [0, 4], [2, 6])))
+        assert not index.equals(BlockIndex(10, [0, 4], [2, 6]))
 
     def test_check_integrity(self):
         locs = []
@@ -535,7 +535,7 @@ class TestIntIndex(tm.TestCase):
     def test_equals(self):
         index = IntIndex(10, [0, 1, 2, 3, 4])
         self.assertTrue(index.equals(index))
-        self.assertFalse(index.equals(IntIndex(10, [0, 1, 2, 3])))
+        assert not index.equals(IntIndex(10, [0, 1, 2, 3]))
 
     def test_to_block_index(self):
 

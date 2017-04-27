@@ -170,7 +170,7 @@ class Base(object):
         idx = idx.repeat(50)
         with pd.option_context("display.max_seq_items", None):
             repr(idx)
-            self.assertFalse('...' in str(idx))
+            assert '...' not in str(idx)
 
     def test_wrong_number_names(self):
         def testit(ind):
@@ -303,7 +303,7 @@ class Base(object):
             if isinstance(ind, MultiIndex):
                 continue
             idx = self._holder([ind[0]] * 5)
-            self.assertFalse(idx.is_unique)
+            assert not idx.is_unique
             self.assertTrue(idx.has_duplicates)
 
             # GH 10115
@@ -327,7 +327,7 @@ class Base(object):
             # and doesn't contain nans.
             self.assertTrue(idx_unique.is_unique)
             try:
-                self.assertFalse(idx_unique.hasnans)
+                assert not idx_unique.hasnans
             except NotImplementedError:
                 pass
 
@@ -705,8 +705,8 @@ class Base(object):
             self.assertTrue(idx.equals(idx.copy()))
             self.assertTrue(idx.equals(idx.astype(object)))
 
-            self.assertFalse(idx.equals(list(idx)))
-            self.assertFalse(idx.equals(np.array(idx)))
+            assert not idx.equals(list(idx))
+            assert not idx.equals(np.array(idx))
 
             # Cannot pass in non-int64 dtype to RangeIndex
             if not isinstance(idx, RangeIndex):
@@ -716,7 +716,7 @@ class Base(object):
 
             if idx.nlevels == 1:
                 # do not test MultiIndex
-                self.assertFalse(idx.equals(pd.Series(idx)))
+                assert not idx.equals(pd.Series(idx))
 
     def test_equals_op(self):
         # GH9947, GH10637
@@ -843,7 +843,7 @@ class Base(object):
                 # cases in indices doesn't include NaN
                 expected = np.array([False] * len(idx), dtype=bool)
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                self.assertFalse(idx.hasnans)
+                assert not idx.hasnans
 
                 idx = index.copy()
                 values = idx.values
@@ -881,7 +881,7 @@ class Base(object):
                 idx = index.copy()
                 result = idx.fillna(idx[0])
                 tm.assert_index_equal(result, idx)
-                self.assertFalse(result is idx)
+                assert result is not idx
 
                 msg = "'value' must be a scalar, passed: "
                 with tm.assert_raises_regex(TypeError, msg):
@@ -935,5 +935,5 @@ class Base(object):
     def test_empty(self):
         # GH 15270
         index = self.create_index()
-        self.assertFalse(index.empty)
+        assert not index.empty
         self.assertTrue(index[:0].empty)

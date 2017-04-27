@@ -487,19 +487,19 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         self.assertTrue(isnull(td1[0]))
         self.assertEqual(td1[0].value, iNaT)
         td1[0] = td[0]
-        self.assertFalse(isnull(td1[0]))
+        assert not isnull(td1[0])
 
         td1[1] = iNaT
         self.assertTrue(isnull(td1[1]))
         self.assertEqual(td1[1].value, iNaT)
         td1[1] = td[1]
-        self.assertFalse(isnull(td1[1]))
+        assert not isnull(td1[1])
 
         td1[2] = NaT
         self.assertTrue(isnull(td1[2]))
         self.assertEqual(td1[2].value, iNaT)
         td1[2] = td[2]
-        self.assertFalse(isnull(td1[2]))
+        assert not isnull(td1[2])
 
         # boolean setting
         # this doesn't work, not sure numpy even supports it
@@ -552,7 +552,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
             result = s.dropna()
             tm.assert_series_equal(result, s)
-            self.assertFalse(result is s)
+            assert result is not s
 
             s2 = s.copy()
             s2.dropna(inplace=True)

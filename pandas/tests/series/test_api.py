@@ -216,7 +216,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
             self.assertEqual(val, self.ts[idx])
 
         # assert is lazy (genrators don't define reverse, lists do)
-        self.assertFalse(hasattr(self.series.iteritems(), 'reverse'))
+        assert not hasattr(self.series.iteritems(), 'reverse')
 
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))
@@ -239,7 +239,7 @@ class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
             if deep is None or deep is True:
                 # Did not modify original Series
                 self.assertTrue(np.isnan(s2[0]))
-                self.assertFalse(np.isnan(s[0]))
+                assert not np.isnan(s[0])
             else:
                 # we DID modify the original Series
                 self.assertTrue(np.isnan(s2[0]))

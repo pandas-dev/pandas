@@ -728,7 +728,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         self.assertTrue(np.isnan(self.ts[6]))
         self.assertTrue(np.isnan(self.ts[2]))
         self.ts[np.isnan(self.ts)] = 5
-        self.assertFalse(np.isnan(self.ts[2]))
+        assert not np.isnan(self.ts[2])
 
         # caught this bug when writing tests
         series = Series(tm.makeIntIndex(20).astype(float),
@@ -1514,21 +1514,21 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         s = pd.Series([1, 2, 3])
         w = s.where(s > 1, 'X')
 
-        self.assertFalse(is_integer(w[0]))
+        assert not is_integer(w[0])
         self.assertTrue(is_integer(w[1]))
         self.assertTrue(is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
         self.assertTrue(w.dtype == 'object')
 
         w = s.where(s > 1, ['X', 'Y', 'Z'])
-        self.assertFalse(is_integer(w[0]))
+        assert not is_integer(w[0])
         self.assertTrue(is_integer(w[1]))
         self.assertTrue(is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
         self.assertTrue(w.dtype == 'object')
 
         w = s.where(s > 1, np.array(['X', 'Y', 'Z']))
-        self.assertFalse(is_integer(w[0]))
+        assert not is_integer(w[0])
         self.assertTrue(is_integer(w[1]))
         self.assertTrue(is_integer(w[2]))
         self.assertTrue(isinstance(w[0], str))
@@ -1716,7 +1716,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
     def test_preserveRefs(self):
         seq = self.ts[[5, 10, 15]]
         seq[1] = np.NaN
-        self.assertFalse(np.isnan(self.ts[10]))
+        assert not np.isnan(self.ts[10])
 
     def test_drop(self):
 
@@ -1851,7 +1851,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         a = self.ts.copy()
         ra, _ = a.align(b, join='left')
         ra[:5] = 5
-        self.assertFalse((a[:5] == 5).any())
+        assert not (a[:5] == 5).any()
 
         # do not copy
         a = self.ts.copy()
@@ -1864,7 +1864,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         b = self.ts[:5].copy()
         _, rb = a.align(b, join='right')
         rb[:3] = 5
-        self.assertFalse((b[:3] == 5).any())
+        assert not (b[:3] == 5).any()
 
         # do not copy
         a = self.ts.copy()
@@ -1952,7 +1952,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         # return a copy the same index here
         result = self.ts.reindex()
-        self.assertFalse((result is self.ts))
+        assert not (result is self.ts)
 
     def test_reindex_nan(self):
         ts = Series([2, 3, 5, 7], index=[1, 4, nan, 8])
@@ -1974,7 +1974,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         mask = result.isnull()
         self.assertTrue(mask[-5:].all())
-        self.assertFalse(mask[:-5].any())
+        assert not mask[:-5].any()
 
     def test_reindex_with_datetimes(self):
         rng = date_range('1/1/2000', periods=20)
@@ -2279,7 +2279,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         assert isinstance(self.dups.index, DatetimeIndex)
 
     def test_is_unique_monotonic(self):
-        self.assertFalse(self.dups.index.is_unique)
+        assert not self.dups.index.is_unique
 
     def test_index_unique(self):
         uniques = self.dups.index.unique()

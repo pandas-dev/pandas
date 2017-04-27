@@ -659,7 +659,7 @@ class TestnanopsDataFrame(tm.TestCase):
                 if correct:
                     self.assertTrue(res0)
                 else:
-                    self.assertFalse(res0)
+                    assert not res0
             except BaseException as exc:
                 exc.args += ('dim: %s' % getattr(value, 'ndim', value), )
                 raise
@@ -742,9 +742,9 @@ class TestnanopsDataFrame(tm.TestCase):
         self.assertTrue(nanops._bn_ok_dtype(self.arr_bool.dtype, 'test'))
         self.assertTrue(nanops._bn_ok_dtype(self.arr_str.dtype, 'test'))
         self.assertTrue(nanops._bn_ok_dtype(self.arr_utf.dtype, 'test'))
-        self.assertFalse(nanops._bn_ok_dtype(self.arr_date.dtype, 'test'))
-        self.assertFalse(nanops._bn_ok_dtype(self.arr_tdelta.dtype, 'test'))
-        self.assertFalse(nanops._bn_ok_dtype(self.arr_obj.dtype, 'test'))
+        assert not nanops._bn_ok_dtype(self.arr_date.dtype, 'test')
+        assert not nanops._bn_ok_dtype(self.arr_tdelta.dtype, 'test')
+        assert not nanops._bn_ok_dtype(self.arr_obj.dtype, 'test')
 
 
 class TestEnsureNumeric(tm.TestCase):

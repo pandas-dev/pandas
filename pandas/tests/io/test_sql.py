@@ -625,9 +625,7 @@ class _TestSQLApi(PandasSQLTest):
         # Test date parsing in read_sq
         # No Parsing
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
-        self.assertFalse(
-            issubclass(df.DateCol.dtype.type, np.datetime64),
-            "DateCol loaded with incorrect type")
+        assert not issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['DateCol'])
@@ -1230,8 +1228,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         pandasSQL.drop_table('temp_frame')
 
-        self.assertFalse(
-            temp_conn.has_table('temp_frame'), 'Table not deleted from DB')
+        assert not temp_conn.has_table('temp_frame')
 
     def test_roundtrip(self):
         self._roundtrip()
@@ -1727,8 +1724,7 @@ class _TestSQLiteAlchemy(object):
         df = sql.read_sql_table("types_test_data", self.conn)
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
-        self.assertFalse(issubclass(df.DateCol.dtype.type, np.datetime64),
-                         "DateCol loaded with incorrect type")
+        assert not issubclass(df.DateCol.dtype.type, np.datetime64)
 
     def test_bigint_warning(self):
         # test no warning for BIGINT (to support int64) is raised (GH7433)
@@ -1988,8 +1984,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
 
         self.pandasSQL.drop_table('drop_test_frame')
 
-        self.assertFalse(self.pandasSQL.has_table('drop_test_frame'),
-                         'Table not deleted from DB')
+        assert not self.pandasSQL.has_table('drop_test_frame')
 
     def test_roundtrip(self):
         self._roundtrip()

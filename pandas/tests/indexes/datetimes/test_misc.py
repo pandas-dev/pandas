@@ -167,7 +167,7 @@ class TestTimeSeries(tm.TestCase):
         tm.assert_index_equal(rng_ns_normalized, expected)
 
         self.assertTrue(result.is_normalized)
-        self.assertFalse(rng.is_normalized)
+        assert not rng.is_normalized
 
 
 class TestDatetime64(tm.TestCase):

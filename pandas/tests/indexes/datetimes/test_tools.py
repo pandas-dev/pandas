@@ -1027,8 +1027,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
 
         for bad_date_string in bad_date_strings:
-            self.assertFalse(tslib._does_string_look_like_datetime(
-                bad_date_string))
+            assert not tslib._does_string_look_like_datetime(bad_date_string)
 
         good_date_strings = ('2012-01-01',
                              '01/01/2012',
