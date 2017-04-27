@@ -36,9 +36,6 @@ def set_use_numexpr(v=True):
     global _USE_NUMEXPR
     if _NUMEXPR_INSTALLED:
         _USE_NUMEXPR = v
-    elif v:
-        warnings.warn("trying to set the option to use numexpr, "
-                      "but it is not installed!")
 
     # choose what we are going to do
     global _evaluate, _where

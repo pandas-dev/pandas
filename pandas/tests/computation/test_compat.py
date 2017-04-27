@@ -6,7 +6,6 @@ import pandas as pd
 from pandas.core.computation.engines import _engines
 import pandas.core.computation.expr as expr
 from pandas.core.computation import _MIN_NUMEXPR_VERSION
-from pandas.util import testing as tm
 
 
 def test_compat():
@@ -21,15 +20,7 @@ def test_compat():
         else:
             assert _NUMEXPR_INSTALLED
     except ImportError:
-        # test the option of setting
-
-        # ok
-        pd.set_option('use_numexpr', False)
-
-        # warn
-        with tm.assert_produces_warning(
-                UserWarning, check_stacklevel=False):
-            pd.set_option('use_numexpr', True)
+        pytest.skip("not testing numexpr version compat")
 
 
 @pytest.mark.parametrize('engine', _engines)
