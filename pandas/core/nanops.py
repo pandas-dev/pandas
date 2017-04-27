@@ -1,14 +1,8 @@
 import itertools
 import functools
-import numpy as np
 import operator
 
-try:
-    import bottleneck as bn
-    _USE_BOTTLENECK = True
-except ImportError:  # pragma: no cover
-    _USE_BOTTLENECK = False
-
+import numpy as np
 from pandas import compat
 from pandas._libs import tslib, algos, lib
 from pandas.core.dtypes.common import (
@@ -23,8 +17,26 @@ from pandas.core.dtypes.common import (
     is_int_or_datetime_dtype, is_any_int_dtype)
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isnull, notnull
-
+from pandas.core.config import get_option
 from pandas.core.common import _values_from_object
+
+try:
+    import bottleneck as bn
+    _BOTTLENECK_INSTALLED = True
+except ImportError:  # pragma: no cover
+    _BOTTLENECK_INSTALLED = False
+
+_USE_BOTTLENECK = False
+
+
+def set_use_bottleneck(v=True):
+    # set/unset to use bottleneck
+    global _USE_BOTTLENECK
+    if _BOTTLENECK_INSTALLED:
+        _USE_BOTTLENECK = v
+
+
+set_use_bottleneck(get_option('compute.use_bottleneck'))
 
 
 class disallow(object):

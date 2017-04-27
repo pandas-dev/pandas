@@ -91,6 +91,7 @@ import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
 import pandas.io.formats.format as fmt
+import pandas.io.formats.console as console
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting._core as gfx
 
@@ -513,7 +514,7 @@ class DataFrame(NDFrame):
         GH3541, GH3573
         """
 
-        width, height = fmt.get_console_size()
+        width, height = console.get_console_size()
         max_columns = get_option("display.max_columns")
         nb_columns = len(self.columns)
 
@@ -577,7 +578,7 @@ class DataFrame(NDFrame):
         max_cols = get_option("display.max_columns")
         show_dimensions = get_option("display.show_dimensions")
         if get_option("display.expand_frame_repr"):
-            width, _ = fmt.get_console_size()
+            width, _ = console.get_console_size()
         else:
             width = None
         self.to_string(buf=buf, max_rows=max_rows, max_cols=max_cols,

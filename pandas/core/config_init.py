@@ -15,8 +15,41 @@ import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
                                 is_one_of_factory, get_default_val,
                                 is_callable)
-from pandas.io.formats.format import detect_console_encoding
+from pandas.io.formats.console import detect_console_encoding
 
+# compute
+
+use_bottleneck_doc = """
+: bool
+    Use the bottleneck library to accelerate if it is installed,
+    the default is True
+    Valid values: False,True
+"""
+
+
+def use_bottleneck_cb(key):
+    from pandas.core import nanops
+    nanops.set_use_bottleneck(cf.get_option(key))
+
+
+use_numexpr_doc = """
+: bool
+    Use the numexpr library to accelerate computation if it is installed,
+    the default is True
+    Valid values: False,True
+"""
+
+
+def use_numexpr_cb(key):
+    from pandas.core.computation import expressions
+    expressions.set_use_numexpr(cf.get_option(key))
+
+
+with cf.config_prefix('compute'):
+    cf.register_option('use_bottleneck', True, use_bottleneck_doc,
+                       validator=is_bool, cb=use_bottleneck_cb)
+    cf.register_option('use_numexpr', True, use_numexpr_doc,
+                       validator=is_bool, cb=use_numexpr_cb)
 #
 # options from the "display" namespace
 

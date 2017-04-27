@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 from pandas.core.common import _values_from_object
 from pandas.core.computation import _NUMEXPR_INSTALLED
+from pandas.core.config import get_option
 
 if _NUMEXPR_INSTALLED:
     import numexpr as ne
@@ -156,7 +157,7 @@ def _where_numexpr(cond, a, b, raise_on_error=False):
 
 
 # turn myself on
-set_use_numexpr(True)
+set_use_numexpr(get_option('compute.use_numexpr'))
 
 
 def _has_bool_dtype(x):

@@ -93,7 +93,7 @@ Accelerated operations
 ----------------------
 
 pandas has support for accelerating certain types of binary numerical and boolean operations using
-the ``numexpr`` library (starting in 0.11.0) and the ``bottleneck`` libraries.
+the ``numexpr`` library and the ``bottleneck`` libraries.
 
 These libraries are especially useful when dealing with large data sets, and provide large
 speedups. ``numexpr`` uses smart chunking, caching, and multiple cores. ``bottleneck`` is
@@ -113,6 +113,15 @@ Here is a sample (using 100 column x 100,000 row ``DataFrames``):
 
 You are highly encouraged to install both libraries. See the section
 :ref:`Recommended Dependencies <install.recommended_dependencies>` for more installation info.
+
+These are both enabled to be used by default, you can control this by setting the options:
+
+.. versionadded:: 0.20.0
+
+.. code-block:: python
+
+   pd.set_option('compute.use_bottleneck', False)
+   pd.set_option('compute.use_numexpr', False)
 
 .. _basics.binop:
 
