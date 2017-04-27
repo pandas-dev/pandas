@@ -133,4 +133,4 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
                              .format(destination_table),
                              project_id=_get_project_id(),
                              private_key=_get_private_key_path())
-        self.assertEqual(result['num_rows'][0], test_size)
+        assert result['num_rows'][0] == test_size

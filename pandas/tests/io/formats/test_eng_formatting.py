@@ -18,7 +18,7 @@ class TestEngFormatter(tm.TestCase):
                     '1  141.000E+00\n'
                     '2   14.100E+03\n'
                     '3    1.410E+06')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         fmt.set_eng_float_format(use_eng_prefix=True)
         result = df.to_string()
@@ -27,7 +27,7 @@ class TestEngFormatter(tm.TestCase):
                     '1  141.000\n'
                     '2  14.100k\n'
                     '3   1.410M')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         fmt.set_eng_float_format(accuracy=0)
         result = df.to_string()
@@ -36,15 +36,13 @@ class TestEngFormatter(tm.TestCase):
                     '1  141E+00\n'
                     '2   14E+03\n'
                     '3    1E+06')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         tm.reset_display_options()
 
     def compare(self, formatter, input, output):
         formatted_input = formatter(input)
-        msg = ("formatting of %s results in '%s', expected '%s'" %
-               (str(input), formatted_input, output))
-        self.assertEqual(formatted_input, output, msg)
+        assert formatted_input == output
 
     def compare_all(self, formatter, in_out):
         """
@@ -169,14 +167,14 @@ class TestEngFormatter(tm.TestCase):
 
         formatter = fmt.EngFormatter(accuracy=3, use_eng_prefix=True)
         result = formatter(0)
-        self.assertEqual(result, u(' 0.000'))
+        assert result == u(' 0.000')
 
     def test_nan(self):
         # Issue #11981
 
         formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
         result = formatter(np.nan)
-        self.assertEqual(result, u('NaN'))
+        assert result == u('NaN')
 
         df = pd.DataFrame({'a': [1.5, 10.3, 20.5],
                            'b': [50.3, 60.67, 70.12],
@@ -192,4 +190,4 @@ class TestEngFormatter(tm.TestCase):
 
         formatter = fmt.EngFormatter(accuracy=1, use_eng_prefix=True)
         result = formatter(np.inf)
-        self.assertEqual(result, u('inf'))
+        assert result == u('inf')

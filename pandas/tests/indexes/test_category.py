@@ -198,8 +198,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         ci = self.create_index(ordered=True)
 
-        self.assertEqual(ci.min(), 'c')
-        self.assertEqual(ci.max(), 'b')
+        assert ci.min() == 'c'
+        assert ci.max() == 'b'
 
     def test_map(self):
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('CBA'),
@@ -450,8 +450,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # GH 12531
         cidx1 = CategoricalIndex(list('abcde'), categories=list('edabc'))
         idx1 = Index(list('abcde'))
-        self.assertEqual(cidx1.get_loc('a'), idx1.get_loc('a'))
-        self.assertEqual(cidx1.get_loc('e'), idx1.get_loc('e'))
+        assert cidx1.get_loc('a') == idx1.get_loc('a')
+        assert cidx1.get_loc('e') == idx1.get_loc('e')
 
         for i in [cidx1, idx1]:
             with pytest.raises(KeyError):
@@ -468,8 +468,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
                                                    True, False, True]))
         # unique element results in scalar
         res = cidx2.get_loc('e')
-        self.assertEqual(res, idx2.get_loc('e'))
-        self.assertEqual(res, 4)
+        assert res == idx2.get_loc('e')
+        assert res == 4
 
         for i in [cidx2, idx2]:
             with pytest.raises(KeyError):
@@ -481,12 +481,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         # results in slice
         res = cidx3.get_loc('a')
-        self.assertEqual(res, idx3.get_loc('a'))
-        self.assertEqual(res, slice(0, 2, None))
+        assert res == idx3.get_loc('a')
+        assert res == slice(0, 2, None)
 
         res = cidx3.get_loc('b')
-        self.assertEqual(res, idx3.get_loc('b'))
-        self.assertEqual(res, slice(2, 5, None))
+        assert res == idx3.get_loc('b')
+        assert res == slice(2, 5, None)
 
         for i in [cidx3, idx3]:
             with pytest.raises(KeyError):
@@ -612,10 +612,10 @@ class TestCategoricalIndex(Base, tm.TestCase):
         idx = pd.CategoricalIndex(['a', 'bb', 'ccc'])
         if PY3:
             expected = u"""CategoricalIndex(['a', 'bb', 'ccc'], categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""  # noqa
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""CategoricalIndex([u'a', u'bb', u'ccc'], categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category')"""  # noqa
-            self.assertEqual(unicode(idx), expected)
+            assert unicode(idx) == expected
 
         # multiple lines
         idx = pd.CategoricalIndex(['a', 'bb', 'ccc'] * 10)
@@ -625,7 +625,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
                  categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""  # noqa
 
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""CategoricalIndex([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',
                   u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
@@ -633,7 +633,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
                  categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category')"""  # noqa
 
-            self.assertEqual(unicode(idx), expected)
+            assert unicode(idx) == expected
 
         # truncated
         idx = pd.CategoricalIndex(['a', 'bb', 'ccc'] * 100)
@@ -643,7 +643,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
                  categories=['a', 'bb', 'ccc'], ordered=False, dtype='category', length=300)"""  # noqa
 
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""CategoricalIndex([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',
                   u'ccc', u'a',
@@ -652,7 +652,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   u'bb', u'ccc'],
                  categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category', length=300)"""  # noqa
 
-            self.assertEqual(unicode(idx), expected)
+            assert unicode(idx) == expected
 
         # larger categories
         idx = pd.CategoricalIndex(list('abcdefghijklmmo'))
@@ -661,22 +661,22 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'm', 'm', 'o'],
                  categories=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', ...], ordered=False, dtype='category')"""  # noqa
 
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""CategoricalIndex([u'a', u'b', u'c', u'd', u'e', u'f', u'g', u'h', u'i', u'j',
                   u'k', u'l', u'm', u'm', u'o'],
                  categories=[u'a', u'b', u'c', u'd', u'e', u'f', u'g', u'h', ...], ordered=False, dtype='category')"""  # noqa
 
-            self.assertEqual(unicode(idx), expected)
+            assert unicode(idx) == expected
 
         # short
         idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'])
         if PY3:
             expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう'], categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""  # noqa
-            self.assertEqual(unicode(idx), expected)
+            assert unicode(idx) == expected
 
         # multiple lines
         idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 10)
@@ -686,7 +686,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
                  categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
 
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
                   u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
@@ -694,7 +694,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
                  categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""  # noqa
 
-            self.assertEqual(unicode(idx), expected)
+            assert unicode(idx) == expected
 
         # truncated
         idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 100)
@@ -704,7 +704,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
                  categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""  # noqa
 
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
                   u'ううう', u'あ',
@@ -713,7 +713,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   u'いい', u'ううう'],
                  categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""  # noqa
 
-            self.assertEqual(unicode(idx), expected)
+            assert unicode(idx) == expected
 
         # larger categories
         idx = pd.CategoricalIndex(list(u'あいうえおかきくけこさしすせそ'))
@@ -722,13 +722,13 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'す', 'せ', 'そ'],
                  categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""  # noqa
 
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""CategoricalIndex([u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', u'け', u'こ',
                   u'さ', u'し', u'す', u'せ', u'そ'],
                  categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""  # noqa
 
-            self.assertEqual(unicode(idx), expected)
+            assert unicode(idx) == expected
 
         # Emable Unicode option -----------------------------------------
         with cf.option_context('display.unicode.east_asian_width', True):
@@ -737,10 +737,10 @@ class TestCategoricalIndex(Base, tm.TestCase):
             idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'])
             if PY3:
                 expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
-                self.assertEqual(repr(idx), expected)
+                assert repr(idx) == expected
             else:
                 expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう'], categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""  # noqa
-                self.assertEqual(unicode(idx), expected)
+                assert unicode(idx) == expected
 
             # multiple lines
             idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 10)
@@ -751,7 +751,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
                  categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
 
-                self.assertEqual(repr(idx), expected)
+                assert repr(idx) == expected
             else:
                 expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
                   u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
@@ -760,7 +760,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   u'いい', u'ううう', u'あ', u'いい', u'ううう'],
                  categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""  # noqa
 
-                self.assertEqual(unicode(idx), expected)
+                assert unicode(idx) == expected
 
             # truncated
             idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'] * 100)
@@ -772,7 +772,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'あ', 'いい', 'ううう'],
                  categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""  # noqa
 
-                self.assertEqual(repr(idx), expected)
+                assert repr(idx) == expected
             else:
                 expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
                   u'いい', u'ううう', u'あ',
@@ -781,7 +781,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   u'ううう', u'あ', u'いい', u'ううう'],
                  categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""  # noqa
 
-                self.assertEqual(unicode(idx), expected)
+                assert unicode(idx) == expected
 
             # larger categories
             idx = pd.CategoricalIndex(list(u'あいうえおかきくけこさしすせそ'))
@@ -790,13 +790,13 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'さ', 'し', 'す', 'せ', 'そ'],
                  categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""  # noqa
 
-                self.assertEqual(repr(idx), expected)
+                assert repr(idx) == expected
             else:
                 expected = u"""CategoricalIndex([u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く',
                   u'け', u'こ', u'さ', u'し', u'す', u'せ', u'そ'],
                  categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""  # noqa
 
-                self.assertEqual(unicode(idx), expected)
+                assert unicode(idx) == expected
 
     def test_fillna_categorical(self):
         # GH 11343

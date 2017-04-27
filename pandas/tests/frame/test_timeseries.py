@@ -38,7 +38,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         s = Series([a, b])
 
         rs = DataFrame({'s': s}).diff()
-        self.assertEqual(rs.s[1], 1)
+        assert rs.s[1] == 1
 
         # mixed numeric
         tf = self.tsframe.astype('float32')
@@ -71,7 +71,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         df['A'] = np.array([1, 2, 3, 4, 5], dtype=object)
 
         result = df.diff()
-        self.assertEqual(result[0].dtype, np.float64)
+        assert result[0].dtype == np.float64
 
     def test_diff_neg_n(self):
         rs = self.tsframe.diff(-1)
@@ -153,7 +153,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
             ex_vals = to_datetime(vals.astype('O')).values
 
-            self.assertEqual(df[unit].dtype, ns_dtype)
+            assert df[unit].dtype == ns_dtype
             assert (df[unit].values == ex_vals).all()
 
         # Test insertion into existing datetime64 column
@@ -191,7 +191,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
         # shift by DateOffset
         shiftedFrame = self.tsframe.shift(5, freq=offsets.BDay())
-        self.assertEqual(len(shiftedFrame), len(self.tsframe))
+        assert len(shiftedFrame) == len(self.tsframe)
 
         shiftedFrame2 = self.tsframe.shift(5, freq='B')
         assert_frame_equal(shiftedFrame, shiftedFrame2)
@@ -408,10 +408,10 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         frame = DataFrame({'foo': mat}, index=self.frame.index)
         index = frame.first_valid_index()
 
-        self.assertEqual(index, frame.index[5])
+        assert index == frame.index[5]
 
         index = frame.last_valid_index()
-        self.assertEqual(index, frame.index[-6])
+        assert index == frame.index[-6]
 
         # GH12800
         empty = DataFrame()
@@ -446,7 +446,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         rng = date_range('1/1/2012', freq='23Min', periods=384)
         ts = DataFrame(np.random.randn(len(rng), 2), rng)
         rs = ts.at_time('16:00')
-        self.assertEqual(len(rs), 0)
+        assert len(rs) == 0
 
     def test_between_time_frame(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
@@ -463,7 +463,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
             if not inc_end:
                 exp_len -= 4
 
-            self.assertEqual(len(filtered), exp_len)
+            assert len(filtered) == exp_len
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:
@@ -495,7 +495,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
             if not inc_end:
                 exp_len -= 4
 
-            self.assertEqual(len(filtered), exp_len)
+            assert len(filtered) == exp_len
             for rs in filtered.index:
                 t = rs.time()
                 if inc_start:

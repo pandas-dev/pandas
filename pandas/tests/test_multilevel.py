@@ -259,7 +259,7 @@ class TestMultiLevel(Base, tm.TestCase):
 
         result = s[2000, 3, 10]
         expected = s[49]
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # fancy
         expected = s.reindex(s.index[49:51])
@@ -404,9 +404,9 @@ class TestMultiLevel(Base, tm.TestCase):
         sliced_b1 = df['B', '1']
         tm.assert_series_equal(sliced_a1, sliced_b1, check_names=False)
         tm.assert_series_equal(sliced_a2, sliced_b1, check_names=False)
-        self.assertEqual(sliced_a1.name, ('A', '1'))
-        self.assertEqual(sliced_a2.name, ('A', '2'))
-        self.assertEqual(sliced_b1.name, ('B', '1'))
+        assert sliced_a1.name == ('A', '1')
+        assert sliced_a2.name == ('A', '2')
+        assert sliced_b1.name == ('B', '1')
 
     def test_getitem_tuple_plus_slice(self):
         # GH #671
@@ -557,7 +557,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         result = df.xs('a', level=0)
         expected = df.xs('a')
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         tm.assert_frame_equal(result, expected)
 
     def test_xs_level_series(self):
@@ -667,19 +667,19 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_frame_setitem_ix(self):
         self.frame.loc[('bar', 'two'), 'B'] = 5
-        self.assertEqual(self.frame.loc[('bar', 'two'), 'B'], 5)
+        assert self.frame.loc[('bar', 'two'), 'B'] == 5
 
         # with integer labels
         df = self.frame.copy()
         df.columns = lrange(3)
         df.loc[('bar', 'two'), 1] = 7
-        self.assertEqual(df.loc[('bar', 'two'), 1], 7)
+        assert df.loc[('bar', 'two'), 1] == 7
 
         with catch_warnings(record=True):
             df = self.frame.copy()
             df.columns = lrange(3)
             df.ix[('bar', 'two'), 1] = 7
-        self.assertEqual(df.loc[('bar', 'two'), 1], 7)
+        assert df.loc[('bar', 'two'), 1] == 7
 
     def test_fancy_slice_partial(self):
         result = self.frame.loc['bar':'baz']
@@ -724,12 +724,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_reset_index_with_drop(self):
         deleveled = self.ymd.reset_index(drop=True)
-        self.assertEqual(len(deleveled.columns), len(self.ymd.columns))
+        assert len(deleveled.columns) == len(self.ymd.columns)
 
         deleveled = self.series.reset_index()
         assert isinstance(deleveled, DataFrame)
-        self.assertEqual(len(deleveled.columns),
-                         len(self.series.index.levels) + 1)
+        assert len(deleveled.columns) == len(self.series.index.levels) + 1
 
         deleveled = self.series.reset_index(drop=True)
         assert isinstance(deleveled, Series)
@@ -942,7 +941,7 @@ Thur,Lunch,Yes,51.51,17"""
         result = df['foo'].stack().sort_index()
         tm.assert_series_equal(stacked['foo'], result, check_names=False)
         assert result.name is None
-        self.assertEqual(stacked['bar'].dtype, np.float_)
+        assert stacked['bar'].dtype == np.float_
 
     def test_unstack_bug(self):
         df = DataFrame({'state': ['naive', 'naive', 'naive', 'activ', 'activ',
@@ -961,11 +960,11 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_stack_unstack_preserve_names(self):
         unstacked = self.frame.unstack()
-        self.assertEqual(unstacked.index.name, 'first')
-        self.assertEqual(unstacked.columns.names, ['exp', 'second'])
+        assert unstacked.index.name == 'first'
+        assert unstacked.columns.names == ['exp', 'second']
 
         restacked = unstacked.stack()
-        self.assertEqual(restacked.index.names, self.frame.index.names)
+        assert restacked.index.names == self.frame.index.names
 
     def test_unstack_level_name(self):
         result = self.frame.unstack('second')
@@ -986,7 +985,7 @@ Thur,Lunch,Yes,51.51,17"""
         unstacked = self.ymd.unstack(['year', 'month'])
         expected = self.ymd.unstack('year').unstack('month')
         tm.assert_frame_equal(unstacked, expected)
-        self.assertEqual(unstacked.columns.names, expected.columns.names)
+        assert unstacked.columns.names == expected.columns.names
 
         # series
         s = self.ymd['A']
@@ -998,7 +997,7 @@ Thur,Lunch,Yes,51.51,17"""
         restacked = restacked.sort_index(level=0)
 
         tm.assert_frame_equal(restacked, self.ymd)
-        self.assertEqual(restacked.index.names, self.ymd.index.names)
+        assert restacked.index.names == self.ymd.index.names
 
         # GH #451
         unstacked = self.ymd.unstack([1, 2])
@@ -1191,7 +1190,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame(np.random.randn(4, 2), index=index)
 
         result = df.unstack()
-        self.assertEqual(len(result.columns), 4)
+        assert len(result.columns) == 4
 
         recons = result.stack()
         tm.assert_frame_equal(recons, df)
@@ -1351,12 +1350,12 @@ Thur,Lunch,Yes,51.51,17"""
         result = series.count(level='b')
         expect = self.series.count(level=1)
         tm.assert_series_equal(result, expect, check_names=False)
-        self.assertEqual(result.index.name, 'b')
+        assert result.index.name == 'b'
 
         result = series.count(level='a')
         expect = self.series.count(level=0)
         tm.assert_series_equal(result, expect, check_names=False)
-        self.assertEqual(result.index.name, 'a')
+        assert result.index.name == 'a'
 
         pytest.raises(KeyError, series.count, 'x')
         pytest.raises(KeyError, frame.count, level='x')
@@ -1465,7 +1464,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # TODO groupby with level_values drops names
         tm.assert_frame_equal(result, expected, check_names=False)
-        self.assertEqual(result.index.names, self.ymd.index.names[:2])
+        assert result.index.names == self.ymd.index.names[:2]
 
         result2 = self.ymd.groupby(level=self.ymd.index.names[:2]).mean()
         tm.assert_frame_equal(result, result2)
@@ -1483,13 +1482,13 @@ Thur,Lunch,Yes,51.51,17"""
     def test_ix_preserve_names(self):
         result = self.ymd.loc[2000]
         result2 = self.ymd['A'].loc[2000]
-        self.assertEqual(result.index.names, self.ymd.index.names[1:])
-        self.assertEqual(result2.index.names, self.ymd.index.names[1:])
+        assert result.index.names == self.ymd.index.names[1:]
+        assert result2.index.names == self.ymd.index.names[1:]
 
         result = self.ymd.loc[2000, 2]
         result2 = self.ymd['A'].loc[2000, 2]
-        self.assertEqual(result.index.name, self.ymd.index.names[2])
-        self.assertEqual(result2.index.name, self.ymd.index.names[2])
+        assert result.index.name == self.ymd.index.names[2]
+        assert result2.index.name == self.ymd.index.names[2]
 
     def test_partial_set(self):
         # GH #397
@@ -1509,7 +1508,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # this works...for now
         df['A'].iloc[14] = 5
-        self.assertEqual(df['A'][14], 5)
+        assert df['A'][14] == 5
 
     def test_unstack_preserve_types(self):
         # GH #403
@@ -1517,9 +1516,9 @@ Thur,Lunch,Yes,51.51,17"""
         self.ymd['F'] = 2
 
         unstacked = self.ymd.unstack('month')
-        self.assertEqual(unstacked['A', 1].dtype, np.float64)
-        self.assertEqual(unstacked['E', 1].dtype, np.object_)
-        self.assertEqual(unstacked['F', 1].dtype, np.float64)
+        assert unstacked['A', 1].dtype == np.float64
+        assert unstacked['E', 1].dtype == np.object_
+        assert unstacked['F', 1].dtype == np.float64
 
     def test_unstack_group_index_overflow(self):
         labels = np.tile(np.arange(500), 2)
@@ -1530,7 +1529,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         s = Series(np.arange(1000), index=index)
         result = s.unstack()
-        self.assertEqual(result.shape, (500, 2))
+        assert result.shape == (500, 2)
 
         # test roundtrip
         stacked = result.stack()
@@ -1542,7 +1541,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         s = Series(np.arange(1000), index=index)
         result = s.unstack(0)
-        self.assertEqual(result.shape, (500, 2))
+        assert result.shape == (500, 2)
 
         # put it in middle
         index = MultiIndex(levels=[level] * 4 + [[0, 1]] + [level] * 4,
@@ -1551,7 +1550,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         s = Series(np.arange(1000), index=index)
         result = s.unstack(4)
-        self.assertEqual(result.shape, (500, 2))
+        assert result.shape == (500, 2)
 
     def test_getitem_lowerdim_corner(self):
         pytest.raises(KeyError, self.frame.loc.__getitem__,
@@ -1559,7 +1558,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # in theory should be inserting in a sorted space????
         self.frame.loc[('bar', 'three'), 'B'] = 0
-        self.assertEqual(self.frame.sort_index().loc[('bar', 'three'), 'B'], 0)
+        assert self.frame.sort_index().loc[('bar', 'three'), 'B'] == 0
 
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!
@@ -1659,12 +1658,12 @@ Thur,Lunch,Yes,51.51,17"""
         result = df['a']
         expected = df['a', '', '']
         tm.assert_series_equal(result, expected, check_names=False)
-        self.assertEqual(result.name, 'a')
+        assert result.name == 'a'
 
         result = df['routine1', 'result1']
         expected = df['routine1', 'result1', '']
         tm.assert_series_equal(result, expected, check_names=False)
-        self.assertEqual(result.name, ('routine1', 'result1'))
+        assert result.name == ('routine1', 'result1')
 
     def test_mixed_depth_insert(self):
         arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
@@ -1747,7 +1746,7 @@ Thur,Lunch,Yes,51.51,17"""
         expected = df2.pop(('a', '', ''))
         tm.assert_series_equal(expected, result, check_names=False)
         tm.assert_frame_equal(df1, df2)
-        self.assertEqual(result.name, 'a')
+        assert result.name == 'a'
 
         expected = df1['top']
         df1 = df1.drop(['top'], axis=1)
@@ -1845,7 +1844,7 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame(np.random.randn(6, 3), index=index)
 
         result = df.drop([(0, 2)])
-        self.assertEqual(result.index.names, ('one', 'two'))
+        assert result.index.names == ('one', 'two')
 
     def test_unicode_repr_issues(self):
         levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),
@@ -1944,9 +1943,9 @@ Thur,Lunch,Yes,51.51,17"""
                    MultiIndex.from_arrays((["a"] * n, np.arange(n))))
 
         # hai it works!
-        self.assertEqual(s[("a", 5)], 5)
-        self.assertEqual(s[("a", 6)], 6)
-        self.assertEqual(s[("a", 7)], 7)
+        assert s[("a", 5)] == 5
+        assert s[("a", 6)] == 6
+        assert s[("a", 7)] == 7
 
         _index._SIZE_CUTOFF = old_cutoff
 
@@ -1998,7 +1997,7 @@ Thur,Lunch,Yes,51.51,17"""
         s = Series(dt, index=idx)
 
         result = s.groupby(s.index).first()
-        self.assertEqual(len(result), 3)
+        assert len(result) == 3
 
     def test_duplicate_mi(self):
         # GH 4516
@@ -2353,7 +2352,7 @@ class TestSorted(Base, tm.TestCase):
 
     def test_sort_index_preserve_levels(self):
         result = self.frame.sort_index()
-        self.assertEqual(result.index.names, self.frame.index.names)
+        assert result.index.names == self.frame.index.names
 
     def test_sorting_repr_8017(self):
 
@@ -2375,7 +2374,7 @@ class TestSorted(Base, tm.TestCase):
             # check that the repr is good
             # make sure that we have a correct sparsified repr
             # e.g. only 1 header of read
-            self.assertEqual(str(df2).splitlines()[0].split(), ['red'])
+            assert str(df2).splitlines()[0].split() == ['red']
 
             # GH 8017
             # sorting fails after columns added
@@ -2406,7 +2405,7 @@ class TestSorted(Base, tm.TestCase):
         a_sorted = self.frame['A'].sort_index(level=0)
 
         # preserve names
-        self.assertEqual(a_sorted.index.names, self.frame.index.names)
+        assert a_sorted.index.names == self.frame.index.names
 
         # inplace
         rs = self.frame.copy()
@@ -2469,7 +2468,7 @@ class TestSorted(Base, tm.TestCase):
         index = MultiIndex(levels=levels,
                            labels=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]])
         assert not index.is_lexsorted()
-        self.assertEqual(index.lexsort_depth, 0)
+        assert index.lexsort_depth == 0
 
     def test_getitem_multilevel_index_tuple_not_sorted(self):
         index_columns = list("abc")

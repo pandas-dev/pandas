@@ -433,13 +433,13 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             assert_frame_equal(df, result)
 
     def test_to_csv_with_mix_columns(self):
-        # GH11637, incorrect output when a mix of integer and string column
+        # gh-11637: incorrect output when a mix of integer and string column
         # names passed as columns parameter in to_csv
 
         df = DataFrame({0: ['a', 'b', 'c'],
                         1: ['aa', 'bb', 'cc']})
         df['test'] = 'txt'
-        self.assertEqual(df.to_csv(), df.to_csv(columns=[0, 1, 'test']))
+        assert df.to_csv() == df.to_csv(columns=[0, 1, 'test'])
 
     def test_to_csv_headers(self):
         # GH6186, the presence or absence of `index` incorrectly
@@ -475,7 +475,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
             # TODO to_csv drops column name
             assert_frame_equal(frame, df, check_names=False)
-            self.assertEqual(frame.index.names, df.index.names)
+            assert frame.index.names == df.index.names
 
             # needed if setUP becomes a classmethod
             self.frame.index = old_index
@@ -494,7 +494,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             # do not load index
             tsframe.to_csv(path)
             recons = DataFrame.from_csv(path, index_col=None)
-            self.assertEqual(len(recons.columns), len(tsframe.columns) + 2)
+            assert len(recons.columns) == len(tsframe.columns) + 2
 
             # no index
             tsframe.to_csv(path, index=False)
@@ -604,7 +604,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
             exp.index = []
 
             tm.assert_index_equal(recons.columns, exp.columns)
-            self.assertEqual(len(recons), 0)
+            assert len(recons) == 0
 
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(np.random.randn(1, 4).astype(np.float32))
@@ -615,7 +615,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 
             with open(path) as f:
                 lines = f.readlines()
-                self.assertEqual(lines[1].split(',')[2], '999')
+                assert lines[1].split(',')[2] == '999'
 
     def test_to_csv_withcommas(self):
 
@@ -813,7 +813,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                     '2,"bar"\n'
                     '3,"baz"\n')
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_csv_quote_none(self):
         # GH4328
@@ -824,7 +824,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                       encoding=encoding, index=False)
             result = buf.getvalue()
             expected = 'A\nhello\n{"hello"}\n'
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_to_csv_index_no_leading_comma(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
@@ -836,7 +836,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                     'one,1,4\n'
                     'two,2,5\n'
                     'three,3,6\n')
-        self.assertEqual(buf.getvalue(), expected)
+        assert buf.getvalue() == expected
 
     def test_to_csv_line_terminators(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
@@ -848,7 +848,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                     'one,1,4\r\n'
                     'two,2,5\r\n'
                     'three,3,6\r\n')
-        self.assertEqual(buf.getvalue(), expected)
+        assert buf.getvalue() == expected
 
         buf = StringIO()
         df.to_csv(buf)  # The default line terminator remains \n
@@ -856,7 +856,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
                     'one,1,4\n'
                     'two,2,5\n'
                     'three,3,6\n')
-        self.assertEqual(buf.getvalue(), expected)
+        assert buf.getvalue() == expected
 
     def test_to_csv_from_csv_categorical(self):
 
@@ -868,7 +868,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         s.to_csv(res)
         exp = StringIO()
         s2.to_csv(exp)
-        self.assertEqual(res.getvalue(), exp.getvalue())
+        assert res.getvalue() == exp.getvalue()
 
         df = DataFrame({"s": s})
         df2 = DataFrame({"s": s2})
@@ -876,7 +876,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         df.to_csv(res)
         exp = StringIO()
         df2.to_csv(exp)
-        self.assertEqual(res.getvalue(), exp.getvalue())
+        assert res.getvalue() == exp.getvalue()
 
     def test_to_csv_path_is_none(self):
         # GH 8215
@@ -1078,13 +1078,13 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 1,False,3.2,,"b,c"
 """
         result = df.to_csv()
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = df.to_csv(quoting=None)
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = df.to_csv(quoting=csv.QUOTE_MINIMAL)
-        self.assertEqual(result, expected)
+        assert result == expected
 
         expected = """\
 "","c_bool","c_float","c_int","c_string"
@@ -1092,7 +1092,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 "1","False","3.2","","b,c"
 """
         result = df.to_csv(quoting=csv.QUOTE_ALL)
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # see gh-12922, gh-13259: make sure changes to
         # the formatters do not break this behaviour
@@ -1102,7 +1102,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 1,False,3.2,"","b,c"
 """
         result = df.to_csv(quoting=csv.QUOTE_NONNUMERIC)
-        self.assertEqual(result, expected)
+        assert result == expected
 
         msg = "need to escape, but no escapechar set"
         tm.assert_raises_regex(csv.Error, msg, df.to_csv,
@@ -1118,7 +1118,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 """
         result = df.to_csv(quoting=csv.QUOTE_NONE,
                            escapechar='!')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         expected = """\
 ,c_bool,c_ffloat,c_int,c_string
@@ -1127,7 +1127,7 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
 """
         result = df.to_csv(quoting=csv.QUOTE_NONE,
                            escapechar='f')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # see gh-3503: quoting Windows line terminators
         # presents with encoding?
@@ -1135,14 +1135,14 @@ class TestDataFrameToCSV(tm.TestCase, TestData):
         df = pd.read_csv(StringIO(text))
         buf = StringIO()
         df.to_csv(buf, encoding='utf-8', index=False)
-        self.assertEqual(buf.getvalue(), text)
+        assert buf.getvalue() == text
 
         # xref gh-7791: make sure the quoting parameter is passed through
         # with multi-indexes
         df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
         df = df.set_index(['a', 'b'])
         expected = '"a","b","c"\n"1","3","5"\n"2","4","6"\n'
-        self.assertEqual(df.to_csv(quoting=csv.QUOTE_ALL), expected)
+        assert df.to_csv(quoting=csv.QUOTE_ALL) == expected
 
     def test_period_index_date_overflow(self):
         # see gh-15982

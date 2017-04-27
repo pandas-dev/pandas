@@ -87,9 +87,9 @@ class TestNth(MixIn, tm.TestCase):
         idx = lrange(10)
         idx.append(9)
         s = Series(data=lrange(11), index=idx, name='IntCol')
-        self.assertEqual(s.dtype, 'int64')
+        assert s.dtype == 'int64'
         f = s.groupby(level=0).first()
-        self.assertEqual(f.dtype, 'int64')
+        assert f.dtype == 'int64'
 
     def test_nth(self):
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
@@ -155,12 +155,12 @@ class TestNth(MixIn, tm.TestCase):
         expected2 = s.groupby(g).apply(lambda x: x.iloc[0])
         assert_series_equal(expected2, expected, check_names=False)
         assert expected.name, 0
-        self.assertEqual(expected.name, 1)
+        assert expected.name == 1
 
         # validate first
         v = s[g == 1].iloc[0]
-        self.assertEqual(expected.iloc[0], v)
-        self.assertEqual(expected2.iloc[0], v)
+        assert expected.iloc[0] == v
+        assert expected2.iloc[0] == v
 
         # this is NOT the same as .first (as sorted is default!)
         # as it keeps the order in the series (and not the group order)

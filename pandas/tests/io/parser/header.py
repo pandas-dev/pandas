@@ -62,7 +62,7 @@ baz,7,8,9
         names = ['A', 'B', 'C']
         df = self.read_csv(StringIO(data), names=names)
 
-        self.assertEqual(names, ['A', 'B', 'C'])
+        assert list(df.columns) == ['A', 'B', 'C']
 
         values = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
         expected = DataFrame(values, index=['foo', 'bar', 'baz'],

@@ -83,8 +83,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
             rs = df.corr(meth)
             assert isnull(rs.loc['A', 'B'])
             assert isnull(rs.loc['B', 'A'])
-            self.assertEqual(rs.loc['A', 'A'], 1)
-            self.assertEqual(rs.loc['B', 'B'], 1)
+            assert rs.loc['A', 'A'] == 1
+            assert rs.loc['B', 'B'] == 1
             assert isnull(rs.loc['C', 'C'])
 
     def test_corr_constant(self):
@@ -335,8 +335,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                                     '50%', '75%', 'max'])
         expected.columns = exp_columns
         tm.assert_frame_equal(result, expected)
-        self.assertEqual(result.columns.freq, 'MS')
-        self.assertEqual(result.columns.tz, expected.columns.tz)
+        assert result.columns.freq == 'MS'
+        assert result.columns.tz == expected.columns.tz
 
     def test_describe_timedelta_values(self):
         # GH 6145
@@ -373,7 +373,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
                     "50%           3 days 00:00:00         0 days 03:00:00\n"
                     "75%           4 days 00:00:00         0 days 04:00:00\n"
                     "max           5 days 00:00:00         0 days 05:00:00")
-        self.assertEqual(repr(res), exp_repr)
+        assert repr(res) == exp_repr
 
     def test_reduce_mixed_frame(self):
         # GH 6806
@@ -462,7 +462,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         for df in [df1, df2]:
             for meth in methods:
-                self.assertEqual(df.values.dtype, np.object_)
+                assert df.values.dtype == np.object_
                 result = getattr(df, meth)(1)
                 expected = getattr(df.astype('f8'), meth)(1)
 
@@ -508,7 +508,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         # fix issue
         cummin_xs = self.tsframe.cummin(axis=1)
-        self.assertEqual(np.shape(cummin_xs), np.shape(self.tsframe))
+        assert np.shape(cummin_xs) == np.shape(self.tsframe)
 
     def test_cummax(self):
         self.tsframe.loc[5:10, 0] = nan
@@ -531,7 +531,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         # fix issue
         cummax_xs = self.tsframe.cummax(axis=1)
-        self.assertEqual(np.shape(cummax_xs), np.shape(self.tsframe))
+        assert np.shape(cummax_xs) == np.shape(self.tsframe)
 
     def test_max(self):
         self._check_stat_op('max', np.max, check_dates=True)
@@ -629,7 +629,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         # fix issue
         cumsum_xs = self.tsframe.cumsum(axis=1)
-        self.assertEqual(np.shape(cumsum_xs), np.shape(self.tsframe))
+        assert np.shape(cumsum_xs) == np.shape(self.tsframe)
 
     def test_cumprod(self):
         self.tsframe.loc[5:10, 0] = nan
@@ -648,7 +648,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         # fix issue
         cumprod_xs = self.tsframe.cumprod(axis=1)
-        self.assertEqual(np.shape(cumprod_xs), np.shape(self.tsframe))
+        assert np.shape(cumprod_xs) == np.shape(self.tsframe)
 
         # ints
         df = self.tsframe.fillna(0).astype(int)
@@ -711,7 +711,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         kurt2 = df.kurt(level=0).xs('bar')
         tm.assert_series_equal(kurt, kurt2, check_names=False)
         assert kurt.name is None
-        self.assertEqual(kurt2.name, 'bar')
+        assert kurt2.name == 'bar'
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
                        has_numeric_only=False, check_dtype=True,
@@ -771,8 +771,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # check dtypes
         if check_dtype:
             lcd_dtype = frame.values.dtype
-            self.assertEqual(lcd_dtype, result0.dtype)
-            self.assertEqual(lcd_dtype, result1.dtype)
+            assert lcd_dtype == result0.dtype
+            assert lcd_dtype == result1.dtype
 
         # result = f(axis=1)
         # comp = frame.apply(alternative, axis=1).reindex(result.index)
@@ -860,16 +860,16 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         # min
         result = diffs.min()
-        self.assertEqual(result[0], diffs.loc[0, 'A'])
-        self.assertEqual(result[1], diffs.loc[0, 'B'])
+        assert result[0] == diffs.loc[0, 'A']
+        assert result[1] == diffs.loc[0, 'B']
 
         result = diffs.min(axis=1)
         assert (result == diffs.loc[0, 'B']).all()
 
         # max
         result = diffs.max()
-        self.assertEqual(result[0], diffs.loc[2, 'A'])
-        self.assertEqual(result[1], diffs.loc[2, 'B'])
+        assert result[0] == diffs.loc[2, 'A']
+        assert result[1] == diffs.loc[2, 'B']
 
         result = diffs.max(axis=1)
         assert (result == diffs['A']).all()
@@ -920,7 +920,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df = DataFrame({'time': date_range('20130102', periods=5),
                         'time2': date_range('20130105', periods=5)})
         df['off1'] = df['time2'] - df['time']
-        self.assertEqual(df['off1'].dtype, 'timedelta64[ns]')
+        assert df['off1'].dtype == 'timedelta64[ns]'
 
         df['off2'] = df['time'] - df['time2']
         df._consolidate_inplace()
@@ -932,8 +932,8 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         axis1 = self.empty.sum(1)
         assert isinstance(axis0, Series)
         assert isinstance(axis1, Series)
-        self.assertEqual(len(axis0), 0)
-        self.assertEqual(len(axis1), 0)
+        assert len(axis0) == 0
+        assert len(axis1) == 0
 
     def test_sum_object(self):
         values = self.frame.values.astype(int)
@@ -963,7 +963,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         # take mean of boolean column
         self.frame['bool'] = self.frame['A'] > 0
         means = self.frame.mean(0)
-        self.assertEqual(means['bool'], self.frame['bool'].values.mean())
+        assert means['bool'] == self.frame['bool'].values.mean()
 
     def test_stats_mixed_type(self):
         # don't blow up
@@ -999,7 +999,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
     def test_sum_bools(self):
         df = DataFrame(index=lrange(1), columns=lrange(10))
         bools = isnull(df)
-        self.assertEqual(bools.sum(axis=1)[0], 10)
+        assert bools.sum(axis=1)[0] == 10
 
     # Index of max / min
 
@@ -1307,7 +1307,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         result = df.drop_duplicates('AAA', keep=False)
         expected = df.loc[[]]
         tm.assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
         # multi column
         expected = df.loc[[0, 1, 2, 3]]
@@ -1380,7 +1380,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         df = df.append([[1] + [0] * 8], ignore_index=True)
 
         for keep in ['first', 'last', False]:
-            self.assertEqual(df.duplicated(keep=keep).sum(), 0)
+            assert df.duplicated(keep=keep).sum() == 0
 
     def test_drop_duplicates_for_take_all(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'baz', 'bar',
@@ -1435,7 +1435,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
         result = df.drop_duplicates(('AA', 'AB'), keep=False)
         expected = df.loc[[]]  # empty df
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
         tm.assert_frame_equal(result, expected)
 
         # multi column
@@ -1464,7 +1464,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         result = df.drop_duplicates('A', keep=False)
         expected = df.loc[[]]  # empty df
         tm.assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
         # multi column
         result = df.drop_duplicates(['A', 'B'])
@@ -1499,7 +1499,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         result = df.drop_duplicates('C', keep=False)
         expected = df.loc[[]]  # empty df
         tm.assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
         # multi column
         result = df.drop_duplicates(['C', 'B'])
@@ -1574,7 +1574,7 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
         expected = orig.loc[[]]
         result = df
         tm.assert_frame_equal(result, expected)
-        self.assertEqual(len(df), 0)
+        assert len(df) == 0
 
         # multi column
         df = orig.copy()
@@ -1840,11 +1840,11 @@ class TestDataFrameAnalytics(tm.TestCase, TestData):
 
             result = clipped_df.loc[lb_mask, i]
             tm.assert_series_equal(result, lb[lb_mask], check_names=False)
-            self.assertEqual(result.name, i)
+            assert result.name == i
 
             result = clipped_df.loc[ub_mask, i]
             tm.assert_series_equal(result, ub[ub_mask], check_names=False)
-            self.assertEqual(result.name, i)
+            assert result.name == i
 
             tm.assert_series_equal(clipped_df.loc[mask, i], df.loc[mask, i])
 

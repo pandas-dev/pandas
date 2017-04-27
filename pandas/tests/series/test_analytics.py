@@ -32,14 +32,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
     def test_sum_zero(self):
         arr = np.array([])
-        self.assertEqual(nanops.nansum(arr), 0)
+        assert nanops.nansum(arr) == 0
 
         arr = np.empty((10, 0))
         assert (nanops.nansum(arr, axis=1) == 0).all()
 
         # GH #844
         s = Series([], index=[])
-        self.assertEqual(s.sum(), 0)
+        assert s.sum() == 0
 
         df = DataFrame(np.empty((10, 0)))
         assert (df.sum(1) == 0).all()
@@ -58,19 +58,19 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
             # no bottleneck
             result = s.sum(skipna=False)
-            self.assertEqual(int(result), v.sum(dtype='int64'))
+            assert int(result) == v.sum(dtype='int64')
             result = s.min(skipna=False)
-            self.assertEqual(int(result), 0)
+            assert int(result) == 0
             result = s.max(skipna=False)
-            self.assertEqual(int(result), v[-1])
+            assert int(result) == v[-1]
 
             # use bottleneck if available
             result = s.sum()
-            self.assertEqual(int(result), v.sum(dtype='int64'))
+            assert int(result) == v.sum(dtype='int64')
             result = s.min()
-            self.assertEqual(int(result), 0)
+            assert int(result) == 0
             result = s.max()
-            self.assertEqual(int(result), v[-1])
+            assert int(result) == v[-1]
 
         for dtype in ['float32', 'float64']:
             v = np.arange(5000000, dtype=dtype)
@@ -78,7 +78,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
             # no bottleneck
             result = s.sum(skipna=False)
-            self.assertEqual(result, v.sum(dtype=dtype))
+            assert result == v.sum(dtype=dtype)
             result = s.min(skipna=False)
             assert np.allclose(float(result), 0.0)
             result = s.max(skipna=False)
@@ -86,7 +86,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
             # use bottleneck if available
             result = s.sum()
-            self.assertEqual(result, v.sum(dtype=dtype))
+            assert result == v.sum(dtype=dtype)
             result = s.min()
             assert np.allclose(float(result), 0.0)
             result = s.max()
@@ -284,7 +284,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                 assert np.isnan(s.skew())
                 assert np.isnan(df.skew()).all()
             else:
-                self.assertEqual(0, s.skew())
+                assert 0 == s.skew()
                 assert (df.skew() == 0).all()
 
     def test_kurt(self):
@@ -310,7 +310,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                 assert np.isnan(s.kurt())
                 assert np.isnan(df.kurt()).all()
             else:
-                self.assertEqual(0, s.kurt())
+                assert 0 == s.kurt()
                 assert (df.kurt() == 0).all()
 
     def test_describe(self):
@@ -341,9 +341,9 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         # GH 2967 (introduced bug in 0.11-dev I think)
         s = Series([Timestamp('201301%02d' % (i + 1)) for i in range(5)])
-        self.assertEqual(s.dtype, 'datetime64[ns]')
+        assert s.dtype == 'datetime64[ns]'
         shifted = s.shift(-1)
-        self.assertEqual(shifted.dtype, 'datetime64[ns]')
+        assert shifted.dtype == 'datetime64[ns]'
         assert isnull(shifted[4])
 
         result = s.argsort()
@@ -520,7 +520,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                     assert nanops._USE_BOTTLENECK
                     import bottleneck as bn  # noqa
                     assert bn.__version__ >= LooseVersion('1.0')
-                    self.assertEqual(f(allna), 0.0)
+                    assert f(allna) == 0.0
                 except:
                     assert np.isnan(f(allna))
 
@@ -539,7 +539,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                 s = Series(bdate_range('1/1/2000', periods=10))
                 res = f(s)
                 exp = alternate(s)
-                self.assertEqual(res, exp)
+                assert res == exp
 
             # check on string data
             if name not in ['sum', 'min', 'max']:
@@ -609,7 +609,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         expected = Series(np.round(self.ts.values, 2),
                           index=self.ts.index, name='ts')
         assert_series_equal(result, expected)
-        self.assertEqual(result.name, self.ts.name)
+        assert result.name == self.ts.name
 
     def test_numpy_round(self):
         # See gh-12600
@@ -651,7 +651,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         # Alternative types, with implicit 'object' dtype.
         s = Series(['abc', True])
-        self.assertEqual('abc', s.any())  # 'abc' || True => 'abc'
+        assert 'abc' == s.any()  # 'abc' || True => 'abc'
 
     def test_all_any_params(self):
         # Check skipna, with implicit 'object' dtype.
@@ -719,7 +719,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         # float
         result = Series(dtype=float).sum()
-        self.assertEqual(result, 0)
+        assert result == 0
 
         result = Series(dtype=float).mean()
         assert isnull(result)
@@ -729,7 +729,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         # timedelta64[ns]
         result = Series(dtype='m8[ns]').sum()
-        self.assertEqual(result, Timedelta(0))
+        assert result == Timedelta(0)
 
         result = Series(dtype='m8[ns]').mean()
         assert result is pd.NaT
@@ -827,11 +827,11 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         assert isnull(ts1.cov(ts2, min_periods=12))
 
     def test_count(self):
-        self.assertEqual(self.ts.count(), len(self.ts))
+        assert self.ts.count() == len(self.ts)
 
         self.ts[::2] = np.NaN
 
-        self.assertEqual(self.ts.count(), np.isfinite(self.ts).sum())
+        assert self.ts.count() == np.isfinite(self.ts).sum()
 
         mi = MultiIndex.from_arrays([list('aabbcc'), [1, 2, 2, nan, 1, 2]])
         ts = Series(np.arange(len(mi)), index=mi)
@@ -876,7 +876,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         series[20:500] = np.nan
         series[10:20] = 5000
         result = series.nunique()
-        self.assertEqual(result, 11)
+        assert result == 11
 
     def test_unique(self):
 
@@ -884,18 +884,18 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series([1.2345] * 100)
         s[::2] = np.nan
         result = s.unique()
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
         s = Series([1.2345] * 100, dtype='f4')
         s[::2] = np.nan
         result = s.unique()
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
         # NAs in object arrays #714
         s = Series(['foo'] * 100, dtype='O')
         s[::2] = np.nan
         result = s.unique()
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
         # decision about None
         s = Series([1, 2, 3, None, None, None], dtype=object)
@@ -953,11 +953,11 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
     def test_clip(self):
         val = self.ts.median()
 
-        self.assertEqual(self.ts.clip_lower(val).min(), val)
-        self.assertEqual(self.ts.clip_upper(val).max(), val)
+        assert self.ts.clip_lower(val).min() == val
+        assert self.ts.clip_upper(val).max() == val
 
-        self.assertEqual(self.ts.clip(lower=val).min(), val)
-        self.assertEqual(self.ts.clip(upper=val).max(), val)
+        assert self.ts.clip(lower=val).min() == val
+        assert self.ts.clip(upper=val).max() == val
 
         result = self.ts.clip(-0.5, 0.5)
         expected = np.clip(self.ts, -0.5, 0.5)
@@ -974,10 +974,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             thresh = s[2]
             l = s.clip_lower(thresh)
             u = s.clip_upper(thresh)
-            self.assertEqual(l[notnull(l)].min(), thresh)
-            self.assertEqual(u[notnull(u)].max(), thresh)
-            self.assertEqual(list(isnull(s)), list(isnull(l)))
-            self.assertEqual(list(isnull(s)), list(isnull(u)))
+            assert l[notnull(l)].min() == thresh
+            assert u[notnull(u)].max() == thresh
+            assert list(isnull(s)) == list(isnull(l))
+            assert list(isnull(s)) == list(isnull(u))
 
     def test_clip_against_series(self):
         # GH #6966
@@ -1109,20 +1109,20 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
             Timestamp('20120101')
 
         result = td.idxmin()
-        self.assertEqual(result, 0)
+        assert result == 0
 
         result = td.idxmax()
-        self.assertEqual(result, 2)
+        assert result == 2
 
         # GH 2982
         # with NaT
         td[0] = np.nan
 
         result = td.idxmin()
-        self.assertEqual(result, 1)
+        assert result == 1
 
         result = td.idxmax()
-        self.assertEqual(result, 2)
+        assert result == 2
 
         # abs
         s1 = Series(date_range('20120101', periods=3))
@@ -1139,11 +1139,11 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         # max/min
         result = td.max()
         expected = Timedelta('2 days')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = td.min()
         expected = Timedelta('1 days')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_idxmin(self):
         # test idxmin
@@ -1153,14 +1153,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.series[5:15] = np.NaN
 
         # skipna or no
-        self.assertEqual(self.series[self.series.idxmin()], self.series.min())
+        assert self.series[self.series.idxmin()] == self.series.min()
         assert isnull(self.series.idxmin(skipna=False))
 
         # no NaNs
         nona = self.series.dropna()
-        self.assertEqual(nona[nona.idxmin()], nona.min())
-        self.assertEqual(nona.index.values.tolist().index(nona.idxmin()),
-                         nona.values.argmin())
+        assert nona[nona.idxmin()] == nona.min()
+        assert (nona.index.values.tolist().index(nona.idxmin()) ==
+                nona.values.argmin())
 
         # all NaNs
         allna = self.series * nan
@@ -1170,17 +1170,17 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         from pandas import date_range
         s = Series(date_range('20130102', periods=6))
         result = s.idxmin()
-        self.assertEqual(result, 0)
+        assert result == 0
 
         s[0] = np.nan
         result = s.idxmin()
-        self.assertEqual(result, 1)
+        assert result == 1
 
     def test_numpy_argmin(self):
         # argmin is aliased to idxmin
         data = np.random.randint(0, 11, size=10)
         result = np.argmin(Series(data))
-        self.assertEqual(result, np.argmin(data))
+        assert result == np.argmin(data)
 
         if not _np_version_under1p10:
             msg = "the 'out' parameter is not supported"
@@ -1195,14 +1195,14 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         self.series[5:15] = np.NaN
 
         # skipna or no
-        self.assertEqual(self.series[self.series.idxmax()], self.series.max())
+        assert self.series[self.series.idxmax()] == self.series.max()
         assert isnull(self.series.idxmax(skipna=False))
 
         # no NaNs
         nona = self.series.dropna()
-        self.assertEqual(nona[nona.idxmax()], nona.max())
-        self.assertEqual(nona.index.values.tolist().index(nona.idxmax()),
-                         nona.values.argmax())
+        assert nona[nona.idxmax()] == nona.max()
+        assert (nona.index.values.tolist().index(nona.idxmax()) ==
+                nona.values.argmax())
 
         # all NaNs
         allna = self.series * nan
@@ -1211,32 +1211,32 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         from pandas import date_range
         s = Series(date_range('20130102', periods=6))
         result = s.idxmax()
-        self.assertEqual(result, 5)
+        assert result == 5
 
         s[5] = np.nan
         result = s.idxmax()
-        self.assertEqual(result, 4)
+        assert result == 4
 
         # Float64Index
         # GH 5914
         s = pd.Series([1, 2, 3], [1.1, 2.1, 3.1])
         result = s.idxmax()
-        self.assertEqual(result, 3.1)
+        assert result == 3.1
         result = s.idxmin()
-        self.assertEqual(result, 1.1)
+        assert result == 1.1
 
         s = pd.Series(s.index, s.index)
         result = s.idxmax()
-        self.assertEqual(result, 3.1)
+        assert result == 3.1
         result = s.idxmin()
-        self.assertEqual(result, 1.1)
+        assert result == 1.1
 
     def test_numpy_argmax(self):
 
         # argmax is aliased to idxmax
         data = np.random.randint(0, 11, size=10)
         result = np.argmax(Series(data))
-        self.assertEqual(result, np.argmax(data))
+        assert result == np.argmax(data)
 
         if not _np_version_under1p10:
             msg = "the 'out' parameter is not supported"
@@ -1247,11 +1247,11 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         N = 1000
         arr = np.random.randn(N)
         ser = Series(arr)
-        self.assertEqual(np.ptp(ser), np.ptp(arr))
+        assert np.ptp(ser) == np.ptp(arr)
 
         # GH11163
         s = Series([3, 5, np.nan, -3, 10])
-        self.assertEqual(s.ptp(), 13)
+        assert s.ptp() == 13
         assert pd.isnull(s.ptp(skipna=False))
 
         mi = pd.MultiIndex.from_product([['a', 'b'], [1, 2, 3]])
@@ -1326,7 +1326,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         s = Series([1, 2, 90, 1000, 3e9])
         r = s.searchsorted(30)
         e = 2
-        self.assertEqual(r, e)
+        assert r == e
 
         r = s.searchsorted([30])
         e = np.array([2], dtype=np.intp)
@@ -1343,7 +1343,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         v = pd.Timestamp('20120102')
         r = s.searchsorted(v)
         e = 1
-        self.assertEqual(r, e)
+        assert r == e
 
     def test_search_sorted_datetime64_list(self):
         s = Series(pd.date_range('20120101', periods=10, freq='2D'))
@@ -1417,7 +1417,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         result = s.apply(lambda x: 'A')
         exp = pd.Series(['A'] * 7, name='XX', index=list('abcdefg'))
         tm.assert_series_equal(result, exp)
-        self.assertEqual(result.dtype, np.object)
+        assert result.dtype == np.object
 
     def test_shift_int(self):
         ts = self.ts.astype(int)

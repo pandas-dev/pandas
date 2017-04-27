@@ -57,7 +57,7 @@ class TestApi(Base):
         tm.assert_index_equal(r._selected_obj.columns, self.frame.columns)
 
         r = self.frame.rolling(window=5)[1]
-        self.assertEqual(r._selected_obj.name, self.frame.columns[1])
+        assert r._selected_obj.name == self.frame.columns[1]
 
         # technically this is allowed
         r = self.frame.rolling(window=5)[1, 3]
@@ -281,8 +281,8 @@ class TestApi(Base):
 
         s2 = s.rolling(30).sum()
         s3 = s.rolling(20).sum()
-        self.assertEqual(s2.name, 'foo')
-        self.assertEqual(s3.name, 'foo')
+        assert s2.name == 'foo'
+        assert s3.name == 'foo'
 
     def test_how_compat(self):
         # in prior versions, we would allow how to be used in the resample
@@ -859,14 +859,14 @@ class TestMoments(Base):
         vals = np.array([])
         with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
-            self.assertEqual(len(rs), 0)
+            assert len(rs) == 0
 
         # shorter than window
         vals = np.random.randn(5)
         with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 10, 'boxcar')
             assert np.isnan(rs).all()
-            self.assertEqual(len(rs), 5)
+            assert len(rs) == 5
 
     def test_cmov_window_frame(self):
         # Gh 8238
@@ -1382,7 +1382,7 @@ class TestMoments(Base):
         frame_result = get_result(self.frame, window=50)
 
         assert isinstance(series_result, Series)
-        self.assertEqual(type(frame_result), DataFrame)
+        assert type(frame_result) == DataFrame
 
         # check time_rule works
         if has_time_rule:
@@ -1689,14 +1689,14 @@ class TestMoments(Base):
 
         # pass in ints
         result2 = func(np.arange(50), span=10)
-        self.assertEqual(result2.dtype, np.float_)
+        assert result2.dtype == np.float_
 
     def _check_ew_structures(self, func, name):
         series_result = getattr(self.series.ewm(com=10), name)()
         assert isinstance(series_result, Series)
 
         frame_result = getattr(self.frame.ewm(com=10), name)()
-        self.assertEqual(type(frame_result), DataFrame)
+        assert type(frame_result) == DataFrame
 
 
 class TestPairwise(object):
@@ -2911,7 +2911,7 @@ class TestMomentsConsistency(Base):
         series_result = func(self.series)
         assert isinstance(series_result, Series)
         frame_result = func(self.frame)
-        self.assertEqual(type(frame_result), DataFrame)
+        assert type(frame_result) == DataFrame
 
     def _check_expanding(self, func, static_comp, has_min_periods=True,
                          has_time_rule=True, preserve_nan=True):
@@ -3031,10 +3031,10 @@ class TestMomentsConsistency(Base):
             # correctness
             result = (DataFrame(np.arange(20, dtype=data_type))
                       .rolling(window=5).max())
-            self.assertEqual(result.dtypes[0], np.dtype("f8"))
+            assert result.dtypes[0] == np.dtype("f8")
             result = (DataFrame(np.arange(20, dtype=data_type))
                       .rolling(window=5).min())
-            self.assertEqual(result.dtypes[0], np.dtype("f8"))
+            assert result.dtypes[0] == np.dtype("f8")
 
 
 class TestGrouperGrouping(tm.TestCase):

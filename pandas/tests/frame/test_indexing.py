@@ -113,7 +113,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)
 
-        self.assertEqual(result.columns.name, 'foo')
+        assert result.columns.name == 'foo'
 
         with tm.assert_raises_regex(KeyError, 'not in index'):
             self.frame[['B', 'A', 'food']]
@@ -128,7 +128,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result = df[[('foo', 'bar'), ('baz', 'qux')]]
         expected = df.iloc[:, :2]
         assert_frame_equal(result, expected)
-        self.assertEqual(result.columns.names, ['sth', 'sth2'])
+        assert result.columns.names == ['sth', 'sth2']
 
     def test_getitem_callable(self):
         # GH 12533
@@ -282,7 +282,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
             assert_frame_equal(bif, bifw, check_dtype=False)
             for c in df.columns:
                 if bif[c].dtype != bifw[c].dtype:
-                    self.assertEqual(bif[c].dtype, df[c].dtype)
+                    assert bif[c].dtype == df[c].dtype
 
     def test_getitem_boolean_casting(self):
 
@@ -404,8 +404,8 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         with catch_warnings(record=True):
             assert_series_equal(a.ix[-1], a.ix[-2], check_names=False)
-            self.assertEqual(a.ix[-1].name, 'T')
-            self.assertEqual(a.ix[-2].name, 'S')
+            assert a.ix[-1].name == 'T'
+            assert a.ix[-2].name == 'S'
 
     def test_getattr(self):
         assert_series_equal(self.frame.A, self.frame['A'])
@@ -424,8 +424,8 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         self.frame['col5'] = series
         assert 'col5' in self.frame
 
-        self.assertEqual(len(series), 15)
-        self.assertEqual(len(self.frame), 30)
+        assert len(series) == 15
+        assert len(self.frame) == 30
 
         exp = np.ravel(np.column_stack((series.values, [np.nan] * 15)))
         exp = Series(exp, index=self.frame.index, name='col5')
@@ -459,13 +459,13 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         def f():
             smaller['col10'] = ['1', '2']
         pytest.raises(com.SettingWithCopyError, f)
-        self.assertEqual(smaller['col10'].dtype, np.object_)
+        assert smaller['col10'].dtype == np.object_
         assert (smaller['col10'] == ['1', '2']).all()
 
         # with a dtype
         for dtype in ['int32', 'int64', 'float32', 'float64']:
             self.frame[dtype] = np.array(arr, dtype=dtype)
-            self.assertEqual(self.frame[dtype].dtype.name, dtype)
+            assert self.frame[dtype].dtype.name == dtype
 
         # dtype changing GH4204
         df = DataFrame([[0, 0]])
@@ -542,13 +542,13 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
     def test_setitem_cast(self):
         self.frame['D'] = self.frame['D'].astype('i8')
-        self.assertEqual(self.frame['D'].dtype, np.int64)
+        assert self.frame['D'].dtype == np.int64
 
         # #669, should not cast?
         # this is now set to int64, which means a replacement of the column to
         # the value dtype (and nothing to do with the existing dtype)
         self.frame['B'] = 0
-        self.assertEqual(self.frame['B'].dtype, np.int64)
+        assert self.frame['B'].dtype == np.int64
 
         # cast if pass array of course
         self.frame['B'] = np.arange(len(self.frame))
@@ -556,18 +556,18 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         self.frame['foo'] = 'bar'
         self.frame['foo'] = 0
-        self.assertEqual(self.frame['foo'].dtype, np.int64)
+        assert self.frame['foo'].dtype == np.int64
 
         self.frame['foo'] = 'bar'
         self.frame['foo'] = 2.5
-        self.assertEqual(self.frame['foo'].dtype, np.float64)
+        assert self.frame['foo'].dtype == np.float64
 
         self.frame['something'] = 0
-        self.assertEqual(self.frame['something'].dtype, np.int64)
+        assert self.frame['something'].dtype == np.int64
         self.frame['something'] = 2
-        self.assertEqual(self.frame['something'].dtype, np.int64)
+        assert self.frame['something'].dtype == np.int64
         self.frame['something'] = 2.5
-        self.assertEqual(self.frame['something'].dtype, np.float64)
+        assert self.frame['something'].dtype == np.float64
 
         # GH 7704
         # dtype conversion on setting
@@ -581,9 +581,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         # Test that data type is preserved . #5782
         df = DataFrame({'one': np.arange(6, dtype=np.int8)})
         df.loc[1, 'one'] = 6
-        self.assertEqual(df.dtypes.one, np.dtype(np.int8))
+        assert df.dtypes.one == np.dtype(np.int8)
         df.one = np.int8(7)
-        self.assertEqual(df.dtypes.one, np.dtype(np.int8))
+        assert df.dtypes.one == np.dtype(np.int8)
 
     def test_setitem_boolean_column(self):
         expected = self.frame.copy()
@@ -602,7 +602,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         del df['B']
         df['B'] = [1., 2., 3.]
         assert 'B' in df
-        self.assertEqual(len(df.columns), 2)
+        assert len(df.columns) == 2
 
         df['A'] = 'beginning'
         df['E'] = 'foo'
@@ -614,29 +614,29 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         dm = DataFrame(index=self.frame.index)
         dm['A'] = 'foo'
         dm['B'] = 'bar'
-        self.assertEqual(len(dm.columns), 2)
-        self.assertEqual(dm.values.dtype, np.object_)
+        assert len(dm.columns) == 2
+        assert dm.values.dtype == np.object_
 
         # upcast
         dm['C'] = 1
-        self.assertEqual(dm['C'].dtype, np.int64)
+        assert dm['C'].dtype == np.int64
 
         dm['E'] = 1.
-        self.assertEqual(dm['E'].dtype, np.float64)
+        assert dm['E'].dtype == np.float64
 
         # set existing column
         dm['A'] = 'bar'
-        self.assertEqual('bar', dm['A'][0])
+        assert 'bar' == dm['A'][0]
 
         dm = DataFrame(index=np.arange(3))
         dm['A'] = 1
         dm['foo'] = 'bar'
         del dm['foo']
         dm['foo'] = 'bar'
-        self.assertEqual(dm['foo'].dtype, np.object_)
+        assert dm['foo'].dtype == np.object_
 
         dm['coercable'] = ['1', '2', '3']
-        self.assertEqual(dm['coercable'].dtype, np.object_)
+        assert dm['coercable'].dtype == np.object_
 
     def test_setitem_corner2(self):
         data = {"title": ['foobar', 'bar', 'foobar'] + ['foobar'] * 17,
@@ -648,8 +648,8 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df.loc[ix, ['title']] = 'foobar'
         df.loc[ix, ['cruft']] = 0
 
-        self.assertEqual(df.loc[1, 'title'], 'foobar')
-        self.assertEqual(df.loc[1, 'cruft'], 0)
+        assert df.loc[1, 'title'] == 'foobar'
+        assert df.loc[1, 'cruft'] == 0
 
     def test_setitem_ambig(self):
         # Difficulties with mixed-type data
@@ -731,10 +731,10 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
     def test_delitem_corner(self):
         f = self.frame.copy()
         del f['D']
-        self.assertEqual(len(f.columns), 3)
+        assert len(f.columns) == 3
         pytest.raises(KeyError, f.__delitem__, 'D')
         del f['B']
-        self.assertEqual(len(f.columns), 2)
+        assert len(f.columns) == 2
 
     def test_getitem_fancy_2d(self):
         f = self.frame
@@ -781,13 +781,13 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df = DataFrame(np.random.rand(3, 2), index=index)
 
         s1 = df.loc[52195.1:52196.5]
-        self.assertEqual(len(s1), 2)
+        assert len(s1) == 2
 
         s1 = df.loc[52195.1:52196.6]
-        self.assertEqual(len(s1), 2)
+        assert len(s1) == 2
 
         s1 = df.loc[52195.1:52198.9]
-        self.assertEqual(len(s1), 3)
+        assert len(s1) == 3
 
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.randn(10, 5))
@@ -930,7 +930,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
     def test_fancy_getitem_slice_mixed(self):
         sliced = self.mixed_frame.iloc[:, -3:]
-        self.assertEqual(sliced['D'].dtype, np.float64)
+        assert sliced['D'].dtype == np.float64
 
         # get view with single block
         # setting it triggers setting with copy
@@ -1282,7 +1282,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         for col in f.columns:
             ts = f[col]
             for idx in f.index[::5]:
-                self.assertEqual(ix[idx, col], ts[idx])
+                assert ix[idx, col] == ts[idx]
 
     def test_setitem_fancy_scalar(self):
         f = self.frame
@@ -1394,17 +1394,17 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result = df.loc[1.5:4]
         expected = df.reindex([1.5, 2, 3, 4])
         assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 4)
+        assert len(result) == 4
 
         result = df.loc[4:5]
         expected = df.reindex([4, 5])  # reindex with int
         assert_frame_equal(result, expected, check_index_type=False)
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
         result = df.loc[4:5]
         expected = df.reindex([4.0, 5.0])  # reindex with float
         assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
         # loc_float changes this to work properly
         result = df.loc[1:2]
@@ -1425,7 +1425,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result = df.iloc[4:5]
         expected = df.reindex([5.0])
         assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
 
         cp = df.copy()
 
@@ -1449,22 +1449,22 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         result = df.loc[1.0:5]
         expected = df
         assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 5)
+        assert len(result) == 5
 
         result = df.loc[1.1:5]
         expected = df.reindex([2.5, 3.5, 4.5, 5.0])
         assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 4)
+        assert len(result) == 4
 
         result = df.loc[4.51:5]
         expected = df.reindex([5.0])
         assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
 
         result = df.loc[1.0:5.0]
         expected = df.reindex([1.0, 2.5, 3.5, 4.5, 5.0])
         assert_frame_equal(result, expected)
-        self.assertEqual(len(result), 5)
+        assert len(result) == 5
 
         cp = df.copy()
         cp.loc[1.0:5.0] = 0
@@ -1621,7 +1621,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df.columns.name = 'foo'
 
         result = df[['B', 'C']]
-        self.assertEqual(result.columns.name, 'foo')
+        assert result.columns.name == 'foo'
 
         expected = df.iloc[:, 2:]
         assert_frame_equal(result, expected)
@@ -1631,7 +1631,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
             for col in self.frame.columns:
                 result = self.frame.get_value(idx, col)
                 expected = self.frame[col][idx]
-                self.assertEqual(result, expected)
+                assert result == expected
 
     def test_lookup(self):
         def alt(df, rows, cols, dtype):
@@ -1657,7 +1657,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         df['mask'] = df.lookup(df.index, 'mask_' + df['label'])
         exp_mask = alt(df, df.index, 'mask_' + df['label'], dtype=np.bool_)
         tm.assert_series_equal(df['mask'], pd.Series(exp_mask, name='mask'))
-        self.assertEqual(df['mask'].dtype, np.bool_)
+        assert df['mask'].dtype == np.bool_
 
         with pytest.raises(KeyError):
             self.frame.lookup(['xyz'], ['A'])
@@ -1672,25 +1672,25 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         for idx in self.frame.index:
             for col in self.frame.columns:
                 self.frame.set_value(idx, col, 1)
-                self.assertEqual(self.frame[col][idx], 1)
+                assert self.frame[col][idx] == 1
 
     def test_set_value_resize(self):
 
         res = self.frame.set_value('foobar', 'B', 0)
         assert res is self.frame
-        self.assertEqual(res.index[-1], 'foobar')
-        self.assertEqual(res.get_value('foobar', 'B'), 0)
+        assert res.index[-1] == 'foobar'
+        assert res.get_value('foobar', 'B') == 0
 
         self.frame.loc['foobar', 'qux'] = 0
-        self.assertEqual(self.frame.get_value('foobar', 'qux'), 0)
+        assert self.frame.get_value('foobar', 'qux') == 0
 
         res = self.frame.copy()
         res3 = res.set_value('foobar', 'baz', 'sam')
-        self.assertEqual(res3['baz'].dtype, np.object_)
+        assert res3['baz'].dtype == np.object_
 
         res = self.frame.copy()
         res3 = res.set_value('foobar', 'baz', True)
-        self.assertEqual(res3['baz'].dtype, np.object_)
+        assert res3['baz'].dtype == np.object_
 
         res = self.frame.copy()
         res3 = res.set_value('foobar', 'baz', 5)
@@ -1705,24 +1705,24 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         # so column is not created
         df = df_orig.copy()
         df.set_value('C', 2, 1.0)
-        self.assertEqual(list(df.index), list(df_orig.index) + ['C'])
-        # self.assertEqual(list(df.columns), list(df_orig.columns) + [2])
+        assert list(df.index) == list(df_orig.index) + ['C']
+        # assert list(df.columns) == list(df_orig.columns) + [2]
 
         df = df_orig.copy()
         df.loc['C', 2] = 1.0
-        self.assertEqual(list(df.index), list(df_orig.index) + ['C'])
-        # self.assertEqual(list(df.columns), list(df_orig.columns) + [2])
+        assert list(df.index) == list(df_orig.index) + ['C']
+        # assert list(df.columns) == list(df_orig.columns) + [2]
 
         # create both new
         df = df_orig.copy()
         df.set_value('C', 'D', 1.0)
-        self.assertEqual(list(df.index), list(df_orig.index) + ['C'])
-        self.assertEqual(list(df.columns), list(df_orig.columns) + ['D'])
+        assert list(df.index) == list(df_orig.index) + ['C']
+        assert list(df.columns) == list(df_orig.columns) + ['D']
 
         df = df_orig.copy()
         df.loc['C', 'D'] = 1.0
-        self.assertEqual(list(df.index), list(df_orig.index) + ['C'])
-        self.assertEqual(list(df.columns), list(df_orig.columns) + ['D'])
+        assert list(df.index) == list(df_orig.index) + ['C']
+        assert list(df.columns) == list(df_orig.columns) + ['D']
 
     def test_get_set_value_no_partial_indexing(self):
         # partial w/ MultiIndex raise exception
@@ -1874,7 +1874,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
             for j, col in enumerate(self.frame.columns):
                 result = self.frame.iat[i, j]
                 expected = self.frame.at[row, col]
-                self.assertEqual(result, expected)
+                assert result == expected
 
     def test_nested_exception(self):
         # Ignore the strange way of triggering the problem
@@ -1941,7 +1941,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
-        self.assertEqual(x[0].dtype, np.dtype('M8[ns]'))
+        assert x[0].dtype == np.dtype('M8[ns]')
 
     def test_non_monotonic_reindex_methods(self):
         dr = pd.date_range('2013-08-01', periods=6, freq='B')
@@ -2095,13 +2095,13 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_series_equal(df['dates'], column)
 
     def test_setitem_datetime_coercion(self):
-        # GH 1048
+        # gh-1048
         df = pd.DataFrame({'c': [pd.Timestamp('2010-10-01')] * 3})
         df.loc[0:1, 'c'] = np.datetime64('2008-08-08')
-        self.assertEqual(pd.Timestamp('2008-08-08'), df.loc[0, 'c'])
-        self.assertEqual(pd.Timestamp('2008-08-08'), df.loc[1, 'c'])
+        assert pd.Timestamp('2008-08-08') == df.loc[0, 'c']
+        assert pd.Timestamp('2008-08-08') == df.loc[1, 'c']
         df.loc[2, 'c'] = date(2005, 5, 5)
-        self.assertEqual(pd.Timestamp('2005-05-05'), df.loc[2, 'c'])
+        assert pd.Timestamp('2005-05-05') == df.loc[2, 'c']
 
     def test_setitem_datetimelike_with_inference(self):
         # GH 7592
@@ -2139,14 +2139,14 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         expected2 = df.iloc[ainds]
         assert_frame_equal(result, expected)
         assert_frame_equal(result, expected2)
-        self.assertEqual(len(result), 4)
+        assert len(result) == 4
 
         result = df.between_time(bkey.start, bkey.stop)
         expected = df.loc[bkey]
         expected2 = df.iloc[binds]
         assert_frame_equal(result, expected)
         assert_frame_equal(result, expected2)
-        self.assertEqual(len(result), 12)
+        assert len(result) == 12
 
         result = df.copy()
         result.loc[akey] = 0
@@ -2179,7 +2179,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
             if np.isnan(value):
                 assert np.isnan(self.frame[item][idx])
             else:
-                self.assertEqual(value, self.frame[item][idx])
+                assert value == self.frame[item][idx]
 
         # mixed-type xs
         test_data = {
@@ -2188,9 +2188,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         }
         frame = DataFrame(test_data)
         xs = frame.xs('1')
-        self.assertEqual(xs.dtype, np.object_)
-        self.assertEqual(xs['A'], 1)
-        self.assertEqual(xs['B'], '1')
+        assert xs.dtype == np.object_
+        assert xs['A'] == 1
+        assert xs['B'] == '1'
 
         with pytest.raises(KeyError):
             self.tsframe.xs(self.tsframe.index[0] - BDay())
@@ -2266,10 +2266,10 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         with catch_warnings(record=True):
             result = df.ix[IndexType("foo", "bar")]["A"]
-        self.assertEqual(result, 1)
+        assert result == 1
 
         result = df.loc[IndexType("foo", "bar")]["A"]
-        self.assertEqual(result, 1)
+        assert result == 1
 
     def test_boolean_indexing(self):
         idx = lrange(3)
@@ -2442,7 +2442,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
                 for k, v in compat.iteritems(df.dtypes):
                     if issubclass(v.type, np.integer) and not cond[k].all():
                         v = np.dtype('float64')
-                    self.assertEqual(dfi[k].dtype, v)
+                    assert dfi[k].dtype == v
 
         for df in [default_frame, self.mixed_frame, self.mixed_float,
                    self.mixed_int]:
@@ -3011,7 +3011,7 @@ class TestDataFrameIndexingUInt64(tm.TestCase, TestData):
         # set/reset
         df = DataFrame({'A': [0, 1, 2]}, index=idx)
         result = df.reset_index()
-        self.assertEqual(result['foo'].dtype, np.dtype('uint64'))
+        assert result['foo'].dtype == np.dtype('uint64')
 
         df = result.set_index('foo')
         tm.assert_index_equal(df.index, idx)

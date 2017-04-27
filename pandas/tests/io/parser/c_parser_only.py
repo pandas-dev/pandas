@@ -152,7 +152,7 @@ nan 2
             precise_errors.append(error(precise_val))
 
             # round-trip should match float()
-            self.assertEqual(roundtrip_val, float(text[2:]))
+            assert roundtrip_val == float(text[2:])
 
         assert sum(precise_errors) <= sum(normal_errors)
         assert max(precise_errors) <= max(normal_errors)
@@ -173,8 +173,8 @@ one,two
                 FutureWarning, check_stacklevel=False):
             result = self.read_csv(StringIO(data), dtype={
                 'one': 'u1', 1: 'S1'}, as_recarray=True)
-            self.assertEqual(result['one'].dtype, 'u1')
-            self.assertEqual(result['two'].dtype, 'S1')
+            assert result['one'].dtype == 'u1'
+            assert result['two'].dtype == 'S1'
 
     def test_usecols_dtypes(self):
         data = """\
@@ -211,7 +211,7 @@ No,No,No"""
         assert (result.dtypes == object).all()
 
         result = self.read_csv(StringIO(data), dtype=object, na_filter=False)
-        self.assertEqual(result['B'][2], '')
+        assert result['B'][2] == ''
 
     def test_custom_lineterminator(self):
         data = 'a,b,c~1,2,3~4,5,6'

@@ -207,7 +207,7 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
 
         good_line_small = bad_line_small + '"'
         df = self.read_table(StringIO(good_line_small), sep='\t')
-        self.assertEqual(len(df), 3)
+        assert len(df) == 3
 
     def test_unnamed_columns(self):
         data = """A,B,C,,
@@ -237,13 +237,11 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
 
             # check default behavior
             df = getattr(self, method)(StringIO(data), sep=',')
-            self.assertEqual(list(df.columns),
-                             ['A', 'A.1', 'B', 'B.1', 'B.2'])
+            assert list(df.columns) == ['A', 'A.1', 'B', 'B.1', 'B.2']
 
             df = getattr(self, method)(StringIO(data), sep=',',
                                        mangle_dupe_cols=True)
-            self.assertEqual(list(df.columns),
-                             ['A', 'A.1', 'B', 'B.1', 'B.2'])
+            assert list(df.columns) == ['A', 'A.1', 'B', 'B.1', 'B.2']
 
     def test_csv_mixed_type(self):
         data = """A,B,C
@@ -262,10 +260,10 @@ c,4,5
         df2 = self.read_table(self.csv1, sep=',', index_col=0,
                               parse_dates=True)
         tm.assert_index_equal(df.columns, pd.Index(['A', 'B', 'C', 'D']))
-        self.assertEqual(df.index.name, 'index')
+        assert df.index.name == 'index'
         assert isinstance(
             df.index[0], (datetime, np.datetime64, Timestamp))
-        self.assertEqual(df.values.dtype, np.float64)
+        assert df.values.dtype == np.float64
         tm.assert_frame_equal(df, df2)
 
     def test_read_csv_no_index_name(self):
@@ -333,7 +331,7 @@ False,2
 True,3
 """
         data = self.read_csv(StringIO(data))
-        self.assertEqual(data['A'].dtype, np.bool_)
+        assert data['A'].dtype == np.bool_
 
         data = """A,B
 YES,1
@@ -345,7 +343,7 @@ Yes,3
         data = self.read_csv(StringIO(data),
                              true_values=['yes', 'Yes', 'YES'],
                              false_values=['no', 'NO', 'No'])
-        self.assertEqual(data['A'].dtype, np.bool_)
+        assert data['A'].dtype == np.bool_
 
         data = """A,B
 TRUE,1
@@ -353,7 +351,7 @@ FALSE,2
 TRUE,3
 """
         data = self.read_csv(StringIO(data))
-        self.assertEqual(data['A'].dtype, np.bool_)
+        assert data['A'].dtype == np.bool_
 
         data = """A,B
 foo,bar
@@ -370,8 +368,8 @@ bar,foo"""
 3.0,3
 """
         data = self.read_csv(StringIO(data))
-        self.assertEqual(data['A'].dtype, np.float64)
-        self.assertEqual(data['B'].dtype, np.int64)
+        assert data['A'].dtype == np.float64
+        assert data['B'].dtype == np.int64
 
     def test_read_nrows(self):
         expected = self.read_csv(StringIO(self.data1))[:3]
@@ -463,7 +461,7 @@ bar,foo"""
         result = self.read_csv(StringIO(data), chunksize=2)
 
         piece = result.get_chunk()
-        self.assertEqual(len(piece), 2)
+        assert len(piece) == 2
 
     def test_read_chunksize_generated_index(self):
         # GH 12185
@@ -537,7 +535,7 @@ baz,7,8,9
         result = list(reader)
         expected = DataFrame(dict(A=[1, 4, 7], B=[2, 5, 8], C=[
             3, 6, 9]), index=['foo', 'bar', 'baz'])
-        self.assertEqual(len(result), 3)
+        assert len(result) == 3
         tm.assert_frame_equal(pd.concat(result), expected)
 
         # skipfooter is not supported with the C parser yet
@@ -751,12 +749,12 @@ A,B,C
 
         # it works! and is the right length
         result = self.read_table(path, encoding='utf-16')
-        self.assertEqual(len(result), 50)
+        assert len(result) == 50
 
         if not compat.PY3:
             buf = BytesIO(open(path, 'rb').read())
             result = self.read_table(buf, encoding='utf-16')
-            self.assertEqual(len(result), 50)
+            assert len(result) == 50
 
     def test_unicode_encoding(self):
         pth = tm.get_data_path('unicode_series.csv')
@@ -767,7 +765,7 @@ A,B,C
         got = result[1][1632]
         expected = u('\xc1 k\xf6ldum klaka (Cold Fever) (1994)')
 
-        self.assertEqual(got, expected)
+        assert got == expected
 
     def test_trailing_delimiters(self):
         # #2442. grumble grumble
@@ -792,8 +790,8 @@ A,B,C
 
         result = self.read_csv(StringIO(data), escapechar='\\',
                                quotechar='"', encoding='utf-8')
-        self.assertEqual(result['SEARCH_TERM'][2],
-                         'SLAGBORD, "Bergslagen", IKEA:s 1700-tals serie')
+        assert result['SEARCH_TERM'][2] == ('SLAGBORD, "Bergslagen", '
+                                            'IKEA:s 1700-tals serie')
         tm.assert_index_equal(result.columns,
                               Index(['SEARCH_TERM', 'ACTUAL_URL']))
 
@@ -841,7 +839,7 @@ A,B,C
             df = self.read_csv(StringIO(data))
         # Assert that types were coerced.
         assert type(df.a[0]) is np.float64
-        self.assertEqual(df.a.dtype, np.float)
+        assert df.a.dtype == np.float
 
     def test_warn_if_chunks_have_mismatched_type(self):
         warning_type = False
@@ -855,7 +853,7 @@ A,B,C
 
         with tm.assert_produces_warning(warning_type):
             df = self.read_csv(StringIO(data))
-        self.assertEqual(df.a.dtype, np.object)
+        assert df.a.dtype == np.object
 
     def test_integer_overflow_bug(self):
         # see gh-2601
@@ -888,7 +886,7 @@ A,B,C
         # see gh-10022
         data = '\n hello\nworld\n'
         result = self.read_csv(StringIO(data), header=None)
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
         # see gh-9735: this issue is C parser-specific (bug when
         # parsing whitespace and characters at chunk boundary)
@@ -1361,9 +1359,9 @@ eight,1,2,3"""
 3;878,158;108013,434;GHI;rez;2,735694704"""
 
         df2 = self.read_csv(StringIO(data), sep=';', decimal=',')
-        self.assertEqual(df2['Number1'].dtype, float)
-        self.assertEqual(df2['Number2'].dtype, float)
-        self.assertEqual(df2['Number3'].dtype, float)
+        assert df2['Number1'].dtype == float
+        assert df2['Number2'].dtype == float
+        assert df2['Number3'].dtype == float
 
     def test_read_duplicate_names(self):
         # See gh-7160
@@ -1463,7 +1461,7 @@ j,-inF"""
             result = self.read_csv(StringIO(data), delimiter=',', header=None,
                                    compact_ints=True, as_recarray=True)
             ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
-            self.assertEqual(result.dtype, ex_dtype)
+            assert result.dtype == ex_dtype
 
         with tm.assert_produces_warning(
                 FutureWarning, check_stacklevel=False):
@@ -1471,7 +1469,7 @@ j,-inF"""
                                    as_recarray=True, compact_ints=True,
                                    use_unsigned=True)
             ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
-            self.assertEqual(result.dtype, ex_dtype)
+            assert result.dtype == ex_dtype
 
     def test_as_recarray(self):
         # basic test

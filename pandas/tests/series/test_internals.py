@@ -116,7 +116,7 @@ class TestSeriesInternals(tm.TestCase):
         # r = s.copy()
         # r[0] = np.nan
         # result = r.convert_objects(convert_dates=True,convert_numeric=False)
-        # self.assertEqual(result.dtype, 'M8[ns]')
+        # assert result.dtype == 'M8[ns]'
 
         # dateutil parses some single letters into today's value as a date
         for x in 'abcdefghijklmnopqrstuvwxyz':
@@ -282,7 +282,7 @@ class TestSeriesInternals(tm.TestCase):
         # r = s.copy()
         # r[0] = np.nan
         # result = r._convert(convert_dates=True,convert_numeric=False)
-        # self.assertEqual(result.dtype, 'M8[ns]')
+        # assert result.dtype == 'M8[ns]'
 
         # dateutil parses some single letters into today's value as a date
         expected = Series([lib.NaT])

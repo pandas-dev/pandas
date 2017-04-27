@@ -43,7 +43,7 @@ a,b,c
         result2 = self.read_csv(StringIO(data), usecols=('b', 'c'))
         exp = self.read_csv(StringIO(data))
 
-        self.assertEqual(len(result.columns), 2)
+        assert len(result.columns) == 2
         assert (result['b'] == exp['b']).all()
         assert (result['c'] == exp['c']).all()
 

@@ -50,8 +50,8 @@ class TestCaching(tm.TestCase):
             # set it
             df.loc[7, 'c'] = 1
 
-            self.assertEqual(df.loc[0, 'c'], 0.0)
-            self.assertEqual(df.loc[7, 'c'], 1.0)
+            assert df.loc[0, 'c'] == 0.0
+            assert df.loc[7, 'c'] == 1.0
 
         # GH 7084
         # not updating cache on series setting with slices
@@ -395,12 +395,12 @@ class TestChaining(tm.TestCase):
         # but actually works, since everything is a view
         df.loc[0]['z'].iloc[0] = 1.
         result = df.loc[(0, 0), 'z']
-        self.assertEqual(result, 1)
+        assert result == 1
 
         # correct setting
         df.loc[(0, 0), 'z'] = 2
         result = df.loc[(0, 0), 'z']
-        self.assertEqual(result, 2)
+        assert result == 2
 
         # 10264
         df = DataFrame(np.zeros((5, 5), dtype='int64'), columns=[

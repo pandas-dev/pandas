@@ -71,12 +71,12 @@ class TestResampleAPI(tm.TestCase):
         r = self.series.resample('H')
         result = r.mean()
         assert isinstance(result, Series)
-        self.assertEqual(len(result), 217)
+        assert len(result) == 217
 
         r = self.series.to_frame().resample('H')
         result = r.mean()
         assert isinstance(result, DataFrame)
-        self.assertEqual(len(result), 217)
+        assert len(result) == 217
 
     def test_api_changes_v018(self):
 
@@ -186,13 +186,13 @@ class TestResampleAPI(tm.TestCase):
                                         check_stacklevel=False):
             result = self.series.resample('H')[0]
             expected = self.series.resample('H').mean()[0]
-            self.assertEqual(result, expected)
+            assert result == expected
 
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             result = self.series.resample('H')['2005-01-09 23:00:00']
             expected = self.series.resample('H').mean()['2005-01-09 23:00:00']
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_groupby_resample_api(self):
 
@@ -254,7 +254,7 @@ class TestResampleAPI(tm.TestCase):
         tm.assert_index_equal(r._selected_obj.columns, self.frame.columns)
 
         r = self.frame.resample('H')['B']
-        self.assertEqual(r._selected_obj.name, self.frame.columns[1])
+        assert r._selected_obj.name == self.frame.columns[1]
 
         # technically this is allowed
         r = self.frame.resample('H')['A', 'B']
@@ -771,7 +771,7 @@ class Base(object):
                 expected = s.copy()
                 expected.index = s.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
-                self.assertEqual(result.index.freq, expected.index.freq)
+                assert result.index.freq == expected.index.freq
                 assert_series_equal(result, expected, check_dtype=False)
 
     def test_resample_empty_dataframe(self):
@@ -788,7 +788,7 @@ class Base(object):
                 expected = f.copy()
                 expected.index = f.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
-                self.assertEqual(result.index.freq, expected.index.freq)
+                assert result.index.freq == expected.index.freq
                 assert_frame_equal(result, expected, check_dtype=False)
 
             # test size for GH13212 (currently stays as df)
@@ -884,7 +884,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         for f in funcs:
             g._cython_agg_general(f)
 
-        self.assertEqual(g.ngroups, 2593)
+        assert g.ngroups == 2593
         assert notnull(g.mean()).all()
 
         # construct expected val
@@ -901,8 +901,8 @@ class TestDatetimeIndex(Base, tm.TestCase):
                        index=dti, dtype='float64')
         r = df.groupby(b).agg(np.sum)
 
-        self.assertEqual(len(r.columns), 10)
-        self.assertEqual(len(r.index), 2593)
+        assert len(r.columns) == 10
+        assert len(r.index) == 2593
 
     def test_resample_basic(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
@@ -914,7 +914,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
                           index=exp_idx)
         assert_series_equal(result, expected)
-        self.assertEqual(result.index.name, 'index')
+        assert result.index.name == 'index'
 
         result = s.resample('5min', closed='left', label='right').mean()
 
@@ -958,7 +958,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
                     '5min', closed='right', label='right'), arg)()
 
                 expected = s.groupby(grouplist).agg(func)
-                self.assertEqual(result.index.name, 'index')
+                assert result.index.name == 'index'
                 if arg == 'ohlc':
                     expected = DataFrame(expected.values.tolist())
                     expected.columns = ['open', 'high', 'low', 'close']
@@ -1116,51 +1116,51 @@ class TestDatetimeIndex(Base, tm.TestCase):
         # to weekly
         result = s.resample('w-sun').last()
 
-        self.assertEqual(len(result), 3)
+        assert len(result) == 3
         assert (result.index.dayofweek == [6, 6, 6]).all()
-        self.assertEqual(result.iloc[0], s['1/2/2005'])
-        self.assertEqual(result.iloc[1], s['1/9/2005'])
-        self.assertEqual(result.iloc[2], s.iloc[-1])
+        assert result.iloc[0] == s['1/2/2005']
+        assert result.iloc[1] == s['1/9/2005']
+        assert result.iloc[2] == s.iloc[-1]
 
         result = s.resample('W-MON').last()
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         assert (result.index.dayofweek == [0, 0]).all()
-        self.assertEqual(result.iloc[0], s['1/3/2005'])
-        self.assertEqual(result.iloc[1], s['1/10/2005'])
+        assert result.iloc[0] == s['1/3/2005']
+        assert result.iloc[1] == s['1/10/2005']
 
         result = s.resample('W-TUE').last()
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         assert (result.index.dayofweek == [1, 1]).all()
-        self.assertEqual(result.iloc[0], s['1/4/2005'])
-        self.assertEqual(result.iloc[1], s['1/10/2005'])
+        assert result.iloc[0] == s['1/4/2005']
+        assert result.iloc[1] == s['1/10/2005']
 
         result = s.resample('W-WED').last()
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         assert (result.index.dayofweek == [2, 2]).all()
-        self.assertEqual(result.iloc[0], s['1/5/2005'])
-        self.assertEqual(result.iloc[1], s['1/10/2005'])
+        assert result.iloc[0] == s['1/5/2005']
+        assert result.iloc[1] == s['1/10/2005']
 
         result = s.resample('W-THU').last()
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         assert (result.index.dayofweek == [3, 3]).all()
-        self.assertEqual(result.iloc[0], s['1/6/2005'])
-        self.assertEqual(result.iloc[1], s['1/10/2005'])
+        assert result.iloc[0] == s['1/6/2005']
+        assert result.iloc[1] == s['1/10/2005']
 
         result = s.resample('W-FRI').last()
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         assert (result.index.dayofweek == [4, 4]).all()
-        self.assertEqual(result.iloc[0], s['1/7/2005'])
-        self.assertEqual(result.iloc[1], s['1/10/2005'])
+        assert result.iloc[0] == s['1/7/2005']
+        assert result.iloc[1] == s['1/10/2005']
 
         # to biz day
         result = s.resample('B').last()
-        self.assertEqual(len(result), 7)
+        assert len(result) == 7
         assert (result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all()
 
-        self.assertEqual(result.iloc[0], s['1/2/2005'])
-        self.assertEqual(result.iloc[1], s['1/3/2005'])
-        self.assertEqual(result.iloc[5], s['1/9/2005'])
-        self.assertEqual(result.index.name, 'index')
+        assert result.iloc[0] == s['1/2/2005']
+        assert result.iloc[1] == s['1/3/2005']
+        assert result.iloc[5] == s['1/9/2005']
+        assert result.index.name == 'index'
 
     def test_resample_upsampling_picked_but_not_correct(self):
 
@@ -1169,7 +1169,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         series = Series(1, index=dates)
 
         result = series.resample('D').mean()
-        self.assertEqual(result.index[0], dates[0])
+        assert result.index[0] == dates[0]
 
         # GH 5955
         # incorrect deciding to upsample when the axis frequency matches the
@@ -1230,7 +1230,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
             loffset=Minute(1)).mean()
         assert_series_equal(result, expected)
 
-        self.assertEqual(result.index.freq, Minute(5))
+        assert result.index.freq == Minute(5)
 
         # from daily
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
@@ -1240,7 +1240,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         # to weekly
         result = ser.resample('w-sun').last()
         expected = ser.resample('w-sun', loffset=-bday).last()
-        self.assertEqual(result.index[0] - bday, expected.index[0])
+        assert result.index[0] - bday == expected.index[0]
 
     def test_resample_loffset_count(self):
         # GH 12725
@@ -1273,11 +1273,11 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
         # to minutely, by padding
         result = s.resample('Min').pad()
-        self.assertEqual(len(result), 12961)
-        self.assertEqual(result[0], s[0])
-        self.assertEqual(result[-1], s[-1])
+        assert len(result) == 12961
+        assert result[0] == s[0]
+        assert result[-1] == s[-1]
 
-        self.assertEqual(result.index.name, 'index')
+        assert result.index.name == 'index'
 
     def test_resample_how_method(self):
         # GH9915
@@ -1320,20 +1320,20 @@ class TestDatetimeIndex(Base, tm.TestCase):
         expect = s.groupby(grouper).agg(lambda x: x[-1])
         result = s.resample('5Min').ohlc()
 
-        self.assertEqual(len(result), len(expect))
-        self.assertEqual(len(result.columns), 4)
+        assert len(result) == len(expect)
+        assert len(result.columns) == 4
 
         xs = result.iloc[-2]
-        self.assertEqual(xs['open'], s[-6])
-        self.assertEqual(xs['high'], s[-6:-1].max())
-        self.assertEqual(xs['low'], s[-6:-1].min())
-        self.assertEqual(xs['close'], s[-2])
+        assert xs['open'] == s[-6]
+        assert xs['high'] == s[-6:-1].max()
+        assert xs['low'] == s[-6:-1].min()
+        assert xs['close'] == s[-2]
 
         xs = result.iloc[0]
-        self.assertEqual(xs['open'], s[0])
-        self.assertEqual(xs['high'], s[:5].max())
-        self.assertEqual(xs['low'], s[:5].min())
-        self.assertEqual(xs['close'], s[4])
+        assert xs['open'] == s[0]
+        assert xs['high'] == s[:5].max()
+        assert xs['low'] == s[:5].min()
+        assert xs['close'] == s[4]
 
     def test_resample_ohlc_result(self):
 
@@ -1410,9 +1410,9 @@ class TestDatetimeIndex(Base, tm.TestCase):
         s = Series(np.random.rand(len(dti)), dti)
         bs = s.resample('B', closed='right', label='right').mean()
         result = bs.resample('8H').mean()
-        self.assertEqual(len(result), 22)
+        assert len(result) == 22
         assert isinstance(result.index.freq, offsets.DateOffset)
-        self.assertEqual(result.index.freq, offsets.Hour(8))
+        assert result.index.freq == offsets.Hour(8)
 
     def test_resample_timestamp_to_period(self):
         ts = _simple_ts('1/1/1990', '1/1/2000')
@@ -1465,7 +1465,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         result = ts.resample('M').mean()
 
         expected = ts.groupby(lambda x: x.month).mean()
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         assert_almost_equal(result[0], expected[1])
         assert_almost_equal(result[1], expected[2])
 
@@ -1665,10 +1665,10 @@ class TestDatetimeIndex(Base, tm.TestCase):
                        ).set_index('date')
 
         result = df.resample('1D').ffill()
-        self.assertEqual(result.val.dtype, np.int32)
+        assert result.val.dtype == np.int32
 
         result = df.groupby('group').resample('1D').ffill()
-        self.assertEqual(result.val.dtype, np.int32)
+        assert result.val.dtype == np.int32
 
     def test_weekly_resample_buglet(self):
         # #1327
@@ -1742,7 +1742,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
         ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
         resampled = ts.resample('M').mean()
-        self.assertEqual(len(resampled), 1)
+        assert len(resampled) == 1
 
     def test_resample_anchored_monthstart(self):
         ts = _simple_ts('1/1/2000', '12/31/2002')
@@ -1768,13 +1768,11 @@ class TestDatetimeIndex(Base, tm.TestCase):
 
         # Ensure left closing works
         result = s.resample('2200L').mean()
-        self.assertEqual(result.index[-1],
-                         pd.Timestamp('2014-10-15 23:00:02.000'))
+        assert result.index[-1] == pd.Timestamp('2014-10-15 23:00:02.000')
 
         # Ensure right closing works
         result = s.resample('2200L', label='right').mean()
-        self.assertEqual(result.index[-1],
-                         pd.Timestamp('2014-10-15 23:00:04.200'))
+        assert result.index[-1] == pd.Timestamp('2014-10-15 23:00:04.200')
 
     def test_corner_cases(self):
         # miscellaneous test coverage
@@ -1789,13 +1787,13 @@ class TestDatetimeIndex(Base, tm.TestCase):
         len0pts = _simple_pts('2007-01', '2010-05', freq='M')[:0]
         # it works
         result = len0pts.resample('A-DEC').mean()
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
         # resample to periods
         ts = _simple_ts('2000-04-28', '2000-04-30 11:00', freq='h')
         result = ts.resample('M', kind='period').mean()
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result.index[0], Period('2000-04', freq='M'))
+        assert len(result) == 1
+        assert result.index[0] == Period('2000-04', freq='M')
 
     def test_anchored_lowercase_buglet(self):
         dates = date_range('4/16/2012 20:00', periods=50000, freq='s')
@@ -1941,7 +1939,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         g = df.groupby(pd.Grouper(freq='D'))
         expected = df.groupby(pd.TimeGrouper('D')).ID.apply(lambda x:
                                                             x.nunique())
-        self.assertEqual(expected.name, 'ID')
+        assert expected.name == 'ID'
 
         for t in [r, g]:
             result = r.ID.nunique()
@@ -2691,8 +2689,8 @@ class TestPeriodIndex(Base, tm.TestCase):
         foo = pd.Series(index=pd.bdate_range('20000101', '20000201'))
         res1 = foo.resample("BMS").mean()
         res2 = foo.resample("BMS").mean().resample("B").mean()
-        self.assertEqual(res1.index[0], Timestamp('20000103'))
-        self.assertEqual(res1.index[0], res2.index[0])
+        assert res1.index[0] == Timestamp('20000103')
+        assert res1.index[0] == res2.index[0]
 
     # def test_monthly_convention_span(self):
     #     rng = period_range('2000-01', periods=3, freq='M')
@@ -2969,11 +2967,11 @@ class TestResamplerGrouper(tm.TestCase):
         df = self.frame
         expected = pd.Int64Index([1, 2, 3], name='A')
         result = df.groupby('A').resample('2s').mean()
-        self.assertEqual(result.index.nlevels, 2)
+        assert result.index.nlevels == 2
         tm.assert_index_equal(result.index.levels[0], expected)
 
         result = df.groupby('A').rolling(20).mean()
-        self.assertEqual(result.index.nlevels, 2)
+        assert result.index.nlevels == 2
         tm.assert_index_equal(result.index.levels[0], expected)
 
     def test_median_duplicate_columns(self):
@@ -3219,7 +3217,7 @@ class TestTimeGrouper(tm.TestCase):
             dt_result = getattr(dt_grouped, func)()
             assert_series_equal(expected, dt_result)
             # GH 9925
-            self.assertEqual(dt_result.index.name, 'key')
+            assert dt_result.index.name == 'key'
 
             # if NaT is included, 'var', 'std', 'mean', 'first','last'
             # and 'nth' doesn't work yet

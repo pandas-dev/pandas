@@ -28,14 +28,14 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df['c'] = df['c'].astype(np.float64)
 
         result = pd.concat([df, df])
-        self.assertEqual(result['a'].dtype, np.bool_)
-        self.assertEqual(result['b'].dtype, np.int32)
-        self.assertEqual(result['c'].dtype, np.float64)
+        assert result['a'].dtype == np.bool_
+        assert result['b'].dtype == np.int32
+        assert result['c'].dtype == np.float64
 
         result = pd.concat([df, df.astype(np.float64)])
-        self.assertEqual(result['a'].dtype, np.object_)
-        self.assertEqual(result['b'].dtype, np.float64)
-        self.assertEqual(result['c'].dtype, np.float64)
+        assert result['a'].dtype == np.object_
+        assert result['b'].dtype == np.float64
+        assert result['c'].dtype == np.float64
 
     def test_empty_frame_dtypes_ftypes(self):
         empty_df = pd.DataFrame()
@@ -326,9 +326,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
         # mixed casting
         def _check_cast(df, v):
-            self.assertEqual(
-                list(set([s.dtype.name
-                          for _, s in compat.iteritems(df)]))[0], v)
+            assert (list(set([s.dtype.name for
+                              _, s in compat.iteritems(df)]))[0] == v)
 
         mn = self.all_mixed._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')
