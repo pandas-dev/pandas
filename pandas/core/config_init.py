@@ -21,7 +21,8 @@ from pandas.io.formats.console import detect_console_encoding
 
 use_bottleneck_doc = """
 : bool
-    Use the bottleneck library to accelerate if its installed, default is True
+    Use the bottleneck library to accelerate if it is installed,
+    the default is True
     Valid values: False,True
 """
 
@@ -33,8 +34,8 @@ def use_bottleneck_cb(key):
 
 use_numexpr_doc = """
 : bool
-    Use the numexpr library to accelerate computation if its installed,
-    default is True
+    Use the numexpr library to accelerate computation if it is installed,
+    the default is True
     Valid values: False,True
 """
 

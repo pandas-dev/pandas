@@ -1,8 +1,9 @@
 import itertools
 import functools
-import numpy as np
 import operator
+import warnings
 
+import numpy as np
 from pandas import compat
 from pandas._libs import tslib, algos, lib
 from pandas.core.dtypes.common import (
@@ -34,6 +35,9 @@ def set_use_bottleneck(v=True):
     global _USE_BOTTLENECK
     if _BOTTLENECK_INSTALLED:
         _USE_BOTTLENECK = v
+    elif v:
+        warnings.warn("trying to set the option to use bottleneck, "
+                      "but it is not installed!")
 
 
 set_use_bottleneck(get_option('compute.use_bottleneck'))

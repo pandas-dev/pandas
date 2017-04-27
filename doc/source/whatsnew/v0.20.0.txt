@@ -521,6 +521,7 @@ Other Enhancements
 - The ``display.show_dimensions`` option can now also be used to specify
   whether the length of a ``Series`` should be shown in its repr (:issue:`7117`).
 - ``parallel_coordinates()`` has gained a ``sort_labels`` keyword arg that sorts class labels and the colours assigned to them (:issue:`15908`)
+- Options added to allow one to turn on/off using ``bottleneck`` and ``numexpr``, see :ref:`here <basics.accelerate>` (:issue:`16157`)
 
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations

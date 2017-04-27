@@ -426,9 +426,9 @@ mode.use_inf_as_null                False        True means treat None, NaN, -IN
                                                  None and NaN are null, but INF, -INF
                                                  are not null (new way).
 compute.use_bottleneck              True         Use the bottleneck library to accelerate
-                                                 computation if its installed
+                                                 computation if it is installed
 compute.use_numexpr                 True         Use the numexpr library to accelerate
-                                                 computation if its installed
+                                                 computation if it is installed
 =================================== ============ ==================================
 
 
