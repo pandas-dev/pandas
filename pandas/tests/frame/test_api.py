@@ -141,15 +141,15 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
     def test_nonzero(self):
         self.assertTrue(self.empty.empty)
 
-        self.assertFalse(self.frame.empty)
-        self.assertFalse(self.mixed_frame.empty)
+        assert not self.frame.empty
+        assert not self.mixed_frame.empty
 
         # corner case
         df = DataFrame({'A': [1., 2., 3.],
                         'B': ['a', 'b', 'c']},
                        index=np.arange(3))
         del df['A']
-        self.assertFalse(df.empty)
+        assert not df.empty
 
     def test_iteritems(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
@@ -208,7 +208,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         df3 = DataFrame(dict(('f' + str(i), [i]) for i in range(1024)))
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
-        self.assertFalse(hasattr(tup3, '_fields'))
+        assert not hasattr(tup3, '_fields')
         assert isinstance(tup3, tuple)
 
     def test_len(self):
@@ -319,9 +319,9 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     def test_empty_nonzero(self):
         df = DataFrame([1, 2, 3])
-        self.assertFalse(df.empty)
+        assert not df.empty
         df = pd.DataFrame(index=[1], columns=[1])
-        self.assertFalse(df.empty)
+        assert not df.empty
         df = DataFrame(index=['a', 'b'], columns=['c', 'd']).dropna()
         self.assertTrue(df.empty)
         self.assertTrue(df.T.empty)

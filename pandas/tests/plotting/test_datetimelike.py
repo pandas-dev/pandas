@@ -223,7 +223,7 @@ class TestTSPlot(TestPlotBase):
         ts = Series(lrange(len(rng)), rng)
         ts = ts[:3].append(ts[5:])
         ax = ts.plot()
-        self.assertFalse(hasattr(ax, 'freq'))
+        assert not hasattr(ax, 'freq')
 
     @slow
     def test_plot_offset_freq(self):
@@ -334,7 +334,7 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame(np.arange(24), index=idx)
         ax = df.plot()
         rs = ax.get_lines()[0].get_xdata()
-        self.assertFalse(Index(rs).is_normalized)
+        assert not Index(rs).is_normalized
 
     def test_dataframe(self):
         bts = DataFrame({'a': tm.makeTimeSeries()})
@@ -568,14 +568,14 @@ class TestTSPlot(TestPlotBase):
         ser2 = Series(np.random.randn(10))
         ax = ser.plot(secondary_y=True)
         self.assertTrue(hasattr(ax, 'left_ax'))
-        self.assertFalse(hasattr(ax, 'right_ax'))
+        assert not hasattr(ax, 'right_ax')
         fig = ax.get_figure()
         axes = fig.get_axes()
         l = ax.get_lines()[0]
         xp = Series(l.get_ydata(), l.get_xdata())
         assert_series_equal(ser, xp)
         self.assertEqual(ax.get_yaxis().get_ticks_position(), 'right')
-        self.assertFalse(axes[0].get_yaxis().get_visible())
+        assert not axes[0].get_yaxis().get_visible()
         plt.close(fig)
 
         ax2 = ser2.plot()
@@ -586,10 +586,10 @@ class TestTSPlot(TestPlotBase):
         ax = ser2.plot()
         ax2 = ser.plot(secondary_y=True)
         self.assertTrue(ax.get_yaxis().get_visible())
-        self.assertFalse(hasattr(ax, 'left_ax'))
+        assert not hasattr(ax, 'left_ax')
         self.assertTrue(hasattr(ax, 'right_ax'))
         self.assertTrue(hasattr(ax2, 'left_ax'))
-        self.assertFalse(hasattr(ax2, 'right_ax'))
+        assert not hasattr(ax2, 'right_ax')
 
     @slow
     def test_secondary_y_ts(self):
@@ -599,14 +599,14 @@ class TestTSPlot(TestPlotBase):
         ser2 = Series(np.random.randn(10), idx)
         ax = ser.plot(secondary_y=True)
         self.assertTrue(hasattr(ax, 'left_ax'))
-        self.assertFalse(hasattr(ax, 'right_ax'))
+        assert not hasattr(ax, 'right_ax')
         fig = ax.get_figure()
         axes = fig.get_axes()
         l = ax.get_lines()[0]
         xp = Series(l.get_ydata(), l.get_xdata()).to_timestamp()
         assert_series_equal(ser, xp)
         self.assertEqual(ax.get_yaxis().get_ticks_position(), 'right')
-        self.assertFalse(axes[0].get_yaxis().get_visible())
+        assert not axes[0].get_yaxis().get_visible()
         plt.close(fig)
 
         ax2 = ser2.plot()
@@ -627,7 +627,7 @@ class TestTSPlot(TestPlotBase):
         ser = Series(np.random.randn(10))
         ax = ser.plot(secondary_y=True, kind='density')
         self.assertTrue(hasattr(ax, 'left_ax'))
-        self.assertFalse(hasattr(ax, 'right_ax'))
+        assert not hasattr(ax, 'right_ax')
         fig = ax.get_figure()
         axes = fig.get_axes()
         self.assertEqual(axes[1].get_yaxis().get_ticks_position(), 'right')
@@ -684,7 +684,7 @@ class TestTSPlot(TestPlotBase):
         s2 = s1[[0, 5, 10, 11, 12, 13, 14, 15]]
         s2.plot(style='g')
         ax = s1.plot()
-        self.assertFalse(hasattr(ax, 'freq'))
+        assert not hasattr(ax, 'freq')
         lines = ax.get_lines()
         x1 = lines[0].get_xdata()
         tm.assert_numpy_array_equal(x1, s2.index.asobject.values)
@@ -716,7 +716,7 @@ class TestTSPlot(TestPlotBase):
         s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15], :]
         ax = s2.plot(style='g')
         ax = s1.plot(ax=ax)
-        self.assertFalse(hasattr(ax, 'freq'))
+        assert not hasattr(ax, 'freq')
         lines = ax.get_lines()
         x1 = lines[0].get_xdata()
         tm.assert_numpy_array_equal(x1, s2.index.asobject.values)
@@ -1049,7 +1049,7 @@ class TestTSPlot(TestPlotBase):
         for l in ax.get_lines():
             self.assertEqual(PeriodIndex(l.get_xdata()).freq, 'D')
         self.assertTrue(hasattr(ax, 'left_ax'))
-        self.assertFalse(hasattr(ax, 'right_ax'))
+        assert not hasattr(ax, 'right_ax')
         for l in ax.left_ax.get_lines():
             self.assertEqual(PeriodIndex(l.get_xdata()).freq, 'D')
 

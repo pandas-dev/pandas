@@ -25,13 +25,13 @@ class TestPeriodProperties(tm.TestCase):
             assert isinstance(p.is_leap_year, bool)
 
             p = Period('1999-01-01 00:00:00', freq=freq)
-            self.assertFalse(p.is_leap_year)
+            assert not p.is_leap_year
 
             p = Period('2004-01-01 00:00:00', freq=freq)
             self.assertTrue(p.is_leap_year)
 
             p = Period('2100-01-01 00:00:00', freq=freq)
-            self.assertFalse(p.is_leap_year)
+            assert not p.is_leap_year
 
     def test_quarterly_negative_ordinals(self):
         p = Period(ordinal=-1, freq='Q-DEC')

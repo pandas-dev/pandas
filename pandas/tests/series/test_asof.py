@@ -140,7 +140,7 @@ class TestSeriesAsof(TestData, tm.TestCase):
                           Timestamp('20130102')])
 
         # non-monotonic
-        self.assertFalse(s.index.is_monotonic)
+        assert not s.index.is_monotonic
         with pytest.raises(ValueError):
             s.asof(s.index[0])
 

@@ -1938,7 +1938,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
 
         mask = com.isnull(result)['B']
         self.assertTrue(mask[-5:].all())
-        self.assertFalse(mask[:-5].any())
+        assert not mask[:-5].any()
 
     def test_set_dataframe_column_ns_dtype(self):
         x = DataFrame([datetime.now(), datetime.now()])
@@ -2940,8 +2940,7 @@ class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
         b1 = df._data.blocks[1]
         b2 = df._data.blocks[2]
         self.assertTrue(b1.values.equals(b2.values))
-        self.assertFalse(id(b1.values.values.base) ==
-                         id(b2.values.values.base))
+        assert id(b1.values.values.base) != id(b2.values.values.base)
 
         # with nan
         df2 = df.copy()

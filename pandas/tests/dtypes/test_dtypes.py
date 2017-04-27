@@ -59,7 +59,7 @@ class TestCategoricalDtype(Base, tm.TestCase):
     def test_equality(self):
         self.assertTrue(is_dtype_equal(self.dtype, 'category'))
         self.assertTrue(is_dtype_equal(self.dtype, CategoricalDtype()))
-        self.assertFalse(is_dtype_equal(self.dtype, 'foo'))
+        assert not is_dtype_equal(self.dtype, 'foo')
 
     def test_construction_from_string(self):
         result = CategoricalDtype.construct_from_string('category')
@@ -71,8 +71,8 @@ class TestCategoricalDtype(Base, tm.TestCase):
         self.assertTrue(CategoricalDtype.is_dtype(self.dtype))
         self.assertTrue(CategoricalDtype.is_dtype('category'))
         self.assertTrue(CategoricalDtype.is_dtype(CategoricalDtype()))
-        self.assertFalse(CategoricalDtype.is_dtype('foo'))
-        self.assertFalse(CategoricalDtype.is_dtype(np.float64))
+        assert not CategoricalDtype.is_dtype('foo')
+        assert not CategoricalDtype.is_dtype(np.float64)
 
     def test_basic(self):
 
@@ -85,12 +85,12 @@ class TestCategoricalDtype(Base, tm.TestCase):
         # dtypes
         self.assertTrue(is_categorical_dtype(s.dtype))
         self.assertTrue(is_categorical_dtype(s))
-        self.assertFalse(is_categorical_dtype(np.dtype('float64')))
+        assert not is_categorical_dtype(np.dtype('float64'))
 
         self.assertTrue(is_categorical(s.dtype))
         self.assertTrue(is_categorical(s))
-        self.assertFalse(is_categorical(np.dtype('float64')))
-        self.assertFalse(is_categorical(1.0))
+        assert not is_categorical(np.dtype('float64'))
+        assert not is_categorical(1.0)
 
 
 class TestDatetimeTZDtype(Base, tm.TestCase):
@@ -136,8 +136,8 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
         self.assertTrue(is_datetime64_any_dtype('datetime64[ns, US/Eastern]'))
         self.assertTrue(is_datetime64_ns_dtype(self.dtype))
         self.assertTrue(is_datetime64_ns_dtype('datetime64[ns, US/Eastern]'))
-        self.assertFalse(is_datetime64_dtype(self.dtype))
-        self.assertFalse(is_datetime64_dtype('datetime64[ns, US/Eastern]'))
+        assert not is_datetime64_dtype(self.dtype)
+        assert not is_datetime64_dtype('datetime64[ns, US/Eastern]')
 
     def test_construction_from_string(self):
         result = DatetimeTZDtype('datetime64[ns, US/Eastern]')
@@ -149,25 +149,23 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
                       lambda: DatetimeTZDtype.construct_from_string('foo'))
 
     def test_is_dtype(self):
-        self.assertFalse(DatetimeTZDtype.is_dtype(None))
+        assert not DatetimeTZDtype.is_dtype(None)
         self.assertTrue(DatetimeTZDtype.is_dtype(self.dtype))
         self.assertTrue(DatetimeTZDtype.is_dtype('datetime64[ns, US/Eastern]'))
-        self.assertFalse(DatetimeTZDtype.is_dtype('foo'))
+        assert not DatetimeTZDtype.is_dtype('foo')
         self.assertTrue(DatetimeTZDtype.is_dtype(DatetimeTZDtype(
             'ns', 'US/Pacific')))
-        self.assertFalse(DatetimeTZDtype.is_dtype(np.float64))
+        assert not DatetimeTZDtype.is_dtype(np.float64)
 
     def test_equality(self):
         self.assertTrue(is_dtype_equal(self.dtype,
                                        'datetime64[ns, US/Eastern]'))
         self.assertTrue(is_dtype_equal(self.dtype, DatetimeTZDtype(
             'ns', 'US/Eastern')))
-        self.assertFalse(is_dtype_equal(self.dtype, 'foo'))
-        self.assertFalse(is_dtype_equal(self.dtype, DatetimeTZDtype('ns',
-                                                                    'CET')))
-        self.assertFalse(is_dtype_equal(
-            DatetimeTZDtype('ns', 'US/Eastern'), DatetimeTZDtype(
-                'ns', 'US/Pacific')))
+        assert not is_dtype_equal(self.dtype, 'foo')
+        assert not is_dtype_equal(self.dtype, DatetimeTZDtype('ns', 'CET'))
+        assert not is_dtype_equal(DatetimeTZDtype('ns', 'US/Eastern'),
+                                  DatetimeTZDtype('ns', 'US/Pacific'))
 
         # numpy compat
         self.assertTrue(is_dtype_equal(np.dtype("M8[ns]"), "datetime64[ns]"))
@@ -182,13 +180,13 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
         # dtypes
         self.assertTrue(is_datetime64tz_dtype(s.dtype))
         self.assertTrue(is_datetime64tz_dtype(s))
-        self.assertFalse(is_datetime64tz_dtype(np.dtype('float64')))
-        self.assertFalse(is_datetime64tz_dtype(1.0))
+        assert not is_datetime64tz_dtype(np.dtype('float64'))
+        assert not is_datetime64tz_dtype(1.0)
 
         self.assertTrue(is_datetimetz(s))
         self.assertTrue(is_datetimetz(s.dtype))
-        self.assertFalse(is_datetimetz(np.dtype('float64')))
-        self.assertFalse(is_datetimetz(1.0))
+        assert not is_datetimetz(np.dtype('float64'))
+        assert not is_datetimetz(1.0)
 
     def test_dst(self):
 
@@ -265,10 +263,10 @@ class TestPeriodDtype(Base, tm.TestCase):
                          PeriodDtype('period[3M]'))
 
     def test_compat(self):
-        self.assertFalse(is_datetime64_ns_dtype(self.dtype))
-        self.assertFalse(is_datetime64_ns_dtype('period[D]'))
-        self.assertFalse(is_datetime64_dtype(self.dtype))
-        self.assertFalse(is_datetime64_dtype('period[D]'))
+        assert not is_datetime64_ns_dtype(self.dtype)
+        assert not is_datetime64_ns_dtype('period[D]')
+        assert not is_datetime64_dtype(self.dtype)
+        assert not is_datetime64_dtype('period[D]')
 
     def test_construction_from_string(self):
         result = PeriodDtype('period[D]')
@@ -297,14 +295,14 @@ class TestPeriodDtype(Base, tm.TestCase):
         self.assertTrue(PeriodDtype.is_dtype(PeriodDtype('U')))
         self.assertTrue(PeriodDtype.is_dtype(PeriodDtype('S')))
 
-        self.assertFalse(PeriodDtype.is_dtype('D'))
-        self.assertFalse(PeriodDtype.is_dtype('3D'))
-        self.assertFalse(PeriodDtype.is_dtype('U'))
-        self.assertFalse(PeriodDtype.is_dtype('S'))
-        self.assertFalse(PeriodDtype.is_dtype('foo'))
-        self.assertFalse(PeriodDtype.is_dtype(np.object_))
-        self.assertFalse(PeriodDtype.is_dtype(np.int64))
-        self.assertFalse(PeriodDtype.is_dtype(np.float64))
+        assert not PeriodDtype.is_dtype('D')
+        assert not PeriodDtype.is_dtype('3D')
+        assert not PeriodDtype.is_dtype('U')
+        assert not PeriodDtype.is_dtype('S')
+        assert not PeriodDtype.is_dtype('foo')
+        assert not PeriodDtype.is_dtype(np.object_)
+        assert not PeriodDtype.is_dtype(np.int64)
+        assert not PeriodDtype.is_dtype(np.float64)
 
     def test_equality(self):
         self.assertTrue(is_dtype_equal(self.dtype, 'period[D]'))
@@ -312,8 +310,8 @@ class TestPeriodDtype(Base, tm.TestCase):
         self.assertTrue(is_dtype_equal(self.dtype, PeriodDtype('D')))
         self.assertTrue(is_dtype_equal(PeriodDtype('D'), PeriodDtype('D')))
 
-        self.assertFalse(is_dtype_equal(self.dtype, 'D'))
-        self.assertFalse(is_dtype_equal(PeriodDtype('D'), PeriodDtype('2D')))
+        assert not is_dtype_equal(self.dtype, 'D')
+        assert not is_dtype_equal(PeriodDtype('D'), PeriodDtype('2D'))
 
     def test_basic(self):
         self.assertTrue(is_period_dtype(self.dtype))
@@ -328,14 +326,14 @@ class TestPeriodDtype(Base, tm.TestCase):
         # dtypes
         # series results in object dtype currently,
         # is_period checks period_arraylike
-        self.assertFalse(is_period_dtype(s.dtype))
-        self.assertFalse(is_period_dtype(s))
+        assert not is_period_dtype(s.dtype)
+        assert not is_period_dtype(s)
         self.assertTrue(is_period(s))
 
-        self.assertFalse(is_period_dtype(np.dtype('float64')))
-        self.assertFalse(is_period_dtype(1.0))
-        self.assertFalse(is_period(np.dtype('float64')))
-        self.assertFalse(is_period(1.0))
+        assert not is_period_dtype(np.dtype('float64'))
+        assert not is_period_dtype(1.0)
+        assert not is_period(np.dtype('float64'))
+        assert not is_period(1.0)
 
     def test_empty(self):
         dt = PeriodDtype()
@@ -344,7 +342,7 @@ class TestPeriodDtype(Base, tm.TestCase):
 
     def test_not_string(self):
         # though PeriodDtype has object kind, it cannot be string
-        self.assertFalse(is_string_dtype(PeriodDtype('D')))
+        assert not is_string_dtype(PeriodDtype('D'))
 
 
 class TestIntervalDtype(Base, tm.TestCase):
@@ -388,14 +386,14 @@ class TestIntervalDtype(Base, tm.TestCase):
         self.assertTrue(IntervalDtype.is_dtype(IntervalDtype('int64')))
         self.assertTrue(IntervalDtype.is_dtype(IntervalDtype(np.int64)))
 
-        self.assertFalse(IntervalDtype.is_dtype('D'))
-        self.assertFalse(IntervalDtype.is_dtype('3D'))
-        self.assertFalse(IntervalDtype.is_dtype('U'))
-        self.assertFalse(IntervalDtype.is_dtype('S'))
-        self.assertFalse(IntervalDtype.is_dtype('foo'))
-        self.assertFalse(IntervalDtype.is_dtype(np.object_))
-        self.assertFalse(IntervalDtype.is_dtype(np.int64))
-        self.assertFalse(IntervalDtype.is_dtype(np.float64))
+        assert not IntervalDtype.is_dtype('D')
+        assert not IntervalDtype.is_dtype('3D')
+        assert not IntervalDtype.is_dtype('U')
+        assert not IntervalDtype.is_dtype('S')
+        assert not IntervalDtype.is_dtype('foo')
+        assert not IntervalDtype.is_dtype(np.object_)
+        assert not IntervalDtype.is_dtype(np.int64)
+        assert not IntervalDtype.is_dtype(np.float64)
 
     def test_identity(self):
         self.assertEqual(IntervalDtype('interval[int64]'),
@@ -424,9 +422,9 @@ class TestIntervalDtype(Base, tm.TestCase):
         self.assertTrue(is_dtype_equal(IntervalDtype('int64'),
                                        IntervalDtype('int64')))
 
-        self.assertFalse(is_dtype_equal(self.dtype, 'int64'))
-        self.assertFalse(is_dtype_equal(IntervalDtype('int64'),
-                                        IntervalDtype('float64')))
+        assert not is_dtype_equal(self.dtype, 'int64')
+        assert not is_dtype_equal(IntervalDtype('int64'),
+                                  IntervalDtype('float64'))
 
     def test_basic(self):
         self.assertTrue(is_interval_dtype(self.dtype))
@@ -440,8 +438,8 @@ class TestIntervalDtype(Base, tm.TestCase):
 
         # dtypes
         # series results in object dtype currently,
-        self.assertFalse(is_interval_dtype(s.dtype))
-        self.assertFalse(is_interval_dtype(s))
+        assert not is_interval_dtype(s.dtype)
+        assert not is_interval_dtype(s)
 
     def test_basic_dtype(self):
         self.assertTrue(is_interval_dtype('interval[int64]'))
@@ -450,9 +448,9 @@ class TestIntervalDtype(Base, tm.TestCase):
                         (IntervalIndex.from_breaks(np.arange(4))))
         self.assertTrue(is_interval_dtype(
             IntervalIndex.from_breaks(date_range('20130101', periods=3))))
-        self.assertFalse(is_interval_dtype('U'))
-        self.assertFalse(is_interval_dtype('S'))
-        self.assertFalse(is_interval_dtype('foo'))
-        self.assertFalse(is_interval_dtype(np.object_))
-        self.assertFalse(is_interval_dtype(np.int64))
-        self.assertFalse(is_interval_dtype(np.float64))
+        assert not is_interval_dtype('U')
+        assert not is_interval_dtype('S')
+        assert not is_interval_dtype('foo')
+        assert not is_interval_dtype(np.object_)
+        assert not is_interval_dtype(np.int64)
+        assert not is_interval_dtype(np.float64)

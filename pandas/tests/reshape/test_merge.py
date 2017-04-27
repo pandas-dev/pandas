@@ -790,8 +790,8 @@ class TestMergeMulti(tm.TestCase):
                 res = left.join(right, on=icols, how='left', sort=sort)
 
                 self.assertTrue(len(left) < len(res) + 1)
-                self.assertFalse(res['4th'].isnull().any())
-                self.assertFalse(res['5th'].isnull().any())
+                assert not res['4th'].isnull().any()
+                assert not res['5th'].isnull().any()
 
                 tm.assert_series_equal(
                     res['4th'], - res['5th'], check_names=False)

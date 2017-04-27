@@ -1284,7 +1284,7 @@ class TestTimeZones(tm.TestCase):
         left = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         right = date_range('1/1/2011', periods=100, freq='H', tz='US/Eastern')
 
-        self.assertFalse(left.equals(right))
+        assert not left.equals(right)
 
     def test_tz_localize_naive(self):
         rng = date_range('1/1/2011', periods=100, freq='H')
@@ -1627,7 +1627,7 @@ class TestTimeZones(tm.TestCase):
         tm.assert_index_equal(result, expected)
 
         self.assertTrue(result.is_normalized)
-        self.assertFalse(rng.is_normalized)
+        assert not rng.is_normalized
 
         rng = date_range('1/1/2000 9:30', periods=10, freq='D', tz='UTC')
 
@@ -1636,7 +1636,7 @@ class TestTimeZones(tm.TestCase):
         tm.assert_index_equal(result, expected)
 
         self.assertTrue(result.is_normalized)
-        self.assertFalse(rng.is_normalized)
+        assert not rng.is_normalized
 
         from dateutil.tz import tzlocal
         rng = date_range('1/1/2000 9:30', periods=10, freq='D', tz=tzlocal())
@@ -1645,7 +1645,7 @@ class TestTimeZones(tm.TestCase):
         tm.assert_index_equal(result, expected)
 
         self.assertTrue(result.is_normalized)
-        self.assertFalse(rng.is_normalized)
+        assert not rng.is_normalized
 
     def test_normalize_tz_local(self):
         # GH 13459
@@ -1665,7 +1665,7 @@ class TestTimeZones(tm.TestCase):
                 tm.assert_index_equal(result, expected)
 
                 self.assertTrue(result.is_normalized)
-                self.assertFalse(rng.is_normalized)
+                assert not rng.is_normalized
 
     def test_tzaware_offset(self):
         dates = date_range('2012-11-01', periods=3, tz='US/Pacific')

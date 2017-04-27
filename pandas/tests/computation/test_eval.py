@@ -1443,7 +1443,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
             res = pd.eval('3 in (1, 2)', engine=self.engine,
                           parser=self.parser)
-            self.assertFalse(res)
+            assert not res
 
             res = pd.eval('3 not in (1, 2)', engine=self.engine,
                           parser=self.parser)
@@ -1467,7 +1467,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
             res = pd.eval('(3,) not in [(3,), 2]', engine=self.engine,
                           parser=self.parser)
-            self.assertFalse(res)
+            assert not res
 
             res = pd.eval('[(3,)] in [[(3,)], 2]', engine=self.engine,
                           parser=self.parser)

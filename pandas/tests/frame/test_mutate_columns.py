@@ -223,7 +223,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         self.assertEqual(len(res), 2)
         self.assertEqual(len(df.columns), 1)
         self.assertTrue("b" in df.columns)
-        self.assertFalse("a" in df.columns)
+        assert "a" not in df.columns
         self.assertEqual(len(df.index), 2)
 
     def test_insert_column_bug_4032(self):

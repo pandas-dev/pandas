@@ -129,7 +129,7 @@ class TestMMapWrapper(tm.TestCase):
         for attr in attrs:
             self.assertTrue(hasattr(wrapper, attr))
 
-        self.assertFalse(hasattr(wrapper, 'foo'))
+        assert not hasattr(wrapper, 'foo')
 
     def test_next(self):
         with open(self.mmap_file, 'r') as target:

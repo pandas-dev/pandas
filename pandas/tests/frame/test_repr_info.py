@@ -72,9 +72,9 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         self.empty.info(buf=buf)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
-        self.assertFalse("\t" in repr(df))
-        self.assertFalse("\r" in repr(df))
-        self.assertFalse("a\n" in repr(df))
+        assert "\t" not in repr(df)
+        assert "\r" not in repr(df)
+        assert "a\n" not in repr(df)
 
     def test_repr_dimensions(self):
         df = DataFrame([[1, 2, ], [3, 4]])
@@ -82,10 +82,10 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
             self.assertTrue("2 rows x 2 columns" in repr(df))
 
         with option_context('display.show_dimensions', False):
-            self.assertFalse("2 rows x 2 columns" in repr(df))
+            assert "2 rows x 2 columns" not in repr(df)
 
         with option_context('display.show_dimensions', 'truncate'):
-            self.assertFalse("2 rows x 2 columns" in repr(df))
+            assert "2 rows x 2 columns" not in repr(df)
 
     @tm.slow
     def test_repr_big(self):
@@ -320,7 +320,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         res = buf.getvalue().splitlines()
 
         # excluded column with object dtype, so estimate is accurate
-        self.assertFalse(re.match(r"memory usage: [^+]+\+", res[-1]))
+        assert not re.match(r"memory usage: [^+]+\+", res[-1])
 
         df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
         df_with_object_index.info(buf=buf, memory_usage=True)
@@ -388,7 +388,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         df = DataFrame(1, columns=list('ab'),
                        index=[1, 2, 3])
         df.info(buf=buf)
-        self.assertFalse('+' in buf.getvalue())
+        assert '+' not in buf.getvalue()
 
         buf = StringIO()
         df = DataFrame(1, columns=list('ab'),
@@ -401,7 +401,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                        index=pd.MultiIndex.from_product(
                            [range(3), range(3)]))
         df.info(buf=buf)
-        self.assertFalse('+' in buf.getvalue())
+        assert '+' not in buf.getvalue()
 
         buf = StringIO()
         df = DataFrame(1, columns=list('ab'),

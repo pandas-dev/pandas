@@ -32,7 +32,7 @@ class TestStringMethods(tm.TestCase):
         with tm.assert_raises_regex(AttributeError,
                                     "only use .str accessor"):
             invalid.str
-        self.assertFalse(hasattr(invalid, 'str'))
+        assert not hasattr(invalid, 'str')
 
     def test_iter(self):
         # GH3638
@@ -76,7 +76,7 @@ class TestStringMethods(tm.TestCase):
         for i, s in enumerate(ds.str):
             pass
 
-        self.assertFalse(i)
+        assert not i
         assert_series_equal(ds, s)
 
     def test_iter_object_try_string(self):

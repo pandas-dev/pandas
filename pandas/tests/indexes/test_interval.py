@@ -30,7 +30,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         self.assertTrue(expected.equals(actual))
 
         alternate = IntervalIndex.from_breaks(np.arange(3), closed='left')
-        self.assertFalse(expected.equals(alternate))
+        assert not expected.equals(alternate)
 
         actual = IntervalIndex.from_intervals([Interval(0, 1), Interval(1, 2)])
         self.assertTrue(expected.equals(actual))
@@ -151,7 +151,7 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_with_nans(self):
         index = self.index
-        self.assertFalse(index.hasnans)
+        assert not index.hasnans
         tm.assert_numpy_array_equal(index.isnull(),
                                     np.array([False, False]))
         tm.assert_numpy_array_equal(index.notnull(),
@@ -196,14 +196,13 @@ class TestIntervalIndex(Base, tm.TestCase):
         self.assertTrue(idx.equals(idx))
         self.assertTrue(idx.equals(idx.copy()))
 
-        self.assertFalse(idx.equals(idx.astype(object)))
-        self.assertFalse(idx.equals(np.array(idx)))
-        self.assertFalse(idx.equals(list(idx)))
+        assert not idx.equals(idx.astype(object))
+        assert not idx.equals(np.array(idx))
+        assert not idx.equals(list(idx))
 
-        self.assertFalse(idx.equals([1, 2]))
-        self.assertFalse(idx.equals(np.array([1, 2])))
-        self.assertFalse(idx.equals(
-            pd.date_range('20130101', periods=2)))
+        assert not idx.equals([1, 2])
+        assert not idx.equals(np.array([1, 2]))
+        assert not idx.equals(pd.date_range('20130101', periods=2))
 
     def test_astype(self):
 
@@ -216,7 +215,7 @@ class TestIntervalIndex(Base, tm.TestCase):
 
         result = idx.astype(object)
         tm.assert_index_equal(result, Index(idx.values, dtype='object'))
-        self.assertFalse(idx.equals(result))
+        assert not idx.equals(result)
         self.assertTrue(idx.equals(IntervalIndex.from_intervals(result)))
 
         result = idx.astype('interval')
@@ -272,11 +271,11 @@ class TestIntervalIndex(Base, tm.TestCase):
         self.assertTrue(idx.is_unique)
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 2)])
-        self.assertFalse(idx.is_monotonic)
+        assert not idx.is_monotonic
         self.assertTrue(idx.is_unique)
 
         idx = IntervalIndex.from_tuples([(0, 2), (0, 2)])
-        self.assertFalse(idx.is_unique)
+        assert not idx.is_unique
         self.assertTrue(idx.is_monotonic)
 
     @pytest.mark.xfail(reason='not a valid repr as we use interval notation')

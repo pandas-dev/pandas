@@ -236,7 +236,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         s = p[0]
         res = s % p
         res2 = p % s
-        self.assertFalse(np.array_equal(res.fillna(0), res2.fillna(0)))
+        assert not np.array_equal(res.fillna(0), res2.fillna(0))
 
     def test_div(self):
 
@@ -270,7 +270,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         s = p[0]
         res = s / p
         res2 = p / s
-        self.assertFalse(np.array_equal(res.fillna(0), res2.fillna(0)))
+        assert not np.array_equal(res.fillna(0), res2.fillna(0))
 
     def test_logical_operators(self):
 
@@ -574,7 +574,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
         # DataFrame
         self.assertTrue(df.eq(df).values.all())
-        self.assertFalse(df.ne(df).values.any())
+        assert not df.ne(df).values.any()
         for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
             f = getattr(df, op)
             o = getattr(operator, op)
@@ -634,17 +634,17 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         # NA
         df.loc[0, 0] = np.nan
         rs = df.eq(df)
-        self.assertFalse(rs.loc[0, 0])
+        assert not rs.loc[0, 0]
         rs = df.ne(df)
         self.assertTrue(rs.loc[0, 0])
         rs = df.gt(df)
-        self.assertFalse(rs.loc[0, 0])
+        assert not rs.loc[0, 0]
         rs = df.lt(df)
-        self.assertFalse(rs.loc[0, 0])
+        assert not rs.loc[0, 0]
         rs = df.ge(df)
-        self.assertFalse(rs.loc[0, 0])
+        assert not rs.loc[0, 0]
         rs = df.le(df)
-        self.assertFalse(rs.loc[0, 0])
+        assert not rs.loc[0, 0]
 
         # complex
         arr = np.array([np.nan, 1, 6, np.nan])
@@ -652,14 +652,14 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         df = DataFrame({'a': arr})
         df2 = DataFrame({'a': arr2})
         rs = df.gt(df2)
-        self.assertFalse(rs.values.any())
+        assert not rs.values.any()
         rs = df.ne(df2)
         self.assertTrue(rs.values.all())
 
         arr3 = np.array([2j, np.nan, None])
         df3 = DataFrame({'a': arr3})
         rs = df3.gt(2j)
-        self.assertFalse(rs.values.any())
+        assert not rs.values.any()
 
         # corner, dtype=object
         df1 = DataFrame({'col': ['foo', np.nan, 'bar']})
@@ -1021,7 +1021,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         assert_numpy_array_equal(result, expected.values)
 
         pytest.raises(ValueError, lambda: df == b_c)
-        self.assertFalse(np.array_equal(df.values, b_c))
+        assert not np.array_equal(df.values, b_c)
 
         # with alignment
         df = DataFrame(np.arange(6).reshape((3, 2)),

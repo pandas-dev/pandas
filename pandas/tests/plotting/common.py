@@ -491,13 +491,13 @@ class TestPlotBase(tm.TestCase):
             spndx += 1
             mpl.rc('axes', grid=False)
             obj.plot(kind=kind, **kws)
-            self.assertFalse(is_grid_on())
+            assert not is_grid_on()
 
             self.plt.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
             mpl.rc('axes', grid=True)
             obj.plot(kind=kind, grid=False, **kws)
-            self.assertFalse(is_grid_on())
+            assert not is_grid_on()
 
             if kind != 'pie':
                 self.plt.subplot(1, 4 * len(kinds), spndx)

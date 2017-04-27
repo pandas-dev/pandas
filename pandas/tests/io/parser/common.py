@@ -113,7 +113,7 @@ c,3
         # Series should not be a view
         data = """time,data\n0,10\n1,11\n2,12\n4,14\n5,15\n3,13"""
         result = self.read_csv(StringIO(data), index_col='time', squeeze=True)
-        self.assertFalse(result._is_view)
+        assert not result._is_view
 
     def test_malformed(self):
         # see gh-6607
@@ -1656,11 +1656,11 @@ j,-inF"""
 
         fh = StringIO('a,b\n1,2')
         self.read_csv(fh)
-        self.assertFalse(fh.closed)
+        assert not fh.closed
 
         with open(self.csv1, 'r') as f:
             self.read_csv(f)
-            self.assertFalse(f.closed)
+            assert not f.closed
 
         # mmap not working with python engine
         if self.engine != 'python':
@@ -1671,7 +1671,7 @@ j,-inF"""
                 self.read_csv(m)
                 # closed attribute new in python 3.2
                 if PY3:
-                    self.assertFalse(m.closed)
+                    assert not m.closed
                 m.close()
 
     def test_invalid_file_buffer(self):

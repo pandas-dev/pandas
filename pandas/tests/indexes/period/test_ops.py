@@ -74,7 +74,7 @@ class TestPeriodIndexOps(Ops):
         # non-monotonic
         idx2 = pd.PeriodIndex(['2011-01-01', pd.NaT, '2011-01-03',
                                '2011-01-02', pd.NaT], freq='D')
-        self.assertFalse(idx2.is_monotonic)
+        assert not idx2.is_monotonic
 
         for idx in [idx1, idx2]:
             self.assertEqual(idx.min(), pd.Period('2011-01-01', freq='D'))
@@ -806,7 +806,7 @@ Freq: Q-DEC"""
         self.assertTrue(idx._can_hold_na)
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        self.assertFalse(idx.hasnans)
+        assert not idx.hasnans
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
@@ -828,27 +828,27 @@ Freq: Q-DEC"""
             self.assertTrue(idx.equals(idx.asobject))
             self.assertTrue(idx.asobject.equals(idx))
             self.assertTrue(idx.asobject.equals(idx.asobject))
-            self.assertFalse(idx.equals(list(idx)))
-            self.assertFalse(idx.equals(pd.Series(idx)))
+            assert not idx.equals(list(idx))
+            assert not idx.equals(pd.Series(idx))
 
             idx2 = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
                                   freq='H')
-            self.assertFalse(idx.equals(idx2))
-            self.assertFalse(idx.equals(idx2.copy()))
-            self.assertFalse(idx.equals(idx2.asobject))
-            self.assertFalse(idx.asobject.equals(idx2))
-            self.assertFalse(idx.equals(list(idx2)))
-            self.assertFalse(idx.equals(pd.Series(idx2)))
+            assert not idx.equals(idx2)
+            assert not idx.equals(idx2.copy())
+            assert not idx.equals(idx2.asobject)
+            assert not idx.asobject.equals(idx2)
+            assert not idx.equals(list(idx2))
+            assert not idx.equals(pd.Series(idx2))
 
             # same internal, different tz
             idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
             tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
-            self.assertFalse(idx.equals(idx3))
-            self.assertFalse(idx.equals(idx3.copy()))
-            self.assertFalse(idx.equals(idx3.asobject))
-            self.assertFalse(idx.asobject.equals(idx3))
-            self.assertFalse(idx.equals(list(idx3)))
-            self.assertFalse(idx.equals(pd.Series(idx3)))
+            assert not idx.equals(idx3)
+            assert not idx.equals(idx3.copy())
+            assert not idx.equals(idx3.asobject)
+            assert not idx.asobject.equals(idx3)
+            assert not idx.equals(list(idx3))
+            assert not idx.equals(pd.Series(idx3))
 
 
 class TestPeriodIndexSeriesMethods(tm.TestCase):

@@ -183,8 +183,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertTrue(np.nan not in ci)
 
         # assert codes NOT in index
-        self.assertFalse(0 in ci)
-        self.assertFalse(1 in ci)
+        assert 0 not in ci
+        assert 1 not in ci
 
         ci = CategoricalIndex(
             list('aabbca') + [np.nan], categories=list('cabdef'))
@@ -423,7 +423,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
     def test_duplicates(self):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')
-        self.assertFalse(idx.is_unique)
+        assert not idx.is_unique
         self.assertTrue(idx.has_duplicates)
 
         expected = CategoricalIndex([0], name='foo')
@@ -539,7 +539,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                                ordered=True)
         self.assertTrue(ci1.identical(ci1))
         self.assertTrue(ci1.identical(ci1.copy()))
-        self.assertFalse(ci1.identical(ci2))
+        assert not ci1.identical(ci2)
 
     def test_ensure_copied_data(self):
         # gh-12309: Check the "copy" argument of each
@@ -563,18 +563,18 @@ class TestCategoricalIndex(Base, tm.TestCase):
                                ordered=True)
 
         self.assertTrue(ci1.equals(ci1))
-        self.assertFalse(ci1.equals(ci2))
+        assert not ci1.equals(ci2)
         self.assertTrue(ci1.equals(ci1.astype(object)))
         self.assertTrue(ci1.astype(object).equals(ci1))
 
         self.assertTrue((ci1 == ci1).all())
-        self.assertFalse((ci1 != ci1).all())
-        self.assertFalse((ci1 > ci1).all())
-        self.assertFalse((ci1 < ci1).all())
+        assert not (ci1 != ci1).all()
+        assert not (ci1 > ci1).all()
+        assert not (ci1 < ci1).all()
         self.assertTrue((ci1 <= ci1).all())
         self.assertTrue((ci1 >= ci1).all())
 
-        self.assertFalse((ci1 == 1).all())
+        assert not (ci1 == 1).all()
         self.assertTrue((ci1 == Index(['a', 'b'])).all())
         self.assertTrue((ci1 == ci1.values).all())
 
@@ -591,20 +591,20 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # tests
         # make sure that we are testing for category inclusion properly
         ci = CategoricalIndex(list('aabca'), categories=['c', 'a', 'b'])
-        self.assertFalse(ci.equals(list('aabca')))
-        self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
+        assert not ci.equals(list('aabca'))
+        assert not ci.equals(CategoricalIndex(list('aabca')))
         self.assertTrue(ci.equals(ci.copy()))
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])
-        self.assertFalse(ci.equals(list('aabca')))
-        self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
+        assert not ci.equals(list('aabca'))
+        assert not ci.equals(CategoricalIndex(list('aabca')))
         self.assertTrue(ci.equals(ci.copy()))
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])
-        self.assertFalse(ci.equals(list('aabca') + [np.nan]))
-        self.assertFalse(ci.equals(CategoricalIndex(list('aabca') + [np.nan])))
+        assert not ci.equals(list('aabca') + [np.nan])
+        assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan]))
         self.assertTrue(ci.equals(ci.copy()))
 
     def test_string_categorical_index_repr(self):

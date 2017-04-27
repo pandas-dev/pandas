@@ -454,7 +454,7 @@ class TestSeriesPlots(TestPlotBase):
         # left axis must be invisible, right axis must be visible
         self._check_legend_labels(ax.left_ax,
                                   labels=['a (right)', 'b (right)'])
-        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        assert not ax.left_ax.get_yaxis().get_visible()
         self.assertTrue(ax.get_yaxis().get_visible())
         tm.close()
 
@@ -502,7 +502,7 @@ class TestSeriesPlots(TestPlotBase):
         # left axis must be invisible and right axis must be visible
         expected = ['a (right)', 'b (right)', 'c (right)', 'x (right)']
         self._check_legend_labels(ax.left_ax, labels=expected)
-        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        assert not ax.left_ax.get_yaxis().get_visible()
         self.assertTrue(ax.get_yaxis().get_visible())
         tm.close()
 
@@ -513,7 +513,7 @@ class TestSeriesPlots(TestPlotBase):
         # left axis must be invisible and right axis must be visible
         expected = ['a (right)', 'b (right)', 'c (right)', 'x (right)']
         self._check_legend_labels(ax.left_ax, expected)
-        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        assert not ax.left_ax.get_yaxis().get_visible()
         self.assertTrue(ax.get_yaxis().get_visible())
         tm.close()
 
@@ -524,7 +524,7 @@ class TestSeriesPlots(TestPlotBase):
         # left axis must be invisible and right axis must be visible
         expected = ['a', 'b', 'c', 'x (right)']
         self._check_legend_labels(ax.left_ax, expected)
-        self.assertFalse(ax.left_ax.get_yaxis().get_visible())
+        assert not ax.left_ax.get_yaxis().get_visible()
         self.assertTrue(ax.get_yaxis().get_visible())
         tm.close()
 

@@ -524,7 +524,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         idx = MultiIndex.from_tuples(
             [('a', 'b'), ('c', 'd')], names=['x', 'y'])
-        self.assertFalse(idx._reference_duplicate_name('x'))
+        assert not idx._reference_duplicate_name('x')
 
     def test_astype(self):
         expected = self.index.copy()
@@ -1082,11 +1082,11 @@ class TestMultiIndex(Base, tm.TestCase):
             self.assertTrue(val in mi)
 
     def test_is_all_dates(self):
-        self.assertFalse(self.index.is_all_dates)
+        assert not self.index.is_all_dates
 
     def test_is_numeric(self):
         # MultiIndex is never numeric
-        self.assertFalse(self.index.is_numeric())
+        assert not self.index.is_numeric()
 
     def test_getitem(self):
         # scalar
@@ -1280,7 +1280,7 @@ class TestMultiIndex(Base, tm.TestCase):
         index = MultiIndex(levels=[major_axis, minor_axis],
                            labels=[major_labels, minor_labels])
 
-        self.assertFalse(index.is_unique)
+        assert not index.is_unique
 
     def test_truncate(self):
         major_axis = Index(lrange(4))
@@ -1526,9 +1526,9 @@ class TestMultiIndex(Base, tm.TestCase):
         i = pd.MultiIndex.from_tuples([(0, pd.NaT),
                                        (0, pd.Timestamp('20130101'))])
         result = i[0:1].equals(i[0])
-        self.assertFalse(result)
+        assert not result
         result = i[1:2].equals(i[1])
-        self.assertFalse(result)
+        assert not result
 
     def test_identical(self):
         mi = self.index.copy()
@@ -1537,7 +1537,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
         mi = mi.set_names(['new1', 'new2'])
         self.assertTrue(mi.equals(mi2))
-        self.assertFalse(mi.identical(mi2))
+        assert not mi.identical(mi2)
 
         mi2 = mi2.set_names(['new1', 'new2'])
         self.assertTrue(mi.identical(mi2))
@@ -1545,7 +1545,7 @@ class TestMultiIndex(Base, tm.TestCase):
         mi3 = Index(mi.tolist(), names=mi.names)
         mi4 = Index(mi.tolist(), names=mi.names, tupleize_cols=False)
         self.assertTrue(mi.identical(mi3))
-        self.assertFalse(mi.identical(mi4))
+        assert not mi.identical(mi4)
         self.assertTrue(mi.equals(mi4))
 
     def test_is_(self):
@@ -1565,15 +1565,15 @@ class TestMultiIndex(Base, tm.TestCase):
         self.assertTrue(mi.is_(mi2))
         # levels are inherent properties, they change identity
         mi3 = mi2.set_levels([lrange(10), lrange(10)])
-        self.assertFalse(mi3.is_(mi2))
+        assert not mi3.is_(mi2)
         # shouldn't change
         self.assertTrue(mi2.is_(mi))
         mi4 = mi3.view()
         mi4.set_levels([[1 for _ in range(10)], lrange(10)], inplace=True)
-        self.assertFalse(mi4.is_(mi3))
+        assert not mi4.is_(mi3)
         mi5 = mi.view()
         mi5.set_levels(mi5.levels, inplace=True)
-        self.assertFalse(mi5.is_(mi))
+        assert not mi5.is_(mi)
 
     def test_union(self):
         piece1 = self.index[:5][::-1]
@@ -1862,7 +1862,7 @@ class TestMultiIndex(Base, tm.TestCase):
         df = df.pivot_table(index='a', columns=['b', 'c'], values='d')
         df = df.reset_index()
         not_lexsorted_mi = df.columns
-        self.assertFalse(not_lexsorted_mi.is_lexsorted())
+        assert not not_lexsorted_mi.is_lexsorted()
 
         # compare the results
         tm.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
@@ -2119,7 +2119,7 @@ class TestMultiIndex(Base, tm.TestCase):
                                level='first')
 
     def test_duplicates(self):
-        self.assertFalse(self.index.has_duplicates)
+        assert not self.index.has_duplicates
         self.assertTrue(self.index.append(self.index).has_duplicates)
 
         index = MultiIndex(levels=[[0, 1], [0, 1, 2]], labels=[
@@ -2147,7 +2147,7 @@ class TestMultiIndex(Base, tm.TestCase):
              (u('x'), u('out'), u('z'), 12, u('y'), u('in'), u('z'), 144)]
 
         index = pd.MultiIndex.from_tuples(t)
-        self.assertFalse(index.has_duplicates)
+        assert not index.has_duplicates
 
         # handle int64 overflow if possible
         def check(nlevels, with_nulls):
@@ -2168,7 +2168,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
             # no dups
             index = MultiIndex(levels=levels, labels=labels)
-            self.assertFalse(index.has_duplicates)
+            assert not index.has_duplicates
 
             # with a dup
             if with_nulls:
@@ -2203,7 +2203,7 @@ class TestMultiIndex(Base, tm.TestCase):
         # GH5873
         for a in [101, 102]:
             mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
-            self.assertFalse(mi.has_duplicates)
+            assert not mi.has_duplicates
             self.assertEqual(mi.get_duplicates(), [])
             tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                 2, dtype='bool'))
@@ -2215,7 +2215,7 @@ class TestMultiIndex(Base, tm.TestCase):
                 mi = MultiIndex(levels=[list('abcde')[:n], list('WXYZ')[:m]],
                                 labels=np.random.permutation(list(lab)).T)
                 self.assertEqual(len(mi), (n + 1) * (m + 1))
-                self.assertFalse(mi.has_duplicates)
+                assert not mi.has_duplicates
                 self.assertEqual(mi.get_duplicates(), [])
                 tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                     len(mi), dtype='bool'))
@@ -2281,8 +2281,7 @@ class TestMultiIndex(Base, tm.TestCase):
         with pd.core.config.option_context("display.encoding", 'UTF-8'):
             d = {"a": [u("\u05d0"), 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}
             index = pd.DataFrame(d).set_index(["a", "b"]).index
-            self.assertFalse("\\u" in repr(index)
-                             )  # we don't want unicode-escaped
+            assert "\\u" not in repr(index)  # we don't want unicode-escaped
 
     def test_repr_roundtrip(self):
 
@@ -2376,7 +2375,7 @@ class TestMultiIndex(Base, tm.TestCase):
                        inplace=True)
 
         # if this fails, probably didn't reset the cache correctly.
-        self.assertFalse(ind.is_monotonic)
+        assert not ind.is_monotonic
 
     def test_is_monotonic(self):
         i = MultiIndex.from_product([np.arange(10),
@@ -2386,18 +2385,18 @@ class TestMultiIndex(Base, tm.TestCase):
 
         i = MultiIndex.from_product([np.arange(10, 0, -1),
                                      np.arange(10)], names=['one', 'two'])
-        self.assertFalse(i.is_monotonic)
-        self.assertFalse(Index(i.values).is_monotonic)
+        assert not i.is_monotonic
+        assert not Index(i.values).is_monotonic
 
         i = MultiIndex.from_product([np.arange(10),
                                      np.arange(10, 0, -1)],
                                     names=['one', 'two'])
-        self.assertFalse(i.is_monotonic)
-        self.assertFalse(Index(i.values).is_monotonic)
+        assert not i.is_monotonic
+        assert not Index(i.values).is_monotonic
 
         i = MultiIndex.from_product([[1.0, np.nan, 2.0], ['a', 'b', 'c']])
-        self.assertFalse(i.is_monotonic)
-        self.assertFalse(Index(i.values).is_monotonic)
+        assert not i.is_monotonic
+        assert not Index(i.values).is_monotonic
 
         # string ordering
         i = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -2405,8 +2404,8 @@ class TestMultiIndex(Base, tm.TestCase):
                        labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
                                [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
-        self.assertFalse(i.is_monotonic)
-        self.assertFalse(Index(i.values).is_monotonic)
+        assert not i.is_monotonic
+        assert not Index(i.values).is_monotonic
 
         i = MultiIndex(levels=[['bar', 'baz', 'foo', 'qux'],
                                ['mom', 'next', 'zenith']],
@@ -2424,7 +2423,7 @@ class TestMultiIndex(Base, tm.TestCase):
             labels=[[0, 1, 1, 2, 2, 2, 3], [4, 2, 0, 0, 1, 3, -1]],
             names=['household_id', 'asset_id'])
 
-        self.assertFalse(i.is_monotonic)
+        assert not i.is_monotonic
 
     def test_reconstruct_sort(self):
 

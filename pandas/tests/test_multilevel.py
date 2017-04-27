@@ -876,7 +876,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # GH10417
         def check(left, right):
             tm.assert_series_equal(left, right)
-            self.assertFalse(left.index.is_unique)
+            assert not left.index.is_unique
             li, ri = left.index, right.index
             tm.assert_index_equal(li, ri)
 
@@ -1225,7 +1225,7 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.frame.copy()
         expected.values[np.isnan(joined.values)] = np.nan
 
-        self.assertFalse(np.isnan(joined.values).all())
+        assert not np.isnan(joined.values).all()
 
         # TODO what should join do with names ?
         tm.assert_frame_equal(joined, expected, check_names=False)
@@ -1235,7 +1235,7 @@ Thur,Lunch,Yes,51.51,17"""
         swapped2 = self.frame['A'].swaplevel(0)
         swapped3 = self.frame['A'].swaplevel(0, 1)
         swapped4 = self.frame['A'].swaplevel('first', 'second')
-        self.assertFalse(swapped.index.equals(self.frame.index))
+        assert not swapped.index.equals(self.frame.index)
         tm.assert_series_equal(swapped, swapped2)
         tm.assert_series_equal(swapped, swapped3)
         tm.assert_series_equal(swapped, swapped4)
@@ -1831,7 +1831,7 @@ Thur,Lunch,Yes,51.51,17"""
         df['tstamp'] = idxdt
         df = df.set_index('tstamp', append=True)
         ts = pd.Timestamp('201603231600')
-        self.assertFalse(df.index.is_unique)
+        assert not df.index.is_unique
 
         result = df.drop(ts, level='tstamp')
         expected = df.loc[idx != 4]
@@ -2430,11 +2430,11 @@ class TestSorted(Base, tm.TestCase):
 
         index = MultiIndex(levels=levels,
                            labels=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]])
-        self.assertFalse(index.is_lexsorted())
+        assert not index.is_lexsorted()
 
         index = MultiIndex(levels=levels,
                            labels=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]])
-        self.assertFalse(index.is_lexsorted())
+        assert not index.is_lexsorted()
         self.assertEqual(index.lexsort_depth, 0)
 
     def test_getitem_multilevel_index_tuple_not_sorted(self):

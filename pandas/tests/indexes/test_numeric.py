@@ -381,8 +381,8 @@ class TestFloat64Index(Numeric, tm.TestCase):
 
     def test_doesnt_contain_all_the_things(self):
         i = Float64Index([np.nan])
-        self.assertFalse(i.isin([0]).item())
-        self.assertFalse(i.isin([1]).item())
+        assert not i.isin([0]).item()
+        assert not i.isin([1]).item()
         self.assertTrue(i.isin([np.nan]).item())
 
     def test_nan_multiple_containment(self):
@@ -465,10 +465,10 @@ class NumericInt(Numeric):
     def test_is_monotonic(self):
         self.assertTrue(self.index.is_monotonic)
         self.assertTrue(self.index.is_monotonic_increasing)
-        self.assertFalse(self.index.is_monotonic_decreasing)
+        assert not self.index.is_monotonic_decreasing
 
         index = self._holder([4, 3, 2, 1])
-        self.assertFalse(index.is_monotonic)
+        assert not index.is_monotonic
         self.assertTrue(index.is_monotonic_decreasing)
 
         index = self._holder([1])
@@ -486,19 +486,19 @@ class NumericInt(Numeric):
         self.assertTrue(i.identical(self.index))
 
         same_values_different_type = Index(i, dtype=object)
-        self.assertFalse(i.identical(same_values_different_type))
+        assert not i.identical(same_values_different_type)
 
         i = self.index.copy(dtype=object)
         i = i.rename('foo')
         same_values = Index(i, dtype=object)
         self.assertTrue(same_values.identical(i))
 
-        self.assertFalse(i.identical(self.index))
+        assert not i.identical(self.index)
         self.assertTrue(Index(same_values, name='foo', dtype=object).identical(
             i))
 
-        self.assertFalse(self.index.copy(dtype=object)
-                         .identical(self.index.copy(dtype=self._dtype)))
+        assert not self.index.copy(dtype=object).identical(
+            self.index.copy(dtype=self._dtype))
 
     def test_join_non_unique(self):
         left = Index([4, 4, 3, 3])

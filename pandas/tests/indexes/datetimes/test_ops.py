@@ -103,7 +103,7 @@ class TestDatetimeIndexOps(Ops):
             # non-monotonic
             idx2 = pd.DatetimeIndex(['2011-01-01', pd.NaT, '2011-01-03',
                                      '2011-01-02', pd.NaT], tz=tz)
-            self.assertFalse(idx2.is_monotonic)
+            assert not idx2.is_monotonic
 
             for idx in [idx1, idx2]:
                 self.assertEqual(idx.min(), Timestamp('2011-01-01', tz=tz))
@@ -889,7 +889,7 @@ Freq: D"""
             self.assertTrue(idx._can_hold_na)
 
             tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-            self.assertFalse(idx.hasnans)
+            assert not idx.hasnans
             tm.assert_numpy_array_equal(idx._nan_idxs,
                                         np.array([], dtype=np.intp))
 
@@ -910,27 +910,27 @@ Freq: D"""
             self.assertTrue(idx.equals(idx.asobject))
             self.assertTrue(idx.asobject.equals(idx))
             self.assertTrue(idx.asobject.equals(idx.asobject))
-            self.assertFalse(idx.equals(list(idx)))
-            self.assertFalse(idx.equals(pd.Series(idx)))
+            assert not idx.equals(list(idx))
+            assert not idx.equals(pd.Series(idx))
 
             idx2 = pd.DatetimeIndex(['2011-01-01', '2011-01-02', 'NaT'],
                                     tz='US/Pacific')
-            self.assertFalse(idx.equals(idx2))
-            self.assertFalse(idx.equals(idx2.copy()))
-            self.assertFalse(idx.equals(idx2.asobject))
-            self.assertFalse(idx.asobject.equals(idx2))
-            self.assertFalse(idx.equals(list(idx2)))
-            self.assertFalse(idx.equals(pd.Series(idx2)))
+            assert not idx.equals(idx2)
+            assert not idx.equals(idx2.copy())
+            assert not idx.equals(idx2.asobject)
+            assert not idx.asobject.equals(idx2)
+            assert not idx.equals(list(idx2))
+            assert not idx.equals(pd.Series(idx2))
 
             # same internal, different tz
             idx3 = pd.DatetimeIndex._simple_new(idx.asi8, tz='US/Pacific')
             tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
-            self.assertFalse(idx.equals(idx3))
-            self.assertFalse(idx.equals(idx3.copy()))
-            self.assertFalse(idx.equals(idx3.asobject))
-            self.assertFalse(idx.asobject.equals(idx3))
-            self.assertFalse(idx.equals(list(idx3)))
-            self.assertFalse(idx.equals(pd.Series(idx3)))
+            assert not idx.equals(idx3)
+            assert not idx.equals(idx3.copy())
+            assert not idx.equals(idx3.asobject)
+            assert not idx.asobject.equals(idx3)
+            assert not idx.equals(list(idx3))
+            assert not idx.equals(pd.Series(idx3))
 
 
 class TestDateTimeIndexToJulianDate(tm.TestCase):
@@ -1119,7 +1119,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
 
         comp = self.rng > d
         self.assertTrue(comp[11])
-        self.assertFalse(comp[9])
+        assert not comp[9]
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
@@ -1189,7 +1189,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         bdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
 
     def test_equals(self):
-        self.assertFalse(self.rng.equals(list(self.rng)))
+        assert not self.rng.equals(list(self.rng))
 
     def test_identical(self):
         t1 = self.rng.copy()
@@ -1199,14 +1199,14 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         # name
         t1 = t1.rename('foo')
         self.assertTrue(t1.equals(t2))
-        self.assertFalse(t1.identical(t2))
+        assert not t1.identical(t2)
         t2 = t2.rename('foo')
         self.assertTrue(t1.identical(t2))
 
         # freq
         t2v = Index(t2.values)
         self.assertTrue(t1.equals(t2v))
-        self.assertFalse(t1.identical(t2v))
+        assert not t1.identical(t2v)
 
 
 class TestCustomDatetimeIndex(tm.TestCase):
@@ -1219,7 +1219,7 @@ class TestCustomDatetimeIndex(tm.TestCase):
 
         comp = self.rng > d
         self.assertTrue(comp[11])
-        self.assertFalse(comp[9])
+        assert not comp[9]
 
     def test_copy(self):
         cp = self.rng.copy()
@@ -1291,4 +1291,4 @@ class TestCustomDatetimeIndex(tm.TestCase):
         cdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
 
     def test_equals(self):
-        self.assertFalse(self.rng.equals(list(self.rng)))
+        assert not self.rng.equals(list(self.rng))

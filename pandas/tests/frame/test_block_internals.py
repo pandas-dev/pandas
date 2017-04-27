@@ -69,7 +69,7 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
 
     def test_as_matrix_consolidate(self):
         self.frame['E'] = 7.
-        self.assertFalse(self.frame._data.is_consolidated())
+        assert not self.frame._data.is_consolidated()
         _ = self.frame.as_matrix()  # noqa
         self.assertTrue(self.frame._data.is_consolidated())
 
@@ -326,7 +326,7 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
                 _df.loc[:, column] = _df[column] + 1
 
         # make sure we did not change the original DataFrame
-        self.assertFalse(_df[column].equals(df[column]))
+        assert not _df[column].equals(df[column])
 
     def test_no_copy_blocks(self):
         # API/ENH 9607
@@ -399,7 +399,7 @@ starting,ending,measure
         tm.assert_index_equal(pd.DatetimeIndex(df.ending), ser_ending.index)
 
     def test_is_mixed_type(self):
-        self.assertFalse(self.frame._is_mixed_type)
+        assert not self.frame._is_mixed_type
         self.assertTrue(self.mixed_frame._is_mixed_type)
 
     def test_get_numeric_data(self):

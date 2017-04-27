@@ -446,7 +446,7 @@ class TestCommon(Base):
 
             # when normalize=True, onOffset checks time is 00:00:00
             offset_n = self._get_offset(offset, normalize=True)
-            self.assertFalse(offset_n.onOffset(dt))
+            assert not offset_n.onOffset(dt)
 
             if offset in (BusinessHour, CustomBusinessHour):
                 # In default BusinessHour (9:00-17:00), normalized time
@@ -718,7 +718,7 @@ class TestBusinessDay(Base):
         # root cause of #456
         offset1 = BDay()
         offset2 = BDay()
-        self.assertFalse(offset1 != offset2)
+        assert not offset1 != offset2
 
 
 class TestBusinessHour(Base):
@@ -1389,7 +1389,7 @@ class TestBusinessHour(Base):
         # root cause of #456
         offset1 = self._offset()
         offset2 = self._offset()
-        self.assertFalse(offset1 != offset2)
+        assert not offset1 != offset2
 
     def test_datetimeindex(self):
         idx1 = DatetimeIndex(start='2014-07-04 15:00', end='2014-07-08 10:00',
@@ -1859,7 +1859,7 @@ class TestCustomBusinessDay(Base):
         # root cause of #456
         offset1 = CDay()
         offset2 = CDay()
-        self.assertFalse(offset1 != offset2)
+        assert not offset1 != offset2
 
     def test_holidays(self):
         # Define a TradingDay offset
@@ -1964,7 +1964,7 @@ class CustomBusinessMonthBase(object):
     def test_offsets_compare_equal(self):
         offset1 = self._object()
         offset2 = self._object()
-        self.assertFalse(offset1 != offset2)
+        assert not offset1 != offset2
 
     def test_roundtrip_pickle(self):
         def _check_roundtrip(obj):
@@ -2230,9 +2230,9 @@ class TestWeek(Base):
 
     def test_isAnchored(self):
         self.assertTrue(Week(weekday=0).isAnchored())
-        self.assertFalse(Week().isAnchored())
-        self.assertFalse(Week(2, weekday=2).isAnchored())
-        self.assertFalse(Week(2).isAnchored())
+        assert not Week().isAnchored()
+        assert not Week(2, weekday=2).isAnchored()
+        assert not Week(2).isAnchored()
 
     def test_offset(self):
         tests = []
@@ -2284,7 +2284,7 @@ class TestWeek(Base):
         # root cause of #456
         offset1 = Week()
         offset2 = Week()
-        self.assertFalse(offset1 != offset2)
+        assert not offset1 != offset2
 
 
 class TestWeekOfMonth(Base):
@@ -2507,7 +2507,7 @@ class TestBMonthBegin(Base):
         # root cause of #456
         offset1 = BMonthBegin()
         offset2 = BMonthBegin()
-        self.assertFalse(offset1 != offset2)
+        assert not offset1 != offset2
 
 
 class TestBMonthEnd(Base):
@@ -2570,7 +2570,7 @@ class TestBMonthEnd(Base):
         # root cause of #456
         offset1 = BMonthEnd()
         offset2 = BMonthEnd()
-        self.assertFalse(offset1 != offset2)
+        assert not offset1 != offset2
 
 
 class TestMonthBegin(Base):
@@ -3043,7 +3043,7 @@ class TestBQuarterBegin(Base):
     def test_isAnchored(self):
         self.assertTrue(BQuarterBegin(startingMonth=1).isAnchored())
         self.assertTrue(BQuarterBegin().isAnchored())
-        self.assertFalse(BQuarterBegin(2, startingMonth=1).isAnchored())
+        assert not BQuarterBegin(2, startingMonth=1).isAnchored()
 
     def test_offset(self):
         tests = []
@@ -3137,7 +3137,7 @@ class TestBQuarterEnd(Base):
     def test_isAnchored(self):
         self.assertTrue(BQuarterEnd(startingMonth=1).isAnchored())
         self.assertTrue(BQuarterEnd().isAnchored())
-        self.assertFalse(BQuarterEnd(2, startingMonth=1).isAnchored())
+        assert not BQuarterEnd(2, startingMonth=1).isAnchored()
 
     def test_offset(self):
         tests = []
@@ -3512,9 +3512,9 @@ class TestFY5253LastOfMonthQuarter(Base):
         self.assertTrue(
             makeFY5253LastOfMonthQuarter(weekday=WeekDay.SAT, startingMonth=3,
                                          qtr_with_extra_week=4).isAnchored())
-        self.assertFalse(makeFY5253LastOfMonthQuarter(
+        assert not makeFY5253LastOfMonthQuarter(
             2, startingMonth=1, weekday=WeekDay.SAT,
-            qtr_with_extra_week=4).isAnchored())
+            qtr_with_extra_week=4).isAnchored()
 
     def test_equality(self):
         self.assertEqual(makeFY5253LastOfMonthQuarter(startingMonth=1,
@@ -3676,20 +3676,17 @@ class TestFY5253LastOfMonthQuarter(Base):
             .year_has_extra_week(datetime(2010, 12, 26)))
 
         # End of year before year with long Q1
-        self.assertFalse(
-            makeFY5253LastOfMonthQuarter(
-                1, startingMonth=12, weekday=WeekDay.SAT,
-                qtr_with_extra_week=1)
-            .year_has_extra_week(datetime(2010, 12, 25)))
+        assert not makeFY5253LastOfMonthQuarter(
+            1, startingMonth=12, weekday=WeekDay.SAT,
+            qtr_with_extra_week=1).year_has_extra_week(datetime(2010, 12, 25))
 
         for year in [x
                      for x in range(1994, 2011 + 1)
                      if x not in [2011, 2005, 2000, 1994]]:
-            self.assertFalse(
-                makeFY5253LastOfMonthQuarter(
-                    1, startingMonth=12, weekday=WeekDay.SAT,
-                    qtr_with_extra_week=1)
-                .year_has_extra_week(datetime(year, 4, 2)))
+            assert not makeFY5253LastOfMonthQuarter(
+                1, startingMonth=12, weekday=WeekDay.SAT,
+                qtr_with_extra_week=1).year_has_extra_week(
+                datetime(year, 4, 2))
 
         # Other long years
         self.assertTrue(
@@ -3825,7 +3822,7 @@ class TestQuarterBegin(Base):
     def test_isAnchored(self):
         self.assertTrue(QuarterBegin(startingMonth=1).isAnchored())
         self.assertTrue(QuarterBegin().isAnchored())
-        self.assertFalse(QuarterBegin(2, startingMonth=1).isAnchored())
+        assert not QuarterBegin(2, startingMonth=1).isAnchored()
 
     def test_offset(self):
         tests = []
@@ -3903,7 +3900,7 @@ class TestQuarterEnd(Base):
     def test_isAnchored(self):
         self.assertTrue(QuarterEnd(startingMonth=1).isAnchored())
         self.assertTrue(QuarterEnd().isAnchored())
-        self.assertFalse(QuarterEnd(2, startingMonth=1).isAnchored())
+        assert not QuarterEnd(2, startingMonth=1).isAnchored()
 
     def test_offset(self):
         tests = []
@@ -4527,7 +4524,7 @@ class TestTicks(tm.TestCase):
 
     def test_tick_offset(self):
         for t in self.ticks:
-            self.assertFalse(t().isAnchored())
+            assert not t().isAnchored()
 
     def test_compare_ticks(self):
         for kls in self.ticks:
@@ -4758,7 +4755,7 @@ class TestCaching(tm.TestCase):
     def run_X_index_creation(self, cls):
         inst1 = cls()
         if not inst1.isAnchored():
-            self.assertFalse(inst1._should_cache(), cls)
+            assert not inst1._should_cache(), cls
             return
 
         self.assertTrue(inst1._should_cache(), cls)
@@ -4768,13 +4765,13 @@ class TestCaching(tm.TestCase):
         self.assertTrue(cls() in _daterange_cache, cls)
 
     def test_should_cache_month_end(self):
-        self.assertFalse(MonthEnd()._should_cache())
+        assert not MonthEnd()._should_cache()
 
     def test_should_cache_bmonth_end(self):
-        self.assertFalse(BusinessMonthEnd()._should_cache())
+        assert not BusinessMonthEnd()._should_cache()
 
     def test_should_cache_week_month(self):
-        self.assertFalse(WeekOfMonth(weekday=1, week=2)._should_cache())
+        assert not WeekOfMonth(weekday=1, week=2)._should_cache()
 
     def test_all_cacheableoffsets(self):
         for subclass in get_all_subclasses(CacheableOffset):
@@ -4786,19 +4783,19 @@ class TestCaching(tm.TestCase):
     def test_month_end_index_creation(self):
         DatetimeIndex(start=datetime(2013, 1, 31), end=datetime(2013, 3, 31),
                       freq=MonthEnd(), normalize=True)
-        self.assertFalse(MonthEnd() in _daterange_cache)
+        assert not MonthEnd() in _daterange_cache
 
     def test_bmonth_end_index_creation(self):
         DatetimeIndex(start=datetime(2013, 1, 31), end=datetime(2013, 3, 29),
                       freq=BusinessMonthEnd(), normalize=True)
-        self.assertFalse(BusinessMonthEnd() in _daterange_cache)
+        assert not BusinessMonthEnd() in _daterange_cache
 
     def test_week_of_month_index_creation(self):
         inst1 = WeekOfMonth(weekday=1, week=2)
         DatetimeIndex(start=datetime(2013, 1, 31), end=datetime(2013, 3, 29),
                       freq=inst1, normalize=True)
         inst2 = WeekOfMonth(weekday=1, week=2)
-        self.assertFalse(inst2 in _daterange_cache)
+        assert inst2 not in _daterange_cache
 
 
 class TestReprNames(tm.TestCase):

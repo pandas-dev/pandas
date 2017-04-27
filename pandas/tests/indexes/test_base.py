@@ -414,13 +414,13 @@ class TestIndex(Base, tm.TestCase):
         self.assertTrue(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'c'])))
 
         # different length
-        self.assertFalse(Index(['a', 'b', 'c']).equals(Index(['a', 'b'])))
+        assert not Index(['a', 'b', 'c']).equals(Index(['a', 'b']))
 
         # same length, different values
-        self.assertFalse(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'd'])))
+        assert not Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'd']))
 
         # Must also be an Index
-        self.assertFalse(Index(['a', 'b', 'c']).equals(['a', 'b', 'c']))
+        assert not Index(['a', 'b', 'c']).equals(['a', 'b', 'c'])
 
     def test_insert(self):
 
@@ -470,25 +470,25 @@ class TestIndex(Base, tm.TestCase):
 
         i1 = i1.rename('foo')
         self.assertTrue(i1.equals(i2))
-        self.assertFalse(i1.identical(i2))
+        assert not i1.identical(i2)
 
         i2 = i2.rename('foo')
         self.assertTrue(i1.identical(i2))
 
         i3 = Index([('a', 'a'), ('a', 'b'), ('b', 'a')])
         i4 = Index([('a', 'a'), ('a', 'b'), ('b', 'a')], tupleize_cols=False)
-        self.assertFalse(i3.identical(i4))
+        assert not i3.identical(i4)
 
     def test_is_(self):
         ind = Index(range(10))
         self.assertTrue(ind.is_(ind))
         self.assertTrue(ind.is_(ind.view().view().view().view()))
-        self.assertFalse(ind.is_(Index(range(10))))
-        self.assertFalse(ind.is_(ind.copy()))
-        self.assertFalse(ind.is_(ind.copy(deep=False)))
-        self.assertFalse(ind.is_(ind[:]))
-        self.assertFalse(ind.is_(ind.view(np.ndarray).view(Index)))
-        self.assertFalse(ind.is_(np.array(range(10))))
+        assert not ind.is_(Index(range(10)))
+        assert not ind.is_(ind.copy())
+        assert not ind.is_(ind.copy(deep=False))
+        assert not ind.is_(ind[:])
+        assert not ind.is_(ind.view(np.ndarray).view(Index))
+        assert not ind.is_(np.array(range(10)))
 
         # quasi-implementation dependent
         self.assertTrue(ind.is_(ind.view()))
@@ -497,11 +497,11 @@ class TestIndex(Base, tm.TestCase):
         self.assertTrue(ind.is_(ind2))
         self.assertTrue(ind2.is_(ind))
         # doesn't matter if Indices are *actually* views of underlying data,
-        self.assertFalse(ind.is_(Index(ind.values)))
+        assert not ind.is_(Index(ind.values))
         arr = np.array(range(1, 11))
         ind1 = Index(arr, copy=False)
         ind2 = Index(arr, copy=False)
-        self.assertFalse(ind1.is_(ind2))
+        assert not ind1.is_(ind2)
 
     def test_asof(self):
         d = self.dateIndex[0]
@@ -519,7 +519,7 @@ class TestIndex(Base, tm.TestCase):
         expected = Timestamp('2010-02-28')
         result = idx.asof('2010-02')
         self.assertEqual(result, expected)
-        self.assertFalse(isinstance(result, Index))
+        assert not isinstance(result, Index)
 
     def test_nanosecond_index_access(self):
         s = Series([Timestamp('20130101')]).values.view('i8')[0]
@@ -938,24 +938,24 @@ class TestIndex(Base, tm.TestCase):
         self.assertEqual(result.name, 'new_name')
 
     def test_is_numeric(self):
-        self.assertFalse(self.dateIndex.is_numeric())
-        self.assertFalse(self.strIndex.is_numeric())
+        assert not self.dateIndex.is_numeric()
+        assert not self.strIndex.is_numeric()
         self.assertTrue(self.intIndex.is_numeric())
         self.assertTrue(self.floatIndex.is_numeric())
-        self.assertFalse(self.catIndex.is_numeric())
+        assert not self.catIndex.is_numeric()
 
     def test_is_object(self):
         self.assertTrue(self.strIndex.is_object())
         self.assertTrue(self.boolIndex.is_object())
-        self.assertFalse(self.catIndex.is_object())
-        self.assertFalse(self.intIndex.is_object())
-        self.assertFalse(self.dateIndex.is_object())
-        self.assertFalse(self.floatIndex.is_object())
+        assert not self.catIndex.is_object()
+        assert not self.intIndex.is_object()
+        assert not self.dateIndex.is_object()
+        assert not self.floatIndex.is_object()
 
     def test_is_all_dates(self):
         self.assertTrue(self.dateIndex.is_all_dates)
-        self.assertFalse(self.strIndex.is_all_dates)
-        self.assertFalse(self.intIndex.is_all_dates)
+        assert not self.strIndex.is_all_dates
+        assert not self.intIndex.is_all_dates
 
     def test_summary(self):
         self._check_method_works(Index.summary)
@@ -1331,8 +1331,8 @@ class TestIndex(Base, tm.TestCase):
 
     def test_is_monotonic_incomparable(self):
         index = Index([5, datetime.now(), 7])
-        self.assertFalse(index.is_monotonic)
-        self.assertFalse(index.is_monotonic_decreasing)
+        assert not index.is_monotonic
+        assert not index.is_monotonic_decreasing
 
     def test_get_set_value(self):
         values = np.random.randn(100)
@@ -2031,8 +2031,8 @@ class TestMixedIntIndex(Base, tm.TestCase):
                     pd.to_datetime(['2000-01-01', 'NaT', '2000-01-02']),
                     pd.to_timedelta(['1 day', 'NaT']), ]
         for index in examples:
-            self.assertFalse(index.is_monotonic_increasing)
-            self.assertFalse(index.is_monotonic_decreasing)
+            assert not index.is_monotonic_increasing
+            assert not index.is_monotonic_decreasing
 
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):

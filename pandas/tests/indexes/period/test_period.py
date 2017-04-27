@@ -512,16 +512,16 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
         rng = period_range('2007-01', freq='M', periods=10)
 
         self.assertTrue(Period('2007-01', freq='M') in rng)
-        self.assertFalse(Period('2007-01', freq='D') in rng)
-        self.assertFalse(Period('2007-01', freq='2M') in rng)
+        assert not Period('2007-01', freq='D') in rng
+        assert not Period('2007-01', freq='2M') in rng
 
     def test_contains_nat(self):
-        # GH13582
+        # see gh-13582
         idx = period_range('2007-01', freq='M', periods=10)
-        self.assertFalse(pd.NaT in idx)
-        self.assertFalse(None in idx)
-        self.assertFalse(float('nan') in idx)
-        self.assertFalse(np.nan in idx)
+        assert pd.NaT not in idx
+        assert None not in idx
+        assert float('nan') not in idx
+        assert np.nan not in idx
 
         idx = pd.PeriodIndex(['2011-01', 'NaT', '2011-02'], freq='M')
         self.assertTrue(pd.NaT in idx)
@@ -709,13 +709,13 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
 
     def test_is_full(self):
         index = PeriodIndex([2005, 2007, 2009], freq='A')
-        self.assertFalse(index.is_full)
+        assert not index.is_full
 
         index = PeriodIndex([2005, 2006, 2007], freq='A')
         self.assertTrue(index.is_full)
 
         index = PeriodIndex([2005, 2005, 2007], freq='A')
-        self.assertFalse(index.is_full)
+        assert not index.is_full
 
         index = PeriodIndex([2005, 2005, 2006], freq='A')
         self.assertTrue(index.is_full)

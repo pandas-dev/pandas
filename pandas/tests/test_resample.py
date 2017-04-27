@@ -134,8 +134,8 @@ class TestResampleAPI(tm.TestCase):
 
         # masquerade as Series/DataFrame as needed for API compat
         self.assertTrue(isinstance(self.series.resample('H'), ABCSeries))
-        self.assertFalse(isinstance(self.frame.resample('H'), ABCSeries))
-        self.assertFalse(isinstance(self.series.resample('H'), ABCDataFrame))
+        assert not isinstance(self.frame.resample('H'), ABCSeries)
+        assert not isinstance(self.series.resample('H'), ABCDataFrame)
         self.assertTrue(isinstance(self.frame.resample('H'), ABCDataFrame))
 
         # bin numeric ops

@@ -102,7 +102,7 @@ class TestFloatIndexers(tm.TestCase):
                 pytest.raises(error, f)
 
                 # contains
-                self.assertFalse(3.0 in s)
+                assert 3.0 not in s
 
                 # setting with a float fails with iloc
                 def f():

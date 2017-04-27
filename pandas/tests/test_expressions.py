@@ -254,17 +254,17 @@ class TestExpressions(tm.TestCase):
         # no op
         result = expr._can_use_numexpr(operator.add, None, self.frame,
                                        self.frame, 'evaluate')
-        self.assertFalse(result)
+        assert not result
 
         # mixed
         result = expr._can_use_numexpr(operator.add, '+', self.mixed,
                                        self.frame, 'evaluate')
-        self.assertFalse(result)
+        assert not result
 
         # min elements
         result = expr._can_use_numexpr(operator.add, '+', self.frame2,
                                        self.frame2, 'evaluate')
-        self.assertFalse(result)
+        assert not result
 
         # ok, we only check on first part of expression
         result = expr._can_use_numexpr(operator.add, '+', self.frame,
@@ -308,7 +308,7 @@ class TestExpressions(tm.TestCase):
 
                         result = expr._can_use_numexpr(op, op_str, f2, f2,
                                                        'evaluate')
-                        self.assertFalse(result)
+                        assert not result
 
         expr.set_use_numexpr(False)
         testit()
@@ -349,7 +349,7 @@ class TestExpressions(tm.TestCase):
 
                     result = expr._can_use_numexpr(op, op_str, f21, f22,
                                                    'evaluate')
-                    self.assertFalse(result)
+                    assert not result
 
         expr.set_use_numexpr(False)
         testit()

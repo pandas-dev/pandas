@@ -277,8 +277,8 @@ class TestIndexOps(Ops):
 
                 # noinspection PyComparisonWithNone
                 result = o == None  # noqa
-                self.assertFalse(result.iat[0])
-                self.assertFalse(result.iat[1])
+                assert not result.iat[0]
+                assert not result.iat[1]
 
                 # noinspection PyComparisonWithNone
                 result = o != None  # noqa
@@ -286,8 +286,8 @@ class TestIndexOps(Ops):
                 self.assertTrue(result.iat[1])
 
                 result = None == o  # noqa
-                self.assertFalse(result.iat[0])
-                self.assertFalse(result.iat[1])
+                assert not result.iat[0]
+                assert not result.iat[1]
 
                 # this fails for numpy < 1.9
                 # and oddly for *some* platforms
@@ -296,12 +296,12 @@ class TestIndexOps(Ops):
                 # self.assertTrue(result.iat[1])
 
                 result = None > o
-                self.assertFalse(result.iat[0])
-                self.assertFalse(result.iat[1])
+                assert not result.iat[0]
+                assert not result.iat[1]
 
                 result = o < None
-                self.assertFalse(result.iat[0])
-                self.assertFalse(result.iat[1])
+                assert not result.iat[0]
+                assert not result.iat[1]
 
     def test_ndarray_compat_properties(self):
 
@@ -796,10 +796,10 @@ class TestIndexOps(Ops):
                 self.assertTrue(duplicated.dtype == bool)
                 result = original.drop_duplicates()
                 tm.assert_index_equal(result, original)
-                self.assertFalse(result is original)
+                assert result is not original
 
                 # has_duplicates
-                self.assertFalse(original.has_duplicates)
+                assert not original.has_duplicates
 
                 # create repeated values, 3rd and 5th values are duplicated
                 idx = original[list(range(len(original))) + [5, 3]]
@@ -843,7 +843,7 @@ class TestIndexOps(Ops):
                 tm.assert_series_equal(original.duplicated(), expected)
                 result = original.drop_duplicates()
                 tm.assert_series_equal(result, original)
-                self.assertFalse(result is original)
+                assert result is not original
 
                 idx = original.index[list(range(len(original))) + [5, 3]]
                 values = original._values[list(range(len(original))) + [5, 3]]
@@ -907,7 +907,7 @@ class TestIndexOps(Ops):
             else:
                 tm.assert_series_equal(o, result)
             # check shallow_copied
-            self.assertFalse(o is result)
+            assert o is not result
 
         for null_obj in [np.nan, None]:
             for orig in self.objs:
@@ -941,7 +941,7 @@ class TestIndexOps(Ops):
                 else:
                     tm.assert_series_equal(result, expected)
                 # check shallow_copied
-                self.assertFalse(o is result)
+                assert o is not result
 
     def test_memory_usage(self):
         for o in self.objs:

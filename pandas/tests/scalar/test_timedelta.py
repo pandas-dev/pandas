@@ -451,7 +451,7 @@ class TestTimedeltas(tm.TestCase):
         # GH 13603
         td = to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
         for v in [pd.NaT, None, float('nan'), np.nan]:
-            self.assertFalse((v in td))
+            assert not (v in td)
 
         td = to_timedelta([pd.NaT])
         for v in [pd.NaT, None, float('nan'), np.nan]:
@@ -658,7 +658,7 @@ class TestTimedeltas(tm.TestCase):
         s[1] = np.nan
 
         result = s.dt.components
-        self.assertFalse(result.iloc[0].isnull().all())
+        assert not result.iloc[0].isnull().all()
         self.assertTrue(result.iloc[1].isnull().all())
 
     def test_isoformat(self):
@@ -707,5 +707,5 @@ class TestTimedeltas(tm.TestCase):
             with pytest.raises(TypeError):
                 l > r
 
-            self.assertFalse(l == r)
+            assert not l == r
             self.assertTrue(l != r)

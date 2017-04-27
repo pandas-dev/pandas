@@ -399,10 +399,10 @@ class TestDatetimeIndex(tm.TestCase):
         assert isinstance(list(result.values())[0][0], Timestamp)
 
         idx = DatetimeIndex(['2000-01-03', '2000-01-01', '2000-01-02'])
-        self.assertFalse(idx.equals(list(idx)))
+        assert not idx.equals(list(idx))
 
         non_datetime = Index(list('abc'))
-        self.assertFalse(idx.equals(list(non_datetime)))
+        assert not idx.equals(list(non_datetime))
 
     def test_string_index_series_name_converted(self):
         # #1644

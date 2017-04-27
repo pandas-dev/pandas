@@ -378,7 +378,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             with tm.assert_raises_regex(AttributeError,
                                         "only use .dt accessor"):
                 s.dt
-            self.assertFalse(hasattr(s, 'dt'))
+            assert not hasattr(s, 'dt')
 
     def test_sub_of_datetime_from_TimeSeries(self):
         from pandas.core.tools.timedeltas import to_timedelta

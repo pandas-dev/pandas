@@ -684,7 +684,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             self.assertTrue(self.panel4d._data.is_consolidated())
 
             self.panel4d['foo'] = 1.
-            self.assertFalse(self.panel4d._data.is_consolidated())
+            assert not self.panel4d._data.is_consolidated()
 
             panel4d = self.panel4d._consolidate()
             self.assertTrue(panel4d._data.is_consolidated())
@@ -803,7 +803,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             # don't necessarily copy
             result = self.panel4d.reindex()
             assert_panel4d_equal(result, self.panel4d)
-            self.assertFalse(result is self.panel4d)
+            assert result is not self.panel4d
 
             # with filling
             smaller_major = self.panel4d.major_axis[::5]
@@ -857,7 +857,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
     def test_fillna(self):
 
         with catch_warnings(record=True):
-            self.assertFalse(np.isfinite(self.panel4d.values).all())
+            assert not np.isfinite(self.panel4d.values).all()
             filled = self.panel4d.fillna(0)
             self.assertTrue(np.isfinite(filled.values).all())
 

@@ -438,7 +438,7 @@ class TestFancy(Base, tm.TestCase):
             df.loc['2011', 0]
 
         df = pd.DataFrame()
-        self.assertFalse(df.index.is_all_dates)
+        assert not df.index.is_all_dates
         with pytest.raises(KeyError):
             df['2011']
 
