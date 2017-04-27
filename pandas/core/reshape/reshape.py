@@ -1293,7 +1293,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             # reset NaN GH4446
             dummy_mat[codes == -1] = 0
 
-                if (drop_idx==True) & (type(drop_idx)!=int) :
+        if (drop_idx==True) & (type(drop_idx)!=int) :
             # remove first categorical level to avoid perfect collinearity
             # GH12042
             dummy_mat = dummy_mat[:, 1:]
