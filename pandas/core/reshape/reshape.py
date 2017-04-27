@@ -1067,7 +1067,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
 
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
-                columns=None, sparse=False, drop_idx=False):
+                columns=None, sparse=False, drop_first=False):
     """
     Convert categorical variable into dummy/indicator variables
 
@@ -1208,17 +1208,17 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
             dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,
                                     dummy_na=dummy_na, sparse=sparse,
-                                    drop_idx=drop_idx)
+                                    drop_first=drop_first)
             with_dummies.append(dummy)
         result = concat(with_dummies, axis=1)
     else:
         result = _get_dummies_1d(data, prefix, prefix_sep, dummy_na,
-                                 sparse=sparse, drop_idx=drop_idx)
+                                 sparse=sparse, drop_first=drop_first)
     return result
 
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
-                    sparse=False, drop_idx=False):
+                    sparse=False, drop_first=False):
     # Series avoids inconsistent NaN handling
     codes, levels = _factorize_from_iterable(Series(data))
 
@@ -1242,7 +1242,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         levels = np.append(levels, np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
-    if drop_idx is not False and len(levels) == 1:
+    if drop_first is not False and len(levels) == 1:
         return get_empty_Frame(data, sparse)
 
     number_of_cols = len(levels)
@@ -1267,14 +1267,14 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
                 continue
             sp_indices[code].append(ndx)
 
-        if (drop_idx==True) & (type(drop_idx)!=int) :
+        if (drop_first==True) & (type(drop_first)!=int) :
             # remove first categorical level to avoid perfect collinearity
             # GH12042
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
-        elif (type(drop_idx)==int) & (drop_idx>0) & (drop_idx<len(dummy_cols)) :
-            del sp_indices[drop_idx]
-            del dummy_cols[drop_idx]
+        elif (type(drop_first)==int) & (drop_first>0) & (drop_first<len(dummy_cols)) :
+            del sp_indices[drop_first]
+            del dummy_cols[drop_first]
         for col, ixs in zip(dummy_cols, sp_indices):
             sarr = SparseArray(np.ones(len(ixs), dtype=np.uint8),
                                sparse_index=IntIndex(N, ixs), fill_value=0,
@@ -1293,19 +1293,19 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             # reset NaN GH4446
             dummy_mat[codes == -1] = 0
 
-        if (drop_idx==True) & (type(drop_idx)!=int) :
+        if (drop_first==True) & (type(drop_first)!=int) :
             # remove first categorical level to avoid perfect collinearity
             # GH12042
             dummy_mat = dummy_mat[:, 1:]
             dummy_cols = dummy_cols[1:]
-        elif type(drop_idx)==int :
-            if drop_idx>=dummy_mat.shape[1] :
+        elif type(drop_first)==int :
+            if drop_first>=dummy_mat.shape[1] :
                 raise ValueError('value must be smaller than number of rows')
-            elif drop_idx<0 :
+            elif drop_first<0 :
                 raise ValueError('value must be greater or equal to zero')
             else :
-                dummy_mat = np.concatenate((dummy_mat[:,:drop_idx], dummy_mat[:,(drop_idx+1):]),axis=1)
-                dummy_cols = dummy_cols.delete([drop_idx])
+                dummy_mat = np.concatenate((dummy_mat[:,:drop_first], dummy_mat[:,(drop_first+1):]),axis=1)
+                dummy_cols = dummy_cols.delete([drop_first])
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
