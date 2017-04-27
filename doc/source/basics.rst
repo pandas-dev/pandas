@@ -120,8 +120,8 @@ These are both enabled to be used by default, you can control this by setting th
 
 .. code-block:: python
 
-   pd.set_option('use_bottleneck', False)
-   pd.set_option('use_numexpr', False)
+   pd.set_option('compute.use_bottleneck', False)
+   pd.set_option('compute.use_numexpr', False)
 
 .. _basics.binop:
 
