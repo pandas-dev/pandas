@@ -910,9 +910,6 @@ The :ref:`CSV <io.read_csv_table>` docs
 `appending to a csv
 <http://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
 
-`how to read in multiple files, appending to create a single dataframe
-<http://stackoverflow.com/questions/25210819/speeding-up-data-import-function-pandas-and-appending-to-dataframe/25210900#25210900>`__
-
 `Reading a csv chunk-by-chunk
 <http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
 
@@ -942,6 +939,47 @@ using that handle to read.
 
 `Write a multi-row index CSV without writing duplicates
 <http://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
+
+.. _cookbook.csv.multiple_files:
+
+Reading multiple files to create a single DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The best way to combine multiple files into a single DataFrame is to read the individual frames one by one, put all
+of the individual frames into a list, and then combine the frames in the list using ``pd.concat``:
+
+.. ipython:: python
+
+    for i in range(3):
+        data = pd.DataFrame(np.random.randn(10, 4))
+        data.to_csv('file_{}.csv'.format(i))
+
+    frames = []
+    files = ['file_0.csv', 'file_1.csv', 'file_2.csv']
+    for f in files:
+        frames.append(pd.read_csv(f))
+    result = pd.concat(frames)
+
+You can use the same approach to read all files matching a pattern.  Here is an example using ``glob``:
+
+.. ipython:: python
+
+    import glob
+    frames = []
+    for f in glob.glob('file_*.csv'):
+       frames.append(pd.read_csv(f))
+    result = pd.concat(frames)
+
+This performs significantly better than using ``pd.append`` to add each of the files to an existing DataFrame.
+Finally, this strategy will work with the other ``read_`` functions described in the :ref:`io docs<io>`.
+
+.. ipython:: python
+    :supress:
+    for i in range(3):
+        os.remove('file_{}.csv'.format(i))
+
+Parsing date components in multi-columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Parsing date components in multi-columns is faster with a format
 

@@ -1439,6 +1439,14 @@ class of the csv module. For this, you have to specify ``sep=None``.
     print(open('tmp2.sv').read())
     pd.read_csv('tmp2.sv', sep=None, engine='python')
 
+.. _io.multiple_files:
+
+Reading multiple files to create a single DataFrame
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+
+It's best to use ``pd.concat`` to combine multiple files, rather than ``pd.append``.
+See the :ref:`cookbook<cookbook.csv.multiple_files>` for an example.
+
 .. _io.chunking:
 
 Iterating through files chunk by chunk
