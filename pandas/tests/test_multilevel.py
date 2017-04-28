@@ -2255,6 +2255,14 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.set_index([('A', '')]).reset_index()
         tm.assert_frame_equal(result, df)
 
+        # with additional (unnamed) index level
+        idx_col = pd.DataFrame([[0], [1]],
+                               columns=pd.MultiIndex.from_tuples([('level_0',
+                                                                   '')]))
+        expected = pd.concat([idx_col, df[[('B', 'b'), ('A', '')]]], axis=1)
+        result = df.set_index([('B', 'b')], append=True).reset_index()
+        tm.assert_frame_equal(result, expected)
+
     def test_set_index_period(self):
         # GH 6631
         df = DataFrame(np.random.random(6))
