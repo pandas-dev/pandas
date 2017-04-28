@@ -946,7 +946,7 @@ Reading multiple files to create a single DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The best way to combine multiple files into a single DataFrame is to read the individual frames one by one, put all
-of the individual frames into a list, and then combine the frames in the list using ``pd.concat``:
+of the individual frames into a list, and then combine the frames in the list using :func:`pd.concat`:
 
 .. ipython:: python
 
@@ -956,9 +956,7 @@ of the individual frames into a list, and then combine the frames in the list us
 
     frames = []
     files = ['file_0.csv', 'file_1.csv', 'file_2.csv']
-    for f in files:
-        frames.append(pd.read_csv(f))
-    result = pd.concat(frames)
+    result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
 
 You can use the same approach to read all files matching a pattern.  Here is an example using ``glob``:
 
@@ -966,12 +964,10 @@ You can use the same approach to read all files matching a pattern.  Here is an 
 
     import glob
     frames = []
-    for f in glob.glob('file_*.csv'):
-       frames.append(pd.read_csv(f))
-    result = pd.concat(frames)
+    files = glob.glob('file_*.csv')
+    result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
 
-This performs significantly better than using ``pd.append`` to add each of the files to an existing DataFrame.
-Finally, this strategy will work with the other ``read_`` functions described in the :ref:`io docs<io>`.
+Finally, this strategy will work with the other ``read_*(...)`` functions described in the :ref:`io docs<io>`.
 
 .. ipython:: python
     :supress:

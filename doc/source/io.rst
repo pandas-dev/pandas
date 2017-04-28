@@ -1444,7 +1444,7 @@ class of the csv module. For this, you have to specify ``sep=None``.
 Reading multiple files to create a single DataFrame
 '''''''''''''''''''''''''''''''''''''''''''''''''''
 
-It's best to use ``pd.concat`` to combine multiple files, rather than ``pd.append``.
+It's best to use :func:`~pandas.concat` to combine multiple files.
 See the :ref:`cookbook<cookbook.csv.multiple_files>` for an example.
 
 .. _io.chunking:
