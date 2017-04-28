@@ -518,6 +518,205 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         res = df.add(2, fill_value=0)
         assert_frame_equal(res, exp)
 
+    def test_fillna_error_modes_numeric_fill(self):
+        # Filling numeric/object cols with a numeric
+        df1 = DataFrame({'a': [nan, 1.0],
+                         'b': [nan, True],
+                         'c': [nan, 1],
+                         'd': [nan, 1j],
+                         'e': [nan, 'foo'],})
+        expected = DataFrame({'a': [0.0, 1.0],
+                              'b': [0, True],
+                              'c': [0.0, 1.0],
+                              'd': [0, 1j],
+                              'e': [0, 'foo']})
+
+        result = df1.fillna(0, errors='coerce')
+        assert_frame_equal(result, expected)
+        result = df1.fillna(0, errors='ignore')
+        assert_frame_equal(result, expected)
+        result = df1.fillna(0, errors='raise')
+        assert_frame_equal(result, expected)
+
+    def test_fillna_error_modes_bool_fill(self):
+        # Filling numeric/object cols with a bool
+        df1 = DataFrame({'a': [nan, 1.0],
+                         'b': [nan, True],
+                         'c': [nan, 1],
+                         'd': [nan, 1j],
+                         'e': [nan, 'foo']})
+
+        result = df1.fillna(False, errors='coerce')
+        expected = DataFrame({'a': [0.0, 1.0],
+                              'b': [False, True],
+                              'c': [0.0, 1.0],
+                              'd': [0.0, 1j],
+                              'e': [False, 'foo']})
+        assert_frame_equal(result, expected)
+
+        result = df1.fillna(False, errors='ignore')
+        expected = DataFrame({'a': [nan, 1.0],
+                              'b': [False, True],
+                              'c': [nan, 1.0],
+                              'd': [nan, 1j],
+                              'e': [False, 'foo']})
+        assert_frame_equal(result, expected)
+
+        with tm.assertRaises(TypeError):
+            df1.fillna(False, errors='raise')
+
+    def test_fillna_error_modes_obj_fill(self):
+        # Filling numeric/object cols with an obj
+        df1 = DataFrame({'a': [nan, 1.0],
+                         'b': [nan, True],
+                         'c': [nan, 1],
+                         'd': [nan, 1j],
+                         'e': [nan, 'foo']})
+
+        result = df1.fillna('bar', errors='coerce')
+        expected = DataFrame({'a': ['bar', 1.0],
+                              'b': ['bar', True],
+                              'c': ['bar', 1.0],
+                              'd': ['bar', 1j],
+                              'e': ['bar', 'foo']})
+        assert_frame_equal(result, expected)
+
+        result = df1.fillna('bar', errors='ignore')
+        expected = DataFrame({'a': [nan, 1.0],
+                              'b': ['bar', True],  # col cast to obj!
+                              'c': [nan, 1.0],
+                              'd': [nan, 1j],
+                              'e': ['bar', 'foo']})
+        assert_frame_equal(result, expected)
+
+        with tm.assertRaises(TypeError):
+            df1.fillna('bar', errors='raise')
+
+    def test_fillna_error_modes_datetime_fill(self):
+        # Filling numeric/object/datetime cols with a datetime
+        timestamp = Timestamp('1970-01-01')
+
+        df1 = DataFrame({'a': [nan, 1.0],
+                         'b': [nan, True],
+                         'c': [nan, 1],
+                         'd': [nan, 1j],
+                         'e': [nan, 'foo'],
+                         'f': [nan, timestamp]})
+
+        result = df1.fillna(Timestamp('1970-01-01'), errors='coerce')
+        expected = DataFrame({'a': [timestamp, 1.0],
+                              'b': [timestamp, True],
+                              'c': [timestamp, 1.0],
+                              'd': [timestamp, 1j],
+                              'e': [timestamp, 'foo'],
+                              'f': [timestamp, timestamp]})
+        assert_frame_equal(result, expected)
+
+        result = df1.fillna(timestamp, errors='ignore')
+        expected = DataFrame({'a': [nan, 1.0],
+                              'b': [timestamp, True],  # col cast to obj!
+                              'c': [nan, 1.0],
+                              'd': [nan, 1j],
+                              'e': [timestamp, 'foo'],
+                              'f': [timestamp, timestamp]})
+        assert_frame_equal(result, expected)
+
+        with tm.assertRaises(TypeError):
+            df1.fillna(Timestamp('1970-01-01'), errors='raise')
+
+    def test_fillna_error_modes_timedelta_fill(self):
+        # Filling numeric/object/timedelta cols with a timedelta
+        timedelta = pd.Timedelta('1 hour')
+
+        df1 = DataFrame({'a': [nan, 1.0],
+                         'b': [nan, True],
+                         'c': [nan, 1],
+                         'd': [nan, 1j],
+                         'e': [nan, 'foo'],
+                         'f': [nan, timedelta]})
+
+        result = df1.fillna(timedelta, errors='coerce')
+        expected = DataFrame({'a': [timedelta, 1.0],
+                              'b': [timedelta, True],
+                              'c': [timedelta, 1.0],
+                              'd': [timedelta, 1j],
+                              'e': [timedelta, 'foo'],
+                              'f': [timedelta, timedelta]})
+        assert_frame_equal(result, expected)
+
+        result = df1.fillna(pd.Timedelta('1 hour'), errors='ignore')
+        expected = DataFrame({'a': [nan, 1.0],
+                              'b': [pd.Timedelta('1 hour'), True],  # col cast to obj!
+                              'c': [nan, 1.0],
+                              'd': [nan, 1j],
+                              'e': [pd.Timedelta('1 hour'), 'foo'],
+                              'f': [pd.Timedelta('1 hour'), pd.Timedelta('1 hour')]})
+        assert_frame_equal(result, expected)
+
+        with tm.assertRaises(TypeError):
+            df1.fillna(Timestamp('1970-01-01'), errors='raise')
+
+    def test_fillna_error_modes_period_fill(self):
+        # Filling numeric/object/period cols with a period
+        period = pd.Period('1 hour')
+
+        df1 = DataFrame({'a': [nan, 1.0],
+                         'b': [nan, True],
+                         'c': [nan, 1],
+                         'd': [nan, 1j],
+                         'e': [nan, 'foo'],
+                         'f': [nan, period]})
+
+        result = df1.fillna(pd.Period('1 hour'), errors='coerce')
+        expected = DataFrame({'a': [period, 1.0],
+                              'b': [period, True],
+                              'c': [period, 1.0],
+                              'd': [period, 1j],
+                              'e': [period, 'foo'],
+                              'f': [period, period]})
+        assert_frame_equal(result, expected)
+
+        result = df1.fillna(period, errors='ignore')
+        expected = DataFrame({'a': [nan, 1.0],
+                              'b': [period, True],  # col cast to obj!
+                              'c': [nan, 1.0],
+                              'd': [nan, 1j],
+                              'e': [period, 'foo'],
+                              'f': [period, period]})
+        assert_frame_equal(result, expected)
+
+        with tm.assertRaises(TypeError):
+            df1.fillna(period, errors='raise')
+
+    def test_fillna_error_modes_time_dtype_interactions(self):
+        timedelta = pd.Timedelta('1 hour')
+        period = pd.Period('1 hour')
+        timestamp = Timestamp('1970-01-01')
+
+        df1 = DataFrame({'a': [nan, timedelta],
+                         'b': [nan, period],
+                         'c': [nan, timestamp]})
+
+        result = df1.fillna(timedelta, errors='ignore')
+        expected = DataFrame({'a': [timedelta, timedelta],
+                              'b': [timedelta, period],  # col cast to obj!
+                              'c': [nan, timestamp]})
+        assert_frame_equal(result, expected)
+
+        result = df1.fillna(period, errors='ignore')
+        expected = DataFrame({'a': [nan, timedelta],
+                              'b': [period, period],  # col cast to obj!
+                              'c': [nan, timestamp]})
+        assert_frame_equal(result, expected)
+
+        result = df1.fillna(timestamp, errors='ignore')
+        expected = DataFrame({'a': [nan, timedelta],
+                              'b': [timestamp, period],  # col cast to obj!
+                              'c': [timestamp, timestamp]})
+        assert_frame_equal(result, expected)
+
+        # TODO: coerce tests.
+
 
 class TestDataFrameInterpolate(tm.TestCase, TestData):
 

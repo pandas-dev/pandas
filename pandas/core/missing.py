@@ -20,7 +20,8 @@ from pandas.core.dtypes.common import (
     _ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isnull, is_valid_fill_value
+from pandas.core.dtypes.generic import ABCSeries
 
 
 def mask_missing(arr, values_to_mask):
@@ -624,3 +625,35 @@ def fill_zeros(result, x, y, name, fill):
             result = result.reshape(shape)
 
     return result
+
+
+def validate_fill_value(obj, value):
+    """
+
+    Fillna error coercion routine.
+
+    Parameters
+    ----------
+    obj : Series of DataFrame
+        The Series or DataFrame for which a fill value is being evaluated.
+        If obj is a DataFrame this method simply returns True (e.g. the fillna
+        operation is allowed to continue) because it will be broken up and
+        parsed as a sequence of sub-Series later on.
+    value : object
+        The value to be used as a fill for the object.
+
+    Returns
+    -------
+    continue : bool
+        Whether or not, based on the values and the error mode, the fill
+        operation ought to continue.
+    """
+    """
+    fillna error coercion routine, returns whether or not to continue.
+    """
+    if isinstance(obj, ABCSeries):
+        if not is_valid_fill_value(value, obj.dtype):
+            raise TypeError('"value" parameter must be compatible '
+                            'with the {0} dtype, but you passed a '
+                            '"{1}"'.format(obj.dtype,
+                                           type(value).__name__))

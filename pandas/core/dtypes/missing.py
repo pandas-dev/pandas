@@ -19,7 +19,10 @@ from .common import (is_string_dtype, is_datetimelike,
                      is_object_dtype,
                      is_integer,
                      _TD_DTYPE,
-                     _NS_DTYPE)
+                     _NS_DTYPE,
+                     is_datetime64_any_dtype, is_float,
+                     is_numeric_dtype, is_complex, is_period_arraylike)
+from datetime import datetime, timedelta
 from .inference import is_list_like
 
 
@@ -394,3 +397,32 @@ def na_value_for_dtype(dtype):
     elif is_bool_dtype(dtype):
         return False
     return np.nan
+
+
+def is_valid_fill_value(value, dtype):
+    """
+    Makes sure the fill value is appropriate for the given dtype.
+
+    Parameters
+    ----------
+    value : scalar
+    dtype: string / dtype
+    """
+    if isinstance(value, dict):
+        return True
+    if not is_scalar(value):
+        # maybe always raise?
+        # raise TypeError('"value" parameter must be a scalar or dict, but '
+        #                 'you passed a "{0}"'.format(type(value).__name__))
+        return False
+    elif isnull(value):
+        return True
+    elif is_bool_dtype(dtype):
+        return isinstance(value, (np.bool, bool))
+    elif is_numeric_dtype(dtype):
+        return is_float(value) or is_integer(value) or is_complex(value)
+    elif is_datetime64_any_dtype(dtype):
+        return isinstance(value, (np.datetime64, datetime))
+    elif is_timedelta64_dtype(dtype):
+        return isinstance(value, (np.timedelta64, timedelta))
+    return True

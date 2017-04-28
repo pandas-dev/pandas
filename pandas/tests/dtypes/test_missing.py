@@ -2,8 +2,9 @@
 
 from warnings import catch_warnings
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 from pandas.util import testing as tm
+import pytest
 
 import pandas as pd
 from pandas.core import config as cf
@@ -14,7 +15,7 @@ from pandas import (NaT, Float64Index, Series,
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
     array_equivalent, isnull, notnull,
-    na_value_for_dtype)
+    na_value_for_dtype, is_valid_fill_value)
 
 
 def test_notnull():
@@ -312,3 +313,35 @@ def test_na_value_for_dtype():
 
     for dtype in ['O']:
         assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
+
+
+@pytest.mark.parametrize(('value', 'dtype'),
+                         [(False, bool), (np.nan, bool),
+                          (0, int), (0.0, int), (0j, int), (np.nan, int),
+                          (0, float), (0.0, float), (0j, float),
+                          (np.nan, float),
+                          (0, complex), (0.0, complex), (0j, complex),
+                          (np.nan, complex),
+                          (False, str), (0, str), (0.0, str), (0j, str),
+                          (np.nan, str), ('0', str),
+                          (datetime(1970, 1, 1), np.datetime64),
+                          (pd.Timestamp('1970-01-01'), np.datetime64),
+                          (timedelta(0), np.timedelta64),
+                          (pd.Timedelta(0), np.timedelta64)])
+def test_valid_fill_value(value, dtype):
+    assert is_valid_fill_value(value, dtype)
+
+
+@pytest.mark.parametrize(('value', 'dtype'),
+                         [(0, bool), (0.0, bool), (0j, bool), ('0', bool),
+                          ('0', int),
+                          ('0', float),
+                          ('0', complex),
+                          ('0', np.dtype('datetime64')),
+                          (timedelta(0), np.dtype('datetime64')),
+                          (pd.Period('1970-01-01'), np.dtype('datetime64')),
+                          ('0', np.dtype('timedelta64')),
+                          (datetime(1970, 1, 1), np.dtype('timedelta64')),
+                          (pd.Period('1970-01-01'), np.dtype('timedelta64'))])
+def test_invalid_fill_value(value, dtype):
+    assert not is_valid_fill_value(value, dtype)
