@@ -1965,3 +1965,35 @@ Dtype introspection
     api.types.is_timedelta64_dtype
     api.types.is_timedelta64_ns_dtype
     api.types.is_unsigned_integer_dtype
+    api.types.is_sparse
+
+Iterable introspection
+
+    api.types.is_dict_like
+    api.types.is_file_like
+    api.types.is_list_like
+    api.types.is_named_tuple
+    api.types.is_iterator
+    api.types.is_sequence
+
+.. autosummary::
+   :toctree: generated/
+
+Scalar introspection
+
+.. autosummary::
+   :toctree: generated/
+
+    api.types.is_bool
+    api.types.is_categorical
+    api.types.is_complex
+    api.types.is_datetimetz
+    api.types.is_float
+    api.types.is_hashable
+    api.types.is_integer
+    api.types.is_interval
+    api.types.is_number
+    api.types.is_period
+    api.types.is_re
+    api.types.is_re_compilable
+    api.types.is_scalar
