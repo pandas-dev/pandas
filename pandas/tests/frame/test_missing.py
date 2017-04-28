@@ -562,7 +562,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
                               'e': [False, 'foo']})
         assert_frame_equal(result, expected)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df1.fillna(False, errors='raise')
 
     def test_fillna_error_modes_obj_fill(self):
@@ -589,7 +589,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
                               'e': ['bar', 'foo']})
         assert_frame_equal(result, expected)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df1.fillna('bar', errors='raise')
 
     def test_fillna_error_modes_datetime_fill(self):
@@ -621,7 +621,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
                               'f': [timestamp, timestamp]})
         assert_frame_equal(result, expected)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df1.fillna(Timestamp('1970-01-01'), errors='raise')
 
     def test_fillna_error_modes_timedelta_fill(self):
@@ -653,7 +653,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
                               'f': [pd.Timedelta('1 hour'), pd.Timedelta('1 hour')]})
         assert_frame_equal(result, expected)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df1.fillna(Timestamp('1970-01-01'), errors='raise')
 
     def test_fillna_error_modes_period_fill(self):
@@ -685,7 +685,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
                               'f': [period, period]})
         assert_frame_equal(result, expected)
 
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df1.fillna(period, errors='raise')
 
     def test_fillna_error_modes_time_dtype_interactions(self):
