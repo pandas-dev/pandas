@@ -1,6 +1,6 @@
 # flake8: noqa
 
-import numpy as np
+import sys
 
 from .common import (pandas_dtype,
                      is_dtype_equal,
@@ -40,12 +40,10 @@ from .common import (pandas_dtype,
                      is_float,
                      is_complex,
                      is_number,
-                     is_any_int_dtype,
                      is_integer_dtype,
                      is_int64_dtype,
                      is_numeric_dtype,
                      is_float_dtype,
-                     is_floating_dtype,
                      is_bool_dtype,
                      is_complex_dtype,
                      is_signed_integer_dtype,
@@ -61,3 +59,24 @@ from .common import (pandas_dtype,
                      is_hashable,
                      is_named_tuple,
                      is_sequence)
+
+
+# deprecated
+m = sys.modules['pandas.core.dtypes.api']
+
+for t in ['is_any_int_dtype', 'is_floating_dtype']:
+
+    def outer(t=t):
+
+        def wrapper(arr_or_dtype):
+            import warnings
+            import pandas
+            warnings.warn("{t} is deprecated and will be "
+                          "removed in a future version".format(t=t),
+                          FutureWarning, stacklevel=3)
+            return getattr(pandas.core.dtypes.common, t)(arr_or_dtype)
+        return wrapper
+
+    setattr(m, t, outer(t))
+
+del sys, m, t, outer
