@@ -2263,6 +2263,29 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.set_index([('B', 'b')], append=True).reset_index()
         tm.assert_frame_equal(result, expected)
 
+        # with index name which is a too long tuple...
+        with tm.assert_raises_regex(ValueError,
+                                    ("Item must have length equal to number "
+                                     "of levels.")):
+            df.rename_axis([('C', 'c', 'i')]).reset_index()
+        # or too short...
+        levels = [['A', 'a', ''], ['B', 'b', 'i']]
+        df2 = pd.DataFrame([[0, 2], [1, 3]],
+                           columns=pd.MultiIndex.from_tuples(levels))
+        idx_col = pd.DataFrame([[0], [1]],
+                               columns=pd.MultiIndex.from_tuples([('C',
+                                                                   'c',
+                                                                   'ii')]))
+        expected = pd.concat([idx_col, df2], axis=1)
+        result = df2.rename_axis([('C', 'c')]).reset_index(col_fill='ii')
+        tm.assert_frame_equal(result, expected)
+
+        # ... which is incompatible with col_fill=None
+        with tm.assert_raises_regex(ValueError,
+                                    ("col_fill=None is incompatible with "
+                                     "incomplete column name \('C', 'c'\)")):
+            df2.rename_axis([('C', 'c')]).reset_index(col_fill=None)
+
     def test_set_index_period(self):
         # GH 6631
         df = DataFrame(np.random.random(6))

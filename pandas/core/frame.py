@@ -3032,21 +3032,27 @@ it is assumed to be aliases for the column names.')
         if not drop:
             multi_col = isinstance(self.columns, MultiIndex)
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
-                col_name = names[i]
-
-                if multi_col and not isinstance(col_name, tuple):
+                name = names[i]
+                if multi_col:
+                    col_name = (list(name) if isinstance(name, tuple)
+                                else [name])
                     if col_fill is None:
-                        col_name = tuple([col_name] * self.columns.nlevels)
-                    else:
-                        name_lst = [col_fill] * self.columns.nlevels
-                        lev_num = self.columns._get_level_number(col_level)
-                        name_lst[lev_num] = col_name
-                        col_name = tuple(name_lst)
+                        if len(col_name) not in (1, self.columns.nlevels):
+                            raise ValueError("col_fill=None is incompatible "
+                                             "with incomplete column name "
+                                             "{}".format(name))
+                        col_fill = col_name[0]
+
+                    lev_num = self.columns._get_level_number(col_level)
+                    name_lst = [col_fill] * lev_num + col_name
+                    missing = self.columns.nlevels - len(name_lst)
+                    name_lst += [col_fill] * missing
+                    name = tuple(name_lst)
 
                 # to ndarray and maybe infer different dtype
                 level_values = _maybe_casted_values(lev, lab)
                 if level is None or i in level:
-                    new_obj.insert(0, col_name, level_values)
+                    new_obj.insert(0, name, level_values)
 
         new_obj.index = new_index
         if not inplace:
