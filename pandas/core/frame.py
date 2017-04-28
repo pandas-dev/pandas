@@ -3019,17 +3019,17 @@ it is assumed to be aliases for the column names.')
                 if len(level) < len(self.index.levels):
                     new_index = self.index.droplevel(level)
 
-            if not drop:
+        if not drop:
+            if isinstance(self.index, MultiIndex):
                 names = [n if n is not None else ('level_%d' % i)
                          for (i, n) in enumerate(self.index.names)]
                 to_insert = lzip(self.index.levels, self.index.labels)
+            else:
+                default = 'index' if 'index' not in self else 'level_0'
+                names = ([default] if self.index.name is None
+                         else [self.index.name])
+                to_insert = ((self.index, None),)
 
-        elif not drop:
-            default = 'index' if 'index' not in self else 'level_0'
-            names = [default] if self.index.name is None else [self.index.name]
-            to_insert = ((self.index, None),)
-
-        if not drop:
             multi_col = isinstance(self.columns, MultiIndex)
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
                 name = names[i]
