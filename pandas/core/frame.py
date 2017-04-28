@@ -18,6 +18,7 @@ import itertools
 import sys
 import types
 import warnings
+from textwrap import dedent
 
 from numpy import nan as NA
 import numpy as np
@@ -4200,7 +4201,40 @@ it is assumed to be aliases for the column names.')
         # TODO: _shallow_copy(subset)?
         return self[key]
 
-    @Appender(_shared_docs['aggregate'] % _shared_doc_kwargs)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+    ...                   index=pd.date_range('1/1/2000', periods=10))
+    >>> df.iloc[3:7] = np.nan
+
+    Aggregate these functions across all columns
+
+    >>> df.agg(['sum', 'min'])
+                A         B         C
+    sum -0.182253 -0.614014 -2.909534
+    min -1.916563 -1.460076 -1.568297
+
+    Different aggregations per column
+
+    >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
+                A         B
+    max       NaN  1.514318
+    min -1.916563 -1.460076
+    sum -0.182253       NaN
+
+    See also
+    --------
+    pandas.DataFrame.apply
+    pandas.DataFrame.transform
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        versionadded='.. versionadded:: 0.20.0',
+        **_shared_doc_kwargs))
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 

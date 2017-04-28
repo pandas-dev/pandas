@@ -8,6 +8,7 @@ from __future__ import division
 
 import types
 import warnings
+from textwrap import dedent
 
 from numpy import nan, ndarray
 import numpy as np
@@ -2174,7 +2175,31 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """
         return self
 
-    @Appender(generic._shared_docs['aggregate'] % _shared_doc_kwargs)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> s = Series(np.random.randn(10))
+
+    >>> s.agg('min')
+    -1.3018049988556679
+
+    >>> s.agg(['min', 'max'])
+    min   -1.301805
+    max    1.127688
+    dtype: float64
+
+    See also
+    --------
+    pandas.Series.apply
+    pandas.Series.transform
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(generic._shared_docs['aggregate'] % dict(
+        versionadded='.. versionadded:: 0.20.0',
+        **_shared_doc_kwargs))
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
         result, how = self._aggregate(func, *args, **kwargs)
