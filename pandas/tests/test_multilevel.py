@@ -2242,16 +2242,50 @@ Thur,Lunch,Yes,51.51,17"""
         levels = [['A', ''], ['B', 'b']]
         df = pd.DataFrame([[0, 2], [1, 3]],
                           columns=pd.MultiIndex.from_tuples(levels))
-        expected = df.copy()
-        df.index.name = 'A'
-        result = df[['B']].reset_index()
-        tm.assert_frame_equal(result, expected)
+        result = df[['B']].rename_axis('A').reset_index()
+        tm.assert_frame_equal(result, df)
 
         # gh-16120: already existing column
         with tm.assert_raises_regex(ValueError,
                                     ("cannot insert \('A', ''\), "
                                      "already exists")):
-            df.reset_index()
+            df.rename_axis('A').reset_index()
+
+        # gh-16164: multiindex (tuple) full key
+        result = df.set_index([('A', '')]).reset_index()
+        tm.assert_frame_equal(result, df)
+
+        # with additional (unnamed) index level
+        idx_col = pd.DataFrame([[0], [1]],
+                               columns=pd.MultiIndex.from_tuples([('level_0',
+                                                                   '')]))
+        expected = pd.concat([idx_col, df[[('B', 'b'), ('A', '')]]], axis=1)
+        result = df.set_index([('B', 'b')], append=True).reset_index()
+        tm.assert_frame_equal(result, expected)
+
+        # with index name which is a too long tuple...
+        with tm.assert_raises_regex(ValueError,
+                                    ("Item must have length equal to number "
+                                     "of levels.")):
+            df.rename_axis([('C', 'c', 'i')]).reset_index()
+
+        # or too short...
+        levels = [['A', 'a', ''], ['B', 'b', 'i']]
+        df2 = pd.DataFrame([[0, 2], [1, 3]],
+                           columns=pd.MultiIndex.from_tuples(levels))
+        idx_col = pd.DataFrame([[0], [1]],
+                               columns=pd.MultiIndex.from_tuples([('C',
+                                                                   'c',
+                                                                   'ii')]))
+        expected = pd.concat([idx_col, df2], axis=1)
+        result = df2.rename_axis([('C', 'c')]).reset_index(col_fill='ii')
+        tm.assert_frame_equal(result, expected)
+
+        # ... which is incompatible with col_fill=None
+        with tm.assert_raises_regex(ValueError,
+                                    ("col_fill=None is incompatible with "
+                                     "incomplete column name \('C', 'c'\)")):
+            df2.rename_axis([('C', 'c')]).reset_index(col_fill=None)
 
     def test_set_index_period(self):
         # GH 6631
