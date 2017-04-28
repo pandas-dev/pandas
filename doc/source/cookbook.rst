@@ -967,7 +967,7 @@ You can use the same approach to read all files matching a pattern.  Here is an 
     files = glob.glob('file_*.csv')
     result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
 
-Finally, this strategy will work with the other ``read_*(...)`` functions described in the :ref:`io docs<io>`.
+Finally, this strategy will work with the other ``pd.read_*(...)`` functions described in the :ref:`io docs<io>`.
 
 .. ipython:: python
     :supress:
