@@ -175,11 +175,28 @@ This package requires valid credentials for this API (non free).
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pandaSDMX is an extensible library to retrieve and acquire statistical data
 and metadata disseminated in
-`SDMX <http://www.sdmx.org>`_ 2.1. This standard is currently supported by
-the European statistics office (Eurostat)
-and the European Central Bank (ECB). Datasets may be returned as pandas Series
-or multi-indexed DataFrames.
+`SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
+widely used 
+by institutions
+such as statistics offices, central banks, and international organisations.
+Datasets and related structural metadata including dataflows, code-lists, 
+and datastructure definitions can be exposed as pandas Series 
+or multi-indexed DataFrames. 
 
+As of May 2017, pandaSDMX has built-in support for the following agencies (others may be  
+configured by the user): 
+   
+* `Australian Bureau of Statistics (ABS) <http://www.abs.gov.au/>`_ 
+* `European Central Bank (ECB) <http://www.ecb.europa.eu/stats/ecb_statistics/co-operation_and_standards/sdmx/html/index.en.html>`_
+* `Eurostat <http://ec.europa.eu/eurostat/web/sdmx-web-services/rest-sdmx-2.1>`_
+* `French National Institute for Statistics (INSEE) 
+  <http://www.bdm.insee.fr/bdm2/statique?page=sdmx>`_
+* `International Monetary Fund (IMF) - SDMX Central only 
+  <https://sdmxcentral.imf.org/>`_   
+* `Organisation for Economic Cooperation and Development (OECD)
+  <http://stats.oecd.org/SDMX-JSON/>`_  
+* `United Nations Statistics Division (UNSD) <https://unstats.un.org/home/>`_
+   
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http://research.stlouisfed.org/fred2/>`__
