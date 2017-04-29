@@ -203,6 +203,22 @@ class TestTableSchemaRepr(tm.TestCase):
 
         assert result is None
 
+    def test_config_monkeypatches(self):
+        # GH 10491
+        df = pd.DataFrame({"A": [1, 2]})
+        assert not hasattr(df, '_ipython_display_')
+        assert not hasattr(df['A'], '_ipython_display_')
+
+        with pd.option_context('display.html.table_schema', True):
+            assert hasattr(df, '_ipython_display_')
+            # smoke test that it works
+            df._ipython_display_()
+            assert hasattr(df['A'], '_ipython_display_')
+            df['A']._ipython_display_()
+
+        assert not hasattr(df, '_ipython_display_')
+        assert not hasattr(df['A'], '_ipython_display_')
+
 
 # TODO: fix this broken test
 
