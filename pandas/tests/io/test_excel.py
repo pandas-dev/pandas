@@ -2354,13 +2354,8 @@ class ExcelWriterEngineTests(tm.TestCase):
                         'something.xls', engine='dummy'))
 
 
-@pytest.mark.parametrize('engine', [
-    pytest.mark.xfail('xlwt', reason='xlwt does not support '
-                                     'openpyxl-compatible style dicts'),
-    'xlsxwriter',
-    'openpyxl',
-])
-def test_styler_to_excel(engine):
+@pytest.fixture
+def styled_dataframe():
     def style(df):
         # XXX: RGB colors not supported in xlwt
         return DataFrame([['font-weight: bold', '', ''],
@@ -2374,16 +2369,27 @@ def test_styler_to_excel(engine):
                           ['', '', ''],
                           ['', '', '']],
                          index=df.index, columns=df.columns)
+    df = DataFrame(np.random.randn(10, 3))
+    return df.style.apply(style, axis=None)
 
-    def assert_equal_style(cell1, cell2):
-        # XXX: should find a better way to check equality
-        assert cell1.alignment.__dict__ == cell2.alignment.__dict__
-        assert cell1.border.__dict__ == cell2.border.__dict__
-        assert cell1.fill.__dict__ == cell2.fill.__dict__
-        assert cell1.font.__dict__ == cell2.font.__dict__
-        assert cell1.number_format == cell2.number_format
-        assert cell1.protection.__dict__ == cell2.protection.__dict__
 
+def assert_equal_style(cell1, cell2):
+    # XXX: should find a better way to check equality
+    assert cell1.alignment.__dict__ == cell2.alignment.__dict__
+    assert cell1.border.__dict__ == cell2.border.__dict__
+    assert cell1.fill.__dict__ == cell2.fill.__dict__
+    assert cell1.font.__dict__ == cell2.font.__dict__
+    assert cell1.number_format == cell2.number_format
+    assert cell1.protection.__dict__ == cell2.protection.__dict__
+
+
+@pytest.mark.parametrize('engine', [
+    pytest.mark.xfail('xlwt', reason='xlwt does not support '
+                                     'openpyxl-compatible style dicts'),
+    'xlsxwriter',
+    'openpyxl',
+])
+def test_styler_to_excel(engine, styled_dataframe):
     def custom_converter(css):
         # use bold iff there is custom style attached to the cell
         if css.strip(' \n;'):
@@ -2398,14 +2404,15 @@ def test_styler_to_excel(engine):
         pytest.xfail('openpyxl1 does not support some openpyxl2-compatible '
                      'style dicts')
 
+    styled = styled_dataframe
+    df = styled.data
+
     # Prepare spreadsheets
 
-    df = DataFrame(np.random.randn(10, 3))
     with ensure_clean('.xlsx' if engine != 'xlwt' else '.xls') as path:
         writer = ExcelWriter(path, engine=engine)
         df.to_excel(writer, sheet_name='frame')
         df.style.to_excel(writer, sheet_name='unstyled')
-        styled = df.style.apply(style, axis=None)
         styled.to_excel(writer, sheet_name='styled')
         ExcelFormatter(styled, style_converter=custom_converter).write(
             writer, sheet_name='custom')
@@ -2491,3 +2498,71 @@ def test_styler_to_excel(engine):
             n_cells += 1
 
     assert n_cells == (10 + 1) * (3 + 1)
+
+
+@pytest.mark.parametrize('engine', [
+    pytest.mark.xfail('xlwt', reason='xlwt does not support '
+                                     'openpyxl-compatible style dicts'),
+    'xlsxwriter',
+    'openpyxl',
+])
+def test_styler_to_excel_no_cssdecl(engine, styled_dataframe):
+    def custom_converter(css):
+        # use bold iff there is custom style attached to the cell
+        if css.strip(' \n;'):
+            return {'font': {'bold': True}}
+        return {}
+
+    pytest.importorskip('jinja2')
+
+    try:
+        import cssdecl  # noqa
+    except ImportError:
+        pass
+    else:
+        pytest.skip('Test only run if cssdecl not installed')
+
+    pytest.importorskip(engine)
+
+    styled = styled_dataframe
+    df = styled.data
+
+    # Prepare spreadsheets
+
+    with ensure_clean('.xlsx' if engine != 'xlwt' else '.xls') as path:
+        writer = ExcelWriter(path, engine=engine)
+        df.to_excel(writer, sheet_name='frame')
+        with pytest.raises(ImportError):
+            # default style_converter requires cssdecl
+            df.style.to_excel(writer, sheet_name='unstyled')
+            styled.to_excel(writer, sheet_name='styled')
+
+        ExcelFormatter(styled, style_converter=custom_converter).write(
+            writer, sheet_name='custom')
+
+        writer.save()
+
+        openpyxl = pytest.importorskip('openpyxl')
+        if openpyxl_compat.is_compat(major_ver=1):
+            # smoke test only
+            return
+
+        wb = openpyxl.load_workbook(path)
+
+        # check styling with custom converter
+        n_cells = 0
+        for col1, col2 in zip(wb['frame'].columns,
+                              wb['custom'].columns):
+            assert len(col1) == len(col2)
+            for cell1, cell2 in zip(col1, col2):
+                ref = '%s%d' % (cell2.column, cell2.row)
+                if ref in ('B2', 'C3', 'D4', 'B5', 'C6', 'D7', 'B8'):
+                    assert not cell1.font.bold
+                    assert cell2.font.bold
+                else:
+                    assert_equal_style(cell1, cell2)
+
+                assert cell1.value == cell2.value
+                n_cells += 1
+
+        assert n_cells == (10 + 1) * (3 + 1)
