@@ -648,9 +648,6 @@ def validate_fill_value(obj, value):
         Whether or not, based on the values and the error mode, the fill
         operation ought to continue.
     """
-    """
-    fillna error coercion routine, returns whether or not to continue.
-    """
     if isinstance(obj, ABCSeries):
         if not is_valid_fill_value(value, obj.dtype):
             raise TypeError('"value" parameter must be compatible '

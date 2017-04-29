@@ -3461,7 +3461,10 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         # if a singular fill value is provided, validate it
-        if value is not None:
+        # special case: a DataFrame may be passed to a DataFrame
+        # in that case, short-circuit
+        if value is not None and not (isinstance(value, ABCDataFrame) and
+                                          isinstance(self, ABCDataFrame)):
             # fill values by column, not all at once, to respect dtypes
             if not isinstance(value, (dict, ABCSeries)) and \
                     isinstance(self, ABCDataFrame):
