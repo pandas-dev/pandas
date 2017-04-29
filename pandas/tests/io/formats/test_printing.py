@@ -218,6 +218,19 @@ class TestTableSchemaRepr(tm.TestCase):
 
         assert not hasattr(df, '_ipython_display_')
         assert not hasattr(df['A'], '_ipython_display_')
+        # re-unsetting is OK
+        assert not hasattr(df, '_ipython_display_')
+        assert not hasattr(df['A'], '_ipython_display_')
+
+        # able to re-set
+        with pd.option_context('display.html.table_schema', True):
+            assert hasattr(df, '_ipython_display_')
+            # smoke test that it works
+            df._ipython_display_()
+            assert hasattr(df['A'], '_ipython_display_')
+            df['A']._ipython_display_()
+
+
 
 
 # TODO: fix this broken test
