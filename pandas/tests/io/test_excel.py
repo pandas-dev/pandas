@@ -2390,6 +2390,7 @@ def test_styler_to_excel(engine):
             return {'font': {'bold': True}}
         return {}
 
+    pytest.importorskip('cssdecl')
     pytest.importorskip('jinja2')
     pytest.importorskip(engine)
 

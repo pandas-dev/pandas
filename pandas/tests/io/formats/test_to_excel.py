@@ -169,11 +169,13 @@ from pandas.io.formats.excel import CSSToExcelConverter
      {'alignment': {'wrap_text': True}}),
 ])
 def test_css_to_excel(css, expected):
+    pytest.importorskip('cssdecl')
     convert = CSSToExcelConverter()
     assert expected == convert(css)
 
 
 def test_css_to_excel_multiple():
+    pytest.importorskip('cssdecl')
     convert = CSSToExcelConverter()
     actual = convert('''
         font-weight: bold;
@@ -207,6 +209,7 @@ def test_css_to_excel_multiple():
      {'font': {'italic': True}}),
 ])
 def test_css_to_excel_inherited(css, inherited, expected):
+    pytest.importorskip('cssdecl')
     convert = CSSToExcelConverter(inherited)
     assert expected == convert(css)
 
@@ -214,6 +217,7 @@ def test_css_to_excel_inherited(css, inherited, expected):
 @pytest.mark.xfail(reason='We are not currently warning for all unconverted '
                           'CSS, but possibly should')
 def test_css_to_excel_warns_when_not_supported():
+    pytest.importorskip('cssdecl')
     convert = CSSToExcelConverter()
     with pytest.warns(UserWarning):
         convert('background: red')

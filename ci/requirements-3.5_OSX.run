@@ -2,6 +2,7 @@ pytz
 numpy=1.10.4
 openpyxl
 xlsxwriter
+cssdecl
 xlrd
 xlwt
 numexpr

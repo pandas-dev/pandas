@@ -16,6 +16,7 @@ openpyxl=1.8.5
 xlrd
 xlwt
 xlsxwriter
+cssdecl
 sqlalchemy
 numexpr
 bottleneck

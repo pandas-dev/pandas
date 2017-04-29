@@ -3,6 +3,7 @@ pytz
 numpy=1.11.3
 openpyxl
 xlsxwriter
+cssdecl
 xlrd
 xlwt
 scipy

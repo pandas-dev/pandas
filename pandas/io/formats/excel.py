@@ -8,7 +8,6 @@ import itertools
 import numpy as np
 
 from pandas.compat import reduce, string_types
-from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.common import is_float
 import pandas._libs.lib as lib
@@ -61,13 +60,13 @@ class CSSToExcelConverter(object):
     #     without monkey-patching.
 
     def __init__(self, inherited=None):
+        from cssdecl import CSS22Resolver
+        self.compute_css = CSS22Resolver().resolve_string
         if inherited is not None:
             inherited = self.compute_css(inherited,
                                          self.compute_css.INITIAL_STYLE)
 
         self.inherited = inherited
-
-    compute_css = CSSResolver()
 
     def __call__(self, declarations_str):
         """Convert CSS declarations to ExcelWriter style
@@ -302,6 +301,7 @@ class CSSToExcelConverter(object):
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
+            from cssdecl import CSSWarning
             warnings.warn('Unhandled colour format: %r' % val, CSSWarning)
 
 
