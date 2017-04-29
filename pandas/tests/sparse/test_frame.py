@@ -1252,6 +1252,7 @@ def test_from_scipy_correct_ordering(spmatrix):
     tm.skip_if_no_package('scipy')
 
     arr = np.arange(1, 5).reshape(2, 2)
+
     try:
         spm = spmatrix(arr)
         assert spm.dtype == arr.dtype
@@ -1264,6 +1265,33 @@ def test_from_scipy_correct_ordering(spmatrix):
     sdf = pd.SparseDataFrame(spm)
     expected = pd.SparseDataFrame(arr)
     tm.assert_sp_frame_equal(sdf, expected)
+    tm.assert_frame_equal(sdf.to_dense(), expected.to_dense())
+
+
+def test_from_scipy_object_fillna(spmatrix):
+    # GH 16112
+    tm.skip_if_no_package('scipy', max_version='0.19.0')
+
+    arr = np.eye(3)
+    arr[1:, 0] = np.nan
+
+    try:
+        spm = spmatrix(arr)
+        assert spm.dtype == arr.dtype
+    except (TypeError, AssertionError):
+        # If conversion to sparse fails for this spmatrix type and arr.dtype,
+        # then the combination is not currently supported in NumPy, so we
+        # can just skip testing it thoroughly
+        return
+
+    sdf = pd.SparseDataFrame(spm).fillna(-1.0)
+
+    # Returning frame should fill all nan values with -1.0
+    expected = pd.SparseDataFrame({0: {0: 1.0, 1: np.nan, 2: np.nan},
+                                   1: {0: np.nan, 1: 1.0, 2: np.nan},
+                                   2: {0: np.nan, 1: np.nan, 2: 1.0}}
+                                  ).fillna(-1.0)
+
     tm.assert_frame_equal(sdf.to_dense(), expected.to_dense())
 
 
