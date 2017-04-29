@@ -954,7 +954,6 @@ of the individual frames into a list, and then combine the frames in the list us
         data = pd.DataFrame(np.random.randn(10, 4))
         data.to_csv('file_{}.csv'.format(i))
 
-    frames = []
     files = ['file_0.csv', 'file_1.csv', 'file_2.csv']
     result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
 
@@ -963,7 +962,6 @@ You can use the same approach to read all files matching a pattern.  Here is an 
 .. ipython:: python
 
     import glob
-    frames = []
     files = glob.glob('file_*.csv')
     result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
 
