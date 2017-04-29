@@ -7,7 +7,6 @@ patsy
 xlwt
 openpyxl
 xlsxwriter
-cssdecl
 xlrd
 numexpr
 pytables
