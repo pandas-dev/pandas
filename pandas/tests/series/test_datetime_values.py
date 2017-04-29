@@ -50,7 +50,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             a = getattr(s.dt, prop)
             b = get_expected(s, prop)
             if not (is_list_like(a) and is_list_like(b)):
-                self.assertEqual(a, b)
+                assert a == b
             else:
                 tm.assert_series_equal(a, b)
 
@@ -79,10 +79,9 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             tm.assert_series_equal(result, expected)
 
             tz_result = result.dt.tz
-            self.assertEqual(str(tz_result), 'US/Eastern')
+            assert str(tz_result) == 'US/Eastern'
             freq_result = s.dt.freq
-            self.assertEqual(freq_result, DatetimeIndex(s.values,
-                                                        freq='infer').freq)
+            assert freq_result == DatetimeIndex(s.values, freq='infer').freq
 
             # let's localize, then convert
             result = s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
@@ -149,12 +148,11 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         tz_result = result.dt.tz
-        self.assertEqual(str(tz_result), 'CET')
+        assert str(tz_result) == 'CET'
         freq_result = s.dt.freq
-        self.assertEqual(freq_result, DatetimeIndex(s.values,
-                                                    freq='infer').freq)
+        assert freq_result == DatetimeIndex(s.values, freq='infer').freq
 
-        # timedeltaindex
+        # timedelta index
         cases = [Series(timedelta_range('1 day', periods=5),
                         index=list('abcde'), name='xxx'),
                  Series(timedelta_range('1 day 01:23:45', periods=5,
@@ -183,8 +181,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             assert result.dtype == 'float64'
 
             freq_result = s.dt.freq
-            self.assertEqual(freq_result, TimedeltaIndex(s.values,
-                                                         freq='infer').freq)
+            assert freq_result == TimedeltaIndex(s.values, freq='infer').freq
 
         # both
         index = date_range('20130101', periods=3, freq='D')
@@ -218,7 +215,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                 getattr(s.dt, prop)
 
             freq_result = s.dt.freq
-            self.assertEqual(freq_result, PeriodIndex(s.values).freq)
+            assert freq_result == PeriodIndex(s.values).freq
 
         # test limited display api
         def get_dir(s):
@@ -387,7 +384,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         b = datetime(1993, 6, 22, 13, 30)
         a = Series([a])
         result = to_timedelta(np.abs(a - b))
-        self.assertEqual(result.dtype, 'timedelta64[ns]')
+        assert result.dtype == 'timedelta64[ns]'
 
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).asobject)

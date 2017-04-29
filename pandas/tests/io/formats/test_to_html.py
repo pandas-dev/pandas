@@ -50,10 +50,10 @@ class TestToHTML(tm.TestCase):
     def test_to_html_unicode(self):
         df = DataFrame({u('\u03c3'): np.arange(10.)})
         expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>\u03c3</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>0.0</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>1.0</td>\n    </tr>\n    <tr>\n      <th>2</th>\n      <td>2.0</td>\n    </tr>\n    <tr>\n      <th>3</th>\n      <td>3.0</td>\n    </tr>\n    <tr>\n      <th>4</th>\n      <td>4.0</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>5.0</td>\n    </tr>\n    <tr>\n      <th>6</th>\n      <td>6.0</td>\n    </tr>\n    <tr>\n      <th>7</th>\n      <td>7.0</td>\n    </tr>\n    <tr>\n      <th>8</th>\n      <td>8.0</td>\n    </tr>\n    <tr>\n      <th>9</th>\n      <td>9.0</td>\n    </tr>\n  </tbody>\n</table>'  # noqa
-        self.assertEqual(df.to_html(), expected)
+        assert df.to_html() == expected
         df = DataFrame({'A': [u('\u03c3')]})
         expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>A</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>\u03c3</td>\n    </tr>\n  </tbody>\n</table>'  # noqa
-        self.assertEqual(df.to_html(), expected)
+        assert df.to_html() == expected
 
     def test_to_html_decimal(self):
         # GH 12031
@@ -81,7 +81,7 @@ class TestToHTML(tm.TestCase):
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_escaped(self):
         a = 'str<ing1 &amp;'
@@ -114,7 +114,7 @@ class TestToHTML(tm.TestCase):
   </tbody>
 </table>"""
 
-        self.assertEqual(xp, rs)
+        assert xp == rs
 
     def test_to_html_escape_disabled(self):
         a = 'str<ing1 &amp;'
@@ -147,7 +147,7 @@ class TestToHTML(tm.TestCase):
   </tbody>
 </table>"""
 
-        self.assertEqual(xp, rs)
+        assert xp == rs
 
     def test_to_html_multiindex_index_false(self):
         # issue 8452
@@ -189,11 +189,11 @@ class TestToHTML(tm.TestCase):
   </tbody>
 </table>"""
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
         df.index = Index(df.index.values, name='idx')
         result = df.to_html(index=False)
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_multiindex_sparsify_false_multi_sparse(self):
         with option_context('display.multi_sparse', False):
@@ -247,7 +247,7 @@ class TestToHTML(tm.TestCase):
   </tbody>
 </table>"""
 
-            self.assertEqual(result, expected)
+            assert result == expected
 
             df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
                            columns=index[::2], index=index)
@@ -303,7 +303,7 @@ class TestToHTML(tm.TestCase):
   </tbody>
 </table>"""
 
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_to_html_multiindex_sparsify(self):
         index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -353,7 +353,7 @@ class TestToHTML(tm.TestCase):
   </tbody>
 </table>"""
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], columns=index[::2],
                        index=index)
@@ -407,7 +407,7 @@ class TestToHTML(tm.TestCase):
   </tbody>
 </table>"""
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_multiindex_odd_even_truncate(self):
         # GH 14882 - Issue on truncation with odd length DataFrame
@@ -692,7 +692,7 @@ class TestToHTML(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # Test that ... appears in a middle level
         result = df.to_html(max_rows=56)
@@ -955,7 +955,7 @@ class TestToHTML(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_index_formatter(self):
         df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], columns=['foo', None],
@@ -996,7 +996,7 @@ class TestToHTML(tm.TestCase):
   </tbody>
 </table>"""
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_datetime64_monthformatter(self):
         months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
@@ -1024,7 +1024,7 @@ class TestToHTML(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_datetime64_hourformatter(self):
 
@@ -1053,7 +1053,7 @@ class TestToHTML(tm.TestCase):
     </tr>
   </tbody>
 </table>"""
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_regression_GH6098(self):
         df = DataFrame({
@@ -1164,7 +1164,7 @@ class TestToHTML(tm.TestCase):
 </div>'''.format(div_style)
         if compat.PY2:
             expected = expected.decode('utf-8')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_truncate_multi_index(self):
         pytest.skip("unreliable on travis")
@@ -1281,7 +1281,7 @@ class TestToHTML(tm.TestCase):
 </div>'''.format(div_style)
         if compat.PY2:
             expected = expected.decode('utf-8')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_truncate_multi_index_sparse_off(self):
         pytest.skip("unreliable on travis")
@@ -1392,7 +1392,7 @@ class TestToHTML(tm.TestCase):
 </div>'''.format(div_style)
         if compat.PY2:
             expected = expected.decode('utf-8')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_border(self):
         df = DataFrame({'A': [1, 2]})
@@ -1424,7 +1424,7 @@ class TestToHTML(tm.TestCase):
         buf = StringIO()
         retval = biggie.to_html(buf=buf)
         assert retval is None
-        self.assertEqual(buf.getvalue(), s)
+        assert buf.getvalue() == s
 
         assert isinstance(s, compat.string_types)
 
@@ -1450,13 +1450,13 @@ class TestToHTML(tm.TestCase):
             with open(path, 'r') as f:
                 s = biggie.to_html()
                 s2 = f.read()
-                self.assertEqual(s, s2)
+                assert s == s2
 
         frame = DataFrame(index=np.arange(200))
         with tm.ensure_clean('test.html') as path:
             frame.to_html(path)
             with open(path, 'r') as f:
-                self.assertEqual(frame.to_html(), f.read())
+                assert frame.to_html() == f.read()
 
     def test_to_html_with_no_bold(self):
         x = DataFrame({'x': np.random.randn(5)})
@@ -1507,7 +1507,7 @@ class TestToHTML(tm.TestCase):
                     '  </tbody>\n'
                     '</table>')
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
         columns = MultiIndex.from_tuples(list(zip(
             range(4), np.mod(
@@ -1550,7 +1550,7 @@ class TestToHTML(tm.TestCase):
                     '  </tbody>\n'
                     '</table>')
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_justify(self):
         df = DataFrame({'A': [6, 30000, 2],
@@ -1588,7 +1588,7 @@ class TestToHTML(tm.TestCase):
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = df.to_html(justify='right')
         expected = ('<table border="1" class="dataframe">\n'
@@ -1621,7 +1621,7 @@ class TestToHTML(tm.TestCase):
                     '    </tr>\n'
                     '  </tbody>\n'
                     '</table>')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_index(self):
         index = ['foo', 'bar', 'baz']
@@ -1836,10 +1836,10 @@ class TestToHTML(tm.TestCase):
             </table>
 
         """).strip()
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = df.to_html(classes=["sortable", "draggable"])
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_no_index_max_rows(self):
         # GH https://github.com/pandas-dev/pandas/issues/14998
@@ -1858,7 +1858,7 @@ class TestToHTML(tm.TestCase):
             </tr>
           </tbody>
         </table>""")
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})

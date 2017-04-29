@@ -34,7 +34,7 @@ class TestSeriesRepr(TestData, tm.TestCase):
                     "qux    one       7", "       two       8",
                     "       three     9", "Name: sth, dtype: int64"]
         expected = "\n".join(expected)
-        self.assertEqual(repr(s), expected)
+        assert repr(s) == expected
 
     def test_name_printing(self):
         # Test small Series.
@@ -109,10 +109,10 @@ class TestSeriesRepr(TestData, tm.TestCase):
 
         # with empty series (#4651)
         s = Series([], dtype=np.int64, name='foo')
-        self.assertEqual(repr(s), 'Series([], Name: foo, dtype: int64)')
+        assert repr(s) == 'Series([], Name: foo, dtype: int64)'
 
         s = Series([], dtype=np.int64, name=None)
-        self.assertEqual(repr(s), 'Series([], dtype: int64)')
+        assert repr(s) == 'Series([], dtype: int64)'
 
     def test_tidy_repr(self):
         a = Series([u("\u05d0")] * 1000)

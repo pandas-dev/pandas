@@ -48,7 +48,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
                     'mean': group.mean()}
 
         result = self.df.groupby(cats).D.apply(get_stats)
-        self.assertEqual(result.index.names[0], 'C')
+        assert result.index.names[0] == 'C'
 
     def test_apply_categorical_data(self):
         # GH 10138

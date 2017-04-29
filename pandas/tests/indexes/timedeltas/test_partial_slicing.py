@@ -27,7 +27,7 @@ class TestSlicing(tm.TestCase):
         assert_series_equal(result, expected)
 
         result = s['6 days, 23:11:12']
-        self.assertEqual(result, s.iloc[133])
+        assert result == s.iloc[133]
 
         pytest.raises(KeyError, s.__getitem__, '50 days')
 
@@ -46,7 +46,7 @@ class TestSlicing(tm.TestCase):
         assert_series_equal(result, expected)
 
         result = s['1 days, 10:11:12.001001']
-        self.assertEqual(result, s.iloc[1001])
+        assert result == s.iloc[1001]
 
     def test_slice_with_negative_step(self):
         ts = Series(np.arange(20), timedelta_range('0', periods=20, freq='H'))

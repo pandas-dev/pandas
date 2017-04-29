@@ -221,7 +221,7 @@ class TestNestedToRecord(tm.TestCase):
 
         result = nested_to_record(recs)
         expected = recs
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_one_level_deep_flattens(self):
         data = dict(flat1=1,
@@ -232,7 +232,7 @@ class TestNestedToRecord(tm.TestCase):
                     'dict1.d': 2,
                     'flat1': 1}
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_nested_flattens(self):
         data = dict(flat1=1,
@@ -248,7 +248,7 @@ class TestNestedToRecord(tm.TestCase):
                     'nested.e.c': 1,
                     'nested.e.d': 2}
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_json_normalize_errors(self):
         # GH14583: If meta keys are not always present
@@ -298,7 +298,7 @@ class TestNestedToRecord(tm.TestCase):
                     'price': {0: '0', 1: '0', 2: '0', 3: '0'},
                     'symbol': {0: 'AAPL', 1: 'GOOG', 2: 'AAPL', 3: 'GOOG'}}
 
-        self.assertEqual(j.fillna('').to_dict(), expected)
+        assert j.fillna('').to_dict() == expected
 
         pytest.raises(KeyError,
                       json_normalize, data=i['Trades'],

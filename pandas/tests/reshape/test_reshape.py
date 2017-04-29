@@ -35,7 +35,7 @@ class TestMelt(tm.TestCase):
 
     def test_top_level_method(self):
         result = melt(self.df)
-        self.assertEqual(result.columns.tolist(), ['variable', 'value'])
+        assert result.columns.tolist() == ['variable', 'value']
 
     def test_method_signatures(self):
         tm.assert_frame_equal(self.df.melt(),
@@ -58,19 +58,17 @@ class TestMelt(tm.TestCase):
 
     def test_default_col_names(self):
         result = self.df.melt()
-        self.assertEqual(result.columns.tolist(), ['variable', 'value'])
+        assert result.columns.tolist() == ['variable', 'value']
 
         result1 = self.df.melt(id_vars=['id1'])
-        self.assertEqual(result1.columns.tolist(), ['id1', 'variable', 'value'
-                                                    ])
+        assert result1.columns.tolist() == ['id1', 'variable', 'value']
 
         result2 = self.df.melt(id_vars=['id1', 'id2'])
-        self.assertEqual(result2.columns.tolist(), ['id1', 'id2', 'variable',
-                                                    'value'])
+        assert result2.columns.tolist() == ['id1', 'id2', 'variable', 'value']
 
     def test_value_vars(self):
         result3 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A')
-        self.assertEqual(len(result3), 10)
+        assert len(result3) == 10
 
         result4 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'])
         expected4 = DataFrame({'id1': self.df['id1'].tolist() * 2,
@@ -122,19 +120,17 @@ class TestMelt(tm.TestCase):
 
     def test_custom_var_name(self):
         result5 = self.df.melt(var_name=self.var_name)
-        self.assertEqual(result5.columns.tolist(), ['var', 'value'])
+        assert result5.columns.tolist() == ['var', 'value']
 
         result6 = self.df.melt(id_vars=['id1'], var_name=self.var_name)
-        self.assertEqual(result6.columns.tolist(), ['id1', 'var', 'value'])
+        assert result6.columns.tolist() == ['id1', 'var', 'value']
 
         result7 = self.df.melt(id_vars=['id1', 'id2'], var_name=self.var_name)
-        self.assertEqual(result7.columns.tolist(), ['id1', 'id2', 'var',
-                                                    'value'])
+        assert result7.columns.tolist() == ['id1', 'id2', 'var', 'value']
 
         result8 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A',
                                var_name=self.var_name)
-        self.assertEqual(result8.columns.tolist(), ['id1', 'id2', 'var',
-                                                    'value'])
+        assert result8.columns.tolist() == ['id1', 'id2', 'var', 'value']
 
         result9 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'],
                                var_name=self.var_name)
@@ -148,20 +144,18 @@ class TestMelt(tm.TestCase):
 
     def test_custom_value_name(self):
         result10 = self.df.melt(value_name=self.value_name)
-        self.assertEqual(result10.columns.tolist(), ['variable', 'val'])
+        assert result10.columns.tolist() == ['variable', 'val']
 
         result11 = self.df.melt(id_vars=['id1'], value_name=self.value_name)
-        self.assertEqual(result11.columns.tolist(), ['id1', 'variable', 'val'])
+        assert result11.columns.tolist() == ['id1', 'variable', 'val']
 
         result12 = self.df.melt(id_vars=['id1', 'id2'],
                                 value_name=self.value_name)
-        self.assertEqual(result12.columns.tolist(), ['id1', 'id2', 'variable',
-                                                     'val'])
+        assert result12.columns.tolist() == ['id1', 'id2', 'variable', 'val']
 
         result13 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A',
                                 value_name=self.value_name)
-        self.assertEqual(result13.columns.tolist(), ['id1', 'id2', 'variable',
-                                                     'val'])
+        assert result13.columns.tolist() == ['id1', 'id2', 'variable', 'val']
 
         result14 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'],
                                 value_name=self.value_name)
@@ -178,23 +172,21 @@ class TestMelt(tm.TestCase):
 
         result15 = self.df.melt(var_name=self.var_name,
                                 value_name=self.value_name)
-        self.assertEqual(result15.columns.tolist(), ['var', 'val'])
+        assert result15.columns.tolist() == ['var', 'val']
 
         result16 = self.df.melt(id_vars=['id1'], var_name=self.var_name,
                                 value_name=self.value_name)
-        self.assertEqual(result16.columns.tolist(), ['id1', 'var', 'val'])
+        assert result16.columns.tolist() == ['id1', 'var', 'val']
 
         result17 = self.df.melt(id_vars=['id1', 'id2'],
                                 var_name=self.var_name,
                                 value_name=self.value_name)
-        self.assertEqual(result17.columns.tolist(), ['id1', 'id2', 'var', 'val'
-                                                     ])
+        assert result17.columns.tolist() == ['id1', 'id2', 'var', 'val']
 
         result18 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A',
                                 var_name=self.var_name,
                                 value_name=self.value_name)
-        self.assertEqual(result18.columns.tolist(), ['id1', 'id2', 'var', 'val'
-                                                     ])
+        assert result18.columns.tolist() == ['id1', 'id2', 'var', 'val']
 
         result19 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'],
                                 var_name=self.var_name,
@@ -211,17 +203,17 @@ class TestMelt(tm.TestCase):
         df20 = self.df.copy()
         df20.columns.name = 'foo'
         result20 = df20.melt()
-        self.assertEqual(result20.columns.tolist(), ['foo', 'value'])
+        assert result20.columns.tolist() == ['foo', 'value']
 
     def test_col_level(self):
         res1 = self.df1.melt(col_level=0)
         res2 = self.df1.melt(col_level='CAP')
-        self.assertEqual(res1.columns.tolist(), ['CAP', 'value'])
-        self.assertEqual(res2.columns.tolist(), ['CAP', 'value'])
+        assert res1.columns.tolist() == ['CAP', 'value']
+        assert res2.columns.tolist() == ['CAP', 'value']
 
     def test_multiindex(self):
         res = self.df1.melt()
-        self.assertEqual(res.columns.tolist(), ['CAP', 'low', 'value'])
+        assert res.columns.tolist() == ['CAP', 'low', 'value']
 
 
 class TestGetDummies(tm.TestCase):
@@ -298,13 +290,13 @@ class TestGetDummies(tm.TestCase):
         res_series_index = get_dummies(just_na_series_index,
                                        sparse=self.sparse)
 
-        self.assertEqual(res_list.empty, True)
-        self.assertEqual(res_series.empty, True)
-        self.assertEqual(res_series_index.empty, True)
+        assert res_list.empty
+        assert res_series.empty
+        assert res_series_index.empty
 
-        self.assertEqual(res_list.index.tolist(), [0])
-        self.assertEqual(res_series.index.tolist(), [0])
-        self.assertEqual(res_series_index.index.tolist(), ['A'])
+        assert res_list.index.tolist() == [0]
+        assert res_series.index.tolist() == [0]
+        assert res_series_index.index.tolist() == ['A']
 
     def test_include_na(self):
         s = ['a', 'b', np.nan]
@@ -784,7 +776,7 @@ class TestWideToLong(tm.TestCase):
         # TODO: unused?
         df_long = pd.wide_to_long(df, stubs, i='id', j='age')  # noqa
 
-        self.assertEqual(stubs, ['inc', 'edu'])
+        assert stubs == ['inc', 'edu']
 
     def test_separating_character(self):
         # GH14779

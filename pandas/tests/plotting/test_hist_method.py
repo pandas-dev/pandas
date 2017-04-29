@@ -54,7 +54,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_bins_legacy(self):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.hist(bins=2)[0][0]
-        self.assertEqual(len(ax.patches), 2)
+        assert len(ax.patches) == 2
 
     @slow
     def test_hist_layout(self):
@@ -122,13 +122,13 @@ class TestSeriesPlots(TestPlotBase):
         y.hist()
         fig = gcf()
         axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
-        self.assertEqual(len(axes), 2)
+        assert len(axes) == 2
 
     @slow
     def test_hist_by_no_extra_plots(self):
         df = self.hist_df
         axes = df.height.hist(by=df.gender)  # noqa
-        self.assertEqual(len(self.plt.get_fignums()), 1)
+        assert len(self.plt.get_fignums()) == 1
 
     @slow
     def test_plot_fails_when_ax_differs_from_figure(self):
@@ -314,8 +314,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                             'gender': gender_int})
         gb = df_int.groupby('gender')
         axes = gb.hist()
-        self.assertEqual(len(axes), 2)
-        self.assertEqual(len(self.plt.get_fignums()), 2)
+        assert len(axes) == 2
+        assert len(self.plt.get_fignums()) == 2
         tm.close()
 
     @slow

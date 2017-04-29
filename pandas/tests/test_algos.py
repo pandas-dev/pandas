@@ -263,7 +263,7 @@ class TestFactorize(tm.TestCase):
         for na_sentinel in (-1, 20):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype='int32')
-            self.assertEqual(len(set(key)), len(set(expected)))
+            assert len(set(key)) == len(set(expected))
             tm.assert_numpy_array_equal(pd.isnull(key),
                                         expected == na_sentinel)
 
@@ -275,7 +275,7 @@ class TestFactorize(tm.TestCase):
         ids = rizer.factorize(key, sort=False, na_sentinel=na_sentinel)  # noqa
 
         expected = np.array([2, -1, 0], dtype='int32')
-        self.assertEqual(len(set(key)), len(set(expected)))
+        assert len(set(key)) == len(set(expected))
         tm.assert_numpy_array_equal(pd.isnull(key), expected == na_sentinel)
 
     def test_complex_sorting(self):
@@ -351,17 +351,17 @@ class TestUnique(tm.TestCase):
                                    '2015-01-01T00:00:00.000000000+0000'])
         result = algos.unique(dt_index)
         tm.assert_numpy_array_equal(result, expected)
-        self.assertEqual(result.dtype, expected.dtype)
+        assert result.dtype == expected.dtype
 
         s = Series(dt_index)
         result = algos.unique(s)
         tm.assert_numpy_array_equal(result, expected)
-        self.assertEqual(result.dtype, expected.dtype)
+        assert result.dtype == expected.dtype
 
         arr = s.values
         result = algos.unique(arr)
         tm.assert_numpy_array_equal(result, expected)
-        self.assertEqual(result.dtype, expected.dtype)
+        assert result.dtype == expected.dtype
 
     def test_timedelta64_dtype_array_returned(self):
         # GH 9431
@@ -370,17 +370,17 @@ class TestUnique(tm.TestCase):
         td_index = pd.to_timedelta([31200, 45678, 31200, 10000, 45678])
         result = algos.unique(td_index)
         tm.assert_numpy_array_equal(result, expected)
-        self.assertEqual(result.dtype, expected.dtype)
+        assert result.dtype == expected.dtype
 
         s = Series(td_index)
         result = algos.unique(s)
         tm.assert_numpy_array_equal(result, expected)
-        self.assertEqual(result.dtype, expected.dtype)
+        assert result.dtype == expected.dtype
 
         arr = s.values
         result = algos.unique(arr)
         tm.assert_numpy_array_equal(result, expected)
-        self.assertEqual(result.dtype, expected.dtype)
+        assert result.dtype == expected.dtype
 
     def test_uint64_overflow(self):
         s = Series([1, 2, 2**63, 2**63], dtype=np.uint64)
@@ -620,13 +620,13 @@ class TestValueCounts(tm.TestCase):
 
     def test_value_counts_dtypes(self):
         result = algos.value_counts([1, 1.])
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
 
         result = algos.value_counts([1, 1.], bins=1)
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
 
         result = algos.value_counts(Series([1, 1., '1']))  # object
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
         pytest.raises(TypeError, lambda s: algos.value_counts(s, bins=1),
                       ['1', 1])
@@ -638,8 +638,8 @@ class TestValueCounts(tm.TestCase):
         for s in [td, dt]:
             vc = algos.value_counts(s)
             vc_with_na = algos.value_counts(s, dropna=False)
-            self.assertEqual(len(vc), 1)
-            self.assertEqual(len(vc_with_na), 2)
+            assert len(vc) == 1
+            assert len(vc_with_na) == 2
 
         exp_dt = Series({Timestamp('2014-01-01 00:00:00'): 1})
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
@@ -1009,7 +1009,7 @@ class GroupVarTestMixin(object):
 
         self.algo(out, counts, values, labels)
 
-        self.assertEqual(counts[0], 3)
+        assert counts[0] == 3
         assert out[0, 0] >= 0
         tm.assert_almost_equal(out[0, 0], 0.0)
 
@@ -1033,7 +1033,7 @@ class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
 
         self.algo(out, counts, values, labels)
 
-        self.assertEqual(counts[0], 10 ** 6)
+        assert counts[0] == 10 ** 6
         tm.assert_almost_equal(out[0, 0], 1.0 / 12, check_less_precise=True)
 
 

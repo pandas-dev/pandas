@@ -104,6 +104,7 @@ if PY3:
     map = map
     zip = zip
     filter = filter
+    intern = sys.intern
     reduce = functools.reduce
     long = int
     unichr = chr
@@ -146,6 +147,7 @@ else:
 
     # import iterator versions of these functions
     range = xrange
+    intern = intern
     zip = itertools.izip
     filter = itertools.ifilter
     map = itertools.imap

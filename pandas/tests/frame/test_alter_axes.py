@@ -69,7 +69,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
         assert_frame_equal(result, expected)
         assert_frame_equal(result_nodrop, expected_nodrop)
-        self.assertEqual(result.index.name, index.name)
+        assert result.index.name == index.name
 
         # inplace, single
         df2 = df.copy()
@@ -97,7 +97,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
         assert_frame_equal(result, expected)
         assert_frame_equal(result_nodrop, expected_nodrop)
-        self.assertEqual(result.index.names, index.names)
+        assert result.index.names == index.names
 
         # inplace
         df2 = df.copy()
@@ -127,7 +127,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
         # Series
         result = df.set_index(df.C)
-        self.assertEqual(result.index.name, 'C')
+        assert result.index.name == 'C'
 
     def test_set_index_nonuniq(self):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
@@ -174,7 +174,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         idf = df.set_index('B')
         str(idf)
         tm.assert_index_equal(idf.index, ci, check_names=False)
-        self.assertEqual(idf.index.name, 'B')
+        assert idf.index.name == 'B'
 
         # from a CategoricalIndex
         df = DataFrame({'A': np.random.randn(10),
@@ -182,17 +182,17 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         idf = df.set_index('B')
         str(idf)
         tm.assert_index_equal(idf.index, ci, check_names=False)
-        self.assertEqual(idf.index.name, 'B')
+        assert idf.index.name == 'B'
 
         idf = df.set_index('B').reset_index().set_index('B')
         str(idf)
         tm.assert_index_equal(idf.index, ci, check_names=False)
-        self.assertEqual(idf.index.name, 'B')
+        assert idf.index.name == 'B'
 
         new_df = idf.reset_index()
         new_df.index = df.B
         tm.assert_index_equal(new_df.index, ci, check_names=False)
-        self.assertEqual(idf.index.name, 'B')
+        assert idf.index.name == 'B'
 
     def test_set_index_cast_datetimeindex(self):
         df = DataFrame({'A': [datetime(2000, 1, 1) + timedelta(i)
@@ -224,7 +224,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         df['B'] = i
         result = df['B']
         assert_series_equal(result, expected, check_names=False)
-        self.assertEqual(result.name, 'B')
+        assert result.name == 'B'
 
         # keep the timezone
         result = i.to_series(keep_tz=True)
@@ -241,7 +241,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         df['D'] = i.to_pydatetime()
         result = df['D']
         assert_series_equal(result, expected, check_names=False)
-        self.assertEqual(result.name, 'D')
+        assert result.name == 'D'
 
         # GH 6785
         # set the index manually
@@ -279,9 +279,9 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         i = pd.to_datetime(["2014-01-01 10:10:10"],
                            utc=True).tz_convert('Europe/Rome')
         df = DataFrame({'i': i})
-        self.assertEqual(df.set_index(i).index[0].hour, 11)
-        self.assertEqual(pd.DatetimeIndex(pd.Series(df.i))[0].hour, 11)
-        self.assertEqual(df.set_index(df.i).index[0].hour, 11)
+        assert df.set_index(i).index[0].hour == 11
+        assert pd.DatetimeIndex(pd.Series(df.i))[0].hour == 11
+        assert df.set_index(df.i).index[0].hour == 11
 
     def test_set_index_dst(self):
         di = pd.date_range('2006-10-29 00:00:00', periods=3,
@@ -365,7 +365,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         # TODO: unused?
         result = df.set_index(new_index)  # noqa
 
-        self.assertEqual(new_index.freq, index.freq)
+        assert new_index.freq == index.freq
 
     # Renaming
 
@@ -416,7 +416,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         renamed = renamer.rename(index={'foo': 'bar', 'bar': 'foo'})
         tm.assert_index_equal(renamed.index,
                               pd.Index(['bar', 'foo'], name='name'))
-        self.assertEqual(renamed.index.name, renamer.index.name)
+        assert renamed.index.name == renamer.index.name
 
     def test_rename_multiindex(self):
 
@@ -440,8 +440,8 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
                                              names=['fizz', 'buzz'])
         tm.assert_index_equal(renamed.index, new_index)
         tm.assert_index_equal(renamed.columns, new_columns)
-        self.assertEqual(renamed.index.names, df.index.names)
-        self.assertEqual(renamed.columns.names, df.columns.names)
+        assert renamed.index.names == df.index.names
+        assert renamed.columns.names == df.columns.names
 
         #
         # with specifying a level (GH13766)
@@ -609,7 +609,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         # preserve column names
         self.frame.columns.name = 'columns'
         resetted = self.frame.reset_index()
-        self.assertEqual(resetted.columns.name, 'columns')
+        assert resetted.columns.name == 'columns'
 
         # only remove certain columns
         frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
@@ -649,10 +649,10 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         df = DataFrame(s1)
 
         resetted = s1.reset_index()
-        self.assertEqual(resetted['time'].dtype, np.float64)
+        assert resetted['time'].dtype == np.float64
 
         resetted = df.reset_index()
-        self.assertEqual(resetted['time'].dtype, np.float64)
+        assert resetted['time'].dtype == np.float64
 
     def test_reset_index_multiindex_col(self):
         vals = np.random.randn(3, 3).astype(object)
@@ -752,7 +752,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
         df = pd.util.testing.makeDataFrame()
         df.index.name = 'name'
 
-        self.assertEqual(df.set_index(df.index).index.names, ['name'])
+        assert df.set_index(df.index).index.names == ['name']
 
         mi = MultiIndex.from_arrays(df[['A', 'B']].T.values, names=['A', 'B'])
         mi2 = MultiIndex.from_arrays(df[['A', 'B', 'A', 'B']].T.values,
@@ -760,7 +760,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
 
         df = df.set_index(['A', 'B'])
 
-        self.assertEqual(df.set_index(df.index).index.names, ['A', 'B'])
+        assert df.set_index(df.index).index.names == ['A', 'B']
 
         # Check that set_index isn't converting a MultiIndex into an Index
         assert isinstance(df.set_index(df.index).index, MultiIndex)

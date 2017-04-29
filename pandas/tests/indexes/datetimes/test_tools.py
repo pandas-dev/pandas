@@ -45,7 +45,7 @@ class TimeConversionFormats(tm.TestCase):
                 if isinstance(expected, Series):
                     assert_series_equal(result, Series(expected))
                 elif isinstance(expected, Timestamp):
-                    self.assertEqual(result, expected)
+                    assert result == expected
                 else:
                     tm.assert_index_equal(result, expected)
 
@@ -112,7 +112,7 @@ class TimeConversionFormats(tm.TestCase):
         format = '%d-%b-%Y %H:%M:%S.%f'
         result = to_datetime(val, format=format)
         exp = datetime.strptime(val, format)
-        self.assertEqual(result, exp)
+        assert result == exp
 
     def test_to_datetime_format_time(self):
         data = [
@@ -130,7 +130,7 @@ class TimeConversionFormats(tm.TestCase):
             #  Timestamp('2010-01-10 09:12:56')]
         ]
         for s, format, dt in data:
-            self.assertEqual(to_datetime(s, format=format), dt)
+            assert to_datetime(s, format=format) == dt
 
     def test_to_datetime_with_non_exact(self):
         # GH 10834
@@ -159,7 +159,7 @@ class TimeConversionFormats(tm.TestCase):
                   "2012-01-01 09:00:00.001000000", ]:
             expected = pd.to_datetime(v)
             result = pd.to_datetime(v, format="%Y-%m-%d %H:%M:%S.%f")
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_to_datetime_format_weeks(self):
         data = [
@@ -167,7 +167,7 @@ class TimeConversionFormats(tm.TestCase):
             ['2013020', '%Y%U%w', Timestamp('2013-01-13')]
         ]
         for s, format, dt in data:
-            self.assertEqual(to_datetime(s, format=format), dt)
+            assert to_datetime(s, format=format) == dt
 
 
 class TestToDatetime(tm.TestCase):
@@ -312,11 +312,11 @@ class TestToDatetime(tm.TestCase):
         with pytest.raises(TypeError):
             to_datetime(False)
         assert to_datetime(False, errors="coerce") is NaT
-        self.assertEqual(to_datetime(False, errors="ignore"), False)
+        assert to_datetime(False, errors="ignore") is False
         with pytest.raises(TypeError):
             to_datetime(True)
         assert to_datetime(True, errors="coerce") is NaT
-        self.assertEqual(to_datetime(True, errors="ignore"), True)
+        assert to_datetime(True, errors="ignore") is True
         with pytest.raises(TypeError):
             to_datetime([False, datetime.today()])
         with pytest.raises(TypeError):
@@ -390,15 +390,15 @@ class ToDatetimeUnit(tm.TestCase):
         # consistency of conversions
         expected = Timestamp('1970-05-09 14:25:11')
         result = pd.to_datetime(11111111, unit='s', errors='raise')
-        self.assertEqual(result, expected)
+        assert result == expected
         assert isinstance(result, Timestamp)
 
         result = pd.to_datetime(11111111, unit='s', errors='coerce')
-        self.assertEqual(result, expected)
+        assert result == expected
         assert isinstance(result, Timestamp)
 
         result = pd.to_datetime(11111111, unit='s', errors='ignore')
-        self.assertEqual(result, expected)
+        assert result == expected
         assert isinstance(result, Timestamp)
 
     def test_unit_with_numeric(self):
@@ -617,11 +617,11 @@ class ToDatetimeMisc(tm.TestCase):
     def test_to_datetime_iso8601(self):
         result = to_datetime(["2012-01-01 00:00:00"])
         exp = Timestamp("2012-01-01 00:00:00")
-        self.assertEqual(result[0], exp)
+        assert result[0] == exp
 
         result = to_datetime(['20121001'])  # bad iso 8601
         exp = Timestamp('2012-10-01')
-        self.assertEqual(result[0], exp)
+        assert result[0] == exp
 
     def test_to_datetime_default(self):
         rs = to_datetime('2001')
@@ -639,7 +639,7 @@ class ToDatetimeMisc(tm.TestCase):
         s = Series(date_range('1/1/2000', periods=10))
 
         result = to_datetime(s)
-        self.assertEqual(result[0], s[0])
+        assert result[0] == s[0]
 
     def test_to_datetime_with_space_in_series(self):
         # GH 6428
@@ -689,12 +689,12 @@ class ToDatetimeMisc(tm.TestCase):
         # ints
         result = Timestamp(0)
         expected = to_datetime(0)
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # GH 3888 (strings)
         expected = to_datetime(['2012'])[0]
         result = to_datetime('2012')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # array = ['2012','20120101','20120101 12:01:01']
         array = ['20120101', '20120101 12:01:01']
@@ -705,7 +705,7 @@ class ToDatetimeMisc(tm.TestCase):
         # currently fails ###
         # result = Timestamp('2012')
         # expected = to_datetime('2012')
-        # self.assertEqual(result, expected)
+        # assert result == expected
 
     def test_to_datetime_unprocessable_input(self):
         # GH 4928
@@ -721,10 +721,10 @@ class ToDatetimeMisc(tm.TestCase):
         as_obj = scalar.astype('O')
 
         index = DatetimeIndex([scalar])
-        self.assertEqual(index[0], scalar.astype('O'))
+        assert index[0] == scalar.astype('O')
 
         value = Timestamp(scalar)
-        self.assertEqual(value, as_obj)
+        assert value == as_obj
 
     def test_to_datetime_list_of_integers(self):
         rng = date_range('1/1/2000', periods=20)
@@ -739,8 +739,8 @@ class ToDatetimeMisc(tm.TestCase):
     def test_to_datetime_freq(self):
         xp = bdate_range('2000-1-1', periods=10, tz='UTC')
         rs = xp.to_datetime()
-        self.assertEqual(xp.freq, rs.freq)
-        self.assertEqual(xp.tzinfo, rs.tzinfo)
+        assert xp.freq == rs.freq
+        assert xp.tzinfo == rs.tzinfo
 
     def test_string_na_nat_conversion(self):
         # GH #999, #858
@@ -794,10 +794,10 @@ class ToDatetimeMisc(tm.TestCase):
                 expected[i] = to_datetime(x)
 
         assert_series_equal(result, expected, check_names=False)
-        self.assertEqual(result.name, 'foo')
+        assert result.name == 'foo'
 
         assert_series_equal(dresult, expected, check_names=False)
-        self.assertEqual(dresult.name, 'foo')
+        assert dresult.name == 'foo'
 
     def test_dti_constructor_numpy_timeunits(self):
         # GH 9114
@@ -842,21 +842,14 @@ class TestGuessDatetimeFormat(tm.TestCase):
                                 '%Y-%m-%d %H:%M:%S.%f'), )
 
         for dt_string, dt_format in dt_string_to_format:
-            self.assertEqual(
-                tools._guess_datetime_format(dt_string),
-                dt_format
-            )
+            assert tools._guess_datetime_format(dt_string) == dt_format
 
     def test_guess_datetime_format_with_dayfirst(self):
         ambiguous_string = '01/01/2011'
-        self.assertEqual(
-            tools._guess_datetime_format(ambiguous_string, dayfirst=True),
-            '%d/%m/%Y'
-        )
-        self.assertEqual(
-            tools._guess_datetime_format(ambiguous_string, dayfirst=False),
-            '%m/%d/%Y'
-        )
+        assert tools._guess_datetime_format(
+            ambiguous_string, dayfirst=True) == '%d/%m/%Y'
+        assert tools._guess_datetime_format(
+            ambiguous_string, dayfirst=False) == '%m/%d/%Y'
 
     def test_guess_datetime_format_with_locale_specific_formats(self):
         # The month names will vary depending on the locale, in which
@@ -868,10 +861,7 @@ class TestGuessDatetimeFormat(tm.TestCase):
                                ('30/Dec/2011 00:00:00', '%d/%b/%Y %H:%M:%S'), )
 
         for dt_string, dt_format in dt_string_to_format:
-            self.assertEqual(
-                tools._guess_datetime_format(dt_string),
-                dt_format
-            )
+            assert tools._guess_datetime_format(dt_string) == dt_format
 
     def test_guess_datetime_format_invalid_inputs(self):
         # A datetime string must include a year, month and a day for it
@@ -901,10 +891,7 @@ class TestGuessDatetimeFormat(tm.TestCase):
                                ('2011-1-3T00:00:0', '%Y-%m-%dT%H:%M:%S'))
 
         for dt_string, dt_format in dt_string_to_format:
-            self.assertEqual(
-                tools._guess_datetime_format(dt_string),
-                dt_format
-            )
+            assert tools._guess_datetime_format(dt_string) == dt_format
 
     def test_guess_datetime_format_for_array(self):
         tm._skip_if_not_us_locale()
@@ -918,10 +905,8 @@ class TestGuessDatetimeFormat(tm.TestCase):
         ]
 
         for test_array in test_arrays:
-            self.assertEqual(
-                tools._guess_datetime_format_for_array(test_array),
-                expected_format
-            )
+            assert tools._guess_datetime_format_for_array(
+                test_array) == expected_format
 
         format_for_string_of_nans = tools._guess_datetime_format_for_array(
             np.array(
@@ -1012,14 +997,13 @@ class TestDaysInMonth(tm.TestCase):
                       errors='raise', format="%Y-%m-%d")
 
     def test_day_not_in_month_ignore(self):
-        self.assertEqual(to_datetime(
-            '2015-02-29', errors='ignore'), '2015-02-29')
-        self.assertEqual(to_datetime(
-            '2015-02-29', errors='ignore', format="%Y-%m-%d"), '2015-02-29')
-        self.assertEqual(to_datetime(
-            '2015-02-32', errors='ignore', format="%Y-%m-%d"), '2015-02-32')
-        self.assertEqual(to_datetime(
-            '2015-04-31', errors='ignore', format="%Y-%m-%d"), '2015-04-31')
+        assert to_datetime('2015-02-29', errors='ignore') == '2015-02-29'
+        assert to_datetime('2015-02-29', errors='ignore',
+                           format="%Y-%m-%d") == '2015-02-29'
+        assert to_datetime('2015-02-32', errors='ignore',
+                           format="%Y-%m-%d") == '2015-02-32'
+        assert to_datetime('2015-04-31', errors='ignore',
+                           format="%Y-%m-%d") == '2015-04-31'
 
 
 class TestDatetimeParsingWrappers(tm.TestCase):
@@ -1110,7 +1094,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             result9 = DatetimeIndex(Series([date_str]), yearfirst=yearfirst)
 
             for res in [result1, result2]:
-                self.assertEqual(res, expected)
+                assert res == expected
             for res in [result3, result4, result6, result8, result9]:
                 exp = DatetimeIndex([pd.Timestamp(expected)])
                 tm.assert_index_equal(res, exp)
@@ -1118,10 +1102,10 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             # these really need to have yearfist, but we don't support
             if not yearfirst:
                 result5 = Timestamp(date_str)
-                self.assertEqual(result5, expected)
+                assert result5 == expected
                 result7 = date_range(date_str, freq='S', periods=1,
                                      yearfirst=yearfirst)
-                self.assertEqual(result7, expected)
+                assert result7 == expected
 
         # NaT
         result1, _, _ = tools.parse_time_string('NaT')
@@ -1215,7 +1199,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                 # compare with dateutil result
                 dateutil_result = parse(date_str, dayfirst=dayfirst,
                                         yearfirst=yearfirst)
-                self.assertEqual(dateutil_result, expected)
+                assert dateutil_result == expected
 
                 result1, _, _ = tools.parse_time_string(date_str,
                                                         dayfirst=dayfirst,
@@ -1224,7 +1208,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                 # we don't support dayfirst/yearfirst here:
                 if not dayfirst and not yearfirst:
                     result2 = Timestamp(date_str)
-                    self.assertEqual(result2, expected)
+                    assert result2 == expected
 
                 result3 = to_datetime(date_str, dayfirst=dayfirst,
                                       yearfirst=yearfirst)
@@ -1232,9 +1216,9 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                 result4 = DatetimeIndex([date_str], dayfirst=dayfirst,
                                         yearfirst=yearfirst)[0]
 
-                self.assertEqual(result1, expected)
-                self.assertEqual(result3, expected)
-                self.assertEqual(result4, expected)
+                assert result1 == expected
+                assert result3 == expected
+                assert result4 == expected
 
     def test_parsers_timestring(self):
         tm._skip_if_no_dateutil()
@@ -1253,11 +1237,11 @@ class TestDatetimeParsingWrappers(tm.TestCase):
             # parse time string return time string based on default date
             # others are not, and can't be changed because it is used in
             # time series plot
-            self.assertEqual(result1, exp_def)
-            self.assertEqual(result2, exp_now)
-            self.assertEqual(result3, exp_now)
-            self.assertEqual(result4, exp_now)
-            self.assertEqual(result5, exp_now)
+            assert result1 == exp_def
+            assert result2 == exp_now
+            assert result3 == exp_now
+            assert result4 == exp_now
+            assert result5 == exp_now
 
     def test_parsers_time(self):
         # GH11818
@@ -1267,20 +1251,19 @@ class TestDatetimeParsingWrappers(tm.TestCase):
         expected = time(14, 15)
 
         for time_string in strings:
-            self.assertEqual(tools.to_time(time_string), expected)
+            assert tools.to_time(time_string) == expected
 
         new_string = "14.15"
         pytest.raises(ValueError, tools.to_time, new_string)
-        self.assertEqual(tools.to_time(new_string, format="%H.%M"), expected)
+        assert tools.to_time(new_string, format="%H.%M") == expected
 
         arg = ["14:15", "20:20"]
         expected_arr = [time(14, 15), time(20, 20)]
-        self.assertEqual(tools.to_time(arg), expected_arr)
-        self.assertEqual(tools.to_time(arg, format="%H:%M"), expected_arr)
-        self.assertEqual(tools.to_time(arg, infer_time_format=True),
-                         expected_arr)
-        self.assertEqual(tools.to_time(arg, format="%I:%M%p", errors="coerce"),
-                         [None, None])
+        assert tools.to_time(arg) == expected_arr
+        assert tools.to_time(arg, format="%H:%M") == expected_arr
+        assert tools.to_time(arg, infer_time_format=True) == expected_arr
+        assert tools.to_time(arg, format="%I:%M%p",
+                             errors="coerce") == [None, None]
 
         res = tools.to_time(arg, format="%I:%M%p", errors="ignore")
         tm.assert_numpy_array_equal(res, np.array(arg, dtype=np.object_))
@@ -1301,7 +1284,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
         for date_str, expected in compat.iteritems(cases):
             result1, _, _ = tools.parse_time_string(date_str, freq='M')
-            self.assertEqual(result1, expected)
+            assert result1 == expected
 
     def test_parsers_quarterly_with_freq(self):
         msg = ('Incorrect quarterly string is given, quarter '
@@ -1321,7 +1304,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
         for (date_str, freq), exp in compat.iteritems(cases):
             result, _, _ = tools.parse_time_string(date_str, freq=freq)
-            self.assertEqual(result, exp)
+            assert result == exp
 
     def test_parsers_timezone_minute_offsets_roundtrip(self):
         # GH11708
@@ -1337,9 +1320,9 @@ class TestDatetimeParsingWrappers(tm.TestCase):
 
         for dt_string, tz, dt_string_repr in dt_strings:
             dt_time = to_datetime(dt_string)
-            self.assertEqual(base, dt_time)
+            assert base == dt_time
             converted_time = dt_time.tz_localize('UTC').tz_convert(tz)
-            self.assertEqual(dt_string_repr, repr(converted_time))
+            assert dt_string_repr == repr(converted_time)
 
     def test_parsers_iso8601(self):
         # GH 12060
@@ -1358,7 +1341,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                  '2013-1-1 5:30:00': datetime(2013, 1, 1, 5, 30)}
         for date_str, exp in compat.iteritems(cases):
             actual = tslib._test_parse_iso8601(date_str)
-            self.assertEqual(actual, exp)
+            assert actual == exp
 
         # seperators must all match - YYYYMM not valid
         invalid_cases = ['2011-01/02', '2011^11^11',

@@ -124,10 +124,10 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
         assert issubclass(type(a), type(b))
 
     def test_coerce_to_dtype(self):
-        self.assertEqual(_coerce_to_dtype('datetime64[ns, US/Eastern]'),
-                         DatetimeTZDtype('ns', 'US/Eastern'))
-        self.assertEqual(_coerce_to_dtype('datetime64[ns, Asia/Tokyo]'),
-                         DatetimeTZDtype('ns', 'Asia/Tokyo'))
+        assert (_coerce_to_dtype('datetime64[ns, US/Eastern]') ==
+                DatetimeTZDtype('ns', 'US/Eastern'))
+        assert (_coerce_to_dtype('datetime64[ns, Asia/Tokyo]') ==
+                DatetimeTZDtype('ns', 'Asia/Tokyo'))
 
     def test_compat(self):
         assert is_datetime64tz_dtype(self.dtype)
@@ -194,16 +194,14 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
         dr2 = date_range('2013-08-01', periods=3, tz='US/Eastern')
         s2 = Series(dr2, name='A')
         assert is_datetimetz(s2)
-        self.assertEqual(s1.dtype, s2.dtype)
+        assert s1.dtype == s2.dtype
 
     def test_parser(self):
         # pr #11245
         for tz, constructor in product(('UTC', 'US/Eastern'),
                                        ('M8', 'datetime64')):
-            self.assertEqual(
-                DatetimeTZDtype('%s[ns, %s]' % (constructor, tz)),
-                DatetimeTZDtype('ns', tz),
-            )
+            assert (DatetimeTZDtype('%s[ns, %s]' % (constructor, tz)) ==
+                    DatetimeTZDtype('ns', tz))
 
     def test_empty(self):
         dt = DatetimeTZDtype()
@@ -222,18 +220,18 @@ class TestPeriodDtype(Base, tm.TestCase):
 
         for s in ['period[D]', 'Period[D]', 'D']:
             dt = PeriodDtype(s)
-            self.assertEqual(dt.freq, pd.tseries.offsets.Day())
+            assert dt.freq == pd.tseries.offsets.Day()
             assert is_period_dtype(dt)
 
         for s in ['period[3D]', 'Period[3D]', '3D']:
             dt = PeriodDtype(s)
-            self.assertEqual(dt.freq, pd.tseries.offsets.Day(3))
+            assert dt.freq == pd.tseries.offsets.Day(3)
             assert is_period_dtype(dt)
 
         for s in ['period[26H]', 'Period[26H]', '26H',
                   'period[1D2H]', 'Period[1D2H]', '1D2H']:
             dt = PeriodDtype(s)
-            self.assertEqual(dt.freq, pd.tseries.offsets.Hour(26))
+            assert dt.freq == pd.tseries.offsets.Hour(26)
             assert is_period_dtype(dt)
 
     def test_subclass(self):
@@ -254,10 +252,8 @@ class TestPeriodDtype(Base, tm.TestCase):
         assert PeriodDtype('period[1S1U]') is PeriodDtype('period[1000001U]')
 
     def test_coerce_to_dtype(self):
-        self.assertEqual(_coerce_to_dtype('period[D]'),
-                         PeriodDtype('period[D]'))
-        self.assertEqual(_coerce_to_dtype('period[3M]'),
-                         PeriodDtype('period[3M]'))
+        assert _coerce_to_dtype('period[D]') == PeriodDtype('period[D]')
+        assert _coerce_to_dtype('period[3M]') == PeriodDtype('period[3M]')
 
     def test_compat(self):
         assert not is_datetime64_ns_dtype(self.dtype)
@@ -354,7 +350,7 @@ class TestIntervalDtype(Base, tm.TestCase):
 
         for s in ['interval[int64]', 'Interval[int64]', 'int64']:
             i = IntervalDtype(s)
-            self.assertEqual(i.subtype, np.dtype('int64'))
+            assert i.subtype == np.dtype('int64')
             assert is_interval_dtype(i)
 
     def test_construction_generic(self):
@@ -393,12 +389,12 @@ class TestIntervalDtype(Base, tm.TestCase):
         assert not IntervalDtype.is_dtype(np.float64)
 
     def test_identity(self):
-        self.assertEqual(IntervalDtype('interval[int64]'),
-                         IntervalDtype('interval[int64]'))
+        assert (IntervalDtype('interval[int64]') ==
+                IntervalDtype('interval[int64]'))
 
     def test_coerce_to_dtype(self):
-        self.assertEqual(_coerce_to_dtype('interval[int64]'),
-                         IntervalDtype('interval[int64]'))
+        assert (_coerce_to_dtype('interval[int64]') ==
+                IntervalDtype('interval[int64]'))
 
     def test_construction_from_string(self):
         result = IntervalDtype('interval[int64]')

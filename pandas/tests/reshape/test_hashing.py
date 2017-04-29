@@ -76,7 +76,7 @@ class TestHashing(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
         result = hash_tuples(tups[0])
-        self.assertEqual(result, expected[0])
+        assert result == expected[0]
 
     def test_hash_tuples_err(self):
 

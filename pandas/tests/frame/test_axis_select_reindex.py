@@ -37,9 +37,9 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         df_inplace_b.drop('b', inplace=True)
         df_inplace_e.drop('e', axis=1, inplace=True)
         for obj in (df_dropped_b, df_dropped_e, df_inplace_b, df_inplace_e):
-            self.assertEqual(obj.index.name, 'first')
-            self.assertEqual(obj.columns.name, 'second')
-        self.assertEqual(list(df.columns), ['d', 'e', 'f'])
+            assert obj.index.name == 'first'
+            assert obj.columns.name == 'second'
+        assert list(df.columns) == ['d', 'e', 'f']
 
         pytest.raises(ValueError, df.drop, ['g'])
         pytest.raises(ValueError, df.drop, ['g'], 1)
@@ -174,14 +174,14 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
                     if np.isnan(val):
                         assert np.isnan(self.frame[col][idx])
                     else:
-                        self.assertEqual(val, self.frame[col][idx])
+                        assert val == self.frame[col][idx]
                 else:
                     assert np.isnan(val)
 
         for col, series in compat.iteritems(newFrame):
             assert tm.equalContents(series.index, newFrame.index)
         emptyFrame = self.frame.reindex(Index([]))
-        self.assertEqual(len(emptyFrame.index), 0)
+        assert len(emptyFrame.index) == 0
 
         # Cython code should be unit-tested directly
         nonContigFrame = self.frame.reindex(self.ts1.index[::2])
@@ -192,7 +192,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
                     if np.isnan(val):
                         assert np.isnan(self.frame[col][idx])
                     else:
-                        self.assertEqual(val, self.frame[col][idx])
+                        assert val == self.frame[col][idx]
                 else:
                     assert np.isnan(val)
 
@@ -208,13 +208,13 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         # length zero
         newFrame = self.frame.reindex([])
         assert newFrame.empty
-        self.assertEqual(len(newFrame.columns), len(self.frame.columns))
+        assert len(newFrame.columns) == len(self.frame.columns)
 
         # length zero with columns reindexed with non-empty index
         newFrame = self.frame.reindex([])
         newFrame = newFrame.reindex(self.frame.index)
-        self.assertEqual(len(newFrame.index), len(self.frame.index))
-        self.assertEqual(len(newFrame.columns), len(self.frame.columns))
+        assert len(newFrame.index) == len(self.frame.index)
+        assert len(newFrame.columns) == len(self.frame.columns)
 
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
@@ -255,27 +255,27 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         i = Series(np.arange(10), name='iname')
 
         df = df.reindex(i)
-        self.assertEqual(df.index.name, 'iname')
+        assert df.index.name == 'iname'
 
         df = df.reindex(Index(np.arange(10), name='tmpname'))
-        self.assertEqual(df.index.name, 'tmpname')
+        assert df.index.name == 'tmpname'
 
         s = Series(random.rand(10))
         df = DataFrame(s.T, index=np.arange(len(s)))
         i = Series(np.arange(10), name='iname')
         df = df.reindex(columns=i)
-        self.assertEqual(df.columns.name, 'iname')
+        assert df.columns.name == 'iname'
 
     def test_reindex_int(self):
         smaller = self.intframe.reindex(self.intframe.index[::2])
 
-        self.assertEqual(smaller['A'].dtype, np.int64)
+        assert smaller['A'].dtype == np.int64
 
         bigger = smaller.reindex(self.intframe.index)
-        self.assertEqual(bigger['A'].dtype, np.float64)
+        assert bigger['A'].dtype == np.float64
 
         smaller = self.intframe.reindex(columns=['A', 'B'])
-        self.assertEqual(smaller['A'].dtype, np.int64)
+        assert smaller['A'].dtype == np.int64
 
     def test_reindex_like(self):
         other = self.frame.reindex(index=self.frame.index[:10],
@@ -346,8 +346,8 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         both_freq = df.reindex(index=time_freq, columns=some_cols).index.freq
         seq_freq = df.reindex(index=time_freq).reindex(
             columns=some_cols).index.freq
-        self.assertEqual(index_freq, both_freq)
-        self.assertEqual(index_freq, seq_freq)
+        assert index_freq == both_freq
+        assert index_freq == seq_freq
 
     def test_reindex_fill_value(self):
         df = DataFrame(np.random.randn(10, 4))
@@ -732,7 +732,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # regex
         filtered = fcopy.filter(regex='[A]+')
-        self.assertEqual(len(filtered.columns), 2)
+        assert len(filtered.columns) == 2
         assert 'AA' in filtered
 
         # doesn't have to be at beginning
@@ -845,11 +845,11 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
                           columns=[0, 2])
 
         reindexed = frame.reindex(np.arange(10))
-        self.assertEqual(reindexed.values.dtype, np.object_)
+        assert reindexed.values.dtype == np.object_
         assert isnull(reindexed[0][1])
 
         reindexed = frame.reindex(columns=lrange(3))
-        self.assertEqual(reindexed.values.dtype, np.object_)
+        assert reindexed.values.dtype == np.object_
         assert isnull(reindexed[1]).all()
 
     def test_reindex_objects(self):
@@ -867,7 +867,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # ints are weird
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
-        self.assertEqual(smaller['E'].dtype, np.float64)
+        assert smaller['E'].dtype == np.float64
 
     def test_reindex_axis(self):
         cols = ['A', 'B', 'E']

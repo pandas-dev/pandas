@@ -196,16 +196,16 @@ class TestDataFrameFormatting(tm.TestCase):
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
         pd.reset_option("display.chop_threshold")  # default None
-        self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
+        assert repr(df) == '     0    1\n0  0.1  0.5\n1  0.5 -0.1'
 
         with option_context("display.chop_threshold", 0.2):
-            self.assertEqual(repr(df), '     0    1\n0  0.0  0.5\n1  0.5  0.0')
+            assert repr(df) == '     0    1\n0  0.0  0.5\n1  0.5  0.0'
 
         with option_context("display.chop_threshold", 0.6):
-            self.assertEqual(repr(df), '     0    1\n0  0.0  0.0\n1  0.0  0.0')
+            assert repr(df) == '     0    1\n0  0.0  0.0\n1  0.0  0.0'
 
         with option_context("display.chop_threshold", None):
-            self.assertEqual(repr(df), '     0    1\n0  0.1  0.5\n1  0.5 -0.1')
+            assert repr(df) == '     0    1\n0  0.1  0.5\n1  0.5 -0.1'
 
     def test_repr_obeys_max_seq_limit(self):
         with option_context("display.max_seq_items", 2000):
@@ -215,7 +215,7 @@ class TestDataFrameFormatting(tm.TestCase):
             assert len(printing.pprint_thing(lrange(1000))) < 100
 
     def test_repr_set(self):
-        self.assertEqual(printing.pprint_thing(set([1])), '{1}')
+        assert printing.pprint_thing(set([1])) == '{1}'
 
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather then
@@ -389,7 +389,7 @@ class TestDataFrameFormatting(tm.TestCase):
             except:
                 pass
             if not line.startswith('dtype:'):
-                self.assertEqual(len(line), line_len)
+                assert len(line) == line_len
 
         # it works even if sys.stdin in None
         _stdin = sys.stdin
@@ -441,11 +441,11 @@ class TestDataFrameFormatting(tm.TestCase):
                       ('object', lambda x: '-%s-' % str(x))]
         result = df.to_string(formatters=dict(formatters))
         result2 = df.to_string(formatters=lzip(*formatters)[1])
-        self.assertEqual(result, ('  int  float    object\n'
-                                  '0 0x1 [ 1.0]  -(1, 2)-\n'
-                                  '1 0x2 [ 2.0]    -True-\n'
-                                  '2 0x3 [ 3.0]   -False-'))
-        self.assertEqual(result, result2)
+        assert result == ('  int  float    object\n'
+                          '0 0x1 [ 1.0]  -(1, 2)-\n'
+                          '1 0x2 [ 2.0]    -True-\n'
+                          '2 0x3 [ 3.0]   -False-')
+        assert result == result2
 
     def test_to_string_with_datetime64_monthformatter(self):
         months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
@@ -455,7 +455,7 @@ class TestDataFrameFormatting(tm.TestCase):
             return x.strftime('%Y-%m')
         result = x.to_string(formatters={'months': format_func})
         expected = 'months\n0 2016-01\n1 2016-02'
-        self.assertEqual(result.strip(), expected)
+        assert result.strip() == expected
 
     def test_to_string_with_datetime64_hourformatter(self):
 
@@ -467,12 +467,12 @@ class TestDataFrameFormatting(tm.TestCase):
 
         result = x.to_string(formatters={'hod': format_func})
         expected = 'hod\n0 10:10\n1 12:12'
-        self.assertEqual(result.strip(), expected)
+        assert result.strip() == expected
 
     def test_to_string_with_formatters_unicode(self):
         df = DataFrame({u('c/\u03c3'): [1, 2, 3]})
         result = df.to_string(formatters={u('c/\u03c3'): lambda x: '%s' % x})
-        self.assertEqual(result, u('  c/\u03c3\n') + '0   1\n1   2\n2   3')
+        assert result == u('  c/\u03c3\n') + '0   1\n1   2\n2   3'
 
     def test_east_asian_unicode_frame(self):
         if PY3:
@@ -489,7 +489,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = (u"          a      b\na         あ      1\n"
                     u"bb      いいい    222\nc         う  33333\n"
                     u"ddd  ええええええ      4")
-        self.assertEqual(_rep(df), expected)
+        assert _rep(df) == expected
 
         # last col
         df = DataFrame({'a': [1, 222, 33333, 4],
@@ -498,7 +498,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = (u"         a       b\na        1       あ\n"
                     u"bb     222     いいい\nc    33333       う\n"
                     u"ddd      4  ええええええ")
-        self.assertEqual(_rep(df), expected)
+        assert _rep(df) == expected
 
         # all col
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -507,7 +507,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = (u"         a       b\na    あああああ       あ\n"
                     u"bb       い     いいい\nc        う       う\n"
                     u"ddd    えええ  ええええええ")
-        self.assertEqual(_rep(df), expected)
+        assert _rep(df) == expected
 
         # column name
         df = DataFrame({u'あああああ': [1, 222, 33333, 4],
@@ -516,7 +516,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = (u"          b  あああああ\na         あ      1\n"
                     u"bb      いいい    222\nc         う  33333\n"
                     u"ddd  ええええええ      4")
-        self.assertEqual(_rep(df), expected)
+        assert _rep(df) == expected
 
         # index
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -525,7 +525,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = (u"            a       b\nあああ     あああああ       あ\n"
                     u"いいいいいい      い     いいい\nうう          う       う\n"
                     u"え         えええ  ええええええ")
-        self.assertEqual(_rep(df), expected)
+        assert _rep(df) == expected
 
         # index name
         df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -538,7 +538,7 @@ class TestDataFrameFormatting(tm.TestCase):
                     u"い         い     いいい\n"
                     u"うう        う       う\n"
                     u"え       えええ  ええええええ")
-        self.assertEqual(_rep(df), expected)
+        assert _rep(df) == expected
 
         # all
         df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
@@ -551,7 +551,7 @@ class TestDataFrameFormatting(tm.TestCase):
                     u"いいい      い   いいい\n"
                     u"うう       う     う\n"
                     u"え    えええええ    ええ")
-        self.assertEqual(_rep(df), expected)
+        assert _rep(df) == expected
 
         # MultiIndex
         idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
@@ -564,7 +564,7 @@ class TestDataFrameFormatting(tm.TestCase):
                     u"う   え         い     いいい\n"
                     u"おおお かかかか      う       う\n"
                     u"き   くく      えええ  ええええええ")
-        self.assertEqual(_rep(df), expected)
+        assert _rep(df) == expected
 
         # truncate
         with option_context('display.max_rows', 3, 'display.max_columns', 3):
@@ -577,13 +577,13 @@ class TestDataFrameFormatting(tm.TestCase):
             expected = (u"        a ...  ああああ\n0   あああああ ...     さ\n"
                         u"..    ... ...   ...\n3     えええ ...     せ\n"
                         u"\n[4 rows x 4 columns]")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
             df.index = [u'あああ', u'いいいい', u'う', 'aaa']
             expected = (u"         a ...  ああああ\nあああ  あああああ ...     さ\n"
                         u"..     ... ...   ...\naaa    えええ ...     せ\n"
                         u"\n[4 rows x 4 columns]")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
         # Emable Unicode option -----------------------------------------
         with option_context('display.unicode.east_asian_width', True):
@@ -595,7 +595,7 @@ class TestDataFrameFormatting(tm.TestCase):
             expected = (u"                a      b\na              あ      1\n"
                         u"bb         いいい    222\nc              う  33333\n"
                         u"ddd  ええええええ      4")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
             # last col
             df = DataFrame({'a': [1, 222, 33333, 4],
@@ -604,7 +604,7 @@ class TestDataFrameFormatting(tm.TestCase):
             expected = (u"         a             b\na        1            あ\n"
                         u"bb     222        いいい\nc    33333            う\n"
                         u"ddd      4  ええええええ")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
             # all col
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -615,7 +615,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         u"bb           い        いいい\n"
                         u"c            う            う\n"
                         u"ddd      えええ  ええええええ")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
             # column name
             df = DataFrame({u'あああああ': [1, 222, 33333, 4],
@@ -626,7 +626,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         u"bb         いいい         222\n"
                         u"c              う       33333\n"
                         u"ddd  ええええええ           4")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
             # index
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -637,7 +637,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         u"いいいいいい          い        いいい\n"
                         u"うう                  う            う\n"
                         u"え                えええ  ええええええ")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
             # index name
             df = DataFrame({'a': [u'あああああ', u'い', u'う', u'えええ'],
@@ -650,7 +650,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         u"い                い        いいい\n"
                         u"うう              う            う\n"
                         u"え            えええ  ええええええ")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
             # all
             df = DataFrame({u'あああ': [u'あああ', u'い', u'う', u'えええええ'],
@@ -663,7 +663,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         u"いいい          い     いいい\n"
                         u"うう            う         う\n"
                         u"え      えええええ       ええ")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
             # MultiIndex
             idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
@@ -676,7 +676,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         u"う     え                い        いいい\n"
                         u"おおお かかかか          う            う\n"
                         u"き     くく          えええ  ええええええ")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
             # truncate
             with option_context('display.max_rows', 3, 'display.max_columns',
@@ -693,7 +693,7 @@ class TestDataFrameFormatting(tm.TestCase):
                             u"..         ...   ...         ...\n"
                             u"3       えええ   ...          せ\n"
                             u"\n[4 rows x 4 columns]")
-                self.assertEqual(_rep(df), expected)
+                assert _rep(df) == expected
 
                 df.index = [u'あああ', u'いいいい', u'う', 'aaa']
                 expected = (u"                 a   ...    ああああ\n"
@@ -701,7 +701,7 @@ class TestDataFrameFormatting(tm.TestCase):
                             u"...            ...   ...         ...\n"
                             u"aaa         えええ   ...          せ\n"
                             u"\n[4 rows x 4 columns]")
-                self.assertEqual(_rep(df), expected)
+                assert _rep(df) == expected
 
             # ambiguous unicode
             df = DataFrame({u'あああああ': [1, 222, 33333, 4],
@@ -712,7 +712,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         u"bb         いいい         222\n"
                         u"c              ¡¡       33333\n"
                         u"¡¡¡  ええええええ           4")
-            self.assertEqual(_rep(df), expected)
+            assert _rep(df) == expected
 
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
@@ -738,7 +738,7 @@ class TestDataFrameFormatting(tm.TestCase):
         with_header = df.to_string(col_space=20)
         with_header_row1 = with_header.splitlines()[1]
         no_header = df.to_string(col_space=20, header=False)
-        self.assertEqual(len(with_header_row1), len(no_header))
+        assert len(with_header_row1) == len(no_header)
 
     def test_to_string_truncate_indices(self):
         for index in [tm.makeStringIndex, tm.makeUnicodeIndex, tm.makeIntIndex,
@@ -825,7 +825,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         '8                        NaT   9\n'
                         '9                        NaT  10\n\n'
                         '[10 rows x 2 columns]')
-            self.assertEqual(repr(df), expected)
+            assert repr(df) == expected
 
         dts = [pd.NaT] * 5 + [pd.Timestamp('2011-01-01', tz='US/Eastern')] * 5
         df = pd.DataFrame({"dt": dts,
@@ -838,7 +838,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         '8  2011-01-01 00:00:00-05:00   9\n'
                         '9  2011-01-01 00:00:00-05:00  10\n\n'
                         '[10 rows x 2 columns]')
-            self.assertEqual(repr(df), expected)
+            assert repr(df) == expected
 
         dts = ([pd.Timestamp('2011-01-01', tz='Asia/Tokyo')] * 5 +
                [pd.Timestamp('2011-01-01', tz='US/Eastern')] * 5)
@@ -852,13 +852,13 @@ class TestDataFrameFormatting(tm.TestCase):
                         '8   2011-01-01 00:00:00-05:00   9\n'
                         '9   2011-01-01 00:00:00-05:00  10\n\n'
                         '[10 rows x 2 columns]')
-            self.assertEqual(repr(df), expected)
+            assert repr(df) == expected
 
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
         lines = rep_str.split('\n')
-        self.assertEqual(len(lines[1]), len(lines[2]))
+        assert len(lines[1]) == len(lines[2])
 
     def test_unicode_problem_decoding_as_ascii(self):
         dm = DataFrame({u('c/\u03c3'): Series({'test': np.nan})})
@@ -890,25 +890,21 @@ class TestDataFrameFormatting(tm.TestCase):
         if PY3:
             pytest.skip("doesn't work on Python 3")
 
-        self.assertEqual(pp_t('a'), u('a'))
-        self.assertEqual(pp_t(u('a')), u('a'))
-        self.assertEqual(pp_t(None), 'None')
-        self.assertEqual(pp_t(u('\u05d0'), quote_strings=True), u("u'\u05d0'"))
-        self.assertEqual(pp_t(u('\u05d0'), quote_strings=False), u('\u05d0'))
-        self.assertEqual(pp_t((u('\u05d0'),
-                               u('\u05d1')), quote_strings=True),
-                         u("(u'\u05d0', u'\u05d1')"))
-        self.assertEqual(pp_t((u('\u05d0'), (u('\u05d1'),
-                                             u('\u05d2'))),
-                              quote_strings=True),
-                         u("(u'\u05d0', (u'\u05d1', u'\u05d2'))"))
-        self.assertEqual(pp_t(('foo', u('\u05d0'), (u('\u05d0'),
-                                                    u('\u05d0'))),
-                              quote_strings=True),
-                         u("(u'foo', u'\u05d0', (u'\u05d0', u'\u05d0'))"))
+        assert pp_t('a') == u('a')
+        assert pp_t(u('a')) == u('a')
+        assert pp_t(None) == 'None'
+        assert pp_t(u('\u05d0'), quote_strings=True) == u("u'\u05d0'")
+        assert pp_t(u('\u05d0'), quote_strings=False) == u('\u05d0')
+        assert (pp_t((u('\u05d0'), u('\u05d1')), quote_strings=True) ==
+                u("(u'\u05d0', u'\u05d1')"))
+        assert (pp_t((u('\u05d0'), (u('\u05d1'), u('\u05d2'))),
+                     quote_strings=True) == u("(u'\u05d0', "
+                                              "(u'\u05d1', u'\u05d2'))"))
+        assert (pp_t(('foo', u('\u05d0'), (u('\u05d0'), u('\u05d0'))),
+                     quote_strings=True) == u("(u'foo', u'\u05d0', "
+                                              "(u'\u05d0', u'\u05d0'))"))
 
-        # escape embedded tabs in string
-        # GH #2038
+        # gh-2038: escape embedded tabs in string
         assert "\t" not in pp_t("a\tb", escape_chars=("\t", ))
 
     def test_wide_repr(self):
@@ -936,7 +932,7 @@ class TestDataFrameFormatting(tm.TestCase):
                            columns=['a' * 90, 'b' * 90, 'c' * 90])
             rep_str = repr(df)
 
-            self.assertEqual(len(rep_str.splitlines()), 20)
+            assert len(rep_str.splitlines()) == 20
 
     def test_wide_repr_named(self):
         with option_context('mode.sim_interactive', True):
@@ -1036,7 +1032,7 @@ class TestDataFrameFormatting(tm.TestCase):
         import re
         str_rep = str(s)
         nmatches = len(re.findall('dtype', str_rep))
-        self.assertEqual(nmatches, 1)
+        assert nmatches == 1
 
     def test_index_with_nan(self):
         #  GH 2850
@@ -1055,7 +1051,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = u(
             '             value\nid1 id2 id3       \n'
             '1a3 NaN 78d    123\n9h4 d67 79d     64')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # index
         y = df.set_index('id2')
@@ -1063,7 +1059,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = u(
             '     id1  id3  value\nid2                 \n'
             'NaN  1a3  78d    123\nd67  9h4  79d     64')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # with append (this failed in 0.12)
         y = df.set_index(['id1', 'id2']).set_index('id3', append=True)
@@ -1071,7 +1067,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = u(
             '             value\nid1 id2 id3       \n'
             '1a3 NaN 78d    123\n9h4 d67 79d     64')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # all-nan in mi
         df2 = df.copy()
@@ -1081,7 +1077,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = u(
             '     id1  id3  value\nid2                 \n'
             'NaN  1a3  78d    123\nNaN  9h4  79d     64')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # partial nan in mi
         df2 = df.copy()
@@ -1091,7 +1087,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = u(
             '         id1  value\nid2 id3            \n'
             'NaN 78d  1a3    123\n    79d  9h4     64')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         df = DataFrame({'id1': {0: np.nan,
                                 1: '9h4'},
@@ -1107,7 +1103,7 @@ class TestDataFrameFormatting(tm.TestCase):
         expected = u(
             '             value\nid1 id2 id3       \n'
             'NaN NaN NaN    123\n9h4 d67 79d     64')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_string(self):
 
@@ -1123,7 +1119,7 @@ class TestDataFrameFormatting(tm.TestCase):
         buf = StringIO()
         retval = biggie.to_string(buf=buf)
         assert retval is None
-        self.assertEqual(buf.getvalue(), s)
+        assert buf.getvalue() == s
 
         assert isinstance(s, compat.string_types)
 
@@ -1136,17 +1132,17 @@ class TestDataFrameFormatting(tm.TestCase):
         recons = read_table(StringIO(joined), names=header,
                             header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
-        self.assertEqual(recons['A'].count(), biggie['A'].count())
+        assert recons['A'].count() == biggie['A'].count()
         assert (np.abs(recons['A'].dropna() -
                        biggie['A'].dropna()) < 0.1).all()
 
         # expected = ['B', 'A']
-        # self.assertEqual(header, expected)
+        # assert header == expected
 
         result = biggie.to_string(columns=['A'], col_space=17)
         header = result.split('\n')[0].strip().split()
         expected = ['A']
-        self.assertEqual(header, expected)
+        assert header == expected
 
         biggie.to_string(columns=['B', 'A'],
                          formatters={'A': lambda x: '%.1f' % x})
@@ -1163,7 +1159,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df_s = df.to_string(header=False)
         expected = "0  1  4\n1  2  5\n2  3  6"
 
-        self.assertEqual(df_s, expected)
+        assert df_s == expected
 
     def test_to_string_specified_header(self):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
@@ -1171,7 +1167,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df_s = df.to_string(header=['X', 'Y'])
         expected = '   X  Y\n0  1  4\n1  2  5\n2  3  6'
 
-        self.assertEqual(df_s, expected)
+        assert df_s == expected
 
         with pytest.raises(ValueError):
             df.to_string(header=['X'])
@@ -1182,7 +1178,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df_s = df.to_string(index=False)
         expected = "x  y\n1  4\n2  5\n3  6"
 
-        self.assertEqual(df_s, expected)
+        assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
@@ -1190,7 +1186,7 @@ class TestDataFrameFormatting(tm.TestCase):
         df_s = df.to_string(line_width=1, index=False)
         expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6"
 
-        self.assertEqual(df_s, expected)
+        assert df_s == expected
 
     def test_to_string_float_formatting(self):
         tm.reset_display_options()
@@ -1214,16 +1210,16 @@ class TestDataFrameFormatting(tm.TestCase):
                         '2  3.45600e+03\n3  1.20000e+46\n4  1.64000e+06\n'
                         '5  1.70000e+08\n6  1.25346e+00\n7  3.14159e+00\n'
                         '8 -1.00000e+06')
-        self.assertEqual(df_s, expected)
+        assert df_s == expected
 
         df = DataFrame({'x': [3234, 0.253]})
         df_s = df.to_string()
 
         expected = ('          x\n' '0  3234.000\n' '1     0.253')
-        self.assertEqual(df_s, expected)
+        assert df_s == expected
 
         tm.reset_display_options()
-        self.assertEqual(get_option("display.precision"), 6)
+        assert get_option("display.precision") == 6
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
@@ -1237,7 +1233,7 @@ class TestDataFrameFormatting(tm.TestCase):
             expected = ('              x\n'
                         '0  1.000000e+09\n'
                         '1  2.512000e-01')
-        self.assertEqual(df_s, expected)
+        assert df_s == expected
 
     def test_to_string_small_float_values(self):
         df = DataFrame({'a': [1.5, 1e-17, -5.5e-7]})
@@ -1254,7 +1250,7 @@ class TestDataFrameFormatting(tm.TestCase):
                         '0  1.500000e+00\n'
                         '1  1.000000e-17\n'
                         '2 -5.500000e-07')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # but not all exactly zero
         df = df * 0
@@ -1272,7 +1268,7 @@ class TestDataFrameFormatting(tm.TestCase):
                     '3.0  2\n'
                     '4.0  3\n'
                     '5.0  4')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_string_ascii_error(self):
         data = [('0  ', u('                        .gitignore '), u('     5 '),
@@ -1289,7 +1285,7 @@ class TestDataFrameFormatting(tm.TestCase):
 
         output = df.to_string()
         expected = ('    x\n' '0 -15\n' '1  20\n' '2  25\n' '3 -35')
-        self.assertEqual(output, expected)
+        assert output == expected
 
     def test_to_string_index_formatter(self):
         df = DataFrame([lrange(5), lrange(5, 10), lrange(10, 15)])
@@ -1303,14 +1299,14 @@ b   5   6   7   8   9
 c  10  11  12  13  14\
 """
 
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
     def test_to_string_left_justify_cols(self):
         tm.reset_display_options()
         df = DataFrame({'x': [3234, 0.253]})
         df_s = df.to_string(justify='left')
         expected = ('   x       \n' '0  3234.000\n' '1     0.253')
-        self.assertEqual(df_s, expected)
+        assert df_s == expected
 
     def test_to_string_format_na(self):
         tm.reset_display_options()
@@ -1324,7 +1320,7 @@ c  10  11  12  13  14\
                     '2 -2.1234   foooo\n'
                     '3  3.0000  fooooo\n'
                     '4  4.0000     bar')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         df = DataFrame({'A': [np.nan, -1., -2., 3., 4.],
                         'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
@@ -1336,12 +1332,12 @@ c  10  11  12  13  14\
                     '2 -2.0   foooo\n'
                     '3  3.0  fooooo\n'
                     '4  4.0     bar')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_string_line_width(self):
         df = DataFrame(123, lrange(10, 15), lrange(30))
         s = df.to_string(line_width=80)
-        self.assertEqual(max(len(l) for l in s.split('\n')), 80)
+        assert max(len(l) for l in s.split('\n')) == 80
 
     def test_show_dimensions(self):
         df = DataFrame(123, lrange(10, 15), lrange(30))
@@ -1596,7 +1592,7 @@ c  10  11  12  13  14\
         exp = ("        A                B  C\n0 2013-01          2011-01  a\n"
                "1 2013-02       2011-02-01  b\n2 2013-03 2011-03-01 09:00  c\n"
                "3 2013-04          2011-04  d")
-        self.assertEqual(str(df), exp)
+        assert str(df) == exp
 
 
 def gen_series_formatting():
@@ -1628,30 +1624,29 @@ class TestSeriesFormatting(tm.TestCase):
 
         retval = self.ts.to_string(buf=buf)
         assert retval is None
-        self.assertEqual(buf.getvalue().strip(), s)
+        assert buf.getvalue().strip() == s
 
         # pass float_format
         format = '%.4f'.__mod__
         result = self.ts.to_string(float_format=format)
         result = [x.split()[1] for x in result.split('\n')[:-1]]
         expected = [format(x) for x in self.ts]
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # empty string
         result = self.ts[:0].to_string()
-        self.assertEqual(result, 'Series([], Freq: B)')
+        assert result == 'Series([], Freq: B)'
 
         result = self.ts[:0].to_string(length=0)
-        self.assertEqual(result, 'Series([], Freq: B)')
+        assert result == 'Series([], Freq: B)'
 
         # name and length
         cp = self.ts.copy()
         cp.name = 'foo'
         result = cp.to_string(length=True, name=True, dtype=True)
         last_line = result.split('\n')[-1].strip()
-        self.assertEqual(last_line,
-                         "Freq: B, Name: foo, Length: %d, dtype: float64" %
-                         len(cp))
+        assert last_line == ("Freq: B, Name: foo, "
+                             "Length: %d, dtype: float64" % len(cp))
 
     def test_freq_name_separation(self):
         s = Series(np.random.randn(10),
@@ -1665,18 +1660,18 @@ class TestSeriesFormatting(tm.TestCase):
         result = s.to_string()
         expected = (u('0     foo\n') + u('1     NaN\n') + u('2   -1.23\n') +
                     u('3    4.56'))
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # but don't count NAs as floats
         s = Series(['foo', np.nan, 'bar', 'baz'])
         result = s.to_string()
         expected = (u('0    foo\n') + '1    NaN\n' + '2    bar\n' + '3    baz')
-        self.assertEqual(result, expected)
+        assert result == expected
 
         s = Series(['foo', 5, 'bar', 'baz'])
         result = s.to_string()
         expected = (u('0    foo\n') + '1      5\n' + '2    bar\n' + '3    baz')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_string_float_na_spacing(self):
         s = Series([0., 1.5678, 2., -3., 4.])
@@ -1685,14 +1680,14 @@ class TestSeriesFormatting(tm.TestCase):
         result = s.to_string()
         expected = (u('0       NaN\n') + '1    1.5678\n' + '2       NaN\n' +
                     '3   -3.0000\n' + '4       NaN')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_string_without_index(self):
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
         expected = (u('1\n') + '2\n' + '3\n' + '4')
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_unicode_name_in_footer(self):
         s = Series([1, 2], name=u('\u05e2\u05d1\u05e8\u05d9\u05ea'))
@@ -1711,21 +1706,21 @@ class TestSeriesFormatting(tm.TestCase):
                    index=[u'あ', u'いい', u'ううう', u'ええええ'])
         expected = (u"あ         a\nいい       bb\nううう     CCC\n"
                     u"ええええ      D\ndtype: object")
-        self.assertEqual(_rep(s), expected)
+        assert _rep(s) == expected
 
         # unicode values
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                    index=['a', 'bb', 'c', 'ddd'])
         expected = (u"a         あ\nbb       いい\nc       ううう\n"
                     u"ddd    ええええ\ndtype: object")
-        self.assertEqual(_rep(s), expected)
+        assert _rep(s) == expected
 
         # both
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                    index=[u'ああ', u'いいいい', u'う', u'えええ'])
         expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
                     u"えええ     ええええ\ndtype: object")
-        self.assertEqual(_rep(s), expected)
+        assert _rep(s) == expected
 
         # unicode footer
         s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
@@ -1733,7 +1728,7 @@ class TestSeriesFormatting(tm.TestCase):
                    name=u'おおおおおおお')
         expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
                     u"えええ     ええええ\nName: おおおおおおお, dtype: object")
-        self.assertEqual(_rep(s), expected)
+        assert _rep(s) == expected
 
         # MultiIndex
         idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
@@ -1743,13 +1738,13 @@ class TestSeriesFormatting(tm.TestCase):
                     u"う    え          22\n"
                     u"おおお  かかかか     3333\n"
                     u"き    くく      44444\ndtype: int64")
-        self.assertEqual(_rep(s), expected)
+        assert _rep(s) == expected
 
         # object dtype, shorter than unicode repr
         s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
         expected = (u"1          1\nAB        22\nNaN     3333\n"
                     u"あああ    44444\ndtype: int64")
-        self.assertEqual(_rep(s), expected)
+        assert _rep(s) == expected
 
         # object dtype, longer than unicode repr
         s = Series([1, 22, 3333, 44444],
@@ -1758,7 +1753,7 @@ class TestSeriesFormatting(tm.TestCase):
                     u"AB                        22\n"
                     u"2011-01-01 00:00:00     3333\n"
                     u"あああ                    44444\ndtype: int64")
-        self.assertEqual(_rep(s), expected)
+        assert _rep(s) == expected
 
         # truncate
         with option_context('display.max_rows', 3):
@@ -1768,13 +1763,13 @@ class TestSeriesFormatting(tm.TestCase):
             expected = (u"0       あ\n     ... \n"
                         u"3    ええええ\n"
                         u"Name: おおおおおおお, Length: 4, dtype: object")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
             s.index = [u'ああ', u'いいいい', u'う', u'えええ']
             expected = (u"ああ        あ\n       ... \n"
                         u"えええ    ええええ\n"
                         u"Name: おおおおおおお, Length: 4, dtype: object")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
         # Emable Unicode option -----------------------------------------
         with option_context('display.unicode.east_asian_width', True):
@@ -1784,14 +1779,14 @@ class TestSeriesFormatting(tm.TestCase):
                        index=[u'あ', u'いい', u'ううう', u'ええええ'])
             expected = (u"あ            a\nいい         bb\nううう      CCC\n"
                         u"ええええ      D\ndtype: object")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
             # unicode values
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
                        index=['a', 'bb', 'c', 'ddd'])
             expected = (u"a            あ\nbb         いい\nc        ううう\n"
                         u"ddd    ええええ\ndtype: object")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
             # both
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
@@ -1800,7 +1795,7 @@ class TestSeriesFormatting(tm.TestCase):
                         u"いいいい        いい\n"
                         u"う            ううう\n"
                         u"えええ      ええええ\ndtype: object")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
             # unicode footer
             s = Series([u'あ', u'いい', u'ううう', u'ええええ'],
@@ -1811,7 +1806,7 @@ class TestSeriesFormatting(tm.TestCase):
                         u"う            ううう\n"
                         u"えええ      ええええ\n"
                         u"Name: おおおおおおお, dtype: object")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
             # MultiIndex
             idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
@@ -1822,13 +1817,13 @@ class TestSeriesFormatting(tm.TestCase):
                         u"おおお  かかかか     3333\n"
                         u"き      くく        44444\n"
                         u"dtype: int64")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
             # object dtype, shorter than unicode repr
             s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
             expected = (u"1             1\nAB           22\nNaN        3333\n"
                         u"あああ    44444\ndtype: int64")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
             # object dtype, longer than unicode repr
             s = Series([1, 22, 3333, 44444],
@@ -1837,7 +1832,7 @@ class TestSeriesFormatting(tm.TestCase):
                         u"AB                        22\n"
                         u"2011-01-01 00:00:00     3333\n"
                         u"あああ                 44444\ndtype: int64")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
             # truncate
             with option_context('display.max_rows', 3):
@@ -1846,14 +1841,14 @@ class TestSeriesFormatting(tm.TestCase):
                 expected = (u"0          あ\n       ...   \n"
                             u"3    ええええ\n"
                             u"Name: おおおおおおお, Length: 4, dtype: object")
-                self.assertEqual(_rep(s), expected)
+                assert _rep(s) == expected
 
                 s.index = [u'ああ', u'いいいい', u'う', u'えええ']
                 expected = (u"ああ            あ\n"
                             u"            ...   \n"
                             u"えええ    ええええ\n"
                             u"Name: おおおおおおお, Length: 4, dtype: object")
-                self.assertEqual(_rep(s), expected)
+                assert _rep(s) == expected
 
             # ambiguous unicode
             s = Series([u'¡¡', u'い¡¡', u'ううう', u'ええええ'],
@@ -1862,7 +1857,7 @@ class TestSeriesFormatting(tm.TestCase):
                         u"¡¡¡¡いい        い¡¡\n"
                         u"¡¡            ううう\n"
                         u"えええ      ええええ\ndtype: object")
-            self.assertEqual(_rep(s), expected)
+            assert _rep(s) == expected
 
     def test_float_trim_zeros(self):
         vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
@@ -1950,7 +1945,7 @@ class TestSeriesFormatting(tm.TestCase):
         # no boxing of the actual elements
         td = Series(pd.timedelta_range('1 days', periods=3))
         result = td.to_string()
-        self.assertEqual(result, u("0   1 days\n1   2 days\n2   3 days"))
+        assert result == u("0   1 days\n1   2 days\n2   3 days")
 
     def test_mixed_datetime64(self):
         df = DataFrame({'A': [1, 2], 'B': ['2012-01-01', '2012-01-02']})
@@ -1965,12 +1960,12 @@ class TestSeriesFormatting(tm.TestCase):
         s = Series(np.arange(6, dtype='int64'), index=index)
         exp = ("2013-01    0\n2013-02    1\n2013-03    2\n2013-04    3\n"
                "2013-05    4\n2013-06    5\nFreq: M, dtype: int64")
-        self.assertEqual(str(s), exp)
+        assert str(s) == exp
 
         s = Series(index)
         exp = ("0   2013-01\n1   2013-02\n2   2013-03\n3   2013-04\n"
                "4   2013-05\n5   2013-06\ndtype: object")
-        self.assertEqual(str(s), exp)
+        assert str(s) == exp
 
         # periods with mixed freq
         s = Series([pd.Period('2011-01', freq='M'),
@@ -1978,7 +1973,7 @@ class TestSeriesFormatting(tm.TestCase):
                     pd.Period('2011-03-01 09:00', freq='H')])
         exp = ("0            2011-01\n1         2011-02-01\n"
                "2   2011-03-01 09:00\ndtype: object")
-        self.assertEqual(str(s), exp)
+        assert str(s) == exp
 
     def test_max_multi_index_display(self):
         # GH 7101
@@ -1993,29 +1988,29 @@ class TestSeriesFormatting(tm.TestCase):
         s = Series(np.random.randn(8), index=index)
 
         with option_context("display.max_rows", 10):
-            self.assertEqual(len(str(s).split('\n')), 10)
+            assert len(str(s).split('\n')) == 10
         with option_context("display.max_rows", 3):
-            self.assertEqual(len(str(s).split('\n')), 5)
+            assert len(str(s).split('\n')) == 5
         with option_context("display.max_rows", 2):
-            self.assertEqual(len(str(s).split('\n')), 5)
+            assert len(str(s).split('\n')) == 5
         with option_context("display.max_rows", 1):
-            self.assertEqual(len(str(s).split('\n')), 4)
+            assert len(str(s).split('\n')) == 4
         with option_context("display.max_rows", 0):
-            self.assertEqual(len(str(s).split('\n')), 10)
+            assert len(str(s).split('\n')) == 10
 
         # index
         s = Series(np.random.randn(8), None)
 
         with option_context("display.max_rows", 10):
-            self.assertEqual(len(str(s).split('\n')), 9)
+            assert len(str(s).split('\n')) == 9
         with option_context("display.max_rows", 3):
-            self.assertEqual(len(str(s).split('\n')), 4)
+            assert len(str(s).split('\n')) == 4
         with option_context("display.max_rows", 2):
-            self.assertEqual(len(str(s).split('\n')), 4)
+            assert len(str(s).split('\n')) == 4
         with option_context("display.max_rows", 1):
-            self.assertEqual(len(str(s).split('\n')), 3)
+            assert len(str(s).split('\n')) == 3
         with option_context("display.max_rows", 0):
-            self.assertEqual(len(str(s).split('\n')), 9)
+            assert len(str(s).split('\n')) == 9
 
     # Make sure #8532 is fixed
     def test_consistent_format(self):
@@ -2027,7 +2022,7 @@ class TestSeriesFormatting(tm.TestCase):
                '1.0000\n4      1.0000\n        ...  \n125    '
                '1.0000\n126    1.0000\n127    0.9999\n128    '
                '1.0000\n129    1.0000\ndtype: float64')
-        self.assertEqual(res, exp)
+        assert res == exp
 
     def chck_ncols(self, s):
         with option_context("display.max_rows", 10):
@@ -2036,7 +2031,7 @@ class TestSeriesFormatting(tm.TestCase):
         lines = [line for line in repr(s).split('\n')
                  if not re.match(r'[^\.]*\.+', line)][:-1]
         ncolsizes = len(set(len(line.strip()) for line in lines))
-        self.assertEqual(ncolsizes, 1)
+        assert ncolsizes == 1
 
     def test_format_explicit(self):
         test_sers = gen_series_formatting()
@@ -2044,19 +2039,19 @@ class TestSeriesFormatting(tm.TestCase):
                             "display.show_dimensions", False):
             res = repr(test_sers['onel'])
             exp = '0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object'
-            self.assertEqual(exp, res)
+            assert exp == res
             res = repr(test_sers['twol'])
             exp = ('0     ab\n1     ab\n      ..\n98    ab\n99    ab\ndtype:'
                    ' object')
-            self.assertEqual(exp, res)
+            assert exp == res
             res = repr(test_sers['asc'])
             exp = ('0         a\n1        ab\n      ...  \n4     abcde\n5'
                    '    abcdef\ndtype: object')
-            self.assertEqual(exp, res)
+            assert exp == res
             res = repr(test_sers['desc'])
             exp = ('5    abcdef\n4     abcde\n      ...  \n1        ab\n0'
                    '         a\ndtype: object')
-            self.assertEqual(exp, res)
+            assert exp == res
 
     def test_ncols(self):
         test_sers = gen_series_formatting()
@@ -2069,10 +2064,10 @@ class TestSeriesFormatting(tm.TestCase):
             strrepr = repr(s).split('\n')
         exp1 = ['0', '0']
         res1 = strrepr[0].split()
-        self.assertEqual(exp1, res1)
+        assert exp1 == res1
         exp2 = ['..']
         res2 = strrepr[1].split()
-        self.assertEqual(exp2, res2)
+        assert exp2 == res2
 
     def test_truncate_ndots(self):
         def getndots(s):
@@ -2081,12 +2076,12 @@ class TestSeriesFormatting(tm.TestCase):
         s = Series([0, 2, 3, 6])
         with option_context("display.max_rows", 2):
             strrepr = repr(s).replace('\n', '')
-        self.assertEqual(getndots(strrepr), 2)
+        assert getndots(strrepr) == 2
 
         s = Series([0, 100, 200, 400])
         with option_context("display.max_rows", 2):
             strrepr = repr(s).replace('\n', '')
-        self.assertEqual(getndots(strrepr), 3)
+        assert getndots(strrepr) == 3
 
     def test_show_dimensions(self):
         # gh-7117
@@ -2109,48 +2104,48 @@ class TestSeriesFormatting(tm.TestCase):
         s.name = 'myser'
         res = s.to_string(max_rows=2, name=True)
         exp = '0      0\n      ..\n99    99\nName: myser'
-        self.assertEqual(res, exp)
+        assert res == exp
         res = s.to_string(max_rows=2, name=False)
         exp = '0      0\n      ..\n99    99'
-        self.assertEqual(res, exp)
+        assert res == exp
 
     def test_to_string_dtype(self):
         s = Series(range(100), dtype='int64')
         res = s.to_string(max_rows=2, dtype=True)
         exp = '0      0\n      ..\n99    99\ndtype: int64'
-        self.assertEqual(res, exp)
+        assert res == exp
         res = s.to_string(max_rows=2, dtype=False)
         exp = '0      0\n      ..\n99    99'
-        self.assertEqual(res, exp)
+        assert res == exp
 
     def test_to_string_length(self):
         s = Series(range(100), dtype='int64')
         res = s.to_string(max_rows=2, length=True)
         exp = '0      0\n      ..\n99    99\nLength: 100'
-        self.assertEqual(res, exp)
+        assert res == exp
 
     def test_to_string_na_rep(self):
         s = pd.Series(index=range(100))
         res = s.to_string(na_rep='foo', max_rows=2)
         exp = '0    foo\n      ..\n99   foo'
-        self.assertEqual(res, exp)
+        assert res == exp
 
     def test_to_string_float_format(self):
         s = pd.Series(range(10), dtype='float64')
         res = s.to_string(float_format=lambda x: '{0:2.1f}'.format(x),
                           max_rows=2)
         exp = '0   0.0\n     ..\n9   9.0'
-        self.assertEqual(res, exp)
+        assert res == exp
 
     def test_to_string_header(self):
         s = pd.Series(range(10), dtype='int64')
         s.index.name = 'foo'
         res = s.to_string(header=True, max_rows=2)
         exp = 'foo\n0    0\n    ..\n9    9'
-        self.assertEqual(res, exp)
+        assert res == exp
         res = s.to_string(header=False, max_rows=2)
         exp = '0    0\n    ..\n9    9'
-        self.assertEqual(res, exp)
+        assert res == exp
 
 
 def _three_digit_exp():
@@ -2167,8 +2162,8 @@ class TestFloatArrayFormatter(tm.TestCase):
     def test_format(self):
         obj = fmt.FloatArrayFormatter(np.array([12, 0], dtype=np.float64))
         result = obj.get_result()
-        self.assertEqual(result[0], " 12.0")
-        self.assertEqual(result[1], "  0.0")
+        assert result[0] == " 12.0"
+        assert result[1] == "  0.0"
 
     def test_output_significant_digits(self):
         # Issue #9764
@@ -2228,7 +2223,7 @@ class TestFloatArrayFormatter(tm.TestCase):
             }
 
             for (start, stop), v in expected_output.items():
-                self.assertEqual(str(d[start:stop]), v)
+                assert str(d[start:stop]) == v
 
     def test_too_long(self):
         # GH 10451
@@ -2236,12 +2231,11 @@ class TestFloatArrayFormatter(tm.TestCase):
             # need both a number > 1e6 and something that normally formats to
             # having length > display.precision + 6
             df = pd.DataFrame(dict(x=[12345.6789]))
-            self.assertEqual(str(df), '            x\n0  12345.6789')
+            assert str(df) == '            x\n0  12345.6789'
             df = pd.DataFrame(dict(x=[2e6]))
-            self.assertEqual(str(df), '           x\n0  2000000.0')
+            assert str(df) == '           x\n0  2000000.0'
             df = pd.DataFrame(dict(x=[12345.6789, 2e6]))
-            self.assertEqual(
-                str(df), '            x\n0  1.2346e+04\n1  2.0000e+06')
+            assert str(df) == '            x\n0  1.2346e+04\n1  2.0000e+06'
 
 
 class TestRepr_timedelta64(tm.TestCase):
@@ -2253,14 +2247,13 @@ class TestRepr_timedelta64(tm.TestCase):
         delta_500ms = pd.to_timedelta(500, unit='ms')
 
         drepr = lambda x: x._repr_base()
-        self.assertEqual(drepr(delta_1d), "1 days")
-        self.assertEqual(drepr(-delta_1d), "-1 days")
-        self.assertEqual(drepr(delta_0d), "0 days")
-        self.assertEqual(drepr(delta_1s), "0 days 00:00:01")
-        self.assertEqual(drepr(delta_500ms), "0 days 00:00:00.500000")
-        self.assertEqual(drepr(delta_1d + delta_1s), "1 days 00:00:01")
-        self.assertEqual(
-            drepr(delta_1d + delta_500ms), "1 days 00:00:00.500000")
+        assert drepr(delta_1d) == "1 days"
+        assert drepr(-delta_1d) == "-1 days"
+        assert drepr(delta_0d) == "0 days"
+        assert drepr(delta_1s) == "0 days 00:00:01"
+        assert drepr(delta_500ms) == "0 days 00:00:00.500000"
+        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
+        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
 
     def test_even_day(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2269,14 +2262,13 @@ class TestRepr_timedelta64(tm.TestCase):
         delta_500ms = pd.to_timedelta(500, unit='ms')
 
         drepr = lambda x: x._repr_base(format='even_day')
-        self.assertEqual(drepr(delta_1d), "1 days")
-        self.assertEqual(drepr(-delta_1d), "-1 days")
-        self.assertEqual(drepr(delta_0d), "0 days")
-        self.assertEqual(drepr(delta_1s), "0 days 00:00:01")
-        self.assertEqual(drepr(delta_500ms), "0 days 00:00:00.500000")
-        self.assertEqual(drepr(delta_1d + delta_1s), "1 days 00:00:01")
-        self.assertEqual(
-            drepr(delta_1d + delta_500ms), "1 days 00:00:00.500000")
+        assert drepr(delta_1d) == "1 days"
+        assert drepr(-delta_1d) == "-1 days"
+        assert drepr(delta_0d) == "0 days"
+        assert drepr(delta_1s) == "0 days 00:00:01"
+        assert drepr(delta_500ms) == "0 days 00:00:00.500000"
+        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
+        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
 
     def test_sub_day(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2285,14 +2277,13 @@ class TestRepr_timedelta64(tm.TestCase):
         delta_500ms = pd.to_timedelta(500, unit='ms')
 
         drepr = lambda x: x._repr_base(format='sub_day')
-        self.assertEqual(drepr(delta_1d), "1 days")
-        self.assertEqual(drepr(-delta_1d), "-1 days")
-        self.assertEqual(drepr(delta_0d), "00:00:00")
-        self.assertEqual(drepr(delta_1s), "00:00:01")
-        self.assertEqual(drepr(delta_500ms), "00:00:00.500000")
-        self.assertEqual(drepr(delta_1d + delta_1s), "1 days 00:00:01")
-        self.assertEqual(
-            drepr(delta_1d + delta_500ms), "1 days 00:00:00.500000")
+        assert drepr(delta_1d) == "1 days"
+        assert drepr(-delta_1d) == "-1 days"
+        assert drepr(delta_0d) == "00:00:00"
+        assert drepr(delta_1s) == "00:00:01"
+        assert drepr(delta_500ms) == "00:00:00.500000"
+        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
+        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
 
     def test_long(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2301,14 +2292,13 @@ class TestRepr_timedelta64(tm.TestCase):
         delta_500ms = pd.to_timedelta(500, unit='ms')
 
         drepr = lambda x: x._repr_base(format='long')
-        self.assertEqual(drepr(delta_1d), "1 days 00:00:00")
-        self.assertEqual(drepr(-delta_1d), "-1 days +00:00:00")
-        self.assertEqual(drepr(delta_0d), "0 days 00:00:00")
-        self.assertEqual(drepr(delta_1s), "0 days 00:00:01")
-        self.assertEqual(drepr(delta_500ms), "0 days 00:00:00.500000")
-        self.assertEqual(drepr(delta_1d + delta_1s), "1 days 00:00:01")
-        self.assertEqual(
-            drepr(delta_1d + delta_500ms), "1 days 00:00:00.500000")
+        assert drepr(delta_1d) == "1 days 00:00:00"
+        assert drepr(-delta_1d) == "-1 days +00:00:00"
+        assert drepr(delta_0d) == "0 days 00:00:00"
+        assert drepr(delta_1s) == "0 days 00:00:01"
+        assert drepr(delta_500ms) == "0 days 00:00:00.500000"
+        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
+        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
 
     def test_all(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2316,9 +2306,9 @@ class TestRepr_timedelta64(tm.TestCase):
         delta_1ns = pd.to_timedelta(1, unit='ns')
 
         drepr = lambda x: x._repr_base(format='all')
-        self.assertEqual(drepr(delta_1d), "1 days 00:00:00.000000000")
-        self.assertEqual(drepr(delta_0d), "0 days 00:00:00.000000000")
-        self.assertEqual(drepr(delta_1ns), "0 days 00:00:00.000000001")
+        assert drepr(delta_1d) == "1 days 00:00:00.000000000"
+        assert drepr(delta_0d) == "0 days 00:00:00.000000000"
+        assert drepr(delta_1ns) == "0 days 00:00:00.000000001"
 
 
 class TestTimedelta64Formatter(tm.TestCase):
@@ -2326,45 +2316,45 @@ class TestTimedelta64Formatter(tm.TestCase):
     def test_days(self):
         x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
         result = fmt.Timedelta64Formatter(x, box=True).get_result()
-        self.assertEqual(result[0].strip(), "'0 days'")
-        self.assertEqual(result[1].strip(), "'1 days'")
+        assert result[0].strip() == "'0 days'"
+        assert result[1].strip() == "'1 days'"
 
         result = fmt.Timedelta64Formatter(x[1:2], box=True).get_result()
-        self.assertEqual(result[0].strip(), "'1 days'")
+        assert result[0].strip() == "'1 days'"
 
         result = fmt.Timedelta64Formatter(x, box=False).get_result()
-        self.assertEqual(result[0].strip(), "0 days")
-        self.assertEqual(result[1].strip(), "1 days")
+        assert result[0].strip() == "0 days"
+        assert result[1].strip() == "1 days"
 
         result = fmt.Timedelta64Formatter(x[1:2], box=False).get_result()
-        self.assertEqual(result[0].strip(), "1 days")
+        assert result[0].strip() == "1 days"
 
     def test_days_neg(self):
         x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
         result = fmt.Timedelta64Formatter(-x, box=True).get_result()
-        self.assertEqual(result[0].strip(), "'0 days'")
-        self.assertEqual(result[1].strip(), "'-1 days'")
+        assert result[0].strip() == "'0 days'"
+        assert result[1].strip() == "'-1 days'"
 
     def test_subdays(self):
         y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
         result = fmt.Timedelta64Formatter(y, box=True).get_result()
-        self.assertEqual(result[0].strip(), "'00:00:00'")
-        self.assertEqual(result[1].strip(), "'00:00:01'")
+        assert result[0].strip() == "'00:00:00'"
+        assert result[1].strip() == "'00:00:01'"
 
     def test_subdays_neg(self):
         y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='s')
         result = fmt.Timedelta64Formatter(-y, box=True).get_result()
-        self.assertEqual(result[0].strip(), "'00:00:00'")
-        self.assertEqual(result[1].strip(), "'-1 days +23:59:59'")
+        assert result[0].strip() == "'00:00:00'"
+        assert result[1].strip() == "'-1 days +23:59:59'"
 
     def test_zero(self):
         x = pd.to_timedelta(list(range(1)) + [pd.NaT], unit='D')
         result = fmt.Timedelta64Formatter(x, box=True).get_result()
-        self.assertEqual(result[0].strip(), "'0 days'")
+        assert result[0].strip() == "'0 days'"
 
         x = pd.to_timedelta(list(range(1)), unit='D')
         result = fmt.Timedelta64Formatter(x, box=True).get_result()
-        self.assertEqual(result[0].strip(), "'0 days'")
+        assert result[0].strip() == "'0 days'"
 
 
 class TestDatetime64Formatter(tm.TestCase):
@@ -2372,19 +2362,19 @@ class TestDatetime64Formatter(tm.TestCase):
     def test_mixed(self):
         x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
         result = fmt.Datetime64Formatter(x).get_result()
-        self.assertEqual(result[0].strip(), "2013-01-01 00:00:00")
-        self.assertEqual(result[1].strip(), "2013-01-01 12:00:00")
+        assert result[0].strip() == "2013-01-01 00:00:00"
+        assert result[1].strip() == "2013-01-01 12:00:00"
 
     def test_dates(self):
         x = Series([datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT])
         result = fmt.Datetime64Formatter(x).get_result()
-        self.assertEqual(result[0].strip(), "2013-01-01")
-        self.assertEqual(result[1].strip(), "2013-01-02")
+        assert result[0].strip() == "2013-01-01"
+        assert result[1].strip() == "2013-01-02"
 
     def test_date_nanos(self):
         x = Series([Timestamp(200)])
         result = fmt.Datetime64Formatter(x).get_result()
-        self.assertEqual(result[0].strip(), "1970-01-01 00:00:00.000000200")
+        assert result[0].strip() == "1970-01-01 00:00:00.000000200"
 
     def test_dates_display(self):
 
@@ -2393,37 +2383,37 @@ class TestDatetime64Formatter(tm.TestCase):
         x = Series(date_range('20130101 09:00:00', periods=5, freq='D'))
         x.iloc[1] = np.nan
         result = fmt.Datetime64Formatter(x).get_result()
-        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00")
-        self.assertEqual(result[1].strip(), "NaT")
-        self.assertEqual(result[4].strip(), "2013-01-05 09:00:00")
+        assert result[0].strip() == "2013-01-01 09:00:00"
+        assert result[1].strip() == "NaT"
+        assert result[4].strip() == "2013-01-05 09:00:00"
 
         x = Series(date_range('20130101 09:00:00', periods=5, freq='s'))
         x.iloc[1] = np.nan
         result = fmt.Datetime64Formatter(x).get_result()
-        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00")
-        self.assertEqual(result[1].strip(), "NaT")
-        self.assertEqual(result[4].strip(), "2013-01-01 09:00:04")
+        assert result[0].strip() == "2013-01-01 09:00:00"
+        assert result[1].strip() == "NaT"
+        assert result[4].strip() == "2013-01-01 09:00:04"
 
         x = Series(date_range('20130101 09:00:00', periods=5, freq='ms'))
         x.iloc[1] = np.nan
         result = fmt.Datetime64Formatter(x).get_result()
-        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000")
-        self.assertEqual(result[1].strip(), "NaT")
-        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.004")
+        assert result[0].strip() == "2013-01-01 09:00:00.000"
+        assert result[1].strip() == "NaT"
+        assert result[4].strip() == "2013-01-01 09:00:00.004"
 
         x = Series(date_range('20130101 09:00:00', periods=5, freq='us'))
         x.iloc[1] = np.nan
         result = fmt.Datetime64Formatter(x).get_result()
-        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000")
-        self.assertEqual(result[1].strip(), "NaT")
-        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000004")
+        assert result[0].strip() == "2013-01-01 09:00:00.000000"
+        assert result[1].strip() == "NaT"
+        assert result[4].strip() == "2013-01-01 09:00:00.000004"
 
         x = Series(date_range('20130101 09:00:00', periods=5, freq='N'))
         x.iloc[1] = np.nan
         result = fmt.Datetime64Formatter(x).get_result()
-        self.assertEqual(result[0].strip(), "2013-01-01 09:00:00.000000000")
-        self.assertEqual(result[1].strip(), "NaT")
-        self.assertEqual(result[4].strip(), "2013-01-01 09:00:00.000000004")
+        assert result[0].strip() == "2013-01-01 09:00:00.000000000"
+        assert result[1].strip() == "NaT"
+        assert result[4].strip() == "2013-01-01 09:00:00.000000004"
 
     def test_datetime64formatter_yearmonth(self):
         x = Series([datetime(2016, 1, 1), datetime(2016, 2, 2)])
@@ -2433,7 +2423,7 @@ class TestDatetime64Formatter(tm.TestCase):
 
         formatter = fmt.Datetime64Formatter(x, formatter=format_func)
         result = formatter.get_result()
-        self.assertEqual(result, ['2016-01', '2016-02'])
+        assert result == ['2016-01', '2016-02']
 
     def test_datetime64formatter_hoursecond(self):
 
@@ -2445,43 +2435,43 @@ class TestDatetime64Formatter(tm.TestCase):
 
         formatter = fmt.Datetime64Formatter(x, formatter=format_func)
         result = formatter.get_result()
-        self.assertEqual(result, ['10:10', '12:12'])
+        assert result == ['10:10', '12:12']
 
 
 class TestNaTFormatting(tm.TestCase):
 
     def test_repr(self):
-        self.assertEqual(repr(pd.NaT), "NaT")
+        assert repr(pd.NaT) == "NaT"
 
     def test_str(self):
-        self.assertEqual(str(pd.NaT), "NaT")
+        assert str(pd.NaT) == "NaT"
 
 
 class TestDatetimeIndexFormat(tm.TestCase):
 
     def test_datetime(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), pd.NaT]).format()
-        self.assertEqual(formatted[0], "2003-01-01 12:00:00")
-        self.assertEqual(formatted[1], "NaT")
+        assert formatted[0] == "2003-01-01 12:00:00"
+        assert formatted[1] == "NaT"
 
     def test_date(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1), pd.NaT]).format()
-        self.assertEqual(formatted[0], "2003-01-01")
-        self.assertEqual(formatted[1], "NaT")
+        assert formatted[0] == "2003-01-01"
+        assert formatted[1] == "NaT"
 
     def test_date_tz(self):
         formatted = pd.to_datetime([datetime(2013, 1, 1)], utc=True).format()
-        self.assertEqual(formatted[0], "2013-01-01 00:00:00+00:00")
+        assert formatted[0] == "2013-01-01 00:00:00+00:00"
 
         formatted = pd.to_datetime(
             [datetime(2013, 1, 1), pd.NaT], utc=True).format()
-        self.assertEqual(formatted[0], "2013-01-01 00:00:00+00:00")
+        assert formatted[0] == "2013-01-01 00:00:00+00:00"
 
     def test_date_explict_date_format(self):
         formatted = pd.to_datetime([datetime(2003, 2, 1), pd.NaT]).format(
             date_format="%m-%d-%Y", na_rep="UT")
-        self.assertEqual(formatted[0], "02-01-2003")
-        self.assertEqual(formatted[1], "UT")
+        assert formatted[0] == "02-01-2003"
+        assert formatted[1] == "UT"
 
 
 class TestDatetimeIndexUnicode(tm.TestCase):
@@ -2503,19 +2493,19 @@ class TestStringRepTimestamp(tm.TestCase):
 
     def test_no_tz(self):
         dt_date = datetime(2013, 1, 2)
-        self.assertEqual(str(dt_date), str(Timestamp(dt_date)))
+        assert str(dt_date) == str(Timestamp(dt_date))
 
         dt_datetime = datetime(2013, 1, 2, 12, 1, 3)
-        self.assertEqual(str(dt_datetime), str(Timestamp(dt_datetime)))
+        assert str(dt_datetime) == str(Timestamp(dt_datetime))
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45)
-        self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
+        assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
 
         ts_nanos_only = Timestamp(200)
-        self.assertEqual(str(ts_nanos_only), "1970-01-01 00:00:00.000000200")
+        assert str(ts_nanos_only) == "1970-01-01 00:00:00.000000200"
 
         ts_nanos_micros = Timestamp(1200)
-        self.assertEqual(str(ts_nanos_micros), "1970-01-01 00:00:00.000001200")
+        assert str(ts_nanos_micros) == "1970-01-01 00:00:00.000001200"
 
     def test_tz_pytz(self):
         tm._skip_if_no_pytz()
@@ -2523,13 +2513,13 @@ class TestStringRepTimestamp(tm.TestCase):
         import pytz
 
         dt_date = datetime(2013, 1, 2, tzinfo=pytz.utc)
-        self.assertEqual(str(dt_date), str(Timestamp(dt_date)))
+        assert str(dt_date) == str(Timestamp(dt_date))
 
         dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=pytz.utc)
-        self.assertEqual(str(dt_datetime), str(Timestamp(dt_datetime)))
+        assert str(dt_datetime) == str(Timestamp(dt_datetime))
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=pytz.utc)
-        self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
+        assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
 
     def test_tz_dateutil(self):
         tm._skip_if_no_dateutil()
@@ -2537,17 +2527,17 @@ class TestStringRepTimestamp(tm.TestCase):
         utc = dateutil.tz.tzutc()
 
         dt_date = datetime(2013, 1, 2, tzinfo=utc)
-        self.assertEqual(str(dt_date), str(Timestamp(dt_date)))
+        assert str(dt_date) == str(Timestamp(dt_date))
 
         dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=utc)
-        self.assertEqual(str(dt_datetime), str(Timestamp(dt_datetime)))
+        assert str(dt_datetime) == str(Timestamp(dt_datetime))
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
-        self.assertEqual(str(dt_datetime_us), str(Timestamp(dt_datetime_us)))
+        assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
 
     def test_nat_representations(self):
         for f in (str, repr, methodcaller('isoformat')):
-            self.assertEqual(f(pd.NaT), 'NaT')
+            assert f(pd.NaT) == 'NaT'
 
 
 def test_format_percentiles():

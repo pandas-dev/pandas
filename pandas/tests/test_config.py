@@ -111,9 +111,9 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('KanBAN', 1, 'doc')
 
         assert 'doc' in self.cf.describe_option('kanbaN', _print_desc=False)
-        self.assertEqual(self.cf.get_option('kanBaN'), 1)
+        assert self.cf.get_option('kanBaN') == 1
         self.cf.set_option('KanBan', 2)
-        self.assertEqual(self.cf.get_option('kAnBaN'), 2)
+        assert self.cf.get_option('kAnBaN') == 2
 
         # gets of non-existent keys fail
         pytest.raises(KeyError, self.cf.get_option, 'no_such_option')
@@ -127,8 +127,8 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('b.b', None, 'doc2')
 
         # gets of existing keys succeed
-        self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
+        assert self.cf.get_option('a') == 1
+        assert self.cf.get_option('b.c') == 'hullo'
         assert self.cf.get_option('b.b') is None
 
         # gets of non-existent keys fail
@@ -139,17 +139,17 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('b.c', 'hullo', 'doc2')
         self.cf.register_option('b.b', None, 'doc2')
 
-        self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
+        assert self.cf.get_option('a') == 1
+        assert self.cf.get_option('b.c') == 'hullo'
         assert self.cf.get_option('b.b') is None
 
         self.cf.set_option('a', 2)
         self.cf.set_option('b.c', 'wurld')
         self.cf.set_option('b.b', 1.1)
 
-        self.assertEqual(self.cf.get_option('a'), 2)
-        self.assertEqual(self.cf.get_option('b.c'), 'wurld')
-        self.assertEqual(self.cf.get_option('b.b'), 1.1)
+        assert self.cf.get_option('a') == 2
+        assert self.cf.get_option('b.c') == 'wurld'
+        assert self.cf.get_option('b.b') == 1.1
 
         pytest.raises(KeyError, self.cf.set_option, 'no.such.key', None)
 
@@ -167,15 +167,15 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('b.c', 'hullo', 'doc2')
         self.cf.register_option('b.b', None, 'doc2')
 
-        self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
+        assert self.cf.get_option('a') == 1
+        assert self.cf.get_option('b.c') == 'hullo'
         assert self.cf.get_option('b.b') is None
 
         self.cf.set_option('a', '2', 'b.c', None, 'b.b', 10.0)
 
-        self.assertEqual(self.cf.get_option('a'), '2')
+        assert self.cf.get_option('a') == '2'
         assert self.cf.get_option('b.c') is None
-        self.assertEqual(self.cf.get_option('b.b'), 10.0)
+        assert self.cf.get_option('b.b') == 10.0
 
     def test_validation(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
@@ -203,36 +203,36 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
         self.cf.register_option('b.c', 'hullo', 'doc2',
                                 validator=self.cf.is_str)
-        self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
+        assert self.cf.get_option('a') == 1
+        assert self.cf.get_option('b.c') == 'hullo'
 
         self.cf.set_option('a', 2)
         self.cf.set_option('b.c', 'wurld')
-        self.assertEqual(self.cf.get_option('a'), 2)
-        self.assertEqual(self.cf.get_option('b.c'), 'wurld')
+        assert self.cf.get_option('a') == 2
+        assert self.cf.get_option('b.c') == 'wurld'
 
         self.cf.reset_option('a')
-        self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.c'), 'wurld')
+        assert self.cf.get_option('a') == 1
+        assert self.cf.get_option('b.c') == 'wurld'
         self.cf.reset_option('b.c')
-        self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
+        assert self.cf.get_option('a') == 1
+        assert self.cf.get_option('b.c') == 'hullo'
 
     def test_reset_option_all(self):
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
         self.cf.register_option('b.c', 'hullo', 'doc2',
                                 validator=self.cf.is_str)
-        self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
+        assert self.cf.get_option('a') == 1
+        assert self.cf.get_option('b.c') == 'hullo'
 
         self.cf.set_option('a', 2)
         self.cf.set_option('b.c', 'wurld')
-        self.assertEqual(self.cf.get_option('a'), 2)
-        self.assertEqual(self.cf.get_option('b.c'), 'wurld')
+        assert self.cf.get_option('a') == 2
+        assert self.cf.get_option('b.c') == 'wurld'
 
         self.cf.reset_option("all")
-        self.assertEqual(self.cf.get_option('a'), 1)
-        self.assertEqual(self.cf.get_option('b.c'), 'hullo')
+        assert self.cf.get_option('a') == 1
+        assert self.cf.get_option('b.c') == 'hullo'
 
     def test_deprecate_option(self):
         # we can deprecate non-existent options
@@ -248,7 +248,7 @@ class TestConfig(unittest.TestCase):
             else:
                 self.fail("Nonexistent option didn't raise KeyError")
 
-            self.assertEqual(len(w), 1)  # should have raised one warning
+            assert len(w) == 1  # should have raised one warning
             assert 'deprecated' in str(w[-1])  # we get the default message
 
         self.cf.register_option('a', 1, 'doc', validator=self.cf.is_int)
@@ -260,7 +260,7 @@ class TestConfig(unittest.TestCase):
             warnings.simplefilter('always')
             self.cf.get_option('a')
 
-            self.assertEqual(len(w), 1)  # should have raised one warning
+            assert len(w) == 1  # should have raised one warning
             assert 'eprecated' in str(w[-1])  # we get the default message
             assert 'nifty_ver' in str(w[-1])  # with the removal_ver quoted
 
@@ -272,51 +272,51 @@ class TestConfig(unittest.TestCase):
             warnings.simplefilter('always')
             self.cf.get_option('b.c')
 
-            self.assertEqual(len(w), 1)  # should have raised one warning
+            assert len(w) == 1  # should have raised one warning
             assert 'zounds!' in str(w[-1])  # we get the custom message
 
         # test rerouting keys
         self.cf.register_option('d.a', 'foo', 'doc2')
         self.cf.register_option('d.dep', 'bar', 'doc2')
-        self.assertEqual(self.cf.get_option('d.a'), 'foo')
-        self.assertEqual(self.cf.get_option('d.dep'), 'bar')
+        assert self.cf.get_option('d.a') == 'foo'
+        assert self.cf.get_option('d.dep') == 'bar'
 
         self.cf.deprecate_option('d.dep', rkey='d.a')  # reroute d.dep to d.a
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.assertEqual(self.cf.get_option('d.dep'), 'foo')
+            assert self.cf.get_option('d.dep') == 'foo'
 
-            self.assertEqual(len(w), 1)  # should have raised one warning
+            assert len(w) == 1  # should have raised one warning
             assert 'eprecated' in str(w[-1])  # we get the custom message
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.cf.set_option('d.dep', 'baz')  # should overwrite "d.a"
 
-            self.assertEqual(len(w), 1)  # should have raised one warning
+            assert len(w) == 1  # should have raised one warning
             assert 'eprecated' in str(w[-1])  # we get the custom message
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.assertEqual(self.cf.get_option('d.dep'), 'baz')
+            assert self.cf.get_option('d.dep') == 'baz'
 
-            self.assertEqual(len(w), 1)  # should have raised one warning
+            assert len(w) == 1  # should have raised one warning
             assert 'eprecated' in str(w[-1])  # we get the custom message
 
     def test_config_prefix(self):
         with self.cf.config_prefix("base"):
             self.cf.register_option('a', 1, "doc1")
             self.cf.register_option('b', 2, "doc2")
-            self.assertEqual(self.cf.get_option('a'), 1)
-            self.assertEqual(self.cf.get_option('b'), 2)
+            assert self.cf.get_option('a') == 1
+            assert self.cf.get_option('b') == 2
 
             self.cf.set_option('a', 3)
             self.cf.set_option('b', 4)
-            self.assertEqual(self.cf.get_option('a'), 3)
-            self.assertEqual(self.cf.get_option('b'), 4)
+            assert self.cf.get_option('a') == 3
+            assert self.cf.get_option('b') == 4
 
-        self.assertEqual(self.cf.get_option('base.a'), 3)
-        self.assertEqual(self.cf.get_option('base.b'), 4)
+        assert self.cf.get_option('base.a') == 3
+        assert self.cf.get_option('base.b') == 4
         assert 'doc1' in self.cf.describe_option('base.a', _print_desc=False)
         assert 'doc2' in self.cf.describe_option('base.b', _print_desc=False)
 
@@ -324,8 +324,8 @@ class TestConfig(unittest.TestCase):
         self.cf.reset_option('base.b')
 
         with self.cf.config_prefix("base"):
-            self.assertEqual(self.cf.get_option('a'), 1)
-            self.assertEqual(self.cf.get_option('b'), 2)
+            assert self.cf.get_option('a') == 1
+            assert self.cf.get_option('b') == 2
 
     def test_callback(self):
         k = [None]
@@ -340,21 +340,21 @@ class TestConfig(unittest.TestCase):
 
         del k[-1], v[-1]
         self.cf.set_option("d.a", "fooz")
-        self.assertEqual(k[-1], "d.a")
-        self.assertEqual(v[-1], "fooz")
+        assert k[-1] == "d.a"
+        assert v[-1] == "fooz"
 
         del k[-1], v[-1]
         self.cf.set_option("d.b", "boo")
-        self.assertEqual(k[-1], "d.b")
-        self.assertEqual(v[-1], "boo")
+        assert k[-1] == "d.b"
+        assert v[-1] == "boo"
 
         del k[-1], v[-1]
         self.cf.reset_option("d.b")
-        self.assertEqual(k[-1], "d.b")
+        assert k[-1] == "d.b"
 
     def test_set_ContextManager(self):
         def eq(val):
-            self.assertEqual(self.cf.get_option("a"), val)
+            assert self.cf.get_option("a") == val
 
         self.cf.register_option('a', 0)
         eq(0)
@@ -384,22 +384,22 @@ class TestConfig(unittest.TestCase):
         self.cf.register_option('c', 0, cb=f3)
         options = self.cf.options
 
-        self.assertEqual(options.a, 0)
+        assert options.a == 0
         with self.cf.option_context("a", 15):
-            self.assertEqual(options.a, 15)
+            assert options.a == 15
 
         options.a = 500
-        self.assertEqual(self.cf.get_option("a"), 500)
+        assert self.cf.get_option("a") == 500
 
         self.cf.reset_option("a")
-        self.assertEqual(options.a, self.cf.get_option("a", 0))
+        assert options.a == self.cf.get_option("a", 0)
 
         pytest.raises(KeyError, f)
         pytest.raises(KeyError, f2)
 
         # make sure callback kicks when using this form of setting
         options.c = 1
-        self.assertEqual(len(holder), 1)
+        assert len(holder) == 1
 
     def test_option_context_scope(self):
         # Ensure that creating a context does not affect the existing
@@ -414,11 +414,11 @@ class TestConfig(unittest.TestCase):
 
         # Ensure creating contexts didn't affect the current context.
         ctx = self.cf.option_context(option_name, context_value)
-        self.assertEqual(self.cf.get_option(option_name), original_value)
+        assert self.cf.get_option(option_name) == original_value
 
         # Ensure the correct value is available inside the context.
         with ctx:
-            self.assertEqual(self.cf.get_option(option_name), context_value)
+            assert self.cf.get_option(option_name) == context_value
 
         # Ensure the current context is reset
-        self.assertEqual(self.cf.get_option(option_name), original_value)
+        assert self.cf.get_option(option_name) == original_value

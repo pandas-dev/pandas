@@ -30,7 +30,7 @@ class TestMultiIndexBasic(tm.TestCase):
 
         rs = df.iloc[2, 2]
         xp = df.values[2, 2]
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         # for multiple items
         # GH 5528
@@ -50,6 +50,9 @@ class TestMultiIndexBasic(tm.TestCase):
 
             for index_fn in ('ix', 'loc'):
 
+                def assert_equal(a, b):
+                    assert a == b
+
                 def check(target, indexers, value, compare_fn, expected=None):
                     fn = getattr(target, index_fn)
                     fn.__setitem__(indexers, value)
@@ -66,28 +69,28 @@ class TestMultiIndexBasic(tm.TestCase):
                                                 'X', 'd', 'profit'],
                                index=index)
                 check(target=df, indexers=((t, n), 'X'), value=0,
-                      compare_fn=self.assertEqual)
+                      compare_fn=assert_equal)
 
                 df = DataFrame(-999, columns=['A', 'w', 'l', 'a', 'x',
                                               'X', 'd', 'profit'],
                                index=index)
                 check(target=df, indexers=((t, n), 'X'), value=1,
-                      compare_fn=self.assertEqual)
+                      compare_fn=assert_equal)
 
                 df = DataFrame(columns=['A', 'w', 'l', 'a', 'x',
                                         'X', 'd', 'profit'],
                                index=index)
                 check(target=df, indexers=((t, n), 'X'), value=2,
-                      compare_fn=self.assertEqual)
+                      compare_fn=assert_equal)
 
-                # GH 7218, assinging with 0-dim arrays
+                # gh-7218: assigning with 0-dim arrays
                 df = DataFrame(-999, columns=['A', 'w', 'l', 'a', 'x',
                                               'X', 'd', 'profit'],
                                index=index)
                 check(target=df,
                       indexers=((t, n), 'X'),
                       value=np.array(3),
-                      compare_fn=self.assertEqual,
+                      compare_fn=assert_equal,
                       expected=3, )
 
                 # GH5206
@@ -215,8 +218,8 @@ class TestMultiIndexBasic(tm.TestCase):
         with catch_warnings(record=True):
             xp = mi_int.ix[4].ix[8]
         tm.assert_series_equal(rs, xp, check_names=False)
-        self.assertEqual(rs.name, (4, 8))
-        self.assertEqual(xp.name, 8)
+        assert rs.name == (4, 8)
+        assert xp.name == 8
 
         # 2nd (last) columns
         rs = mi_int.iloc[:, 2]
@@ -228,13 +231,13 @@ class TestMultiIndexBasic(tm.TestCase):
         rs = mi_int.iloc[2, 2]
         with catch_warnings(record=True):
             xp = mi_int.ix[:, 2].ix[2]
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
         # this is basically regular indexing
         rs = mi_labels.iloc[2, 2]
         with catch_warnings(record=True):
             xp = mi_labels.ix['j'].ix[:, 'j'].ix[0, 0]
-        self.assertEqual(rs, xp)
+        assert rs == xp
 
     def test_loc_multiindex(self):
 
@@ -572,7 +575,7 @@ class TestMultiIndexBasic(tm.TestCase):
                                                        ('functs', 'median')]),
                        index=['function', 'name'])
         result = df.loc['function', ('functs', 'mean')]
-        self.assertEqual(result, np.mean)
+        assert result == np.mean
 
     def test_multiindex_assignment(self):
 
@@ -798,9 +801,9 @@ class TestMultiIndexSlicers(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
         # not lexsorted
-        self.assertEqual(df.index.lexsort_depth, 2)
+        assert df.index.lexsort_depth == 2
         df = df.sort_index(level=1, axis=0)
-        self.assertEqual(df.index.lexsort_depth, 0)
+        assert df.index.lexsort_depth == 0
         with tm.assert_raises_regex(
                 UnsortedIndexError,
                 'MultiIndex Slicing requires the index to be fully '
