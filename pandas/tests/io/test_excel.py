@@ -2369,6 +2369,8 @@ def styled_dataframe():
                           ['', '', ''],
                           ['', '', '']],
                          index=df.index, columns=df.columns)
+
+    pytest.importorskip('jinja2')
     df = DataFrame(np.random.randn(10, 3))
     return df.style.apply(style, axis=None)
 
@@ -2397,7 +2399,6 @@ def test_styler_to_excel(engine, styled_dataframe):
         return {}
 
     pytest.importorskip('cssdecl')
-    pytest.importorskip('jinja2')
     pytest.importorskip(engine)
 
     if engine == 'openpyxl' and openpyxl_compat.is_compat(major_ver=1):
@@ -2512,8 +2513,6 @@ def test_styler_to_excel_no_cssdecl(engine, styled_dataframe):
         if css.strip(' \n;'):
             return {'font': {'bold': True}}
         return {}
-
-    pytest.importorskip('jinja2')
 
     try:
         import cssdecl  # noqa
