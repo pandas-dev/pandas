@@ -1890,7 +1890,7 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         try:
             repr(df)
         except Exception as e:
-            self.assertNotEqual(type(e), UnboundLocalError)
+            assert type(e) != UnboundLocalError
 
     def test_reindex_methods(self):
         df = pd.DataFrame({'x': list(range(5))})

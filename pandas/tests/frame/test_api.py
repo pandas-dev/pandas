@@ -247,7 +247,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         series = cp['A']
         series[:] = 10
         for idx, value in compat.iteritems(series):
-            self.assertNotEqual(self.frame['A'][idx], value)
+            assert self.frame['A'][idx] != value
 
     # ---------------------------------------------------------------------
     # Transposing

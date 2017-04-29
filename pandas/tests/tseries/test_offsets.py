@@ -541,7 +541,7 @@ class TestDateOffset(Base):
         offset1 = DateOffset(days=1)
         offset2 = DateOffset(days=365)
 
-        self.assertNotEqual(offset1, offset2)
+        assert offset1 != offset2
 
 
 class TestBusinessDay(Base):
@@ -775,12 +775,11 @@ class TestBusinessHour(Base):
         for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
             assert offset == offset
 
-        self.assertNotEqual(BusinessHour(), BusinessHour(-1))
+        assert BusinessHour() != BusinessHour(-1)
         assert BusinessHour(start='09:00') == BusinessHour()
-        self.assertNotEqual(BusinessHour(start='09:00'),
-                            BusinessHour(start='09:01'))
-        self.assertNotEqual(BusinessHour(start='09:00', end='17:00'),
-                            BusinessHour(start='17:00', end='09:01'))
+        assert BusinessHour(start='09:00') != BusinessHour(start='09:01')
+        assert (BusinessHour(start='09:00', end='17:00') !=
+                BusinessHour(start='17:00', end='09:01'))
 
     def test_hash(self):
         for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
@@ -4362,7 +4361,7 @@ class TestTicks(tm.TestCase):
         assert Hour(3) + Hour(2) == Hour(5)
         assert Hour(3) - Hour(2) == Hour()
 
-        self.assertNotEqual(Hour(4), Hour(1))
+        assert Hour(4) != Hour(1)
 
     def test_Minute(self):
         assertEq(Minute(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 1))
@@ -4374,7 +4373,7 @@ class TestTicks(tm.TestCase):
 
         assert Minute(3) + Minute(2) == Minute(5)
         assert Minute(3) - Minute(2) == Minute()
-        self.assertNotEqual(Minute(5), Minute())
+        assert Minute(5) != Minute()
 
     def test_Second(self):
         assertEq(Second(), datetime(2010, 1, 1), datetime(2010, 1, 1, 0, 0, 1))
@@ -4464,8 +4463,8 @@ class TestTicks(tm.TestCase):
             assert t() == t(1)
 
             # not equals
-            self.assertNotEqual(t(3), t(2))
-            self.assertNotEqual(t(3), t(-3))
+            assert t(3) != t(2)
+            assert t(3) != t(-3)
 
     def test_tick_operators(self):
         for t in self.ticks:

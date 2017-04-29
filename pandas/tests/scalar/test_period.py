@@ -938,8 +938,8 @@ class TestComparisons(tm.TestCase):
             self.january1 == self.day
 
     def test_notEqual(self):
-        self.assertNotEqual(self.january1, 1)
-        self.assertNotEqual(self.january1, self.february)
+        assert self.january1 != 1
+        assert self.january1 != self.february
 
     def test_greater(self):
         assert self.february > self.january1
