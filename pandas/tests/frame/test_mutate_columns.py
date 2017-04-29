@@ -150,7 +150,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         df.columns.name = 'some_name'
         # preserve columns name field
         df.insert(0, 'baz', df['c'])
-        self.assertEqual(df.columns.name, 'some_name')
+        assert df.columns.name == 'some_name'
 
         # GH 13522
         df = DataFrame(index=['A', 'B', 'C'])
@@ -197,7 +197,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         self.frame['foo'] = 'bar'
         self.frame.pop('foo')
         assert 'foo' not in self.frame
-        # TODO self.assertEqual(self.frame.columns.name, 'baz')
+        # TODO assert self.frame.columns.name == 'baz'
 
         # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[
@@ -219,12 +219,12 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         df.columns = ["a", "b", "a"]
 
         res = df.pop("a")
-        self.assertEqual(type(res), DataFrame)
-        self.assertEqual(len(res), 2)
-        self.assertEqual(len(df.columns), 1)
+        assert type(res) == DataFrame
+        assert len(res) == 2
+        assert len(df.columns) == 1
         assert "b" in df.columns
         assert "a" not in df.columns
-        self.assertEqual(len(df.index), 2)
+        assert len(df.index) == 2
 
     def test_insert_column_bug_4032(self):
 

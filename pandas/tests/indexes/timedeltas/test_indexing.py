@@ -76,8 +76,8 @@ class TestTimedeltaIndex(tm.TestCase):
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
         with pytest.raises((IndexError, ValueError)):
             # either depeidnig on numpy version
@@ -103,10 +103,10 @@ class TestTimedeltaIndex(tm.TestCase):
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
             result = idx.delete(slice(n[0], n[-1] + 1))
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq

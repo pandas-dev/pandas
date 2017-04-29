@@ -30,7 +30,7 @@ class TestDateRanges(TestData, tm.TestCase):
 
     def test_date_range_gen_error(self):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
-        self.assertEqual(len(rng), 4)
+        assert len(rng) == 4
 
     def test_date_range_negative_freq(self):
         # GH 11018
@@ -38,20 +38,20 @@ class TestDateRanges(TestData, tm.TestCase):
         exp = pd.DatetimeIndex(['2011-12-31', '2009-12-31',
                                 '2007-12-31'], freq='-2A')
         tm.assert_index_equal(rng, exp)
-        self.assertEqual(rng.freq, '-2A')
+        assert rng.freq == '-2A'
 
         rng = date_range('2011-01-31', freq='-2M', periods=3)
         exp = pd.DatetimeIndex(['2011-01-31', '2010-11-30',
                                 '2010-09-30'], freq='-2M')
         tm.assert_index_equal(rng, exp)
-        self.assertEqual(rng.freq, '-2M')
+        assert rng.freq == '-2M'
 
     def test_date_range_bms_bug(self):
         # #1645
         rng = date_range('1/1/2000', periods=10, freq='BMS')
 
         ex_first = Timestamp('2000-01-03')
-        self.assertEqual(rng[0], ex_first)
+        assert rng[0] == ex_first
 
     def test_date_range_normalize(self):
         snap = datetime.today()
@@ -68,13 +68,13 @@ class TestDateRanges(TestData, tm.TestCase):
                          freq='B')
         the_time = time(8, 15)
         for val in rng:
-            self.assertEqual(val.time(), the_time)
+            assert val.time() == the_time
 
     def test_date_range_fy5252(self):
         dr = date_range(start="2013-01-01", periods=2, freq=offsets.FY5253(
             startingMonth=1, weekday=3, variation="nearest"))
-        self.assertEqual(dr[0], Timestamp('2013-01-31'))
-        self.assertEqual(dr[1], Timestamp('2014-01-30'))
+        assert dr[0] == Timestamp('2013-01-31')
+        assert dr[1] == Timestamp('2014-01-30')
 
     def test_date_range_ambiguous_arguments(self):
         # #2538
@@ -138,7 +138,7 @@ class TestDateRanges(TestData, tm.TestCase):
                                           freq='QS-JAN'),
                                 periods=f(76),
                                 freq='QS-JAN')
-            self.assertEqual(len(result), 76)
+            assert len(result) == 76
 
     def test_catch_infinite_loop(self):
         offset = offsets.DateOffset(minute=5)
@@ -152,12 +152,12 @@ class TestGenRangeGeneration(tm.TestCase):
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=BDay()))
         rng2 = list(generate_range(START, END, time_rule='B'))
-        self.assertEqual(rng1, rng2)
+        assert rng1 == rng2
 
     def test_generate_cday(self):
         rng1 = list(generate_range(START, END, offset=CDay()))
         rng2 = list(generate_range(START, END, time_rule='C'))
-        self.assertEqual(rng1, rng2)
+        assert rng1 == rng2
 
     def test_1(self):
         eq_gen_range(dict(start=datetime(2009, 3, 25), periods=2),
@@ -241,14 +241,14 @@ class TestBusinessDateRange(tm.TestCase):
     def test_cached_range_bug(self):
         rng = date_range('2010-09-01 05:00:00', periods=50,
                          freq=DateOffset(hours=6))
-        self.assertEqual(len(rng), 50)
-        self.assertEqual(rng[0], datetime(2010, 9, 1, 5))
+        assert len(rng) == 50
+        assert rng[0] == datetime(2010, 9, 1, 5)
 
     def test_timezone_comparaison_bug(self):
         # smoke test
         start = Timestamp('20130220 10:00', tz='US/Eastern')
         result = date_range(start, periods=2, tz='US/Eastern')
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
     def test_timezone_comparaison_assert(self):
         start = Timestamp('20130220 10:00', tz='US/Eastern')
@@ -308,19 +308,19 @@ class TestBusinessDateRange(tm.TestCase):
         end = tz.localize(datetime(2011, 1, 3))
 
         dr = date_range(start=start, periods=3)
-        self.assertEqual(dr.tz.zone, tz.zone)
-        self.assertEqual(dr[0], start)
-        self.assertEqual(dr[2], end)
+        assert dr.tz.zone == tz.zone
+        assert dr[0] == start
+        assert dr[2] == end
 
         dr = date_range(end=end, periods=3)
-        self.assertEqual(dr.tz.zone, tz.zone)
-        self.assertEqual(dr[0], start)
-        self.assertEqual(dr[2], end)
+        assert dr.tz.zone == tz.zone
+        assert dr[0] == start
+        assert dr[2] == end
 
         dr = date_range(start=start, end=end)
-        self.assertEqual(dr.tz.zone, tz.zone)
-        self.assertEqual(dr[0], start)
-        self.assertEqual(dr[2], end)
+        assert dr.tz.zone == tz.zone
+        assert dr[0] == start
+        assert dr[2] == end
 
     def test_range_tz_dst_straddle_pytz(self):
 
@@ -333,20 +333,20 @@ class TestBusinessDateRange(tm.TestCase):
                   tz.localize(datetime(2013, 11, 6)))]
         for (start, end) in dates:
             dr = date_range(start, end, freq='D')
-            self.assertEqual(dr[0], start)
-            self.assertEqual(dr[-1], end)
-            self.assertEqual(np.all(dr.hour == 0), True)
+            assert dr[0] == start
+            assert dr[-1] == end
+            assert np.all(dr.hour == 0)
 
             dr = date_range(start, end, freq='D', tz='US/Eastern')
-            self.assertEqual(dr[0], start)
-            self.assertEqual(dr[-1], end)
-            self.assertEqual(np.all(dr.hour == 0), True)
+            assert dr[0] == start
+            assert dr[-1] == end
+            assert np.all(dr.hour == 0)
 
             dr = date_range(start.replace(tzinfo=None), end.replace(
                 tzinfo=None), freq='D', tz='US/Eastern')
-            self.assertEqual(dr[0], start)
-            self.assertEqual(dr[-1], end)
-            self.assertEqual(np.all(dr.hour == 0), True)
+            assert dr[0] == start
+            assert dr[-1] == end
+            assert np.all(dr.hour == 0)
 
     def test_range_tz_dateutil(self):
         # GH 2906
@@ -461,8 +461,8 @@ class TestBusinessDateRange(tm.TestCase):
     def test_years_only(self):
         # GH 6961
         dr = date_range('2014', '2015', freq='M')
-        self.assertEqual(dr[0], datetime(2014, 1, 31))
-        self.assertEqual(dr[-1], datetime(2014, 12, 31))
+        assert dr[0] == datetime(2014, 1, 31)
+        assert dr[-1] == datetime(2014, 12, 31)
 
     def test_freq_divides_end_in_nanos(self):
         # GH 10885

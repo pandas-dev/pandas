@@ -22,19 +22,19 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
 
         for k, v in compat.iteritems(test_data):
             for k2, v2 in compat.iteritems(v):
-                self.assertEqual(v2, recons_data[k][k2])
+                assert v2 == recons_data[k][k2]
 
         recons_data = DataFrame(test_data).to_dict("l")
 
         for k, v in compat.iteritems(test_data):
             for k2, v2 in compat.iteritems(v):
-                self.assertEqual(v2, recons_data[k][int(k2) - 1])
+                assert v2 == recons_data[k][int(k2) - 1]
 
         recons_data = DataFrame(test_data).to_dict("s")
 
         for k, v in compat.iteritems(test_data):
             for k2, v2 in compat.iteritems(v):
-                self.assertEqual(v2, recons_data[k][k2])
+                assert v2 == recons_data[k][k2]
 
         recons_data = DataFrame(test_data).to_dict("sp")
         expected_split = {'columns': ['A', 'B'], 'index': ['1', '2', '3'],
@@ -46,7 +46,7 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
                             {'A': 2.0, 'B': '2'},
                             {'A': np.nan, 'B': '3'}]
         assert isinstance(recons_data, list)
-        self.assertEqual(len(recons_data), 3)
+        assert len(recons_data) == 3
         for l, r in zip(recons_data, expected_records):
             tm.assert_dict_equal(l, r)
 
@@ -55,7 +55,7 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
 
         for k, v in compat.iteritems(test_data):
             for k2, v2 in compat.iteritems(v):
-                self.assertEqual(v2, recons_data[k2][k])
+                assert v2 == recons_data[k2][k]
 
     def test_to_dict_timestamp(self):
 
@@ -72,10 +72,10 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         expected_records_mixed = [{'A': tsmp, 'B': 1},
                                   {'A': tsmp, 'B': 2}]
 
-        self.assertEqual(test_data.to_dict(orient='records'),
-                         expected_records)
-        self.assertEqual(test_data_mixed.to_dict(orient='records'),
-                         expected_records_mixed)
+        assert (test_data.to_dict(orient='records') ==
+                expected_records)
+        assert (test_data_mixed.to_dict(orient='records') ==
+                expected_records_mixed)
 
         expected_series = {
             'A': Series([tsmp, tsmp], name='A'),
@@ -117,10 +117,10 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         df = DataFrame([["one", "two", "three"],
                         ["four", "five", "six"]],
                        index=date_range("2012-01-01", "2012-01-02"))
-        self.assertEqual(df.to_records()['index'][0], df.index[0])
+        assert df.to_records()['index'][0] == df.index[0]
 
         rs = df.to_records(convert_datetime64=False)
-        self.assertEqual(rs['index'][0], df.index.values[0])
+        assert rs['index'][0] == df.index.values[0]
 
     def test_to_records_with_multindex(self):
         # GH3189

@@ -309,7 +309,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # Case len(title) == len(df)
         plot = df.plot(subplots=True, title=title)
-        self.assertEqual([p.get_title() for p in plot], title)
+        assert [p.get_title() for p in plot] == title
 
         # Case len(title) > len(df)
         pytest.raises(ValueError, df.plot, subplots=True,
@@ -325,4 +325,4 @@ class TestDataFramePlots(TestPlotBase):
         plot = df.drop('SepalWidth', axis=1).plot(subplots=True, layout=(2, 2),
                                                   title=title[:-1])
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
-        self.assertEqual(title_list, title[:3] + [''])
+        assert title_list == title[:3] + ['']

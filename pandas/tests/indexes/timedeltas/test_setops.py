@@ -30,7 +30,7 @@ class TestTimedeltaIndex(tm.TestCase):
 
         result = ordered[:0].union(ordered)
         tm.assert_index_equal(result, ordered)
-        self.assertEqual(result.freq, ordered.freq)
+        assert result.freq == ordered.freq
 
     def test_union_bug_1730(self):
 
@@ -66,7 +66,7 @@ class TestTimedeltaIndex(tm.TestCase):
         index_2 = index_1 + pd.offsets.Hour(5)
 
         result = index_1 & index_2
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
         index_1 = timedelta_range('1 day', periods=4, freq='h')
         index_2 = index_1 + pd.offsets.Hour(1)

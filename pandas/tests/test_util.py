@@ -7,6 +7,7 @@ from uuid import uuid4
 from collections import OrderedDict
 
 import pytest
+from pandas.compat import intern
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util.decorators import deprecate_kwarg
 from pandas.util.validators import (validate_args, validate_kwargs,
@@ -50,19 +51,19 @@ class TestDecorators(tm.TestCase):
         x = 'yes'
         with tm.assert_produces_warning(FutureWarning):
             result = self.f2(old=x)
-        self.assertEqual(result, True)
+        assert result
 
     def test_missing_deprecate_kwarg(self):
         x = 'bogus'
         with tm.assert_produces_warning(FutureWarning):
             result = self.f2(old=x)
-        self.assertEqual(result, 'bogus')
+        assert result == 'bogus'
 
     def test_callable_deprecate_kwarg(self):
         x = 5
         with tm.assert_produces_warning(FutureWarning):
             result = self.f3(old=x)
-        self.assertEqual(result, x + 1)
+        assert result == x + 1
         with pytest.raises(TypeError):
             self.f3(old='hello')
 
@@ -358,7 +359,7 @@ class TestMove(tm.TestCase):
         as_stolen_buf = move_into_mutable_buffer(b[:-3])
 
         # materialize as bytearray to show that it is mutable
-        self.assertEqual(bytearray(as_stolen_buf), b'test')
+        assert bytearray(as_stolen_buf) == b'test'
 
     @pytest.mark.skipif(
         sys.version_info[0] > 2,
@@ -393,12 +394,7 @@ class TestMove(tm.TestCase):
             # be the same instance.
             move_into_mutable_buffer(ref_capture(intern(make_string())))  # noqa
 
-        self.assertEqual(
-            refcount[0],
-            1,
-            msg='The BadMove was probably raised for refcount reasons instead'
-            ' of interning reasons',
-        )
+        assert refcount[0] == 1
 
 
 def test_numpy_errstate_is_default():
@@ -468,7 +464,7 @@ class TestLocaleUtils(tm.TestCase):
                 new_lang, new_enc = normalized_locale.split('.')
                 new_enc = codecs.lookup(enc).name
                 normalized_locale = new_lang, new_enc
-                self.assertEqual(normalized_locale, new_locale)
+                assert normalized_locale == new_locale
 
         current_locale = locale.getlocale()
-        self.assertEqual(current_locale, CURRENT_LOCALE)
+        assert current_locale == CURRENT_LOCALE

@@ -118,15 +118,15 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_properties(self):
         index = self.index
-        self.assertEqual(len(index), 2)
-        self.assertEqual(index.size, 2)
-        self.assertEqual(index.shape, (2, ))
+        assert len(index) == 2
+        assert index.size == 2
+        assert index.shape == (2, )
 
         tm.assert_index_equal(index.left, Index([0, 1]))
         tm.assert_index_equal(index.right, Index([1, 2]))
         tm.assert_index_equal(index.mid, Index([0.5, 1.5]))
 
-        self.assertEqual(index.closed, 'right')
+        assert index.closed == 'right'
 
         expected = np.array([Interval(0, 1), Interval(1, 2)], dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
@@ -134,15 +134,15 @@ class TestIntervalIndex(Base, tm.TestCase):
 
         # with nans
         index = self.index_with_nan
-        self.assertEqual(len(index), 3)
-        self.assertEqual(index.size, 3)
-        self.assertEqual(index.shape, (3, ))
+        assert len(index) == 3
+        assert index.size == 3
+        assert index.shape == (3, )
 
         tm.assert_index_equal(index.left, Index([0, np.nan, 1]))
         tm.assert_index_equal(index.right, Index([1, np.nan, 2]))
         tm.assert_index_equal(index.mid, Index([0.5, np.nan, 1.5]))
 
-        self.assertEqual(index.closed, 'right')
+        assert index.closed == 'right'
 
         expected = np.array([Interval(0, 1), np.nan,
                              Interval(1, 2)], dtype=object)
@@ -285,7 +285,7 @@ class TestIntervalIndex(Base, tm.TestCase):
                     "\n              right=[1, 2],"
                     "\n              closed='right',"
                     "\n              dtype='interval[int64]')")
-        self.assertEqual(repr(i), expected)
+        assert repr(i) == expected
 
         i = IntervalIndex.from_tuples((Timestamp('20130101'),
                                        Timestamp('20130102')),
@@ -296,7 +296,7 @@ class TestIntervalIndex(Base, tm.TestCase):
                     "\n              right=['2013-01-02', '2013-01-03'],"
                     "\n              closed='right',"
                     "\n              dtype='interval[datetime64[ns]]')")
-        self.assertEqual(repr(i), expected)
+        assert repr(i) == expected
 
     @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
     def test_repr_max_seq_item_setting(self):
@@ -328,21 +328,21 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_get_loc_value(self):
         pytest.raises(KeyError, self.index.get_loc, 0)
-        self.assertEqual(self.index.get_loc(0.5), 0)
-        self.assertEqual(self.index.get_loc(1), 0)
-        self.assertEqual(self.index.get_loc(1.5), 1)
-        self.assertEqual(self.index.get_loc(2), 1)
+        assert self.index.get_loc(0.5) == 0
+        assert self.index.get_loc(1) == 0
+        assert self.index.get_loc(1.5) == 1
+        assert self.index.get_loc(2) == 1
         pytest.raises(KeyError, self.index.get_loc, -1)
         pytest.raises(KeyError, self.index.get_loc, 3)
 
         idx = IntervalIndex.from_tuples([(0, 2), (1, 3)])
-        self.assertEqual(idx.get_loc(0.5), 0)
-        self.assertEqual(idx.get_loc(1), 0)
+        assert idx.get_loc(0.5) == 0
+        assert idx.get_loc(1) == 0
         tm.assert_numpy_array_equal(idx.get_loc(1.5),
                                     np.array([0, 1], dtype='int64'))
         tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
                                     np.array([0, 1], dtype='int64'))
-        self.assertEqual(idx.get_loc(3), 1)
+        assert idx.get_loc(3) == 1
         pytest.raises(KeyError, idx.get_loc, 3.5)
 
         idx = IntervalIndex.from_arrays([0, 2], [1, 3])
@@ -351,29 +351,29 @@ class TestIntervalIndex(Base, tm.TestCase):
     def slice_locs_cases(self, breaks):
         # TODO: same tests for more index types
         index = IntervalIndex.from_breaks([0, 1, 2], closed='right')
-        self.assertEqual(index.slice_locs(), (0, 2))
-        self.assertEqual(index.slice_locs(0, 1), (0, 1))
-        self.assertEqual(index.slice_locs(1, 1), (0, 1))
-        self.assertEqual(index.slice_locs(0, 2), (0, 2))
-        self.assertEqual(index.slice_locs(0.5, 1.5), (0, 2))
-        self.assertEqual(index.slice_locs(0, 0.5), (0, 1))
-        self.assertEqual(index.slice_locs(start=1), (0, 2))
-        self.assertEqual(index.slice_locs(start=1.2), (1, 2))
-        self.assertEqual(index.slice_locs(end=1), (0, 1))
-        self.assertEqual(index.slice_locs(end=1.1), (0, 2))
-        self.assertEqual(index.slice_locs(end=1.0), (0, 1))
-        self.assertEqual(*index.slice_locs(-1, -1))
+        assert index.slice_locs() == (0, 2)
+        assert index.slice_locs(0, 1) == (0, 1)
+        assert index.slice_locs(1, 1) == (0, 1)
+        assert index.slice_locs(0, 2) == (0, 2)
+        assert index.slice_locs(0.5, 1.5) == (0, 2)
+        assert index.slice_locs(0, 0.5) == (0, 1)
+        assert index.slice_locs(start=1) == (0, 2)
+        assert index.slice_locs(start=1.2) == (1, 2)
+        assert index.slice_locs(end=1) == (0, 1)
+        assert index.slice_locs(end=1.1) == (0, 2)
+        assert index.slice_locs(end=1.0) == (0, 1)
+        assert index.slice_locs(-1, -1) == (0, 0)
 
         index = IntervalIndex.from_breaks([0, 1, 2], closed='neither')
-        self.assertEqual(index.slice_locs(0, 1), (0, 1))
-        self.assertEqual(index.slice_locs(0, 2), (0, 2))
-        self.assertEqual(index.slice_locs(0.5, 1.5), (0, 2))
-        self.assertEqual(index.slice_locs(1, 1), (1, 1))
-        self.assertEqual(index.slice_locs(1, 2), (1, 2))
+        assert index.slice_locs(0, 1) == (0, 1)
+        assert index.slice_locs(0, 2) == (0, 2)
+        assert index.slice_locs(0.5, 1.5) == (0, 2)
+        assert index.slice_locs(1, 1) == (1, 1)
+        assert index.slice_locs(1, 2) == (1, 2)
 
         index = IntervalIndex.from_breaks([0, 1, 2], closed='both')
-        self.assertEqual(index.slice_locs(1, 1), (0, 2))
-        self.assertEqual(index.slice_locs(1, 2), (0, 2))
+        assert index.slice_locs(1, 1) == (0, 2)
+        assert index.slice_locs(1, 2) == (0, 2)
 
     def test_slice_locs_int64(self):
         self.slice_locs_cases([0, 1, 2])
@@ -383,14 +383,16 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def slice_locs_decreasing_cases(self, tuples):
         index = IntervalIndex.from_tuples(tuples)
-        self.assertEqual(index.slice_locs(1.5, 0.5), (1, 3))
-        self.assertEqual(index.slice_locs(2, 0), (1, 3))
-        self.assertEqual(index.slice_locs(2, 1), (1, 3))
-        self.assertEqual(index.slice_locs(3, 1.1), (0, 3))
-        self.assertEqual(index.slice_locs(3, 3), (0, 2))
-        self.assertEqual(index.slice_locs(3.5, 3.3), (0, 1))
-        self.assertEqual(index.slice_locs(1, -3), (2, 3))
-        self.assertEqual(*index.slice_locs(-1, -1))
+        assert index.slice_locs(1.5, 0.5) == (1, 3)
+        assert index.slice_locs(2, 0) == (1, 3)
+        assert index.slice_locs(2, 1) == (1, 3)
+        assert index.slice_locs(3, 1.1) == (0, 3)
+        assert index.slice_locs(3, 3) == (0, 2)
+        assert index.slice_locs(3.5, 3.3) == (0, 1)
+        assert index.slice_locs(1, -3) == (2, 3)
+
+        slice_locs = index.slice_locs(-1, -1)
+        assert slice_locs[0] == slice_locs[1]
 
     def test_slice_locs_decreasing_int64(self):
         self.slice_locs_cases([(2, 4), (1, 3), (0, 2)])
@@ -404,9 +406,9 @@ class TestIntervalIndex(Base, tm.TestCase):
             index.slice_locs(1, 2)
 
     def test_get_loc_interval(self):
-        self.assertEqual(self.index.get_loc(Interval(0, 1)), 0)
-        self.assertEqual(self.index.get_loc(Interval(0, 0.5)), 0)
-        self.assertEqual(self.index.get_loc(Interval(0, 1, 'left')), 0)
+        assert self.index.get_loc(Interval(0, 1)) == 0
+        assert self.index.get_loc(Interval(0, 0.5)) == 0
+        assert self.index.get_loc(Interval(0, 1, 'left')) == 0
         pytest.raises(KeyError, self.index.get_loc, Interval(2, 3))
         pytest.raises(KeyError, self.index.get_loc,
                       Interval(-1, 0, 'left'))

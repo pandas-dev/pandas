@@ -74,15 +74,15 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
     def test_as_matrix(self):
         empty = self.empty.as_matrix()
-        self.assertEqual(empty.shape, (0, 0))
+        assert empty.shape == (0, 0)
 
         no_cols = SparseDataFrame(index=np.arange(10))
         mat = no_cols.as_matrix()
-        self.assertEqual(mat.shape, (10, 0))
+        assert mat.shape == (10, 0)
 
         no_index = SparseDataFrame(columns=np.arange(10))
         mat = no_index.as_matrix()
-        self.assertEqual(mat.shape, (0, 10))
+        assert mat.shape == (0, 10)
 
     def test_copy(self):
         cp = self.frame.copy()
@@ -100,7 +100,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         assert isinstance(self.iframe['A'].sp_index, IntIndex)
 
         # constructed zframe from matrix above
-        self.assertEqual(self.zframe['A'].fill_value, 0)
+        assert self.zframe['A'].fill_value == 0
         tm.assert_numpy_array_equal(pd.SparseArray([1., 2., 3., 4., 5., 6.]),
                                     self.zframe['A'].values)
         tm.assert_numpy_array_equal(np.array([0., 0., 0., 0., 1., 2.,
@@ -160,8 +160,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
     # GH 9272
     def test_constructor_empty(self):
         sp = SparseDataFrame()
-        self.assertEqual(len(sp.index), 0)
-        self.assertEqual(len(sp.columns), 0)
+        assert len(sp.index) == 0
+        assert len(sp.columns) == 0
 
     def test_constructor_dataframe(self):
         dense = self.frame.to_dense()
@@ -201,24 +201,24 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
     def test_constructor_preserve_attr(self):
         # GH 13866
         arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         df = pd.SparseDataFrame({'x': arr})
-        self.assertEqual(df['x'].dtype, np.int64)
-        self.assertEqual(df['x'].fill_value, 0)
+        assert df['x'].dtype == np.int64
+        assert df['x'].fill_value == 0
 
         s = pd.SparseSeries(arr, name='x')
-        self.assertEqual(s.dtype, np.int64)
-        self.assertEqual(s.fill_value, 0)
+        assert s.dtype == np.int64
+        assert s.fill_value == 0
 
         df = pd.SparseDataFrame(s)
-        self.assertEqual(df['x'].dtype, np.int64)
-        self.assertEqual(df['x'].fill_value, 0)
+        assert df['x'].dtype == np.int64
+        assert df['x'].fill_value == 0
 
         df = pd.SparseDataFrame({'x': s})
-        self.assertEqual(df['x'].dtype, np.int64)
-        self.assertEqual(df['x'].fill_value, 0)
+        assert df['x'].dtype == np.int64
+        assert df['x'].fill_value == 0
 
     def test_constructor_nan_dataframe(self):
         # GH 10079
@@ -257,11 +257,11 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_series_equal(result, expected)
 
     def test_shape(self):
-        # GH 10452
-        self.assertEqual(self.frame.shape, (10, 4))
-        self.assertEqual(self.iframe.shape, (10, 4))
-        self.assertEqual(self.zframe.shape, (10, 4))
-        self.assertEqual(self.fill_frame.shape, (10, 4))
+        # see gh-10452
+        assert self.frame.shape == (10, 4)
+        assert self.iframe.shape == (10, 4)
+        assert self.zframe.shape == (10, 4)
+        assert self.fill_frame.shape == (10, 4)
 
     def test_str(self):
         df = DataFrame(np.random.randn(10000, 4))
@@ -300,19 +300,19 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         df = DataFrame({'A': [0, 0, 0, 1, 2],
                         'B': [1, 2, 0, 0, 0]}, dtype=float)
         sdf = df.to_sparse(fill_value=0)
-        self.assertEqual(sdf.default_fill_value, 0)
+        assert sdf.default_fill_value == 0
         tm.assert_frame_equal(sdf.to_dense(), df)
 
     def test_density(self):
         df = SparseSeries([nan, nan, nan, 0, 1, 2, 3, 4, 5, 6])
-        self.assertEqual(df.density, 0.7)
+        assert df.density == 0.7
 
         df = SparseDataFrame({'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                               'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
                               'C': np.arange(10),
                               'D': [0, 1, 2, 3, 4, 5, nan, nan, nan, nan]})
 
-        self.assertEqual(df.density, 0.75)
+        assert df.density == 0.75
 
     def test_sparse_to_dense(self):
         pass
@@ -417,8 +417,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         # preserve sparse index type. #2251
         data = {'A': [0, 1]}
         iframe = SparseDataFrame(data, default_kind='integer')
-        self.assertEqual(type(iframe['A'].sp_index),
-                         type(iframe.iloc[:, 0].sp_index))
+        tm.assert_class_equal(iframe['A'].sp_index,
+                              iframe.iloc[:, 0].sp_index)
 
     def test_set_value(self):
 
@@ -484,7 +484,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
             expected = to_insert.to_dense().reindex(frame.index)
             result = frame['E'].to_dense()
             tm.assert_series_equal(result, expected, check_names=False)
-            self.assertEqual(result.name, 'E')
+            assert result.name == 'E'
 
             # insert Series
             frame['F'] = frame['A'].to_dense()
@@ -506,7 +506,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
             to_sparsify = np.random.randn(N)
             to_sparsify[N // 2:] = frame.default_fill_value
             frame['I'] = to_sparsify
-            self.assertEqual(len(frame['I'].sp_values), N // 2)
+            assert len(frame['I'].sp_values) == N // 2
 
             # insert ndarray wrong size
             pytest.raises(Exception, frame.__setitem__, 'foo',
@@ -514,11 +514,11 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
 
             # scalar value
             frame['J'] = 5
-            self.assertEqual(len(frame['J'].sp_values), N)
+            assert len(frame['J'].sp_values) == N
             assert (frame['J'].sp_values == 5).all()
 
             frame['K'] = frame.default_fill_value
-            self.assertEqual(len(frame['K'].sp_values), 0)
+            assert len(frame['K'].sp_values) == 0
 
         self._check_all(_check_frame)
 
@@ -584,7 +584,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         tm.assert_almost_equal(applied.values, np.sqrt(self.frame.values))
 
         applied = self.fill_frame.apply(np.sqrt)
-        self.assertEqual(applied['A'].fill_value, np.sqrt(2))
+        assert applied['A'].fill_value == np.sqrt(2)
 
         # agg / broadcast
         broadcasted = self.frame.apply(np.sum, broadcast=True)
@@ -607,7 +607,7 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         res = sparse.apply(lambda s: s[0], axis=1)
         exp = orig.apply(lambda s: s[0], axis=1)
         # dtype must be kept
-        self.assertEqual(res.dtype, np.int64)
+        assert res.dtype == np.int64
         # ToDo: apply must return subclassed dtype
         assert isinstance(res, pd.Series)
         tm.assert_series_equal(res.to_dense(), exp)
@@ -629,8 +629,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                                                       dtype=np.int64),
                                      'B': SparseArray([4, 5, 6, 7],
                                                       dtype=np.int64)})
-        self.assertEqual(sparse['A'].dtype, np.int64)
-        self.assertEqual(sparse['B'].dtype, np.int64)
+        assert sparse['A'].dtype == np.int64
+        assert sparse['B'].dtype == np.int64
 
         res = sparse.astype(np.float64)
         exp = pd.SparseDataFrame({'A': SparseArray([1., 2., 3., 4.],
@@ -639,16 +639,16 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                                                    fill_value=0.)},
                                  default_fill_value=np.nan)
         tm.assert_sp_frame_equal(res, exp)
-        self.assertEqual(res['A'].dtype, np.float64)
-        self.assertEqual(res['B'].dtype, np.float64)
+        assert res['A'].dtype == np.float64
+        assert res['B'].dtype == np.float64
 
         sparse = pd.SparseDataFrame({'A': SparseArray([0, 2, 0, 4],
                                                       dtype=np.int64),
                                      'B': SparseArray([0, 5, 0, 7],
                                                       dtype=np.int64)},
                                     default_fill_value=0)
-        self.assertEqual(sparse['A'].dtype, np.int64)
-        self.assertEqual(sparse['B'].dtype, np.int64)
+        assert sparse['A'].dtype == np.int64
+        assert sparse['B'].dtype == np.int64
 
         res = sparse.astype(np.float64)
         exp = pd.SparseDataFrame({'A': SparseArray([0., 2., 0., 4.],
@@ -657,8 +657,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                                                    fill_value=0.)},
                                  default_fill_value=0.)
         tm.assert_sp_frame_equal(res, exp)
-        self.assertEqual(res['A'].dtype, np.float64)
-        self.assertEqual(res['B'].dtype, np.float64)
+        assert res['A'].dtype == np.float64
+        assert res['B'].dtype == np.float64
 
     def test_astype_bool(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([0, 2, 0, 4],
@@ -668,8 +668,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                                                       fill_value=0,
                                                       dtype=np.int64)},
                                     default_fill_value=0)
-        self.assertEqual(sparse['A'].dtype, np.int64)
-        self.assertEqual(sparse['B'].dtype, np.int64)
+        assert sparse['A'].dtype == np.int64
+        assert sparse['B'].dtype == np.int64
 
         res = sparse.astype(bool)
         exp = pd.SparseDataFrame({'A': SparseArray([False, True, False, True],
@@ -680,8 +680,8 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
                                                    fill_value=False)},
                                  default_fill_value=False)
         tm.assert_sp_frame_equal(res, exp)
-        self.assertEqual(res['A'].dtype, np.bool)
-        self.assertEqual(res['B'].dtype, np.bool)
+        assert res['A'].dtype == np.bool
+        assert res['B'].dtype == np.bool
 
     def test_fillna(self):
         df = self.zframe.reindex(lrange(5))
@@ -1085,14 +1085,14 @@ class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
         r1 = result.take([0], 1)['A']
         r2 = result['A']
 
-        self.assertEqual(len(r2.sp_values), len(r1.sp_values))
+        assert len(r2.sp_values) == len(r1.sp_values)
 
     def test_as_blocks(self):
         df = SparseDataFrame({'A': [1.1, 3.3], 'B': [nan, -3.9]},
                              dtype='float64')
 
         df_blocks = df.blocks
-        self.assertEqual(list(df_blocks.keys()), ['float64'])
+        assert list(df_blocks.keys()) == ['float64']
         tm.assert_frame_equal(df_blocks['float64'], df)
 
     def test_nan_columnname(self):

@@ -45,11 +45,11 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
                        index=Index(['hello', 'world', 'foo'], name='message'))
         rs = self.read_csv(StringIO(data), names=names, index_col=['message'])
         tm.assert_frame_equal(xp, rs)
-        self.assertEqual(xp.index.name, rs.index.name)
+        assert xp.index.name == rs.index.name
 
         rs = self.read_csv(StringIO(data), names=names, index_col='message')
         tm.assert_frame_equal(xp, rs)
-        self.assertEqual(xp.index.name, rs.index.name)
+        assert xp.index.name == rs.index.name
 
     def test_index_col_is_true(self):
         # see gh-9798

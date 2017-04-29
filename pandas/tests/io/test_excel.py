@@ -1216,9 +1216,9 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(self.frame, recons)
             recons = read_excel(reader, 'test2', index_col=0)
             tm.assert_frame_equal(self.tsframe, recons)
-            self.assertEqual(2, len(reader.sheet_names))
-            self.assertEqual('test1', reader.sheet_names[0])
-            self.assertEqual('test2', reader.sheet_names[1])
+            assert 2 == len(reader.sheet_names)
+            assert 'test1' == reader.sheet_names[0]
+            assert 'test2' == reader.sheet_names[1]
 
     def test_colaliases(self):
         _skip_if_no_xlrd()
@@ -1262,7 +1262,7 @@ class ExcelWriterBase(SharedItems):
                                 index_col=0,
                                 ).astype(np.int64)
             frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
+            assert frame.index.names == recons.index.names
 
             frame = (DataFrame(np.random.randn(10, 2)) >= 0)
             frame.to_excel(path,
@@ -1274,7 +1274,7 @@ class ExcelWriterBase(SharedItems):
                                 index_col=0,
                                 ).astype(np.int64)
             frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
+            assert frame.index.names == recons.index.names
 
             frame = (DataFrame(np.random.randn(10, 2)) >= 0)
             frame.to_excel(path,
@@ -1316,7 +1316,7 @@ class ExcelWriterBase(SharedItems):
                                 index_col=0)
 
             tm.assert_frame_equal(result, df)
-            self.assertEqual(result.index.name, 'foo')
+            assert result.index.name == 'foo'
 
     def test_excel_roundtrip_datetime(self):
         _skip_if_no_xlrd()
@@ -1463,7 +1463,7 @@ class ExcelWriterBase(SharedItems):
                                 index_col=[0, 1])
 
             tm.assert_frame_equal(tsframe, recons)
-            self.assertEqual(recons.index.names, ('time', 'foo'))
+            assert recons.index.names == ('time', 'foo')
 
     def test_to_excel_multiindex_no_write_index(self):
         _skip_if_no_xlrd()
@@ -1577,21 +1577,20 @@ class ExcelWriterBase(SharedItems):
 
     #     wbk = xlrd.open_workbook(filename,
     #                              formatting_info=True)
-    #     self.assertEqual(["test1"], wbk.sheet_names())
+    #     assert ["test1"] == wbk.sheet_names()
     #     ws = wbk.sheet_by_name('test1')
-    #     self.assertEqual([(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)],
-    #                       ws.merged_cells)
+    #     assert [(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)] == ws.merged_cells
     #     for i in range(0, 2):
     #         for j in range(0, 7):
     #             xfx = ws.cell_xf_index(0, 0)
     #             cell_xf = wbk.xf_list[xfx]
     #             font = wbk.font_list
-    #             self.assertEqual(1, font[cell_xf.font_index].bold)
-    #             self.assertEqual(1, cell_xf.border.top_line_style)
-    #             self.assertEqual(1, cell_xf.border.right_line_style)
-    #             self.assertEqual(1, cell_xf.border.bottom_line_style)
-    #             self.assertEqual(1, cell_xf.border.left_line_style)
-    #             self.assertEqual(2, cell_xf.alignment.hor_align)
+    #             assert 1 == font[cell_xf.font_index].bold
+    #             assert 1 == cell_xf.border.top_line_style
+    #             assert 1 == cell_xf.border.right_line_style
+    #             assert 1 == cell_xf.border.bottom_line_style
+    #             assert 1 == cell_xf.border.left_line_style
+    #             assert 2 == cell_xf.alignment.hor_align
     #     os.remove(filename)
     # def test_to_excel_header_styling_xlsx(self):
     #     import StringIO
@@ -1623,7 +1622,7 @@ class ExcelWriterBase(SharedItems):
     #     filename = '__tmp_to_excel_header_styling_xlsx__.xlsx'
     #     pdf.to_excel(filename, 'test1')
     #     wbk = openpyxl.load_workbook(filename)
-    #     self.assertEqual(["test1"], wbk.get_sheet_names())
+    #     assert ["test1"] == wbk.get_sheet_names()
     #     ws = wbk.get_sheet_by_name('test1')
     #     xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
     #     xlsaddrs += ["A%s" % i for i in range(1, 6)]
@@ -1631,16 +1630,16 @@ class ExcelWriterBase(SharedItems):
     #     for xlsaddr in xlsaddrs:
     #         cell = ws.cell(xlsaddr)
     #         assert cell.style.font.bold
-    #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-    #                           cell.style.borders.top.border_style)
-    #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-    #                           cell.style.borders.right.border_style)
-    #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-    #                           cell.style.borders.bottom.border_style)
-    #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-    #                           cell.style.borders.left.border_style)
-    #         self.assertEqual(openpyxl.style.Alignment.HORIZONTAL_CENTER,
-    #                           cell.style.alignment.horizontal)
+    #         assert (openpyxl.style.Border.BORDER_THIN ==
+    #                 cell.style.borders.top.border_style)
+    #         assert (openpyxl.style.Border.BORDER_THIN ==
+    #                 cell.style.borders.right.border_style)
+    #         assert (openpyxl.style.Border.BORDER_THIN ==
+    #                 cell.style.borders.bottom.border_style)
+    #         assert (openpyxl.style.Border.BORDER_THIN ==
+    #                 cell.style.borders.left.border_style)
+    #         assert (openpyxl.style.Alignment.HORIZONTAL_CENTER ==
+    #                 cell.style.alignment.horizontal)
     #     mergedcells_addrs = ["C1", "E1", "G1"]
     #     for maddr in mergedcells_addrs:
     #         assert ws.cell(maddr).merged
@@ -1681,10 +1680,10 @@ class ExcelWriterBase(SharedItems):
                         res = roundtrip(df, use_headers)
 
                     if use_headers:
-                        self.assertEqual(res.shape, (nrows, ncols + i))
+                        assert res.shape == (nrows, ncols + i)
                     else:
                         # first row taken as columns
-                        self.assertEqual(res.shape, (nrows - 1, ncols + i))
+                        assert res.shape == (nrows - 1, ncols + i)
 
                     # no nans
                     for r in range(len(res.index)):
@@ -1692,11 +1691,11 @@ class ExcelWriterBase(SharedItems):
                             assert res.iloc[r, c] is not np.nan
 
         res = roundtrip(DataFrame([0]))
-        self.assertEqual(res.shape, (1, 1))
+        assert res.shape == (1, 1)
         assert res.iloc[0, 0] is not np.nan
 
         res = roundtrip(DataFrame([0]), False, None)
-        self.assertEqual(res.shape, (1, 2))
+        assert res.shape == (1, 2)
         assert res.iloc[0, 0] is not np.nan
 
     def test_excel_010_hemstring_raises_NotImplementedError(self):
@@ -1909,18 +1908,18 @@ class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
 
         xlsx_style = _Openpyxl1Writer._convert_to_style(hstyle)
         assert xlsx_style.font.bold
-        self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                         xlsx_style.borders.top.border_style)
-        self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                         xlsx_style.borders.right.border_style)
-        self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                         xlsx_style.borders.bottom.border_style)
-        self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                         xlsx_style.borders.left.border_style)
-        self.assertEqual(openpyxl.style.Alignment.HORIZONTAL_CENTER,
-                         xlsx_style.alignment.horizontal)
-        self.assertEqual(openpyxl.style.Alignment.VERTICAL_TOP,
-                         xlsx_style.alignment.vertical)
+        assert (openpyxl.style.Border.BORDER_THIN ==
+                xlsx_style.borders.top.border_style)
+        assert (openpyxl.style.Border.BORDER_THIN ==
+                xlsx_style.borders.right.border_style)
+        assert (openpyxl.style.Border.BORDER_THIN ==
+                xlsx_style.borders.bottom.border_style)
+        assert (openpyxl.style.Border.BORDER_THIN ==
+                xlsx_style.borders.left.border_style)
+        assert (openpyxl.style.Alignment.HORIZONTAL_CENTER ==
+                xlsx_style.alignment.horizontal)
+        assert (openpyxl.style.Alignment.VERTICAL_TOP ==
+                xlsx_style.alignment.vertical)
 
 
 def skip_openpyxl_gt21(cls):
@@ -1999,12 +1998,12 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
         protection = styles.Protection(locked=True, hidden=False)
 
         kw = _Openpyxl20Writer._convert_to_style_kwargs(hstyle)
-        self.assertEqual(kw['font'], font)
-        self.assertEqual(kw['border'], border)
-        self.assertEqual(kw['alignment'], alignment)
-        self.assertEqual(kw['fill'], fill)
-        self.assertEqual(kw['number_format'], number_format)
-        self.assertEqual(kw['protection'], protection)
+        assert kw['font'] == font
+        assert kw['border'] == border
+        assert kw['alignment'] == alignment
+        assert kw['fill'] == fill
+        assert kw['number_format'] == number_format
+        assert kw['protection'] == protection
 
     def test_write_cells_merge_styled(self):
         from pandas.io.formats.excel import ExcelCell
@@ -2036,8 +2035,8 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
             wks = writer.sheets[sheet_name]
             xcell_b1 = wks['B1']
             xcell_a2 = wks['A2']
-            self.assertEqual(xcell_b1.style, openpyxl_sty_merged)
-            self.assertEqual(xcell_a2.style, openpyxl_sty_merged)
+            assert xcell_b1.style == openpyxl_sty_merged
+            assert xcell_a2.style == openpyxl_sty_merged
 
 
 def skip_openpyxl_lt22(cls):
@@ -2109,12 +2108,12 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
         protection = styles.Protection(locked=True, hidden=False)
 
         kw = _Openpyxl22Writer._convert_to_style_kwargs(hstyle)
-        self.assertEqual(kw['font'], font)
-        self.assertEqual(kw['border'], border)
-        self.assertEqual(kw['alignment'], alignment)
-        self.assertEqual(kw['fill'], fill)
-        self.assertEqual(kw['number_format'], number_format)
-        self.assertEqual(kw['protection'], protection)
+        assert kw['font'] == font
+        assert kw['border'] == border
+        assert kw['alignment'] == alignment
+        assert kw['fill'] == fill
+        assert kw['number_format'] == number_format
+        assert kw['protection'] == protection
 
     def test_write_cells_merge_styled(self):
         if not openpyxl_compat.is_compat(major_ver=2):
@@ -2148,8 +2147,8 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
             wks = writer.sheets[sheet_name]
             xcell_b1 = wks['B1']
             xcell_a2 = wks['A2']
-            self.assertEqual(xcell_b1.font, openpyxl_sty_merged)
-            self.assertEqual(xcell_a2.font, openpyxl_sty_merged)
+            assert xcell_b1.font == openpyxl_sty_merged
+            assert xcell_a2.font == openpyxl_sty_merged
 
 
 class XlwtTests(ExcelWriterBase, tm.TestCase):
@@ -2201,12 +2200,12 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
 
         xls_style = _XlwtWriter._convert_to_style(hstyle)
         assert xls_style.font.bold
-        self.assertEqual(xlwt.Borders.THIN, xls_style.borders.top)
-        self.assertEqual(xlwt.Borders.THIN, xls_style.borders.right)
-        self.assertEqual(xlwt.Borders.THIN, xls_style.borders.bottom)
-        self.assertEqual(xlwt.Borders.THIN, xls_style.borders.left)
-        self.assertEqual(xlwt.Alignment.HORZ_CENTER, xls_style.alignment.horz)
-        self.assertEqual(xlwt.Alignment.VERT_TOP, xls_style.alignment.vert)
+        assert xlwt.Borders.THIN == xls_style.borders.top
+        assert xlwt.Borders.THIN == xls_style.borders.right
+        assert xlwt.Borders.THIN == xls_style.borders.bottom
+        assert xlwt.Borders.THIN == xls_style.borders.left
+        assert xlwt.Alignment.HORZ_CENTER == xls_style.alignment.horz
+        assert xlwt.Alignment.VERT_TOP == xls_style.alignment.vert
 
 
 class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
@@ -2259,7 +2258,7 @@ class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
             except:
                 read_num_format = cell.style.number_format._format_code
 
-            self.assertEqual(read_num_format, num_format)
+            assert read_num_format == num_format
 
 
 class OpenpyxlTests_NoMerge(ExcelWriterBase, tm.TestCase):

@@ -107,7 +107,7 @@ class TestS3(tm.TestCase):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df_reader = read_csv('s3://pandas-test/tips.csv' + ext,
                                  chunksize=chunksize, compression=comp)
-            self.assertEqual(df_reader.chunksize, chunksize)
+            assert df_reader.chunksize == chunksize
             for i_chunk in [0, 1, 2]:
                 # Read a couple of chunks and make sure we see them
                 # properly.
@@ -127,7 +127,7 @@ class TestS3(tm.TestCase):
             df_reader = read_csv('s3://pandas-test/tips.csv' + ext,
                                  chunksize=chunksize, compression=comp,
                                  engine='python')
-            self.assertEqual(df_reader.chunksize, chunksize)
+            assert df_reader.chunksize == chunksize
             for i_chunk in [0, 1, 2]:
                 # Read a couple of chunks and make sure we see them properly.
                 df = df_reader.get_chunk()

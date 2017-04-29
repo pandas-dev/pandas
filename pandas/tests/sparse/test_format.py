@@ -27,7 +27,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
                "4    NaN\ndtype: float64\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dfm))
-        self.assertEqual(result, exp)
+        assert result == exp
 
         with option_context("display.max_rows", 3):
             # GH 10560
@@ -36,7 +36,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
                    "Length: 5, dtype: float64\nBlockIndex\n"
                    "Block locations: array([0, 3]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dfm))
-            self.assertEqual(result, exp)
+            assert result == exp
 
     def test_sparse_mi_max_row(self):
         idx = pd.MultiIndex.from_tuples([('A', 0), ('A', 1), ('B', 0),
@@ -50,7 +50,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
                "dtype: float64\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dfm))
-        self.assertEqual(result, exp)
+        assert result == exp
 
         with option_context("display.max_rows", 3,
                             "display.show_dimensions", False):
@@ -60,7 +60,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
                    "dtype: float64\nBlockIndex\n"
                    "Block locations: array([0, 3]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dfm))
-            self.assertEqual(result, exp)
+            assert result == exp
 
     def test_sparse_bool(self):
         # GH 13110
@@ -73,7 +73,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
                "dtype: bool\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dtype))
-        self.assertEqual(result, exp)
+        assert result == exp
 
         with option_context("display.max_rows", 3):
             result = repr(s)
@@ -81,7 +81,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
                    "Length: 6, dtype: bool\nBlockIndex\n"
                    "Block locations: array([0, 3]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dtype))
-            self.assertEqual(result, exp)
+            assert result == exp
 
     def test_sparse_int(self):
         # GH 13110
@@ -93,7 +93,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
                "5    0\ndtype: int64\nBlockIndex\n"
                "Block locations: array([1, 4]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dtype))
-        self.assertEqual(result, exp)
+        assert result == exp
 
         with option_context("display.max_rows", 3,
                             "display.show_dimensions", False):
@@ -102,7 +102,7 @@ class TestSparseSeriesFormatting(tm.TestCase):
                    "dtype: int64\nBlockIndex\n"
                    "Block locations: array([1, 4]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dtype))
-            self.assertEqual(result, exp)
+            assert result == exp
 
 
 class TestSparseDataFrameFormatting(tm.TestCase):
@@ -114,10 +114,10 @@ class TestSparseDataFrameFormatting(tm.TestCase):
                            'C': [0, 0, 3, 0, 5],
                            'D': [np.nan, np.nan, np.nan, 1, 2]})
         sparse = df.to_sparse()
-        self.assertEqual(repr(sparse), repr(df))
+        assert repr(sparse) == repr(df)
 
         with option_context("display.max_rows", 3):
-            self.assertEqual(repr(sparse), repr(df))
+            assert repr(sparse) == repr(df)
 
     def test_sparse_repr_after_set(self):
         # GH 15488

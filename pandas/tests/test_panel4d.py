@@ -194,16 +194,16 @@ class SafeForSparse(object):
             assert self.panel4d.minor_axis is new_minor
 
     def test_get_axis_number(self):
-        self.assertEqual(self.panel4d._get_axis_number('labels'), 0)
-        self.assertEqual(self.panel4d._get_axis_number('items'), 1)
-        self.assertEqual(self.panel4d._get_axis_number('major'), 2)
-        self.assertEqual(self.panel4d._get_axis_number('minor'), 3)
+        assert self.panel4d._get_axis_number('labels') == 0
+        assert self.panel4d._get_axis_number('items') == 1
+        assert self.panel4d._get_axis_number('major') == 2
+        assert self.panel4d._get_axis_number('minor') == 3
 
     def test_get_axis_name(self):
-        self.assertEqual(self.panel4d._get_axis_name(0), 'labels')
-        self.assertEqual(self.panel4d._get_axis_name(1), 'items')
-        self.assertEqual(self.panel4d._get_axis_name(2), 'major_axis')
-        self.assertEqual(self.panel4d._get_axis_name(3), 'minor_axis')
+        assert self.panel4d._get_axis_name(0) == 'labels'
+        assert self.panel4d._get_axis_name(1) == 'items'
+        assert self.panel4d._get_axis_name(2) == 'major_axis'
+        assert self.panel4d._get_axis_name(3) == 'minor_axis'
 
     def test_arith(self):
         with catch_warnings(record=True):
@@ -234,8 +234,8 @@ class SafeForSparse(object):
     def test_iteritems(self):
         """Test panel4d.iteritems()"""
 
-        self.assertEqual(len(list(self.panel4d.iteritems())),
-                         len(self.panel4d.labels))
+        assert (len(list(self.panel4d.iteritems())) ==
+                len(self.panel4d.labels))
 
     def test_combinePanel4d(self):
         with catch_warnings(record=True):
@@ -374,16 +374,16 @@ class CheckIndexing(object):
             # scalar
             self.panel4d['lG'] = 1
             self.panel4d['lE'] = True
-            self.assertEqual(self.panel4d['lG'].values.dtype, np.int64)
-            self.assertEqual(self.panel4d['lE'].values.dtype, np.bool_)
+            assert self.panel4d['lG'].values.dtype == np.int64
+            assert self.panel4d['lE'].values.dtype == np.bool_
 
             # object dtype
             self.panel4d['lQ'] = 'foo'
-            self.assertEqual(self.panel4d['lQ'].values.dtype, np.object_)
+            assert self.panel4d['lQ'].values.dtype == np.object_
 
             # boolean dtype
             self.panel4d['lP'] = self.panel4d['l1'] > 0
-            self.assertEqual(self.panel4d['lP'].values.dtype, np.bool_)
+            assert self.panel4d['lP'].values.dtype == np.bool_
 
     def test_setitem_by_indexer(self):
 
@@ -484,8 +484,8 @@ class CheckIndexing(object):
         self.panel4d['l4'] = 'foo'
         with catch_warnings(record=True):
             xs = self.panel4d.major_xs(self.panel4d.major_axis[0])
-        self.assertEqual(xs['l1']['A'].dtype, np.float64)
-        self.assertEqual(xs['l4']['A'].dtype, np.object_)
+        assert xs['l1']['A'].dtype == np.float64
+        assert xs['l4']['A'].dtype == np.object_
 
     def test_minor_xs(self):
         ref = self.panel4d['l1']['ItemA']
@@ -504,8 +504,8 @@ class CheckIndexing(object):
 
         with catch_warnings(record=True):
             xs = self.panel4d.minor_xs('D')
-        self.assertEqual(xs['l1'].T['ItemA'].dtype, np.float64)
-        self.assertEqual(xs['l4'].T['ItemA'].dtype, np.object_)
+        assert xs['l1'].T['ItemA'].dtype == np.float64
+        assert xs['l4'].T['ItemA'].dtype == np.object_
 
     def test_xs(self):
         l1 = self.panel4d.xs('l1', axis=0)

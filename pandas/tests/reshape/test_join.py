@@ -257,7 +257,7 @@ class TestJoin(tm.TestCase):
         merged2 = self.target.join(self.source.reindex([]), on='C',
                                    how='inner')
         tm.assert_index_equal(merged2.columns, merged.columns)
-        self.assertEqual(len(merged2), 0)
+        assert len(merged2) == 0
 
     def test_join_on_inner(self):
         df = DataFrame({'key': ['a', 'a', 'd', 'b', 'b', 'c']})
@@ -301,8 +301,8 @@ class TestJoin(tm.TestCase):
         df1 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
-        self.assertEqual(df1['B'].dtype, np.int64)
-        self.assertEqual(df1['D'].dtype, np.bool_)
+        assert df1['B'].dtype == np.int64
+        assert df1['D'].dtype == np.bool_
 
         df2 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(0, 10, 2),
@@ -374,7 +374,7 @@ class TestJoin(tm.TestCase):
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         expected.index.names = index1.names
         assert_frame_equal(joined, expected)
-        self.assertEqual(joined.index.names, index1.names)
+        assert joined.index.names == index1.names
 
         df1 = df1.sort_index(level=1)
         df2 = df2.sort_index(level=1)
@@ -385,7 +385,7 @@ class TestJoin(tm.TestCase):
         expected.index.names = index1.names
 
         assert_frame_equal(joined, expected)
-        self.assertEqual(joined.index.names, index1.names)
+        assert joined.index.names == index1.names
 
     def test_join_inner_multiindex(self):
         key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
@@ -445,9 +445,9 @@ class TestJoin(tm.TestCase):
         a = DataFrame(randn(10, 2), columns=['a', 'b'], dtype=np.float64)
         b = DataFrame(randn(10, 1), columns=['c'], dtype=np.float32)
         joined = a.join(b)
-        self.assertEqual(joined.dtypes['a'], 'float64')
-        self.assertEqual(joined.dtypes['b'], 'float64')
-        self.assertEqual(joined.dtypes['c'], 'float32')
+        assert joined.dtypes['a'] == 'float64'
+        assert joined.dtypes['b'] == 'float64'
+        assert joined.dtypes['c'] == 'float32'
 
         a = np.random.randint(0, 5, 100).astype('int64')
         b = np.random.random(100).astype('float64')
@@ -456,10 +456,10 @@ class TestJoin(tm.TestCase):
         xpdf = DataFrame({'a': a, 'b': b, 'c': c})
         s = DataFrame(np.random.random(5).astype('float32'), columns=['md'])
         rs = df.merge(s, left_on='a', right_index=True)
-        self.assertEqual(rs.dtypes['a'], 'int64')
-        self.assertEqual(rs.dtypes['b'], 'float64')
-        self.assertEqual(rs.dtypes['c'], 'float32')
-        self.assertEqual(rs.dtypes['md'], 'float32')
+        assert rs.dtypes['a'] == 'int64'
+        assert rs.dtypes['b'] == 'float64'
+        assert rs.dtypes['c'] == 'float32'
+        assert rs.dtypes['md'] == 'float32'
 
         xp = xpdf.merge(s, left_on='a', right_index=True)
         assert_frame_equal(rs, xp)

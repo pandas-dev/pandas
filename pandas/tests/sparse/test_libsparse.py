@@ -244,27 +244,27 @@ class TestSparseIndexCommon(tm.TestCase):
     def test_int_internal(self):
         idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='integer')
         assert isinstance(idx, IntIndex)
-        self.assertEqual(idx.npoints, 2)
+        assert idx.npoints == 2
         tm.assert_numpy_array_equal(idx.indices,
                                     np.array([2, 3], dtype=np.int32))
 
         idx = _make_index(4, np.array([], dtype=np.int32), kind='integer')
         assert isinstance(idx, IntIndex)
-        self.assertEqual(idx.npoints, 0)
+        assert idx.npoints == 0
         tm.assert_numpy_array_equal(idx.indices,
                                     np.array([], dtype=np.int32))
 
         idx = _make_index(4, np.array([0, 1, 2, 3], dtype=np.int32),
                           kind='integer')
         assert isinstance(idx, IntIndex)
-        self.assertEqual(idx.npoints, 4)
+        assert idx.npoints == 4
         tm.assert_numpy_array_equal(idx.indices,
                                     np.array([0, 1, 2, 3], dtype=np.int32))
 
     def test_block_internal(self):
         idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='block')
         assert isinstance(idx, BlockIndex)
-        self.assertEqual(idx.npoints, 2)
+        assert idx.npoints == 2
         tm.assert_numpy_array_equal(idx.blocs,
                                     np.array([2], dtype=np.int32))
         tm.assert_numpy_array_equal(idx.blengths,
@@ -272,7 +272,7 @@ class TestSparseIndexCommon(tm.TestCase):
 
         idx = _make_index(4, np.array([], dtype=np.int32), kind='block')
         assert isinstance(idx, BlockIndex)
-        self.assertEqual(idx.npoints, 0)
+        assert idx.npoints == 0
         tm.assert_numpy_array_equal(idx.blocs,
                                     np.array([], dtype=np.int32))
         tm.assert_numpy_array_equal(idx.blengths,
@@ -281,7 +281,7 @@ class TestSparseIndexCommon(tm.TestCase):
         idx = _make_index(4, np.array([0, 1, 2, 3], dtype=np.int32),
                           kind='block')
         assert isinstance(idx, BlockIndex)
-        self.assertEqual(idx.npoints, 4)
+        assert idx.npoints == 4
         tm.assert_numpy_array_equal(idx.blocs,
                                     np.array([0], dtype=np.int32))
         tm.assert_numpy_array_equal(idx.blengths,
@@ -290,7 +290,7 @@ class TestSparseIndexCommon(tm.TestCase):
         idx = _make_index(4, np.array([0, 2, 3], dtype=np.int32),
                           kind='block')
         assert isinstance(idx, BlockIndex)
-        self.assertEqual(idx.npoints, 3)
+        assert idx.npoints == 3
         tm.assert_numpy_array_equal(idx.blocs,
                                     np.array([0, 2], dtype=np.int32))
         tm.assert_numpy_array_equal(idx.blengths,
@@ -299,35 +299,35 @@ class TestSparseIndexCommon(tm.TestCase):
     def test_lookup(self):
         for kind in ['integer', 'block']:
             idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind=kind)
-            self.assertEqual(idx.lookup(-1), -1)
-            self.assertEqual(idx.lookup(0), -1)
-            self.assertEqual(idx.lookup(1), -1)
-            self.assertEqual(idx.lookup(2), 0)
-            self.assertEqual(idx.lookup(3), 1)
-            self.assertEqual(idx.lookup(4), -1)
+            assert idx.lookup(-1) == -1
+            assert idx.lookup(0) == -1
+            assert idx.lookup(1) == -1
+            assert idx.lookup(2) == 0
+            assert idx.lookup(3) == 1
+            assert idx.lookup(4) == -1
 
             idx = _make_index(4, np.array([], dtype=np.int32), kind=kind)
 
             for i in range(-1, 5):
-                self.assertEqual(idx.lookup(i), -1)
+                assert idx.lookup(i) == -1
 
             idx = _make_index(4, np.array([0, 1, 2, 3], dtype=np.int32),
                               kind=kind)
-            self.assertEqual(idx.lookup(-1), -1)
-            self.assertEqual(idx.lookup(0), 0)
-            self.assertEqual(idx.lookup(1), 1)
-            self.assertEqual(idx.lookup(2), 2)
-            self.assertEqual(idx.lookup(3), 3)
-            self.assertEqual(idx.lookup(4), -1)
+            assert idx.lookup(-1) == -1
+            assert idx.lookup(0) == 0
+            assert idx.lookup(1) == 1
+            assert idx.lookup(2) == 2
+            assert idx.lookup(3) == 3
+            assert idx.lookup(4) == -1
 
             idx = _make_index(4, np.array([0, 2, 3], dtype=np.int32),
                               kind=kind)
-            self.assertEqual(idx.lookup(-1), -1)
-            self.assertEqual(idx.lookup(0), 0)
-            self.assertEqual(idx.lookup(1), -1)
-            self.assertEqual(idx.lookup(2), 1)
-            self.assertEqual(idx.lookup(3), 2)
-            self.assertEqual(idx.lookup(4), -1)
+            assert idx.lookup(-1) == -1
+            assert idx.lookup(0) == 0
+            assert idx.lookup(1) == -1
+            assert idx.lookup(2) == 1
+            assert idx.lookup(3) == 2
+            assert idx.lookup(4) == -1
 
     def test_lookup_array(self):
         for kind in ['integer', 'block']:
@@ -392,7 +392,7 @@ class TestBlockIndex(tm.TestCase):
     def test_block_internal(self):
         idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='block')
         assert isinstance(idx, BlockIndex)
-        self.assertEqual(idx.npoints, 2)
+        assert idx.npoints == 2
         tm.assert_numpy_array_equal(idx.blocs,
                                     np.array([2], dtype=np.int32))
         tm.assert_numpy_array_equal(idx.blengths,
@@ -400,7 +400,7 @@ class TestBlockIndex(tm.TestCase):
 
         idx = _make_index(4, np.array([], dtype=np.int32), kind='block')
         assert isinstance(idx, BlockIndex)
-        self.assertEqual(idx.npoints, 0)
+        assert idx.npoints == 0
         tm.assert_numpy_array_equal(idx.blocs,
                                     np.array([], dtype=np.int32))
         tm.assert_numpy_array_equal(idx.blengths,
@@ -409,7 +409,7 @@ class TestBlockIndex(tm.TestCase):
         idx = _make_index(4, np.array([0, 1, 2, 3], dtype=np.int32),
                           kind='block')
         assert isinstance(idx, BlockIndex)
-        self.assertEqual(idx.npoints, 4)
+        assert idx.npoints == 4
         tm.assert_numpy_array_equal(idx.blocs,
                                     np.array([0], dtype=np.int32))
         tm.assert_numpy_array_equal(idx.blengths,
@@ -417,7 +417,7 @@ class TestBlockIndex(tm.TestCase):
 
         idx = _make_index(4, np.array([0, 2, 3], dtype=np.int32), kind='block')
         assert isinstance(idx, BlockIndex)
-        self.assertEqual(idx.npoints, 3)
+        assert idx.npoints == 3
         tm.assert_numpy_array_equal(idx.blocs,
                                     np.array([0, 2], dtype=np.int32))
         tm.assert_numpy_array_equal(idx.blengths,
@@ -515,20 +515,20 @@ class TestIntIndex(tm.TestCase):
     def test_int_internal(self):
         idx = _make_index(4, np.array([2, 3], dtype=np.int32), kind='integer')
         assert isinstance(idx, IntIndex)
-        self.assertEqual(idx.npoints, 2)
+        assert idx.npoints == 2
         tm.assert_numpy_array_equal(idx.indices,
                                     np.array([2, 3], dtype=np.int32))
 
         idx = _make_index(4, np.array([], dtype=np.int32), kind='integer')
         assert isinstance(idx, IntIndex)
-        self.assertEqual(idx.npoints, 0)
+        assert idx.npoints == 0
         tm.assert_numpy_array_equal(idx.indices,
                                     np.array([], dtype=np.int32))
 
         idx = _make_index(4, np.array([0, 1, 2, 3], dtype=np.int32),
                           kind='integer')
         assert isinstance(idx, IntIndex)
-        self.assertEqual(idx.npoints, 4)
+        assert idx.npoints == 4
         tm.assert_numpy_array_equal(idx.indices,
                                     np.array([0, 1, 2, 3], dtype=np.int32))
 
@@ -580,7 +580,7 @@ class TestSparseOperators(tm.TestCase):
 
             assert rb_index.to_int_index().equals(ri_index)
             tm.assert_numpy_array_equal(result_block_vals, result_int_vals)
-            self.assertEqual(bfill, ifill)
+            assert bfill == ifill
 
             # check versus Series...
             xseries = Series(x, xdindex.indices)

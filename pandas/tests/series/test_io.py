@@ -135,12 +135,12 @@ class TestSeriesIO(TestData, tm.TestCase):
         prng = period_range('1/1/2011', '1/1/2012', freq='M')
         ts = Series(np.random.randn(len(prng)), prng)
         new_ts = tm.round_trip_pickle(ts)
-        self.assertEqual(new_ts.index.freq, 'M')
+        assert new_ts.index.freq == 'M'
 
     def test_pickle_preserve_name(self):
         for n in [777, 777., 'name', datetime(2001, 11, 11), (1, 2)]:
             unpickled = self._pickle_roundtrip_name(tm.makeTimeSeries(name=n))
-            self.assertEqual(unpickled.name, n)
+            assert unpickled.name == n
 
     def _pickle_roundtrip_name(self, obj):
 
@@ -178,7 +178,7 @@ class TestSeriesToList(TestData, tm.TestCase):
         # datetime64
         s = Series(self.ts.index)
         rs = s.tolist()
-        self.assertEqual(self.ts.index[0], rs[0])
+        assert self.ts.index[0] == rs[0]
 
     def test_tolist_np_int(self):
         # GH10904

@@ -201,7 +201,7 @@ class Base(object):
 
                 try:
                     if is_scalar(rs) and is_scalar(xp):
-                        self.assertEqual(rs, xp)
+                        assert rs == xp
                     elif xp.ndim == 1:
                         tm.assert_series_equal(rs, xp)
                     elif xp.ndim == 2:

@@ -18,24 +18,24 @@ class TestSeriesQuantile(TestData, tm.TestCase):
     def test_quantile(self):
 
         q = self.ts.quantile(0.1)
-        self.assertEqual(q, np.percentile(self.ts.valid(), 10))
+        assert q == np.percentile(self.ts.valid(), 10)
 
         q = self.ts.quantile(0.9)
-        self.assertEqual(q, np.percentile(self.ts.valid(), 90))
+        assert q == np.percentile(self.ts.valid(), 90)
 
         # object dtype
         q = Series(self.ts, dtype=object).quantile(0.9)
-        self.assertEqual(q, np.percentile(self.ts.valid(), 90))
+        assert q == np.percentile(self.ts.valid(), 90)
 
         # datetime64[ns] dtype
         dts = self.ts.index.to_series()
         q = dts.quantile(.2)
-        self.assertEqual(q, Timestamp('2000-01-10 19:12:00'))
+        assert q == Timestamp('2000-01-10 19:12:00')
 
         # timedelta64[ns] dtype
         tds = dts.diff()
         q = tds.quantile(.25)
-        self.assertEqual(q, pd.to_timedelta('24:00:00'))
+        assert q == pd.to_timedelta('24:00:00')
 
         # GH7661
         result = Series([np.timedelta64('NaT')]).sum()
@@ -71,16 +71,16 @@ class TestSeriesQuantile(TestData, tm.TestCase):
     @pytest.mark.skipif(_np_version_under1p9,
                         reason="Numpy version is under 1.9")
     def test_quantile_interpolation(self):
-        # GH #10174
+        # see gh-10174
 
         # interpolation = linear (default case)
         q = self.ts.quantile(0.1, interpolation='linear')
-        self.assertEqual(q, np.percentile(self.ts.valid(), 10))
+        assert q == np.percentile(self.ts.valid(), 10)
         q1 = self.ts.quantile(0.1)
-        self.assertEqual(q1, np.percentile(self.ts.valid(), 10))
+        assert q1 == np.percentile(self.ts.valid(), 10)
 
         # test with and without interpolation keyword
-        self.assertEqual(q, q1)
+        assert q == q1
 
     @pytest.mark.skipif(_np_version_under1p9,
                         reason="Numpy version is under 1.9")
@@ -89,11 +89,11 @@ class TestSeriesQuantile(TestData, tm.TestCase):
 
         # interpolation = linear (default case)
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='lower')
-        self.assertEqual(q, np.percentile(np.array([1, 3, 4]), 50))
+        assert q == np.percentile(np.array([1, 3, 4]), 50)
         assert is_integer(q)
 
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='higher')
-        self.assertEqual(q, np.percentile(np.array([1, 3, 4]), 50))
+        assert q == np.percentile(np.array([1, 3, 4]), 50)
         assert is_integer(q)
 
     @pytest.mark.skipif(not _np_version_under1p9,
@@ -103,19 +103,18 @@ class TestSeriesQuantile(TestData, tm.TestCase):
 
         # interpolation = linear (default case)
         q = self.ts.quantile(0.1, interpolation='linear')
-        self.assertEqual(q, np.percentile(self.ts.valid(), 10))
+        assert q == np.percentile(self.ts.valid(), 10)
         q1 = self.ts.quantile(0.1)
-        self.assertEqual(q1, np.percentile(self.ts.valid(), 10))
+        assert q1 == np.percentile(self.ts.valid(), 10)
 
         # interpolation other than linear
-        expErrMsg = "Interpolation methods other than "
-        with tm.assert_raises_regex(ValueError, expErrMsg):
+        msg = "Interpolation methods other than "
+        with tm.assert_raises_regex(ValueError, msg):
             self.ts.quantile(0.9, interpolation='nearest')
 
         # object dtype
-        with tm.assert_raises_regex(ValueError, expErrMsg):
-            q = Series(self.ts, dtype=object).quantile(0.7,
-                                                       interpolation='higher')
+        with tm.assert_raises_regex(ValueError, msg):
+            Series(self.ts, dtype=object).quantile(0.7, interpolation='higher')
 
     def test_quantile_nan(self):
 
@@ -123,7 +122,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
         s = pd.Series([1, 2, 3, 4, np.nan])
         result = s.quantile(0.5)
         expected = 2.5
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # all nan/empty
         cases = [Series([]), Series([np.nan, np.nan])]
@@ -159,7 +158,7 @@ class TestSeriesQuantile(TestData, tm.TestCase):
         for case in cases:
             s = pd.Series(case, name='XXX')
             res = s.quantile(0.5)
-            self.assertEqual(res, case[1])
+            assert res == case[1]
 
             res = s.quantile([0.5])
             exp = pd.Series([case[1]], index=[0.5], name='XXX')

@@ -90,7 +90,7 @@ class TestDataFramePlots(TestPlotBase):
         fig, ax = self.plt.subplots()
         d = df.boxplot(ax=ax, return_type='dict')
         lines = list(itertools.chain.from_iterable(d.values()))
-        self.assertEqual(len(ax.get_lines()), len(lines))
+        assert len(ax.get_lines()) == len(lines)
 
     @slow
     def test_boxplot_return_type_none(self):
@@ -138,7 +138,7 @@ class TestDataFramePlots(TestPlotBase):
         height_ax, weight_ax = df.boxplot(['height', 'weight'], by='category')
         _check_ax_limits(df['height'], height_ax)
         _check_ax_limits(df['weight'], weight_ax)
-        self.assertEqual(weight_ax._sharey, height_ax)
+        assert weight_ax._sharey == height_ax
 
         # Two rows, one partial
         p = df.boxplot(['height', 'weight', 'age'], by='category')
@@ -148,8 +148,8 @@ class TestDataFramePlots(TestPlotBase):
         _check_ax_limits(df['height'], height_ax)
         _check_ax_limits(df['weight'], weight_ax)
         _check_ax_limits(df['age'], age_ax)
-        self.assertEqual(weight_ax._sharey, height_ax)
-        self.assertEqual(age_ax._sharey, height_ax)
+        assert weight_ax._sharey == height_ax
+        assert age_ax._sharey == height_ax
         assert dummy_ax._sharey is None
 
     @slow
@@ -209,13 +209,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         gb = df.groupby('gender')
 
         res = gb.plot()
-        self.assertEqual(len(self.plt.get_fignums()), 2)
-        self.assertEqual(len(res), 2)
+        assert len(self.plt.get_fignums()) == 2
+        assert len(res) == 2
         tm.close()
 
         res = gb.boxplot(return_type='axes')
-        self.assertEqual(len(self.plt.get_fignums()), 1)
-        self.assertEqual(len(res), 2)
+        assert len(self.plt.get_fignums()) == 1
+        assert len(res) == 2
         tm.close()
 
         # now works with GH 5610 as gender is excluded

@@ -444,7 +444,7 @@ class TestGroupBy(tm.TestCase):
                         (3, np.datetime64('2012-07-04'))],
                        columns=['a', 'date'])
         result = df.groupby('a').first()
-        self.assertEqual(result['date'][3], Timestamp('2012-07-03'))
+        assert result['date'][3] == Timestamp('2012-07-03')
 
     def test_groupby_multi_timezone(self):
 
@@ -575,10 +575,10 @@ class TestGroupBy(tm.TestCase):
         import pytz
 
         df = pd.DataFrame({'a': [1], 'b': [datetime.now(pytz.utc)]})
-        self.assertEqual(df['b'][0].tzinfo, pytz.utc)
+        assert df['b'][0].tzinfo == pytz.utc
         df = pd.DataFrame({'a': [1, 2, 3]})
         df['b'] = datetime.now(pytz.utc)
-        self.assertEqual(df['b'][0].tzinfo, pytz.utc)
+        assert df['b'][0].tzinfo == pytz.utc
 
     def test_datetime_count(self):
         df = DataFrame({'a': [1, 2, 3] * 2,

@@ -23,12 +23,12 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         from numpy import percentile
 
         q = self.tsframe.quantile(0.1, axis=0)
-        self.assertEqual(q['A'], percentile(self.tsframe['A'], 10))
+        assert q['A'] == percentile(self.tsframe['A'], 10)
         tm.assert_index_equal(q.index, self.tsframe.columns)
 
         q = self.tsframe.quantile(0.9, axis=1)
-        self.assertEqual(q['2000-01-17'],
-                         percentile(self.tsframe.loc['2000-01-17'], 90))
+        assert (q['2000-01-17'] ==
+                percentile(self.tsframe.loc['2000-01-17'], 90))
         tm.assert_index_equal(q.index, self.tsframe.index)
 
         # test degenerate case
@@ -102,7 +102,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         pytest.raises(ValueError, df.quantile, 0.1, axis="column")
 
     def test_quantile_interpolation(self):
-        # GH #10174
+        # see gh-10174
         if _np_version_under1p9:
             pytest.skip("Numpy version under 1.9")
 
@@ -110,32 +110,32 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
 
         # interpolation = linear (default case)
         q = self.tsframe.quantile(0.1, axis=0, interpolation='linear')
-        self.assertEqual(q['A'], percentile(self.tsframe['A'], 10))
+        assert q['A'] == percentile(self.tsframe['A'], 10)
         q = self.intframe.quantile(0.1)
-        self.assertEqual(q['A'], percentile(self.intframe['A'], 10))
+        assert q['A'] == percentile(self.intframe['A'], 10)
 
         # test with and without interpolation keyword
         q1 = self.intframe.quantile(0.1)
-        self.assertEqual(q1['A'], np.percentile(self.intframe['A'], 10))
-        assert_series_equal(q, q1)
+        assert q1['A'] == np.percentile(self.intframe['A'], 10)
+        tm.assert_series_equal(q, q1)
 
         # interpolation method other than default linear
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
         result = df.quantile(.5, axis=1, interpolation='nearest')
         expected = Series([1, 2, 3], index=[1, 2, 3], name=0.5)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # cross-check interpolation=nearest results in original dtype
         exp = np.percentile(np.array([[1, 2, 3], [2, 3, 4]]), .5,
                             axis=0, interpolation='nearest')
         expected = Series(exp, index=[1, 2, 3], name=0.5, dtype='int64')
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # float
         df = DataFrame({"A": [1., 2., 3.], "B": [2., 3., 4.]}, index=[1, 2, 3])
         result = df.quantile(.5, axis=1, interpolation='nearest')
         expected = Series([1., 2., 3.], index=[1, 2, 3], name=0.5)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         exp = np.percentile(np.array([[1., 2., 3.], [2., 3., 4.]]), .5,
                             axis=0, interpolation='nearest')
         expected = Series(exp, index=[1, 2, 3], name=0.5, dtype='float64')
@@ -167,7 +167,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
     def test_quantile_interpolation_np_lt_1p9(self):
-        # GH #10174
+        # see gh-10174
         if not _np_version_under1p9:
             pytest.skip("Numpy version is greater than 1.9")
 
@@ -175,33 +175,33 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
 
         # interpolation = linear (default case)
         q = self.tsframe.quantile(0.1, axis=0, interpolation='linear')
-        self.assertEqual(q['A'], percentile(self.tsframe['A'], 10))
+        assert q['A'] == percentile(self.tsframe['A'], 10)
         q = self.intframe.quantile(0.1)
-        self.assertEqual(q['A'], percentile(self.intframe['A'], 10))
+        assert q['A'] == percentile(self.intframe['A'], 10)
 
         # test with and without interpolation keyword
         q1 = self.intframe.quantile(0.1)
-        self.assertEqual(q1['A'], np.percentile(self.intframe['A'], 10))
+        assert q1['A'] == np.percentile(self.intframe['A'], 10)
         assert_series_equal(q, q1)
 
         # interpolation method other than default linear
-        expErrMsg = "Interpolation methods other than linear"
+        msg = "Interpolation methods other than linear"
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
-        with tm.assert_raises_regex(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, msg):
             df.quantile(.5, axis=1, interpolation='nearest')
 
-        with tm.assert_raises_regex(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, msg):
             df.quantile([.5, .75], axis=1, interpolation='lower')
 
         # test degenerate case
         df = DataFrame({'x': [], 'y': []})
-        with tm.assert_raises_regex(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, msg):
             q = df.quantile(0.1, axis=0, interpolation='higher')
 
         # multi
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
                        columns=['a', 'b', 'c'])
-        with tm.assert_raises_regex(ValueError, expErrMsg):
+        with tm.assert_raises_regex(ValueError, msg):
             df.quantile([.25, .5], interpolation='midpoint')
 
     def test_quantile_multi(self):

@@ -58,7 +58,7 @@ class TestLoc(Base, tm.TestCase):
         indexer = tuple(['r', 'bar'])
         df = df_orig.copy()
         df.loc[indexer] *= 2.0
-        self.assertEqual(df.loc[indexer], 2.0 * df_orig.loc[indexer])
+        assert df.loc[indexer] == 2.0 * df_orig.loc[indexer]
 
         indexer = tuple(['t', ['bar', 'bar2']])
         df = df_orig.copy()
@@ -332,7 +332,7 @@ class TestLoc(Base, tm.TestCase):
         result = DataFrame({'a': [Timestamp('20130101')], 'b': [1]}).iloc[0]
         expected = Series([Timestamp('20130101'), 1], index=['a', 'b'], name=0)
         tm.assert_series_equal(result, expected)
-        self.assertEqual(result.dtype, object)
+        assert result.dtype == object
 
     def test_loc_setitem_consistency(self):
         # GH 6149
@@ -415,10 +415,10 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         df.loc['a', 'A'] = 1
         result = df.loc['a', 'A']
-        self.assertEqual(result, 1)
+        assert result == 1
 
         result = df.iloc[0, 0]
-        self.assertEqual(result, 1)
+        assert result == 1
 
         df.loc[:, 'B':'D'] = 0
         expected = df.loc[:, 'B':'D']
@@ -608,14 +608,14 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame([[1, 1], [1, 1]])
         df.index.name = 'index_name'
         result = df.iloc[[0, 1]].index.name
-        self.assertEqual(result, 'index_name')
+        assert result == 'index_name'
 
         with catch_warnings(record=True):
             result = df.ix[[0, 1]].index.name
-        self.assertEqual(result, 'index_name')
+        assert result == 'index_name'
 
         result = df.loc[[0, 1]].index.name
-        self.assertEqual(result, 'index_name')
+        assert result == 'index_name'
 
     def test_loc_empty_list_indexer_is_ok(self):
         from pandas.util.testing import makeCustomDataframe as mkdf

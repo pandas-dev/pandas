@@ -144,16 +144,16 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
 
-        self.assertEqual(df1[0].iloc[0, 0], 'Proximates')
-        self.assertEqual(df1[0].columns[0], 'Nutrient')
+        assert df1[0].iloc[0, 0] == 'Proximates'
+        assert df1[0].columns[0] == 'Nutrient'
 
     def test_spam_with_types(self):
         df1 = self.read_html(self.spam_data, '.*Water.*')
         df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
 
-        self.assertEqual(df1[0].iloc[0, 0], 'Proximates')
-        self.assertEqual(df1[0].columns[0], 'Nutrient')
+        assert df1[0].iloc[0, 0] == 'Proximates'
+        assert df1[0].columns[0] == 'Nutrient'
 
     def test_spam_no_match(self):
         dfs = self.read_html(self.spam_data)
@@ -167,7 +167,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     def test_spam_header(self):
         df = self.read_html(self.spam_data, '.*Water.*', header=1)[0]
-        self.assertEqual(df.columns[0], 'Proximates')
+        assert df.columns[0] == 'Proximates'
         assert not df.empty
 
     def test_skiprows_int(self):
@@ -288,7 +288,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                 self.read_html('http://www.a23950sdfa908sd.com',
                                match='.*Water.*')
         except ValueError as e:
-            self.assertEqual(str(e), 'No tables found')
+            assert str(e) == 'No tables found'
 
     @tm.slow
     def test_file_url(self):
@@ -368,7 +368,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         url = 'https://docs.python.org/2/'
         dfs = self.read_html(url, match='Python')
         zz = [df.iloc[0, 0][0:4] for df in dfs]
-        self.assertEqual(sorted(zz), sorted(['Repo', 'What']))
+        assert sorted(zz) == sorted(['Repo', 'What'])
 
     @tm.slow
     def test_thousands_macau_stats(self):
@@ -518,7 +518,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         columns = Index(['Issue(Roll over for charts and headlines)',
                          'Volume', 'Price', 'Chg', '% Chg'])
         nrows = 100
-        self.assertEqual(df.shape[0], nrows)
+        assert df.shape[0] == nrows
         tm.assert_index_equal(df.columns, columns)
 
     @tm.slow
@@ -536,7 +536,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
                                 converters={'Updated Date': Timestamp,
                                             'Closing Date': Timestamp})
-        self.assertEqual(df.shape, ground_truth.shape)
+        assert df.shape == ground_truth.shape
         old = ['First Vietnamese American BankIn Vietnamese',
                'Westernbank Puerto RicoEn Espanol',
                'R-G Premier Bank of Puerto RicoEn Espanol',
@@ -663,7 +663,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         assert os.path.isfile(data), '%r is not a file' % data
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
-        self.assertEqual(result['sq mi'].dtype, np.dtype('float64'))
+        assert result['sq mi'].dtype == np.dtype('float64')
 
     def test_decimal_rows(self):
 

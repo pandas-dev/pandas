@@ -93,36 +93,36 @@ class TestSeriesPlots(TestPlotBase):
             key = 'axes.color_cycle'
         colors = self.plt.rcParams[key]
         Series([1, 2, 3]).plot()
-        self.assertEqual(colors, self.plt.rcParams[key])
+        assert colors == self.plt.rcParams[key]
 
     def test_ts_line_lim(self):
         ax = self.ts.plot()
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])
-        self.assertEqual(xmax, lines[0].get_data(orig=False)[0][-1])
+        assert xmin == lines[0].get_data(orig=False)[0][0]
+        assert xmax == lines[0].get_data(orig=False)[0][-1]
         tm.close()
 
         ax = self.ts.plot(secondary_y=True)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        self.assertEqual(xmin, lines[0].get_data(orig=False)[0][0])
-        self.assertEqual(xmax, lines[0].get_data(orig=False)[0][-1])
+        assert xmin == lines[0].get_data(orig=False)[0][0]
+        assert xmax == lines[0].get_data(orig=False)[0][-1]
 
     def test_ts_area_lim(self):
         ax = self.ts.plot.area(stacked=False)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        self.assertEqual(xmin, line[0])
-        self.assertEqual(xmax, line[-1])
+        assert xmin == line[0]
+        assert xmax == line[-1]
         tm.close()
 
         # GH 7471
         ax = self.ts.plot.area(stacked=False, x_compat=True)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        self.assertEqual(xmin, line[0])
-        self.assertEqual(xmax, line[-1])
+        assert xmin == line[0]
+        assert xmax == line[-1]
         tm.close()
 
         tz_ts = self.ts.copy()
@@ -130,15 +130,15 @@ class TestSeriesPlots(TestPlotBase):
         ax = tz_ts.plot.area(stacked=False, x_compat=True)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        self.assertEqual(xmin, line[0])
-        self.assertEqual(xmax, line[-1])
+        assert xmin == line[0]
+        assert xmax == line[-1]
         tm.close()
 
         ax = tz_ts.plot.area(stacked=False, secondary_y=True)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        self.assertEqual(xmin, line[0])
-        self.assertEqual(xmax, line[-1])
+        assert xmin == line[0]
+        assert xmax == line[-1]
 
     def test_label(self):
         s = Series([1, 2])
@@ -159,7 +159,7 @@ class TestSeriesPlots(TestPlotBase):
         self.plt.close()
         # Add lebel info, but don't draw
         ax = s.plot(legend=False, label='LABEL')
-        self.assertEqual(ax.get_legend(), None)  # Hasn't been drawn
+        assert ax.get_legend() is None  # Hasn't been drawn
         ax.legend()  # draw it
         self._check_legend_labels(ax, labels=['LABEL'])
 
@@ -190,10 +190,10 @@ class TestSeriesPlots(TestPlotBase):
         s.index.name = 'The Index'
         ax = s.plot(use_index=False)
         label = ax.get_xlabel()
-        self.assertEqual(label, '')
+        assert label == ''
         ax2 = s.plot.bar(use_index=False)
         label2 = ax2.get_xlabel()
-        self.assertEqual(label2, '')
+        assert label2 == ''
 
     @slow
     def test_bar_log(self):
@@ -255,7 +255,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = ser.plot()
         xp = datetime(1999, 1, 1).toordinal()
         ax.set_xlim('1/1/1999', '1/1/2001')
-        self.assertEqual(xp, ax.get_xlim()[0])
+        assert xp == ax.get_xlim()[0]
 
     @slow
     def test_pie_series(self):
@@ -265,7 +265,7 @@ class TestSeriesPlots(TestPlotBase):
                         index=['a', 'b', 'c', 'd', 'e'], name='YLABEL')
         ax = _check_plot_works(series.plot.pie)
         self._check_text_labels(ax.texts, series.index)
-        self.assertEqual(ax.get_ylabel(), 'YLABEL')
+        assert ax.get_ylabel() == 'YLABEL'
 
         # without wedge labels
         ax = _check_plot_works(series.plot.pie, labels=None)
@@ -295,7 +295,7 @@ class TestSeriesPlots(TestPlotBase):
         expected_texts = list(next(it) for it in itertools.cycle(iters))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
-            self.assertEqual(t.get_fontsize(), 7)
+            assert t.get_fontsize() == 7
 
         # includes negative value
         with pytest.raises(ValueError):
@@ -313,13 +313,13 @@ class TestSeriesPlots(TestPlotBase):
         ax = s.plot.pie(legend=True)
         expected = ['0', '', '2', '3']
         result = [x.get_text() for x in ax.texts]
-        self.assertEqual(result, expected)
+        assert result == expected
 
     @slow
     def test_hist_df_kwargs(self):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.plot.hist(bins=5)
-        self.assertEqual(len(ax.patches), 10)
+        assert len(ax.patches) == 10
 
     @slow
     def test_hist_df_with_nonnumerics(self):
@@ -329,10 +329,10 @@ class TestSeriesPlots(TestPlotBase):
                 np.random.randn(10, 4), columns=['A', 'B', 'C', 'D'])
         df['E'] = ['x', 'y'] * 5
         ax = df.plot.hist(bins=5)
-        self.assertEqual(len(ax.patches), 20)
+        assert len(ax.patches) == 20
 
         ax = df.plot.hist()  # bins=10
-        self.assertEqual(len(ax.patches), 40)
+        assert len(ax.patches) == 40
 
     @slow
     def test_hist_legacy(self):
@@ -364,7 +364,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_bins_legacy(self):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.hist(bins=2)[0][0]
-        self.assertEqual(len(ax.patches), 2)
+        assert len(ax.patches) == 2
 
     @slow
     def test_hist_layout(self):
@@ -430,7 +430,7 @@ class TestSeriesPlots(TestPlotBase):
         y.hist()
         fig = gcf()
         axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
-        self.assertEqual(len(axes), 2)
+        assert len(axes) == 2
 
     @slow
     def test_hist_secondary_legend(self):
@@ -583,7 +583,7 @@ class TestSeriesPlots(TestPlotBase):
     @slow
     def test_hist_kwargs(self):
         ax = self.ts.plot.hist(bins=5)
-        self.assertEqual(len(ax.patches), 5)
+        assert len(ax.patches) == 5
         self._check_text_labels(ax.yaxis.get_label(), 'Frequency')
         tm.close()
 
@@ -599,7 +599,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_kde_color(self):
         ax = self.ts.plot.hist(logy=True, bins=10, color='b')
         self._check_ax_scales(ax, yaxis='log')
-        self.assertEqual(len(ax.patches), 10)
+        assert len(ax.patches) == 10
         self._check_colors(ax.patches, facecolors=['b'] * 10)
 
         tm._skip_if_no_scipy()
@@ -607,7 +607,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = self.ts.plot.kde(logy=True, color='r')
         self._check_ax_scales(ax, yaxis='log')
         lines = ax.get_lines()
-        self.assertEqual(len(lines), 1)
+        assert len(lines) == 1
         self._check_colors(lines, ['r'])
 
     @slow
@@ -729,16 +729,16 @@ class TestSeriesPlots(TestPlotBase):
 
         for c in ['r', 'red', 'green', '#FF0000']:
             result = _get_standard_colors(1, color=c)
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(1, color=[c])
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(3, color=c)
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
             result = _get_standard_colors(3, color=[c])
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
     @slow
     def test_standard_colors_all(self):
@@ -748,30 +748,30 @@ class TestSeriesPlots(TestPlotBase):
         # multiple colors like mediumaquamarine
         for c in colors.cnames:
             result = _get_standard_colors(num_colors=1, color=c)
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(num_colors=1, color=[c])
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(num_colors=3, color=c)
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
             result = _get_standard_colors(num_colors=3, color=[c])
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
         # single letter colors like k
         for c in colors.ColorConverter.colors:
             result = _get_standard_colors(num_colors=1, color=c)
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(num_colors=1, color=[c])
-            self.assertEqual(result, [c])
+            assert result == [c]
 
             result = _get_standard_colors(num_colors=3, color=c)
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
             result = _get_standard_colors(num_colors=3, color=[c])
-            self.assertEqual(result, [c] * 3)
+            assert result == [c] * 3
 
     def test_series_plot_color_kwargs(self):
         # GH1890

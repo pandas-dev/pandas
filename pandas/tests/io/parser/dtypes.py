@@ -60,8 +60,8 @@ one,two
 4,5.5"""
 
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'})
-        self.assertEqual(result['one'].dtype, 'u1')
-        self.assertEqual(result['two'].dtype, 'object')
+        assert result['one'].dtype == 'u1'
+        assert result['two'].dtype == 'object'
 
     def test_categorical_dtype(self):
         # GH 10153

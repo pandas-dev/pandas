@@ -24,9 +24,9 @@ class TestSeriesCombine(TestData, tm.TestCase):
         appendedSeries = self.series.append(self.objSeries)
         for idx, value in compat.iteritems(appendedSeries):
             if idx in self.series.index:
-                self.assertEqual(value, self.series[idx])
+                assert value == self.series[idx]
             elif idx in self.objSeries.index:
-                self.assertEqual(value, self.objSeries[idx])
+                assert value == self.objSeries[idx]
             else:
                 self.fail("orphaned index!")
 
@@ -117,9 +117,9 @@ class TestSeriesCombine(TestData, tm.TestCase):
                                 'M8[ns]'])
 
         for dtype in dtypes:
-            self.assertEqual(pd.concat([Series(dtype=dtype)]).dtype, dtype)
-            self.assertEqual(pd.concat([Series(dtype=dtype),
-                                        Series(dtype=dtype)]).dtype, dtype)
+            assert pd.concat([Series(dtype=dtype)]).dtype == dtype
+            assert pd.concat([Series(dtype=dtype),
+                              Series(dtype=dtype)]).dtype == dtype
 
         def int_result_type(dtype, dtype2):
             typs = set([dtype.kind, dtype2.kind])
@@ -155,55 +155,52 @@ class TestSeriesCombine(TestData, tm.TestCase):
                 expected = get_result_type(dtype, dtype2)
                 result = pd.concat([Series(dtype=dtype), Series(dtype=dtype2)
                                     ]).dtype
-                self.assertEqual(result.kind, expected)
+                assert result.kind == expected
 
     def test_concat_empty_series_dtypes(self):
 
-        # bools
-        self.assertEqual(pd.concat([Series(dtype=np.bool_),
-                                    Series(dtype=np.int32)]).dtype, np.int32)
-        self.assertEqual(pd.concat([Series(dtype=np.bool_),
-                                    Series(dtype=np.float32)]).dtype,
-                         np.object_)
+        # booleans
+        assert pd.concat([Series(dtype=np.bool_),
+                          Series(dtype=np.int32)]).dtype == np.int32
+        assert pd.concat([Series(dtype=np.bool_),
+                          Series(dtype=np.float32)]).dtype == np.object_
 
-        # datetimelike
-        self.assertEqual(pd.concat([Series(dtype='m8[ns]'),
-                                    Series(dtype=np.bool)]).dtype, np.object_)
-        self.assertEqual(pd.concat([Series(dtype='m8[ns]'),
-                                    Series(dtype=np.int64)]).dtype, np.object_)
-        self.assertEqual(pd.concat([Series(dtype='M8[ns]'),
-                                    Series(dtype=np.bool)]).dtype, np.object_)
-        self.assertEqual(pd.concat([Series(dtype='M8[ns]'),
-                                    Series(dtype=np.int64)]).dtype, np.object_)
-        self.assertEqual(pd.concat([Series(dtype='M8[ns]'),
-                                    Series(dtype=np.bool_),
-                                    Series(dtype=np.int64)]).dtype, np.object_)
+        # datetime-like
+        assert pd.concat([Series(dtype='m8[ns]'),
+                          Series(dtype=np.bool)]).dtype == np.object_
+        assert pd.concat([Series(dtype='m8[ns]'),
+                          Series(dtype=np.int64)]).dtype == np.object_
+        assert pd.concat([Series(dtype='M8[ns]'),
+                          Series(dtype=np.bool)]).dtype == np.object_
+        assert pd.concat([Series(dtype='M8[ns]'),
+                          Series(dtype=np.int64)]).dtype == np.object_
+        assert pd.concat([Series(dtype='M8[ns]'),
+                          Series(dtype=np.bool_),
+                          Series(dtype=np.int64)]).dtype == np.object_
 
         # categorical
-        self.assertEqual(pd.concat([Series(dtype='category'),
-                                    Series(dtype='category')]).dtype,
-                         'category')
-        self.assertEqual(pd.concat([Series(dtype='category'),
-                                    Series(dtype='float64')]).dtype,
-                         'float64')
-        self.assertEqual(pd.concat([Series(dtype='category'),
-                                    Series(dtype='object')]).dtype, 'object')
+        assert pd.concat([Series(dtype='category'),
+                          Series(dtype='category')]).dtype == 'category'
+        assert pd.concat([Series(dtype='category'),
+                          Series(dtype='float64')]).dtype == 'float64'
+        assert pd.concat([Series(dtype='category'),
+                          Series(dtype='object')]).dtype == 'object'
 
         # sparse
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='float64').to_sparse()])
-        self.assertEqual(result.dtype, np.float64)
-        self.assertEqual(result.ftype, 'float64:sparse')
+        assert result.dtype == np.float64
+        assert result.ftype == 'float64:sparse'
 
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='float64')])
-        self.assertEqual(result.dtype, np.float64)
-        self.assertEqual(result.ftype, 'float64:sparse')
+        assert result.dtype == np.float64
+        assert result.ftype == 'float64:sparse'
 
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='object')])
-        self.assertEqual(result.dtype, np.object_)
-        self.assertEqual(result.ftype, 'object:dense')
+        assert result.dtype == np.object_
+        assert result.ftype == 'object:dense'
 
     def test_combine_first_dt64(self):
         from pandas.core.tools.datetimes import to_datetime
@@ -245,7 +242,7 @@ class TestTimeseries(tm.TestCase):
         rng2 = rng.copy()
         rng1.name = 'foo'
         rng2.name = 'bar'
-        self.assertEqual(rng1.append(rng1).name, 'foo')
+        assert rng1.append(rng1).name == 'foo'
         assert rng1.append(rng2).name is None
 
     def test_append_concat_tz(self):

@@ -103,7 +103,7 @@ class TestClipboard(tm.TestCase):
         df = pd.read_clipboard()
 
         # excel data is parsed correctly
-        self.assertEqual(df.iloc[1][1], 'Harry Carney')
+        assert df.iloc[1][1] == 'Harry Carney'
 
         # having diff tab counts doesn't trigger it
         text = dedent("""

@@ -726,8 +726,8 @@ class TestRNGContext(unittest.TestCase):
 
         with RNGContext(0):
             with RNGContext(1):
-                self.assertEqual(np.random.randn(), expected1)
-            self.assertEqual(np.random.randn(), expected0)
+                assert np.random.randn() == expected1
+            assert np.random.randn() == expected0
 
 
 class TestLocale(tm.TestCase):

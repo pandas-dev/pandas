@@ -548,7 +548,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         expec = DataFrame({'a': ['a', 1, 2, 3], 'b': mix['b'], 'c': mix['c']})
         res = df.replace(0, 'a')
         assert_frame_equal(res, expec)
-        self.assertEqual(res.a.dtype, np.object_)
+        assert res.a.dtype == np.object_
 
     def test_replace_regex_metachar(self):
         metachars = '[]', '()', r'\d', r'\w', r'\s'

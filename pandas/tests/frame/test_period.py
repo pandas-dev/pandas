@@ -37,8 +37,8 @@ class TestPeriodIndex(tm.TestCase):
         df['Index'] = rng
         rs = Index(df['Index'])
         tm.assert_index_equal(rs, rng, check_names=False)
-        self.assertEqual(rs.name, 'Index')
-        self.assertEqual(rng.name, 'index')
+        assert rs.name == 'Index'
+        assert rng.name == 'index'
 
         rs = df.reset_index().set_index('index')
         assert isinstance(rs.index, PeriodIndex)
@@ -117,8 +117,8 @@ class TestPeriodIndex(tm.TestCase):
         tm.assert_numpy_array_equal(result1.columns.asi8, expected.asi8)
         tm.assert_numpy_array_equal(result2.columns.asi8, expected.asi8)
         # PeriodIndex.to_timestamp always use 'infer'
-        self.assertEqual(result1.columns.freqstr, 'AS-JAN')
-        self.assertEqual(result2.columns.freqstr, 'AS-JAN')
+        assert result1.columns.freqstr == 'AS-JAN'
+        assert result2.columns.freqstr == 'AS-JAN'
 
     def test_frame_index_to_string(self):
         index = PeriodIndex(['2011-1', '2011-2', '2011-3'], freq='M')

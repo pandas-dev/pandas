@@ -44,13 +44,13 @@ class TestFormattBase(tm.TestCase):
 
         adjoined = printing.adjoin(2, *data)
 
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
 
     def test_adjoin_unicode(self):
         data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'], ['ggg', 'hhh', u'いいい']]
         expected = u'あ  dd  ggg\nb  ええ  hhh\nc  ff  いいい'
         adjoined = printing.adjoin(2, *data)
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
 
         adj = fmt.EastAsianTextAdjustment()
 
@@ -59,22 +59,22 @@ b   ええ  hhh
 c   ff    いいい"""
 
         adjoined = adj.adjoin(2, *data)
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
         cols = adjoined.split('\n')
-        self.assertEqual(adj.len(cols[0]), 13)
-        self.assertEqual(adj.len(cols[1]), 13)
-        self.assertEqual(adj.len(cols[2]), 16)
+        assert adj.len(cols[0]) == 13
+        assert adj.len(cols[1]) == 13
+        assert adj.len(cols[2]) == 16
 
         expected = u"""あ       dd         ggg
 b        ええ       hhh
 c        ff         いいい"""
 
         adjoined = adj.adjoin(7, *data)
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
         cols = adjoined.split('\n')
-        self.assertEqual(adj.len(cols[0]), 23)
-        self.assertEqual(adj.len(cols[1]), 23)
-        self.assertEqual(adj.len(cols[2]), 26)
+        assert adj.len(cols[0]) == 23
+        assert adj.len(cols[1]) == 23
+        assert adj.len(cols[2]) == 26
 
     def test_justify(self):
         adj = fmt.EastAsianTextAdjustment()
@@ -83,45 +83,45 @@ c        ff         いいい"""
             # wrapper to test single str
             return adj.justify([x], *args, **kwargs)[0]
 
-        self.assertEqual(just('abc', 5, mode='left'), 'abc  ')
-        self.assertEqual(just('abc', 5, mode='center'), ' abc ')
-        self.assertEqual(just('abc', 5, mode='right'), '  abc')
-        self.assertEqual(just(u'abc', 5, mode='left'), 'abc  ')
-        self.assertEqual(just(u'abc', 5, mode='center'), ' abc ')
-        self.assertEqual(just(u'abc', 5, mode='right'), '  abc')
+        assert just('abc', 5, mode='left') == 'abc  '
+        assert just('abc', 5, mode='center') == ' abc '
+        assert just('abc', 5, mode='right') == '  abc'
+        assert just(u'abc', 5, mode='left') == 'abc  '
+        assert just(u'abc', 5, mode='center') == ' abc '
+        assert just(u'abc', 5, mode='right') == '  abc'
 
-        self.assertEqual(just(u'パンダ', 5, mode='left'), u'パンダ')
-        self.assertEqual(just(u'パンダ', 5, mode='center'), u'パンダ')
-        self.assertEqual(just(u'パンダ', 5, mode='right'), u'パンダ')
+        assert just(u'パンダ', 5, mode='left') == u'パンダ'
+        assert just(u'パンダ', 5, mode='center') == u'パンダ'
+        assert just(u'パンダ', 5, mode='right') == u'パンダ'
 
-        self.assertEqual(just(u'パンダ', 10, mode='left'), u'パンダ    ')
-        self.assertEqual(just(u'パンダ', 10, mode='center'), u'  パンダ  ')
-        self.assertEqual(just(u'パンダ', 10, mode='right'), u'    パンダ')
+        assert just(u'パンダ', 10, mode='left') == u'パンダ    '
+        assert just(u'パンダ', 10, mode='center') == u'  パンダ  '
+        assert just(u'パンダ', 10, mode='right') == u'    パンダ'
 
     def test_east_asian_len(self):
         adj = fmt.EastAsianTextAdjustment()
 
-        self.assertEqual(adj.len('abc'), 3)
-        self.assertEqual(adj.len(u'abc'), 3)
+        assert adj.len('abc') == 3
+        assert adj.len(u'abc') == 3
 
-        self.assertEqual(adj.len(u'パンダ'), 6)
-        self.assertEqual(adj.len(u'ﾊﾟﾝﾀﾞ'), 5)
-        self.assertEqual(adj.len(u'パンダpanda'), 11)
-        self.assertEqual(adj.len(u'ﾊﾟﾝﾀﾞpanda'), 10)
+        assert adj.len(u'パンダ') == 6
+        assert adj.len(u'ﾊﾟﾝﾀﾞ') == 5
+        assert adj.len(u'パンダpanda') == 11
+        assert adj.len(u'ﾊﾟﾝﾀﾞpanda') == 10
 
     def test_ambiguous_width(self):
         adj = fmt.EastAsianTextAdjustment()
-        self.assertEqual(adj.len(u'¡¡ab'), 4)
+        assert adj.len(u'¡¡ab') == 4
 
         with cf.option_context('display.unicode.ambiguous_as_wide', True):
             adj = fmt.EastAsianTextAdjustment()
-            self.assertEqual(adj.len(u'¡¡ab'), 6)
+            assert adj.len(u'¡¡ab') == 6
 
         data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'],
                 ['ggg', u'¡¡ab', u'いいい']]
         expected = u'あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい'
         adjoined = adj.adjoin(2, *data)
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
 
 
 class TestTableSchemaRepr(tm.TestCase):
@@ -151,13 +151,13 @@ class TestTableSchemaRepr(tm.TestCase):
         for obj, expected in zip(objects, expected_keys):
             with opt, make_patch as mock_display:
                 handle = obj._ipython_display_()
-                self.assertEqual(mock_display.call_count, 1)
+                assert mock_display.call_count == 1
                 assert handle is None
                 args, kwargs = mock_display.call_args
                 arg, = args  # just one argument
 
-            self.assertEqual(kwargs, {"raw": True})
-            self.assertEqual(set(arg.keys()), expected)
+            assert kwargs == {"raw": True}
+            assert set(arg.keys()) == expected
 
         with_latex = pd.option_context('display.latex.repr', True)
 
@@ -168,7 +168,7 @@ class TestTableSchemaRepr(tm.TestCase):
 
         expected = {'text/plain', 'text/html', 'text/latex',
                     'application/vnd.dataresource+json'}
-        self.assertEqual(set(arg.keys()), expected)
+        assert set(arg.keys()) == expected
 
     def test_publishes_not_implemented(self):
         # column MultiIndex

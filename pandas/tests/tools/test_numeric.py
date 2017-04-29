@@ -156,16 +156,16 @@ class TestToNumeric(tm.TestCase):
                 to_numeric(df, errors=errors)
 
     def test_scalar(self):
-        self.assertEqual(pd.to_numeric(1), 1)
-        self.assertEqual(pd.to_numeric(1.1), 1.1)
+        assert pd.to_numeric(1) == 1
+        assert pd.to_numeric(1.1) == 1.1
 
-        self.assertEqual(pd.to_numeric('1'), 1)
-        self.assertEqual(pd.to_numeric('1.1'), 1.1)
+        assert pd.to_numeric('1') == 1
+        assert pd.to_numeric('1.1') == 1.1
 
         with pytest.raises(ValueError):
             to_numeric('XX', errors='raise')
 
-        self.assertEqual(to_numeric('XX', errors='ignore'), 'XX')
+        assert to_numeric('XX', errors='ignore') == 'XX'
         assert np.isnan(to_numeric('XX', errors='coerce'))
 
     def test_numeric_dtypes(self):

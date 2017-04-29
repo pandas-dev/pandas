@@ -37,7 +37,7 @@ class TestSeriesAsof(TestData, tm.TestCase):
         assert (rs == ts[lb]).all()
 
         val = result[result.index[result.index >= ub][0]]
-        self.assertEqual(ts[ub], val)
+        assert ts[ub] == val
 
     def test_scalar(self):
 
@@ -50,16 +50,16 @@ class TestSeriesAsof(TestData, tm.TestCase):
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        self.assertEqual(val1, ts[4])
-        self.assertEqual(val2, ts[14])
+        assert val1 == ts[4]
+        assert val2 == ts[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        self.assertEqual(val1, ts[4])
+        assert val1 == ts[4]
 
         # in there
         result = ts.asof(ts.index[3])
-        self.assertEqual(result, ts[3])
+        assert result == ts[3]
 
         # no as of value
         d = ts.index[0] - offsets.BDay()
@@ -118,15 +118,15 @@ class TestSeriesAsof(TestData, tm.TestCase):
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        self.assertEqual(val1, ts[4])
-        self.assertEqual(val2, ts[14])
+        assert val1 == ts[4]
+        assert val2 == ts[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        self.assertEqual(val1, ts[4])
+        assert val1 == ts[4]
 
         # in there
-        self.assertEqual(ts.asof(ts.index[3]), ts[3])
+        assert ts.asof(ts.index[3]) == ts[3]
 
         # no as of value
         d = ts.index[0].to_timestamp() - offsets.BDay()

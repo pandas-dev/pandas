@@ -139,7 +139,7 @@ class Base(object):
 
         values = idx.values
         for prop in self._compat_props:
-            self.assertEqual(getattr(idx, prop), getattr(values, prop))
+            assert getattr(idx, prop) == getattr(values, prop)
 
         # test for validity
         idx.nbytes
@@ -162,7 +162,7 @@ class Base(object):
         for idx in self.indices.values():
             dtype = idx.dtype_str
             assert isinstance(dtype, compat.string_types)
-            self.assertEqual(dtype, str(idx.dtype))
+            assert dtype == str(idx.dtype)
 
     def test_repr_max_seq_item_setting(self):
         # GH10182
@@ -189,14 +189,14 @@ class Base(object):
 
             original_name = ind.name
             new_ind = ind.set_names([new_name])
-            self.assertEqual(new_ind.name, new_name)
-            self.assertEqual(ind.name, original_name)
+            assert new_ind.name == new_name
+            assert ind.name == original_name
             res = ind.rename(new_name, inplace=True)
 
             # should return None
             assert res is None
-            self.assertEqual(ind.name, new_name)
-            self.assertEqual(ind.names, [new_name])
+            assert ind.name == new_name
+            assert ind.names == [new_name]
             # with tm.assert_raises_regex(TypeError, "list-like"):
             #    # should still fail even if it would be the right length
             #    ind.set_names("a")
@@ -206,8 +206,8 @@ class Base(object):
             # rename in place just leaves tuples and other containers alone
             name = ('A', 'B')
             ind.rename(name, inplace=True)
-            self.assertEqual(ind.name, name)
-            self.assertEqual(ind.names, [name])
+            assert ind.name == name
+            assert ind.names == [name]
 
     def test_hash_error(self):
         for ind in self.indices.values():
@@ -310,7 +310,7 @@ class Base(object):
             # preserve names
             idx.name = 'foo'
             result = idx.drop_duplicates()
-            self.assertEqual(result.name, 'foo')
+            assert result.name == 'foo'
             tm.assert_index_equal(result, Index([ind[0]], name='foo'))
 
     def test_get_unique_index(self):
@@ -351,8 +351,8 @@ class Base(object):
             idx_unique_nan = ind._shallow_copy(vals_unique)
             assert idx_unique_nan.is_unique
 
-            self.assertEqual(idx_nan.dtype, ind.dtype)
-            self.assertEqual(idx_unique_nan.dtype, ind.dtype)
+            assert idx_nan.dtype == ind.dtype
+            assert idx_unique_nan.dtype == ind.dtype
 
             for dropna, expected in zip([False, True],
                                         [idx_unique_nan, idx_unique]):
@@ -373,11 +373,11 @@ class Base(object):
     def test_view(self):
         for ind in self.indices.values():
             i_view = ind.view()
-            self.assertEqual(i_view.name, ind.name)
+            assert i_view.name == ind.name
 
     def test_compat(self):
         for ind in self.indices.values():
-            self.assertEqual(ind.tolist(), list(ind))
+            assert ind.tolist() == list(ind)
 
     def test_memory_usage(self):
         for name, index in compat.iteritems(self.indices):
@@ -398,7 +398,7 @@ class Base(object):
             else:
 
                 # we report 0 for no-length
-                self.assertEqual(result, 0)
+                assert result == 0
 
     def test_argsort(self):
         for k, ind in self.indices.items():
@@ -617,7 +617,7 @@ class Base(object):
                 elif isinstance(idx, CategoricalIndex):
                     pass
                 elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
-                    self.assertEqual(result.__class__, answer.__class__)
+                    assert result.__class__ == answer.__class__
                     tm.assert_numpy_array_equal(result.asi8, answer.asi8)
                 else:
                     result = first.difference(case)
@@ -687,12 +687,12 @@ class Base(object):
             expected = idx[1:]
             result = idx.delete(0)
             assert result.equals(expected)
-            self.assertEqual(result.name, expected.name)
+            assert result.name == expected.name
 
             expected = idx[:-1]
             result = idx.delete(-1)
             assert result.equals(expected)
-            self.assertEqual(result.name, expected.name)
+            assert result.name == expected.name
 
             with pytest.raises((IndexError, ValueError)):
                 # either depending on numpy version

@@ -127,7 +127,7 @@ class TestMerge(tm.TestCase):
     def test_merge_overlap(self):
         merged = merge(self.left, self.left, on='key')
         exp_len = (self.left['key'].value_counts() ** 2).sum()
-        self.assertEqual(len(merged), exp_len)
+        assert len(merged) == exp_len
         assert 'v1_x' in merged
         assert 'v1_y' in merged
 
@@ -202,7 +202,7 @@ class TestMerge(tm.TestCase):
         df1 = DataFrame({'key': [1], 'v1': [10]})
         df2 = DataFrame({'key': [2], 'v1': [20]})
         df = merge(df1, df2, how='outer')
-        self.assertEqual(df['key'].dtype, 'int64')
+        assert df['key'].dtype == 'int64'
 
         df1 = DataFrame({'key': [True], 'v1': [1]})
         df2 = DataFrame({'key': [False], 'v1': [0]})
@@ -210,14 +210,14 @@ class TestMerge(tm.TestCase):
 
         # GH13169
         # this really should be bool
-        self.assertEqual(df['key'].dtype, 'object')
+        assert df['key'].dtype == 'object'
 
         df1 = DataFrame({'val': [1]})
         df2 = DataFrame({'val': [2]})
         lkey = np.array([1])
         rkey = np.array([2])
         df = merge(df1, df2, left_on=lkey, right_on=rkey, how='outer')
-        self.assertEqual(df['key_0'].dtype, 'int64')
+        assert df['key_0'].dtype == 'int64'
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame({'key': [1, 1, 2, 2, 3],
@@ -499,7 +499,7 @@ class TestMerge(tm.TestCase):
 
             df2 = s.astype(dtype).to_frame('days')
             # coerces to datetime64[ns], thus sholuld not be affected
-            self.assertEqual(df2['days'].dtype, 'datetime64[ns]')
+            assert df2['days'].dtype == 'datetime64[ns]'
 
             result = df1.merge(df2, left_on='entity_id', right_index=True)
 
@@ -519,7 +519,7 @@ class TestMerge(tm.TestCase):
                       'timedelta64[ns]']:
 
             df2 = s.astype(dtype).to_frame('days')
-            self.assertEqual(df2['days'].dtype, dtype)
+            assert df2['days'].dtype == dtype
 
             result = df1.merge(df2, left_on='entity_id', right_index=True)
 
@@ -582,8 +582,8 @@ class TestMerge(tm.TestCase):
             'key': [1, 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
-        self.assertEqual(result['value_x'].dtype, 'datetime64[ns, US/Eastern]')
-        self.assertEqual(result['value_y'].dtype, 'datetime64[ns, US/Eastern]')
+        assert result['value_x'].dtype == 'datetime64[ns, US/Eastern]'
+        assert result['value_y'].dtype == 'datetime64[ns, US/Eastern]'
 
     def test_merge_on_periods(self):
         left = pd.DataFrame({'key': pd.period_range('20151010', periods=2,
@@ -614,8 +614,8 @@ class TestMerge(tm.TestCase):
                               'key': [1, 2, 3]})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
-        self.assertEqual(result['value_x'].dtype, 'object')
-        self.assertEqual(result['value_y'].dtype, 'object')
+        assert result['value_x'].dtype == 'object'
+        assert result['value_y'].dtype == 'object'
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.

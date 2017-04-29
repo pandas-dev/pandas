@@ -346,8 +346,8 @@ class TestnanopsDataFrame(tm.TestCase):
                 s = Series(a, index=range(500), dtype=np.int64)
                 result = s.mean()
                 np_result = s.values.mean()
-                self.assertEqual(result, a)
-                self.assertEqual(result, np_result)
+                assert result == a
+                assert result == np_result
                 assert result.dtype == np.float64
 
     def test_returned_dtype(self):
@@ -746,12 +746,13 @@ class TestEnsureNumeric(tm.TestCase):
 
     def test_numeric_values(self):
         # Test integer
-        self.assertEqual(nanops._ensure_numeric(1), 1, 'Failed for int')
+        assert nanops._ensure_numeric(1) == 1
+
         # Test float
-        self.assertEqual(nanops._ensure_numeric(1.1), 1.1, 'Failed for float')
+        assert nanops._ensure_numeric(1.1) == 1.1
+
         # Test complex
-        self.assertEqual(nanops._ensure_numeric(1 + 2j), 1 + 2j,
-                         'Failed for complex')
+        assert nanops._ensure_numeric(1 + 2j) == 1 + 2j
 
     def test_ndarray(self):
         # Test numeric ndarray
@@ -887,7 +888,7 @@ class TestNanvarFixedValues(tm.TestCase):
         data = Series(766897346 * np.ones(10))
         for ddof in range(3):
             result = data.std(ddof=ddof)
-            self.assertEqual(result, 0.0)
+            assert result == 0.0
 
     @property
     def prng(self):
@@ -908,7 +909,7 @@ class TestNanskewFixedValues(tm.TestCase):
         for val in [3075.2, 3075.3, 3075.5]:
             data = val * np.ones(300)
             skew = nanops.nanskew(data)
-            self.assertEqual(skew, 0.0)
+            assert skew == 0.0
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -958,7 +959,7 @@ class TestNankurtFixedValues(tm.TestCase):
         for val in [3075.2, 3075.3, 3075.5]:
             data = val * np.ones(300)
             kurt = nanops.nankurt(data)
-            self.assertEqual(kurt, 0.0)
+            assert kurt == 0.0
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1

@@ -808,7 +808,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         # smoke test
         x = 1  # noqa
         result = pd.eval('x + 1', engine=engine, parser=parser)
-        self.assertEqual(result, 2)
+        assert result == 2
 
         df = DataFrame(np.random.randn(5, 3))
         df2 = DataFrame(np.random.randn(5, 3))
