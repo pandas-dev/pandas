@@ -850,10 +850,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             raise NotImplementedError(msg)
 
         if self.loffset is not None:
-            if self.kind == 'period':
-                print('Warning: loffset -> convert PeriodIndex to timestamps')
-                # Cannot apply loffset/timedelta to PeriodIndex -> convert to
-                # timestamps
+            # Cannot apply loffset/timedelta to PeriodIndex -> convert to
+            # timestamps
             self.kind = 'timestamp'
 
         # convert to timestamp
