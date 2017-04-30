@@ -231,8 +231,6 @@ class TestTableSchemaRepr(tm.TestCase):
             df['A']._ipython_display_()
 
 
-
-
 # TODO: fix this broken test
 
 # def test_console_encode():
