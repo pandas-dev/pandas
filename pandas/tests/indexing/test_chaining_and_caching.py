@@ -32,7 +32,7 @@ class TestCaching(tm.TestCase):
             # Assignment to wrong series
             df['bb'].iloc[0] = 0.17
             df._clear_item_cache()
-            self.assertAlmostEqual(df['bb'][0], 0.17)
+            tm.assert_almost_equal(df['bb'][0], 0.17)
 
     def test_setitem_cache_updating(self):
         # GH 5424

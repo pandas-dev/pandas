@@ -922,7 +922,7 @@ class TestNanskewFixedValues(tm.TestCase):
 
     def test_ground_truth(self):
         skew = nanops.nanskew(self.samples)
-        self.assertAlmostEqual(skew, self.actual_skew)
+        tm.assert_almost_equal(skew, self.actual_skew)
 
     def test_axis(self):
         samples = np.vstack([self.samples,
@@ -972,7 +972,7 @@ class TestNankurtFixedValues(tm.TestCase):
 
     def test_ground_truth(self):
         kurt = nanops.nankurt(self.samples)
-        self.assertAlmostEqual(kurt, self.actual_kurt)
+        tm.assert_almost_equal(kurt, self.actual_kurt)
 
     def test_axis(self):
         samples = np.vstack([self.samples,

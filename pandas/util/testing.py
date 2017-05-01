@@ -140,7 +140,8 @@ def round_trip_pickle(obj, path=None):
 def assert_almost_equal(left, right, check_exact=False,
                         check_dtype='equiv', check_less_precise=False,
                         **kwargs):
-    """Check that left and right Index are equal.
+    """
+    Check that the left and right objects are approximately equal.
 
     Parameters
     ----------

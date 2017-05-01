@@ -558,7 +558,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
         assert s.iloc[0] == s['a']
         s.iloc[0] = 5
-        self.assertAlmostEqual(s['a'], 5)
+        tm.assert_almost_equal(s['a'], 5)
 
     def test_getitem_box_float64(self):
         value = self.ts[5]
