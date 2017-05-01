@@ -173,26 +173,14 @@ This package requires valid credentials for this API (non free).
 
 `pandaSDMX <https://pandasdmx.readthedocs.io>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pandaSDMX is an extensible library to retrieve and acquire statistical data
+pandaSDMX is a library to retrieve and acquire statistical data
 and metadata disseminated in
 `SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
 widely used by institutions such as statistics offices, central banks,   
-and international organisations.
-
-pandaSDMX can expose datasets and related structural metadata including dataflows, code-lists, 
+and international organisations. pandaSDMX can expose datasets and related 
+structural metadata including dataflows, code-lists, 
 and datastructure definitions as pandas Series 
 or multi-indexed DataFrames.  
-
-As of May 2017, pandaSDMX has built-in support for the following agencies (others may be  
-configured by the user): 
-   
-* Australian Bureau of Statistics (ABS) 
-* European Central Bank (ECB) 
-* Eurostat 
-* French National Institute for Statistics (INSEE) 
-* International Monetary Fund (IMF) - SDMX Central only 
-* Organisation for Economic Cooperation and Development (OECD)
-* United Nations Statistics Division (UNSD) 
    
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
