@@ -1270,6 +1270,7 @@ class TimeGrouper(Grouper):
                             'an instance of %r' % type(ax).__name__)
 
         memb = ax.asfreq(self.freq, how=self.convention)
+
         # NaT handling as in pandas._lib.lib.generate_bins_dt64()
         nat_count = 0
         if memb.hasnans:
@@ -1290,6 +1291,7 @@ class TimeGrouper(Grouper):
 
         i8 = memb.asi8
         freq_mult = self.freq.n
+
         # when upsampling to subperiods, we need to generate enough bins
         expected_bins_count = len(binner) * freq_mult
         i8_extend = expected_bins_count - (i8[-1] - i8[0])
