@@ -977,8 +977,8 @@ class Styler(object):
                 else attrs_neg.format(c=color[0], zero=zero, w=x)
                 for x in normed]
 
-    def bar(self, subset=None, align='left', axis=0,
-            color='#d65f5f', width=100):
+    def bar(self, subset=None, axis=0, color='#d65f5f', width=100,
+            align='left'):
         """
         Color the background ``color`` proptional to the values in each column.
         Excludes non-numeric data by default.
@@ -996,13 +996,15 @@ class Styler(object):
         width: float
             A number between 0 or 100. The largest value will cover ``width``
             percent of the cell's width
-        align : {'left', 'zero',' mid'}
-            .. versionadded:: 0.20.0
+        align : {'left', 'zero',' mid'}, default 'left'
             - 'left' : the min value starts at the left of the cell
             - 'zero' : a value of zero is located at the center of the cell
             - 'mid' : the center of the cell is at (max-min)/2, or
-                if values are all negative (positive) the zero is aligned
-                at the right (left) of the cell
+              if values are all negative (positive) the zero is aligned
+              at the right (left) of the cell
+
+              .. versionadded:: 0.20.0
+
         Returns
         -------
         self : Styler
