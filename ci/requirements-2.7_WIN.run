@@ -6,7 +6,6 @@ numexpr
 pytables==3.2.2
 matplotlib
 openpyxl
-cssdecl
 xlrd
 sqlalchemy
 lxml=3.2.1

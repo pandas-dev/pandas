@@ -4,7 +4,6 @@ numpy
 scipy
 openpyxl
 xlsxwriter
-cssdecl
 xlrd
 xlwt
 numexpr
