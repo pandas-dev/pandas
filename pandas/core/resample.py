@@ -1272,17 +1272,8 @@ class TimeGrouper(Grouper):
         # NaT handling as in pandas._lib.lib.generate_bins_dt64()
         nat_count = 0
         if memb.hasnans:
-            import warnings
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore', 'numpy equal will not check '
-                                                  'object identity')
-                nat_mask = memb.base == tslib.NaT
-                # raises "FutureWarning: numpy equal will not check object
-                # identity in the future. The comparison did not return the
-                # same result as suggested by the identity (`is`)) and will
-                # change."
-            nat_count = np.sum(nat_mask)
-            memb = memb[~nat_mask]
+            nat_count = np.sum(memb._isnan)
+            memb = memb[~memb._isnan]
 
         # if index contains no valid (non-NaT) values, return empty index
         if not len(memb):
