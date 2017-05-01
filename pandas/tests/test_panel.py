@@ -1636,7 +1636,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             # this works, but return a copy
             result = self.panel.swapaxes('items', 'items')
             assert_panel_equal(self.panel, result)
-            self.assertNotEqual(id(self.panel), id(result))
+            assert id(self.panel) != id(result)
 
     def test_transpose(self):
         with catch_warnings(record=True):

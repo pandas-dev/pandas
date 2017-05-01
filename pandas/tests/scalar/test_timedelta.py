@@ -560,7 +560,7 @@ class TestTimedeltas(tm.TestCase):
 
         # python timedeltas drop ns resolution
         ns_td = Timedelta(1, 'ns')
-        self.assertNotEqual(hash(ns_td), hash(ns_td.to_pytimedelta()))
+        assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
     def test_implementation_limits(self):
         min_td = Timedelta(Timedelta.min)

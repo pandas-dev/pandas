@@ -38,7 +38,7 @@ bar2,12,13,14,15
         filename = '~/sometest'
         expanded_name = common._expand_user(filename)
 
-        self.assertNotEqual(expanded_name, filename)
+        assert expanded_name != filename
         assert isabs(expanded_name)
         assert os.path.expanduser(filename) == expanded_name
 
@@ -68,7 +68,7 @@ bar2,12,13,14,15
     def test_get_filepath_or_buffer_with_path(self):
         filename = '~/sometest'
         filepath_or_buffer, _, _ = common.get_filepath_or_buffer(filename)
-        self.assertNotEqual(filepath_or_buffer, filename)
+        assert filepath_or_buffer != filename
         assert isabs(filepath_or_buffer)
         assert os.path.expanduser(filename) == filepath_or_buffer
 
