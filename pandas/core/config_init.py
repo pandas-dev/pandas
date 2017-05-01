@@ -340,6 +340,21 @@ def mpl_style_cb(key):
     return val
 
 
+def table_schema_cb(key):
+    # Having _ipython_display_ defined messes with the return value
+    # from cells, so the Out[x] dictionary breaks.
+    # Currently table schema is the only thing using it, so we'll
+    # monkey patch `_ipython_display_` onto NDFrame when config option
+    # is set
+    # see https://github.com/pandas-dev/pandas/issues/16168
+    from pandas.core.generic import NDFrame, _ipython_display_
+
+    if cf.get_option(key):
+        NDFrame._ipython_display_ = _ipython_display_
+    elif getattr(NDFrame, '_ipython_display_', None):
+        del NDFrame._ipython_display_
+
+
 with cf.config_prefix('display'):
     cf.register_option('precision', 6, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc,
@@ -407,7 +422,7 @@ with cf.config_prefix('display'):
     cf.register_option('latex.multirow', False, pc_latex_multirow,
                        validator=is_bool)
     cf.register_option('html.table_schema', False, pc_table_schema_doc,
-                       validator=is_bool)
+                       validator=is_bool, cb=table_schema_cb)
 
 
 cf.deprecate_option('display.line_width',
