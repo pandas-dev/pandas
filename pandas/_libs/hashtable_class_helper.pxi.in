@@ -347,9 +347,10 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if check_null and {{null_condition}}:
-                    labels[i] = na_sentinel
-                    continue
+                if dropna:
+                    if check_null and {{null_condition}}:
+                        labels[i] = na_sentinel
+                        continue
 
                 k = kh_get_{{dtype}}(self.table, val)
 
@@ -830,13 +831,10 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            if check_null and val != val:
-                labels[i] = na_sentinel
-                continue
-
-            if dropna and val is None:
-                labels[i] = na_sentinel
-                continue
+            if dropna:
+                if (check_null and val != val) or val is None:
+                    labels[i] = na_sentinel
+                    continue
 
             k = kh_get_pymap(self.table, <PyObject*>val)
             if k != self.table.n_buckets:
