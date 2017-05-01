@@ -85,9 +85,9 @@ class TestStyler(TestCase):
 
         self.styler._update_ctx(self.attrs)
         self.styler.highlight_max()
-        self.assertNotEqual(self.styler.ctx, s2.ctx)
+        assert self.styler.ctx != s2.ctx
         assert s2._todo == []
-        self.assertNotEqual(self.styler._todo, s2._todo)
+        assert self.styler._todo != s2._todo
 
     def test_clear(self):
         s = self.df.style.highlight_max()._compute()

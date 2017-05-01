@@ -888,7 +888,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             # this works, but return a copy
             result = self.panel4d.swapaxes('items', 'items')
             assert_panel4d_equal(self.panel4d, result)
-            self.assertNotEqual(id(self.panel4d), id(result))
+            assert id(self.panel4d) != id(result)
 
     def test_update(self):
 

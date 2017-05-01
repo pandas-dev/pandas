@@ -873,8 +873,8 @@ class TestTimestamp(tm.TestCase):
 
         other = Timestamp(stamp + 100)
 
-        self.assertNotEqual(val, other)
-        self.assertNotEqual(val, other)
+        assert val != other
+        assert val != other
         assert val < other
         assert val <= other
         assert other > val
@@ -1375,9 +1375,9 @@ class TestTimeSeries(tm.TestCase):
         assert not stamp == datetime.min
         assert not stamp == datetime(1600, 1, 1)
         assert not stamp == datetime(2700, 1, 1)
-        self.assertNotEqual(stamp, datetime.min)
-        self.assertNotEqual(stamp, datetime(1600, 1, 1))
-        self.assertNotEqual(stamp, datetime(2700, 1, 1))
+        assert stamp != datetime.min
+        assert stamp != datetime(1600, 1, 1)
+        assert stamp != datetime(2700, 1, 1)
         assert stamp > datetime(1600, 1, 1)
         assert stamp >= datetime(1600, 1, 1)
         assert stamp < datetime(2700, 1, 1)

@@ -653,7 +653,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
 
         # this should not change index
         arr[0] = val
-        self.assertNotEqual(new_index[0], val)
+        assert new_index[0] != val
 
         # interpret list-like
         expected = Int64Index([5, 0])

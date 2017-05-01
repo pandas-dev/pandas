@@ -1032,7 +1032,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert result.index.name == 'A'
 
         result = self.df.groupby('A', as_index=False).mean()
-        self.assertNotEqual(result.index.name, 'A')
+        assert result.index.name != 'A'
 
         result = grouped.agg(np.mean)
         assert result.index.name == 'A'

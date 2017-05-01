@@ -293,7 +293,7 @@ class TestExpressions(tm.TestCase):
                     if op is not None:
                         result = expr._can_use_numexpr(op, op_str, f, f,
                                                        'evaluate')
-                        self.assertNotEqual(result, f._is_mixed_type)
+                        assert result != f._is_mixed_type
 
                         result = expr.evaluate(op, op_str, f, f,
                                                use_numexpr=True)
@@ -336,7 +336,7 @@ class TestExpressions(tm.TestCase):
 
                     result = expr._can_use_numexpr(op, op_str, f11, f12,
                                                    'evaluate')
-                    self.assertNotEqual(result, f11._is_mixed_type)
+                    assert result != f11._is_mixed_type
 
                     result = expr.evaluate(op, op_str, f11, f12,
                                            use_numexpr=True)

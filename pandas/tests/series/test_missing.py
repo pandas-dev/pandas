@@ -1078,8 +1078,8 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
     def test_spline_smooth(self):
         tm._skip_if_no_scipy()
         s = Series([1, 2, np.nan, 4, 5.1, np.nan, 7])
-        self.assertNotEqual(s.interpolate(method='spline', order=3, s=0)[5],
-                            s.interpolate(method='spline', order=3)[5])
+        assert (s.interpolate(method='spline', order=3, s=0)[5] !=
+                s.interpolate(method='spline', order=3)[5])
 
     def test_spline_interpolation(self):
         tm._skip_if_no_scipy()
@@ -1090,8 +1090,8 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         expected1 = s.interpolate(method='spline', order=1)
         assert_series_equal(result1, expected1)
 
-    # GH #10633
     def test_spline_error(self):
+        # see gh-10633
         tm._skip_if_no_scipy()
 
         s = pd.Series(np.arange(10) ** 2)

@@ -361,7 +361,7 @@ class TestDataFrameSortIndexKinds(tm.TestCase, TestData):
         df.sort_index(inplace=True)
         expected = frame
         assert_frame_equal(df, expected)
-        self.assertNotEqual(a_id, id(df['A']))
+        assert a_id != id(df['A'])
 
         df = unordered.copy()
         df.sort_index(ascending=False, inplace=True)

@@ -918,7 +918,7 @@ class TestDataFrameFormatting(tm.TestCase):
             assert "10 rows x %d columns" % (max_cols - 1) in rep_str
             set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
-            self.assertNotEqual(rep_str, wide_repr)
+            assert rep_str != wide_repr
 
             with option_context('display.width', 120):
                 wider_repr = repr(df)
@@ -944,7 +944,7 @@ class TestDataFrameFormatting(tm.TestCase):
             rep_str = repr(df)
             set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
-            self.assertNotEqual(rep_str, wide_repr)
+            assert rep_str != wide_repr
 
             with option_context('display.width', 150):
                 wider_repr = repr(df)
@@ -966,7 +966,7 @@ class TestDataFrameFormatting(tm.TestCase):
             rep_str = repr(df)
             set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
-            self.assertNotEqual(rep_str, wide_repr)
+            assert rep_str != wide_repr
 
             with option_context('display.width', 150):
                 wider_repr = repr(df)
@@ -990,7 +990,7 @@ class TestDataFrameFormatting(tm.TestCase):
             rep_str = repr(df)
             set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
-            self.assertNotEqual(rep_str, wide_repr)
+            assert rep_str != wide_repr
 
         with option_context('display.width', 150):
             wider_repr = repr(df)
@@ -1006,7 +1006,7 @@ class TestDataFrameFormatting(tm.TestCase):
             rep_str = repr(df)
             set_option('display.expand_frame_repr', True)
             wide_repr = repr(df)
-            self.assertNotEqual(rep_str, wide_repr)
+            assert rep_str != wide_repr
 
             with option_context('display.width', 150):
                 wider_repr = repr(df)

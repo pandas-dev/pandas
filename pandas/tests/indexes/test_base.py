@@ -81,7 +81,7 @@ class TestIndex(Base, tm.TestCase):
         assert index.name == 'name'
         tm.assert_numpy_array_equal(arr, index.values)
         arr[0] = "SOMEBIGLONGSTRING"
-        self.assertNotEqual(index[0], "SOMEBIGLONGSTRING")
+        assert index[0] != "SOMEBIGLONGSTRING"
 
         # what to do here?
         # arr = np.array(5.)
