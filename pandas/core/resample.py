@@ -882,6 +882,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             return self._groupby_and_aggregate(how, grouper=self.grouper)
         elif is_superperiod(ax.freq, self.freq):
             if how == 'ohlc':
+                # GH #13083
                 # upsampling to subperiods is handled as an asfreq, which works
                 # for pure aggregating/reducing methods
                 # OHLC reduces along the time dimension, but creates multiple
