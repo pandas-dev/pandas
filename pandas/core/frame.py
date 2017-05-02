@@ -4228,6 +4228,9 @@ it is assumed to be aliases for the column names.')
     --------
     pandas.DataFrame.apply
     pandas.DataFrame.transform
+    pandas.DataFrame.groupby.aggregate
+    pandas.DataFrame.resample.aggregate
+    pandas.DataFrame.rolling.aggregate
 
     """)
 
@@ -4306,7 +4309,7 @@ it is assumed to be aliases for the column names.')
         See also
         --------
         DataFrame.applymap: For elementwise operations
-        DataFrame.agg: only perform aggregating type operations
+        DataFrame.aggregate: only perform aggregating type operations
         DataFrame.transform: only perform transformating type operations
 
         Returns

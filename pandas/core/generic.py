@@ -2879,6 +2879,8 @@ class NDFrame(PandasObject, SelectionMixin):
     (e.g., np.mean(arr_2d, axis=0)) as opposed to
     mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
 
+    agg is an alias for aggregate. Use it.
+
     Returns
     -------
     aggregated : %(klass)s
@@ -2924,6 +2926,11 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-08 -0.498658  1.274522  1.642524
     2000-01-09 -0.540524 -1.012676 -0.828968
     2000-01-10 -1.366388 -0.614710  0.005378
+
+    See also
+    --------
+    pandas.%(klass)s.aggregate
+    pandas.%(klass)s.apply
 
     """)
 

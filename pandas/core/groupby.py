@@ -2780,9 +2780,9 @@ class SeriesGroupBy(GroupBy):
 
     See also
     --------
-    pandas.Series.apply
+    pandas.Series.groupby.apply
+    pandas.Series.groupby.transform
     pandas.Series.aggregate
-    pandas.Series.transform
 
     """)
 
@@ -3947,9 +3947,9 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     See also
     --------
-    pandas.DataFrame.apply
+    pandas.DataFrame.groupby.apply
+    pandas.DataFrame.groupby.transform
     pandas.DataFrame.aggregate
-    pandas.DataFrame.transform
 
     """)
 

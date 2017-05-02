@@ -645,8 +645,8 @@ class Window(_Window):
 
     See also
     --------
-    pandas.Series.rolling
-    pandas.DataFrame.rolling
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
 
     """)
 
@@ -1414,8 +1414,9 @@ class Expanding(_Rolling_and_Expanding):
 
     See also
     --------
-    pandas.Series.expanding
-    pandas.DataFrame.expanding
+    pandas.DataFrame.expanding.aggregate
+    pandas.DataFrame.rolling.aggregate
+    pandas.DataFrame.aggregate
 
     """)
 
@@ -1699,8 +1700,7 @@ class EWM(_Rolling):
 
     See also
     --------
-    pandas.Series.ewm
-    pandas.DataFrame.ewm
+    pandas.DataFrame.rolling.aggregate
 
     """)
 
