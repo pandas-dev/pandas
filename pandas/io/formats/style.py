@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import is_float, is_string_like
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_list_like
 from pandas.compat import range
 from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
@@ -868,30 +869,141 @@ class Styler(object):
         return self.applymap(f, subset=subset)
 
     @staticmethod
-    def _bar(s, color, width):
+    def _bar_left(s, color, width, base):
+        """
+        The minimum value is aligned at the left of the cell
+        Parameters
+        ----------
+        color: 2-tuple/list, of [``color_negative``, ``color_positive``]
+        width: float
+            A number between 0 or 100. The largest value will cover ``width``
+            percent of the cell's width
+        base: str
+            The base css format of the cell, e.g.:
+            ``base = 'width: 10em; height: 80%;'``
+        Returns
+        -------
+        self : Styler
+        """
         normed = width * (s - s.min()) / (s.max() - s.min())
-
-        base = 'width: 10em; height: 80%;'
-        attrs = (base + 'background: linear-gradient(90deg,{c} {w}%, '
+        zero_normed = width * (0 - s.min()) / (s.max() - s.min())
+        attrs = (base + 'background: linear-gradient(90deg,{c} {w:.1f}%, '
                         'transparent 0%)')
-        return [attrs.format(c=color, w=x) if x != 0 else base for x in normed]
 
-    def bar(self, subset=None, axis=0, color='#d65f5f', width=100):
+        return [base if x == 0 else attrs.format(c=color[0], w=x)
+                if x < zero_normed
+                else attrs.format(c=color[1], w=x) if x >= zero_normed
+                else base for x in normed]
+
+    @staticmethod
+    def _bar_center_zero(s, color, width, base):
+        """
+        Creates a bar chart where the zero is centered in the cell
+        Parameters
+        ----------
+        color: 2-tuple/list, of [``color_negative``, ``color_positive``]
+        width: float
+            A number between 0 or 100. The largest value will cover ``width``
+            percent of the cell's width
+        base: str
+            The base css format of the cell, e.g.:
+            ``base = 'width: 10em; height: 80%;'``
+        Returns
+        -------
+        self : Styler
+        """
+
+        # Either the min or the max should reach the edge
+        # (50%, centered on zero)
+        m = max(abs(s.min()), abs(s.max()))
+
+        normed = s * 50 * width / (100.0 * m)
+
+        attrs_neg = (base + 'background: linear-gradient(90deg, transparent 0%'
+                     ', transparent {w:.1f}%, {c} {w:.1f}%, '
+                     '{c} 50%, transparent 50%)')
+
+        attrs_pos = (base + 'background: linear-gradient(90deg, transparent 0%'
+                     ', transparent 50%, {c} 50%, {c} {w:.1f}%, '
+                     'transparent {w:.1f}%)')
+
+        return [attrs_pos.format(c=color[1], w=(50 + x)) if x >= 0
+                else attrs_neg.format(c=color[0], w=(50 + x))
+                for x in normed]
+
+    @staticmethod
+    def _bar_center_mid(s, color, width, base):
+        """
+        Creates a bar chart where the midpoint is centered in the cell
+        Parameters
+        ----------
+        color: 2-tuple/list, of [``color_negative``, ``color_positive``]
+        width: float
+            A number between 0 or 100. The largest value will cover ``width``
+            percent of the cell's width
+        base: str
+            The base css format of the cell, e.g.:
+            ``base = 'width: 10em; height: 80%;'``
+        Returns
+        -------
+        self : Styler
+        """
+
+        if s.min() >= 0:
+            # In this case, we place the zero at the left, and the max() should
+            # be at width
+            zero = 0.0
+            slope = width / s.max()
+        elif s.max() <= 0:
+            # In this case, we place the zero at the right, and the min()
+            # should be at 100-width
+            zero = 100.0
+            slope = width / -s.min()
+        else:
+            slope = width / (s.max() - s.min())
+            zero = (100.0 + width) / 2.0 - slope * s.max()
+
+        normed = zero + slope * s
+
+        attrs_neg = (base + 'background: linear-gradient(90deg, transparent 0%'
+                     ', transparent {w:.1f}%, {c} {w:.1f}%, '
+                     '{c} {zero:.1f}%, transparent {zero:.1f}%)')
+
+        attrs_pos = (base + 'background: linear-gradient(90deg, transparent 0%'
+                     ', transparent {zero:.1f}%, {c} {zero:.1f}%, '
+                     '{c} {w:.1f}%, transparent {w:.1f}%)')
+
+        return [attrs_pos.format(c=color[1], zero=zero, w=x) if x > zero
+                else attrs_neg.format(c=color[0], zero=zero, w=x)
+                for x in normed]
+
+    def bar(self, subset=None, axis=0, color='#d65f5f', width=100,
+            align='left'):
         """
         Color the background ``color`` proptional to the values in each column.
         Excludes non-numeric data by default.
-
         .. versionadded:: 0.17.1
-
         Parameters
         ----------
         subset: IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
         axis: int
-        color: str
+        color: str or 2-tuple/list
+            If a str is passed, the color is the same for both
+            negative and positive numbers. If 2-tuple/list is used, the
+            first element is the color_negative and the second is the
+            color_positive (eg: ['#d65f5f', '#5fba7d'])
         width: float
             A number between 0 or 100. The largest value will cover ``width``
             percent of the cell's width
+        align : {'left', 'zero',' mid'}, default 'left'
+            - 'left' : the min value starts at the left of the cell
+            - 'zero' : a value of zero is located at the center of the cell
+            - 'mid' : the center of the cell is at (max-min)/2, or
+              if values are all negative (positive) the zero is aligned
+              at the right (left) of the cell
+
+              .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -899,8 +1011,32 @@ class Styler(object):
         """
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)
-        self.apply(self._bar, subset=subset, axis=axis, color=color,
-                   width=width)
+
+        base = 'width: 10em; height: 80%;'
+
+        if not(is_list_like(color)):
+            color = [color, color]
+        elif len(color) == 1:
+            color = [color[0], color[0]]
+        elif len(color) > 2:
+            msg = ("Must pass `color` as string or a list-like"
+                   " of length 2: [`color_negative`, `color_positive`]\n"
+                   "(eg: color=['#d65f5f', '#5fba7d'])")
+            raise ValueError(msg)
+
+        if align == 'left':
+            self.apply(self._bar_left, subset=subset, axis=axis, color=color,
+                       width=width, base=base)
+        elif align == 'zero':
+            self.apply(self._bar_center_zero, subset=subset, axis=axis,
+                       color=color, width=width, base=base)
+        elif align == 'mid':
+            self.apply(self._bar_center_mid, subset=subset, axis=axis,
+                       color=color, width=width, base=base)
+        else:
+            msg = ("`align` must be one of {'left', 'zero',' mid'}")
+            raise ValueError(msg)
+
         return self
 
     def highlight_max(self, subset=None, color='yellow', axis=0):
