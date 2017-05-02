@@ -362,7 +362,7 @@ def table_schema_cb(key):
             from IPython.core.formatters import BaseFormatter
 
             class TableSchemaFormatter(BaseFormatter):
-                print_method = '_repr_table_schema_'
+                print_method = '_repr_data_resource_'
                 _return_type = (dict,)
             # register it:
             formatters[mimetype] = TableSchemaFormatter()

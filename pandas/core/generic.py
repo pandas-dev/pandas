@@ -129,7 +129,7 @@ class NDFrame(PandasObject, SelectionMixin):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
-    def _repr_table_schema_(self):
+    def _repr_data_resource_(self):
         """
         Not a real Jupyter special repr method, but we use the same
         naming convention.
