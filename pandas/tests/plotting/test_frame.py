@@ -1036,8 +1036,8 @@ class TestDataFramePlots(TestPlotBase):
 
             # GH 7498
             # compare margins between lim and bar edges
-            self.assertAlmostEqual(ax_min, min_edge - 0.25)
-            self.assertAlmostEqual(ax_max, max_edge + 0.25)
+            tm.assert_almost_equal(ax_min, min_edge - 0.25)
+            tm.assert_almost_equal(ax_max, max_edge + 0.25)
 
             p = ax.patches[0]
             if kind == 'bar' and (stacked is True or subplots is True):
@@ -1061,10 +1061,10 @@ class TestDataFramePlots(TestPlotBase):
 
             if align == 'center':
                 # Check whether the bar locates on center
-                self.assertAlmostEqual(axis.get_ticklocs()[0], center)
+                tm.assert_almost_equal(axis.get_ticklocs()[0], center)
             elif align == 'edge':
                 # Check whether the bar's edge starts from the tick
-                self.assertAlmostEqual(axis.get_ticklocs()[0], edge)
+                tm.assert_almost_equal(axis.get_ticklocs()[0], edge)
             else:
                 raise ValueError
 
@@ -1314,13 +1314,13 @@ class TestDataFramePlots(TestPlotBase):
         ax = series.plot.hist(normed=True, cumulative=True, bins=4)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
-        self.assertAlmostEqual(rects[-1].get_height(), 1.0)
+        tm.assert_almost_equal(rects[-1].get_height(), 1.0)
         tm.close()
 
         ax = series.plot.hist(cumulative=True, bins=4)
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
 
-        self.assertAlmostEqual(rects[-2].get_height(), 100.0)
+        tm.assert_almost_equal(rects[-2].get_height(), 100.0)
         tm.close()
 
         # if horizontal, yticklabels are rotated

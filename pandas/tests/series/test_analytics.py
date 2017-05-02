@@ -123,7 +123,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
 
         # test with integers, test failure
         int_ts = Series(np.ones(10, dtype=int), index=lrange(10))
-        self.assertAlmostEqual(np.median(int_ts), int_ts.median())
+        tm.assert_almost_equal(np.median(int_ts), int_ts.median())
 
     def test_mode(self):
         # No mode should be found.
@@ -298,7 +298,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
                            labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
                                    [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
-        self.assertAlmostEqual(s.kurt(), s.kurt(level=0)['bar'])
+        tm.assert_almost_equal(s.kurt(), s.kurt(level=0)['bar'])
 
         # test corner cases, kurt() returns NaN unless there's at least 4
         # values
@@ -743,10 +743,10 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         import scipy.stats as stats
 
         # full overlap
-        self.assertAlmostEqual(self.ts.corr(self.ts), 1)
+        tm.assert_almost_equal(self.ts.corr(self.ts), 1)
 
         # partial overlap
-        self.assertAlmostEqual(self.ts[:15].corr(self.ts[5:]), 1)
+        tm.assert_almost_equal(self.ts[:15].corr(self.ts[5:]), 1)
 
         assert isnull(self.ts[:15].corr(self.ts[5:], min_periods=12))
 
@@ -766,7 +766,7 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         B = tm.makeTimeSeries()
         result = A.corr(B)
         expected, _ = stats.pearsonr(A, B)
-        self.assertAlmostEqual(result, expected)
+        tm.assert_almost_equal(result, expected)
 
     def test_corr_rank(self):
         tm._skip_if_no_scipy()
@@ -780,11 +780,11 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
         A[-5:] = A[:5]
         result = A.corr(B, method='kendall')
         expected = stats.kendalltau(A, B)[0]
-        self.assertAlmostEqual(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         result = A.corr(B, method='spearman')
         expected = stats.spearmanr(A, B)[0]
-        self.assertAlmostEqual(result, expected)
+        tm.assert_almost_equal(result, expected)
 
         # these methods got rewritten in 0.8
         if scipy.__version__ < LooseVersion('0.9'):
@@ -800,15 +800,15 @@ class TestSeriesAnalytics(TestData, tm.TestCase):
              1.17258718, -1.06009347, -0.10222060, -0.89076239, 0.89372375])
         kexp = 0.4319297
         sexp = 0.5853767
-        self.assertAlmostEqual(A.corr(B, method='kendall'), kexp)
-        self.assertAlmostEqual(A.corr(B, method='spearman'), sexp)
+        tm.assert_almost_equal(A.corr(B, method='kendall'), kexp)
+        tm.assert_almost_equal(A.corr(B, method='spearman'), sexp)
 
     def test_cov(self):
         # full overlap
-        self.assertAlmostEqual(self.ts.cov(self.ts), self.ts.std() ** 2)
+        tm.assert_almost_equal(self.ts.cov(self.ts), self.ts.std() ** 2)
 
         # partial overlap
-        self.assertAlmostEqual(self.ts[:15].cov(self.ts[5:]),
+        tm.assert_almost_equal(self.ts[:15].cov(self.ts[5:]),
                                self.ts[5:15].std() ** 2)
 
         # No overlap

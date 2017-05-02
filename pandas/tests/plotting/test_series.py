@@ -222,15 +222,15 @@ class TestSeriesPlots(TestPlotBase):
         ymin = 0.0007943282347242822 if self.mpl_ge_2_0_0 else 0.001
         ymax = 0.12589254117941673 if self.mpl_ge_2_0_0 else .10000000000000001
         res = ax.get_ylim()
-        self.assertAlmostEqual(res[0], ymin)
-        self.assertAlmostEqual(res[1], ymax)
+        tm.assert_almost_equal(res[0], ymin)
+        tm.assert_almost_equal(res[1], ymax)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
         tm.close()
 
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='barh')
         res = ax.get_xlim()
-        self.assertAlmostEqual(res[0], ymin)
-        self.assertAlmostEqual(res[1], ymax)
+        tm.assert_almost_equal(res[0], ymin)
+        tm.assert_almost_equal(res[1], ymax)
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
 
     @slow

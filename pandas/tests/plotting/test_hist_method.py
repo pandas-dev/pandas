@@ -196,7 +196,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = ser.hist(normed=True, cumulative=True, bins=4)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
-        self.assertAlmostEqual(rects[-1].get_height(), 1.0)
+        tm.assert_almost_equal(rects[-1].get_height(), 1.0)
 
         tm.close()
         ax = ser.hist(log=True)
@@ -286,7 +286,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
             height = rects[-1].get_height()
-            self.assertAlmostEqual(height, 1.0)
+            tm.assert_almost_equal(height, 1.0)
         self._check_ticks_props(axes, xlabelsize=xf, xrot=xrot,
                                 ylabelsize=yf, yrot=yrot)
 
