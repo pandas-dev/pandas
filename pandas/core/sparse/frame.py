@@ -190,8 +190,8 @@ class SparseDataFrame(DataFrame):
         values = Series(data.data, index=data.row, copy=False)
         for col, rowvals in values.groupby(data.col):
             # get_blocks expects int32 row indices in sorted order
+            rowvals = rowvals.sort_index()
             rows = rowvals.index.values.astype(np.int32)
-            rows.sort()
             blocs, blens = get_blocks(rows)
 
             sdict[columns[col]] = SparseSeries(
