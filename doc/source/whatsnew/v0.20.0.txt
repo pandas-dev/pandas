@@ -1521,7 +1521,7 @@ Other Deprecations
   * ``pd.match()``, is removed.
   * ``pd.groupby()``, replaced by using the ``.groupby()`` method directly on a ``Series/DataFrame``
   * ``pd.get_store()``, replaced by a direct call to ``pd.HDFStore(...)``
-- ``is_any_int_dtype`` and ``is_floating_dtype`` are deprecated from ``pandas.api.types`` (:issue:`16042`)
+- ``is_any_int_dtype``, ``is_floating_dtype``, and ``is_sequence`` are deprecated from ``pandas.api.types`` (:issue:`16042`)
 
 .. _whatsnew_0200.prior_deprecations:
 

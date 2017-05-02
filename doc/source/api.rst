@@ -1969,15 +1969,14 @@ Dtype introspection
 
 Iterable introspection
 
+.. autosummary::
+   :toctree: generated/
+
     api.types.is_dict_like
     api.types.is_file_like
     api.types.is_list_like
     api.types.is_named_tuple
     api.types.is_iterator
-    api.types.is_sequence
-
-.. autosummary::
-   :toctree: generated/
 
 Scalar introspection
 
