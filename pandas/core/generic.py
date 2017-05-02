@@ -2854,19 +2854,19 @@ class NDFrame(PandasObject, SelectionMixin):
             return func(self, *args, **kwargs)
 
     _shared_docs['aggregate'] = ("""
-    Aggregate using input function or dict of {column ->
-    function}
+    Aggregate using callable, string, dict, or list of string/callables
 
-    .. versionadded:: 0.20.0
+    %(versionadded)s
 
     Parameters
     ----------
     func : callable, string, dictionary, or list of string/callables
         Function to use for aggregating the data. If a function, must either
-        work when passed a DataFrame or when passed to DataFrame.apply. If
-        passed a dict, the keys must be DataFrame column names.
+        work when passed a %(klass)s or when passed to %(klass)s.apply. For
+        a DataFrame, can pass a dict, if the keys are DataFrame column names.
 
         Accepted Combinations are:
+
         - string function name
         - function
         - list of functions
@@ -2879,12 +2879,11 @@ class NDFrame(PandasObject, SelectionMixin):
     (e.g., np.mean(arr_2d, axis=0)) as opposed to
     mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
 
+    agg is an alias for aggregate. Use it.
+
     Returns
     -------
     aggregated : %(klass)s
-
-    See also
-    --------
     """)
 
     _shared_docs['transform'] = ("""
@@ -2899,18 +2898,40 @@ class NDFrame(PandasObject, SelectionMixin):
         To apply to column
 
         Accepted Combinations are:
+
         - string function name
         - function
         - list of functions
         - dict of column names -> functions (or list of functions)
 
-    Examples
-    --------
-    >>> df.transform(lambda x: (x - x.mean()) / x.std())
-
     Returns
     -------
     transformed : %(klass)s
+
+    Examples
+    --------
+    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+    ...                   index=pd.date_range('1/1/2000', periods=10))
+    df.iloc[3:7] = np.nan
+
+    >>> df.transform(lambda x: (x - x.mean()) / x.std())
+                       A         B         C
+    2000-01-01  0.579457  1.236184  0.123424
+    2000-01-02  0.370357 -0.605875 -1.231325
+    2000-01-03  1.455756 -0.277446  0.288967
+    2000-01-04       NaN       NaN       NaN
+    2000-01-05       NaN       NaN       NaN
+    2000-01-06       NaN       NaN       NaN
+    2000-01-07       NaN       NaN       NaN
+    2000-01-08 -0.498658  1.274522  1.642524
+    2000-01-09 -0.540524 -1.012676 -0.828968
+    2000-01-10 -1.366388 -0.614710  0.005378
+
+    See also
+    --------
+    pandas.%(klass)s.aggregate
+    pandas.%(klass)s.apply
+
     """)
 
     # ----------------------------------------------------------------------
