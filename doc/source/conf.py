@@ -273,7 +273,7 @@ for old, new in moved_classes:
     mod, classname = new.rsplit('.', 1)
     klass = getattr(importlib.import_module(mod), classname)
     methods = [x for x in dir(klass)
-               if not x.startswith('_') or x.startswith('__')]
+               if not x.startswith('_') or x in ('__iter__', '__array__')]
 
     for method in methods:
         # ... and each of its public methods
