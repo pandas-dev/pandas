@@ -83,8 +83,7 @@ class _DeprecatedModule(object):
                     FutureWarning, stacklevel=2)
             else:
                 if deprmodto is None:
-                    deprmodto = "{modname}.{name}".format(
-                        modname=obj.__module__, name=name)
+                    deprmodto = obj.__module__
                 # The object is actually located in another module.
                 warnings.warn(
                     "{deprmod}.{name} is deprecated. Please use "
