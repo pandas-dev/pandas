@@ -559,11 +559,11 @@ class TestDeprecations(Base):
             mom.rolling_mean(Series(np.ones(10)), 3, center=True, axis=0)
 
 
-# GH #12373 : rolling functions error on float32 data
+# gh-12373 : rolling functions error on float32 data
 # make sure rolling functions works for different dtypes
 #
 # NOTE that these are yielded tests and so _create_data is
-# explicity called, nor do these inherit from unittest.TestCase
+# explicity called, nor do these inherit from tm.TestCase
 #
 # further note that we are only checking rolling for fully dtype
 # compliance (though both expanding and ewm inherit)

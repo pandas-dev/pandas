@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import pytest
 
+import pandas.util.testing as tm
 import pandas as pd
-import unittest
+
 import warnings
 
 
-class TestConfig(unittest.TestCase):
+class TestConfig(tm.TestCase):
 
     def __init__(self, *args):
         super(TestConfig, self).__init__(*args)

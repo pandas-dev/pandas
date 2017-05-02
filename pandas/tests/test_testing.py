@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-import unittest
 import pytest
 import numpy as np
 import sys
@@ -340,7 +339,7 @@ Iterable values are different \\(50\\.0 %\\)
             assert_almost_equal([1, 2], [1, 3])
 
 
-class TestAssertIndexEqual(unittest.TestCase):
+class TestAssertIndexEqual(tm.TestCase):
 
     def test_index_equal_message(self):
 
@@ -680,7 +679,7 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
                                by_blocks=True)
 
 
-class TestAssertCategoricalEqual(unittest.TestCase):
+class TestAssertCategoricalEqual(tm.TestCase):
 
     def test_categorical_equal_message(self):
 
@@ -718,7 +717,7 @@ Attribute "ordered" are different
             tm.assert_categorical_equal(a, b)
 
 
-class TestRNGContext(unittest.TestCase):
+class TestRNGContext(tm.TestCase):
 
     def test_RNGContext(self):
         expected0 = 1.764052345967664

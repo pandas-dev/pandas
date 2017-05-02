@@ -20,7 +20,6 @@ The SQL tests are broken down in different classes:
 from __future__ import print_function
 from warnings import catch_warnings
 import pytest
-import unittest
 import sqlite3
 import csv
 import os
@@ -819,7 +818,7 @@ class _TestSQLApi(PandasSQLTest):
 
 
 @pytest.mark.single
-class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
+class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, tm.TestCase):
     """
     Test the public API as it would be used directly
 
@@ -999,12 +998,12 @@ class _EngineToConnMixin(object):
 
 
 @pytest.mark.single
-class TestSQLApiConn(_EngineToConnMixin, TestSQLApi, unittest.TestCase):
+class TestSQLApiConn(_EngineToConnMixin, TestSQLApi, tm.TestCase):
     pass
 
 
 @pytest.mark.single
-class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
+class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, tm.TestCase):
     """
     Test the public sqlite connection fallback API
 
@@ -1822,37 +1821,37 @@ class _TestPostgreSQLAlchemy(object):
 
 
 @pytest.mark.single
-class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy, unittest.TestCase):
+class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy, tm.TestCase):
     pass
 
 
 @pytest.mark.single
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn,
-                           unittest.TestCase):
+                           tm.TestCase):
     pass
 
 
 @pytest.mark.single
 class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy,
-                            unittest.TestCase):
+                            tm.TestCase):
     pass
 
 
 @pytest.mark.single
 class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn,
-                                unittest.TestCase):
+                                tm.TestCase):
     pass
 
 
 @pytest.mark.single
 class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy,
-                        unittest.TestCase):
+                        tm.TestCase):
     pass
 
 
 @pytest.mark.single
 class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn,
-                            unittest.TestCase):
+                            tm.TestCase):
     pass
 
 
@@ -1860,7 +1859,7 @@ class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn,
 # -- Test Sqlite / MySQL fallback
 
 @pytest.mark.single
-class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
+class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, tm.TestCase):
     """
     Test the fallback mode against an in-memory sqlite database.
 
