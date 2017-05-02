@@ -914,11 +914,11 @@ class TestNanskewFixedValues(tm.TestCase):
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
         left_tailed = self.prng.beta(alpha, beta, size=100)
-        self.assertLess(nanops.nanskew(left_tailed), 0)
+        assert nanops.nanskew(left_tailed) < 0
 
         alpha, beta = 0.1, 0.3
         right_tailed = self.prng.beta(alpha, beta, size=100)
-        self.assertGreater(nanops.nanskew(right_tailed), 0)
+        assert nanops.nanskew(right_tailed) > 0
 
     def test_ground_truth(self):
         skew = nanops.nanskew(self.samples)
@@ -964,11 +964,11 @@ class TestNankurtFixedValues(tm.TestCase):
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
         left_tailed = self.prng.beta(alpha, beta, size=100)
-        self.assertLess(nanops.nankurt(left_tailed), 0)
+        assert nanops.nankurt(left_tailed) < 0
 
         alpha, beta = 0.1, 0.3
         right_tailed = self.prng.beta(alpha, beta, size=100)
-        self.assertGreater(nanops.nankurt(right_tailed), 0)
+        assert nanops.nankurt(right_tailed) > 0
 
     def test_ground_truth(self):
         kurt = nanops.nankurt(self.samples)

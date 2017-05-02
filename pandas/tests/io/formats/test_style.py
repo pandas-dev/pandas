@@ -374,7 +374,7 @@ class TestStyler(TestCase):
                              '#5fba7d 10.0%, #5fba7d 100.0%, '
                              'transparent 100.0%)']}
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_bar_align_mid_all_pos(self):
         df = pd.DataFrame({'A': [10, 20, 50, 100]})
@@ -399,7 +399,7 @@ class TestStyler(TestCase):
                              'transparent 0%, transparent 0.0%, #5fba7d 0.0%, '
                              '#5fba7d 100.0%, transparent 100.0%)']}
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_bar_align_mid_all_neg(self):
         df = pd.DataFrame({'A': [-100, -60, -30, -20]})
