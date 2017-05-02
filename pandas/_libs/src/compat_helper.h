@@ -26,7 +26,7 @@ https://github.com/pandas-dev/pandas/issues/15961
 https://bugs.python.org/issue29943
 */
 
-#if PY_VERSION_HEX < 0x03070000 && defined(PySlice_GetIndicesEx)
+#if ! defined(PYPY_VERSION) && PY_VERSION_HEX < 0x03070000 && defined(PySlice_GetIndicesEx)
   #undef PySlice_GetIndicesEx
 #endif
 
