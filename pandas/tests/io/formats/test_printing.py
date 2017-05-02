@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 
 from pandas import compat
-from pandas.errors import UnserializableWarning
 import pandas.io.formats.printing as printing
 import pandas.io.formats.format as fmt
 import pandas.util.testing as tm
@@ -173,9 +172,7 @@ class TestTableSchemaRepr(tm.TestCase):
         opt = pd.option_context('display.html.table_schema', True)
 
         with opt:
-            # FIXME: no warning for now
-            with pytest.warns(UnserializableWarning) as record:
-                formatted = self.display_formatter.format(df)
+            formatted = self.display_formatter.format(df)
 
         expected = {'text/plain', 'text/html'}
         assert set(formatted[0].keys()) == expected
