@@ -57,14 +57,13 @@ from .common import (pandas_dtype,
                      is_file_like,
                      is_list_like,
                      is_hashable,
-                     is_named_tuple,
-                     is_sequence)
+                     is_named_tuple)
 
 
 # deprecated
 m = sys.modules['pandas.core.dtypes.api']
 
-for t in ['is_any_int_dtype', 'is_floating_dtype']:
+for t in ['is_any_int_dtype', 'is_floating_dtype', 'is_sequence']:
 
     def outer(t=t):
 
