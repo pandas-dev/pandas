@@ -83,6 +83,7 @@ of all unique functions. Those that are not noted for a particular column will b
 The API also supports a ``.transform()`` function to provide for broadcasting results.
 
 .. ipython:: python
+   :okwarning:
 
    df.transform(['abs', lambda x: x - x.min()])
 
@@ -373,26 +374,28 @@ Experimental support has been added to export ``DataFrame.style`` formats to Exc
 For example, after running the following, ``styled.xlsx`` renders as below:
 
 .. ipython:: python
+   :okwarning:
 
-    np.random.seed(24)
-    df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
-    df = pd.concat([df, pd.DataFrame(np.random.RandomState(24).randn(10, 4),
-                                     columns=list('BCDE'))],
-                   axis=1)
-    df.iloc[0, 2] = np.nan
-    df
-    styled = df.style.\
-        applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black').\
-        apply(lambda s: ['background-color: yellow' if v else ''
-                         for v in s == s.max()])
-    styled.to_excel('styled.xlsx', engine='openpyxl')
+   np.random.seed(24)
+   df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
+   df = pd.concat([df, pd.DataFrame(np.random.RandomState(24).randn(10, 4),
+                                    columns=list('BCDE'))],
+                  axis=1)
+   df.iloc[0, 2] = np.nan
+   df
+   styled = df.style.\
+       applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black').\
+       apply(lambda s: ['background-color: yellow' if v else ''
+                        for v in s == s.max()])
+   styled.to_excel('styled.xlsx', engine='openpyxl')
 
 .. image:: _static/style-excel.png
 
 .. ipython:: python
-    :suppress:
-    import os
-    os.remove('styled.xlsx')
+   :suppress:
+
+   import os
+   os.remove('styled.xlsx')
 
 See the :ref:`Style documentation <style.ipynb#Export-to-Excel>` for more detail.
 
@@ -490,7 +493,7 @@ Other Enhancements
 - ``Series.interpolate()`` now supports timedelta as an index type with ``method='time'`` (:issue:`6424`)
 - Addition of a ``level`` keyword to ``DataFrame/Series.rename`` to rename
   labels in the specified level of a MultiIndex (:issue:`4160`).
-- ``DataFrame.reset_index()`` will now interpret a tuple ``index.name`` as a key spanning across levels of ``columns``, if this is a ``MultiIndex`` (:issues:`16164`)
+- ``DataFrame.reset_index()`` will now interpret a tuple ``index.name`` as a key spanning across levels of ``columns``, if this is a ``MultiIndex`` (:issue:`16164`)
 - ``Timedelta.isoformat`` method added for formatting Timedeltas as an `ISO 8601 duration`_. See the :ref:`Timedelta docs <timedeltas.isoformat>` (:issue:`15136`)
 - ``.select_dtypes()`` now allows the string ``datetimetz`` to generically select datetimes with tz (:issue:`14910`)
 - The ``.to_latex()`` method will now accept ``multicolumn`` and ``multirow`` arguments to use the accompanying LaTeX enhancements

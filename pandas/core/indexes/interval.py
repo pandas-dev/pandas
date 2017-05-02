@@ -99,7 +99,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     .. versionadded:: 0.20.0
 
-    Properties
+    Attributes
     ----------
     left, right : array-like (1-dimensional)
         Left and right bounds for each interval.
