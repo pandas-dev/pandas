@@ -2286,6 +2286,11 @@ Thur,Lunch,Yes,51.51,17"""
                                      "incomplete column name \('C', 'c'\)")):
             df2.rename_axis([('C', 'c')]).reset_index(col_fill=None)
 
+        # with col_level != 0
+        result = df2.rename_axis([('c', 'ii')]).reset_index(col_level=1,
+                                                            col_fill='C')
+        tm.assert_frame_equal(result, expected)
+
     def test_set_index_period(self):
         # GH 6631
         df = DataFrame(np.random.random(6))
