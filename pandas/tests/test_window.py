@@ -1406,7 +1406,7 @@ class TestMoments(Base):
             trunc_series = self.series[::2].truncate(prev_date, last_date)
             trunc_frame = self.frame[::2].truncate(prev_date, last_date)
 
-            self.assertAlmostEqual(series_result[-1],
+            tm.assert_almost_equal(series_result[-1],
                                    static_comp(trunc_series))
 
             tm.assert_series_equal(frame_result.xs(last_date),

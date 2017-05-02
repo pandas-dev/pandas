@@ -738,37 +738,37 @@ class UltraJSONTests(TestCase):
     def test_numericIntFrcExp(self):
         input = "1.337E40"
         output = ujson.decode(input)
-        self.assertAlmostEqual(output, json.loads(input))
+        tm.assert_almost_equal(output, json.loads(input))
 
     def test_decodeNumericIntExpEPLUS(self):
         input = "1337E+9"
         output = ujson.decode(input)
-        self.assertAlmostEqual(output, json.loads(input))
+        tm.assert_almost_equal(output, json.loads(input))
 
     def test_decodeNumericIntExpePLUS(self):
         input = "1.337e+40"
         output = ujson.decode(input)
-        self.assertAlmostEqual(output, json.loads(input))
+        tm.assert_almost_equal(output, json.loads(input))
 
     def test_decodeNumericIntExpE(self):
         input = "1337E40"
         output = ujson.decode(input)
-        self.assertAlmostEqual(output, json.loads(input))
+        tm.assert_almost_equal(output, json.loads(input))
 
     def test_decodeNumericIntExpe(self):
         input = "1337e40"
         output = ujson.decode(input)
-        self.assertAlmostEqual(output, json.loads(input))
+        tm.assert_almost_equal(output, json.loads(input))
 
     def test_decodeNumericIntExpEMinus(self):
         input = "1.337E-4"
         output = ujson.decode(input)
-        self.assertAlmostEqual(output, json.loads(input))
+        tm.assert_almost_equal(output, json.loads(input))
 
     def test_decodeNumericIntExpeMinus(self):
         input = "1.337e-4"
         output = ujson.decode(input)
-        self.assertAlmostEqual(output, json.loads(input))
+        tm.assert_almost_equal(output, json.loads(input))
 
     def test_dumpToFile(self):
         f = StringIO()
@@ -1583,36 +1583,49 @@ class PandasJSONTests(TestCase):
     def test_decodeFloatingPointAdditionalTests(self):
         places = 15
 
-        self.assertAlmostEqual(-1.1234567893,
-                               ujson.loads("-1.1234567893"), places=places)
-        self.assertAlmostEqual(-1.234567893,
-                               ujson.loads("-1.234567893"), places=places)
-        self.assertAlmostEqual(-1.34567893,
-                               ujson.loads("-1.34567893"), places=places)
-        self.assertAlmostEqual(-1.4567893,
-                               ujson.loads("-1.4567893"), places=places)
-        self.assertAlmostEqual(-1.567893,
-                               ujson.loads("-1.567893"), places=places)
-        self.assertAlmostEqual(-1.67893,
-                               ujson.loads("-1.67893"), places=places)
-        self.assertAlmostEqual(-1.7893, ujson.loads("-1.7893"), places=places)
-        self.assertAlmostEqual(-1.893, ujson.loads("-1.893"), places=places)
-        self.assertAlmostEqual(-1.3, ujson.loads("-1.3"), places=places)
+        tm.assert_almost_equal(-1.1234567893,
+                               ujson.loads("-1.1234567893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(-1.234567893,
+                               ujson.loads("-1.234567893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(-1.34567893,
+                               ujson.loads("-1.34567893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(-1.4567893,
+                               ujson.loads("-1.4567893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(-1.567893,
+                               ujson.loads("-1.567893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(-1.67893,
+                               ujson.loads("-1.67893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(-1.7893, ujson.loads("-1.7893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(-1.893, ujson.loads("-1.893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(-1.3, ujson.loads("-1.3"),
+                               check_less_precise=places)
 
-        self.assertAlmostEqual(1.1234567893, ujson.loads(
-            "1.1234567893"), places=places)
-        self.assertAlmostEqual(1.234567893, ujson.loads(
-            "1.234567893"), places=places)
-        self.assertAlmostEqual(
-            1.34567893, ujson.loads("1.34567893"), places=places)
-        self.assertAlmostEqual(
-            1.4567893, ujson.loads("1.4567893"), places=places)
-        self.assertAlmostEqual(
-            1.567893, ujson.loads("1.567893"), places=places)
-        self.assertAlmostEqual(1.67893, ujson.loads("1.67893"), places=places)
-        self.assertAlmostEqual(1.7893, ujson.loads("1.7893"), places=places)
-        self.assertAlmostEqual(1.893, ujson.loads("1.893"), places=places)
-        self.assertAlmostEqual(1.3, ujson.loads("1.3"), places=places)
+        tm.assert_almost_equal(1.1234567893, ujson.loads(
+            "1.1234567893"), check_less_precise=places)
+        tm.assert_almost_equal(1.234567893, ujson.loads(
+            "1.234567893"), check_less_precise=places)
+        tm.assert_almost_equal(
+            1.34567893, ujson.loads("1.34567893"), check_less_precise=places)
+        tm.assert_almost_equal(
+            1.4567893, ujson.loads("1.4567893"), check_less_precise=places)
+        tm.assert_almost_equal(
+            1.567893, ujson.loads("1.567893"), check_less_precise=places)
+        tm.assert_almost_equal(1.67893, ujson.loads("1.67893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(1.7893, ujson.loads("1.7893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(1.893, ujson.loads("1.893"),
+                               check_less_precise=places)
+        tm.assert_almost_equal(1.3, ujson.loads("1.3"),
+                               check_less_precise=places)
 
     def test_encodeBigSet(self):
         s = set()

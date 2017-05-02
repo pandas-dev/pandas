@@ -729,7 +729,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         result = ts['1/3/2000']
-        self.assertAlmostEqual(result, ts[2])
+        tm.assert_almost_equal(result, ts[2])
 
     def test_fixed_offset(self):
         dates = [datetime(2000, 1, 1, tzinfo=fixed_off),

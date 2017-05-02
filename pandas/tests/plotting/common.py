@@ -292,10 +292,10 @@ class TestPlotBase(tm.TestCase):
 
                 for label in labels:
                     if xlabelsize is not None:
-                        self.assertAlmostEqual(label.get_fontsize(),
+                        tm.assert_almost_equal(label.get_fontsize(),
                                                xlabelsize)
                     if xrot is not None:
-                        self.assertAlmostEqual(label.get_rotation(), xrot)
+                        tm.assert_almost_equal(label.get_rotation(), xrot)
 
             if ylabelsize or yrot:
                 if isinstance(ax.yaxis.get_minor_formatter(), NullFormatter):
@@ -306,10 +306,10 @@ class TestPlotBase(tm.TestCase):
 
                 for label in labels:
                     if ylabelsize is not None:
-                        self.assertAlmostEqual(label.get_fontsize(),
+                        tm.assert_almost_equal(label.get_fontsize(),
                                                ylabelsize)
                     if yrot is not None:
-                        self.assertAlmostEqual(label.get_rotation(), yrot)
+                        tm.assert_almost_equal(label.get_rotation(), yrot)
 
     def _check_ax_scales(self, axes, xaxis='linear', yaxis='linear'):
         """
