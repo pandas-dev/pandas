@@ -1064,25 +1064,33 @@ class TestHashTable(tm.TestCase):
         # Test for memory errors after internal vector
         # reallocations (pull request #7157)
 
-        def _test_vector_resize(htable, uniques, dtype, nvals):
+        def _test_vector_resize(htable, uniques, dtype, nvals, tmp_changes):
             vals = np.array(np.random.randn(1000), dtype=dtype)
             # get_labels appends to the vector
             htable.get_labels(vals[:nvals], uniques, 0, -1)
             # to_array resizes the vector
-            uniques.to_array(refcheck=False)
+            tmp = uniques.to_array(refcheck=False)
+            oldshape = tmp.shape
             htable.get_labels(vals, uniques, 0, -1, refcheck=False)
+            with pytest.raises(ValueError):
+                # cannot resize, tmp is holding a reference
+                tmp2 = uniques.to_array() #refcheck=True is default value
+            # DANGEROUS - could change tmp
+            uniques.to_array(refcheck=False)
+            if tmp_changes:
+                assert oldshape != tmp.shape
 
         test_cases = [
-            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
-            (hashtable.StringHashTable, hashtable.ObjectVector, 'object'),
-            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
-            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64'),
-            (hashtable.UInt64HashTable, hashtable.UInt64Vector, 'uint64')]
+            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object', True),
+            (hashtable.StringHashTable, hashtable.ObjectVector, 'object', False),
+            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64', True),
+            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64', True),
+            (hashtable.UInt64HashTable, hashtable.UInt64Vector, 'uint64', True)]
 
-        for (tbl, vect, dtype) in test_cases:
+        for (tbl, vect, dtype, tmp_changes) in test_cases:
             # resizing to empty is a special case
-            _test_vector_resize(tbl(), vect(), dtype, 0)
-            _test_vector_resize(tbl(), vect(), dtype, 10)
+            _test_vector_resize(tbl(), vect(), dtype, 0, tmp_changes)
+            _test_vector_resize(tbl(), vect(), dtype, 10, tmp_changes)
 
 
 def test_quantile():
