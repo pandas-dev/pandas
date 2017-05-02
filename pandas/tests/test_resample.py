@@ -52,7 +52,7 @@ def _simple_pts(start, end, freq='D'):
 
 class TestResampleAPI(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
                             end=datetime(2005, 1, 10), freq='Min')
 
@@ -850,7 +850,7 @@ class Base(object):
 class TestDatetimeIndex(Base, tm.TestCase):
     _index_factory = lambda x: date_range
 
-    def setUp(self):
+    def setup_method(self, method):
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
                             end=datetime(2005, 1, 10), freq='Min')
 
@@ -2796,7 +2796,7 @@ class TestTimedeltaIndex(Base, tm.TestCase):
 
 class TestResamplerGrouper(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.frame = DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
                                 'B': np.arange(40)},
                                index=date_range('1/1/2000',
@@ -2991,7 +2991,7 @@ class TestResamplerGrouper(tm.TestCase):
 
 class TestTimeGrouper(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.ts = Series(np.random.randn(1000),
                          index=date_range('1/1/2000', periods=1000))
 

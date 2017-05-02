@@ -97,7 +97,7 @@ def make_mixed_dataframe_v2(test_size):
 class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         # - GLOBAL CLASS FIXTURES -
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
@@ -111,7 +111,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
                                 ).create(DATASET_ID + "1")
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         # - GLOBAL CLASS FIXTURES -
         # put here any instruction you want to execute only *ONCE* *AFTER*
         # executing all tests.

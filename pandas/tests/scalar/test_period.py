@@ -923,7 +923,7 @@ class TestPeriodField(tm.TestCase):
 
 class TestComparisons(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.january1 = Period('2000-01', 'M')
         self.january2 = Period('2000-01', 'M')
         self.february = Period('2000-02', 'M')

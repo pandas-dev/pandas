@@ -31,7 +31,7 @@ class TestMultiIndex(Base, tm.TestCase):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
-    def setUp(self):
+    def setup_method(self, method):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
         minor_axis = Index(['one', 'two'])
 

@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 
 class TestSparseGroupBy(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dense = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                                          'foo', 'bar', 'foo', 'foo'],
                                    'B': ['one', 'one', 'two', 'three',

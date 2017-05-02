@@ -10,7 +10,6 @@ import inspect
 import os
 import subprocess
 import locale
-import unittest
 import traceback
 
 from datetime import datetime
@@ -86,22 +85,17 @@ def reset_testing_mode():
 set_testing_mode()
 
 
-class TestCase(unittest.TestCase):
+class TestCase(object):
     """
-    The test case class that we originally used when using the
-    nosetests framework. Under the new pytest framework, we are
-    moving away from this class.
-
-    Do not create new test classes derived from this one. Rather,
-    they should inherit from object directly.
+    Base class for all test case classes.
     """
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         pd.set_option('chained_assignment', 'raise')
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         pass
 
 
@@ -299,7 +293,7 @@ def mplskip(cls):
     """Skip a TestCase instance if matplotlib isn't installed"""
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         try:
             import matplotlib as mpl
             mpl.use("Agg", warn=False)
@@ -307,7 +301,7 @@ def mplskip(cls):
             import pytest
             pytest.skip("matplotlib not installed")
 
-    cls.setUpClass = setUpClass
+    cls.setup_class = setup_class
     return cls
 
 

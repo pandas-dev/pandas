@@ -41,7 +41,7 @@ def skip_if_no_ne(engine='numexpr'):
 
 class TestCompat(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame({'A': [1, 2, 3]})
         self.expected1 = self.df[self.df.A > 0]
         self.expected2 = self.df.A + 1
@@ -401,15 +401,15 @@ class TestDataFrameQueryWithMultiIndex(tm.TestCase):
 class TestDataFrameQueryNumExprPandas(tm.TestCase):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestDataFrameQueryNumExprPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestDataFrameQueryNumExprPandas, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         tm.skip_if_no_ne(cls.engine)
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestDataFrameQueryNumExprPandas, cls).tearDownClass()
+    def teardown_class(cls):
+        super(TestDataFrameQueryNumExprPandas, cls).teardown_class()
         del cls.engine, cls.parser
 
     def test_date_query_with_attribute_access(self):
@@ -733,8 +733,8 @@ class TestDataFrameQueryNumExprPandas(tm.TestCase):
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestDataFrameQueryNumExprPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestDataFrameQueryNumExprPython, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         tm.skip_if_no_ne(cls.engine)
@@ -834,8 +834,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestDataFrameQueryPythonPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestDataFrameQueryPythonPandas, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.frame = TestData().frame
@@ -855,8 +855,8 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
 class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestDataFrameQueryPythonPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestDataFrameQueryPythonPython, cls).setup_class()
         cls.engine = cls.parser = 'python'
         cls.frame = TestData().frame
 
@@ -1092,16 +1092,16 @@ class TestDataFrameQueryStrings(tm.TestCase):
 class TestDataFrameEvalNumExprPandas(tm.TestCase):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestDataFrameEvalNumExprPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestDataFrameEvalNumExprPandas, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         tm.skip_if_no_ne()
 
-    def setUp(self):
+    def setup_method(self, method):
         self.frame = DataFrame(randn(10, 3), columns=list('abc'))
 
-    def tearDown(self):
+    def teardown_method(self, method):
         del self.frame
 
     def test_simple_expr(self):
@@ -1129,8 +1129,8 @@ class TestDataFrameEvalNumExprPandas(tm.TestCase):
 class TestDataFrameEvalNumExprPython(TestDataFrameEvalNumExprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestDataFrameEvalNumExprPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestDataFrameEvalNumExprPython, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         tm.skip_if_no_ne(cls.engine)
@@ -1139,8 +1139,8 @@ class TestDataFrameEvalNumExprPython(TestDataFrameEvalNumExprPandas):
 class TestDataFrameEvalPythonPandas(TestDataFrameEvalNumExprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestDataFrameEvalPythonPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestDataFrameEvalPythonPandas, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -1148,6 +1148,6 @@ class TestDataFrameEvalPythonPandas(TestDataFrameEvalNumExprPandas):
 class TestDataFrameEvalPythonPython(TestDataFrameEvalNumExprPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestDataFrameEvalPythonPython, cls).tearDownClass()
+    def setup_class(cls):
+        super(TestDataFrameEvalPythonPython, cls).teardown_class()
         cls.engine = cls.parser = 'python'

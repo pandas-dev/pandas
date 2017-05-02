@@ -11,7 +11,7 @@ import pandas.util.testing as tm
 
 class TestHashing(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame(
             {'i32': np.array([1, 2, 3] * 3, dtype='int32'),
              'f32': np.array([None, 2.5, 3.5] * 3, dtype='float32'),

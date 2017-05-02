@@ -17,7 +17,7 @@ from pandas.tseries.util import pivot_annual, isleapyear
 
 class TestPivotTable(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
                                      'bar', 'bar', 'bar', 'bar',
                                      'foo', 'foo', 'foo'],
@@ -984,7 +984,7 @@ class TestPivotTable(tm.TestCase):
 
 class TestCrosstab(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
                               'bar', 'bar', 'bar', 'bar',
                               'foo', 'foo', 'foo'],

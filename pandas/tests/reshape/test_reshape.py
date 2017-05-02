@@ -19,7 +19,7 @@ from pandas.compat import range, u
 
 class TestMelt(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = tm.makeTimeDataFrame()[:10]
         self.df['id1'] = (self.df['A'] > 0).astype(np.int64)
         self.df['id2'] = (self.df['B'] > 0).astype(np.int64)
@@ -220,7 +220,7 @@ class TestGetDummies(tm.TestCase):
 
     sparse = False
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame({'A': ['a', 'b', 'a'],
                              'B': ['b', 'b', 'c'],
                              'C': [1, 2, 3]})

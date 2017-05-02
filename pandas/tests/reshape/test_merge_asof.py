@@ -23,7 +23,7 @@ class TestAsOfMerge(tm.TestCase):
         x.time = to_datetime(x.time)
         return x
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.trades = self.read_data('trades.csv')
         self.quotes = self.read_data('quotes.csv', dedupe=True)

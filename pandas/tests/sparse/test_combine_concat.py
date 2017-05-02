@@ -124,7 +124,7 @@ class TestSparseSeriesConcat(tm.TestCase):
 
 class TestSparseDataFrameConcat(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.dense1 = pd.DataFrame({'A': [0., 1., 2., np.nan],
                                     'B': [0., 0., 0., 0.],

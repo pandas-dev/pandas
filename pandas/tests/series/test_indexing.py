@@ -2254,7 +2254,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
 
 class TestTimeSeriesDuplicates(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         dates = [datetime(2000, 1, 2), datetime(2000, 1, 2),
                  datetime(2000, 1, 2), datetime(2000, 1, 3),
                  datetime(2000, 1, 3), datetime(2000, 1, 3),
@@ -2499,7 +2499,7 @@ class TestDatetimeIndexing(tm.TestCase):
     Also test support for datetime64[ns] in Series / DataFrame
     """
 
-    def setUp(self):
+    def setup_method(self, method):
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
                             end=datetime(2005, 1, 10), freq='Min')
         self.series = Series(np.random.rand(len(dti)), dti)
@@ -2640,7 +2640,7 @@ class TestDatetimeIndexing(tm.TestCase):
 
 class TestNatIndexing(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(date_range('1/1/2000', periods=10))
 
     # ---------------------------------------------------------------------

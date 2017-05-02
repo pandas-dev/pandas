@@ -52,7 +52,7 @@ fixed_off_no_name = FixedOffset(-330, None)
 
 class TestTimeZoneSupportPytz(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         tm._skip_if_no_pytz()
 
     def tz(self, tz):
@@ -944,7 +944,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
 class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
-    def setUp(self):
+    def setup_method(self, method):
         tm._skip_if_no_dateutil()
 
     def tz(self, tz):
@@ -1197,7 +1197,7 @@ class TestTimeZoneCacheKey(tm.TestCase):
 class TestTimeZones(tm.TestCase):
     timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
 
-    def setUp(self):
+    def setup_method(self, method):
         tm._skip_if_no_pytz()
 
     def test_replace(self):

@@ -44,7 +44,7 @@ def _ok_for_gaussian_kde(kind):
 @tm.mplskip
 class TestPlotBase(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         import matplotlib as mpl
         mpl.rcdefaults()
@@ -95,7 +95,7 @@ class TestPlotBase(tm.TestCase):
                                     "C": np.arange(20) + np.random.uniform(
                                         size=20)})
 
-    def tearDown(self):
+    def teardown_method(self, method):
         tm.close()
 
     @cache_readonly

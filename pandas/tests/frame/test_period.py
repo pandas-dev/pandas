@@ -14,7 +14,7 @@ def _permute(obj):
 
 class TestPeriodIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_as_frame_columns(self):

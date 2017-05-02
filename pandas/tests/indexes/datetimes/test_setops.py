@@ -201,7 +201,7 @@ class TestDatetimeIndex(tm.TestCase):
 
 class TestBusinessDatetimeIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = bdate_range(START, END)
 
     def test_union(self):
@@ -345,7 +345,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
 
 class TestCustomDatetimeIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = cdate_range(START, END)
 
     def test_union(self):

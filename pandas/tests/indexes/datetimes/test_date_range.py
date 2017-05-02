@@ -198,7 +198,7 @@ class TestGenRangeGeneration(tm.TestCase):
 
 class TestBusinessDateRange(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = bdate_range(START, END)
 
     def test_constructor(self):
@@ -483,7 +483,7 @@ class TestBusinessDateRange(tm.TestCase):
 
 
 class TestCustomDateRange(tm.TestCase):
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = cdate_range(START, END)
 
     def test_constructor(self):

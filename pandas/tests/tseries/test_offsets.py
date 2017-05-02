@@ -167,7 +167,7 @@ class Base(tm.TestCase):
 
 class TestCommon(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         # exected value created by Base._get_offset
         # are applied to 2011/01/01 09:00 (Saturday)
         # used for .apply and .rollforward
@@ -507,7 +507,7 @@ class TestCommon(Base):
 
 class TestDateOffset(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.d = Timestamp(datetime(2008, 1, 2))
         _offset_map.clear()
 
@@ -547,7 +547,7 @@ class TestDateOffset(Base):
 class TestBusinessDay(Base):
     _offset = BDay
 
-    def setUp(self):
+    def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
 
         self.offset = BDay()
@@ -724,7 +724,7 @@ class TestBusinessDay(Base):
 class TestBusinessHour(Base):
     _offset = BusinessHour
 
-    def setUp(self):
+    def setup_method(self, method):
         self.d = datetime(2014, 7, 1, 10, 00)
 
         self.offset1 = BusinessHour()
@@ -1418,7 +1418,7 @@ class TestBusinessHour(Base):
 class TestCustomBusinessHour(Base):
     _offset = CustomBusinessHour
 
-    def setUp(self):
+    def setup_method(self, method):
         # 2014 Calendar to check custom holidays
         #   Sun Mon Tue Wed Thu Fri Sat
         #  6/22  23  24  25  26  27  28
@@ -1674,7 +1674,7 @@ class TestCustomBusinessHour(Base):
 class TestCustomBusinessDay(Base):
     _offset = CDay
 
-    def setUp(self):
+    def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
         self.nd = np_datetime64_compat('2008-01-01 00:00:00Z')
 
@@ -1910,7 +1910,7 @@ class TestCustomBusinessDay(Base):
 
 class CustomBusinessMonthBase(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
 
         self.offset = self._object()
@@ -4612,7 +4612,7 @@ def test_quarterly_dont_normalize():
 
 class TestOffsetAliases(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         _offset_map.clear()
 
     def test_alias_equality(self):
@@ -4696,7 +4696,7 @@ class TestCaching(tm.TestCase):
     # as of GH 6479 (in 0.14.0), offset caching is turned off
     # as of v0.12.0 only BusinessMonth/Quarter were actually caching
 
-    def setUp(self):
+    def setup_method(self, method):
         _daterange_cache.clear()
         _offset_map.clear()
 

@@ -10,7 +10,7 @@ from pandas import (Series, period_range, DatetimeIndex, PeriodIndex,
 
 class TestPeriodIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_slice_with_negative_step(self):

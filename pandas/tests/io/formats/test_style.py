@@ -14,7 +14,7 @@ from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
 
 class TestStyler(TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         np.random.seed(24)
         self.s = DataFrame({'A': np.random.permutation(range(6))})
         self.df = DataFrame({'A': [0, 1], 'B': np.random.randn(2)})

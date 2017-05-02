@@ -18,7 +18,7 @@ use_bn = nanops._USE_BOTTLENECK
 
 class TestnanopsDataFrame(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         np.random.seed(11235)
         nanops._USE_BOTTLENECK = False
 
@@ -118,7 +118,7 @@ class TestnanopsDataFrame(tm.TestCase):
         self.arr_float_nan_inf_1d = self.arr_float_nan_inf[:, 0, 0]
         self.arr_nan_nan_inf_1d = self.arr_nan_nan_inf[:, 0, 0]
 
-    def tearDown(self):
+    def teardown_method(self, method):
         nanops._USE_BOTTLENECK = use_bn
 
     def check_results(self, targ, res, axis, check_dtype=True):
@@ -786,7 +786,7 @@ class TestNanvarFixedValues(tm.TestCase):
 
     # xref GH10242
 
-    def setUp(self):
+    def setup_method(self, method):
         # Samples from a normal distribution.
         self.variance = variance = 3.0
         self.samples = self.prng.normal(scale=variance ** 0.5, size=100000)
@@ -899,7 +899,7 @@ class TestNanskewFixedValues(tm.TestCase):
 
     # xref GH 11974
 
-    def setUp(self):
+    def setup_method(self, method):
         # Test data + skewness value (computed with scipy.stats.skew)
         self.samples = np.sin(np.linspace(0, 1, 200))
         self.actual_skew = -0.1875895205961754
@@ -949,7 +949,7 @@ class TestNankurtFixedValues(tm.TestCase):
 
     # xref GH 11974
 
-    def setUp(self):
+    def setup_method(self, method):
         # Test data + kurtosis value (computed with scipy.stats.kurtosis)
         self.samples = np.sin(np.linspace(0, 1, 200))
         self.actual_kurt = -1.2058303433799713

@@ -11,7 +11,7 @@ import pandas.util.testing as tm
 
 class TestPanelnd(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_4d_construction(self):

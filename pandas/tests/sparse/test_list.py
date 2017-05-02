@@ -10,7 +10,7 @@ import pandas.util.testing as tm
 
 class TestSparseList(unittest.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.na_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
         self.zero_data = np.array([0, 0, 1, 2, 3, 0, 4, 5, 0, 6])
 

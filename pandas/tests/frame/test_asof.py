@@ -10,7 +10,7 @@ from .common import TestData
 
 
 class TestFrameAsof(TestData, tm.TestCase):
-    def setUp(self):
+    def setup_method(self, method):
         self.N = N = 50
         self.rng = date_range('1/1/1990', periods=N, freq='53s')
         self.df = DataFrame({'A': np.arange(N), 'B': np.arange(N)},

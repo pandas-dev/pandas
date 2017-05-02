@@ -21,8 +21,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
 @tm.mplskip
 class TestSeriesPlots(TestPlotBase):
 
-    def setUp(self):
-        TestPlotBase.setUp(self)
+    def setup_method(self, method):
+        TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
         mpl.rcdefaults()
 

@@ -8,7 +8,7 @@ from numpy import nan
 
 class TestOrderedMerge(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.left = DataFrame({'key': ['a', 'c', 'e'],
                                'lvalue': [1, 2., 3]})
 

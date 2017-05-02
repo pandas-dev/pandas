@@ -22,7 +22,7 @@ if PY3:
 class TestCategoricalIndex(Base, tm.TestCase):
     _holder = CategoricalIndex
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(catIndex=tm.makeCategoricalIndex(100))
         self.setup_indices()
 

@@ -24,8 +24,8 @@ from pandas.tests.plotting.common import (TestPlotBase,
 @tm.mplskip
 class TestTSPlot(TestPlotBase):
 
-    def setUp(self):
-        TestPlotBase.setUp(self)
+    def setup_method(self, method):
+        TestPlotBase.setup_method(self, method)
 
         freq = ['S', 'T', 'H', 'D', 'W', 'M', 'Q', 'A']
         idx = [period_range('12/31/1999', freq=x, periods=100) for x in freq]
@@ -41,7 +41,7 @@ class TestTSPlot(TestPlotBase):
                                       columns=['A', 'B', 'C'])
                             for x in idx]
 
-    def tearDown(self):
+    def teardown_method(self, method):
         tm.close()
 
     @slow
