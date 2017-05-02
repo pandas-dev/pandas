@@ -573,7 +573,7 @@ cdef class StringHashTable(HashTable):
         # uniques
         uniques = ObjectVector()
         for i in range(count):
-            uniques.append(values[uindexer[i]])
+            uniques.append(values[uindexer[i]], refcheck=False)
         return uniques.to_array(refcheck=False)
 
     def factorize(self, ndarray[object] values):
@@ -657,7 +657,6 @@ cdef class StringHashTable(HashTable):
             char **vecs
             khiter_t k
 
-        # refcheck ignored, for compatibility only
 
         # these by-definition *must* be strings
         labels = np.zeros(n, dtype=np.int64)
@@ -697,7 +696,7 @@ cdef class StringHashTable(HashTable):
 
         # uniques
         for i in range(count):
-            uniques.append(values[uindexer[i]])
+            uniques.append(values[uindexer[i]], refcheck=refcheck)
 
         return np.asarray(labels)
 
@@ -811,10 +810,10 @@ cdef class PyObjectHashTable(HashTable):
                 k = kh_get_pymap(self.table, <PyObject*>val)
                 if k == self.table.n_buckets:
                     kh_put_pymap(self.table, <PyObject*>val, &ret)
-                    uniques.append(val)
+                    uniques.append(val, refcheck=False)
             elif not seen_na:
                 seen_na = 1
-                uniques.append(nan)
+                uniques.append(nan, refcheck=False)
 
         return uniques.to_array(refcheck=False)
 
@@ -828,8 +827,6 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
-
-        # refcheck ignored, for compatibility only
 
         labels = np.empty(n, dtype=np.int64)
 
@@ -848,7 +845,7 @@ cdef class PyObjectHashTable(HashTable):
             else:
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
                 self.table.vals[k] = count
-                uniques.append(val)
+                uniques.append(val, refcheck=refcheck)
                 labels[i] = count
                 count += 1
 

@@ -65,13 +65,14 @@ cdef class Factorizer:
         array([ 0,  1, 20])
         """
         labels = self.table.get_labels(values, self.uniques,
-                                       self.count, na_sentinel, check_null)
+                                       self.count, na_sentinel, 
+                                       check_null, refcheck=False)
         mask = (labels == na_sentinel)
         # sort on
         if sort:
             if labels.dtype != np.intp:
                 labels = labels.astype(np.intp)
-            sorter = self.uniques.to_array().argsort()
+            sorter = self.uniques.to_array(refcheck=False).argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.intp)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
             labels = reverse_indexer.take(labels, mode='clip')

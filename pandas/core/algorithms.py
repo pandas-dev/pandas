@@ -551,7 +551,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     table = hash_klass(size_hint or len(values))
     uniques = vec_klass()
     check_nulls = not is_integer_dtype(original)
-    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls, refcheck=False)
+    labels = table.get_labels(values, uniques, 0, na_sentinel,
+                              check_nulls, refcheck=False)
 
     labels = _ensure_platform_int(labels)
     uniques = uniques.to_array(refcheck=False)

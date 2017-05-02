@@ -1069,8 +1069,8 @@ class TestHashTable(tm.TestCase):
             # get_labels appends to the vector
             htable.get_labels(vals[:nvals], uniques, 0, -1)
             # to_array resizes the vector
-            uniques.to_array()
-            htable.get_labels(vals, uniques, 0, -1)
+            uniques.to_array(refcheck=False)
+            htable.get_labels(vals, uniques, 0, -1, refcheck=False)
 
         test_cases = [
             (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
