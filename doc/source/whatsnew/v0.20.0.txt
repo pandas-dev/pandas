@@ -9,7 +9,7 @@ users upgrade to this version.
 
 Highlights include:
 
-- new ``.agg()`` API for Series/DataFrame similar to the groupby-rolling-resample API's, see :ref:`here <whatsnew_0200.enhancements.agg>`
+- New ``.agg()`` API for Series/DataFrame similar to the groupby-rolling-resample API's, see :ref:`here <whatsnew_0200.enhancements.agg>`
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
 - ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
@@ -45,8 +45,8 @@ New features
 ^^^^^^^^^^^
 
 Series & DataFrame have been enhanced to support the aggregation API. This is an already familiar API that
-is supported for groupby, window operations, and resampling. This allows one to express, possibly multiple,
-aggregation operations in a single concise way by using :meth:`~DataFrame.agg`,
+is supported for groupby, window operations, and resampling. This allows one to express aggregation operations
+in a single concise way by using :meth:`~DataFrame.agg`,
 and :meth:`~DataFrame.transform`. The full documentation is :ref:`here <basics.aggregate>` (:issue:`1623`).
 
 Here is a sample
