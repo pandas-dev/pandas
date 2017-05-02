@@ -176,8 +176,6 @@ class TestTableSchemaRepr(tm.TestCase):
 
         expected = {'text/plain', 'text/html'}
         assert set(formatted[0].keys()) == expected
-        assert "orient='table' is not supported for MultiIndex" in (
-            record[-1].message.args[0])
 
     def test_config_on(self):
         df = pd.DataFrame({"A": [1, 2]})
@@ -205,7 +203,7 @@ class TestTableSchemaRepr(tm.TestCase):
         with pd.option_context('display.html.table_schema', True):
             assert 'application/vnd.dataresource+json' in formatters
             assert formatters[mimetype].enabled
-        
+
         # still there, just disabled
         assert 'application/vnd.dataresource+json' in formatters
         assert not formatters[mimetype].enabled

@@ -6278,8 +6278,6 @@ def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f):
     return set_function_name(logical_func, name, cls)
 
 
-
-
 # install the indexes
 for _name, _indexer in indexing.get_indexers_list():
     NDFrame._create_indexer(_name, _indexer)
