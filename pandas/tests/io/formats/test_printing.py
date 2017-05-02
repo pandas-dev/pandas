@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 
 from pandas import compat
-from pandas.errors import UnserializableWarning
 import pandas.io.formats.printing as printing
 import pandas.io.formats.format as fmt
 import pandas.util.testing as tm
@@ -137,8 +136,11 @@ class TestTableSchemaRepr(tm.TestCase):
             except ImportError:
                 pytest.skip("Mock is not installed")
         cls.mock = mock
+        from IPython.core.interactiveshell import InteractiveShell
+        cls.display_formatter = InteractiveShell.instance().display_formatter
 
     def test_publishes(self):
+
         df = pd.DataFrame({"A": [1, 2]})
         objects = [df['A'], df, df]  # dataframe / series
         expected_keys = [
@@ -146,29 +148,20 @@ class TestTableSchemaRepr(tm.TestCase):
             {'text/plain', 'text/html', 'application/vnd.dataresource+json'},
         ]
 
-        make_patch = self.mock.patch('IPython.display.display')
         opt = pd.option_context('display.html.table_schema', True)
         for obj, expected in zip(objects, expected_keys):
-            with opt, make_patch as mock_display:
-                handle = obj._ipython_display_()
-                assert mock_display.call_count == 1
-                assert handle is None
-                args, kwargs = mock_display.call_args
-                arg, = args  # just one argument
-
-            assert kwargs == {"raw": True}
-            assert set(arg.keys()) == expected
+            with opt:
+                formatted = self.display_formatter.format(obj)
+            assert set(formatted[0].keys()) == expected
 
         with_latex = pd.option_context('display.latex.repr', True)
 
-        with opt, with_latex, make_patch as mock_display:
-            handle = obj._ipython_display_()
-            args, kwargs = mock_display.call_args
-            arg, = args
+        with opt, with_latex:
+            formatted = self.display_formatter.format(obj)
 
         expected = {'text/plain', 'text/html', 'text/latex',
                     'application/vnd.dataresource+json'}
-        assert set(arg.keys()) == expected
+        assert set(formatted[0].keys()) == expected
 
     def test_publishes_not_implemented(self):
         # column MultiIndex
@@ -176,18 +169,13 @@ class TestTableSchemaRepr(tm.TestCase):
         midx = pd.MultiIndex.from_product([['A', 'B'], ['a', 'b', 'c']])
         df = pd.DataFrame(np.random.randn(5, len(midx)), columns=midx)
 
-        make_patch = self.mock.patch('IPython.display.display')
         opt = pd.option_context('display.html.table_schema', True)
-        with opt, make_patch as mock_display:
-            with pytest.warns(UnserializableWarning) as record:
-                df._ipython_display_()
-                args, _ = mock_display.call_args
-                arg, = args  # just one argument
+
+        with opt:
+            formatted = self.display_formatter.format(df)
 
         expected = {'text/plain', 'text/html'}
-        assert set(arg.keys()) == expected
-        assert "orient='table' is not supported for MultiIndex" in (
-            record[-1].message.args[0])
+        assert set(formatted[0].keys()) == expected
 
     def test_config_on(self):
         df = pd.DataFrame({"A": [1, 2]})
@@ -209,26 +197,23 @@ class TestTableSchemaRepr(tm.TestCase):
         assert not hasattr(df, '_ipython_display_')
         assert not hasattr(df['A'], '_ipython_display_')
 
-        with pd.option_context('display.html.table_schema', True):
-            assert hasattr(df, '_ipython_display_')
-            # smoke test that it works
-            df._ipython_display_()
-            assert hasattr(df['A'], '_ipython_display_')
-            df['A']._ipython_display_()
+        formatters = self.display_formatter.formatters
+        mimetype = 'application/vnd.dataresource+json'
 
-        assert not hasattr(df, '_ipython_display_')
-        assert not hasattr(df['A'], '_ipython_display_')
-        # re-unsetting is OK
-        assert not hasattr(df, '_ipython_display_')
-        assert not hasattr(df['A'], '_ipython_display_')
+        with pd.option_context('display.html.table_schema', True):
+            assert 'application/vnd.dataresource+json' in formatters
+            assert formatters[mimetype].enabled
+
+        # still there, just disabled
+        assert 'application/vnd.dataresource+json' in formatters
+        assert not formatters[mimetype].enabled
 
         # able to re-set
         with pd.option_context('display.html.table_schema', True):
-            assert hasattr(df, '_ipython_display_')
+            assert 'application/vnd.dataresource+json' in formatters
+            assert formatters[mimetype].enabled
             # smoke test that it works
-            df._ipython_display_()
-            assert hasattr(df['A'], '_ipython_display_')
-            df['A']._ipython_display_()
+            self.display_formatter.format(cf)
 
 
 # TODO: fix this broken test

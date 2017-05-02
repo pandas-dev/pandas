@@ -9,6 +9,7 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
+import sys
 import warnings
 
 import pandas.core.config as cf
@@ -341,18 +342,36 @@ def mpl_style_cb(key):
 
 
 def table_schema_cb(key):
-    # Having _ipython_display_ defined messes with the return value
-    # from cells, so the Out[x] dictionary breaks.
-    # Currently table schema is the only thing using it, so we'll
-    # monkey patch `_ipython_display_` onto NDFrame when config option
-    # is set
-    # see https://github.com/pandas-dev/pandas/issues/16168
-    from pandas.core.generic import NDFrame, _ipython_display_
+    # first, check if we are in IPython
+    if 'IPython' not in sys.modules:
+        # definitely not in IPython
+        return
+    from IPython import get_ipython
+    ip = get_ipython()
+    if ip is None:
+        # still not in IPython
+        return
+
+    formatters = ip.display_formatter.formatters
+
+    mimetype = "application/vnd.dataresource+json"
 
     if cf.get_option(key):
-        NDFrame._ipython_display_ = _ipython_display_
-    elif getattr(NDFrame, '_ipython_display_', None):
-        del NDFrame._ipython_display_
+        if mimetype not in formatters:
+            # define tableschema formatter
+            from IPython.core.formatters import BaseFormatter
+
+            class TableSchemaFormatter(BaseFormatter):
+                print_method = '_repr_table_schema_'
+                _return_type = (dict,)
+            # register it:
+            formatters[mimetype] = TableSchemaFormatter()
+        # enable it if it's been disabled:
+        formatters[mimetype].enabled = True
+    else:
+        # unregister tableschema mime-type
+        if mimetype in formatters:
+            formatters[mimetype].enabled = False
 
 
 with cf.config_prefix('display'):
