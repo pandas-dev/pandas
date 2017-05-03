@@ -1106,6 +1106,7 @@ class TestMoments(Base):
             self._check_moment_func(f, alt, name='quantile', quantile=q)
 
     def test_rolling_quantile_np_percentile(self):
+        # #9431
         row = 10
         col = 5
         idx = pd.date_range(20100101, periods=row, freq='B')
