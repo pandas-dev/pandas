@@ -1109,13 +1109,14 @@ class TestMoments(Base):
         row = 10
         col = 5
         idx = pd.date_range(20100101, periods=row, freq='B')
-        df = pd.DataFrame(np.random.rand(row*col).reshape((row, -1)), index=idx)
+        df = pd.DataFrame(np.random.rand(row * col).reshape((row, -1)),
+                          index=idx)
 
         df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)
         np_percentile = np.percentile(df, [25, 50, 75], axis=0)
 
         tm.assert_almost_equal(df_quantile.values, np_percentile)
-            
+
     def test_rolling_quantile_param(self):
         ser = Series([0.0, .1, .5, .9, 1.0])
 
@@ -1127,7 +1128,7 @@ class TestMoments(Base):
 
         with pytest.raises(TypeError):
             ser.rolling(3).quantile('foo')
-            
+
     def test_rolling_apply(self):
         # suppress warnings about empty slices, as we are deliberately testing
         # with a 0-length Series
