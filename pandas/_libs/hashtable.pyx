@@ -5,12 +5,12 @@ from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 from khash cimport *
 from numpy cimport *
 
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport malloc, free, realloc
 from cpython cimport (PyMem_Malloc, PyMem_Realloc, PyMem_Free,
                       PyString_Check, PyBytes_Check,
                       PyUnicode_Check)
 
-from util cimport _checknan
+from util cimport _checknan, set_array_owndata
 cimport util
 
 import numpy as np
