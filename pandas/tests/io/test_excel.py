@@ -2517,7 +2517,9 @@ def test_styler_to_excel_no_cssdecl(engine, styled_dataframe):
     try:
         import cssdecl  # noqa
     except ImportError:
-        pass
+        with pytest.raises(ImportError) as rec:
+            pd.DataFrame({"A": [1, 2]}).style.to_excel(engine)
+        assert rec.match("not installed")
     else:
         pytest.skip('Test only run if cssdecl not installed')
 
@@ -2565,16 +2567,3 @@ def test_styler_to_excel_no_cssdecl(engine, styled_dataframe):
                 n_cells += 1
 
         assert n_cells == (10 + 1) * (3 + 1)
-
-
-def test_no_cssdecl_raises():
-    pytest.importorskip("openpyxl")
-    try:
-        import cssdecl  # noqa
-    except ImportError:
-        with pytest.raises(ImportError) as rec:
-            pd.DataFrame({"A": [1, 2]}).style.to_excel("openpyxl")
-
-        assert 'not installed' in rec.value.msg
-    else:
-        pytest.skip("cssdecl is installed.")
