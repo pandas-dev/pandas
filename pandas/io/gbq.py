@@ -200,6 +200,8 @@ class GbqConnector(object):
 
         try:
             credentials = GoogleCredentials.get_application_default()
+            credentials = credentials.create_scoped(
+                'https://www.googleapis.com/auth/bigquery')
         except:
             return None
 
