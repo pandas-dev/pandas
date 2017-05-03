@@ -1079,7 +1079,18 @@ class TestMoments(Base):
             values = np.sort(a, axis=0)
 
             idx = per / 1. * (values.shape[0] - 1)
-            return values[int(idx)]
+
+            if idx == values.shape[0] - 1:
+                retval = values[-1]
+
+            else:
+                qlow = int(idx) / (values.shape[0] - 1)
+                qhig = (int(idx) + 1) / (values.shape[0] - 1)
+                vlow = values[int(idx)]
+                vhig = values[int(idx + 1)]
+                retval = vlow + (vhig - vlow)*(per - qlow)/(qhig - qlow)
+            
+            return retval
 
         for q in qs:
 
@@ -3514,7 +3525,7 @@ class TestRollingTS(tm.TestCase):
 
         result = df.rolling(window='2s', min_periods=1).quantile(0.5)
         expected = df.copy()
-        expected['B'] = [0.0, 1, 1.0, 3.0, 3.0]
+        expected['B'] = [0.0, 1, 1.5, 3.0, 3.5]
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_std(self):
