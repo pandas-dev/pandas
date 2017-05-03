@@ -1004,6 +1004,7 @@ Transform the entire frame. ``.transform()`` allows input functions as: a numpy 
 function name or a user defined function.
 
 .. ipython:: python
+   :okwarning:
 
    tsdf.transform(np.abs)
    tsdf.transform('abs')
@@ -1055,6 +1056,7 @@ Passing a dict of lists will generate a multi-indexed DataFrame with these
 selective transforms.
 
 .. ipython:: python
+   :okwarning:
 
    tsdf.transform({'A': np.abs, 'B': [lambda x: x+1, 'sqrt']})
 

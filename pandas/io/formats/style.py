@@ -982,7 +982,9 @@ class Styler(object):
         """
         Color the background ``color`` proptional to the values in each column.
         Excludes non-numeric data by default.
+
         .. versionadded:: 0.17.1
+
         Parameters
         ----------
         subset: IndexSlice, default None
