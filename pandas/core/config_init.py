@@ -9,7 +9,6 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather then in the module.
 
 """
-import sys
 import warnings
 
 import pandas.core.config as cf
