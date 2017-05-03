@@ -23,6 +23,9 @@ import pandas.util.testing as tm
 
 class Base(object):
 
+    def setup_method(self, method):
+        self.dtype = self.create()
+
     def test_hash(self):
         hash(self.dtype)
 
@@ -37,14 +40,38 @@ class Base(object):
         assert not np.str_ == self.dtype
 
     def test_pickle(self):
+        # make sure our cache is NOT pickled
+
+        # clear the cache
+        type(self.dtype).reset_cache()
+        assert not len(self.dtype._cache)
+
+        # force back to the cache
         result = tm.round_trip_pickle(self.dtype)
+        assert not len(self.dtype._cache)
         assert result == self.dtype
 
 
-class TestCategoricalDtype(Base, tm.TestCase):
+class TestCategoricalDtype(Base):
 
-    def setUp(self):
-        self.dtype = CategoricalDtype()
+    def create(self):
+        return CategoricalDtype()
+
+    def test_pickle(self):
+        # make sure our cache is NOT pickled
+
+        # clear the cache
+        type(self.dtype).reset_cache()
+        assert not len(self.dtype._cache)
+
+        # force back to the cache
+        result = tm.round_trip_pickle(self.dtype)
+
+        # we are a singular object so we are added
+        # back to the cache upon unpickling
+        # this is to ensure object identity
+        assert len(self.dtype._cache) == 1
+        assert result == self.dtype
 
     def test_hash_vs_equality(self):
         # make sure that we satisfy is semantics
@@ -93,10 +120,10 @@ class TestCategoricalDtype(Base, tm.TestCase):
         assert not is_categorical(1.0)
 
 
-class TestDatetimeTZDtype(Base, tm.TestCase):
+class TestDatetimeTZDtype(Base):
 
-    def setUp(self):
-        self.dtype = DatetimeTZDtype('ns', 'US/Eastern')
+    def create(self):
+        return DatetimeTZDtype('ns', 'US/Eastern')
 
     def test_hash_vs_equality(self):
         # make sure that we satisfy is semantics
@@ -209,10 +236,24 @@ class TestDatetimeTZDtype(Base, tm.TestCase):
             str(dt)
 
 
-class TestPeriodDtype(Base, tm.TestCase):
+class TestPeriodDtype(Base):
 
-    def setUp(self):
-        self.dtype = PeriodDtype('D')
+    def create(self):
+        return PeriodDtype('D')
+
+    def test_hash_vs_equality(self):
+        # make sure that we satisfy is semantics
+        dtype = self.dtype
+        dtype2 = PeriodDtype('D')
+        dtype3 = PeriodDtype(dtype2)
+        assert dtype == dtype2
+        assert dtype2 == dtype
+        assert dtype3 == dtype
+        assert dtype is dtype2
+        assert dtype2 is dtype
+        assert dtype3 is dtype
+        assert hash(dtype) == hash(dtype2)
+        assert hash(dtype) == hash(dtype3)
 
     def test_construction(self):
         with pytest.raises(ValueError):
@@ -338,11 +379,37 @@ class TestPeriodDtype(Base, tm.TestCase):
         assert not is_string_dtype(PeriodDtype('D'))
 
 
-class TestIntervalDtype(Base, tm.TestCase):
+class TestIntervalDtype(Base):
 
-    # TODO: placeholder
-    def setUp(self):
-        self.dtype = IntervalDtype('int64')
+    def create(self):
+        return IntervalDtype('int64')
+
+    def test_hash_vs_equality(self):
+        # make sure that we satisfy is semantics
+        dtype = self.dtype
+        dtype2 = IntervalDtype('int64')
+        dtype3 = IntervalDtype(dtype2)
+        assert dtype == dtype2
+        assert dtype2 == dtype
+        assert dtype3 == dtype
+        assert dtype is dtype2
+        assert dtype2 is dtype
+        assert dtype3 is dtype
+        assert hash(dtype) == hash(dtype2)
+        assert hash(dtype) == hash(dtype3)
+
+        dtype1 = IntervalDtype('interval')
+        dtype2 = IntervalDtype(dtype1)
+        dtype3 = IntervalDtype('interval')
+        assert dtype2 == dtype1
+        assert dtype2 == dtype2
+        assert dtype2 == dtype3
+        assert dtype2 is dtype1
+        assert dtype2 is dtype2
+        assert dtype2 is dtype3
+        assert hash(dtype2) == hash(dtype1)
+        assert hash(dtype2) == hash(dtype2)
+        assert hash(dtype2) == hash(dtype3)
 
     def test_construction(self):
         with pytest.raises(ValueError):
@@ -356,9 +423,9 @@ class TestIntervalDtype(Base, tm.TestCase):
     def test_construction_generic(self):
         # generic
         i = IntervalDtype('interval')
-        assert i.subtype is None
+        assert i.subtype == ''
         assert is_interval_dtype(i)
-        assert str(i) == 'interval'
+        assert str(i) == 'interval[]'
 
         i = IntervalDtype()
         assert i.subtype is None
@@ -445,3 +512,15 @@ class TestIntervalDtype(Base, tm.TestCase):
         assert not is_interval_dtype(np.object_)
         assert not is_interval_dtype(np.int64)
         assert not is_interval_dtype(np.float64)
+
+    def test_caching(self):
+        IntervalDtype.reset_cache()
+        dtype = IntervalDtype("int64")
+        assert len(IntervalDtype._cache) == 1
+
+        IntervalDtype("interval")
+        assert len(IntervalDtype._cache) == 2
+
+        IntervalDtype.reset_cache()
+        tm.round_trip_pickle(dtype)
+        assert len(IntervalDtype._cache) == 0
