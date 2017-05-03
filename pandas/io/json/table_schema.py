@@ -76,7 +76,11 @@ def set_default_names(data):
 
 def make_field(arr, dtype=None):
     dtype = dtype or arr.dtype
-    field = {'name': arr.name or 'values',
+    if arr.name is None:
+        name = 'values'
+    else:
+        name = arr.name
+    field = {'name': name,
              'type': as_json_table_type(dtype)}
 
     if is_categorical_dtype(arr):
