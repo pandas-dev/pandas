@@ -342,36 +342,8 @@ def mpl_style_cb(key):
 
 
 def table_schema_cb(key):
-    # first, check if we are in IPython
-    if 'IPython' not in sys.modules:
-        # definitely not in IPython
-        return
-    from IPython import get_ipython
-    ip = get_ipython()
-    if ip is None:
-        # still not in IPython
-        return
-
-    formatters = ip.display_formatter.formatters
-
-    mimetype = "application/vnd.dataresource+json"
-
-    if cf.get_option(key):
-        if mimetype not in formatters:
-            # define tableschema formatter
-            from IPython.core.formatters import BaseFormatter
-
-            class TableSchemaFormatter(BaseFormatter):
-                print_method = '_repr_data_resource_'
-                _return_type = (dict,)
-            # register it:
-            formatters[mimetype] = TableSchemaFormatter()
-        # enable it if it's been disabled:
-        formatters[mimetype].enabled = True
-    else:
-        # unregister tableschema mime-type
-        if mimetype in formatters:
-            formatters[mimetype].enabled = False
+    from pandas.io.formats.printing import _enable_data_resource_formatter
+    _enable_data_resource_formatter(cf.get_option(key))
 
 
 with cf.config_prefix('display'):

@@ -191,12 +191,8 @@ class TestTableSchemaRepr(tm.TestCase):
 
         assert result is None
 
-    def test_config_monkeypatches(self):
+    def test_enable_data_resource_formatter(self):
         # GH 10491
-        df = pd.DataFrame({"A": [1, 2]})
-        assert not hasattr(df, '_ipython_display_')
-        assert not hasattr(df['A'], '_ipython_display_')
-
         formatters = self.display_formatter.formatters
         mimetype = 'application/vnd.dataresource+json'
 
