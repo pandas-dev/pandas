@@ -24,6 +24,7 @@ class ExtensionDtype(object):
     isbuiltin = 0
     isnative = 0
     _metadata = []
+    _cache = {}
 
     def __unicode__(self):
         return self.name
@@ -71,6 +72,15 @@ class ExtensionDtype(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __getstate__(self):
+        # pickle support; we don't want to pickle the cache
+        return {k: getattr(self, k, None) for k in self._metadata}
+
+    @classmethod
+    def reset_cache(cls):
+        """ clear the cache """
+        cls._cache = {}
+
     @classmethod
     def is_dtype(cls, dtype):
         """ Return a boolean if the passed type is an actual dtype that
@@ -110,6 +120,7 @@ class CategoricalDtype(ExtensionDtype):
     kind = 'O'
     str = '|O08'
     base = np.dtype('O')
+    _metadata = []
     _cache = {}
 
     def __new__(cls):
@@ -408,9 +419,15 @@ class IntervalDtype(ExtensionDtype):
 
         if isinstance(subtype, IntervalDtype):
             return subtype
-        elif subtype is None or (isinstance(subtype, compat.string_types) and
-                                 subtype == 'interval'):
-            subtype = None
+        elif subtype is None:
+            # we are called as an empty constructor
+            # generally for pickle compat
+            u = object.__new__(cls)
+            u.subtype = None
+            return u
+        elif (isinstance(subtype, compat.string_types) and
+              subtype == 'interval'):
+            subtype = ''
         else:
             if isinstance(subtype, compat.string_types):
                 m = cls._match.search(subtype)
@@ -422,6 +439,11 @@ class IntervalDtype(ExtensionDtype):
                 subtype = pandas_dtype(subtype)
             except TypeError:
                 raise ValueError("could not construct IntervalDtype")
+
+        if subtype is None:
+            u = object.__new__(cls)
+            u.subtype = None
+            return u
 
         try:
             return cls._cache[str(subtype)]
