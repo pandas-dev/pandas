@@ -1114,9 +1114,6 @@ class TestMoments(Base):
         df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)
         np_percentile = np.percentile(df, [25, 50, 75], axis=0)
 
-        print(np_percentile)
-        print(df_quantile.values)
-
         tm.assert_almost_equal(df_quantile.values, np_percentile)
             
     def test_rolling_quantile_param(self):
