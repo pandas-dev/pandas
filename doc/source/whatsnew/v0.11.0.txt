@@ -40,7 +40,7 @@ three types of multi-axis indexing.
   - A slice object with ints ``1:7``
   - A boolean array
 
-  See more at Selection by Position indexing.integer
+  See more at :ref:`Selection by Position <indexing.integer>`
 
 - ``.ix`` supports mixed integer and label based access. It is primarily label based, but will fallback to integer positional access. ``.ix`` is the most general and will support
   any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes. ``.ix`` is especially useful when dealing with mixed positional and label
@@ -50,7 +50,7 @@ three types of multi-axis indexing.
   is interpreted as position based or label based, it's usually better to be
   explicit and use ``.iloc`` or ``.loc``.
 
-  See more at Advanced Indexing and :ref:`Advanced Hierarchical <advanced.advanced_hierarchical>`.
+  See more at :ref:`Advanced Indexing <advanced>` and :ref:`Advanced Hierarchical <advanced.advanced_hierarchical>`.
 
 
 Selection Deprecations
