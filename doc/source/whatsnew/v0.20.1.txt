@@ -78,7 +78,7 @@ Reshaping
 Numeric
 ^^^^^^^
 
-
+- Bug in ``.rolling.quantile()`` which incorrectly used different defaults than Series.quantile() and DataFrame.quantile()
 
 
 Other
