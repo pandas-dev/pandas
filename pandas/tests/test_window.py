@@ -1118,6 +1118,15 @@ class TestMoments(Base):
 
         tm.assert_almost_equal(df_quantile.values, np_percentile)
 
+    def test_rolling_quantile_series(self):
+        # #16211
+        arr = np.arange(100)
+        s = pd.Series(arr)
+        q1 = s.quantile(0.1)
+        q2 = s.rolling(100).quantile(0.1).iloc[-1]
+
+        tm.assert_almost_equal(q1, q2)
+
     def test_rolling_quantile_param(self):
         ser = Series([0.0, .1, .5, .9, 1.0])
 
