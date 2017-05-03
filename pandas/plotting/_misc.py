@@ -536,7 +536,7 @@ def parallel_sets(frame, class_column, color=None, colormap=None, **kwds):
     parsets = _ParSets(color, colormap)
     return parsets.par_sets(frame, class_column)
 
-class _ParSets():
+class _ParSets(object):
   def __init__(self, color=None, colormap=None):
     """
     Objects needed for test
