@@ -180,23 +180,19 @@ class TestTableSchemaRepr(tm.TestCase):
     def test_config_on(self):
         df = pd.DataFrame({"A": [1, 2]})
         with pd.option_context("display.html.table_schema", True):
-            result = df._repr_table_schema_()
+            result = df._repr_data_resource_()
 
         assert result is not None
 
     def test_config_default_off(self):
         df = pd.DataFrame({"A": [1, 2]})
         with pd.option_context("display.html.table_schema", False):
-            result = df._repr_table_schema_()
+            result = df._repr_data_resource_()
 
         assert result is None
 
-    def test_config_monkeypatches(self):
+    def test_enable_data_resource_formatter(self):
         # GH 10491
-        df = pd.DataFrame({"A": [1, 2]})
-        assert not hasattr(df, '_ipython_display_')
-        assert not hasattr(df['A'], '_ipython_display_')
-
         formatters = self.display_formatter.formatters
         mimetype = 'application/vnd.dataresource+json'
 
