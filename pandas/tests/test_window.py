@@ -1088,8 +1088,8 @@ class TestMoments(Base):
                 qhig = (int(idx) + 1) / (values.shape[0] - 1)
                 vlow = values[int(idx)]
                 vhig = values[int(idx + 1)]
-                retval = vlow + (vhig - vlow)*(per - qlow)/(qhig - qlow)
-            
+                retval = vlow + (vhig - vlow) * (per - qlow) / (qhig - qlow)
+
             return retval
 
         for q in qs:
@@ -1105,6 +1105,20 @@ class TestMoments(Base):
 
             self._check_moment_func(f, alt, name='quantile', quantile=q)
 
+    def test_rolling_quantile_np_percentile(self):
+        row = 10
+        col = 5
+        idx = pd.date_range(20100101, periods=row, freq='B')
+        df = pd.DataFrame(np.random.rand(row*col).reshape((row, -1)), index=idx)
+
+        df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)
+        np_percentile = np.percentile(df, [25, 50, 75], axis=0)
+
+        print(np_percentile)
+        print(df_quantile.values)
+
+        tm.assert_almost_equal(df_quantile.values, np_percentile)
+            
     def test_rolling_quantile_param(self):
         ser = Series([0.0, .1, .5, .9, 1.0])
 
@@ -1116,7 +1130,7 @@ class TestMoments(Base):
 
         with pytest.raises(TypeError):
             ser.rolling(3).quantile('foo')
-
+            
     def test_rolling_apply(self):
         # suppress warnings about empty slices, as we are deliberately testing
         # with a 0-length Series
