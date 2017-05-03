@@ -1404,6 +1404,7 @@ CategoricalIndex
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    CategoricalIndex
 
@@ -1432,6 +1433,7 @@ IntervalIndex
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    IntervalIndex
 
