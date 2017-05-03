@@ -15,7 +15,9 @@ from pandas.plotting._core import grouped_hist
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
-@tm.mplskip
+tm._skip_module_if_no_mpl()
+
+
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -140,7 +142,6 @@ class TestSeriesPlots(TestPlotBase):
             self.ts.hist(ax=ax1, figure=fig2)
 
 
-@tm.mplskip
 class TestDataFramePlots(TestPlotBase):
 
     @slow
@@ -251,7 +252,6 @@ class TestDataFramePlots(TestPlotBase):
             tm.close()
 
 
-@tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @slow

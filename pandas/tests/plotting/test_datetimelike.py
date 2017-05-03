@@ -20,8 +20,9 @@ import pandas.util.testing as tm
 from pandas.tests.plotting.common import (TestPlotBase,
                                           _skip_if_no_scipy_gaussian_kde)
 
+tm._skip_module_if_no_mpl()
 
-@tm.mplskip
+
 class TestTSPlot(TestPlotBase):
 
     def setup_method(self, method):
