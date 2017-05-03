@@ -1080,7 +1080,7 @@ class TestMoments(Base):
 
             idx = per / 1. * (values.shape[0] - 1)
 
-            if idx == values.shape[0] - 1:
+            if int(idx) == values.shape[0] - 1:
                 retval = values[-1]
 
             else:
