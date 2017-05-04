@@ -19,13 +19,17 @@ import pandas.core.config as cf
 
 import pandas.core.nanops as nanops
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange, range, is_platform_windows
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
 import pandas.util.testing as tm
 
 from .common import TestData
+
+
+skip_if_bottleneck_on_windows = (is_platform_windows() and
+                                 nanops._USE_BOTTLENECK)
 
 
 class TestSeriesAnalytics(TestData):
@@ -64,14 +68,6 @@ class TestSeriesAnalytics(TestData):
             result = s.max(skipna=False)
             assert int(result) == v[-1]
 
-            # use bottleneck if available
-            result = s.sum()
-            assert int(result) == v.sum(dtype='int64')
-            result = s.min()
-            assert int(result) == 0
-            result = s.max()
-            assert int(result) == v[-1]
-
         for dtype in ['float32', 'float64']:
             v = np.arange(5000000, dtype=dtype)
             s = Series(v)
@@ -84,6 +80,28 @@ class TestSeriesAnalytics(TestData):
             result = s.max(skipna=False)
             assert np.allclose(float(result), v[-1])
 
+    @pytest.mark.xfail(
+        skip_if_bottleneck_on_windows,
+        reason="buggy bottleneck with sum overflow on windows")
+    def test_overflow_with_bottleneck(self):
+        # GH 6915
+        # overflowing on the smaller int dtypes
+        for dtype in ['int32', 'int64']:
+            v = np.arange(5000000, dtype=dtype)
+            s = Series(v)
+
+            # use bottleneck if available
+            result = s.sum()
+            assert int(result) == v.sum(dtype='int64')
+            result = s.min()
+            assert int(result) == 0
+            result = s.max()
+            assert int(result) == v[-1]
+
+        for dtype in ['float32', 'float64']:
+            v = np.arange(5000000, dtype=dtype)
+            s = Series(v)
+
             # use bottleneck if available
             result = s.sum()
             assert result == v.sum(dtype=dtype)
@@ -92,6 +110,9 @@ class TestSeriesAnalytics(TestData):
             result = s.max()
             assert np.allclose(float(result), v[-1])
 
+    @pytest.mark.xfail(
+        skip_if_bottleneck_on_windows,
+        reason="buggy bottleneck with sum overflow on windows")
     def test_sum(self):
         self._check_stat_op('sum', np.sum, check_allna=True)
 
