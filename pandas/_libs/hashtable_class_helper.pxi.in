@@ -85,11 +85,15 @@ cdef class {{name}}Vector:
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.data.data = <{{arg}}*> malloc(self.data.m * sizeof({{arg}}))
+        if not self.data.data:
+            raise MemoryError()
 
     cdef void resize(self) nogil:
-        # TODO: handle failure to allocate
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
         self.data.data = <{{arg}}*> realloc(self.data.data, self.data.m * sizeof({{arg}}))
+        if not self.data.data:
+            with gil:
+                raise MemoryError()
 
     def __dealloc__(self):
         if self.data is not NULL:
@@ -110,6 +114,7 @@ cdef class {{name}}Vector:
             raise ValueError("Vector.to_array() can only be called once")
 
         self.data.data = <{{arg}}*> realloc(self.data.data, self.data.n * sizeof({{arg}}))
+        self.data.m = self.data.n
         self.external_view_exists = True
         shape[0] = self.data.n
         ao = cnp.PyArray_SimpleNewFromData(1, shape, {{idtype}}, <void*>self.data.data)
@@ -120,6 +125,8 @@ cdef class {{name}}Vector:
     cdef inline void append(self, {{arg}} x):
 
         if needs_resize(self.data):
+            if self.external_view_exists:
+                raise ValueError("external reference but Vector.resize() needed")
             self.resize()
 
         append_data_{{dtype}}(self.data, x)
@@ -145,12 +152,17 @@ cdef class StringVector:
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        if not self.data.data:
+            raise MemoryError()
 
     cdef void resize(self) nogil:
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
 
         self.data.data = <char **> realloc(self.data.data,
                                            self.data.m * sizeof(char *))
+        if not self.data.data:
+            with gil:
+                raise MemoryError()
 
     def __dealloc__(self):
         if self.data is not NULL:
@@ -183,6 +195,8 @@ cdef class StringVector:
     cdef inline void append(self, char * x):
 
         if needs_resize(self.data):
+            if self.external_view_exists:
+                raise ValueError("external reference but Vector.resize() needed")
             self.resize()
 
         append_data_string(self.data, x)
@@ -208,6 +222,8 @@ cdef class ObjectVector:
 
     cdef inline append(self, object o):
         if self.n == self.m:
+            if self.external_view_exists:
+                raise ValueError("external reference but Vector.resize() needed")
             self.m = max(self.m * 2, _INIT_VEC_CAP)
             self.ao.resize(self.m, refcheck=False)
             self.data = <PyObject**> self.ao.data
@@ -219,7 +235,7 @@ cdef class ObjectVector:
     def to_array(self):
         if self.external_view_exists:
             raise ValueError("Vector.to_array() can only be called once")
-        self.ao.resize(self.n)
+        self.ao.resize(self.n, refcheck=False)
         self.m = self.n
         self.external_view_exists = True
         return self.ao
@@ -380,6 +396,7 @@ cdef class {{name}}HashTable(HashTable):
 
                     if needs_resize(ud):
                         uniques.resize()
+                        ud = uniques.data
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
@@ -454,11 +471,13 @@ cdef class {{name}}HashTable(HashTable):
                         kh_put_{{dtype}}(self.table, val, &ret)
                         if needs_resize(ud):
                             uniques.resize()
+                            ud = uniques.data
                         append_data_{{dtype}}(ud, val)
                 elif not seen_na:
                     seen_na = 1
                     if needs_resize(ud):
                         uniques.resize()
+                        ud = uniques.data
                     append_data_{{dtype}}(ud, NAN)
                 {{else}}
                 k = kh_get_{{dtype}}(self.table, val)
@@ -466,6 +485,7 @@ cdef class {{name}}HashTable(HashTable):
                     kh_put_{{dtype}}(self.table, val, &ret)
                     if needs_resize(ud):
                         uniques.resize()
+                        ud = uniques.data
                     append_data_{{dtype}}(ud, val)
                 {{endif}}
 

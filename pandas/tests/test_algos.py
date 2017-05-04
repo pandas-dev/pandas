@@ -1070,25 +1070,36 @@ class TestHashTable(tm.TestCase):
         # Test for memory errors after internal vector
         # reallocations (pull request #7157)
 
-        def _test_vector_resize(htable, uniques, dtype, nvals):
+        def _test_vector_resize(htable, uniques, dtype, nvals, safely_resizes):
             vals = np.array(np.random.randn(1000), dtype=dtype)
             # get_labels appends to the vector
             htable.get_labels(vals[:nvals], uniques, 0, -1)
-            # to_array resizes the vector
-            uniques.to_array()
-            htable.get_labels(vals, uniques, 0, -1)
+            # to_array may resize the vector
+            tmp = uniques.to_array()
+            oldshape = tmp.shape
+            if safely_resizes:
+                htable.get_labels(vals, uniques, 0, -1)
+            else:
+                with pytest.raises(ValueError) as excinfo:
+                    htable.get_labels(vals, uniques, 0, -1)
+                assert excinfo.value.message == 'external reference but Vector.resize() needed'
+            with pytest.raises(ValueError) as excinfo:
+                # cannot resize, tmp is holding a reference
+                tmp2 = uniques.to_array()
+            assert excinfo.value.message == 'Vector.to_array() can only be called once'
+            assert tmp.shape == oldshape
 
         test_cases = [
-            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
-            (hashtable.StringHashTable, hashtable.ObjectVector, 'object'),
-            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
-            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64'),
-            (hashtable.UInt64HashTable, hashtable.UInt64Vector, 'uint64')]
+            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object', False),
+            (hashtable.StringHashTable, hashtable.ObjectVector, 'object', True),
+            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64', True),
+            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64', True),
+            (hashtable.UInt64HashTable, hashtable.UInt64Vector, 'uint64', True)]
 
-        for (tbl, vect, dtype) in test_cases:
+        for (tbl, vect, dtype, safely_resizes) in test_cases:
             # resizing to empty is a special case
-            _test_vector_resize(tbl(), vect(), dtype, 0)
-            _test_vector_resize(tbl(), vect(), dtype, 10)
+            _test_vector_resize(tbl(), vect(), dtype, 0, safely_resizes)
+            _test_vector_resize(tbl(), vect(), dtype, 10, safely_resizes)
 
 
 def test_quantile():
