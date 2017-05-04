@@ -37,8 +37,8 @@ import pandas.core.libwindow as _window
 from pandas.tseries.offsets import DateOffset
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import (Substitution, Appender,
-                                    cache_readonly)
+from pandas.util._decorators import (Substitution, Appender,
+                                     cache_readonly)
 from pandas.core.generic import _shared_docs
 from textwrap import dedent
 

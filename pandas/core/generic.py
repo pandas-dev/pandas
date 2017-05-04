@@ -51,8 +51,8 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types,
                            isidentifier, set_function_name)
 import pandas.core.nanops as nanops
-from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._validators import validate_bool_kwarg
 from pandas.core import config
 
 # goal is to be able to define the docs close to function, while still being
@@ -1382,7 +1382,7 @@ class NDFrame(PandasObject, SelectionMixin):
           - Windows: none
           - OS X: none
         """
-        from pandas.io import clipboard
+        from pandas.io.clipboard import clipboard
         clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
     def to_xarray(self):

@@ -60,7 +60,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
-from pandas.util.terminal import get_terminal_size
+from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO
 from pandas.compat.numpy import function as nv
 
@@ -70,8 +70,8 @@ import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.io.formats.format as fmt
-from pandas.util.decorators import Appender, deprecate_kwarg, Substitution
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import Appender, deprecate_kwarg, Substitution
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option

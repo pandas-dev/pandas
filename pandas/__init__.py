@@ -50,17 +50,17 @@ from pandas.core.reshape.api import *
 import pandas.tools.plotting
 plot_params = pandas.plotting._style._Options(deprecated=True)
 # do not import deprecate to top namespace
-scatter_matrix = pandas.util.decorators.deprecate(
+scatter_matrix = pandas.util._decorators.deprecate(
     'pandas.scatter_matrix', pandas.plotting.scatter_matrix,
     'pandas.plotting.scatter_matrix')
 
-from pandas.util.print_versions import show_versions
+from pandas.util._print_versions import show_versions
 from pandas.io.api import *
 from pandas.util._tester import test
 import pandas.testing
 
 # extension module deprecations
-from pandas.util.depr_module import _DeprecatedModule
+from pandas.util._depr_module import _DeprecatedModule
 
 json = _DeprecatedModule(deprmod='pandas.json',
                          moved={'dumps': 'pandas.io.json.dumps',

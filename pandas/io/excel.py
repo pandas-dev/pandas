@@ -29,7 +29,7 @@ import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]

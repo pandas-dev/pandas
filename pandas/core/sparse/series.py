@@ -21,7 +21,7 @@ from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas._libs.index as _index
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 
 from pandas.core.sparse.array import (
     make_sparse, _sparse_array_op, SparseArray,

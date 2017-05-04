@@ -26,7 +26,7 @@ from pandas.core.internals import (BlockManager,
 import pandas.core.generic as generic
 from pandas.core.sparse.series import SparseSeries, SparseArray
 from pandas.core.sparse.libsparse import BlockIndex, get_blocks
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import pandas.core.ops as ops
 
 

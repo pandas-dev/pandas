@@ -35,7 +35,7 @@ from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
 import pandas.core.ops as ops
 import pandas.io.formats.printing as printing
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from pandas.core.indexes.base import _index_shared_docs
 
 

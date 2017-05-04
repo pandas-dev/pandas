@@ -11,7 +11,7 @@ from pandas.core.computation.expr import Expr, _parsers, tokenize_string
 from pandas.core.computation.scope import _ensure_scope
 from pandas.compat import string_types
 from pandas.core.computation.engines import _engines
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg
 
 
 def _check_engine(engine):

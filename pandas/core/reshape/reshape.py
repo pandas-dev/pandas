@@ -30,7 +30,7 @@ import pandas.core.algorithms as algos
 from pandas._libs import algos as _algos, reshape as _reshape
 
 from pandas.core.frame import _shared_docs
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from pandas.core.index import MultiIndex, _get_na_value
 
 
