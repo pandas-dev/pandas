@@ -28,7 +28,7 @@ from pandas._libs.interval import (
 from pandas.core.indexes.multi import MultiIndex
 from pandas.compat.numpy import function as nv
 from pandas.core import common as com
-from pandas.util.decorators import cache_readonly, Appender
+from pandas.util._decorators import cache_readonly, Appender
 from pandas.core.config import get_option
 
 import pandas.core.indexes.base as ibase
@@ -99,7 +99,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     .. versionadded:: 0.20.0
 
-    Properties
+    Attributes
     ----------
     left, right : array-like (1-dimensional)
         Left and right bounds for each interval.

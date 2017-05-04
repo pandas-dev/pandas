@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 import pandas.core.strings as strings
 
 
-class TestStringMethods(tm.TestCase):
+class TestStringMethods(object):
 
     def test_api(self):
 

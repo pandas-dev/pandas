@@ -48,7 +48,7 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestSeriesMissingData(TestData, tm.TestCase):
+class TestSeriesMissingData(TestData):
 
     def test_timedelta_fillna(self):
         # GH 3371
@@ -700,7 +700,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
 
-class TestSeriesInterpolateData(TestData, tm.TestCase):
+class TestSeriesInterpolateData(TestData):
 
     def test_interpolate(self):
         ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)

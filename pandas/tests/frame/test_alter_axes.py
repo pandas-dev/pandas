@@ -25,7 +25,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameAlterAxes(tm.TestCase, TestData):
+class TestDataFrameAlterAxes(TestData):
 
     def test_set_index(self):
         idx = Index(np.arange(len(self.mixed_frame)))
@@ -806,7 +806,7 @@ class TestDataFrameAlterAxes(tm.TestCase, TestData):
             tm.assert_frame_equal(result, df)
 
 
-class TestIntervalIndex(tm.TestCase):
+class TestIntervalIndex(object):
 
     def test_setitem(self):
 

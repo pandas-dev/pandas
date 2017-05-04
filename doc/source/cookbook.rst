@@ -968,7 +968,8 @@ You can use the same approach to read all files matching a pattern.  Here is an 
 Finally, this strategy will work with the other ``pd.read_*(...)`` functions described in the :ref:`io docs<io>`.
 
 .. ipython:: python
-    :supress:
+    :suppress:
+
     for i in range(3):
         os.remove('file_{}.csv'.format(i))
 

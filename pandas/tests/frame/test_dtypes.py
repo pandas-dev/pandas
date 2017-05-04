@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-class TestDataFrameDataTypes(tm.TestCase, TestData):
+class TestDataFrameDataTypes(TestData):
 
     def test_concat_empty_dataframe_dtypes(self):
         df = DataFrame(columns=list("abc"))
@@ -542,7 +542,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df.astype(np.int8, errors='ignore')
 
 
-class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
+class TestDataFrameDatetimeWithTZ(TestData):
 
     def test_interleave(self):
 

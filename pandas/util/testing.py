@@ -10,7 +10,6 @@ import inspect
 import os
 import subprocess
 import locale
-import unittest
 import traceback
 
 from datetime import datetime
@@ -49,7 +48,7 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
 
-from pandas.util import libtesting
+from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
 try:
     import pytest
@@ -84,25 +83,6 @@ def reset_testing_mode():
 
 
 set_testing_mode()
-
-
-class TestCase(unittest.TestCase):
-    """
-    The test case class that we originally used when using the
-    nosetests framework. Under the new pytest framework, we are
-    moving away from this class.
-
-    Do not create new test classes derived from this one. Rather,
-    they should inherit from object directly.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        pd.set_option('chained_assignment', 'raise')
-
-    @classmethod
-    def tearDownClass(cls):
-        pass
 
 
 def reset_display_options():
@@ -190,7 +170,7 @@ def assert_almost_equal(left, right, check_exact=False,
                 else:
                     obj = 'Input'
                 assert_class_equal(left, right, obj=obj)
-        return libtesting.assert_almost_equal(
+        return _testing.assert_almost_equal(
             left, right,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
@@ -226,7 +206,7 @@ def _check_isinstance(left, right, cls):
 def assert_dict_equal(left, right, compare_keys=True):
 
     _check_isinstance(left, right, dict)
-    return libtesting.assert_dict_equal(left, right, compare_keys=compare_keys)
+    return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
 def randbool(size=(), p=0.5):
@@ -295,36 +275,31 @@ def _skip_if_32bit():
         pytest.skip("skipping for 32 bit")
 
 
-def mplskip(cls):
-    """Skip a TestCase instance if matplotlib isn't installed"""
+def _skip_module_if_no_mpl():
+    import pytest
 
-    @classmethod
-    def setUpClass(cls):
-        try:
-            import matplotlib as mpl
-            mpl.use("Agg", warn=False)
-        except ImportError:
-            import pytest
-            pytest.skip("matplotlib not installed")
-
-    cls.setUpClass = setUpClass
-    return cls
+    mpl = pytest.importorskip("matplotlib")
+    mpl.use("Agg", warn=False)
 
 
 def _skip_if_no_mpl():
     try:
-        import matplotlib  # noqa
+        import matplotlib as mpl
+        mpl.use("Agg", warn=False)
     except ImportError:
         import pytest
         pytest.skip("matplotlib not installed")
 
 
 def _skip_if_mpl_1_5():
-    import matplotlib
-    v = matplotlib.__version__
+    import matplotlib as mpl
+
+    v = mpl.__version__
     if v > LooseVersion('1.4.3') or v[0] == '0':
         import pytest
         pytest.skip("matplotlib 1.5")
+    else:
+        mpl.use("Agg", warn=False)
 
 
 def _skip_if_no_scipy():
@@ -948,10 +923,10 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
                 .format(obj, np.round(diff, 5))
             raise_assert_detail(obj, msg, left, right)
     else:
-        libtesting.assert_almost_equal(left.values, right.values,
-                                       check_less_precise=check_less_precise,
-                                       check_dtype=exact,
-                                       obj=obj, lobj=left, robj=right)
+        _testing.assert_almost_equal(left.values, right.values,
+                                     check_less_precise=check_less_precise,
+                                     check_dtype=exact,
+                                     obj=obj, lobj=left, robj=right)
 
     # metadata comparison
     if check_names:
@@ -1284,10 +1259,10 @@ def assert_series_equal(left, right, check_dtype=True,
         assert_index_equal(l, r, obj='{0}.index'.format(obj))
 
     else:
-        libtesting.assert_almost_equal(left.get_values(), right.get_values(),
-                                       check_less_precise=check_less_precise,
-                                       check_dtype=check_dtype,
-                                       obj='{0}'.format(obj))
+        _testing.assert_almost_equal(left.get_values(), right.get_values(),
+                                     check_less_precise=check_less_precise,
+                                     check_dtype=check_dtype,
+                                     obj='{0}'.format(obj))
 
     # metadata comparison
     if check_names:
@@ -1501,8 +1476,8 @@ def assert_sp_array_equal(left, right, check_dtype=True):
                              check_dtype=check_dtype)
 
     # SparseIndex comparison
-    assert isinstance(left.sp_index, pd.core.sparse.libsparse.SparseIndex)
-    assert isinstance(right.sp_index, pd.core.sparse.libsparse.SparseIndex)
+    assert isinstance(left.sp_index, pd._libs.sparse.SparseIndex)
+    assert isinstance(right.sp_index, pd._libs.sparse.SparseIndex)
 
     if not left.sp_index.equals(right.sp_index):
         raise_assert_detail('SparseArray.index', 'index are not equal',

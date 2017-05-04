@@ -6,7 +6,7 @@ import pandas.io.formats.format as fmt
 from pandas.util import testing as tm
 
 
-class TestEngFormatter(tm.TestCase):
+class TestEngFormatter(object):
 
     def test_eng_float_formatter(self):
         df = DataFrame({'A': [1.41, 141., 14100, 1410000.]})

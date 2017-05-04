@@ -6,9 +6,9 @@ from pandas.util.testing import assert_frame_equal
 from numpy import nan
 
 
-class TestOrderedMerge(tm.TestCase):
+class TestOrderedMerge(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.left = DataFrame({'key': ['a', 'c', 'e'],
                                'lvalue': [1, 2., 3]})
 

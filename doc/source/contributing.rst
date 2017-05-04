@@ -617,11 +617,11 @@ the expected correct result::
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class, inheriting from ``tm.TestCase``.
+*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class.
 
 .. code-block:: python
 
-    class TestReallyCoolFeature(tm.TestCase):
+    class TestReallyCoolFeature(object):
         ....
 
 Going forward, we are moving to a more *functional* style using the `pytest <http://doc.pytest.org/en/latest/>`__ framework, which offers a richer testing
@@ -630,14 +630,6 @@ framework that will facilitate testing and developing. Thus, instead of writing 
 .. code-block:: python
 
     def test_really_cool_feature():
-        ....
-
-Sometimes, it does make sense to bundle test functions together into a single class, either because the test file is testing multiple functions from a single module, and
-using test classes allows for better organization. However, instead of inheriting from ``tm.TestCase``, we should just inherit from ``object``:
-
-.. code-block:: python
-
-    class TestReallyCoolFeature(object):
         ....
 
 Using ``pytest``

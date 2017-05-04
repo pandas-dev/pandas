@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import (
 import pandas.util.testing as tm
 
 
-class TestPandasDtype(tm.TestCase):
+class TestPandasDtype(object):
 
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520

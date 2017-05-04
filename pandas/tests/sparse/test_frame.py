@@ -21,15 +21,15 @@ from pandas.compat import lrange
 from pandas import compat
 from pandas.core.sparse import frame as spf
 
-from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.core.sparse.api import SparseSeries, SparseDataFrame, SparseArray
 from pandas.tests.frame.test_api import SharedWithSparse
 
 
-class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
+class TestSparseDataFrame(SharedWithSparse):
     klass = SparseDataFrame
 
-    def setUp(self):
+    def setup_method(self, method):
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
                      'C': np.arange(10, dtype=np.float64),
@@ -1245,7 +1245,7 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     assert sdf.to_coo().dtype == res_dtype
 
 
-class TestSparseDataFrameArithmetic(tm.TestCase):
+class TestSparseDataFrameArithmetic(object):
 
     def test_numeric_op_scalar(self):
         df = pd.DataFrame({'A': [nan, nan, 0, 1, ],
@@ -1274,8 +1274,8 @@ class TestSparseDataFrameArithmetic(tm.TestCase):
         tm.assert_frame_equal(res.to_dense(), df != 0)
 
 
-class TestSparseDataFrameAnalytics(tm.TestCase):
-    def setUp(self):
+class TestSparseDataFrameAnalytics(object):
+    def setup_method(self, method):
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
                      'C': np.arange(10, dtype=float),

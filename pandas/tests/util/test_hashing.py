@@ -5,13 +5,14 @@ import numpy as np
 import pandas as pd
 
 from pandas import DataFrame, Series, Index, MultiIndex
-from pandas.util.hashing import hash_array, hash_tuples, hash_pandas_object
+from pandas.util import hash_array, hash_pandas_object
+from pandas.core.util.hashing import hash_tuples
 import pandas.util.testing as tm
 
 
-class TestHashing(tm.TestCase):
+class TestHashing(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame(
             {'i32': np.array([1, 2, 3] * 3, dtype='int32'),
              'f32': np.array([None, 2.5, 3.5] * 3, dtype='float32'),
@@ -267,3 +268,18 @@ class TestHashing(tm.TestCase):
         result = hash_array(np.asarray(L, dtype=object), 'utf8')
         tm.assert_numpy_array_equal(
             result, np.concatenate([expected1, expected2], axis=0))
+
+
+def test_deprecation():
+
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        from pandas.tools.hashing import hash_pandas_object
+        obj = Series(list('abc'))
+        hash_pandas_object(obj, hash_key='9876543210123456')
+
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        from pandas.tools.hashing import hash_array
+        obj = np.array([1, 2, 3])
+        hash_array(obj, hash_key='9876543210123456')

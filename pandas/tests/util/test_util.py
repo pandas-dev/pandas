@@ -9,10 +9,10 @@ from collections import OrderedDict
 import pytest
 from pandas.compat import intern
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
-from pandas.util.decorators import deprecate_kwarg
-from pandas.util.validators import (validate_args, validate_kwargs,
-                                    validate_args_and_kwargs,
-                                    validate_bool_kwarg)
+from pandas.util._decorators import deprecate_kwarg
+from pandas.util._validators import (validate_args, validate_kwargs,
+                                     validate_args_and_kwargs,
+                                     validate_bool_kwarg)
 
 import pandas.util.testing as tm
 
@@ -20,9 +20,9 @@ CURRENT_LOCALE = locale.getlocale()
 LOCALE_OVERRIDE = os.environ.get('LOCALE_OVERRIDE', None)
 
 
-class TestDecorators(tm.TestCase):
+class TestDecorators(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         @deprecate_kwarg('old', 'new')
         def _f1(new=False):
             return new
@@ -89,7 +89,7 @@ def test_rands_array():
     assert(len(arr[1, 1]) == 7)
 
 
-class TestValidateArgs(tm.TestCase):
+class TestValidateArgs(object):
     fname = 'func'
 
     def test_bad_min_fname_arg_count(self):
@@ -159,7 +159,7 @@ class TestValidateArgs(tm.TestCase):
         validate_args(self.fname, (1, None), 2, compat_args)
 
 
-class TestValidateKwargs(tm.TestCase):
+class TestValidateKwargs(object):
     fname = 'func'
 
     def test_bad_kwarg(self):
@@ -225,7 +225,7 @@ class TestValidateKwargs(tm.TestCase):
                 assert validate_bool_kwarg(value, name) == value
 
 
-class TestValidateKwargsAndArgs(tm.TestCase):
+class TestValidateKwargsAndArgs(object):
     fname = 'func'
 
     def test_invalid_total_length_max_length_one(self):
@@ -322,7 +322,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
                                  compat_args)
 
 
-class TestMove(tm.TestCase):
+class TestMove(object):
 
     def test_cannot_create_instance_of_stolenbuffer(self):
         """Stolen buffers need to be created through the smart constructor
@@ -407,11 +407,10 @@ def test_numpy_errstate_is_default():
     assert np.geterr() == expected
 
 
-class TestLocaleUtils(tm.TestCase):
+class TestLocaleUtils(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestLocaleUtils, cls).setUpClass()
+    def setup_class(cls):
         cls.locales = tm.get_locales()
 
         if not cls.locales:
@@ -420,8 +419,7 @@ class TestLocaleUtils(tm.TestCase):
         tm._skip_if_windows()
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestLocaleUtils, cls).tearDownClass()
+    def teardown_class(cls):
         del cls.locales
 
     def test_get_locales(self):

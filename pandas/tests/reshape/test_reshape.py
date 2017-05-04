@@ -17,9 +17,9 @@ import pandas.util.testing as tm
 from pandas.compat import range, u
 
 
-class TestMelt(tm.TestCase):
+class TestMelt(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = tm.makeTimeDataFrame()[:10]
         self.df['id1'] = (self.df['A'] > 0).astype(np.int64)
         self.df['id2'] = (self.df['B'] > 0).astype(np.int64)
@@ -216,11 +216,11 @@ class TestMelt(tm.TestCase):
         assert res.columns.tolist() == ['CAP', 'low', 'value']
 
 
-class TestGetDummies(tm.TestCase):
+class TestGetDummies(object):
 
     sparse = False
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame({'A': ['a', 'b', 'a'],
                              'B': ['b', 'b', 'c'],
                              'C': [1, 2, 3]})
@@ -644,7 +644,7 @@ class TestGetDummiesSparse(TestGetDummies):
     sparse = True
 
 
-class TestMakeAxisDummies(tm.TestCase):
+class TestMakeAxisDummies(object):
 
     def test_preserve_categorical_dtype(self):
         # GH13854
@@ -665,7 +665,7 @@ class TestMakeAxisDummies(tm.TestCase):
             tm.assert_frame_equal(result, expected)
 
 
-class TestLreshape(tm.TestCase):
+class TestLreshape(object):
 
     def test_pairs(self):
         data = {'birthdt': ['08jan2009', '20dec2008', '30dec2008', '21dec2008',
@@ -737,7 +737,7 @@ class TestLreshape(tm.TestCase):
         pytest.raises(ValueError, lreshape, df, spec)
 
 
-class TestWideToLong(tm.TestCase):
+class TestWideToLong(object):
 
     def test_simple(self):
         np.random.seed(123)

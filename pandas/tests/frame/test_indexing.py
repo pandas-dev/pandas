@@ -36,7 +36,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameIndexing(tm.TestCase, TestData):
+class TestDataFrameIndexing(TestData):
 
     def test_getitem(self):
         # Slicing
@@ -2912,9 +2912,9 @@ class TestDataFrameIndexing(tm.TestCase, TestData):
         assert_series_equal(result, expected)
 
 
-class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
+class TestDataFrameIndexingDatetimeWithTZ(TestData):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.idx = Index(date_range('20130101', periods=3, tz='US/Eastern'),
                          name='foo')
         self.dr = date_range('20130110', periods=3)
@@ -2970,9 +2970,9 @@ class TestDataFrameIndexingDatetimeWithTZ(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
 
-class TestDataFrameIndexingUInt64(tm.TestCase, TestData):
+class TestDataFrameIndexingUInt64(TestData):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.ir = Index(np.arange(3), dtype=np.uint64)
         self.idx = Index([2**63, 2**63 + 5, 2**63 + 10], name='foo')
 

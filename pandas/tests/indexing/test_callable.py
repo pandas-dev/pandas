@@ -6,7 +6,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestIndexingCallable(tm.TestCase):
+class TestIndexingCallable(object):
 
     def test_frame_loc_ix_callable(self):
         # GH 11485

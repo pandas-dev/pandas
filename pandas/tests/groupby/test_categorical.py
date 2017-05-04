@@ -15,7 +15,7 @@ import pandas.util.testing as tm
 from .common import MixIn
 
 
-class TestGroupByCategorical(MixIn, tm.TestCase):
+class TestGroupByCategorical(MixIn):
 
     def test_level_groupby_get_group(self):
         # GH15155

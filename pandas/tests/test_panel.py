@@ -901,14 +901,14 @@ class CheckIndexing(object):
                 self.panel.set_value('a')
 
 
-class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
+class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                 SafeForSparse):
 
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
 
-    def setUp(self):
+    def setup_method(self, method):
         self.panel = make_test_panel()
         self.panel.major_axis.name = None
         self.panel.minor_axis.name = None
@@ -2430,12 +2430,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         pytest.raises(NotImplementedError, self.panel.any, bool_only=True)
 
 
-class TestLongPanel(tm.TestCase):
+class TestLongPanel(object):
     """
     LongPanel no longer exists, but...
     """
 
-    def setUp(self):
+    def setup_method(self, method):
         panel = make_test_panel()
         self.panel = panel.to_frame()
         self.unfiltered_panel = panel.to_frame(filter_observations=False)

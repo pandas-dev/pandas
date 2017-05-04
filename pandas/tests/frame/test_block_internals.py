@@ -28,7 +28,7 @@ from pandas.tests.frame.common import TestData
 # structure
 
 
-class TestDataFrameBlockInternals(tm.TestCase, TestData):
+class TestDataFrameBlockInternals(TestData):
 
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)

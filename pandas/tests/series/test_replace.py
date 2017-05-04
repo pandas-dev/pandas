@@ -11,7 +11,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesReplace(TestData, tm.TestCase):
+class TestSeriesReplace(TestData):
     def test_replace(self):
         N = 100
         ser = pd.Series(np.random.randn(N))

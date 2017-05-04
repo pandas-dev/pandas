@@ -6,9 +6,9 @@ from pandas.util import testing as tm
 from pandas import PeriodIndex, Series, DataFrame
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_asfreq(self):

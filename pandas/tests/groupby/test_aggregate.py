@@ -25,9 +25,9 @@ from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
 
-class TestGroupByAggregate(tm.TestCase):
+class TestGroupByAggregate(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.ts = tm.makeTimeSeries()
 
         self.seriesd = tm.getSeriesData()

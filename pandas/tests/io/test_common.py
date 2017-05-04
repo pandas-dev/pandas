@@ -24,7 +24,7 @@ except ImportError:
     pass
 
 
-class TestCommonIOCapabilities(tm.TestCase):
+class TestCommonIOCapabilities(object):
     data1 = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -90,9 +90,9 @@ bar2,12,13,14,15
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
 
 
-class TestMMapWrapper(tm.TestCase):
+class TestMMapWrapper(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.mmap_file = os.path.join(tm.get_data_path(),
                                       'test_mmap.csv')
 

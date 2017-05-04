@@ -23,8 +23,8 @@ class TestDatetimeIndexOps(Ops):
     tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/Asia/Singapore',
           'dateutil/US/Pacific']
 
-    def setUp(self):
-        super(TestDatetimeIndexOps, self).setUp()
+    def setup_method(self, method):
+        super(TestDatetimeIndexOps, self).setup_method(method)
         mask = lambda x: (isinstance(x, DatetimeIndex) or
                           isinstance(x, PeriodIndex))
         self.is_valid_objs = [o for o in self.objs if mask(o)]
@@ -931,7 +931,7 @@ Freq: D"""
             assert not idx.equals(pd.Series(idx3))
 
 
-class TestDateTimeIndexToJulianDate(tm.TestCase):
+class TestDateTimeIndexToJulianDate(object):
 
     def test_1700(self):
         r1 = Float64Index([2345897.5, 2345898.5, 2345899.5, 2345900.5,
@@ -1107,9 +1107,9 @@ def test_shift_months(years, months):
     tm.assert_index_equal(actual, expected)
 
 
-class TestBusinessDatetimeIndex(tm.TestCase):
+class TestBusinessDatetimeIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = bdate_range(START, END)
 
     def test_comparison(self):
@@ -1207,9 +1207,9 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         assert not t1.identical(t2v)
 
 
-class TestCustomDatetimeIndex(tm.TestCase):
+class TestCustomDatetimeIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = cdate_range(START, END)
 
     def test_comparison(self):

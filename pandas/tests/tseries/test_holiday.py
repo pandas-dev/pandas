@@ -19,9 +19,9 @@ from pandas.tseries.holiday import (USFederalHolidayCalendar, USMemorialDay,
 from pytz import utc
 
 
-class TestCalendar(tm.TestCase):
+class TestCalendar(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.holiday_list = [
             datetime(2012, 1, 2),
             datetime(2012, 1, 16),
@@ -85,9 +85,9 @@ class TestCalendar(tm.TestCase):
         assert USFedCal.rule_from_name('Thanksgiving') == USThanksgivingDay
 
 
-class TestHoliday(tm.TestCase):
+class TestHoliday(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.start_date = datetime(2011, 1, 1)
         self.end_date = datetime(2020, 12, 31)
 
@@ -284,9 +284,9 @@ class TestHoliday(tm.TestCase):
         assert len(class_3.rules) == 2
 
 
-class TestObservanceRules(tm.TestCase):
+class TestObservanceRules(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.we = datetime(2014, 4, 9)
         self.th = datetime(2014, 4, 10)
         self.fr = datetime(2014, 4, 11)
@@ -342,7 +342,7 @@ class TestObservanceRules(tm.TestCase):
         assert after_nearest_workday(self.fr) == self.mo
 
 
-class TestFederalHolidayCalendar(tm.TestCase):
+class TestFederalHolidayCalendar(object):
 
     def test_no_mlk_before_1984(self):
         # see gh-10278
@@ -375,7 +375,7 @@ class TestFederalHolidayCalendar(tm.TestCase):
                             datetime(1979, 5, 28, 0, 0)]
 
 
-class TestHolidayConflictingArguments(tm.TestCase):
+class TestHolidayConflictingArguments(object):
 
     def test_both_offset_observance_raises(self):
         # see gh-10217

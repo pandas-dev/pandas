@@ -212,7 +212,7 @@ class TestJSONNormalize(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestNestedToRecord(tm.TestCase):
+class TestNestedToRecord(object):
 
     def test_flat_stays_flat(self):
         recs = [dict(flat1=1, flat2=2),

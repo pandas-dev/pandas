@@ -2,6 +2,7 @@
 printing tools
 """
 
+import sys
 from pandas.core.dtypes.inference import is_sequence
 from pandas import compat
 from pandas.compat import u
@@ -233,3 +234,34 @@ def pprint_thing(thing, _nest_lvl=0, escape_chars=None, default_escapes=False,
 def pprint_thing_encoded(object, encoding='utf-8', errors='replace', **kwds):
     value = pprint_thing(object)  # get unicode representation of object
     return value.encode(encoding, errors, **kwds)
+
+
+def _enable_data_resource_formatter(enable):
+    if 'IPython' not in sys.modules:
+        # definitely not in IPython
+        return
+    from IPython import get_ipython
+    ip = get_ipython()
+    if ip is None:
+        # still not in IPython
+        return
+
+    formatters = ip.display_formatter.formatters
+    mimetype = "application/vnd.dataresource+json"
+
+    if enable:
+        if mimetype not in formatters:
+            # define tableschema formatter
+            from IPython.core.formatters import BaseFormatter
+
+            class TableSchemaFormatter(BaseFormatter):
+                print_method = '_repr_data_resource_'
+                _return_type = (dict,)
+            # register it:
+            formatters[mimetype] = TableSchemaFormatter()
+        # enable it if it's been disabled:
+        formatters[mimetype].enabled = True
+    else:
+        # unregister tableschema mime-type
+        if mimetype in formatters:
+            formatters[mimetype].enabled = False

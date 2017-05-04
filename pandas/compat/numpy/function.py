@@ -19,8 +19,8 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 """
 
 from numpy import ndarray
-from pandas.util.validators import (validate_args, validate_kwargs,
-                                    validate_args_and_kwargs)
+from pandas.util._validators import (validate_args, validate_kwargs,
+                                     validate_args_and_kwargs)
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.dtypes.common import is_integer, is_bool
 from pandas.compat import OrderedDict

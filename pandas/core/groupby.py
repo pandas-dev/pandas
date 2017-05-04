@@ -54,10 +54,10 @@ from pandas.core.panel import Panel
 from pandas.core.sorting import (get_group_index_sorter, get_group_index,
                                  compress_group_index, get_flattened_iterator,
                                  decons_obs_group_ids, get_indexer_dict)
-from pandas.util.decorators import (cache_readonly, Substitution,
-                                    Appender, make_signature)
+from pandas.util._decorators import (cache_readonly, Substitution,
+                                     Appender, make_signature)
 from pandas.io.formats.printing import pprint_thing
-from pandas.util.validators import validate_kwargs
+from pandas.util._validators import validate_kwargs
 
 import pandas.core.algorithms as algorithms
 import pandas.core.common as com

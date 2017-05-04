@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-import unittest
 import pytest
 import numpy as np
 import sys
@@ -13,7 +12,7 @@ from pandas.util.testing import (assert_almost_equal, raise_with_traceback,
 from pandas.compat import is_platform_windows
 
 
-class TestAssertAlmostEqual(tm.TestCase):
+class TestAssertAlmostEqual(object):
 
     def _assert_almost_equal_both(self, a, b, **kwargs):
         assert_almost_equal(a, b, **kwargs)
@@ -140,7 +139,7 @@ class TestAssertAlmostEqual(tm.TestCase):
         self._assert_almost_equal_both(a, b)
 
 
-class TestUtilTesting(tm.TestCase):
+class TestUtilTesting(object):
 
     def test_raise_with_traceback(self):
         with tm.assert_raises_regex(LookupError, "error_text"):
@@ -158,7 +157,7 @@ class TestUtilTesting(tm.TestCase):
                 raise_with_traceback(e, traceback)
 
 
-class TestAssertNumpyArrayEqual(tm.TestCase):
+class TestAssertNumpyArrayEqual(object):
 
     def test_numpy_array_equal_message(self):
 
@@ -340,7 +339,7 @@ Iterable values are different \\(50\\.0 %\\)
             assert_almost_equal([1, 2], [1, 3])
 
 
-class TestAssertIndexEqual(unittest.TestCase):
+class TestAssertIndexEqual(object):
 
     def test_index_equal_message(self):
 
@@ -487,7 +486,7 @@ Attribute "names" are different
             assert_index_equal(idx1, idx2)
 
 
-class TestAssertSeriesEqual(tm.TestCase):
+class TestAssertSeriesEqual(object):
 
     def _assert_equal(self, x, y, **kwargs):
         assert_series_equal(x, y, **kwargs)
@@ -581,7 +580,7 @@ Series values are different \\(33\\.33333 %\\)
                                 check_less_precise=True)
 
 
-class TestAssertFrameEqual(tm.TestCase):
+class TestAssertFrameEqual(object):
 
     def _assert_equal(self, x, y, **kwargs):
         assert_frame_equal(x, y, **kwargs)
@@ -680,7 +679,7 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
                                by_blocks=True)
 
 
-class TestAssertCategoricalEqual(unittest.TestCase):
+class TestAssertCategoricalEqual(object):
 
     def test_categorical_equal_message(self):
 
@@ -718,7 +717,7 @@ Attribute "ordered" are different
             tm.assert_categorical_equal(a, b)
 
 
-class TestRNGContext(unittest.TestCase):
+class TestRNGContext(object):
 
     def test_RNGContext(self):
         expected0 = 1.764052345967664
@@ -730,7 +729,7 @@ class TestRNGContext(unittest.TestCase):
             assert np.random.randn() == expected0
 
 
-class TestLocale(tm.TestCase):
+class TestLocale(object):
 
     def test_locale(self):
         if sys.platform == 'win32':

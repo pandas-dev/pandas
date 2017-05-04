@@ -33,7 +33,7 @@ def assert_range_equal(left, right):
     assert (left.tz == right.tz)
 
 
-class TestTimeSeries(TestData, tm.TestCase):
+class TestTimeSeries(TestData):
 
     def test_shift(self):
         shifted = self.ts.shift(1)

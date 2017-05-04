@@ -12,7 +12,7 @@ from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
                     to_datetime)
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_construction_caching(self):
 
@@ -446,7 +446,7 @@ class TestDatetimeIndex(tm.TestCase):
         assert idx.nanosecond[0] == t1.nanosecond
 
 
-class TestTimeSeries(tm.TestCase):
+class TestTimeSeries(object):
 
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')

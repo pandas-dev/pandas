@@ -176,10 +176,10 @@ class Numeric(Base):
         tm.assert_index_equal(index % 2, expected)
 
 
-class TestFloat64Index(Numeric, tm.TestCase):
+class TestFloat64Index(Numeric):
     _holder = Float64Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(mixed=Float64Index([1.5, 2, 3, 4, 5]),
                             float=Float64Index(np.arange(5) * 2.5))
         self.setup_indices()
@@ -621,11 +621,11 @@ class NumericInt(Numeric):
         tm.assert_index_equal(result, exp)
 
 
-class TestInt64Index(NumericInt, tm.TestCase):
+class TestInt64Index(NumericInt):
     _dtype = 'int64'
     _holder = Int64Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=Int64Index(np.arange(0, 20, 2)))
         self.setup_indices()
 
@@ -915,12 +915,12 @@ class TestInt64Index(NumericInt, tm.TestCase):
         tm.assert_numpy_array_equal(ridx, eridx)
 
 
-class TestUInt64Index(NumericInt, tm.TestCase):
+class TestUInt64Index(NumericInt):
 
     _dtype = 'uint64'
     _holder = UInt64Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=UInt64Index([2**63, 2**63 + 10, 2**63 + 15,
                                                2**63 + 20, 2**63 + 25]))
         self.setup_indices()

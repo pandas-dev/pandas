@@ -14,7 +14,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestGroupBy(tm.TestCase):
+class TestGroupBy(object):
 
     def test_groupby_with_timegrouper(self):
         # GH 4161
