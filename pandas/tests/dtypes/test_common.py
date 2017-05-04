@@ -158,6 +158,7 @@ def test_is_categorical():
     cat = pd.Categorical([1, 2, 3])
     assert com.is_categorical(cat)
     assert com.is_categorical(pd.Series(cat))
+    assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
 
     assert not com.is_categorical([1, 2, 3])
 

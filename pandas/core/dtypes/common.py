@@ -205,12 +205,14 @@ def is_categorical(arr):
     >>> is_categorical([1, 2, 3])
     False
 
-    Categoricals and Series Categoricals will return True.
+    Categoricals, Series Categoricals, and CategoricalIndex will return True.
 
     >>> cat = pd.Categorical([1, 2, 3])
     >>> is_categorical(cat)
     True
     >>> is_categorical(pd.Series(cat))
+    True
+    >>> is_categorical(pd.CategoricalIndex([1, 2, 3]))
     True
     """
 
