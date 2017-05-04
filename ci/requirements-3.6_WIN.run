@@ -1,6 +1,7 @@
 python-dateutil
 pytz
 numpy=1.12*
+bottleneck
 openpyxl
 xlsxwriter
 xlrd
