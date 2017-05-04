@@ -618,7 +618,6 @@ strings and apply several methods to it. These can be accessed like
        Series.cat
        Series.dt
        Index.str
-       CategoricalIndex.str
        MultiIndex.str
        DatetimeIndex.str
        TimedeltaIndex.str
@@ -1404,6 +1403,7 @@ CategoricalIndex
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    CategoricalIndex
 
@@ -1432,6 +1432,7 @@ IntervalIndex
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
 
    IntervalIndex
 
