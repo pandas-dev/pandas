@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 use_bn = nanops._USE_BOTTLENECK
 
 
-class TestnanopsDataFrame(tm.TestCase):
+class TestnanopsDataFrame(object):
 
     def setup_method(self, method):
         np.random.seed(11235)
@@ -742,7 +742,7 @@ class TestnanopsDataFrame(tm.TestCase):
         assert not nanops._bn_ok_dtype(self.arr_obj.dtype, 'test')
 
 
-class TestEnsureNumeric(tm.TestCase):
+class TestEnsureNumeric(object):
 
     def test_numeric_values(self):
         # Test integer
@@ -782,7 +782,7 @@ class TestEnsureNumeric(tm.TestCase):
         pytest.raises(TypeError, lambda: nanops._ensure_numeric([]))
 
 
-class TestNanvarFixedValues(tm.TestCase):
+class TestNanvarFixedValues(object):
 
     # xref GH10242
 
@@ -895,7 +895,7 @@ class TestNanvarFixedValues(tm.TestCase):
         return np.random.RandomState(1234)
 
 
-class TestNanskewFixedValues(tm.TestCase):
+class TestNanskewFixedValues(object):
 
     # xref GH 11974
 
@@ -945,7 +945,7 @@ class TestNanskewFixedValues(tm.TestCase):
         return np.random.RandomState(1234)
 
 
-class TestNankurtFixedValues(tm.TestCase):
+class TestNankurtFixedValues(object):
 
     # xref GH 11974
 

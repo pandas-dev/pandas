@@ -8,7 +8,7 @@ from pandas import Series, Index, DatetimeIndex, date_range
 from ..datetimelike import DatetimeLike
 
 
-class TestDatetimeIndex(DatetimeLike, tm.TestCase):
+class TestDatetimeIndex(DatetimeLike):
     _holder = DatetimeIndex
 
     def setup_method(self, method):

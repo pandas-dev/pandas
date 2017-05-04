@@ -97,7 +97,7 @@ def test_to_m8():
     #####
 
 
-class Base(tm.TestCase):
+class Base(object):
     _offset = None
 
     _offset_types = [getattr(offsets, o) for o in offsets.__all__]
@@ -4334,7 +4334,7 @@ def test_Easter():
     assertEq(-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23))
 
 
-class TestTicks(tm.TestCase):
+class TestTicks(object):
 
     ticks = [Hour, Minute, Second, Milli, Micro, Nano]
 
@@ -4491,7 +4491,7 @@ class TestTicks(tm.TestCase):
                 assert kls(3) != kls(4)
 
 
-class TestOffsetNames(tm.TestCase):
+class TestOffsetNames(object):
 
     def test_get_offset_name(self):
         assert BDay().freqstr == 'B'
@@ -4547,7 +4547,7 @@ def test_get_offset_legacy():
             get_offset(name)
 
 
-class TestParseTimeString(tm.TestCase):
+class TestParseTimeString(object):
 
     def test_parse_time_string(self):
         (date, parsed, reso) = parse_time_string('4Q1984')
@@ -4610,7 +4610,7 @@ def test_quarterly_dont_normalize():
         assert (result.time() == date.time())
 
 
-class TestOffsetAliases(tm.TestCase):
+class TestOffsetAliases(object):
 
     def setup_method(self, method):
         _offset_map.clear()
@@ -4691,7 +4691,7 @@ def get_all_subclasses(cls):
     return ret
 
 
-class TestCaching(tm.TestCase):
+class TestCaching(object):
 
     # as of GH 6479 (in 0.14.0), offset caching is turned off
     # as of v0.12.0 only BusinessMonth/Quarter were actually caching
@@ -4746,7 +4746,7 @@ class TestCaching(tm.TestCase):
         assert inst2 not in _daterange_cache
 
 
-class TestReprNames(tm.TestCase):
+class TestReprNames(object):
 
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
@@ -4771,7 +4771,7 @@ def get_utc_offset_hours(ts):
     return (o.days * 24 * 3600 + o.seconds) / 3600.0
 
 
-class TestDST(tm.TestCase):
+class TestDST(object):
     """
     test DateOffset additions over Daylight Savings Time
     """

@@ -28,7 +28,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesOperators(TestData, tm.TestCase):
+class TestSeriesOperators(TestData):
 
     def test_series_comparison_scalars(self):
         series = Series(date_range('1/1/2000', periods=10))

@@ -29,7 +29,7 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
                     'int32', 'int64']
 
 
-class TestDataFrameToCSV(tm.TestCase, TestData):
+class TestDataFrameToCSV(TestData):
 
     def test_to_csv_from_csv1(self):
 

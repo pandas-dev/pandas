@@ -9,7 +9,6 @@ import pytest
 from pandas import DataFrame
 from pandas.core.dtypes.dtypes import (
     PeriodDtype, CategoricalDtype, DatetimeTZDtype)
-import pandas.util.testing as tm
 from pandas.io.json.table_schema import (
     as_json_table_type,
     build_table_schema,
@@ -17,7 +16,7 @@ from pandas.io.json.table_schema import (
     set_default_names)
 
 
-class TestBuildSchema(tm.TestCase):
+class TestBuildSchema(object):
 
     def setup_method(self, method):
         self.df = DataFrame(
@@ -85,7 +84,7 @@ class TestBuildSchema(tm.TestCase):
         assert result == expected
 
 
-class TestTableSchemaType(tm.TestCase):
+class TestTableSchemaType(object):
 
     def test_as_json_table_type_int_data(self):
         int_data = [1, 2, 3]
@@ -169,7 +168,7 @@ class TestTableSchemaType(tm.TestCase):
         assert as_json_table_type(CategoricalDtype()) == 'any'
 
 
-class TestTableOrient(tm.TestCase):
+class TestTableOrient(object):
 
     def setup_method(self, method):
         self.df = DataFrame(

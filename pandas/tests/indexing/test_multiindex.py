@@ -9,7 +9,7 @@ from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.tests.indexing.common import _mklbl
 
 
-class TestMultiIndexBasic(tm.TestCase):
+class TestMultiIndexBasic(object):
 
     def test_iloc_getitem_multiindex2(self):
         # TODO(wesm): fix this
@@ -698,7 +698,7 @@ class TestMultiIndexBasic(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestMultiIndexSlicers(tm.TestCase):
+class TestMultiIndexSlicers(object):
 
     def test_per_axis_per_level_getitem(self):
 
@@ -1188,7 +1188,7 @@ class TestMultiIndexSlicers(tm.TestCase):
         tm.assert_frame_equal(df, expected)
 
 
-class TestMultiIndexPanel(tm.TestCase):
+class TestMultiIndexPanel(object):
 
     def test_iloc_getitem_panel_multiindex(self):
 

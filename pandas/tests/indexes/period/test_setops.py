@@ -12,7 +12,7 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
     def setup_method(self, method):
         pass

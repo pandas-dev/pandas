@@ -33,7 +33,7 @@ def get_test_data(ngroups=NGROUPS, n=N):
     return arr
 
 
-class TestMerge(tm.TestCase):
+class TestMerge(object):
 
     def setup_method(self, method):
         # aggregate multiple columns
@@ -737,7 +737,7 @@ def _check_merge(x, y):
         assert_frame_equal(result, expected, check_names=False)
 
 
-class TestMergeMulti(tm.TestCase):
+class TestMergeMulti(object):
 
     def setup_method(self, method):
         self.index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],

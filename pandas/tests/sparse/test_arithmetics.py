@@ -3,7 +3,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSparseArrayArithmetics(tm.TestCase):
+class TestSparseArrayArithmetics(object):
 
     _base = np.array
     _klass = pd.SparseArray

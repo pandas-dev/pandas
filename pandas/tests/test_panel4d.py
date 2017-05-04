@@ -593,7 +593,7 @@ class CheckIndexing(object):
             assert is_float_dtype(res3['l4'].values)
 
 
-class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
+class TestPanel4d(CheckIndexing, SafeForSparse,
                   SafeForLongAndSparse):
 
     def setup_method(self, method):

@@ -24,7 +24,7 @@ from pandas.compat import product
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
+class TestDataFrameTimeSeriesMethods(TestData):
 
     def test_diff(self):
         the_diff = self.tsframe.diff(1)

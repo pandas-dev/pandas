@@ -6,7 +6,7 @@ from pandas.util import testing as tm
 from pandas import PeriodIndex, Series, DataFrame
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
     def setup_method(self, method):
         pass

@@ -31,7 +31,7 @@ from pandas.tests.series.common import TestData
 JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 
-class TestSeriesIndexing(TestData, tm.TestCase):
+class TestSeriesIndexing(TestData):
 
     def test_get(self):
 
@@ -2252,7 +2252,7 @@ class TestSeriesIndexing(TestData, tm.TestCase):
         assert not array.any()
 
 
-class TestTimeSeriesDuplicates(tm.TestCase):
+class TestTimeSeriesDuplicates(object):
 
     def setup_method(self, method):
         dates = [datetime(2000, 1, 2), datetime(2000, 1, 2),
@@ -2494,7 +2494,7 @@ class TestTimeSeriesDuplicates(tm.TestCase):
         pytest.raises(KeyError, df.__getitem__, df.index[2], )
 
 
-class TestDatetimeIndexing(tm.TestCase):
+class TestDatetimeIndexing(object):
     """
     Also test support for datetime64[ns] in Series / DataFrame
     """
@@ -2638,7 +2638,7 @@ class TestDatetimeIndexing(tm.TestCase):
         assert (-result).all()
 
 
-class TestNatIndexing(tm.TestCase):
+class TestNatIndexing(object):
 
     def setup_method(self, method):
         self.series = Series(date_range('1/1/2000', periods=10))

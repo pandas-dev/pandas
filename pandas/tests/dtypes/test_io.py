@@ -7,7 +7,7 @@ import pandas.util.testing as tm
 from pandas.compat import long, u
 
 
-class TestParseSQL(tm.TestCase):
+class TestParseSQL(object):
 
     def test_convert_sql_column_floats(self):
         arr = np.array([1.5, None, 3, 4.2], dtype=object)

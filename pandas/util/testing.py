@@ -85,20 +85,6 @@ def reset_testing_mode():
 set_testing_mode()
 
 
-class TestCase(object):
-    """
-    Base class for all test case classes.
-    """
-
-    @classmethod
-    def setup_class(cls):
-        pd.set_option('chained_assignment', 'raise')
-
-    @classmethod
-    def teardown_class(cls):
-        pass
-
-
 def reset_display_options():
     """
     Reset the display options for printing and representing objects.

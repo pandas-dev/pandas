@@ -13,7 +13,7 @@ from pandas import (PeriodIndex, period_range, notnull, DatetimeIndex, NaT,
 from ..datetimelike import DatetimeLike
 
 
-class TestPeriodIndex(DatetimeLike, tm.TestCase):
+class TestPeriodIndex(DatetimeLike):
     _holder = PeriodIndex
     _multiprocess_can_split_ = True
 

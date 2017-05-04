@@ -6,7 +6,7 @@ import io
 import numpy as np
 
 
-class TestSAS7BDAT(tm.TestCase):
+class TestSAS7BDAT(object):
 
     def setup_method(self, method):
         self.dirpath = tm.get_data_path()

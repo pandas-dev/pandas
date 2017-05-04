@@ -6,7 +6,7 @@ from pandas.util import testing as tm
 from pandas import Panel, date_range, DataFrame
 
 
-class TestPanel(tm.TestCase):
+class TestPanel(object):
 
     def test_iloc_getitem_panel(self):
 

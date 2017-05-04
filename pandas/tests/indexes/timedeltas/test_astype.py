@@ -10,7 +10,7 @@ from pandas import (TimedeltaIndex, timedelta_range, Int64Index, Float64Index,
 from ..datetimelike import DatetimeLike
 
 
-class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
+class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
     _multiprocess_can_split_ = True
 

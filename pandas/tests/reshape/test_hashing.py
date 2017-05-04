@@ -9,7 +9,7 @@ from pandas.util.hashing import hash_array, hash_tuples, hash_pandas_object
 import pandas.util.testing as tm
 
 
-class TestHashing(tm.TestCase):
+class TestHashing(object):
 
     def setup_method(self, method):
         self.df = DataFrame(

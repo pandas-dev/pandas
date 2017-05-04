@@ -28,7 +28,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesAnalytics(TestData, tm.TestCase):
+class TestSeriesAnalytics(TestData):
 
     def test_sum_zero(self):
         arr = np.array([])
