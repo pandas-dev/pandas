@@ -12,7 +12,7 @@ from pandas.util import testing as tm
 
 class TestCategoricalIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.df = DataFrame({'A': np.arange(6, dtype='int64'),
                              'B': Series(list('aabbca')).astype(

@@ -9,7 +9,7 @@ class TestFrozenList(CheckImmutable, CheckStringMixin, tm.TestCase):
     mutable_methods = ('extend', 'pop', 'remove', 'insert')
     unicode_container = FrozenList([u("\u05d0"), u("\u05d1"), "c"])
 
-    def setUp(self):
+    def setup_method(self, method):
         self.lst = [1, 2, 3, 4, 5]
         self.container = FrozenList(self.lst)
         self.klass = FrozenList
@@ -35,7 +35,7 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin, tm.TestCase):
     mutable_methods = ('put', 'itemset', 'fill')
     unicode_container = FrozenNDArray([u("\u05d0"), u("\u05d1"), "c"])
 
-    def setUp(self):
+    def setup_method(self, method):
         self.lst = [3, 5, 7, -2]
         self.container = FrozenNDArray(self.lst)
         self.klass = FrozenNDArray

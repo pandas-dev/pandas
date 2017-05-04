@@ -30,7 +30,7 @@ from pandas.core.config import option_context
 
 class TestCategorical(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'],
                                   ordered=True)
 
@@ -1602,7 +1602,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
 class TestCategoricalAsBlock(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
 
         df = DataFrame({'value': np.random.randint(0, 10000, 100)})

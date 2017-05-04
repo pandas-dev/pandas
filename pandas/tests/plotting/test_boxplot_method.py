@@ -21,6 +21,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 """ Test cases for .boxplot method """
 
+tm._skip_module_if_no_mpl()
+
 
 def _skip_if_mpl_14_or_dev_boxplot():
     # GH 8382
@@ -31,7 +33,6 @@ def _skip_if_mpl_14_or_dev_boxplot():
         pytest.skip("Matplotlib Regression in 1.4 and current dev.")
 
 
-@tm.mplskip
 class TestDataFramePlots(TestPlotBase):
 
     @slow
@@ -165,7 +166,6 @@ class TestDataFramePlots(TestPlotBase):
                                 xlabelsize=16, ylabelsize=16)
 
 
-@tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @slow

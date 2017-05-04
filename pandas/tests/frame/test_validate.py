@@ -1,10 +1,10 @@
-from unittest import TestCase
 from pandas.core.frame import DataFrame
 
+import pandas.util.testing as tm
 import pytest
 
 
-class TestDataFrameValidate(TestCase):
+class TestDataFrameValidate(tm.TestCase):
     """Tests for error handling related to data types of method arguments."""
     df = DataFrame({'a': [1, 2], 'b': [3, 4]})
 

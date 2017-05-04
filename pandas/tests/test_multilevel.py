@@ -22,7 +22,7 @@ import pandas._libs.index as _index
 
 class Base(object):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                                   'three']],

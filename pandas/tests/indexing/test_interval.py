@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 
 class TestIntervalIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
     def test_loc_with_scalar(self):

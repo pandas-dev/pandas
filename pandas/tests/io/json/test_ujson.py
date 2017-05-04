@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from unittest import TestCase
-
 try:
     import json
 except ImportError:
@@ -27,7 +25,7 @@ json_unicode = (json.dumps if compat.PY3
                 else partial(json.dumps, encoding="utf-8"))
 
 
-class UltraJSONTests(TestCase):
+class UltraJSONTests(tm.TestCase):
 
     @pytest.mark.skipif(compat.is_platform_32bit(),
                         reason="not compliant on 32-bit, xref #15865")
@@ -948,7 +946,7 @@ class UltraJSONTests(TestCase):
                 ujson.decode(ujson.encode(l, default_handler=str)))
 
 
-class NumpyJSONTests(TestCase):
+class NumpyJSONTests(tm.TestCase):
 
     def testBool(self):
         b = np.bool(True)
@@ -1224,7 +1222,7 @@ class NumpyJSONTests(TestCase):
         assert (np.array(['a', 'b']) == output[2]).all()
 
 
-class PandasJSONTests(TestCase):
+class PandasJSONTests(tm.TestCase):
 
     def testDataFrame(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[

@@ -8,7 +8,7 @@ import numpy as np
 
 class TestSAS7BDAT(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.data = []
         self.test_ix = [list(range(1, 16)), [16]]

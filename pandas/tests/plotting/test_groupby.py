@@ -10,8 +10,9 @@ import numpy as np
 
 from pandas.tests.plotting.common import TestPlotBase
 
+tm._skip_module_if_no_mpl()
 
-@tm.mplskip
+
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     def test_series_groupby_plotting_nominally_works(self):

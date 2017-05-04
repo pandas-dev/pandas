@@ -19,7 +19,7 @@ from pandas.io.json.table_schema import (
 
 class TestBuildSchema(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame(
             {'A': [1, 2, 3, 4],
              'B': ['a', 'b', 'c', 'c'],
@@ -171,7 +171,7 @@ class TestTableSchemaType(tm.TestCase):
 
 class TestTableOrient(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame(
             {'A': [1, 2, 3, 4],
              'B': ['a', 'b', 'c', 'c'],

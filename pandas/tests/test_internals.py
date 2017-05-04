@@ -194,7 +194,7 @@ def create_mgr(descr, item_shape=None):
 
 class TestBlock(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         # self.fblock = get_float_ex()  # a,c,e
         # self.cblock = get_complex_ex() #
         # self.oblock = get_obj_ex()

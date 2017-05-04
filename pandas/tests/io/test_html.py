@@ -99,8 +99,8 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtml, cls).setUpClass()
+    def setup_class(cls):
+        super(TestReadHtml, cls).setup_class()
         _skip_if_none_of(('bs4', 'html5lib'))
 
     def test_to_html_compat(self):
@@ -783,8 +783,8 @@ class TestReadHtmlEncoding(tm.TestCase):
     flavor = 'bs4'
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtmlEncoding, cls).setUpClass()
+    def setup_class(cls):
+        super(TestReadHtmlEncoding, cls).setup_class()
         _skip_if_none_of((cls.flavor, 'html5lib'))
 
     def read_html(self, *args, **kwargs):
@@ -825,8 +825,8 @@ class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
     flavor = 'lxml'
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtmlEncodingLxml, cls).setUpClass()
+    def setup_class(cls):
+        super(TestReadHtmlEncodingLxml, cls).setup_class()
         _skip_if_no(cls.flavor)
 
 
@@ -834,8 +834,8 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
     flavor = 'lxml'
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtmlLxml, cls).setUpClass()
+    def setup_class(cls):
+        super(TestReadHtmlLxml, cls).setup_class()
         _skip_if_no('lxml')
 
     def test_data_fail(self):

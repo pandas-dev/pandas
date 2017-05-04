@@ -282,7 +282,7 @@ class TestFactorize(tm.TestCase):
         # gh 12666 - check no segfault
         # Test not valid numpy versions older than 1.11
         if pd._np_version_under1p11:
-            self.skipTest("Test valid only for numpy 1.11+")
+            pytest.skip("Test valid only for numpy 1.11+")
 
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 

@@ -32,7 +32,7 @@ from pandas._libs.lib import Timestamp
 class TestIndex(Base, tm.TestCase):
     _holder = Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(unicodeIndex=tm.makeUnicodeIndex(100),
                             strIndex=tm.makeStringIndex(100),
                             dateIndex=tm.makeDateIndex(100),
@@ -1808,7 +1808,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
 
     _holder = Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(mixedIndex=Index([0, 'a', 1, 'b', 2, 'c']))
         self.setup_indices()
 

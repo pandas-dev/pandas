@@ -42,7 +42,7 @@ class BaseParser(CommentTests, CompressionTests,
     def float_precision_choices(self):
         raise AbstractMethodError(self)
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')

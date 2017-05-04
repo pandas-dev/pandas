@@ -29,7 +29,7 @@ from pandas.tests.frame.test_api import SharedWithSparse
 class TestSparseDataFrame(tm.TestCase, SharedWithSparse):
     klass = SparseDataFrame
 
-    def setUp(self):
+    def setup_method(self, method):
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
                      'C': np.arange(10, dtype=np.float64),
@@ -1275,7 +1275,7 @@ class TestSparseDataFrameArithmetic(tm.TestCase):
 
 
 class TestSparseDataFrameAnalytics(tm.TestCase):
-    def setUp(self):
+    def setup_method(self, method):
         self.data = {'A': [nan, nan, nan, 0, 1, 2, 3, 4, 5, 6],
                      'B': [0, 1, 2, nan, nan, nan, 3, 4, 5, 6],
                      'C': np.arange(10, dtype=float),

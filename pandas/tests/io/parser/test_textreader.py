@@ -28,7 +28,7 @@ import pandas.io.libparsers as parser
 
 class TestTextReader(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')

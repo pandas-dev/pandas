@@ -15,7 +15,7 @@ import pandas as pd
 class TestIntervalIndex(Base, tm.TestCase):
     _holder = IntervalIndex
 
-    def setUp(self):
+    def setup_method(self, method):
         self.index = IntervalIndex.from_arrays([0, 1], [1, 2])
         self.index_with_nan = IntervalIndex.from_tuples(
             [(0, 1), np.nan, (1, 2)])
@@ -721,7 +721,7 @@ class TestIntervalRange(tm.TestCase):
 
 
 class TestIntervalTree(tm.TestCase):
-    def setUp(self):
+    def setup_method(self, method):
         gentree = lambda dtype: IntervalTree(np.arange(5, dtype=dtype),
                                              np.arange(5, dtype=dtype) + 2)
         self.tree = gentree('int64')

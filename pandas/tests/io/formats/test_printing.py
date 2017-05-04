@@ -126,7 +126,7 @@ c        ff         いいい"""
 class TestTableSchemaRepr(tm.TestCase):
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         pytest.importorskip('IPython')
         try:
             import mock

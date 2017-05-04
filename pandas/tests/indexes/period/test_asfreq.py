@@ -8,7 +8,7 @@ from pandas import PeriodIndex, Series, DataFrame
 
 class TestPeriodIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_asfreq(self):

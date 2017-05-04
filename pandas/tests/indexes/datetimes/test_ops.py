@@ -23,8 +23,8 @@ class TestDatetimeIndexOps(Ops):
     tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/Asia/Singapore',
           'dateutil/US/Pacific']
 
-    def setUp(self):
-        super(TestDatetimeIndexOps, self).setUp()
+    def setup_method(self, method):
+        super(TestDatetimeIndexOps, self).setup_method(method)
         mask = lambda x: (isinstance(x, DatetimeIndex) or
                           isinstance(x, PeriodIndex))
         self.is_valid_objs = [o for o in self.objs if mask(o)]
@@ -1109,7 +1109,7 @@ def test_shift_months(years, months):
 
 class TestBusinessDatetimeIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = bdate_range(START, END)
 
     def test_comparison(self):
@@ -1209,7 +1209,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
 
 class TestCustomDatetimeIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = cdate_range(START, END)
 
     def test_comparison(self):

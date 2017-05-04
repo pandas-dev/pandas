@@ -1096,7 +1096,7 @@ class TestTimestamp(tm.TestCase):
 
 class TestTimestampNsOperations(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.timestamp = Timestamp(datetime.utcnow())
 
     def assert_ns_timedelta(self, modified_timestamp, expected_value):

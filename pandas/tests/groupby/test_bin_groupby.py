@@ -48,7 +48,7 @@ def test_series_bin_grouper():
 
 class TestBinGroupers(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.obj = np.random.randn(10, 1)
         self.labels = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2], dtype=np.int64)
         self.bins = np.array([3, 6], dtype=np.int64)

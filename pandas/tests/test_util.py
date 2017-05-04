@@ -22,7 +22,7 @@ LOCALE_OVERRIDE = os.environ.get('LOCALE_OVERRIDE', None)
 
 class TestDecorators(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         @deprecate_kwarg('old', 'new')
         def _f1(new=False):
             return new
@@ -410,8 +410,8 @@ def test_numpy_errstate_is_default():
 class TestLocaleUtils(tm.TestCase):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestLocaleUtils, cls).setUpClass()
+    def setup_class(cls):
+        super(TestLocaleUtils, cls).setup_class()
         cls.locales = tm.get_locales()
 
         if not cls.locales:
@@ -420,8 +420,8 @@ class TestLocaleUtils(tm.TestCase):
         tm._skip_if_windows()
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestLocaleUtils, cls).tearDownClass()
+    def teardown_class(cls):
+        super(TestLocaleUtils, cls).teardown_class()
         del cls.locales
 
     def test_get_locales(self):
