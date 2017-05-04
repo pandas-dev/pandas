@@ -11,7 +11,7 @@ from pandas import (Period, PeriodIndex, period_range, offsets, date_range,
 
 class TestPeriodIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_construction_base_constructor(self):
@@ -475,7 +475,7 @@ class TestPeriodIndex(tm.TestCase):
 
 class TestSeriesPeriod(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
 
     def test_constructor_cant_cast_period(self):

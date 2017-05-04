@@ -16,8 +16,8 @@ from pandas.tests.test_base import Ops
 
 
 class TestTimedeltaIndexOps(Ops):
-    def setUp(self):
-        super(TestTimedeltaIndexOps, self).setUp()
+    def setup_method(self, method):
+        super(TestTimedeltaIndexOps, self).setup_method(method)
         mask = lambda x: isinstance(x, TimedeltaIndex)
         self.is_valid_objs = [o for o in self.objs if mask(o)]
         self.not_valid_objs = []

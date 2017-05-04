@@ -596,7 +596,7 @@ class CheckIndexing(object):
 class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
                   SafeForLongAndSparse):
 
-    def setUp(self):
+    def setup_method(self, method):
         with catch_warnings(record=True):
             self.panel4d = tm.makePanel4D(nper=8)
             add_nans(self.panel4d)
@@ -685,7 +685,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
             tm.assert_panel_equal(panel4d['A'], self.panel4d['l1'])
             tm.assert_frame_equal(panel4d.loc['B', 'ItemB', :, :],
                                   self.panel4d.loc['l2', ['ItemB'],
-                                  :, :]['ItemB'])
+                                                   :, :]['ItemB'])
 
     def test_constructor_dict_mixed(self):
         with catch_warnings(record=True):
@@ -798,7 +798,7 @@ class TestPanel4d(tm.TestCase, CheckIndexing, SafeForSparse,
                                      method='pad')
 
             tm.assert_panel_equal(larger.loc[:, :,
-                                  self.panel4d.major_axis[1], :],
+                                             self.panel4d.major_axis[1], :],
                                   smaller.loc[:, :, smaller_major[0], :])
 
             # don't necessarily copy

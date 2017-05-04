@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 
 class TestSparseSeriesIndexing(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.orig = pd.Series([1, np.nan, np.nan, 3, np.nan])
         self.sparse = self.orig.to_sparse()
 
@@ -446,7 +446,7 @@ class TestSparseSeriesIndexing(tm.TestCase):
 
 class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):
 
-    def setUp(self):
+    def setup_method(self, method):
         # Mi with duplicated values
         idx = pd.MultiIndex.from_tuples([('A', 0), ('A', 1), ('B', 0),
                                          ('C', 0), ('C', 1)])
@@ -954,7 +954,7 @@ class TestSparseDataFrameIndexing(tm.TestCase):
 
 class TestMultitype(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.cols = ['string', 'int', 'float', 'object']
 
         self.string_series = pd.SparseSeries(['a', 'b', 'c'])

@@ -15,8 +15,8 @@ from pandas.tests.test_base import Ops
 
 class TestPeriodIndexOps(Ops):
 
-    def setUp(self):
-        super(TestPeriodIndexOps, self).setUp()
+    def setup_method(self, method):
+        super(TestPeriodIndexOps, self).setup_method(method)
         mask = lambda x: (isinstance(x, DatetimeIndex) or
                           isinstance(x, PeriodIndex))
         self.is_valid_objs = [o for o in self.objs if mask(o)]
@@ -1137,7 +1137,7 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
 
 class TestSeriesPeriod(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
 
     def test_ops_series_timedelta(self):

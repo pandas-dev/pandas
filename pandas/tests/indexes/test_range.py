@@ -24,7 +24,7 @@ class TestRangeIndex(Numeric, tm.TestCase):
     _holder = RangeIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'))
         self.setup_indices()
 

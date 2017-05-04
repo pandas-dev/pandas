@@ -21,7 +21,7 @@ a_ = np.array
 
 class TestJoin(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         # aggregate multiple columns
         self.df = DataFrame({'key1': get_test_data(),
                              'key2': get_test_data(),

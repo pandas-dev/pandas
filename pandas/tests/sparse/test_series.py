@@ -58,7 +58,7 @@ def _test_data2_zero():
 
 class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
-    def setUp(self):
+    def setup_method(self, method):
         arr, index = _test_data1()
 
         date_index = bdate_range('1/1/2011', periods=len(index))
@@ -936,7 +936,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
 class TestSparseHandlingMultiIndexes(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         miindex = pd.MultiIndex.from_product(
             [["x", "y"], ["10", "20"]], names=['row-foo', 'row-bar'])
         micol = pd.MultiIndex.from_product(
@@ -963,7 +963,7 @@ class TestSparseHandlingMultiIndexes(tm.TestCase):
 class TestSparseSeriesScipyInteraction(tm.TestCase):
     # Issue 8048: add SparseSeries coo methods
 
-    def setUp(self):
+    def setup_method(self, method):
         tm._skip_if_no_scipy()
         import scipy.sparse
         # SparseSeries inputs used in tests, the tests rely on the order
@@ -1312,7 +1312,7 @@ def _dense_series_compare(s, f):
 
 class TestSparseSeriesAnalytics(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         arr, index = _test_data1()
         self.bseries = SparseSeries(arr, index=index, kind='block',
                                     name='bseries')

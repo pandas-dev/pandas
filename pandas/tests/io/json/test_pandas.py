@@ -37,7 +37,7 @@ _mixed_frame = _frame.copy()
 
 class TestPandasContainer(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
 
         self.ts = tm.makeTimeSeries()
@@ -59,7 +59,7 @@ class TestPandasContainer(tm.TestCase):
         self.mixed_frame = _mixed_frame.copy()
         self.categorical = _cat_frame.copy()
 
-    def tearDown(self):
+    def teardown_method(self, method):
         del self.dirpath
 
         del self.ts

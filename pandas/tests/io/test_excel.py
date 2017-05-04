@@ -84,7 +84,7 @@ _mixed_frame['foo'] = 'bar'
 
 class SharedItems(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -161,9 +161,9 @@ class ReadingTestsBase(SharedItems):
     # 3. Add a property engine_name, which is the name of the reader class.
     #    For the reader this is not used for anything at the moment.
 
-    def setUp(self):
+    def setup_method(self, method):
         self.check_skip()
-        super(ReadingTestsBase, self).setUp()
+        super(ReadingTestsBase, self).setup_method(method)
 
     def test_parse_cols_int(self):
 
@@ -1019,14 +1019,14 @@ class ExcelWriterBase(SharedItems):
     # Test with MultiIndex and Hierarchical Rows as merged cells.
     merge_cells = True
 
-    def setUp(self):
+    def setup_method(self, method):
         self.check_skip()
-        super(ExcelWriterBase, self).setUp()
+        super(ExcelWriterBase, self).setup_method(method)
         self.option_name = 'io.excel.%s.writer' % self.ext.strip('.')
         self.prev_engine = get_option(self.option_name)
         set_option(self.option_name, self.engine_name)
 
-    def tearDown(self):
+    def teardown_method(self, method):
         set_option(self.option_name, self.prev_engine)
 
     def test_excel_sheet_by_name_raise(self):
@@ -1926,7 +1926,7 @@ def skip_openpyxl_gt21(cls):
     """Skip a TestCase instance if openpyxl >= 2.2"""
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         _skip_if_no_openpyxl()
         import openpyxl
         ver = openpyxl.__version__
@@ -1934,7 +1934,7 @@ def skip_openpyxl_gt21(cls):
                  LooseVersion(ver) < LooseVersion('2.2.0'))):
             pytest.skip("openpyxl %s >= 2.2" % str(ver))
 
-    cls.setUpClass = setUpClass
+    cls.setup_class = setup_class
     return cls
 
 
@@ -2043,14 +2043,14 @@ def skip_openpyxl_lt22(cls):
     """Skip a TestCase instance if openpyxl < 2.2"""
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         _skip_if_no_openpyxl()
         import openpyxl
         ver = openpyxl.__version__
         if LooseVersion(ver) < LooseVersion('2.2.0'):
             pytest.skip("openpyxl %s < 2.2" % str(ver))
 
-    cls.setUpClass = setUpClass
+    cls.setup_class = setup_class
     return cls
 
 

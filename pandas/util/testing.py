@@ -10,7 +10,6 @@ import inspect
 import os
 import subprocess
 import locale
-import unittest
 import traceback
 
 from datetime import datetime
@@ -86,22 +85,17 @@ def reset_testing_mode():
 set_testing_mode()
 
 
-class TestCase(unittest.TestCase):
+class TestCase(object):
     """
-    The test case class that we originally used when using the
-    nosetests framework. Under the new pytest framework, we are
-    moving away from this class.
-
-    Do not create new test classes derived from this one. Rather,
-    they should inherit from object directly.
+    Base class for all test case classes.
     """
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         pd.set_option('chained_assignment', 'raise')
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         pass
 
 
@@ -295,36 +289,31 @@ def _skip_if_32bit():
         pytest.skip("skipping for 32 bit")
 
 
-def mplskip(cls):
-    """Skip a TestCase instance if matplotlib isn't installed"""
+def _skip_module_if_no_mpl():
+    import pytest
 
-    @classmethod
-    def setUpClass(cls):
-        try:
-            import matplotlib as mpl
-            mpl.use("Agg", warn=False)
-        except ImportError:
-            import pytest
-            pytest.skip("matplotlib not installed")
-
-    cls.setUpClass = setUpClass
-    return cls
+    mpl = pytest.importorskip("matplotlib")
+    mpl.use("Agg", warn=False)
 
 
 def _skip_if_no_mpl():
     try:
-        import matplotlib  # noqa
+        import matplotlib as mpl
+        mpl.use("Agg", warn=False)
     except ImportError:
         import pytest
         pytest.skip("matplotlib not installed")
 
 
 def _skip_if_mpl_1_5():
-    import matplotlib
-    v = matplotlib.__version__
+    import matplotlib as mpl
+
+    v = mpl.__version__
     if v > LooseVersion('1.4.3') or v[0] == '0':
         import pytest
         pytest.skip("matplotlib 1.5")
+    else:
+        mpl.use("Agg", warn=False)
 
 
 def _skip_if_no_scipy():

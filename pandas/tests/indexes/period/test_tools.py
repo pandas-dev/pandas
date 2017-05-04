@@ -152,7 +152,7 @@ class TestTslib(tm.TestCase):
 
 class TestPeriodIndex(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_tolist(self):

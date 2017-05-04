@@ -107,14 +107,14 @@ def has_expanded_repr(df):
 
 class TestDataFrameFormatting(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.warn_filters = warnings.filters
         warnings.filterwarnings('ignore', category=FutureWarning,
                                 module=".*format")
 
         self.frame = _frame.copy()
 
-    def tearDown(self):
+    def teardown_method(self, method):
         warnings.filters = self.warn_filters
 
     def test_repr_embedded_ndarray(self):
@@ -1606,7 +1606,7 @@ def gen_series_formatting():
 
 class TestSeriesFormatting(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.ts = tm.makeTimeSeries()
 
     def test_repr_unicode(self):

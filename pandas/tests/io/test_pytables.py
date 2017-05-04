@@ -124,23 +124,23 @@ def _maybe_remove(store, key):
 class Base(tm.TestCase):
 
     @classmethod
-    def setUpClass(cls):
-        super(Base, cls).setUpClass()
+    def setup_class(cls):
+        super(Base, cls).setup_class()
 
         # Pytables 3.0.0 deprecates lots of things
         tm.reset_testing_mode()
 
     @classmethod
-    def tearDownClass(cls):
-        super(Base, cls).tearDownClass()
+    def teardown_class(cls):
+        super(Base, cls).teardown_class()
 
         # Pytables 3.0.0 deprecates lots of things
         tm.set_testing_mode()
 
-    def setUp(self):
+    def setup_method(self, method):
         self.path = 'tmp.__%s__.h5' % tm.rands(10)
 
-    def tearDown(self):
+    def teardown_method(self, method):
         pass
 
 

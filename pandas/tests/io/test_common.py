@@ -92,7 +92,7 @@ bar2,12,13,14,15
 
 class TestMMapWrapper(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.mmap_file = os.path.join(tm.get_data_path(),
                                       'test_mmap.csv')
 

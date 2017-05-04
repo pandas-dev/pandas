@@ -21,7 +21,7 @@ from pytz import utc
 
 class TestCalendar(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.holiday_list = [
             datetime(2012, 1, 2),
             datetime(2012, 1, 16),
@@ -87,7 +87,7 @@ class TestCalendar(tm.TestCase):
 
 class TestHoliday(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.start_date = datetime(2011, 1, 1)
         self.end_date = datetime(2020, 12, 31)
 
@@ -286,7 +286,7 @@ class TestHoliday(tm.TestCase):
 
 class TestObservanceRules(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.we = datetime(2014, 4, 9)
         self.th = datetime(2014, 4, 10)
         self.fr = datetime(2014, 4, 11)

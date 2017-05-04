@@ -49,7 +49,7 @@ def check_compressed_urls(salaries_table, compression, extension, mode,
 
 class TestS3(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         try:
             import s3fs  # noqa
         except ImportError:

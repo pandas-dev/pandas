@@ -17,7 +17,7 @@ class TestPeriodIndex(DatetimeLike, tm.TestCase):
     _holder = PeriodIndex
     _multiprocess_can_split_ = True
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=tm.makePeriodIndex(10))
         self.setup_indices()
 

@@ -5,16 +5,15 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from pandas.util.testing import TestCase
 import pandas.util.testing as tm
 
 jinja2 = pytest.importorskip('jinja2')
 from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
 
 
-class TestStyler(TestCase):
+class TestStyler(tm.TestCase):
 
-    def setUp(self):
+    def setup_method(self, method):
         np.random.seed(24)
         self.s = DataFrame({'A': np.random.permutation(range(6))})
         self.df = DataFrame({'A': [0, 1], 'B': np.random.randn(2)})
@@ -813,10 +812,10 @@ class TestStyler(TestCase):
         assert head == expected
 
 
-@tm.mplskip
-class TestStylerMatplotlibDep(TestCase):
+class TestStylerMatplotlibDep(tm.TestCase):
 
     def test_background_gradient(self):
+        tm._skip_if_no_mpl()
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
 
         for c_map in [None, 'YlOrRd']:

@@ -1146,7 +1146,7 @@ class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
     klasses = ['series']
     method = 'replace'
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rep = {}
         self.rep['object'] = ['a', 'b']
         self.rep['int64'] = [4, 5]
