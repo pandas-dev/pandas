@@ -486,7 +486,7 @@ class TestMultiIndex(Base):
 
     def test_names(self):
 
-        # names are assigned in __init__
+        # names are assigned in setup
         names = self.index_names
         level_names = [level.name for level in self.index.levels]
         assert names == level_names
