@@ -1,5 +1,9 @@
 from .pandas_vb_common import *
-from pandas.util.decorators import cache_readonly
+
+try:
+    from pandas.util import cache_readonly
+except ImportError:
+    from pandas.util.decorators import cache_readonly
 
 
 class DataFrameAttributes(object):

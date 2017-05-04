@@ -16,7 +16,7 @@ from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.algorithms import take_1d
 
 
-from pandas.util.decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
 import pandas.core.base as base

@@ -9,14 +9,14 @@ import numpy as np
 from pandas.core.dtypes.missing import isnull
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate_kwarg, Substitution)
+from pandas.util._decorators import (Appender, cache_readonly,
+                                     deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
 
 _shared_docs = dict()

@@ -13,7 +13,7 @@
 
    import matplotlib.pyplot as plt
    plt.close('all')
-   import pandas.util.doctools as doctools
+   import pandas.util._doctools as doctools
    p = doctools.TablePlotter()
 
 

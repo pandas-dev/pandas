@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from numpy.random import randint
+from textwrap import dedent
 
 import pytest
 import pandas as pd
@@ -10,7 +11,8 @@ from pandas import read_clipboard
 from pandas import get_option
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
-from pandas.util.clipboard.exceptions import PyperclipException
+from pandas.io.clipboard.exceptions import PyperclipException
+from pandas.io.clipboard import clipboard_set
 
 
 try:
@@ -89,8 +91,6 @@ class TestClipboard(object):
             self.check_round_trip_frame(dt)
 
     def test_read_clipboard_infer_excel(self):
-        from textwrap import dedent
-        from pandas.util.clipboard import clipboard_set
 
         text = dedent("""
             John James	Charlie Mingus
