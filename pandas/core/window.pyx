@@ -1403,8 +1403,8 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                 qhigh = (<double> (idx + 1)) / (<double>(nobs - 1))
                 vlow = skiplist.get(idx)
                 vhigh = skiplist.get(idx + 1)
-                
-                output[i] = vlow + (vhigh - vlow) * (quantile - qlow) / (qhigh - qlow)
+                output[i] = vlow + (vhigh - vlow) * \
+                    (quantile - qlow) / (qhigh - qlow)
         else:
             output[i] = NaN
 

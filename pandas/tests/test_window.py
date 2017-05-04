@@ -1078,16 +1078,16 @@ class TestMoments(Base):
         def scoreatpercentile(a, per):
             values = np.sort(a, axis=0)
 
-            idx = per / 1. * (values.shape[0] - 1)
+            idx = int(per / 1. * (values.shape[0] - 1))
 
-            if int(idx) == values.shape[0] - 1:
+            if idx == values.shape[0] - 1:
                 retval = values[-1]
 
             else:
-                qlow = int(idx) / (values.shape[0] - 1)
-                qhig = (int(idx) + 1) / (values.shape[0] - 1)
-                vlow = values[int(idx)]
-                vhig = values[int(idx + 1)]
+                qlow = float(idx) / float(values.shape[0] - 1)
+                qhig = float(idx + 1) / float(values.shape[0] - 1)
+                vlow = values[idx]
+                vhig = values[idx + 1]
                 retval = vlow + (vhig - vlow) * (per - qlow) / (qhig - qlow)
 
             return retval
