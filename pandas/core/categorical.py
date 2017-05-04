@@ -34,11 +34,11 @@ from pandas.core.base import (PandasObject, PandasDelegate,
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate_kwarg, Substitution)
+from pandas.util._decorators import (Appender, cache_readonly,
+                                     deprecate_kwarg, Substitution)
 
-from pandas.util.terminal import get_terminal_size
-from pandas.util.validators import validate_bool_kwarg
+from pandas.io.formats.terminal import get_terminal_size
+from pandas.util._validators import validate_bool_kwarg
 from pandas.core.config import get_option
 
 

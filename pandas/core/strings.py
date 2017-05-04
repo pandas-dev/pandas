@@ -17,7 +17,7 @@ from pandas.core.common import _values_from_object
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
 import warnings

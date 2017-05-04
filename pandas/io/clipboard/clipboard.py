@@ -26,7 +26,7 @@ def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
         raise NotImplementedError(
             'reading from clipboard only supports utf-8 encoding')
 
-    from pandas.util.clipboard import clipboard_get
+    from pandas.io.clipboard import clipboard_get
     from pandas.io.parsers import read_table
     text = clipboard_get()
 
@@ -92,7 +92,7 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
     if encoding is not None and encoding.lower().replace('-', '') != 'utf8':
         raise ValueError('clipboard only supports utf-8 encoding')
 
-    from pandas.util.clipboard import clipboard_set
+    from pandas.io.clipboard import clipboard_set
     if excel is None:
         excel = True
 

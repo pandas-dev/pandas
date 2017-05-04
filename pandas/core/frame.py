@@ -80,8 +80,8 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import Appender, Substitution
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import Appender, Substitution
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex

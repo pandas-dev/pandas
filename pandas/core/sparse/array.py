@@ -29,13 +29,13 @@ from pandas.core.dtypes.cast import (
     astype_nansafe, find_common_type)
 from pandas.core.dtypes.missing import isnull, notnull, na_value_for_dtype
 
-from pandas.core.sparse import libsparse as splib
-from pandas.core.sparse.libsparse import SparseIndex, BlockIndex, IntIndex
+import pandas._libs.sparse as splib
+from pandas._libs.sparse import SparseIndex, BlockIndex, IntIndex
 from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
 import pandas.core.ops as ops
 import pandas.io.formats.printing as printing
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from pandas.core.indexes.base import _index_shared_docs
 
 

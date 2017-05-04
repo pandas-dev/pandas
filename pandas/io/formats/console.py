@@ -4,7 +4,7 @@ Internal module for console introspection
 
 import sys
 import locale
-from pandas.util.terminal import get_terminal_size
+from pandas.io.formats.terminal import get_terminal_size
 
 # -----------------------------------------------------------------------------
 # Global formatting options

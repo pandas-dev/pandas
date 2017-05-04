@@ -29,7 +29,7 @@ import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
 import pandas.util.testing as tm
-from pandas.util.terminal import get_terminal_size
+from pandas.io.formats.terminal import get_terminal_size
 from pandas.core.config import (set_option, get_option, option_context,
                                 reset_option)
 

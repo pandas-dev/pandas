@@ -17,7 +17,7 @@ from pandas.core.reshape.util import cartesian_product
 
 import pandas.core.sparse.frame as spf
 
-from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.core.sparse.api import SparseSeries
 from pandas.tests.series.test_api import SharedWithSparse
 

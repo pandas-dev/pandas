@@ -7,7 +7,7 @@ import warnings
 
 from pandas import DataFrame, Series
 from pandas.compat import zip, iteritems
-from pandas.util.decorators import cache_readonly
+from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,

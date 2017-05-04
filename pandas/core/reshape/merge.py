@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import na_value_for_dtype
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
-from pandas.util.decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos

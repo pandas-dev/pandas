@@ -11,7 +11,7 @@ from pandas import compat
 from pandas.core import algorithms
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
-from pandas.util.decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.indexes.base as ibase
 
 

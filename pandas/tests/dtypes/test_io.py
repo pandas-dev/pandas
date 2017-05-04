@@ -73,7 +73,7 @@ class TestParseSQL(object):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_convert_downcast_int64(self):
-        from pandas.io.libparsers import na_values
+        from pandas._libs.parsers import na_values
 
         arr = np.array([1, 2, 7, 8, 10], dtype=np.int64)
         expected = np.array([1, 2, 7, 8, 10], dtype=np.int8)

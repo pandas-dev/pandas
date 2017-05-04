@@ -9,10 +9,10 @@ from collections import OrderedDict
 import pytest
 from pandas.compat import intern
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
-from pandas.util.decorators import deprecate_kwarg
-from pandas.util.validators import (validate_args, validate_kwargs,
-                                    validate_args_and_kwargs,
-                                    validate_bool_kwarg)
+from pandas.util._decorators import deprecate_kwarg
+from pandas.util._validators import (validate_args, validate_kwargs,
+                                     validate_args_and_kwargs,
+                                     validate_bool_kwarg)
 
 import pandas.util.testing as tm
 

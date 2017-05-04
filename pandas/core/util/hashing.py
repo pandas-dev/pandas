@@ -4,10 +4,10 @@ data hash pandas / numpy objects
 import itertools
 
 import numpy as np
-from pandas import Series, factorize, Categorical, Index, MultiIndex
-from pandas.util import libhashing as _hash
+from pandas._libs import hashing
 from pandas._libs.lib import is_bool_array
 from pandas.core.dtypes.generic import (
+    ABCMultiIndex,
     ABCIndexClass,
     ABCSeries,
     ABCDataFrame)
@@ -73,10 +73,11 @@ def hash_pandas_object(obj, index=True, encoding='utf8', hash_key=None,
     Series of uint64, same length as the object
 
     """
+    from pandas import Series
     if hash_key is None:
         hash_key = _default_hash_key
 
-    if isinstance(obj, MultiIndex):
+    if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key),
                       dtype='uint64', copy=False)
 
@@ -143,7 +144,9 @@ def hash_tuples(vals, encoding='utf8', hash_key=None):
     elif not is_list_like(vals):
         raise TypeError("must be convertible to a list-of-tuples")
 
-    if not isinstance(vals, MultiIndex):
+    from pandas import Categorical, MultiIndex
+
+    if not isinstance(vals, ABCMultiIndex):
         vals = MultiIndex.from_tuples(vals)
 
     # create a list-of-Categoricals
@@ -257,17 +260,18 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
         if categorize:
+            from pandas import factorize, Categorical, Index
             codes, categories = factorize(vals, sort=False)
             cat = Categorical(codes, Index(categories),
                               ordered=False, fastpath=True)
             return _hash_categorical(cat, encoding, hash_key)
 
         try:
-            vals = _hash.hash_object_array(vals, hash_key, encoding)
+            vals = hashing.hash_object_array(vals, hash_key, encoding)
         except TypeError:
             # we have mixed types
-            vals = _hash.hash_object_array(vals.astype(str).astype(object),
-                                           hash_key, encoding)
+            vals = hashing.hash_object_array(vals.astype(str).astype(object),
+                                             hash_key, encoding)
 
     # Then, redistribute these 64-bit ints within the space of 64-bit ints
     vals ^= vals >> 30

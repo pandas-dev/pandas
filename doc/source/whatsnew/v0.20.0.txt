@@ -1230,19 +1230,19 @@ If indicated, a deprecation warning will be issued if you reference theses modul
     "pandas.algos", "pandas._libs.algos", ""
     "pandas.hashtable", "pandas._libs.hashtable", ""
     "pandas.indexes", "pandas.core.indexes", ""
-    "pandas.json", "pandas.io.json.libjson", "X"
-    "pandas.parser", "pandas.io.libparsers", "X"
+    "pandas.json", "pandas._libs.json", "X"
+    "pandas.parser", "pandas._libs.parsers", "X"
     "pandas.formats", "pandas.io.formats", ""
     "pandas.sparse", "pandas.core.sparse", ""
     "pandas.tools", "pandas.core.reshape", ""
     "pandas.types", "pandas.core.dtypes", ""
-    "pandas.io.sas.saslib", "pandas.io.sas.libsas", ""
+    "pandas.io.sas.saslib", "pandas.io.sas._sas", ""
     "pandas._join", "pandas._libs.join", ""
-    "pandas._hash", "pandas.util.libhashing", ""
+    "pandas._hash", "pandas._libs.hashing", ""
     "pandas._period", "pandas._libs.period", ""
-    "pandas._sparse", "pandas.core.sparse.libsparse", ""
-    "pandas._testing", "pandas.util.libtesting", ""
-    "pandas._window", "pandas.core.libwindow", ""
+    "pandas._sparse", "pandas._libs.sparse", ""
+    "pandas._testing", "pandas._libs.testing", ""
+    "pandas._window", "pandas._libs.window", ""
 
 
 Some new subpackages are created with public functionality that is not directly
@@ -1254,6 +1254,8 @@ these are now the public subpackages.
 
 - The function :func:`~pandas.api.types.union_categoricals` is now importable from ``pandas.api.types``, formerly from ``pandas.types.concat`` (:issue:`15998`)
 - The type import ``pandas.tslib.NaTType`` is deprecated and can be replaced by using ``type(pandas.NaT)`` (:issue:`16146`)
+- The public functions in ``pandas.tools.hashing`` deprecated from that locations, but are now importable from ``pandas.util`` (:issue:`16223`)
+- The modules in ``pandas.util``: ``decorators``, ``print_versions``, ``doctools``, `validators``, ``depr_module`` are now private (:issue:`16223`)
 
 .. _whatsnew_0200.privacy.errors:
 
@@ -1278,7 +1280,7 @@ The following are now part of this API:
     'UnsupportedFunctionCall']
 
 
-.. _whatsnew_0200.privay.testing:
+.. _whatsnew_0200.privacy.testing:
 
 ``pandas.testing``
 ^^^^^^^^^^^^^^^^^^
@@ -1292,13 +1294,12 @@ The following testing functions are now part of this API:
 - :func:`testing.assert_index_equal`
 
 
-.. _whatsnew_0200.privay.plotting:
+.. _whatsnew_0200.privacy.plotting:
 
 ``pandas.plotting``
 ^^^^^^^^^^^^^^^^^^^
 
 A new public ``pandas.plotting`` module has been added that holds plotting functionality that was previously in either ``pandas.tools.plotting`` or in the top-level namespace. See the :ref:`deprecations sections <whatsnew_0200.privacy.deprecate_plotting>` for more details.
-
 
 .. _whatsnew_0200.privacy.development:
 

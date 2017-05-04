@@ -15,7 +15,7 @@ from pandas._libs import (lib, index as libindex,
                           tslib as libts, algos as libalgos, iNaT)
 
 from pandas import compat
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import pandas.core.computation.expressions as expressions
 
 from pandas.compat import bind_method

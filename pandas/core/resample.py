@@ -25,7 +25,7 @@ from pandas._libs import lib, tslib
 from pandas._libs.lib import Timestamp
 from pandas._libs.period import IncompatibleFrequency
 
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from pandas.core.generic import _shared_docs
 _shared_docs_kwargs = dict()
 

@@ -64,8 +64,8 @@ from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement
 
 import pandas.core.computation.expressions as expressions
-from pandas.util.decorators import cache_readonly
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import cache_readonly
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas import compat, _np_version_under1p9
 from pandas.compat import range, map, zip, u

@@ -35,7 +35,7 @@ from pandas.core.tools.timedeltas import to_timedelta
 from pandas.core.resample import TimeGrouper
 
 # see gh-14094.
-from pandas.util.depr_module import _DeprecatedModule
+from pandas.util._depr_module import _DeprecatedModule
 
 _removals = ['day', 'bday', 'businessDay', 'cday', 'customBusinessDay',
              'customBusinessMonthEnd', 'customBusinessMonthBegin',

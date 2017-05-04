@@ -27,7 +27,7 @@ import datetime
 from pandas import compat, to_timedelta, to_datetime, isnull, DatetimeIndex
 from pandas.compat import lrange, lmap, lzip, text_type, string_types, range, \
     zip, BytesIO
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import pandas as pd
 
 from pandas.io.common import get_filepath_or_buffer, BaseIterator
