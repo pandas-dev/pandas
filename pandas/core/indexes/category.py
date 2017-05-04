@@ -47,6 +47,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
     name : object
         Name to be stored in the index
 
+    See Also
+    --------
+    Categorical, Index
     """
 
     _typ = 'categoricalindex'

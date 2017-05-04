@@ -110,6 +110,10 @@ class IntervalIndex(IntervalMixin, Index):
         Name to be stored in the index.
     copy : boolean, default False
         Copy the meta-data
+
+    See Also
+    --------
+    Index
     """
     _typ = 'intervalindex'
     _comparables = ['name']
