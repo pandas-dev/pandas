@@ -11,7 +11,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameConvertTo(tm.TestCase, TestData):
+class TestDataFrameConvertTo(TestData):
 
     def test_to_dict(self):
         test_data = {

@@ -18,7 +18,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesCombine(TestData, tm.TestCase):
+class TestSeriesCombine(TestData):
 
     def test_append(self):
         appendedSeries = self.series.append(self.objSeries)
@@ -217,7 +217,7 @@ class TestSeriesCombine(TestData, tm.TestCase):
         assert_series_equal(rs, xp)
 
 
-class TestTimeseries(tm.TestCase):
+class TestTimeseries(object):
 
     def test_append_concat(self):
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T')

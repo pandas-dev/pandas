@@ -56,7 +56,7 @@ with catch_warnings(record=True):
 
 
 @pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
-class TestExpressions(tm.TestCase):
+class TestExpressions(object):
 
     def setup_method(self, method):
 

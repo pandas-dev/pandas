@@ -861,7 +861,7 @@ Freq: D"""
         assert not idx.equals(pd.Series(idx2))
 
 
-class TestTimedeltas(tm.TestCase):
+class TestTimedeltas(object):
     _multiprocess_can_split_ = True
 
     def test_ops(self):
@@ -1209,7 +1209,7 @@ class TestTimedeltas(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestSlicing(tm.TestCase):
+class TestSlicing(object):
 
     def test_tdi_ops_attributes(self):
         rng = timedelta_range('2 days', periods=5, freq='2D', name='x')

@@ -5,7 +5,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSparseSeriesConcat(tm.TestCase):
+class TestSparseSeriesConcat(object):
 
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
@@ -122,7 +122,7 @@ class TestSparseSeriesConcat(tm.TestCase):
             tm.assert_sp_series_equal(res, exp)
 
 
-class TestSparseDataFrameConcat(tm.TestCase):
+class TestSparseDataFrameConcat(object):
 
     def setup_method(self, method):
 

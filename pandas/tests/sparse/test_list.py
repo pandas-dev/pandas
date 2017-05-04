@@ -7,7 +7,7 @@ from pandas.core.sparse.api import SparseList, SparseArray
 import pandas.util.testing as tm
 
 
-class TestSparseList(tm.TestCase):
+class TestSparseList(object):
 
     def setup_method(self, method):
         self.na_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])

@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 
-class TestIndexer(tm.TestCase):
+class TestIndexer(object):
 
     def test_outer_join_indexer(self):
         typemap = [('int32', _join.outer_join_indexer_int32),

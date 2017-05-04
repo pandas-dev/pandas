@@ -26,7 +26,7 @@ from pandas.io.libparsers import TextReader
 import pandas.io.libparsers as parser
 
 
-class TestTextReader(tm.TestCase):
+class TestTextReader(object):
 
     def setup_method(self, method):
         self.dirpath = tm.get_data_path()

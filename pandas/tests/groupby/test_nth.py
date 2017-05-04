@@ -2,13 +2,12 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Index, Series, isnull
 from pandas.compat import lrange
-from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 from .common import MixIn
 
 
-class TestNth(MixIn, tm.TestCase):
+class TestNth(MixIn):
 
     def test_first_last_nth(self):
         # tests for first / last / nth

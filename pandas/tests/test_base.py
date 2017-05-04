@@ -86,7 +86,7 @@ class CheckImmutable(object):
         assert result == expected
 
 
-class TestPandasDelegate(tm.TestCase):
+class TestPandasDelegate(object):
 
     class Delegator(object):
         _properties = ['foo']
@@ -152,7 +152,7 @@ class TestPandasDelegate(tm.TestCase):
         sys.getsizeof(delegate)
 
 
-class Ops(tm.TestCase):
+class Ops(object):
 
     def _allow_na_ops(self, obj):
         """Whether to skip test cases including NaN"""
@@ -1008,7 +1008,7 @@ class TestTranspose(Ops):
                                    np.transpose, obj, axes=1)
 
 
-class TestNoNewAttributesMixin(tm.TestCase):
+class TestNoNewAttributesMixin(object):
 
     def test_mixin(self):
         class T(NoNewAttributesMixin):

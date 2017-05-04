@@ -22,7 +22,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameSelectReindex(tm.TestCase, TestData):
+class TestDataFrameSelectReindex(TestData):
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 

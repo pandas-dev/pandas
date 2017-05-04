@@ -13,7 +13,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesQuantile(TestData, tm.TestCase):
+class TestSeriesQuantile(TestData):
 
     def test_quantile(self):
 

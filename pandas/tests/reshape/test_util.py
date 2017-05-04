@@ -5,7 +5,7 @@ import pandas.util.testing as tm
 from pandas.core.reshape.util import cartesian_product
 
 
-class TestCartesianProduct(tm.TestCase):
+class TestCartesianProduct(object):
 
     def test_simple(self):
         x, y = list('ABC'), [1, 22]

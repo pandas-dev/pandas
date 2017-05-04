@@ -35,7 +35,7 @@ _cat_frame['sort'] = np.arange(len(_cat_frame), dtype='int64')
 _mixed_frame = _frame.copy()
 
 
-class TestPandasContainer(tm.TestCase):
+class TestPandasContainer(object):
 
     def setup_method(self, method):
         self.dirpath = tm.get_data_path()

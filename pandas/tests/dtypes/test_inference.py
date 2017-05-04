@@ -226,7 +226,7 @@ def test_is_recompilable():
         assert not inference.is_re_compilable(f)
 
 
-class TestInference(tm.TestCase):
+class TestInference(object):
 
     def test_infer_dtype_bytes(self):
         compare = 'string' if PY2 else 'bytes'
@@ -405,7 +405,7 @@ class TestInference(tm.TestCase):
         tm.assert_numpy_array_equal(result, array)
 
 
-class TestTypeInference(tm.TestCase):
+class TestTypeInference(object):
 
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
@@ -774,7 +774,7 @@ class TestTypeInference(tm.TestCase):
         assert result == 'categorical'
 
 
-class TestNumberScalar(tm.TestCase):
+class TestNumberScalar(object):
 
     def test_is_number(self):
 
@@ -917,7 +917,7 @@ class TestNumberScalar(tm.TestCase):
         assert not is_timedelta64_ns_dtype(tdi.astype('timedelta64[h]'))
 
 
-class Testisscalar(tm.TestCase):
+class Testisscalar(object):
 
     def test_isscalar_builtin_scalars(self):
         assert is_scalar(None)

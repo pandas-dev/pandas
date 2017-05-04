@@ -56,7 +56,7 @@ def _test_data2_zero():
     return arr, index
 
 
-class TestSparseSeries(tm.TestCase, SharedWithSparse):
+class TestSparseSeries(SharedWithSparse):
 
     def setup_method(self, method):
         arr, index = _test_data1()
@@ -934,7 +934,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         tm.assert_sp_series_equal(result, expected)
 
 
-class TestSparseHandlingMultiIndexes(tm.TestCase):
+class TestSparseHandlingMultiIndexes(object):
 
     def setup_method(self, method):
         miindex = pd.MultiIndex.from_product(
@@ -960,7 +960,7 @@ class TestSparseHandlingMultiIndexes(tm.TestCase):
                               check_names=True)
 
 
-class TestSparseSeriesScipyInteraction(tm.TestCase):
+class TestSparseSeriesScipyInteraction(object):
     # Issue 8048: add SparseSeries coo methods
 
     def setup_method(self, method):
@@ -1310,7 +1310,7 @@ def _dense_series_compare(s, f):
     tm.assert_series_equal(result.to_dense(), dense_result)
 
 
-class TestSparseSeriesAnalytics(tm.TestCase):
+class TestSparseSeriesAnalytics(object):
 
     def setup_method(self, method):
         arr, index = _test_data1()

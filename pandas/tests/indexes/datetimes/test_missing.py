@@ -2,7 +2,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_fillna_datetime64(self):
         # GH 11343

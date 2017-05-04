@@ -22,7 +22,7 @@ from pandas.tseries.frequencies import (RESO_DAY, RESO_HR, RESO_MIN, RESO_US,
                                         RESO_MS, RESO_SEC)
 
 
-class TestTimestamp(tm.TestCase):
+class TestTimestamp(object):
 
     def test_constructor(self):
         base_str = '2014-07-01 09:00'
@@ -1094,7 +1094,7 @@ class TestTimestamp(tm.TestCase):
             assert not dt.is_leap_year
 
 
-class TestTimestampNsOperations(tm.TestCase):
+class TestTimestampNsOperations(object):
 
     def setup_method(self, method):
         self.timestamp = Timestamp(datetime.utcnow())
@@ -1181,7 +1181,7 @@ class TestTimestampNsOperations(tm.TestCase):
         assert t.nanosecond == 10
 
 
-class TestTimestampOps(tm.TestCase):
+class TestTimestampOps(object):
 
     def test_timestamp_and_datetime(self):
         assert ((Timestamp(datetime(2013, 10, 13)) -
@@ -1256,7 +1256,7 @@ class TestTimestampOps(tm.TestCase):
                 assert result == expected
 
 
-class TestTimestampToJulianDate(tm.TestCase):
+class TestTimestampToJulianDate(object):
 
     def test_compare_1700(self):
         r = Timestamp('1700-06-23').to_julian_date()
@@ -1279,7 +1279,7 @@ class TestTimestampToJulianDate(tm.TestCase):
         assert r == 2451769.0416666666666666
 
 
-class TestTimeSeries(tm.TestCase):
+class TestTimeSeries(object):
 
     def test_timestamp_to_datetime(self):
         tm._skip_if_no_pytz()
@@ -1490,7 +1490,7 @@ class TestTimeSeries(tm.TestCase):
         assert (result == [52, 52, 53, 53]).all()
 
 
-class TestTsUtil(tm.TestCase):
+class TestTsUtil(object):
 
     def test_min_valid(self):
         # Ensure that Timestamp.min is a valid Timestamp

@@ -17,7 +17,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesApply(TestData, tm.TestCase):
+class TestSeriesApply(TestData):
 
     def test_apply(self):
         with np.errstate(all='ignore'):
@@ -151,7 +151,7 @@ class TestSeriesApply(TestData, tm.TestCase):
             tsdf.A.agg({'foo': ['sum', 'mean']})
 
 
-class TestSeriesAggregate(TestData, tm.TestCase):
+class TestSeriesAggregate(TestData):
 
     _multiprocess_can_split_ = True
 
@@ -307,7 +307,7 @@ class TestSeriesAggregate(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
 
-class TestSeriesMap(TestData, tm.TestCase):
+class TestSeriesMap(TestData):
 
     def test_map(self):
         index, data = tm.getMixedTypeDict()

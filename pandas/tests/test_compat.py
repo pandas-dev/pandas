@@ -6,10 +6,9 @@ Testing that functions from compat work as expected
 from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
                            lfilter, builtins, iterkeys, itervalues, iteritems,
                            next)
-import pandas.util.testing as tm
 
 
-class TestBuiltinIterators(tm.TestCase):
+class TestBuiltinIterators(object):
 
     @classmethod
     def check_result(cls, actual, expected, lengths):

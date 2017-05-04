@@ -931,7 +931,7 @@ Freq: D"""
             assert not idx.equals(pd.Series(idx3))
 
 
-class TestDateTimeIndexToJulianDate(tm.TestCase):
+class TestDateTimeIndexToJulianDate(object):
 
     def test_1700(self):
         r1 = Float64Index([2345897.5, 2345898.5, 2345899.5, 2345900.5,
@@ -1107,7 +1107,7 @@ def test_shift_months(years, months):
     tm.assert_index_equal(actual, expected)
 
 
-class TestBusinessDatetimeIndex(tm.TestCase):
+class TestBusinessDatetimeIndex(object):
 
     def setup_method(self, method):
         self.rng = bdate_range(START, END)
@@ -1207,7 +1207,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         assert not t1.identical(t2v)
 
 
-class TestCustomDatetimeIndex(tm.TestCase):
+class TestCustomDatetimeIndex(object):
 
     def setup_method(self, method):
         self.rng = cdate_range(START, END)

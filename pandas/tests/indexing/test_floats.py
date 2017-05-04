@@ -9,7 +9,7 @@ from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
 
-class TestFloatIndexers(tm.TestCase):
+class TestFloatIndexers(object):
 
     def check(self, result, original, indexer, getitem):
         """

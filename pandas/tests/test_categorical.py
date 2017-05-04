@@ -28,7 +28,7 @@ from pandas.compat import range, lrange, u, PY3
 from pandas.core.config import option_context
 
 
-class TestCategorical(tm.TestCase):
+class TestCategorical(object):
 
     def setup_method(self, method):
         self.factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'],
@@ -1600,7 +1600,7 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
                 cat.sort_values(inplace=value)
 
 
-class TestCategoricalAsBlock(tm.TestCase):
+class TestCategoricalAsBlock(object):
 
     def setup_method(self, method):
         self.factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
@@ -4411,7 +4411,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         tm.assert_frame_equal(res, exp)
 
 
-class TestCategoricalSubclassing(tm.TestCase):
+class TestCategoricalSubclassing(object):
 
     def test_constructor(self):
         sc = tm.SubclassedCategorical(['a', 'b', 'c'])

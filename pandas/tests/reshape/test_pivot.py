@@ -15,7 +15,7 @@ import pandas.util.testing as tm
 from pandas.tseries.util import pivot_annual, isleapyear
 
 
-class TestPivotTable(tm.TestCase):
+class TestPivotTable(object):
 
     def setup_method(self, method):
         self.data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
@@ -982,7 +982,7 @@ class TestPivotTable(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestCrosstab(tm.TestCase):
+class TestCrosstab(object):
 
     def setup_method(self, method):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
@@ -1397,7 +1397,7 @@ class TestCrosstab(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestPivotAnnual(tm.TestCase):
+class TestPivotAnnual(object):
     """
     New pandas of scikits.timeseries pivot_annual
     """

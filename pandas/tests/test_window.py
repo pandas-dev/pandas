@@ -30,7 +30,7 @@ def assert_equal(left, right):
         tm.assert_frame_equal(left, right)
 
 
-class Base(tm.TestCase):
+class Base(object):
 
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
@@ -562,8 +562,8 @@ class TestDeprecations(Base):
 # gh-12373 : rolling functions error on float32 data
 # make sure rolling functions works for different dtypes
 #
-# NOTE that these are yielded tests and so _create_data is
-# explicity called, nor do these inherit from tm.TestCase
+# NOTE that these are yielded tests and so _create_data
+# is explicitly called.
 #
 # further note that we are only checking rolling for fully dtype
 # compliance (though both expanding and ewm inherit)
@@ -3037,7 +3037,7 @@ class TestMomentsConsistency(Base):
             assert result.dtypes[0] == np.dtype("f8")
 
 
-class TestGrouperGrouping(tm.TestCase):
+class TestGrouperGrouping(object):
 
     def setup_method(self, method):
         self.series = Series(np.arange(10))
@@ -3182,7 +3182,7 @@ class TestGrouperGrouping(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestRollingTS(tm.TestCase):
+class TestRollingTS(object):
 
     # rolling time-series friendly
     # xref GH13327

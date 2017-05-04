@@ -27,7 +27,7 @@ from pandas.util.testing import assert_almost_equal, assert_copy
 from .common import Base
 
 
-class TestMultiIndex(Base, tm.TestCase):
+class TestMultiIndex(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 

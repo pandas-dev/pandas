@@ -5,7 +5,7 @@ from pandas import Interval
 import pandas.util.testing as tm
 
 
-class TestInterval(tm.TestCase):
+class TestInterval(object):
     def setup_method(self, method):
         self.interval = Interval(0, 1)
 

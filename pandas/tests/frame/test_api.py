@@ -69,7 +69,7 @@ class SharedWithSparse(object):
         tm.assert_index_equal(with_suffix.columns, expected)
 
 
-class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
+class TestDataFrameMisc(SharedWithSparse, TestData):
 
     klass = DataFrame
 
