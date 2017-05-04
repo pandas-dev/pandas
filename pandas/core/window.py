@@ -1375,11 +1375,12 @@ class Expanding(_Rolling_and_Expanding):
 
     def _get_window(self, other=None):
         obj = self._selected_obj
+        obj_len = obj.shape[self.axis]
         if other is None:
-            return (max(len(obj), self.min_periods) if self.min_periods
-                    else len(obj))
-        return (max((len(obj) + len(obj)), self.min_periods)
-                if self.min_periods else (len(obj) + len(obj)))
+            return (max(obj_len, self.min_periods) if self.min_periods
+                    else obj_len)
+        return (max((obj_len + obj_len), self.min_periods)
+                if self.min_periods else (obj_len + obj_len))
 
     _agg_doc = dedent("""
     Examples
