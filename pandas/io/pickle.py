@@ -7,7 +7,7 @@ from pandas.core.dtypes.common import is_datetime64_dtype, _NS_DTYPE
 from pandas.io.common import _get_handle, _infer_compression
 
 
-def to_pickle(obj, path, compression='infer'):
+def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     """
     Pickle (serialize) object to input file path
 
@@ -18,6 +18,9 @@ def to_pickle(obj, path, compression='infer'):
         File path
     compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
         a string representing the compression to use in the output file
+    protocol : int
+        Int which indicates which protocol should be used by the pickler,
+        default HIGHEST_PROTOCOL (Pickle module).
 
         .. versionadded:: 0.20.0
     """
@@ -26,7 +29,7 @@ def to_pickle(obj, path, compression='infer'):
                         compression=inferred_compression,
                         is_text=False)
     try:
-        pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
+        pkl.dump(obj, f, protocol=protocol)
     finally:
         for _f in fh:
             _f.close()

@@ -50,6 +50,7 @@ from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types,
                            isidentifier, set_function_name)
+from pandas.compat import cPickle as pkl
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util.validators import validate_bool_kwarg
@@ -1344,7 +1345,8 @@ class NDFrame(PandasObject, SelectionMixin):
                    if_exists=if_exists, index=index, index_label=index_label,
                    chunksize=chunksize, dtype=dtype)
 
-    def to_pickle(self, path, compression='infer'):
+    def to_pickle(self, path, compression='infer',
+                  protocol=pkl.HIGHEST_PROTOCOL):
         """
         Pickle (serialize) object to input file path.
 
@@ -1354,11 +1356,15 @@ class NDFrame(PandasObject, SelectionMixin):
             File path
         compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
             a string representing the compression to use in the output file
+        protocol : int
+            Int which indicates which protocol should be used by the pickler,
+            default HIGHEST_PROTOCOL (Pickle module).
 
             .. versionadded:: 0.20.0
         """
         from pandas.io.pickle import to_pickle
-        return to_pickle(self, path, compression=compression)
+        return to_pickle(self, path, compression=compression,
+                         protocol=protocol)
 
     def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
