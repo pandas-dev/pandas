@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas import _np_version_under1p8
 from pandas.core.sparse.api import SparseArray, SparseSeries
-from pandas.core.sparse.libsparse import IntIndex
+from pandas._libs.sparse import IntIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 

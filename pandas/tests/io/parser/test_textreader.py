@@ -22,8 +22,8 @@ from pandas.util.testing import assert_frame_equal
 
 import pandas.util.testing as tm
 
-from pandas.io.libparsers import TextReader
-import pandas.io.libparsers as parser
+from pandas._libs.parsers import TextReader
+import pandas._libs.parsers as parser
 
 
 class TestTextReader(object):

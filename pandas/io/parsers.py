@@ -40,7 +40,7 @@ from pandas.core.tools import datetimes as tools
 from pandas.util._decorators import Appender
 
 import pandas._libs.lib as lib
-import pandas.io.libparsers as libparsers
+import pandas._libs.parsers as parsers
 
 
 # BOM character (byte order mark)
@@ -1460,7 +1460,7 @@ class ParserBase(object):
 
             if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
                 cvals = lib.downcast_int64(
-                    cvals, libparsers.na_values,
+                    cvals, parsers.na_values,
                     self.use_unsigned)
 
             result[c] = cvals
@@ -1579,7 +1579,7 @@ class CParserWrapper(ParserBase):
         # #2442
         kwds['allow_leading_cols'] = self.index_col is not False
 
-        self._reader = libparsers.TextReader(src, **kwds)
+        self._reader = parsers.TextReader(src, **kwds)
 
         # XXX
         self.usecols, self.usecols_dtype = _validate_usecols_arg(

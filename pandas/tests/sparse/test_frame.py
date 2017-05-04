@@ -21,7 +21,7 @@ from pandas.compat import lrange
 from pandas import compat
 from pandas.core.sparse import frame as spf
 
-from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.core.sparse.api import SparseSeries, SparseDataFrame, SparseArray
 from pandas.tests.frame.test_api import SharedWithSparse
 

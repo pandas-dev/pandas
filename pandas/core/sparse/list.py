@@ -6,7 +6,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.sparse.array import SparseArray
 from pandas.util._validators import validate_bool_kwarg
-from pandas.core.sparse import libsparse as splib
+import pandas._libs.sparse as splib
 
 
 class SparseList(PandasObject):

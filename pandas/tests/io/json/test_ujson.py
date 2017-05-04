@@ -13,7 +13,7 @@ import re
 import decimal
 from functools import partial
 from pandas.compat import range, zip, StringIO, u
-import pandas.io.json.libjson as ujson
+import pandas._libs.json as ujson
 import pandas.compat as compat
 
 import numpy as np

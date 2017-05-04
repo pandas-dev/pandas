@@ -26,8 +26,8 @@ from pandas.util._decorators import Appender
 from pandas.core.sparse.array import (
     make_sparse, _sparse_array_op, SparseArray,
     _make_index)
-from pandas.core.sparse.libsparse import BlockIndex, IntIndex
-import pandas.core.sparse.libsparse as splib
+from pandas._libs.sparse import BlockIndex, IntIndex
+import pandas._libs.sparse as splib
 
 from pandas.core.sparse.scipy_sparse import (
     _sparse_series_to_coo,

@@ -33,7 +33,7 @@ import pandas as pd
 from pandas.core.base import (PandasObject, SelectionMixin,
                               GroupByMixin)
 import pandas.core.common as com
-import pandas.core.libwindow as _window
+import pandas._libs.window as _window
 from pandas.tseries.offsets import DateOffset
 from pandas import compat
 from pandas.compat.numpy import function as nv

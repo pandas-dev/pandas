@@ -20,7 +20,7 @@ from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
                               get_filepath_or_buffer, _NA_VALUES)
 from pandas.core.indexes.period import Period
-from pandas.io.json import libjson
+import pandas._libs.json as json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
                            string_types, OrderedDict)
 from pandas.core import config
@@ -1447,7 +1447,7 @@ class _XlwtWriter(ExcelWriter):
             elif isinstance(cell.val, date):
                 num_format_str = self.date_format
 
-            stylekey = libjson.dumps(cell.style)
+            stylekey = json.dumps(cell.style)
             if num_format_str:
                 stylekey += num_format_str
 
@@ -1575,7 +1575,7 @@ class _XlsxWriter(ExcelWriter):
             elif isinstance(cell.val, date):
                 num_format_str = self.date_format
 
-            stylekey = libjson.dumps(cell.style)
+            stylekey = json.dumps(cell.style)
             if num_format_str:
                 stylekey += num_format_str
 

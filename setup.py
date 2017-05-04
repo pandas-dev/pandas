@@ -118,7 +118,7 @@ _pxi_dep_template = {
     'hashtable': ['_libs/hashtable_class_helper.pxi.in',
                   '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],
-    'sparse': ['core/sparse/sparse_op_helper.pxi.in'],
+    'sparse': ['_libs/sparse_op_helper.pxi.in'],
     'interval': ['_libs/intervaltree.pxi.in']
 }
 
@@ -339,9 +339,9 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/interval.pyx',
                  'pandas/_libs/hashing.pyx',
                  'pandas/_libs/testing.pyx',
-                 'pandas/core/window.pyx',
-                 'pandas/core/sparse/sparse.pyx',
-                 'pandas/io/parsers.pyx',
+                 'pandas/_libs/window.pyx',
+                 'pandas/_libs/sparse.pyx',
+                 'pandas/_libs/parsers.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -513,24 +513,24 @@ ext_data = {
     '_libs.interval': {'pyxfile': '_libs/interval',
                        'pxdfiles': ['_libs/hashtable'],
                        'depends': _pxi_dep['interval']},
-    'core.libwindow': {'pyxfile': 'core/window',
-                       'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
-                       'depends': ['pandas/_libs/src/skiplist.pyx',
-                                   'pandas/_libs/src/skiplist.h']},
-    'io.libparsers': {'pyxfile': 'io/parsers',
+    '_libs.window': {'pyxfile': '_libs/window',
+                     'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
+                     'depends': ['pandas/_libs/src/skiplist.pyx',
+                                 'pandas/_libs/src/skiplist.h']},
+    '_libs.parsers': {'pyxfile': '_libs/parsers',
                       'depends': ['pandas/_libs/src/parser/tokenizer.h',
                                   'pandas/_libs/src/parser/io.h',
                                   'pandas/_libs/src/numpy_helper.h'],
                       'sources': ['pandas/_libs/src/parser/tokenizer.c',
                                   'pandas/_libs/src/parser/io.c']},
-    'core.sparse.libsparse': {'pyxfile': 'core/sparse/sparse',
-                              'depends': (['pandas/core/sparse/sparse.pyx'] +
-                                     _pxi_dep['sparse'])},
+    '_libs.sparse': {'pyxfile': '_libs/sparse',
+                     'depends': (['pandas/core/sparse/sparse.pyx'] +
+                                 _pxi_dep['sparse'])},
     '_libs.testing': {'pyxfile': '_libs/testing',
                       'depends': ['pandas/_libs/testing.pyx']},
     '_libs.hashing': {'pyxfile': '_libs/hashing',
                       'depends': ['pandas/_libs/hashing.pyx']},
-    'io.sas.libsas': {'pyxfile': 'io/sas/sas'},
+    'io.sas._sas': {'pyxfile': 'io/sas/sas'},
     }
 
 extensions = []
@@ -596,7 +596,7 @@ if suffix == '.pyx' and 'setuptools' in sys.modules:
             root, _ = os.path.splitext(ext.sources[0])
             ext.sources[0] = root + suffix
 
-ujson_ext = Extension('pandas.io.json.libjson',
+ujson_ext = Extension('pandas._libs.json',
                       depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
                                'pandas/_libs/src/datetime_helper.h',
                                'pandas/_libs/src/numpy_helper.h'],

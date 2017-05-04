@@ -274,12 +274,12 @@ def test_deprecation():
 
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
-        from pandas.util.hashing import hash_pandas_object
+        from pandas.tools.hashing import hash_pandas_object
         obj = Series(list('abc'))
         hash_pandas_object(obj, hash_key='9876543210123456')
 
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
-        from pandas.util.hashing import hash_array
+        from pandas.tools.hashing import hash_array
         obj = np.array([1, 2, 3])
         hash_array(obj, hash_key='9876543210123456')
