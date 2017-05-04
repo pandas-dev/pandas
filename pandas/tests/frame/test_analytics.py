@@ -129,10 +129,26 @@ class TestDataFrameAnalytics(TestData):
             assert result.index.equals(result.columns)
 
     def test_cov(self):
-        # min_periods no NAs (corner case)
-        expected = self.frame.cov()
-        result = self.frame.cov(min_periods=len(self.frame))
+        # compare cov(col_a, col_a) to var(col_a)
+        s_expected = self.frame.var(ddof=1)
+        df_cov = self.frame.cov(ddof=1)
+        for col in df_cov:
+            result = df_cov.loc[col, col]
+            tm.assert_almost_equal(s_expected[col], result)
 
+        s_expected = self.frame.var(ddof=0)
+        df_cov = self.frame.cov(ddof=0)
+        for col in df_cov:
+            result = df_cov.loc[col, col]
+            tm.assert_almost_equal(s_expected[col], result)
+
+        # min_periods no NAs (corner case)
+        expected = self.frame.cov(ddof=1)
+        result = self.frame.cov(min_periods=len(self.frame), ddof=1)
+        tm.assert_frame_equal(expected, result)
+
+        expected = self.frame.cov(ddof=0)
+        result = self.frame.cov(min_periods=len(self.frame), ddof=0)
         tm.assert_frame_equal(expected, result)
 
         result = self.frame.cov(min_periods=len(self.frame) + 1)
