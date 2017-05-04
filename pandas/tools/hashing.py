@@ -11,7 +11,7 @@ for t in ['hash_pandas_object', 'hash_array']:
             warnings.warn("pandas.tools.hashing is deprecated and will be "
                           "removed in a future version, import "
                           "from pandas.util",
-                          FutureWarning, stacklevel=3)
+                          DeprecationWarning, stacklevel=3)
             return getattr(util, t)(*args, **kwargs)
         return wrapper
 
