@@ -14,7 +14,7 @@ from pandas.util import testing as tm
 from pandas.errors import PerformanceWarning
 
 
-class TestIX(tm.TestCase):
+class TestIX(object):
 
     def test_ix_deprecation(self):
         # GH 15114

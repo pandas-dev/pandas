@@ -15,7 +15,7 @@ import pandas.util.testing as tm
 from pandas.tests.series.common import TestData
 
 
-class TestSeriesRank(tm.TestCase, TestData):
+class TestSeriesRank(TestData):
     s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
 
     results = {

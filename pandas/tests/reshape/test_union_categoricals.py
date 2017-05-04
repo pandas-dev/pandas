@@ -7,7 +7,7 @@ from pandas.core.dtypes.concat import union_categoricals
 from pandas.util import testing as tm
 
 
-class TestUnionCategoricals(tm.TestCase):
+class TestUnionCategoricals(object):
 
     def test_union_categorical(self):
         # GH 13361

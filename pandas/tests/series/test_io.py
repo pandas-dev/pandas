@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesToCSV(TestData, tm.TestCase):
+class TestSeriesToCSV(TestData):
 
     def test_from_csv(self):
 
@@ -108,7 +108,7 @@ class TestSeriesToCSV(TestData, tm.TestCase):
         assert isinstance(csv_str, str)
 
 
-class TestSeriesIO(TestData, tm.TestCase):
+class TestSeriesIO(TestData):
 
     def test_to_frame(self):
         self.ts.name = None
@@ -168,7 +168,7 @@ class TestSeriesIO(TestData, tm.TestCase):
         assert_frame_equal(result, expected)
 
 
-class TestSeriesToList(TestData, tm.TestCase):
+class TestSeriesToList(TestData):
 
     def test_tolist(self):
         rs = self.ts.tolist()

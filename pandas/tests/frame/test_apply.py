@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameApply(tm.TestCase, TestData):
+class TestDataFrameApply(TestData):
 
     def test_apply(self):
         with np.errstate(all='ignore'):
@@ -482,7 +482,7 @@ def zip_frames(*frames):
     return pd.concat(zipped, axis=1)
 
 
-class TestDataFrameAggregate(tm.TestCase, TestData):
+class TestDataFrameAggregate(TestData):
 
     _multiprocess_can_split_ = True
 

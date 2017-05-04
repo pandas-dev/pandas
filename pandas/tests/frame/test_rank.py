@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestRank(tm.TestCase, TestData):
+class TestRank(TestData):
     s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
     df = DataFrame({'A': s, 'B': s})
 

@@ -44,7 +44,7 @@ class CoercionBase(object):
                     raise AssertionError(msg.format(type(self), method_name))
 
 
-class TestSetitemCoercion(CoercionBase, tm.TestCase):
+class TestSetitemCoercion(CoercionBase):
 
     method = 'setitem'
 
@@ -330,7 +330,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
         pass
 
 
-class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
+class TestInsertIndexCoercion(CoercionBase):
 
     klasses = ['index']
     method = 'insert'
@@ -514,7 +514,7 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         self._assert_insert_conversion(obj, 'x', exp, np.object)
 
 
-class TestWhereCoercion(CoercionBase, tm.TestCase):
+class TestWhereCoercion(CoercionBase):
 
     method = 'where'
 
@@ -852,7 +852,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
         pass
 
 
-class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
+class TestFillnaSeriesCoercion(CoercionBase):
 
     # not indexing, but place here for consisntency
 
@@ -1139,7 +1139,7 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
         pass
 
 
-class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
+class TestReplaceSeriesCoercion(CoercionBase):
 
     # not indexing, but place here for consisntency
 

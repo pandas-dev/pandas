@@ -26,7 +26,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.util import testing as tm
 
 
-class TestMaybeDowncast(tm.TestCase):
+class TestMaybeDowncast(object):
 
     def test_downcast_conv(self):
         # test downcasting
@@ -156,7 +156,7 @@ class TestInferDtype(object):
         assert dtype == expected
 
 
-class TestMaybe(tm.TestCase):
+class TestMaybe(object):
 
     def test_maybe_convert_string_to_array(self):
         result = maybe_convert_string_to_object('x')
@@ -214,7 +214,7 @@ class TestMaybe(tm.TestCase):
         assert result == Timedelta('1 day 1 min').value
 
 
-class TestConvert(tm.TestCase):
+class TestConvert(object):
 
     def test_maybe_convert_objects_copy(self):
         values = np.array([1, 2])
@@ -233,7 +233,7 @@ class TestConvert(tm.TestCase):
         assert values is not out
 
 
-class TestCommonTypes(tm.TestCase):
+class TestCommonTypes(object):
 
     def test_numpy_dtypes(self):
         # (source_types, destination_type)

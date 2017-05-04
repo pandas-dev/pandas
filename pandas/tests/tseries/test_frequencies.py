@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 from pandas import Timedelta
 
 
-class TestToOffset(tm.TestCase):
+class TestToOffset(object):
 
     def test_to_offset_multiple(self):
         freqstr = '2h30min'
@@ -342,7 +342,7 @@ def test_period_str_to_code():
     assert (frequencies._period_str_to_code('NS') == 12000)
 
 
-class TestFrequencyCode(tm.TestCase):
+class TestFrequencyCode(object):
 
     def test_freq_code(self):
         assert frequencies.get_freq('A') == 1000
@@ -493,7 +493,7 @@ class TestFrequencyCode(tm.TestCase):
 _dti = DatetimeIndex
 
 
-class TestFrequencyInference(tm.TestCase):
+class TestFrequencyInference(object):
 
     def test_raise_if_period_index(self):
         index = PeriodIndex(start="1/1/1990", periods=20, freq="M")

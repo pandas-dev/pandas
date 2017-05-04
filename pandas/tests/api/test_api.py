@@ -23,7 +23,7 @@ class Base(object):
         tm.assert_almost_equal(result, expected)
 
 
-class TestPDApi(Base, tm.TestCase):
+class TestPDApi(Base):
 
     # these are optionally imported based on testing
     # & need to be ignored
@@ -117,7 +117,7 @@ class TestPDApi(Base, tm.TestCase):
                    self.ignored)
 
 
-class TestApi(Base, tm.TestCase):
+class TestApi(Base):
 
     allowed = ['types']
 
@@ -137,7 +137,7 @@ class TestTesting(Base):
         self.check(testing, self.funcs)
 
 
-class TestDatetoolsDeprecation(tm.TestCase):
+class TestDatetoolsDeprecation(object):
 
     def test_deprecation_access_func(self):
         with tm.assert_produces_warning(FutureWarning,
@@ -150,7 +150,7 @@ class TestDatetoolsDeprecation(tm.TestCase):
             pd.datetools.monthEnd
 
 
-class TestTopLevelDeprecations(tm.TestCase):
+class TestTopLevelDeprecations(object):
 
     # top-level API deprecations
     # GH 13790
@@ -191,35 +191,35 @@ class TestTopLevelDeprecations(tm.TestCase):
                 s.close()
 
 
-class TestJson(tm.TestCase):
+class TestJson(object):
 
     def test_deprecation_access_func(self):
         with catch_warnings(record=True):
             pd.json.dumps([])
 
 
-class TestParser(tm.TestCase):
+class TestParser(object):
 
     def test_deprecation_access_func(self):
         with catch_warnings(record=True):
             pd.parser.na_values
 
 
-class TestLib(tm.TestCase):
+class TestLib(object):
 
     def test_deprecation_access_func(self):
         with catch_warnings(record=True):
             pd.lib.infer_dtype('foo')
 
 
-class TestTSLib(tm.TestCase):
+class TestTSLib(object):
 
     def test_deprecation_access_func(self):
         with catch_warnings(record=True):
             pd.tslib.Timestamp('20160101')
 
 
-class TestTypes(tm.TestCase):
+class TestTypes(object):
 
     def test_deprecation_access_func(self):
         with tm.assert_produces_warning(

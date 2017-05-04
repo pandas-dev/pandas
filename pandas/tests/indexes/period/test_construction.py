@@ -9,7 +9,7 @@ from pandas import (Period, PeriodIndex, period_range, offsets, date_range,
                     Series, Index)
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
     def setup_method(self, method):
         pass
@@ -473,7 +473,7 @@ class TestPeriodIndex(tm.TestCase):
             tm.assert_index_equal(res, expected)
 
 
-class TestSeriesPeriod(tm.TestCase):
+class TestSeriesPeriod(object):
 
     def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))

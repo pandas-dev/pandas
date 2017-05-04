@@ -17,7 +17,7 @@ from pandas.tests.frame.common import TestData
 # Column add, remove, delete.
 
 
-class TestDataFrameMutateColumns(tm.TestCase, TestData):
+class TestDataFrameMutateColumns(TestData):
 
     def test_assign(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})

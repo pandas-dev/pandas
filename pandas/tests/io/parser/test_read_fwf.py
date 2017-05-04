@@ -19,7 +19,7 @@ from pandas.compat import StringIO, BytesIO
 from pandas.io.parsers import read_csv, read_fwf, EmptyDataError
 
 
-class TestFwfParsing(tm.TestCase):
+class TestFwfParsing(object):
 
     def test_fwf(self):
         data_expected = """\

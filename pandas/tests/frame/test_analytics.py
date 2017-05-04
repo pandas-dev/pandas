@@ -24,7 +24,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameAnalytics(tm.TestCase, TestData):
+class TestDataFrameAnalytics(TestData):
 
     # ---------------------------------------------------------------------=
     # Correlation and covariance

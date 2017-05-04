@@ -15,7 +15,7 @@ from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 
 
-class TestSparseArray(tm.TestCase):
+class TestSparseArray(object):
 
     def setup_method(self, method):
         self.arr_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
@@ -656,7 +656,7 @@ class TestSparseArray(tm.TestCase):
         tm.assert_sp_array_equal(res, exp)
 
 
-class TestSparseArrayAnalytics(tm.TestCase):
+class TestSparseArrayAnalytics(object):
 
     def test_sum(self):
         data = np.arange(10).astype(float)

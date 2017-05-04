@@ -12,7 +12,7 @@ from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
 
-class TestiLoc(Base, tm.TestCase):
+class TestiLoc(Base):
 
     def test_iloc_exceeds_bounds(self):
 

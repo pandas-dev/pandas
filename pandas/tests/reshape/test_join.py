@@ -19,7 +19,7 @@ from pandas.tests.reshape.test_merge import get_test_data, N, NGROUPS
 a_ = np.array
 
 
-class TestJoin(tm.TestCase):
+class TestJoin(object):
 
     def setup_method(self, method):
         # aggregate multiple columns

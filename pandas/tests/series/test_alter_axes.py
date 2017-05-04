@@ -18,7 +18,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesAlterAxes(TestData, tm.TestCase):
+class TestSeriesAlterAxes(TestData):
 
     def test_setindex(self):
         # wrong type

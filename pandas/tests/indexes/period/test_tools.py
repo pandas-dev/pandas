@@ -11,7 +11,7 @@ from pandas import (PeriodIndex, Period, DatetimeIndex, Timestamp, Series,
                     date_range, to_datetime, period_range)
 
 
-class TestPeriodRepresentation(tm.TestCase):
+class TestPeriodRepresentation(object):
     """
     Wish to match NumPy units
     """
@@ -73,7 +73,7 @@ class TestPeriodRepresentation(tm.TestCase):
         repr(period)
 
 
-class TestTslib(tm.TestCase):
+class TestTslib(object):
     def test_intraday_conversion_factors(self):
         assert period_asfreq(1, get_freq('D'), get_freq('H'), False) == 24
         assert period_asfreq(1, get_freq('D'), get_freq('T'), False) == 1440
@@ -150,7 +150,7 @@ class TestTslib(tm.TestCase):
                               0, 0, 0, 0, get_freq('B')) == 11418
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
     def setup_method(self, method):
         pass

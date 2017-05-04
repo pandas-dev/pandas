@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-class TestIntervalIndex(Base, tm.TestCase):
+class TestIntervalIndex(Base):
     _holder = IntervalIndex
 
     def setup_method(self, method):
@@ -682,7 +682,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         pytest.raises(ValueError, f)
 
 
-class TestIntervalRange(tm.TestCase):
+class TestIntervalRange(object):
 
     def test_construction(self):
         result = interval_range(0, 5, name='foo', closed='both')
@@ -720,7 +720,7 @@ class TestIntervalRange(tm.TestCase):
         pytest.raises(ValueError, f)
 
 
-class TestIntervalTree(tm.TestCase):
+class TestIntervalTree(object):
     def setup_method(self, method):
         gentree = lambda dtype: IntervalTree(np.arange(5, dtype=dtype),
                                              np.arange(5, dtype=dtype) + 2)

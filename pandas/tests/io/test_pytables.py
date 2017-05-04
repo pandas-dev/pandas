@@ -121,18 +121,16 @@ def _maybe_remove(store, key):
         pass
 
 
-class Base(tm.TestCase):
+class Base(object):
 
     @classmethod
     def setup_class(cls):
-        super(Base, cls).setup_class()
 
         # Pytables 3.0.0 deprecates lots of things
         tm.reset_testing_mode()
 
     @classmethod
     def teardown_class(cls):
-        super(Base, cls).teardown_class()
 
         # Pytables 3.0.0 deprecates lots of things
         tm.set_testing_mode()
@@ -145,7 +143,7 @@ class Base(tm.TestCase):
 
 
 @pytest.mark.single
-class TestHDFStore(Base, tm.TestCase):
+class TestHDFStore(Base):
 
     def test_factory_fun(self):
         path = create_tempfile(self.path)
@@ -5228,7 +5226,7 @@ class TestHDFComplexValues(Base):
             assert_frame_equal(pd.concat([df, df], 0), result)
 
 
-class TestTimezones(Base, tm.TestCase):
+class TestTimezones(Base):
 
     def _compare_with_tz(self, a, b):
         tm.assert_frame_equal(a, b)

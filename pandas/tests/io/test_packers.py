@@ -90,7 +90,7 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
-class TestPackers(tm.TestCase):
+class TestPackers(object):
 
     def setup_method(self, method):
         self.path = '__%s__.msg' % tm.rands(10)

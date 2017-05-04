@@ -11,7 +11,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
-class TestAsOfMerge(tm.TestCase):
+class TestAsOfMerge(object):
 
     def read_data(self, name, dedupe=False):
         path = os.path.join(tm.get_data_path(), name)

@@ -10,7 +10,7 @@ from pandas import (compat, DataFrame, option_context,
 from pandas.util import testing as tm
 
 
-class TestCaching(tm.TestCase):
+class TestCaching(object):
 
     def test_slice_consolidate_invalidate_item_cache(self):
 
@@ -90,7 +90,7 @@ class TestCaching(tm.TestCase):
         tm.assert_series_equal(out['A'], expected['A'])
 
 
-class TestChaining(tm.TestCase):
+class TestChaining(object):
 
     def test_setitem_chained_setfault(self):
 

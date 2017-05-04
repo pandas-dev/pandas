@@ -6,7 +6,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSeriesSubclassing(tm.TestCase):
+class TestSeriesSubclassing(object):
 
     def test_indexing_sliced(self):
         s = tm.SubclassedSeries([1, 2, 3, 4], index=list('abcd'))
@@ -33,7 +33,7 @@ class TestSeriesSubclassing(tm.TestCase):
         assert isinstance(res, tm.SubclassedDataFrame)
 
 
-class TestSparseSeriesSubclassing(tm.TestCase):
+class TestSparseSeriesSubclassing(object):
 
     def test_subclass_sparse_slice(self):
         # int64

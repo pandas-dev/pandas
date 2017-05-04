@@ -15,7 +15,7 @@ def test_timtetonum_accepts_unicode():
     assert (converter.time2num("00:01") == converter.time2num(u("00:01")))
 
 
-class TestDateTimeConverter(tm.TestCase):
+class TestDateTimeConverter(object):
 
     def setup_method(self, method):
         self.dtc = converter.DatetimeConverter()
@@ -146,7 +146,7 @@ class TestDateTimeConverter(tm.TestCase):
         assert result == expected
 
 
-class TestPeriodConverter(tm.TestCase):
+class TestPeriodConverter(object):
 
     def setup_method(self, method):
         self.pc = converter.PeriodConverter()

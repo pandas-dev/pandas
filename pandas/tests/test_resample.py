@@ -50,7 +50,7 @@ def _simple_pts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestResampleAPI(tm.TestCase):
+class TestResampleAPI(object):
 
     def setup_method(self, method):
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
@@ -847,7 +847,7 @@ class Base(object):
                 assert_frame_equal(result_how, expected)
 
 
-class TestDatetimeIndex(Base, tm.TestCase):
+class TestDatetimeIndex(Base):
     _index_factory = lambda x: date_range
 
     def setup_method(self, method):
@@ -2165,7 +2165,7 @@ class TestDatetimeIndex(Base, tm.TestCase):
         tm.assert_series_equal(res, exp)
 
 
-class TestPeriodIndex(Base, tm.TestCase):
+class TestPeriodIndex(Base):
     _index_factory = lambda x: period_range
 
     def create_series(self):
@@ -2773,7 +2773,7 @@ class TestPeriodIndex(Base, tm.TestCase):
         assert_frame_equal(result, expected)
 
 
-class TestTimedeltaIndex(Base, tm.TestCase):
+class TestTimedeltaIndex(Base):
     _index_factory = lambda x: timedelta_range
 
     def create_series(self):
@@ -2794,7 +2794,7 @@ class TestTimedeltaIndex(Base, tm.TestCase):
         assert_frame_equal(result, expected)
 
 
-class TestResamplerGrouper(tm.TestCase):
+class TestResamplerGrouper(object):
 
     def setup_method(self, method):
         self.frame = DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
@@ -2989,7 +2989,7 @@ class TestResamplerGrouper(tm.TestCase):
         assert_frame_equal(result, expected)
 
 
-class TestTimeGrouper(tm.TestCase):
+class TestTimeGrouper(object):
 
     def setup_method(self, method):
         self.ts = Series(np.random.randn(1000),

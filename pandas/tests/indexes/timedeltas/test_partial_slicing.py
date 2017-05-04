@@ -8,7 +8,7 @@ from pandas import Series, timedelta_range, Timedelta
 from pandas.util.testing import assert_series_equal
 
 
-class TestSlicing(tm.TestCase):
+class TestSlicing(object):
 
     def test_partial_slice(self):
         rng = timedelta_range('1 day 10:11:12', freq='h', periods=500)

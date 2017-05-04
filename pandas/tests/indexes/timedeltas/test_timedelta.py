@@ -16,7 +16,7 @@ from ..datetimelike import DatetimeLike
 randn = np.random.randn
 
 
-class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
+class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
     _multiprocess_can_split_ = True
 
@@ -563,7 +563,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         assert_index_equal(result, expected)
 
 
-class TestSlicing(tm.TestCase):
+class TestSlicing(object):
 
     def test_timedelta(self):
         # this is valid too
@@ -589,7 +589,7 @@ class TestSlicing(tm.TestCase):
         tm.assert_index_equal(result2, result3)
 
 
-class TestTimeSeries(tm.TestCase):
+class TestTimeSeries(object):
     _multiprocess_can_split_ = True
 
     def test_series_box_timedelta(self):

@@ -8,7 +8,7 @@ from pandas import (Series, period_range, DatetimeIndex, PeriodIndex,
                     DataFrame, _np_version_under1p12, Period)
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
     def setup_method(self, method):
         pass

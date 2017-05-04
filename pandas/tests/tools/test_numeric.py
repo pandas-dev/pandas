@@ -9,7 +9,7 @@ from pandas.util import testing as tm
 from numpy import iinfo
 
 
-class TestToNumeric(tm.TestCase):
+class TestToNumeric(object):
 
     def test_series(self):
         s = pd.Series(['1', '-3.14', '7'])

@@ -48,7 +48,7 @@ def skip_if_no_ne(engine='numexpr'):
                         "installed")
 
 
-class TestCompat(tm.TestCase):
+class TestCompat(object):
 
     def setup_method(self, method):
         self.df = DataFrame({'A': [1, 2, 3]})
@@ -96,7 +96,7 @@ class TestCompat(tm.TestCase):
                           lambda: df.eval('A+1', engine='numexpr'))
 
 
-class TestDataFrameEval(tm.TestCase, TestData):
+class TestDataFrameEval(TestData):
 
     def test_ops(self):
 
@@ -172,7 +172,7 @@ class TestDataFrameEval(tm.TestCase, TestData):
                 dict1['a'] + dict2['b'])
 
 
-class TestDataFrameQueryWithMultiIndex(tm.TestCase):
+class TestDataFrameQueryWithMultiIndex(object):
 
     def test_query_with_named_multiindex(self, parser, engine):
         tm.skip_if_no_ne(engine)
@@ -384,18 +384,16 @@ class TestDataFrameQueryWithMultiIndex(tm.TestCase):
             pd.eval('p4d + 1', parser=parser, engine=engine)
 
 
-class TestDataFrameQueryNumExprPandas(tm.TestCase):
+class TestDataFrameQueryNumExprPandas(object):
 
     @classmethod
     def setup_class(cls):
-        super(TestDataFrameQueryNumExprPandas, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         tm.skip_if_no_ne(cls.engine)
 
     @classmethod
     def teardown_class(cls):
-        super(TestDataFrameQueryNumExprPandas, cls).teardown_class()
         del cls.engine, cls.parser
 
     def test_date_query_with_attribute_access(self):
@@ -858,7 +856,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
         assert_frame_equal(expected, result)
 
 
-class TestDataFrameQueryStrings(tm.TestCase):
+class TestDataFrameQueryStrings(object):
 
     def test_str_query_method(self, parser, engine):
         tm.skip_if_no_ne(engine)
@@ -1039,11 +1037,10 @@ class TestDataFrameQueryStrings(tm.TestCase):
         assert_frame_equal(e, r)
 
 
-class TestDataFrameEvalNumExprPandas(tm.TestCase):
+class TestDataFrameEvalNumExprPandas(object):
 
     @classmethod
     def setup_class(cls):
-        super(TestDataFrameEvalNumExprPandas, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         tm.skip_if_no_ne()
@@ -1099,5 +1096,4 @@ class TestDataFrameEvalPythonPython(TestDataFrameEvalNumExprPython):
 
     @classmethod
     def setup_class(cls):
-        super(TestDataFrameEvalPythonPython, cls).teardown_class()
         cls.engine = cls.parser = 'python'

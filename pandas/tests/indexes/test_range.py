@@ -20,7 +20,7 @@ import pandas as pd
 from .test_numeric import Numeric
 
 
-class TestRangeIndex(Numeric, tm.TestCase):
+class TestRangeIndex(Numeric):
     _holder = RangeIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 

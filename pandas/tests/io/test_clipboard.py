@@ -23,11 +23,10 @@ except PyperclipException:
 @pytest.mark.single
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
-class TestClipboard(tm.TestCase):
+class TestClipboard(object):
 
     @classmethod
     def setup_class(cls):
-        super(TestClipboard, cls).setup_class()
         cls.data = {}
         cls.data['string'] = mkdf(5, 3, c_idx_type='s', r_idx_type='i',
                                   c_idx_names=[None], r_idx_names=[None])
@@ -63,7 +62,6 @@ class TestClipboard(tm.TestCase):
 
     @classmethod
     def teardown_class(cls):
-        super(TestClipboard, cls).teardown_class()
         del cls.data_types, cls.data
 
     def check_round_trip_frame(self, data_type, excel=None, sep=None,

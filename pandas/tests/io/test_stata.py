@@ -23,7 +23,7 @@ from pandas._libs.tslib import NaT
 from pandas.core.dtypes.common import is_categorical_dtype
 
 
-class TestStata(tm.TestCase):
+class TestStata(object):
 
     def setup_method(self, method):
         self.dirpath = tm.get_data_path()

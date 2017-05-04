@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 from pandas._libs.tslib import iNaT
 
 
-class TestTake(tm.TestCase):
+class TestTake(object):
     # standard incompatible fill error
     fill_error = re.compile("Incompatible type for fill_value")
 

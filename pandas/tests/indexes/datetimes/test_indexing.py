@@ -7,7 +7,7 @@ import pandas.compat as compat
 from pandas import notnull, Index, DatetimeIndex, datetime, date_range
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_where_other(self):
 

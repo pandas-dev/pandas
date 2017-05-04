@@ -24,7 +24,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameReshape(tm.TestCase, TestData):
+class TestDataFrameReshape(TestData):
 
     def test_pivot(self):
         data = {

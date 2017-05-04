@@ -42,7 +42,7 @@ def _ok_for_gaussian_kde(kind):
     return True
 
 
-class TestPlotBase(tm.TestCase):
+class TestPlotBase(object):
 
     def setup_method(self, method):
 

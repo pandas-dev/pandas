@@ -28,7 +28,7 @@ import pandas as pd
 from .common import MixIn
 
 
-class TestGroupBy(MixIn, tm.TestCase):
+class TestGroupBy(MixIn):
 
     def test_basic(self):
         def checkit(dtype):

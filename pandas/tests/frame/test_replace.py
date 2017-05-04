@@ -23,7 +23,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameReplace(tm.TestCase, TestData):
+class TestDataFrameReplace(TestData):
 
     def test_replace_inplace(self):
         self.tsframe['A'][:5] = nan

@@ -118,7 +118,7 @@ class SharedWithSparse(object):
         assert result.name == self.ts.name
 
 
-class TestSeriesMisc(TestData, SharedWithSparse, tm.TestCase):
+class TestSeriesMisc(TestData, SharedWithSparse):
 
     def test_tab_completion(self):
         # GH 9910

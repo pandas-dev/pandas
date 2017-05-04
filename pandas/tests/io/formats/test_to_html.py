@@ -22,7 +22,7 @@ except (ImportError, AttributeError):
     pass
 
 
-class TestToHTML(tm.TestCase):
+class TestToHTML(object):
 
     def test_to_html_with_col_space(self):
         def check_with_width(df, col_space):

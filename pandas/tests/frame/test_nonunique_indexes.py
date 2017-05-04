@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
+class TestDataFrameNonuniqueIndexes(TestData):
 
     def test_column_dups_operations(self):
 

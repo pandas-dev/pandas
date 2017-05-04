@@ -4,12 +4,10 @@ from __future__ import (absolute_import, division, print_function,
 
 import pytest
 
-import pandas.util.testing as tm
-
 from pandas.io.msgpack import packb, unpackb, Packer, Unpacker, ExtType
 
 
-class TestLimits(tm.TestCase):
+class TestLimits(object):
 
     def test_integer(self):
         x = -(2 ** 63)

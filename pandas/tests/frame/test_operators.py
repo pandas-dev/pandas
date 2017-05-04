@@ -28,7 +28,7 @@ from pandas.tests.frame.common import (TestData, _check_mixed_float,
                                        _check_mixed_int)
 
 
-class TestDataFrameOperators(tm.TestCase, TestData):
+class TestDataFrameOperators(TestData):
 
     def test_operators(self):
         garbage = random.random(4)

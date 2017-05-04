@@ -95,11 +95,10 @@ def _is_py3_complex_incompat(result, expected):
 _good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
 
 
-class TestEvalNumexprPandas(tm.TestCase):
+class TestEvalNumexprPandas(object):
 
     @classmethod
     def setup_class(cls):
-        super(TestEvalNumexprPandas, cls).setup_class()
         tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
@@ -108,7 +107,6 @@ class TestEvalNumexprPandas(tm.TestCase):
 
     @classmethod
     def teardown_class(cls):
-        super(TestEvalNumexprPandas, cls).teardown_class()
         del cls.engine, cls.parser
         if hasattr(cls, 'ne'):
             del cls.ne
@@ -1067,11 +1065,10 @@ class TestAlignment(object):
 # ------------------------------------
 # Slightly more complex ops
 
-class TestOperationsNumExprPandas(tm.TestCase):
+class TestOperationsNumExprPandas(object):
 
     @classmethod
     def setup_class(cls):
-        super(TestOperationsNumExprPandas, cls).setup_class()
         tm.skip_if_no_ne()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
@@ -1079,7 +1076,6 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
     @classmethod
     def teardown_class(cls):
-        super(TestOperationsNumExprPandas, cls).teardown_class()
         del cls.engine, cls.parser
 
     def eval(self, *args, **kwargs):
@@ -1584,11 +1580,10 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
 
-class TestMathPythonPython(tm.TestCase):
+class TestMathPythonPython(object):
 
     @classmethod
     def setup_class(cls):
-        super(TestMathPythonPython, cls).setup_class()
         tm.skip_if_no_ne()
         cls.engine = 'python'
         cls.parser = 'pandas'
@@ -1873,7 +1868,7 @@ def test_negate_lt_eq_le(engine, parser):
         tm.assert_frame_equal(result, expected)
 
 
-class TestValidate(tm.TestCase):
+class TestValidate(object):
 
     def test_validate_bool_args(self):
         invalid_values = [1, "True", [1, 2, 3], 5.0]

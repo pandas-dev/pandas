@@ -6,7 +6,7 @@ from pandas import date_range, Index, DataFrame, Series, Timestamp
 from pandas.util import testing as tm
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_indexing_with_datetime_tz(self):
 

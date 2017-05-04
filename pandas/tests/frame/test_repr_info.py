@@ -23,7 +23,7 @@ from pandas.tests.frame.common import TestData
 # structure
 
 
-class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
+class TestDataFrameReprInfoEtc(TestData):
 
     def test_repr_empty(self):
         # empty

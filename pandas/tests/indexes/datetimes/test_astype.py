@@ -9,7 +9,7 @@ from pandas import (DatetimeIndex, date_range, Series, NaT, Index, Timestamp,
                     Int64Index, Period)
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_astype(self):
         # GH 13149, GH 13209
@@ -185,7 +185,7 @@ class TestDatetimeIndex(tm.TestCase):
         _check_rng(rng_utc)
 
 
-class TestToPeriod(tm.TestCase):
+class TestToPeriod(object):
 
     def setup_method(self, method):
         data = [Timestamp('2007-01-01 10:11:12.123456Z'),

@@ -20,7 +20,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesDatetimeValues(TestData, tm.TestCase):
+class TestSeriesDatetimeValues(TestData):
 
     def test_dt_namespace_accessor(self):
 

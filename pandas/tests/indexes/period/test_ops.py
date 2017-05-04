@@ -851,7 +851,7 @@ Freq: Q-DEC"""
             assert not idx.equals(pd.Series(idx3))
 
 
-class TestPeriodIndexSeriesMethods(tm.TestCase):
+class TestPeriodIndexSeriesMethods(object):
     """ Test PeriodIndex and Period Series Ops consistency """
 
     def _check(self, values, func, expected):
@@ -1135,7 +1135,7 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
         self._check(idx, f, exp)
 
 
-class TestSeriesPeriod(tm.TestCase):
+class TestSeriesPeriod(object):
 
     def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
@@ -1175,7 +1175,7 @@ class TestSeriesPeriod(tm.TestCase):
         tm.assert_series_equal(s - s2, -exp)
 
 
-class TestFramePeriod(tm.TestCase):
+class TestFramePeriod(object):
 
     def test_ops_frame_period(self):
         # GH 13043
@@ -1206,7 +1206,7 @@ class TestFramePeriod(tm.TestCase):
         tm.assert_frame_equal(df - df2, -exp)
 
 
-class TestPeriodIndexComparisons(tm.TestCase):
+class TestPeriodIndexComparisons(object):
 
     def test_pi_pi_comp(self):
 

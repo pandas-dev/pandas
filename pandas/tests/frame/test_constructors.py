@@ -32,7 +32,7 @@ MIXED_INT_DTYPES = ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16',
                     'int32', 'int64']
 
 
-class TestDataFrameConstructors(tm.TestCase, TestData):
+class TestDataFrameConstructors(TestData):
 
     def test_constructor(self):
         df = DataFrame()
@@ -1903,7 +1903,7 @@ class TestDataFrameConstructors(tm.TestCase, TestData):
         tm.assert_series_equal(result, expected)
 
 
-class TestDataFrameConstructorWithDatetimeTZ(tm.TestCase, TestData):
+class TestDataFrameConstructorWithDatetimeTZ(TestData):
 
     def test_from_dict(self):
 

@@ -13,7 +13,7 @@ from pandas.util import testing as tm
 from .test_api import Base
 
 
-class TestTypes(Base, tm.TestCase):
+class TestTypes(Base):
 
     allowed = ['is_bool', 'is_bool_dtype',
                'is_categorical', 'is_categorical_dtype', 'is_complex',

@@ -23,7 +23,7 @@ from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
 
-class TestMatch(tm.TestCase):
+class TestMatch(object):
 
     def test_ints(self):
         values = np.array([0, 2, 1])
@@ -59,7 +59,7 @@ class TestMatch(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
 
-class TestSafeSort(tm.TestCase):
+class TestSafeSort(object):
 
     def test_basic_sort(self):
         values = [3, 1, 2, 0, 4]
@@ -146,7 +146,7 @@ class TestSafeSort(tm.TestCase):
             algos.safe_sort(values=[0, 1, 2, 1], labels=[0, 1])
 
 
-class TestFactorize(tm.TestCase):
+class TestFactorize(object):
 
     def test_basic(self):
 
@@ -306,7 +306,7 @@ class TestFactorize(tm.TestCase):
         tm.assert_numpy_array_equal(uniques, exp_uniques)
 
 
-class TestUnique(tm.TestCase):
+class TestUnique(object):
 
     def test_ints(self):
         arr = np.random.randint(0, 100, size=50)
@@ -503,7 +503,7 @@ class TestUnique(tm.TestCase):
         tm.assert_categorical_equal(result, expected)
 
 
-class TestIsin(tm.TestCase):
+class TestIsin(object):
 
     def test_invalid(self):
 
@@ -587,7 +587,7 @@ class TestIsin(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestValueCounts(tm.TestCase):
+class TestValueCounts(object):
 
     def test_value_counts(self):
         np.random.seed(1234)
@@ -779,7 +779,7 @@ class TestValueCounts(tm.TestCase):
             tm.assert_series_equal(result, expected)
 
 
-class TestDuplicated(tm.TestCase):
+class TestDuplicated(object):
 
     def test_duplicated_with_nas(self):
         keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
@@ -1014,7 +1014,7 @@ class GroupVarTestMixin(object):
         tm.assert_almost_equal(out[0, 0], 0.0)
 
 
-class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
+class TestGroupVarFloat64(GroupVarTestMixin):
     __test__ = True
 
     algo = libgroupby.group_var_float64
@@ -1037,7 +1037,7 @@ class TestGroupVarFloat64(tm.TestCase, GroupVarTestMixin):
         tm.assert_almost_equal(out[0, 0], 1.0 / 12, check_less_precise=True)
 
 
-class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
+class TestGroupVarFloat32(GroupVarTestMixin):
     __test__ = True
 
     algo = libgroupby.group_var_float32
@@ -1045,7 +1045,7 @@ class TestGroupVarFloat32(tm.TestCase, GroupVarTestMixin):
     rtol = 1e-2
 
 
-class TestHashTable(tm.TestCase):
+class TestHashTable(object):
 
     def test_lookup_nan(self):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
@@ -1116,7 +1116,7 @@ def test_unique_label_indices():
                                 check_dtype=False)
 
 
-class TestRank(tm.TestCase):
+class TestRank(object):
 
     def test_scipy_compat(self):
         tm._skip_if_no_scipy()
@@ -1184,7 +1184,7 @@ def test_arrmap():
     assert (result.dtype == np.bool_)
 
 
-class TestTseriesUtil(tm.TestCase):
+class TestTseriesUtil(object):
 
     def test_combineFunc(self):
         pass
@@ -1378,7 +1378,7 @@ def test_int64_add_overflow():
                                        b_mask=np.array([False, True]))
 
 
-class TestMode(tm.TestCase):
+class TestMode(object):
 
     def test_no_mode(self):
         exp = Series([], dtype=np.float64)

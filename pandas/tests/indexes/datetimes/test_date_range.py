@@ -26,7 +26,7 @@ def eq_gen_range(kwargs, expected):
     assert (np.array_equal(list(rng), expected))
 
 
-class TestDateRanges(TestData, tm.TestCase):
+class TestDateRanges(TestData):
 
     def test_date_range_gen_error(self):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
@@ -147,7 +147,7 @@ class TestDateRanges(TestData, tm.TestCase):
                       datetime(2011, 11, 12), freq=offset)
 
 
-class TestGenRangeGeneration(tm.TestCase):
+class TestGenRangeGeneration(object):
 
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=BDay()))
@@ -196,7 +196,7 @@ class TestGenRangeGeneration(tm.TestCase):
         tm.assert_index_equal(result2, expected2)
 
 
-class TestBusinessDateRange(tm.TestCase):
+class TestBusinessDateRange(object):
 
     def setup_method(self, method):
         self.rng = bdate_range(START, END)
@@ -482,7 +482,7 @@ class TestBusinessDateRange(tm.TestCase):
         tm.assert_index_equal(result_2, expected_2)
 
 
-class TestCustomDateRange(tm.TestCase):
+class TestCustomDateRange(object):
     def setup_method(self, method):
         self.rng = cdate_range(START, END)
 

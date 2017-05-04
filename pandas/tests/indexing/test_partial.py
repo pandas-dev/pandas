@@ -14,7 +14,7 @@ from pandas import Series, DataFrame, Panel, Index, date_range
 from pandas.util import testing as tm
 
 
-class TestPartialSetting(tm.TestCase):
+class TestPartialSetting(object):
 
     def test_partial_setting(self):
 

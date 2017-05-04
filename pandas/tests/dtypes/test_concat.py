@@ -2,10 +2,9 @@
 
 import pandas as pd
 import pandas.core.dtypes.concat as _concat
-import pandas.util.testing as tm
 
 
-class TestConcatCompat(tm.TestCase):
+class TestConcatCompat(object):
 
     def check_concat(self, to_concat, exp):
         for klass in [pd.Index, pd.Series]:

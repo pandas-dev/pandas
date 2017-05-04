@@ -617,11 +617,11 @@ the expected correct result::
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class, inheriting from ``tm.TestCase``.
+*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class.
 
 .. code-block:: python
 
-    class TestReallyCoolFeature(tm.TestCase):
+    class TestReallyCoolFeature(object):
         ....
 
 Going forward, we are moving to a more *functional* style using the `pytest <http://doc.pytest.org/en/latest/>`__ framework, which offers a richer testing

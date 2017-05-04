@@ -25,6 +25,13 @@ def pytest_runtest_setup(item):
         pytest.skip("skipping due to --skip-network")
 
 
+# Configurations for all tests and all test modules
+
+@pytest.fixture(autouse=True)
+def configure_tests():
+    pandas.set_option('chained_assignment', 'raise')
+
+
 # For running doctests: make np and pd names available
 
 @pytest.fixture(autouse=True)

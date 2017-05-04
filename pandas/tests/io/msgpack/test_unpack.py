@@ -1,11 +1,10 @@
 from io import BytesIO
 import sys
 from pandas.io.msgpack import Unpacker, packb, OutOfData, ExtType
-import pandas.util.testing as tm
 import pytest
 
 
-class TestUnpack(tm.TestCase):
+class TestUnpack(object):
 
     def test_unpack_array_header_from_file(self):
         f = BytesIO(packb([1, 2, 3, 4]))

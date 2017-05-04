@@ -11,7 +11,7 @@ from pandas import (Series, Timedelta, to_timedelta, isnull,
 from pandas._libs.tslib import iNaT
 
 
-class TestTimedeltas(tm.TestCase):
+class TestTimedeltas(object):
     _multiprocess_can_split_ = True
 
     def test_to_timedelta(self):

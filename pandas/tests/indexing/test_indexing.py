@@ -26,7 +26,7 @@ from pandas.tests.indexing.common import Base, _mklbl
 # Indexing test cases
 
 
-class TestFancy(Base, tm.TestCase):
+class TestFancy(Base):
     """ pure get/set item & fancy indexing """
 
     def test_setitem_ndarray_1d(self):
@@ -599,7 +599,7 @@ class TestFancy(Base, tm.TestCase):
                     assert s2.index.is_object()
 
 
-class TestMisc(Base, tm.TestCase):
+class TestMisc(Base):
 
     def test_indexer_caching(self):
         # GH5727
@@ -800,7 +800,7 @@ class TestMisc(Base, tm.TestCase):
         assert result == expected
 
 
-class TestSeriesNoneCoercion(tm.TestCase):
+class TestSeriesNoneCoercion(object):
     EXPECTED_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),
@@ -847,7 +847,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             tm.assert_series_equal(start_series, expected_series)
 
 
-class TestDataframeNoneCoercion(tm.TestCase):
+class TestDataframeNoneCoercion(object):
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),

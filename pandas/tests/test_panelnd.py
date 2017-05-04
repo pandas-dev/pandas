@@ -9,7 +9,7 @@ from pandas.util.testing import assert_panel_equal
 import pandas.util.testing as tm
 
 
-class TestPanelnd(tm.TestCase):
+class TestPanelnd(object):
 
     def setup_method(self, method):
         pass

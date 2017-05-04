@@ -19,7 +19,7 @@ if PY3:
     unicode = lambda x: x
 
 
-class TestCategoricalIndex(Base, tm.TestCase):
+class TestCategoricalIndex(Base):
     _holder = CategoricalIndex
 
     def setup_method(self, method):

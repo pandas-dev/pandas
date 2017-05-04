@@ -192,7 +192,7 @@ def create_mgr(descr, item_shape=None):
                         [mgr_items] + [np.arange(n) for n in item_shape])
 
 
-class TestBlock(tm.TestCase):
+class TestBlock(object):
 
     def setup_method(self, method):
         # self.fblock = get_float_ex()  # a,c,e
@@ -309,7 +309,7 @@ class TestBlock(tm.TestCase):
         # assert len(bs), 0)
 
 
-class TestDatetimeBlock(tm.TestCase):
+class TestDatetimeBlock(object):
 
     def test_try_coerce_arg(self):
         block = create_block('datetime', [0])
@@ -1072,7 +1072,7 @@ class TestIndexing(object):
     # reindex_indexer(new_labels, indexer, axis)
 
 
-class TestBlockPlacement(tm.TestCase):
+class TestBlockPlacement(object):
 
     def test_slice_len(self):
         assert len(BlockPlacement(slice(0, 4))) == 4

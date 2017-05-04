@@ -176,7 +176,7 @@ class Numeric(Base):
         tm.assert_index_equal(index % 2, expected)
 
 
-class TestFloat64Index(Numeric, tm.TestCase):
+class TestFloat64Index(Numeric):
     _holder = Float64Index
 
     def setup_method(self, method):
@@ -621,7 +621,7 @@ class NumericInt(Numeric):
         tm.assert_index_equal(result, exp)
 
 
-class TestInt64Index(NumericInt, tm.TestCase):
+class TestInt64Index(NumericInt):
     _dtype = 'int64'
     _holder = Int64Index
 
@@ -915,7 +915,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
         tm.assert_numpy_array_equal(ridx, eridx)
 
 
-class TestUInt64Index(NumericInt, tm.TestCase):
+class TestUInt64Index(NumericInt):
 
     _dtype = 'uint64'
     _holder = UInt64Index

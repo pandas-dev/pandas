@@ -7,7 +7,7 @@ from pandas import (Index, DatetimeIndex, datetime, offsets,
                     Float64Index, date_range, Timestamp)
 
 
-class TestDateTimeIndexToJulianDate(tm.TestCase):
+class TestDateTimeIndexToJulianDate(object):
 
     def test_1700(self):
         r1 = Float64Index([2345897.5, 2345898.5, 2345899.5, 2345900.5,
@@ -53,7 +53,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
         tm.assert_index_equal(r1, r2)
 
 
-class TestTimeSeries(tm.TestCase):
+class TestTimeSeries(object):
 
     def test_pass_datetimeindex_to_index(self):
         # Bugs in #1396
@@ -170,7 +170,7 @@ class TestTimeSeries(tm.TestCase):
         assert not rng.is_normalized
 
 
-class TestDatetime64(tm.TestCase):
+class TestDatetime64(object):
 
     def test_datetimeindex_accessors(self):
 

@@ -4,7 +4,7 @@ from pandas.util import testing as tm
 from pandas.tseries.frequencies import _period_code_map
 
 
-class TestFreqConversion(tm.TestCase):
+class TestFreqConversion(object):
     """Test frequency conversion of date objects"""
 
     def test_asfreq_corner(self):

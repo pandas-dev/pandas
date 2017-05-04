@@ -56,7 +56,7 @@ class Base(object):
         self.ymd.index.set_names(['year', 'month', 'day'], inplace=True)
 
 
-class TestMultiLevel(Base, tm.TestCase):
+class TestMultiLevel(Base):
 
     def test_append(self):
         a, b = self.frame[:5], self.frame[5:]
@@ -2352,7 +2352,7 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, expected)
 
 
-class TestSorted(Base, tm.TestCase):
+class TestSorted(Base):
     """ everthing you wanted to test about sorting """
 
     def test_sort_index_preserve_levels(self):

@@ -901,7 +901,7 @@ class CheckIndexing(object):
                 self.panel.set_value('a')
 
 
-class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
+class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                 SafeForSparse):
 
     @classmethod
@@ -2430,7 +2430,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         pytest.raises(NotImplementedError, self.panel.any, bool_only=True)
 
 
-class TestLongPanel(tm.TestCase):
+class TestLongPanel(object):
     """
     LongPanel no longer exists, but...
     """

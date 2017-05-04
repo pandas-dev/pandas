@@ -29,7 +29,7 @@ import pandas as pd
 from pandas._libs.lib import Timestamp
 
 
-class TestIndex(Base, tm.TestCase):
+class TestIndex(Base):
     _holder = Index
 
     def setup_method(self, method):
@@ -1801,7 +1801,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                 assert coerce(idx) == expected
 
 
-class TestMixedIntIndex(Base, tm.TestCase):
+class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
     # in py2 and py3 because ints and strings are uncomparable in py3
     # (GH 13514)

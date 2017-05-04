@@ -28,7 +28,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesConstructors(TestData, tm.TestCase):
+class TestSeriesConstructors(TestData):
 
     def test_invalid_dtype(self):
         # GH15520

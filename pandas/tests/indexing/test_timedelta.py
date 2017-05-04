@@ -2,7 +2,7 @@ import pandas as pd
 from pandas.util import testing as tm
 
 
-class TestTimedeltaIndexing(tm.TestCase):
+class TestTimedeltaIndexing(object):
 
     def test_boolean_indexing(self):
         # GH 14946

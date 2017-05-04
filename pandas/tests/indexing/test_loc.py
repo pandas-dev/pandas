@@ -14,7 +14,7 @@ from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
 
-class TestLoc(Base, tm.TestCase):
+class TestLoc(Base):
 
     def test_loc_getitem_dups(self):
         # GH 5678

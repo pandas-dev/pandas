@@ -16,7 +16,7 @@ def numeric_as_float(data):
             data[v] = data[v].astype(np.float64)
 
 
-class TestXport(tm.TestCase):
+class TestXport(object):
 
     def setup_method(self, method):
         self.dirpath = tm.get_data_path()

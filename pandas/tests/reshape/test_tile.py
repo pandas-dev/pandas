@@ -14,7 +14,7 @@ from pandas.core.algorithms import quantile
 import pandas.core.reshape.tile as tmod
 
 
-class TestCut(tm.TestCase):
+class TestCut(object):
 
     def test_simple(self):
         data = np.ones(5, dtype='int64')

@@ -10,7 +10,7 @@ from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
 
-class TestScalar(Base, tm.TestCase):
+class TestScalar(Base):
 
     def test_at_and_iat_get(self):
         def _check(f, func, values=False):

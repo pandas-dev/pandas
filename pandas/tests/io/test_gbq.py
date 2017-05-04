@@ -10,7 +10,6 @@ import pandas as pd
 from pandas import compat, DataFrame
 
 from pandas.compat import range
-import pandas.util.testing as tm
 
 pandas_gbq = pytest.importorskip('pandas_gbq')
 
@@ -94,7 +93,7 @@ def make_mixed_dataframe_v2(test_size):
 
 
 @pytest.mark.single
-class TestToGBQIntegrationWithServiceAccountKeyPath(tm.TestCase):
+class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
     @classmethod
     def setup_class(cls):

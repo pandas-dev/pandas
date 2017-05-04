@@ -17,7 +17,7 @@ from pandas import _np_version_under1p9
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameQuantile(tm.TestCase, TestData):
+class TestDataFrameQuantile(TestData):
 
     def test_quantile(self):
         from numpy import percentile

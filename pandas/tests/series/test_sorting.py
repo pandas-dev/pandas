@@ -13,7 +13,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesSorting(TestData, tm.TestCase):
+class TestSeriesSorting(TestData):
 
     def test_sortlevel_deprecated(self):
         ts = self.ts.copy()

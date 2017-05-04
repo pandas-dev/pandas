@@ -19,7 +19,7 @@ from pandas.tseries.holiday import (USFederalHolidayCalendar, USMemorialDay,
 from pytz import utc
 
 
-class TestCalendar(tm.TestCase):
+class TestCalendar(object):
 
     def setup_method(self, method):
         self.holiday_list = [
@@ -85,7 +85,7 @@ class TestCalendar(tm.TestCase):
         assert USFedCal.rule_from_name('Thanksgiving') == USThanksgivingDay
 
 
-class TestHoliday(tm.TestCase):
+class TestHoliday(object):
 
     def setup_method(self, method):
         self.start_date = datetime(2011, 1, 1)
@@ -284,7 +284,7 @@ class TestHoliday(tm.TestCase):
         assert len(class_3.rules) == 2
 
 
-class TestObservanceRules(tm.TestCase):
+class TestObservanceRules(object):
 
     def setup_method(self, method):
         self.we = datetime(2014, 4, 9)
@@ -342,7 +342,7 @@ class TestObservanceRules(tm.TestCase):
         assert after_nearest_workday(self.fr) == self.mo
 
 
-class TestFederalHolidayCalendar(tm.TestCase):
+class TestFederalHolidayCalendar(object):
 
     def test_no_mlk_before_1984(self):
         # see gh-10278
@@ -375,7 +375,7 @@ class TestFederalHolidayCalendar(tm.TestCase):
                             datetime(1979, 5, 28, 0, 0)]
 
 
-class TestHolidayConflictingArguments(tm.TestCase):
+class TestHolidayConflictingArguments(object):
 
     def test_both_offset_observance_raises(self):
         # see gh-10217
