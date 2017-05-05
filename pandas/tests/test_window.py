@@ -1122,8 +1122,19 @@ class TestMoments(Base):
         def scoreatpercentile(a, per):
             values = np.sort(a, axis=0)
 
-            idx = per / 1. * (values.shape[0] - 1)
-            return values[int(idx)]
+            idx = int(per / 1. * (values.shape[0] - 1))
+
+            if idx == values.shape[0] - 1:
+                retval = values[-1]
+
+            else:
+                qlow = float(idx) / float(values.shape[0] - 1)
+                qhig = float(idx + 1) / float(values.shape[0] - 1)
+                vlow = values[idx]
+                vhig = values[idx + 1]
+                retval = vlow + (vhig - vlow) * (per - qlow) / (qhig - qlow)
+
+            return retval
 
         for q in qs:
 
@@ -1137,6 +1148,28 @@ class TestMoments(Base):
                 return scoreatpercentile(x, q)
 
             self._check_moment_func(f, alt, name='quantile', quantile=q)
+
+    def test_rolling_quantile_np_percentile(self):
+        # #9413
+        row = 10
+        col = 5
+        idx = pd.date_range(20100101, periods=row, freq='B')
+        df = pd.DataFrame(np.random.rand(row * col).reshape((row, -1)),
+                          index=idx)
+
+        df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)
+        np_percentile = np.percentile(df, [25, 50, 75], axis=0)
+
+        tm.assert_almost_equal(df_quantile.values, np.array(np_percentile))
+
+    def test_rolling_quantile_series(self):
+        # #16211
+        arr = np.arange(100)
+        s = pd.Series(arr)
+        q1 = s.quantile(0.1)
+        q2 = s.rolling(100).quantile(0.1).iloc[-1]
+
+        tm.assert_almost_equal(q1, q2)
 
     def test_rolling_quantile_param(self):
         ser = Series([0.0, .1, .5, .9, 1.0])
@@ -3558,7 +3591,7 @@ class TestRollingTS(object):
 
         result = df.rolling(window='2s', min_periods=1).quantile(0.5)
         expected = df.copy()
-        expected['B'] = [0.0, 1, 1.0, 3.0, 3.0]
+        expected['B'] = [0.0, 1, 1.5, 3.0, 3.5]
         tm.assert_frame_equal(result, expected)
 
     def test_ragged_std(self):
