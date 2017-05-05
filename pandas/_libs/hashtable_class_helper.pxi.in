@@ -110,11 +110,11 @@ cdef class {{name}}Vector:
         cdef:
             ndarray ao
             cnp.npy_intp shape[1]
-        if self.external_view_exists:
-            raise ValueError("Vector.to_array() can only be called once")
-
-        self.data.data = <{{arg}}*> realloc(self.data.data, self.data.n * sizeof({{arg}}))
-        self.data.m = self.data.n
+        if self.data.m != self.data.n:
+            if self.external_view_exists:
+                raise ValueError("Vector.to_array() can only be called once")
+            self.data.data = <{{arg}}*> realloc(self.data.data, self.data.n * sizeof({{arg}}))
+            self.data.m = self.data.n
         self.external_view_exists = True
         shape[0] = self.data.n
         ao = cnp.PyArray_SimpleNewFromData(1, shape, {{idtype}}, <void*>self.data.data)
@@ -181,24 +181,17 @@ cdef class StringVector:
             ndarray ao
             size_t n
             object val
-        if self.external_view_exists:
-            raise ValueError("Vector.to_array() can only be called once")
-
         ao = np.empty(self.data.n, dtype=np.object)
         for i in range(self.data.n):
             val = self.data.data[i]
             ao[i] = val
-        self.data.m = self.data.n
         self.external_view_exists = True
         return ao
 
     cdef inline void append(self, char * x):
 
         if needs_resize(self.data):
-            if self.external_view_exists:
-                raise ValueError("external reference but Vector.resize() needed")
             self.resize()
-
         append_data_string(self.data, x)
 
 
@@ -233,10 +226,11 @@ cdef class ObjectVector:
         self.n += 1
 
     def to_array(self):
-        if self.external_view_exists:
-            raise ValueError("Vector.to_array() can only be called once")
-        self.ao.resize(self.n, refcheck=False)
-        self.m = self.n
+        if self.m != self.n:
+            if self.external_view_exists:
+                raise ValueError("Vector.to_array() can only be called once")
+            self.ao.resize(self.n, refcheck=False)
+            self.m = self.n
         self.external_view_exists = True
         return self.ao
 
