@@ -501,7 +501,7 @@ Other Enhancements
 - ``pd.merge_asof()`` gained the option ``direction='backward'|'forward'|'nearest'`` (:issue:`14887`)
 - ``Series/DataFrame.asfreq()`` have gained a ``fill_value`` parameter, to fill missing values (:issue:`3715`).
 - ``Series/DataFrame.resample.asfreq`` have gained a ``fill_value`` parameter, to fill missing values during resampling (:issue:`3715`).
-- ``pandas.util`` has gained a ``hash_tuples`` routine, and ``pandas.util.hash_pandas_object`` has gained the ability to hash a ``MultiIndex`` (:issue:`15224`)
+- :func:`pandas.util.hash_pandas_object` has gained the ability to hash a ``MultiIndex`` (:issue:`15224`)
 - ``Series/DataFrame.squeeze()`` have gained the ``axis`` parameter. (:issue:`15339`)
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
 - ``pd.read_html()`` will parse multiple header rows, creating a MutliIndex header. (:issue:`13434`).
