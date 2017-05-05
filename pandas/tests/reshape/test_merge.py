@@ -1085,7 +1085,7 @@ class TestMergeMulti(object):
                 dict(household_id=[1, 2, 2, 3, 3, 3, 4],
                      asset_id=["nl0000301109", "nl0000289783", "gb00b03mlx29",
                                "gb00b03mlx29", "lu0197800237", "nl0000289965",
-                               np.nan],
+                               "sk0300100229"],
                      name=["ABN Amro", "Robeco", "Royal Dutch Shell",
                            "Royal Dutch Shell",
                            "AAB Eastern Europe Equity Fund",
@@ -1110,8 +1110,14 @@ class TestMergeMulti(object):
                                'nl0000289965']))
             .set_index(['household_id', 'asset_id'])
             .reindex(columns=['male', 'wealth', 'name', 'share']))
-        assert_frame_equal(result, expected)
-
+        expected.index = MultiIndex(levels=[
+                                    [1, 2, 3],
+                                    [u'gb00b03mlx29', u'lu0197800237',
+                                     u'nl0000289783', u'nl0000289965',
+                                     u'nl0000301109', u'sk0300100229']],
+                                    labels=[[0, 1, 1, 2, 2, 2],
+                                            [4, 2, 0, 0, 1, 3]],
+                                    names=[u'household_id', u'asset_id'])
         assert_frame_equal(result, expected)
 
         # equivalency
@@ -1121,14 +1127,22 @@ class TestMergeMulti(object):
         assert_frame_equal(result2, expected)
 
         result = household.join(portfolio, how='outer')
-        expected = (concat([
-            expected,
-            (DataFrame(
-                dict(share=[1.00]),
-                index=MultiIndex.from_tuples(
-                    [(4, np.nan)],
-                    names=['household_id', 'asset_id'])))
-        ], axis=0).reindex(columns=expected.columns))
+        expected = (
+            DataFrame(
+                dict(male=[0, 1, 1, 0, 0, 0, np.nan],
+                     wealth=[196087.3, 316478.7, 316478.7,
+                             294750.0, 294750.0, 294750.0, np.nan],
+                     name=['ABN Amro', 'Robeco', 'Royal Dutch Shell',
+                           'Royal Dutch Shell',
+                           'AAB Eastern Europe Equity Fund',
+                           'Postbank BioTech Fonds', np.nan],
+                     share=[1.00, 0.40, 0.60, 0.15, 0.60, 0.25, 1.00],
+                     household_id=[1, 2, 2, 3, 3, 3, 4],
+                     asset_id=['nl0000301109', 'nl0000289783', 'gb00b03mlx29',
+                               'gb00b03mlx29', 'lu0197800237',
+                               'nl0000289965', 'sk0300100229']))
+            .set_index(['household_id', 'asset_id'])
+            .reindex(columns=['male', 'wealth', 'name', 'share']))
         assert_frame_equal(result, expected)
 
         # invalid cases
