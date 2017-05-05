@@ -8,9 +8,9 @@ from pandas import (Series, period_range, DatetimeIndex, PeriodIndex,
                     DataFrame, _np_version_under1p12, Period)
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_slice_with_negative_step(self):

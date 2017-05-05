@@ -30,7 +30,7 @@ def assert_equal(left, right):
         tm.assert_frame_equal(left, right)
 
 
-class Base(tm.TestCase):
+class Base(object):
 
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
@@ -48,7 +48,7 @@ class Base(tm.TestCase):
 
 class TestApi(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_getitem(self):
@@ -315,7 +315,7 @@ class TestApi(Base):
 
 class TestWindow(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_constructor(self):
@@ -360,7 +360,7 @@ class TestWindow(Base):
 
 class TestRolling(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_doc_string(self):
@@ -444,7 +444,7 @@ class TestRolling(Base):
 
 class TestExpanding(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_doc_string(self):
@@ -486,7 +486,7 @@ class TestExpanding(Base):
 
 class TestEWM(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_doc_string(self):
@@ -549,7 +549,7 @@ class TestEWM(Base):
 class TestDeprecations(Base):
     """ test that we are catching deprecation warnings """
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_deprecations(self):
@@ -559,11 +559,11 @@ class TestDeprecations(Base):
             mom.rolling_mean(Series(np.ones(10)), 3, center=True, axis=0)
 
 
-# GH #12373 : rolling functions error on float32 data
+# gh-12373 : rolling functions error on float32 data
 # make sure rolling functions works for different dtypes
 #
-# NOTE that these are yielded tests and so _create_data is
-# explicity called, nor do these inherit from unittest.TestCase
+# NOTE that these are yielded tests and so _create_data
+# is explicitly called.
 #
 # further note that we are only checking rolling for fully dtype
 # compliance (though both expanding and ewm inherit)
@@ -775,7 +775,7 @@ class TestDtype_datetime64UTC(DatetimeLike):
 
 class TestMoments(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_centered_axis_validation(self):
@@ -1958,7 +1958,7 @@ class TestMomentsConsistency(Base):
         super(TestMomentsConsistency, self)._create_data()
         self.data = _consistency_data
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def _test_moments_consistency(self, min_periods, count, mean, mock_mean,
@@ -3037,9 +3037,9 @@ class TestMomentsConsistency(Base):
             assert result.dtypes[0] == np.dtype("f8")
 
 
-class TestGrouperGrouping(tm.TestCase):
+class TestGrouperGrouping(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(np.arange(10))
         self.frame = DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
                                 'B': np.arange(40)})
@@ -3182,12 +3182,12 @@ class TestGrouperGrouping(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestRollingTS(tm.TestCase):
+class TestRollingTS(object):
 
     # rolling time-series friendly
     # xref GH13327
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.regular = DataFrame({'A': pd.date_range('20130101',
                                                      periods=5,

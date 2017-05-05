@@ -23,9 +23,9 @@ from pandas._libs.tslib import NaT
 from pandas.core.dtypes.common import is_categorical_dtype
 
 
-class TestStata(tm.TestCase):
+class TestStata(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.dta1_114 = os.path.join(self.dirpath, 'stata1_114.dta')
         self.dta1_117 = os.path.join(self.dirpath, 'stata1_117.dta')

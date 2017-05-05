@@ -6,6 +6,8 @@ import sys
 import warnings
 from datetime import datetime, timedelta
 from functools import partial
+import inspect
+import collections
 
 import numpy as np
 from pandas._libs import lib, tslib
@@ -477,6 +479,43 @@ def _dict_compat(d):
     """
     return dict((_maybe_box_datetimelike(key), value)
                 for key, value in iteritems(d))
+
+
+def _standardize_mapping(into):
+    """
+    Helper function to standardize the supplied mapping so it can 
+    be passed to the ``Series.to_dict()`` and ``DataFrame.to_dict()``
+
+    Parameters
+    ----------
+    into : instance or subclass of collections.Mapping
+        The argument supplied to ``to_dict``.  Must be a class, an
+        initialized collections.defaultdict, or an empty instance
+        of a collections.Mapping subclass.  
+
+    Returns
+    -------
+    mapping : a collections.Mapping subclass or other constructor
+        a callable object that can accept an iterator to create
+        the desired Mapping.
+        
+    """
+    if not inspect.isclass(into):
+        if len(into) > 0:
+            raise ValueError(
+                "to_dict() only accepts empty mappings.")
+        elif type(into) == collections.defaultdict:
+            return partial(
+                collections.defaultdict, into.default_factory)
+        else:
+            return _standardize_mapping(type(into))
+    elif not issubclass(into, collections.Mapping):
+        raise TypeError('unsupported type: {}'.format(into))
+    elif into == collections.defaultdict:
+        raise TypeError(
+            'to_dict() only accepts initialized defaultdicts')
+    else:
+        return into
 
 
 def sentinel_factory():

@@ -95,11 +95,10 @@ def _is_py3_complex_incompat(result, expected):
 _good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
 
 
-class TestEvalNumexprPandas(tm.TestCase):
+class TestEvalNumexprPandas(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestEvalNumexprPandas, cls).setUpClass()
+    def setup_class(cls):
         tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
@@ -107,8 +106,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         cls.parser = 'pandas'
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestEvalNumexprPandas, cls).tearDownClass()
+    def teardown_class(cls):
         del cls.engine, cls.parser
         if hasattr(cls, 'ne'):
             del cls.ne
@@ -137,12 +135,12 @@ class TestEvalNumexprPandas(tm.TestCase):
         self.arith_ops = _good_arith_ops
         self.unary_ops = '-', '~', 'not '
 
-    def setUp(self):
+    def setup_method(self, method):
         self.setup_ops()
         self.setup_data()
         self.current_engines = filter(lambda x: x != self.engine, _engines)
 
-    def tearDown(self):
+    def teardown_method(self, method):
         del self.lhses, self.rhses, self.scalar_rhses, self.scalar_lhses
         del self.pandas_rhses, self.pandas_lhses, self.current_engines
 
@@ -723,8 +721,8 @@ class TestEvalNumexprPandas(tm.TestCase):
 class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestEvalNumexprPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestEvalNumexprPython, cls).setup_class()
         tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
@@ -750,8 +748,8 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
 class TestEvalPythonPython(TestEvalNumexprPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestEvalPythonPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestEvalPythonPython, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'python'
 
@@ -780,8 +778,8 @@ class TestEvalPythonPython(TestEvalNumexprPython):
 class TestEvalPythonPandas(TestEvalPythonPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestEvalPythonPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestEvalPythonPandas, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -1067,19 +1065,17 @@ class TestAlignment(object):
 # ------------------------------------
 # Slightly more complex ops
 
-class TestOperationsNumExprPandas(tm.TestCase):
+class TestOperationsNumExprPandas(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestOperationsNumExprPandas, cls).setUpClass()
+    def setup_class(cls):
         tm.skip_if_no_ne()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestOperationsNumExprPandas, cls).tearDownClass()
+    def teardown_class(cls):
         del cls.engine, cls.parser
 
     def eval(self, *args, **kwargs):
@@ -1492,8 +1488,8 @@ class TestOperationsNumExprPandas(tm.TestCase):
 class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestOperationsNumExprPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestOperationsNumExprPython, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         tm.skip_if_no_ne(cls.engine)
@@ -1566,8 +1562,8 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 class TestOperationsPythonPython(TestOperationsNumExprPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestOperationsPythonPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestOperationsPythonPython, cls).setup_class()
         cls.engine = cls.parser = 'python'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
@@ -1577,18 +1573,17 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
 class TestOperationsPythonPandas(TestOperationsNumExprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestOperationsPythonPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestOperationsPythonPandas, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
 
-class TestMathPythonPython(tm.TestCase):
+class TestMathPythonPython(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestMathPythonPython, cls).setUpClass()
+    def setup_class(cls):
         tm.skip_if_no_ne()
         cls.engine = 'python'
         cls.parser = 'pandas'
@@ -1596,7 +1591,7 @@ class TestMathPythonPython(tm.TestCase):
         cls.binary_fns = _binary_math_ops
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         del cls.engine, cls.parser
 
     def eval(self, *args, **kwargs):
@@ -1694,8 +1689,8 @@ class TestMathPythonPython(tm.TestCase):
 class TestMathPythonPandas(TestMathPythonPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestMathPythonPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestMathPythonPandas, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -1703,8 +1698,8 @@ class TestMathPythonPandas(TestMathPythonPython):
 class TestMathNumExprPandas(TestMathPythonPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestMathNumExprPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestMathNumExprPandas, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
 
@@ -1712,8 +1707,8 @@ class TestMathNumExprPandas(TestMathPythonPython):
 class TestMathNumExprPython(TestMathPythonPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestMathNumExprPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestMathNumExprPython, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
 
@@ -1873,7 +1868,7 @@ def test_negate_lt_eq_le(engine, parser):
         tm.assert_frame_equal(result, expected)
 
 
-class TestValidate(tm.TestCase):
+class TestValidate(object):
 
     def test_validate_bool_args(self):
         invalid_values = [1, "True", [1, 2, 3], 5.0]

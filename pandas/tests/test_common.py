@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import collections
+from functools import partial
 
 import numpy as np
 
@@ -195,3 +197,28 @@ def test_dict_compat():
     assert (com._dict_compat(data_datetime64) == expected)
     assert (com._dict_compat(expected) == expected)
     assert (com._dict_compat(data_unchanged) == data_unchanged)
+
+
+def test_standardize_mapping():
+    # No non-empty
+    bad = {'bad': 'data'}
+    with pytest.raises(ValueError):
+        com._standardize_mapping(bad)
+
+    # No uninitialized defaultdicts
+    with pytest.raises(TypeError):
+        com._standardize_mapping(collections.defaultdict)
+
+    # No non-mapping subtypes, instance
+    with pytest.raises(TypeError):
+        com._standardize_mapping([])
+
+    # No non-mapping subtypes, class
+    with pytest.raises(TypeError):
+        com._standardize_mapping(list)
+
+    # Convert instance to type
+    assert (com._standardize_mapping({}) == dict)
+
+    dd = collections.defaultdict(list)
+    assert (type(com._standardize_mapping(dd)) == partial)

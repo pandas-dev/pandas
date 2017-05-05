@@ -84,7 +84,7 @@ _mixed_frame['foo'] = 'bar'
 
 class SharedItems(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -161,9 +161,9 @@ class ReadingTestsBase(SharedItems):
     # 3. Add a property engine_name, which is the name of the reader class.
     #    For the reader this is not used for anything at the moment.
 
-    def setUp(self):
+    def setup_method(self, method):
         self.check_skip()
-        super(ReadingTestsBase, self).setUp()
+        super(ReadingTestsBase, self).setup_method(method)
 
     def test_parse_cols_int(self):
 
@@ -989,19 +989,19 @@ class XlrdTests(ReadingTestsBase):
         tm.assert_series_equal(actual, expected)
 
 
-class XlsReaderTests(XlrdTests, tm.TestCase):
+class XlsReaderTests(XlrdTests):
     ext = '.xls'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
 
 
-class XlsxReaderTests(XlrdTests, tm.TestCase):
+class XlsxReaderTests(XlrdTests):
     ext = '.xlsx'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
 
 
-class XlsmReaderTests(XlrdTests, tm.TestCase):
+class XlsmReaderTests(XlrdTests):
     ext = '.xlsm'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
@@ -1019,14 +1019,14 @@ class ExcelWriterBase(SharedItems):
     # Test with MultiIndex and Hierarchical Rows as merged cells.
     merge_cells = True
 
-    def setUp(self):
+    def setup_method(self, method):
         self.check_skip()
-        super(ExcelWriterBase, self).setUp()
+        super(ExcelWriterBase, self).setup_method(method)
         self.option_name = 'io.excel.%s.writer' % self.ext.strip('.')
         self.prev_engine = get_option(self.option_name)
         set_option(self.option_name, self.engine_name)
 
-    def tearDown(self):
+    def teardown_method(self, method):
         set_option(self.option_name, self.prev_engine)
 
     def test_excel_sheet_by_name_raise(self):
@@ -1887,7 +1887,7 @@ def raise_on_incompat_version(major_ver):
 
 
 @raise_on_incompat_version(1)
-class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
+class OpenpyxlTests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl1'
     check_skip = staticmethod(lambda *args, **kwargs: None)
@@ -1923,10 +1923,10 @@ class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
 
 
 def skip_openpyxl_gt21(cls):
-    """Skip a TestCase instance if openpyxl >= 2.2"""
+    """Skip test case if openpyxl >= 2.2"""
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         _skip_if_no_openpyxl()
         import openpyxl
         ver = openpyxl.__version__
@@ -1934,13 +1934,13 @@ def skip_openpyxl_gt21(cls):
                  LooseVersion(ver) < LooseVersion('2.2.0'))):
             pytest.skip("openpyxl %s >= 2.2" % str(ver))
 
-    cls.setUpClass = setUpClass
+    cls.setup_class = setup_class
     return cls
 
 
 @raise_on_incompat_version(2)
 @skip_openpyxl_gt21
-class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
+class Openpyxl20Tests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl20'
     check_skip = staticmethod(lambda *args, **kwargs: None)
@@ -2040,23 +2040,23 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
 
 
 def skip_openpyxl_lt22(cls):
-    """Skip a TestCase instance if openpyxl < 2.2"""
+    """Skip test case if openpyxl < 2.2"""
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         _skip_if_no_openpyxl()
         import openpyxl
         ver = openpyxl.__version__
         if LooseVersion(ver) < LooseVersion('2.2.0'):
             pytest.skip("openpyxl %s < 2.2" % str(ver))
 
-    cls.setUpClass = setUpClass
+    cls.setup_class = setup_class
     return cls
 
 
 @raise_on_incompat_version(2)
 @skip_openpyxl_lt22
-class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
+class Openpyxl22Tests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl22'
     check_skip = staticmethod(lambda *args, **kwargs: None)
@@ -2151,7 +2151,7 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
             assert xcell_a2.font == openpyxl_sty_merged
 
 
-class XlwtTests(ExcelWriterBase, tm.TestCase):
+class XlwtTests(ExcelWriterBase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -2208,7 +2208,7 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
         assert xlwt.Alignment.VERT_TOP == xls_style.alignment.vert
 
 
-class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
+class XlsxWriterTests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
@@ -2261,7 +2261,7 @@ class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
             assert read_num_format == num_format
 
 
-class OpenpyxlTests_NoMerge(ExcelWriterBase, tm.TestCase):
+class OpenpyxlTests_NoMerge(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl'
     check_skip = staticmethod(_skip_if_no_openpyxl)
@@ -2270,7 +2270,7 @@ class OpenpyxlTests_NoMerge(ExcelWriterBase, tm.TestCase):
     merge_cells = False
 
 
-class XlwtTests_NoMerge(ExcelWriterBase, tm.TestCase):
+class XlwtTests_NoMerge(ExcelWriterBase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -2279,7 +2279,7 @@ class XlwtTests_NoMerge(ExcelWriterBase, tm.TestCase):
     merge_cells = False
 
 
-class XlsxWriterTests_NoMerge(ExcelWriterBase, tm.TestCase):
+class XlsxWriterTests_NoMerge(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
@@ -2288,7 +2288,7 @@ class XlsxWriterTests_NoMerge(ExcelWriterBase, tm.TestCase):
     merge_cells = False
 
 
-class ExcelWriterEngineTests(tm.TestCase):
+class ExcelWriterEngineTests(object):
 
     def test_ExcelWriter_dispatch(self):
         with tm.assert_raises_regex(ValueError, 'No engine'):

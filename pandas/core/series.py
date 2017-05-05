@@ -9,6 +9,7 @@ from __future__ import division
 import types
 import warnings
 from textwrap import dedent
+import collections
 
 from numpy import nan, ndarray
 import numpy as np
@@ -46,7 +47,8 @@ from pandas.core.common import (is_bool_indexer,
                                 _maybe_match_name,
                                 SettingWithCopyError,
                                 _maybe_box_datetimelike,
-                                _dict_compat)
+                                _dict_compat,
+                                _standardize_mapping)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -60,7 +62,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
-from pandas.util.terminal import get_terminal_size
+from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO
 from pandas.compat.numpy import function as nv
 
@@ -70,8 +72,8 @@ import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.io.formats.format as fmt
-from pandas.util.decorators import Appender, deprecate_kwarg, Substitution
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import Appender, deprecate_kwarg, Substitution
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
@@ -1074,15 +1076,28 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """ Convert Series to a nested list """
         return list(self.asobject)
 
-    def to_dict(self):
+    def to_dict(self, into=dict):
         """
-        Convert Series to {label -> value} dict
+        Convert Series to {label -> value} dict or dict-like object
+        Parameters
+        ----------
+        into : class, default dict
+            The collections.Mapping subclass to use as the return
+            object. Can be the actual class or an empty
+            instance of the mapping type you want.  If you want a
+            collections.defaultdict, you must pass an initialized
+            .. versionadded:: 0.20.1
 
         Returns
         -------
-        value_dict : dict
+        value_dict : collections.Mapping
+            If ``into`` is collections.defaultdict, the return
+            value's default_factory will be None.
         """
-        return dict(compat.iteritems(self))
+        # GH16122
+        into_c = _standardize_mapping(into)
+        return into_c(compat.iteritems(self))
+
 
     def to_frame(self, name=None):
         """

@@ -43,7 +43,9 @@ def mangle_docstrings(app, what, name, obj, options, lines,
               )
 
     # PANDAS HACK (to remove the list of methods/attributes for Categorical)
-    if what == "class" and name.endswith(".Categorical"):
+    if what == "class" and (name.endswith(".Categorical") or
+                            name.endswith("CategoricalIndex") or
+                            name.endswith("IntervalIndex")):
         cfg['class_members_list'] = False
 
     if what == 'module':

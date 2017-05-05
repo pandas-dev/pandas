@@ -50,9 +50,9 @@ fixed_off = FixedOffset(-420, '-07:00')
 fixed_off_no_name = FixedOffset(-330, None)
 
 
-class TestTimeZoneSupportPytz(tm.TestCase):
+class TestTimeZoneSupportPytz(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         tm._skip_if_no_pytz()
 
     def tz(self, tz):
@@ -944,7 +944,7 @@ class TestTimeZoneSupportPytz(tm.TestCase):
 
 class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
-    def setUp(self):
+    def setup_method(self, method):
         tm._skip_if_no_dateutil()
 
     def tz(self, tz):
@@ -1178,7 +1178,7 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
         tm.assert_numpy_array_equal(dti2.asi8, dti.asi8)
 
 
-class TestTimeZoneCacheKey(tm.TestCase):
+class TestTimeZoneCacheKey(object):
 
     def test_cache_keys_are_distinct_for_pytz_vs_dateutil(self):
         tzs = pytz.common_timezones
@@ -1194,10 +1194,10 @@ class TestTimeZoneCacheKey(tm.TestCase):
             assert tslib._p_tz_cache_key(tz_p) != tslib._p_tz_cache_key(tz_d)
 
 
-class TestTimeZones(tm.TestCase):
+class TestTimeZones(object):
     timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
 
-    def setUp(self):
+    def setup_method(self, method):
         tm._skip_if_no_pytz()
 
     def test_replace(self):
@@ -1719,7 +1719,7 @@ class TestTimeZones(tm.TestCase):
         tm.assert_index_equal(idx, DatetimeIndex(expected, tz='US/Eastern'))
 
 
-class TestTslib(tm.TestCase):
+class TestTslib(object):
 
     def test_tslib_tz_convert(self):
         def compare_utc_to_local(tz_didx, utc_didx):

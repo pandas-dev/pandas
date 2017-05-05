@@ -18,6 +18,7 @@ Highlights include:
 
 Enhancements
 ~~~~~~~~~~~~
+- ``Series.to_dict()`` and ``DataFrame.to_dict()`` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
 
 
 

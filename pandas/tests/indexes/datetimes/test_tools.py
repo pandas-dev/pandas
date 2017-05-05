@@ -22,7 +22,7 @@ from pandas import (isnull, to_datetime, Timestamp, Series, DataFrame,
                     compat)
 
 
-class TimeConversionFormats(tm.TestCase):
+class TimeConversionFormats(object):
 
     def test_to_datetime_format(self):
         values = ['1/1/2000', '1/2/2000', '1/3/2000']
@@ -170,7 +170,7 @@ class TimeConversionFormats(tm.TestCase):
             assert to_datetime(s, format=format) == dt
 
 
-class TestToDatetime(tm.TestCase):
+class TestToDatetime(object):
 
     def test_to_datetime_dt64s(self):
         in_bound_dts = [
@@ -335,7 +335,7 @@ class TestToDatetime(tm.TestCase):
             pd.to_datetime(pd.to_datetime)
 
 
-class ToDatetimeUnit(tm.TestCase):
+class ToDatetimeUnit(object):
 
     def test_unit(self):
         # GH 11758
@@ -595,7 +595,7 @@ class ToDatetimeUnit(tm.TestCase):
             to_datetime(df)
 
 
-class ToDatetimeMisc(tm.TestCase):
+class ToDatetimeMisc(object):
 
     def test_index_to_datetime(self):
         idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
@@ -829,7 +829,7 @@ class ToDatetimeMisc(tm.TestCase):
         tm.assert_index_equal(expected, idx6)
 
 
-class TestGuessDatetimeFormat(tm.TestCase):
+class TestGuessDatetimeFormat(object):
 
     def test_guess_datetime_format_with_parseable_formats(self):
         tm._skip_if_not_us_locale()
@@ -914,7 +914,7 @@ class TestGuessDatetimeFormat(tm.TestCase):
         assert format_for_string_of_nans is None
 
 
-class TestToDatetimeInferFormat(tm.TestCase):
+class TestToDatetimeInferFormat(object):
 
     def test_to_datetime_infer_datetime_format_consistent_format(self):
         s = pd.Series(pd.date_range('20000101', periods=50, freq='H'))
@@ -974,7 +974,7 @@ class TestToDatetimeInferFormat(tm.TestCase):
         tm.assert_series_equal(pd.to_datetime(s, format='%Y-%m-%d'), expected)
 
 
-class TestDaysInMonth(tm.TestCase):
+class TestDaysInMonth(object):
     # tests for issue #10154
 
     def test_day_not_in_month_coerce(self):
@@ -1006,7 +1006,7 @@ class TestDaysInMonth(tm.TestCase):
                            format="%Y-%m-%d") == '2015-04-31'
 
 
-class TestDatetimeParsingWrappers(tm.TestCase):
+class TestDatetimeParsingWrappers(object):
     def test_does_not_convert_mixed_integer(self):
         bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
 
@@ -1362,7 +1362,7 @@ class TestDatetimeParsingWrappers(tm.TestCase):
                 raise Exception(date_str)
 
 
-class TestArrayToDatetime(tm.TestCase):
+class TestArrayToDatetime(object):
 
     def test_try_parse_dates(self):
         from dateutil.parser import parse

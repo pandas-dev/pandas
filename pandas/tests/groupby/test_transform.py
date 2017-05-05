@@ -17,7 +17,7 @@ from pandas.core.groupby import DataError
 from pandas.core.config import option_context
 
 
-class TestGroupBy(MixIn, tm.TestCase):
+class TestGroupBy(MixIn):
 
     def test_transform(self):
         data = Series(np.arange(9) // 3, index=np.arange(9))

@@ -90,12 +90,12 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
-class TestPackers(tm.TestCase):
+class TestPackers(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.path = '__%s__.msg' % tm.rands(10)
 
-    def tearDown(self):
+    def teardown_method(self, method):
         pass
 
     def encode_decode(self, x, compress=None, **kwargs):
@@ -301,8 +301,8 @@ class TestBasic(TestPackers):
 
 class TestIndex(TestPackers):
 
-    def setUp(self):
-        super(TestIndex, self).setUp()
+    def setup_method(self, method):
+        super(TestIndex, self).setup_method(method)
 
         self.d = {
             'string': tm.makeStringIndex(100),
@@ -364,8 +364,8 @@ class TestIndex(TestPackers):
 
 class TestSeries(TestPackers):
 
-    def setUp(self):
-        super(TestSeries, self).setUp()
+    def setup_method(self, method):
+        super(TestSeries, self).setup_method(method)
 
         self.d = {}
 
@@ -412,8 +412,8 @@ class TestSeries(TestPackers):
 
 class TestCategorical(TestPackers):
 
-    def setUp(self):
-        super(TestCategorical, self).setUp()
+    def setup_method(self, method):
+        super(TestCategorical, self).setup_method(method)
 
         self.d = {}
 
@@ -435,8 +435,8 @@ class TestCategorical(TestPackers):
 
 class TestNDFrame(TestPackers):
 
-    def setUp(self):
-        super(TestNDFrame, self).setUp()
+    def setup_method(self, method):
+        super(TestNDFrame, self).setup_method(method)
 
         data = {
             'A': [0., 1., 2., 3., np.nan],
@@ -579,7 +579,7 @@ class TestCompression(TestPackers):
     """See https://github.com/pandas-dev/pandas/pull/9783
     """
 
-    def setUp(self):
+    def setup_method(self, method):
         try:
             from sqlalchemy import create_engine
             self._create_sql_engine = create_engine
@@ -588,7 +588,7 @@ class TestCompression(TestPackers):
         else:
             self._SQLALCHEMY_INSTALLED = True
 
-        super(TestCompression, self).setUp()
+        super(TestCompression, self).setup_method(method)
         data = {
             'A': np.arange(1000, dtype=np.float64),
             'B': np.arange(1000, dtype=np.int32),
@@ -773,8 +773,8 @@ class TestCompression(TestPackers):
 
 class TestEncoding(TestPackers):
 
-    def setUp(self):
-        super(TestEncoding, self).setUp()
+    def setup_method(self, method):
+        super(TestEncoding, self).setup_method(method)
         data = {
             'A': [compat.u('\u2019')] * 1000,
             'B': np.arange(1000, dtype=np.int32),

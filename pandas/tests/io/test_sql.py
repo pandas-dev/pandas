@@ -20,7 +20,6 @@ The SQL tests are broken down in different classes:
 from __future__ import print_function
 from warnings import catch_warnings
 import pytest
-import unittest
 import sqlite3
 import csv
 import os
@@ -179,7 +178,7 @@ SQL_STRINGS = {
 
 class MixInBase(object):
 
-    def tearDown(self):
+    def teardown_method(self, method):
         for tbl in self._get_all_tables():
             self.drop_table(tbl)
         self._close_conn()
@@ -498,7 +497,7 @@ class _TestSQLApi(PandasSQLTest):
     flavor = 'sqlite'
     mode = None
 
-    def setUp(self):
+    def setup_method(self, method):
         self.conn = self.connect()
         self._load_iris_data()
         self._load_iris_view()
@@ -819,7 +818,7 @@ class _TestSQLApi(PandasSQLTest):
 
 
 @pytest.mark.single
-class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi, unittest.TestCase):
+class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
     """
     Test the public API as it would be used directly
 
@@ -981,8 +980,8 @@ class _EngineToConnMixin(object):
     A mixin that causes setup_connect to create a conn rather than an engine.
     """
 
-    def setUp(self):
-        super(_EngineToConnMixin, self).setUp()
+    def setup_method(self, method):
+        super(_EngineToConnMixin, self).setup_method(method)
         engine = self.conn
         conn = engine.connect()
         self.__tx = conn.begin()
@@ -990,21 +989,21 @@ class _EngineToConnMixin(object):
         self.__engine = engine
         self.conn = conn
 
-    def tearDown(self):
+    def teardown_method(self, method):
         self.__tx.rollback()
         self.conn.close()
         self.conn = self.__engine
         self.pandasSQL = sql.SQLDatabase(self.__engine)
-        super(_EngineToConnMixin, self).tearDown()
+        super(_EngineToConnMixin, self).teardown_method(method)
 
 
 @pytest.mark.single
-class TestSQLApiConn(_EngineToConnMixin, TestSQLApi, unittest.TestCase):
+class TestSQLApiConn(_EngineToConnMixin, TestSQLApi):
     pass
 
 
 @pytest.mark.single
-class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi, unittest.TestCase):
+class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     """
     Test the public sqlite connection fallback API
 
@@ -1093,7 +1092,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     flavor = None
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         cls.setup_import()
         cls.setup_driver()
 
@@ -1105,7 +1104,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             msg = "{0} - can't connect to {1} server".format(cls, cls.flavor)
             pytest.skip(msg)
 
-    def setUp(self):
+    def setup_method(self, method):
         self.setup_connect()
 
         self._load_iris_data()
@@ -1822,37 +1821,32 @@ class _TestPostgreSQLAlchemy(object):
 
 
 @pytest.mark.single
-class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy, unittest.TestCase):
+class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
-class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn,
-                           unittest.TestCase):
+class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
 @pytest.mark.single
-class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy,
-                            unittest.TestCase):
+class TestPostgreSQLAlchemy(_TestPostgreSQLAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
-class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn,
-                                unittest.TestCase):
+class TestPostgreSQLAlchemyConn(_TestPostgreSQLAlchemy, _TestSQLAlchemyConn):
     pass
 
 
 @pytest.mark.single
-class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy,
-                        unittest.TestCase):
+class TestSQLiteAlchemy(_TestSQLiteAlchemy, _TestSQLAlchemy):
     pass
 
 
 @pytest.mark.single
-class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn,
-                            unittest.TestCase):
+class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn):
     pass
 
 
@@ -1860,7 +1854,7 @@ class TestSQLiteAlchemyConn(_TestSQLiteAlchemy, _TestSQLAlchemyConn,
 # -- Test Sqlite / MySQL fallback
 
 @pytest.mark.single
-class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
+class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     """
     Test the fallback mode against an in-memory sqlite database.
 
@@ -1871,7 +1865,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest, unittest.TestCase):
     def connect(cls):
         return sqlite3.connect(':memory:')
 
-    def setUp(self):
+    def setup_method(self, method):
         self.conn = self.connect()
         self.pandasSQL = sql.SQLiteDatabase(self.conn)
 
@@ -2084,9 +2078,10 @@ def _skip_if_no_pymysql():
 
 
 @pytest.mark.single
-class TestXSQLite(SQLiteMixIn, tm.TestCase):
+class TestXSQLite(SQLiteMixIn):
 
-    def setUp(self):
+    def setup_method(self, method):
+        self.method = method
         self.conn = sqlite3.connect(':memory:')
 
     def test_basic(self):
@@ -2186,7 +2181,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
             tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)
-        self.setUp()
+        self.setup_method(self.method)
 
     def test_na_roundtrip(self):
         pass
@@ -2287,7 +2282,7 @@ class TestXSQLite(SQLiteMixIn, tm.TestCase):
 
 
 @pytest.mark.single
-class TestSQLFlavorDeprecation(tm.TestCase):
+class TestSQLFlavorDeprecation(object):
     """
     gh-13611: test that the 'flavor' parameter
     is appropriately deprecated by checking the
@@ -2314,10 +2309,10 @@ class TestSQLFlavorDeprecation(tm.TestCase):
 @pytest.mark.single
 @pytest.mark.skip(reason="gh-13611: there is no support for MySQL "
                   "if SQLAlchemy is not installed")
-class TestXMySQL(MySQLMixIn, tm.TestCase):
+class TestXMySQL(MySQLMixIn):
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         _skip_if_no_pymysql()
 
         # test connection
@@ -2345,7 +2340,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
 
-    def setUp(self):
+    def setup_method(self, method):
         _skip_if_no_pymysql()
         import pymysql
         try:
@@ -2370,6 +2365,8 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf. ")
+
+        self.method = method
 
     def test_basic(self):
         _skip_if_no_pymysql()
@@ -2498,7 +2495,7 @@ class TestXMySQL(MySQLMixIn, tm.TestCase):
             tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)
-        self.setUp()
+        self.setup_method(self.method)
 
     def test_na_roundtrip(self):
         _skip_if_no_pymysql()

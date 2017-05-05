@@ -56,9 +56,9 @@ with catch_warnings(record=True):
 
 
 @pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
-class TestExpressions(tm.TestCase):
+class TestExpressions(object):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -67,7 +67,7 @@ class TestExpressions(tm.TestCase):
         self.integer = _integer.copy()
         self._MIN_ELEMENTS = expr._MIN_ELEMENTS
 
-    def tearDown(self):
+    def teardown_method(self, method):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
     def run_arithmetic(self, df, other, assert_func, check_dtype=False,

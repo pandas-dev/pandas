@@ -19,10 +19,10 @@ if PY3:
     unicode = lambda x: x
 
 
-class TestCategoricalIndex(Base, tm.TestCase):
+class TestCategoricalIndex(Base):
     _holder = CategoricalIndex
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(catIndex=tm.makeCategoricalIndex(100))
         self.setup_indices()
 

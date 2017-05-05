@@ -9,9 +9,9 @@ from pandas import (Period, PeriodIndex, period_range, offsets, date_range,
                     Series, Index)
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_construction_base_constructor(self):
@@ -473,9 +473,9 @@ class TestPeriodIndex(tm.TestCase):
             tm.assert_index_equal(res, expected)
 
 
-class TestSeriesPeriod(tm.TestCase):
+class TestSeriesPeriod(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
 
     def test_constructor_cant_cast_period(self):

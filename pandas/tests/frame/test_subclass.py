@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameSubclassing(tm.TestCase, TestData):
+class TestDataFrameSubclassing(TestData):
 
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it

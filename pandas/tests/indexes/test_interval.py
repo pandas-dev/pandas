@@ -12,10 +12,10 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-class TestIntervalIndex(Base, tm.TestCase):
+class TestIntervalIndex(Base):
     _holder = IntervalIndex
 
-    def setUp(self):
+    def setup_method(self, method):
         self.index = IntervalIndex.from_arrays([0, 1], [1, 2])
         self.index_with_nan = IntervalIndex.from_tuples(
             [(0, 1), np.nan, (1, 2)])
@@ -682,7 +682,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         pytest.raises(ValueError, f)
 
 
-class TestIntervalRange(tm.TestCase):
+class TestIntervalRange(object):
 
     def test_construction(self):
         result = interval_range(0, 5, name='foo', closed='both')
@@ -720,8 +720,8 @@ class TestIntervalRange(tm.TestCase):
         pytest.raises(ValueError, f)
 
 
-class TestIntervalTree(tm.TestCase):
-    def setUp(self):
+class TestIntervalTree(object):
+    def setup_method(self, method):
         gentree = lambda dtype: IntervalTree(np.arange(5, dtype=dtype),
                                              np.arange(5, dtype=dtype) + 2)
         self.tree = gentree('int64')

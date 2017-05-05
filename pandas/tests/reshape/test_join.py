@@ -19,9 +19,9 @@ from pandas.tests.reshape.test_merge import get_test_data, N, NGROUPS
 a_ = np.array
 
 
-class TestJoin(tm.TestCase):
+class TestJoin(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         # aggregate multiple columns
         self.df = DataFrame({'key1': get_test_data(),
                              'key2': get_test_data(),

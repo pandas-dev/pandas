@@ -47,9 +47,9 @@ def check_compressed_urls(salaries_table, compression, extension, mode,
     tm.assert_frame_equal(url_table, salaries_table)
 
 
-class TestS3(tm.TestCase):
+class TestS3(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         try:
             import s3fs  # noqa
         except ImportError:

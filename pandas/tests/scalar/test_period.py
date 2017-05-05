@@ -14,7 +14,7 @@ from pandas import Period, Timestamp, offsets
 from pandas.tseries.frequencies import DAYS, MONTHS
 
 
-class TestPeriodProperties(tm.TestCase):
+class TestPeriodProperties(object):
     "Test properties such as year, month, weekday, etc...."
 
     def test_is_leap_year(self):
@@ -911,7 +911,7 @@ class TestPeriodProperties(tm.TestCase):
         assert new_p == p
 
 
-class TestPeriodField(tm.TestCase):
+class TestPeriodField(object):
 
     def test_get_period_field_raises_on_out_of_range(self):
         pytest.raises(ValueError, libperiod.get_period_field, -1, 0, 0)
@@ -921,9 +921,9 @@ class TestPeriodField(tm.TestCase):
                       np.empty(1), 0)
 
 
-class TestComparisons(tm.TestCase):
+class TestComparisons(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.january1 = Period('2000-01', 'M')
         self.january2 = Period('2000-01', 'M')
         self.february = Period('2000-02', 'M')
@@ -1006,7 +1006,7 @@ class TestComparisons(tm.TestCase):
             assert not left >= right
 
 
-class TestMethods(tm.TestCase):
+class TestMethods(object):
 
     def test_add(self):
         dt1 = Period(freq='D', year=2008, month=1, day=1)

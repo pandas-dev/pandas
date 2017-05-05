@@ -86,7 +86,7 @@ class CheckImmutable(object):
         assert result == expected
 
 
-class TestPandasDelegate(tm.TestCase):
+class TestPandasDelegate(object):
 
     class Delegator(object):
         _properties = ['foo']
@@ -109,7 +109,7 @@ class TestPandasDelegate(tm.TestCase):
         def __init__(self, obj):
             self.obj = obj
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_invalida_delgation(self):
@@ -152,7 +152,7 @@ class TestPandasDelegate(tm.TestCase):
         sys.getsizeof(delegate)
 
 
-class Ops(tm.TestCase):
+class Ops(object):
 
     def _allow_na_ops(self, obj):
         """Whether to skip test cases including NaN"""
@@ -162,7 +162,7 @@ class Ops(tm.TestCase):
             return False
         return True
 
-    def setUp(self):
+    def setup_method(self, method):
         self.bool_index = tm.makeBoolIndex(10, name='a')
         self.int_index = tm.makeIntIndex(10, name='a')
         self.float_index = tm.makeFloatIndex(10, name='a')
@@ -259,8 +259,8 @@ class Ops(tm.TestCase):
 
 class TestIndexOps(Ops):
 
-    def setUp(self):
-        super(TestIndexOps, self).setUp()
+    def setup_method(self, method):
+        super(TestIndexOps, self).setup_method(method)
         self.is_valid_objs = [o for o in self.objs if o._allow_index_ops]
         self.not_valid_objs = [o for o in self.objs if not o._allow_index_ops]
 
@@ -1008,7 +1008,7 @@ class TestTranspose(Ops):
                                    np.transpose, obj, axes=1)
 
 
-class TestNoNewAttributesMixin(tm.TestCase):
+class TestNoNewAttributesMixin(object):
 
     def test_mixin(self):
         class T(NoNewAttributesMixin):

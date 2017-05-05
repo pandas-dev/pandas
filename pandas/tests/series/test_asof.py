@@ -11,7 +11,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesAsof(TestData, tm.TestCase):
+class TestSeriesAsof(TestData):
 
     def test_basic(self):
 

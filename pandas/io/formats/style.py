@@ -29,7 +29,7 @@ from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 try:
     import matplotlib.pyplot as plt
     from matplotlib import colors

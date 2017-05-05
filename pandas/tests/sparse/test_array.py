@@ -10,14 +10,14 @@ import numpy as np
 
 from pandas import _np_version_under1p8
 from pandas.core.sparse.api import SparseArray, SparseSeries
-from pandas.core.sparse.libsparse import IntIndex
+from pandas._libs.sparse import IntIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 
 
-class TestSparseArray(tm.TestCase):
+class TestSparseArray(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.arr_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
         self.arr = SparseArray(self.arr_data)
         self.zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
@@ -656,7 +656,7 @@ class TestSparseArray(tm.TestCase):
         tm.assert_sp_array_equal(res, exp)
 
 
-class TestSparseArrayAnalytics(tm.TestCase):
+class TestSparseArrayAnalytics(object):
 
     def test_sum(self):
         data = np.arange(10).astype(float)

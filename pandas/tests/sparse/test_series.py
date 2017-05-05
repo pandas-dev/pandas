@@ -17,7 +17,7 @@ from pandas.core.reshape.util import cartesian_product
 
 import pandas.core.sparse.frame as spf
 
-from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.core.sparse.api import SparseSeries
 from pandas.tests.series.test_api import SharedWithSparse
 
@@ -56,9 +56,9 @@ def _test_data2_zero():
     return arr, index
 
 
-class TestSparseSeries(tm.TestCase, SharedWithSparse):
+class TestSparseSeries(SharedWithSparse):
 
-    def setUp(self):
+    def setup_method(self, method):
         arr, index = _test_data1()
 
         date_index = bdate_range('1/1/2011', periods=len(index))
@@ -934,9 +934,9 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         tm.assert_sp_series_equal(result, expected)
 
 
-class TestSparseHandlingMultiIndexes(tm.TestCase):
+class TestSparseHandlingMultiIndexes(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         miindex = pd.MultiIndex.from_product(
             [["x", "y"], ["10", "20"]], names=['row-foo', 'row-bar'])
         micol = pd.MultiIndex.from_product(
@@ -960,10 +960,10 @@ class TestSparseHandlingMultiIndexes(tm.TestCase):
                               check_names=True)
 
 
-class TestSparseSeriesScipyInteraction(tm.TestCase):
+class TestSparseSeriesScipyInteraction(object):
     # Issue 8048: add SparseSeries coo methods
 
-    def setUp(self):
+    def setup_method(self, method):
         tm._skip_if_no_scipy()
         import scipy.sparse
         # SparseSeries inputs used in tests, the tests rely on the order
@@ -1310,9 +1310,9 @@ def _dense_series_compare(s, f):
     tm.assert_series_equal(result.to_dense(), dense_result)
 
 
-class TestSparseSeriesAnalytics(tm.TestCase):
+class TestSparseSeriesAnalytics(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         arr, index = _test_data1()
         self.bseries = SparseSeries(arr, index=index, kind='block',
                                     name='bseries')

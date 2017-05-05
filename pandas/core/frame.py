@@ -63,7 +63,8 @@ from pandas.core.common import (_try_sort,
                                 _default_index,
                                 _values_from_object,
                                 _maybe_box_datetimelike,
-                                _dict_compat)
+                                _dict_compat,
+                                _standardize_mapping)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
@@ -80,8 +81,8 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import Appender, Substitution
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import Appender, Substitution
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -860,7 +861,7 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_dict(self, orient='dict'):
+    def to_dict(self, orient='dict', into=dict):
         """Convert DataFrame to dictionary.
 
         Parameters
@@ -882,32 +883,45 @@ class DataFrame(NDFrame):
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
 
+        into : class, default dict
+            The collections.Mapping subclass used for all Mappings
+            in the return value.  Can be the actual class or an empty
+            instance of the mapping type you want.  If you want a
+            collections.defaultdict, you must pass an initialized
+            instance.
+            .. versionadded:: 0.20.1
+
         Returns
         -------
-        result : dict like {column -> {index -> value}}
+        result : collections.Mapping like {column -> {index -> value}}
+            If ``into`` is collections.defaultdict, the return
+            value's default_factory will be None.
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
                           "columns will be omitted.", UserWarning)
+        # GH16122
+        into_c = _standardize_mapping(into)
         if orient.lower().startswith('d'):
-            return dict((k, v.to_dict()) for k, v in compat.iteritems(self))
+            return into_c(
+                (k, v.to_dict(into)) for k, v in compat.iteritems(self))
         elif orient.lower().startswith('l'):
-            return dict((k, v.tolist()) for k, v in compat.iteritems(self))
+            return into_c((k, v.tolist()) for k, v in compat.iteritems(self))
         elif orient.lower().startswith('sp'):
-            return {'index': self.index.tolist(),
-                    'columns': self.columns.tolist(),
-                    'data': lib.map_infer(self.values.ravel(),
-                                          _maybe_box_datetimelike)
-                    .reshape(self.values.shape).tolist()}
+            return into_c((('index', self.index.tolist()),
+                           ('columns', self.columns.tolist()),
+                           ('data', lib.map_infer(self.values.ravel(),
+                                                  _maybe_box_datetimelike)
+                            .reshape(self.values.shape).tolist())))
         elif orient.lower().startswith('s'):
-            return dict((k, _maybe_box_datetimelike(v))
-                        for k, v in compat.iteritems(self))
+            return into_c((k, _maybe_box_datetimelike(v))
+                          for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [dict((k, _maybe_box_datetimelike(v))
-                         for k, v in zip(self.columns, row))
+            return [into_c((k, _maybe_box_datetimelike(v))
+                           for k, v in zip(self.columns, row))
                     for row in self.values]
         elif orient.lower().startswith('i'):
-            return dict((k, v.to_dict()) for k, v in self.iterrows())
+            return into_c((k, v.to_dict(into)) for k, v in self.iterrows())
         else:
             raise ValueError("orient '%s' not understood" % orient)
 

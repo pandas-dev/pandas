@@ -17,9 +17,9 @@ from pandas.util.testing import (assert_frame_equal,
 import pytest
 
 
-class ConcatenateBase(tm.TestCase):
+class ConcatenateBase(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.frame = DataFrame(tm.getSeriesData())
         self.mixed_frame = self.frame.copy()
         self.mixed_frame['foo'] = 'bar'
@@ -31,7 +31,7 @@ class TestConcatAppendCommon(ConcatenateBase):
     Test common dtype coercion rules between concat and append.
     """
 
-    def setUp(self):
+    def setup_method(self, method):
 
         dt_data = [pd.Timestamp('2011-01-01'),
                    pd.Timestamp('2011-01-02'),

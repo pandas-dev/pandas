@@ -12,10 +12,10 @@ from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
 from pandas._libs.tslib import iNaT, NaTType
 
 
-class TestTimedeltas(tm.TestCase):
+class TestTimedeltas(object):
     _multiprocess_can_split_ = True
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_construction(self):

@@ -27,11 +27,11 @@ from pandas.util.testing import assert_almost_equal, assert_copy
 from .common import Base
 
 
-class TestMultiIndex(Base, tm.TestCase):
+class TestMultiIndex(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
-    def setUp(self):
+    def setup_method(self, method):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
         minor_axis = Index(['one', 'two'])
 
@@ -486,7 +486,7 @@ class TestMultiIndex(Base, tm.TestCase):
 
     def test_names(self):
 
-        # names are assigned in __init__
+        # names are assigned in setup
         names = self.index_names
         level_names = [level.name for level in self.index.levels]
         assert names == level_names

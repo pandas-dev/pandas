@@ -7,7 +7,7 @@ import warnings
 
 from pandas import DataFrame, Series
 from pandas.compat import zip, iteritems
-from pandas.util.decorators import cache_readonly
+from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
@@ -19,10 +19,11 @@ from numpy import random
 import pandas.plotting as plotting
 from pandas.plotting._tools import _flatten
 
-
 """
 This is a common base class used for various plotting tests
 """
+
+tm._skip_module_if_no_mpl()
 
 
 def _skip_if_no_scipy_gaussian_kde():
@@ -41,10 +42,9 @@ def _ok_for_gaussian_kde(kind):
     return True
 
 
-@tm.mplskip
-class TestPlotBase(tm.TestCase):
+class TestPlotBase(object):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         import matplotlib as mpl
         mpl.rcdefaults()
@@ -95,7 +95,7 @@ class TestPlotBase(tm.TestCase):
                                     "C": np.arange(20) + np.random.uniform(
                                         size=20)})
 
-    def tearDown(self):
+    def teardown_method(self, method):
         tm.close()
 
     @cache_readonly

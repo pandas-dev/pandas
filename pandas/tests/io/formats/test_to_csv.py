@@ -4,7 +4,7 @@ import pandas as pd
 from pandas.util import testing as tm
 
 
-class TestToCSV(tm.TestCase):
+class TestToCSV(object):
 
     def test_to_csv_quotechar(self):
         df = DataFrame({'col': [1, 2]})

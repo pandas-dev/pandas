@@ -11,7 +11,7 @@ from pandas import (DatetimeIndex, Series, DataFrame,
 from pandas.util import testing as tm
 
 
-class TestSlicing(tm.TestCase):
+class TestSlicing(object):
 
     def test_slice_year(self):
         dti = DatetimeIndex(freq='B', start=datetime(2005, 1, 1), periods=500)

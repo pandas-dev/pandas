@@ -29,7 +29,7 @@ import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
 import pandas.util.testing as tm
-from pandas.util.terminal import get_terminal_size
+from pandas.io.formats.terminal import get_terminal_size
 from pandas.core.config import (set_option, get_option, option_context,
                                 reset_option)
 
@@ -105,16 +105,16 @@ def has_expanded_repr(df):
     return False
 
 
-class TestDataFrameFormatting(tm.TestCase):
+class TestDataFrameFormatting(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.warn_filters = warnings.filters
         warnings.filterwarnings('ignore', category=FutureWarning,
                                 module=".*format")
 
         self.frame = _frame.copy()
 
-    def tearDown(self):
+    def teardown_method(self, method):
         warnings.filters = self.warn_filters
 
     def test_repr_embedded_ndarray(self):
@@ -1604,9 +1604,9 @@ def gen_series_formatting():
     return test_sers
 
 
-class TestSeriesFormatting(tm.TestCase):
+class TestSeriesFormatting(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.ts = tm.makeTimeSeries()
 
     def test_repr_unicode(self):
@@ -2152,7 +2152,7 @@ def _three_digit_exp():
     return '%.4g' % 1.7e8 == '1.7e+008'
 
 
-class TestFloatArrayFormatter(tm.TestCase):
+class TestFloatArrayFormatter(object):
 
     def test_misc(self):
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
@@ -2238,7 +2238,7 @@ class TestFloatArrayFormatter(tm.TestCase):
             assert str(df) == '            x\n0  1.2346e+04\n1  2.0000e+06'
 
 
-class TestRepr_timedelta64(tm.TestCase):
+class TestRepr_timedelta64(object):
 
     def test_none(self):
         delta_1d = pd.to_timedelta(1, unit='D')
@@ -2311,7 +2311,7 @@ class TestRepr_timedelta64(tm.TestCase):
         assert drepr(delta_1ns) == "0 days 00:00:00.000000001"
 
 
-class TestTimedelta64Formatter(tm.TestCase):
+class TestTimedelta64Formatter(object):
 
     def test_days(self):
         x = pd.to_timedelta(list(range(5)) + [pd.NaT], unit='D')
@@ -2357,7 +2357,7 @@ class TestTimedelta64Formatter(tm.TestCase):
         assert result[0].strip() == "'0 days'"
 
 
-class TestDatetime64Formatter(tm.TestCase):
+class TestDatetime64Formatter(object):
 
     def test_mixed(self):
         x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])
@@ -2438,7 +2438,7 @@ class TestDatetime64Formatter(tm.TestCase):
         assert result == ['10:10', '12:12']
 
 
-class TestNaTFormatting(tm.TestCase):
+class TestNaTFormatting(object):
 
     def test_repr(self):
         assert repr(pd.NaT) == "NaT"
@@ -2447,7 +2447,7 @@ class TestNaTFormatting(tm.TestCase):
         assert str(pd.NaT) == "NaT"
 
 
-class TestDatetimeIndexFormat(tm.TestCase):
+class TestDatetimeIndexFormat(object):
 
     def test_datetime(self):
         formatted = pd.to_datetime([datetime(2003, 1, 1, 12), pd.NaT]).format()
@@ -2474,7 +2474,7 @@ class TestDatetimeIndexFormat(tm.TestCase):
         assert formatted[1] == "UT"
 
 
-class TestDatetimeIndexUnicode(tm.TestCase):
+class TestDatetimeIndexUnicode(object):
 
     def test_dates(self):
         text = str(pd.to_datetime([datetime(2013, 1, 1), datetime(2014, 1, 1)
@@ -2489,7 +2489,7 @@ class TestDatetimeIndexUnicode(tm.TestCase):
         assert "'2014-01-01 00:00:00']" in text
 
 
-class TestStringRepTimestamp(tm.TestCase):
+class TestStringRepTimestamp(object):
 
     def test_no_tz(self):
         dt_date = datetime(2013, 1, 2)

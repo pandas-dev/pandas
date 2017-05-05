@@ -23,7 +23,7 @@ from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
                            is_platform_windows)
 from pandas.io.common import URLError, urlopen, file_path_to_url
 from pandas.io.html import read_html
-from pandas.io.libparsers import ParserError
+from pandas._libs.parsers import ParserError
 
 import pandas.util.testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf, network
@@ -93,14 +93,13 @@ class ReadHtmlMixin(object):
         return read_html(*args, **kwargs)
 
 
-class TestReadHtml(tm.TestCase, ReadHtmlMixin):
+class TestReadHtml(ReadHtmlMixin):
     flavor = 'bs4'
     spam_data = os.path.join(DATA_PATH, 'spam.html')
     banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtml, cls).setUpClass()
+    def setup_class(cls):
         _skip_if_none_of(('bs4', 'html5lib'))
 
     def test_to_html_compat(self):
@@ -778,13 +777,12 @@ def _lang_enc(filename):
     return os.path.splitext(os.path.basename(filename))[0].split('_')
 
 
-class TestReadHtmlEncoding(tm.TestCase):
+class TestReadHtmlEncoding(object):
     files = glob.glob(os.path.join(DATA_PATH, 'html_encoding', '*.html'))
     flavor = 'bs4'
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtmlEncoding, cls).setUpClass()
+    def setup_class(cls):
         _skip_if_none_of((cls.flavor, 'html5lib'))
 
     def read_html(self, *args, **kwargs):
@@ -825,17 +823,16 @@ class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
     flavor = 'lxml'
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtmlEncodingLxml, cls).setUpClass()
+    def setup_class(cls):
+        super(TestReadHtmlEncodingLxml, cls).setup_class()
         _skip_if_no(cls.flavor)
 
 
-class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
+class TestReadHtmlLxml(ReadHtmlMixin):
     flavor = 'lxml'
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtmlLxml, cls).setUpClass()
+    def setup_class(cls):
         _skip_if_no('lxml')
 
     def test_data_fail(self):

@@ -11,9 +11,9 @@ from pandas import (PeriodIndex, Series, DatetimeIndex,
                     period_range, Period, _np_version_under1p9)
 
 
-class TestGetItem(tm.TestCase):
+class TestGetItem(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_getitem(self):
@@ -200,7 +200,7 @@ class TestGetItem(tm.TestCase):
                     s[v]
 
 
-class TestIndexing(tm.TestCase):
+class TestIndexing(object):
 
     def test_get_loc_msg(self):
         idx = period_range('2000-1-1', freq='A', periods=10)

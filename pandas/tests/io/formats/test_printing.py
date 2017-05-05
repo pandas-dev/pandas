@@ -7,7 +7,6 @@ import pandas as pd
 from pandas import compat
 import pandas.io.formats.printing as printing
 import pandas.io.formats.format as fmt
-import pandas.util.testing as tm
 import pandas.core.config as cf
 
 
@@ -35,7 +34,7 @@ def test_repr_binary_type():
     assert res == b
 
 
-class TestFormattBase(tm.TestCase):
+class TestFormattBase(object):
 
     def test_adjoin(self):
         data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]
@@ -123,10 +122,10 @@ c        ff         いいい"""
         assert adjoined == expected
 
 
-class TestTableSchemaRepr(tm.TestCase):
+class TestTableSchemaRepr(object):
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         pytest.importorskip('IPython')
         try:
             import mock

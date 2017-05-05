@@ -18,7 +18,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesRepr(TestData, tm.TestCase):
+class TestSeriesRepr(TestData):
 
     def test_multilevel_name_print(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',

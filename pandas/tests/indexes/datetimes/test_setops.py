@@ -12,7 +12,7 @@ from pandas.tseries.offsets import Minute, BMonthEnd, MonthEnd
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_union(self):
         i1 = Int64Index(np.arange(0, 20, 2))
@@ -199,9 +199,9 @@ class TestDatetimeIndex(tm.TestCase):
         assert rs.is_monotonic
 
 
-class TestBusinessDatetimeIndex(tm.TestCase):
+class TestBusinessDatetimeIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = bdate_range(START, END)
 
     def test_union(self):
@@ -343,9 +343,9 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         early_dr.union(late_dr)
 
 
-class TestCustomDatetimeIndex(tm.TestCase):
+class TestCustomDatetimeIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = cdate_range(START, END)
 
     def test_union(self):

@@ -16,8 +16,8 @@ from pandas.tests.test_base import Ops
 
 
 class TestTimedeltaIndexOps(Ops):
-    def setUp(self):
-        super(TestTimedeltaIndexOps, self).setUp()
+    def setup_method(self, method):
+        super(TestTimedeltaIndexOps, self).setup_method(method)
         mask = lambda x: isinstance(x, TimedeltaIndex)
         self.is_valid_objs = [o for o in self.objs if mask(o)]
         self.not_valid_objs = []
@@ -861,7 +861,7 @@ Freq: D"""
         assert not idx.equals(pd.Series(idx2))
 
 
-class TestTimedeltas(tm.TestCase):
+class TestTimedeltas(object):
     _multiprocess_can_split_ = True
 
     def test_ops(self):
@@ -1209,7 +1209,7 @@ class TestTimedeltas(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestSlicing(tm.TestCase):
+class TestSlicing(object):
 
     def test_tdi_ops_attributes(self):
         rng = timedelta_range('2 days', periods=5, freq='2D', name='x')

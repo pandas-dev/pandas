@@ -71,7 +71,7 @@ _class_locations_map = {
 
     # 12588, extensions moving
     ('pandas._sparse', 'BlockIndex'):
-        ('pandas.core.sparse.libsparse', 'BlockIndex'),
+        ('pandas._libs.sparse', 'BlockIndex'),
     ('pandas.tslib', 'Timestamp'):
         ('pandas._libs.tslib', 'Timestamp'),
     ('pandas.tslib', '__nat_unpickle'):
