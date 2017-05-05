@@ -128,15 +128,11 @@ SQL
 
 Google BigQuery
 ~~~~~~~~~~~~~~~
-.. currentmodule:: pandas.io.gbq
 
 .. autosummary::
    :toctree: generated/
 
    read_gbq
-
-
-.. currentmodule:: pandas
 
 
 STATA
