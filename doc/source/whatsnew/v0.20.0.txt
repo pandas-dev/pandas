@@ -393,8 +393,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
    df
    styled = df.style.\
        applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black').\
-       apply(lambda s: ['background-color: yellow' if v else ''
-                        for v in s == s.max()])
+       highlight_max()
    styled.to_excel('styled.xlsx', engine='openpyxl')
 
 .. image:: _static/style-excel.png
