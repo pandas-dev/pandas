@@ -243,6 +243,7 @@ moved_api_pages = [
     ('pandas.io.clipboard.read_clipboard', 'pandas.read_clipboard'),
     ('pandas.io.excel.ExcelFile.parse', 'pandas.ExcelFile.parse'),
     ('pandas.io.excel.read_excel', 'pandas.read_excel'),
+    ('pandas.io.gbq.read_gbq', 'pandas.read_gbq'),
     ('pandas.io.html.read_html', 'pandas.read_html'),
     ('pandas.io.json.read_json', 'pandas.read_json'),
     ('pandas.io.parsers.read_csv', 'pandas.read_csv'),
