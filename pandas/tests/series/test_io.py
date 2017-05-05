@@ -179,7 +179,7 @@ class TestSeriesIO(TestData):
         from_constructor = Series(collections.Counter(ts.iteritems()))
         tm.assert_series_equal(from_method, from_constructor)
 
-        
+
 class TestSeriesToList(TestData):
 
     def test_tolist(self):
