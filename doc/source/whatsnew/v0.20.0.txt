@@ -1,7 +1,10 @@
-.. _whatsnew_0200:
+.. _whatsnew_0201:
 
-v0.20.0 (May 4, 2017)
+v0.20.1 (May 5, 2017)
 ---------------------
+
+This is a combined release for 0.20.0 and and 0.20.1.
+Version 0.20.1 contains one additional change for backwards-compatibility with downstream projects using pandas' hashing routines. (:issue:`16250`)
 
 This is a major release from 0.19.2 and includes a number of API changes, deprecations, new features,
 enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
@@ -9,37 +12,37 @@ users upgrade to this version.
 
 Highlights include:
 
-- New ``.agg()`` API for Series/DataFrame similar to the groupby-rolling-resample API's, see :ref:`here <whatsnew_0200.enhancements.agg>`
+- New ``.agg()`` API for Series/DataFrame similar to the groupby-rolling-resample API's, see :ref:`here <whatsnew_0201.enhancements.agg>`
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
-- The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
-- ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
-- Addition of an ``IntervalIndex`` and ``Interval`` scalar type, see :ref:`here <whatsnew_0200.enhancements.intervalindex>`
-- Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
-- Improved support for ``UInt64`` dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
-- A new orient for JSON serialization, ``orient='table'``, that uses the :ref:`Table Schema spec <whatsnew_0200.enhancements.table_schema>`
-- Experimental support for exporting ``DataFrame.style`` formats to Excel, see :ref:`here <whatsnew_0200.enhancements.style_excel>`
-- Window binary corr/cov operations now return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
-- Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
-- Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
+- The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0201.api_breaking.deprecate_ix>`
+- ``Panel`` has been deprecated, see :ref:`here <whatsnew_0201.api_breaking.deprecate_panel>`
+- Addition of an ``IntervalIndex`` and ``Interval`` scalar type, see :ref:`here <whatsnew_0201.enhancements.intervalindex>`
+- Improved user API when accessing levels in ``.groupby()``, see :ref:`here <whatsnew_0201.enhancements.groupby_access>`
+- Improved support for ``UInt64`` dtypes, see :ref:`here <whatsnew_0201.enhancements.uint64_support>`
+- A new orient for JSON serialization, ``orient='table'``, that uses the :ref:`Table Schema spec <whatsnew_0201.enhancements.table_schema>`
+- Experimental support for exporting ``DataFrame.style`` formats to Excel, see :ref:`here <whatsnew_0201.enhancements.style_excel>`
+- Window binary corr/cov operations now return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0201.api_breaking.rolling_pairwise>`
+- Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0201.api_breaking.s3>`
+- Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0201.api_breaking.gbq>`
 - Switched the test framework to use `pytest <http://doc.pytest.org/en/latest>`__ (:issue:`13097`)
 
 .. warning::
 
   Pandas has changed the internal structure and layout of the codebase.
-  This can affect imports that are not from the top-level ``pandas.*`` namespace, please see the changes :ref:`here <whatsnew_0200.privacy>`.
+  This can affect imports that are not from the top-level ``pandas.*`` namespace, please see the changes :ref:`here <whatsnew_0201.privacy>`.
 
-Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
+Check the :ref:`API Changes <whatsnew_0201.api_breaking>` and :ref:`deprecations <whatsnew_0201.deprecations>` before updating.
 
-.. contents:: What's new in v0.20.0
+.. contents:: What's new in v0.20.1
     :local:
     :backlinks: none
 
-.. _whatsnew_0200.enhancements:
+.. _whatsnew_0201.enhancements:
 
 New features
 ~~~~~~~~~~~~
 
-.. _whatsnew_0200.enhancements.agg:
+.. _whatsnew_0201.enhancements.agg:
 
 ``agg`` API
 ^^^^^^^^^^^
@@ -102,7 +105,7 @@ aggregations. This is similiar to how groupby ``.agg()`` works. (:issue:`15015`)
 
    df.agg(['min', 'sum'])
 
-.. _whatsnew_0200.enhancements.dataio_dtype:
+.. _whatsnew_0201.enhancements.dataio_dtype:
 
 ``dtype`` keyword for data IO
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -151,7 +154,7 @@ Commonly called 'unix epoch' or POSIX time. This was the previous default, so th
    pd.to_datetime([1, 2, 3], unit='D')
 
 
-.. _whatsnew_0200.enhancements.groupby_access:
+.. _whatsnew_0201.enhancements.groupby_access:
 
 Groupby Enhancements
 ^^^^^^^^^^^^^^^^^^^^
@@ -175,7 +178,7 @@ Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now refere
 Previously, only column names could be referenced. (:issue:`5677`)
 
 
-.. _whatsnew_0200.enhancements.compressed_urls:
+.. _whatsnew_0201.enhancements.compressed_urls:
 
 Better support for compressed URLs in ``read_csv``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -198,7 +201,7 @@ support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
    df = pd.read_table(url, compression='bz2')  # explicitly specify compression
    df.head(2)
 
-.. _whatsnew_0200.enhancements.pickle_compression:
+.. _whatsnew_0201.enhancements.pickle_compression:
 
 Pickle file I/O now supports compression
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -251,7 +254,7 @@ The default is to ``infer``:
    os.remove("data.pkl.gz")
    os.remove("s1.pkl.bz2")
 
-.. _whatsnew_0200.enhancements.uint64_support:
+.. _whatsnew_0201.enhancements.uint64_support:
 
 UInt64 Support Improved
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -274,7 +277,7 @@ Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937
 - Bug in ``pd.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14915`)
 - Bug in ``pd.value_counts()`` in which unsigned 64-bit integers were being erroneously truncated in the output (:issue:`14934`)
 
-.. _whatsnew_0200.enhancements.groupy_categorical:
+.. _whatsnew_0201.enhancements.groupy_categorical:
 
 GroupBy on Categoricals
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -307,7 +310,7 @@ New Behavior:
 
   df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
 
-.. _whatsnew_0200.enhancements.table_schema:
+.. _whatsnew_0201.enhancements.table_schema:
 
 Table Schema Output
 ^^^^^^^^^^^^^^^^^^^
@@ -341,7 +344,7 @@ You must enable this by setting the ``display.html.table_schema`` option to ``Tr
 .. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
 .. _nteract: http://nteract.io/
 
-.. _whatsnew_0200.enhancements.scipy_sparse:
+.. _whatsnew_0201.enhancements.scipy_sparse:
 
 SciPy sparse matrix from/to SparseDataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -367,7 +370,7 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 
    sdf.to_coo()
 
-.. _whatsnew_0200.enhancements.style_excel:
+.. _whatsnew_0201.enhancements.style_excel:
 
 Excel output for styled DataFrames
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -402,7 +405,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
 
 See the :ref:`Style documentation <style.ipynb#Export-to-Excel>` for more detail.
 
-.. _whatsnew_0200.enhancements.intervalindex:
+.. _whatsnew_0201.enhancements.intervalindex:
 
 IntervalIndex
 ^^^^^^^^^^^^^
@@ -463,7 +466,7 @@ Selecting via a scalar value that is contained *in* the intervals.
 
    df.loc[0]
 
-.. _whatsnew_0200.enhancements.other:
+.. _whatsnew_0201.enhancements.other:
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
@@ -532,7 +535,7 @@ Other Enhancements
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
 
-.. _whatsnew_0200.api_breaking:
+.. _whatsnew_0201.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -577,7 +580,7 @@ then write them out again after applying the procedure below.
    Out[7]: pandas.core.series.Series
 
 
-.. _whatsnew_0200.api_breaking.index_map:
+.. _whatsnew_0201.api_breaking.index_map:
 
 Map on Index types now return other Index types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -644,7 +647,7 @@ New Behavior:
    s.map(lambda x: x.hour)
 
 
-.. _whatsnew_0200.api_breaking.index_dt_field:
+.. _whatsnew_0201.api_breaking.index_dt_field:
 
 Accessing datetime fields of Index now return Index
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -675,7 +678,7 @@ result. On the other hand, this might have backward incompatibilities: e.g.
 compared to numpy arrays, ``Index`` objects are not mutable. To get the original
 ndarray, you can always convert explicitly using ``np.asarray(idx.hour)``.
 
-.. _whatsnew_0200.api_breaking.unique:
+.. _whatsnew_0201.api_breaking.unique:
 
 pd.unique will now be consistent with extension types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -745,7 +748,7 @@ data-types would yield different return types. These are now made consistent. (:
      pd.Series(pd.Categorical(list('baabc'))).unique()
      pd.unique(pd.Series(pd.Categorical(list('baabc'))).unique())
 
-.. _whatsnew_0200.api_breaking.s3:
+.. _whatsnew_0201.api_breaking.s3:
 
 S3 File Handling
 ^^^^^^^^^^^^^^^^
@@ -754,7 +757,7 @@ pandas now uses `s3fs <http://s3fs.readthedocs.io/>`_ for handling S3 connection
 any code. However, since ``s3fs`` is not a required dependency, you will need to install it separately, like ``boto``
 in prior versions of pandas. (:issue:`11915`).
 
-.. _whatsnew_0200.api_breaking.partial_string_indexing:
+.. _whatsnew_0201.api_breaking.partial_string_indexing:
 
 Partial String Indexing Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -791,7 +794,7 @@ New Behavior:
   In [5]: df['a']['2011-12-31 23:59:59']
   Out[5]: 1
 
-.. _whatsnew_0200.api_breaking.concat_dtypes:
+.. _whatsnew_0201.api_breaking.concat_dtypes:
 
 Concat of different float dtypes will not automatically upcast
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -824,7 +827,7 @@ New Behavior:
 
    pd.concat([df1,df2]).dtypes
 
-.. _whatsnew_0200.api_breaking.gbq:
+.. _whatsnew_0201.api_breaking.gbq:
 
 Pandas Google BigQuery support has moved
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -833,7 +836,7 @@ pandas has split off Google BigQuery support into a separate package ``pandas-gb
 ``pip install pandas-gbq`` to get it. The functionality of :func:`read_gbq` and :meth:`DataFrame.to_gbq` remain the same with the
 currently released version of ``pandas-gbq=0.1.4``. Documentation is now hosted `here <https://pandas-gbq.readthedocs.io/>`__  (:issue:`15347`)
 
-.. _whatsnew_0200.api_breaking.memory_usage:
+.. _whatsnew_0201.api_breaking.memory_usage:
 
 Memory Usage for Index is more Accurate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -870,7 +873,7 @@ New Behavior:
    In [11]: index.memory_usage(deep=True)
    Out[11]: 260
 
-.. _whatsnew_0200.api_breaking.sort_index:
+.. _whatsnew_0201.api_breaking.sort_index:
 
 DataFrame.sort_index changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -939,7 +942,7 @@ New Behavior:
    df.sort_index().index.is_monotonic
 
 
-.. _whatsnew_0200.api_breaking.groupby_describe:
+.. _whatsnew_0201.api_breaking.groupby_describe:
 
 Groupby Describe Formatting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -992,14 +995,14 @@ New Behavior:
 
    df.groupby('A').agg([np.mean, np.std, np.min, np.max])
 
-.. _whatsnew_0200.api_breaking.rolling_pairwise:
+.. _whatsnew_0201.api_breaking.rolling_pairwise:
 
 Window Binary Corr/Cov operations return a MultiIndex DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A binary window operation, like ``.corr()`` or ``.cov()``, when operating on a ``.rolling(..)``, ``.expanding(..)``, or ``.ewm(..)`` object,
 will now return a 2-level ``MultiIndexed DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated,
-see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`. These are equivalent in function,
+see :ref:`here <whatsnew_0201.api_breaking.deprecate_panel>`. These are equivalent in function,
 but a MultiIndexed ``DataFrame`` enjoys more support in pandas.
 See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for more information. (:issue:`15677`)
 
@@ -1037,7 +1040,7 @@ Retrieving a correlation matrix for a cross-section
 
    df.rolling(12).corr().loc['2016-04-07']
 
-.. _whatsnew_0200.api_breaking.hdfstore_where:
+.. _whatsnew_0201.api_breaking.hdfstore_where:
 
 HDFStore where string comparison
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1078,7 +1081,7 @@ New Behavior:
    import os
    os.remove('store.h5')
 
-.. _whatsnew_0200.api_breaking.index_order:
+.. _whatsnew_0201.api_breaking.index_order:
 
 Index.intersection and inner join now preserve the order of the left Index
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1134,7 +1137,7 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
 
      left.join(right, how='inner')
 
-.. _whatsnew_0200.api_breaking.pivot_table:
+.. _whatsnew_0201.api_breaking.pivot_table:
 
 Pivot Table always returns a DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1167,7 +1170,7 @@ New Behavior:
 
    df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
 
-.. _whatsnew_0200.api:
+.. _whatsnew_0201.api:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
@@ -1202,12 +1205,12 @@ Other API Changes
 - The exception ``pandas.core.common.AmbiguousIndexError`` is removed as it is not referenced (:issue:`15541`)
 
 
-.. _whatsnew_0200.privacy:
+.. _whatsnew_0201.privacy:
 
 Reorganization of the library: Privacy Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_0200.privacy.extensions:
+.. _whatsnew_0201.privacy.extensions:
 
 Modules Privacy Has Changed
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1255,7 +1258,7 @@ these are now the public subpackages.
 - The public functions in ``pandas.tools.hashing`` deprecated from that locations, but are now importable from ``pandas.util`` (:issue:`16223`)
 - The modules in ``pandas.util``: ``decorators``, ``print_versions``, ``doctools``, `validators``, ``depr_module`` are now private (:issue:`16223`)
 
-.. _whatsnew_0200.privacy.errors:
+.. _whatsnew_0201.privacy.errors:
 
 ``pandas.errors``
 ^^^^^^^^^^^^^^^^^
@@ -1278,7 +1281,7 @@ The following are now part of this API:
     'UnsupportedFunctionCall']
 
 
-.. _whatsnew_0200.privacy.testing:
+.. _whatsnew_0201.privacy.testing:
 
 ``pandas.testing``
 ^^^^^^^^^^^^^^^^^^
@@ -1292,14 +1295,14 @@ The following testing functions are now part of this API:
 - :func:`testing.assert_index_equal`
 
 
-.. _whatsnew_0200.privacy.plotting:
+.. _whatsnew_0201.privacy.plotting:
 
 ``pandas.plotting``
 ^^^^^^^^^^^^^^^^^^^
 
-A new public ``pandas.plotting`` module has been added that holds plotting functionality that was previously in either ``pandas.tools.plotting`` or in the top-level namespace. See the :ref:`deprecations sections <whatsnew_0200.privacy.deprecate_plotting>` for more details.
+A new public ``pandas.plotting`` module has been added that holds plotting functionality that was previously in either ``pandas.tools.plotting`` or in the top-level namespace. See the :ref:`deprecations sections <whatsnew_0201.privacy.deprecate_plotting>` for more details.
 
-.. _whatsnew_0200.privacy.development:
+.. _whatsnew_0201.privacy.development:
 
 Other Development Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1310,12 +1313,12 @@ Other Development Changes
 - Reorganization of tests directory layout (:issue:`14854`, :issue:`15707`).
 
 
-.. _whatsnew_0200.deprecations:
+.. _whatsnew_0201.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
 
-.. _whatsnew_0200.api_breaking.deprecate_ix:
+.. _whatsnew_0201.api_breaking.deprecate_ix:
 
 Deprecate ``.ix``
 ^^^^^^^^^^^^^^^^^
@@ -1361,7 +1364,7 @@ Using ``.iloc``. Here we will get the location of the 'A' column, then use *posi
   df.iloc[[0, 2], df.columns.get_loc('A')]
 
 
-.. _whatsnew_0200.api_breaking.deprecate_panel:
+.. _whatsnew_0201.api_breaking.deprecate_panel:
 
 Deprecate Panel
 ^^^^^^^^^^^^^^^
@@ -1388,7 +1391,7 @@ Convert to an xarray DataArray
 
    p.to_xarray()
 
-.. _whatsnew_0200.api_breaking.deprecate_group_agg_dict:
+.. _whatsnew_0201.api_breaking.deprecate_group_agg_dict:
 
 Deprecate groupby.agg() with a dictionary when renaming
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1473,7 +1476,7 @@ You can accomplish nearly the same by:
 
 
 
-.. _whatsnew_0200.privacy.deprecate_plotting:
+.. _whatsnew_0201.privacy.deprecate_plotting:
 
 Deprecate .plotting
 ^^^^^^^^^^^^^^^^^^^
@@ -1499,7 +1502,7 @@ Should be changed to:
 
 
 
-.. _whatsnew_0200.deprecations.other:
+.. _whatsnew_0201.deprecations.other:
 
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
@@ -1526,7 +1529,7 @@ Other Deprecations
   * ``pd.get_store()``, replaced by a direct call to ``pd.HDFStore(...)``
 - ``is_any_int_dtype``, ``is_floating_dtype``, and ``is_sequence`` are deprecated from ``pandas.api.types`` (:issue:`16042`)
 
-.. _whatsnew_0200.prior_deprecations:
+.. _whatsnew_0201.prior_deprecations:
 
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1551,7 +1554,7 @@ Removal of prior version deprecations/changes
 - Where clauses in ``pytables`` are only accepted as strings and expressions types and not other data-types (:issue:`12027`)
 - ``DataFrame`` has dropped the ``combineAdd`` and ``combineMult`` methods in favor of ``add`` and ``mul`` respectively (:issue:`10735`)
 
-.. _whatsnew_0200.performance:
+.. _whatsnew_0201.performance:
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1573,7 +1576,7 @@ Performance Improvements
 - Improved performance of ``Series.sort_index()`` with a monotonic index (:issue:`15694`)
 - Improved performance in ``pd.read_csv()`` on some platforms with buffered reads (:issue:`16039`)
 
-.. _whatsnew_0200.bug_fixes:
+.. _whatsnew_0201.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
