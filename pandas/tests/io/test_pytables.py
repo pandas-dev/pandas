@@ -5243,7 +5243,6 @@ class TestTimezones(Base):
     def test_append_with_timezones_dateutil(self):
 
         from datetime import timedelta
-        tm._skip_if_no_dateutil()
 
         # use maybe_get_tz instead of dateutil.tz.gettz to handle the windows
         # filename issues.

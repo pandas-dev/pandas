@@ -2,6 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 import pytest
+import pytz
 
 from collections import Iterable
 from datetime import datetime, timedelta
@@ -725,9 +726,7 @@ class TestSeriesOperators(TestData):
         pytest.raises(TypeError, lambda: td2 - dt2)
 
     def test_sub_datetime_compat(self):
-        # GH 14088
-        tm._skip_if_no_pytz()
-        import pytz
+        # see gh-14088
         s = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), pd.NaT])
         dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
         exp = Series([Timedelta('1 days'), pd.NaT])

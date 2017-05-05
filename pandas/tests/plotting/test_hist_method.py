@@ -15,7 +15,7 @@ from pandas.plotting._core import grouped_hist
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
-tm._skip_module_if_no_mpl()
+tm._skip_if_no_mpl()
 
 
 class TestSeriesPlots(TestPlotBase):
