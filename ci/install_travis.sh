@@ -123,7 +123,7 @@ if [ "$BUILD_TEST" ]; then
 
     # build & install testing
     echo ["Starting installation test."]
-    bash ./release_build.sh
+    bash ci/install_release_build.sh
     conda uninstall -y cython
     time pip install dist/*tar.gz || exit 1
 
