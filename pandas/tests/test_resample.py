@@ -53,13 +53,6 @@ def _simple_pts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-def assert_series_or_frame_equal(result, expected):
-    if isinstance(result, Series):
-        return assert_series_equal(result, expected)
-    elif isinstance(result, DataFrame):
-        return assert_frame_equal(result, expected)
-
-
 class TestResampleAPI(object):
 
     def setup_method(self, method):
@@ -2271,7 +2264,7 @@ class TestPeriodIndex(Base):
                                    closed='left')
             expected = obj.to_timestamp().reindex(new_index).to_period(freq)
         result = obj.resample(freq, kind=kind).asfreq()
-        assert_series_or_frame_equal(result, expected)
+        assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize('freq', ['1H', '2H'])
     @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
@@ -2287,7 +2280,7 @@ class TestPeriodIndex(Base):
                                    closed='left')
             expected = obj.to_timestamp().reindex(new_index).to_period(freq)
         result = obj.resample(freq, kind=kind).asfreq()
-        assert_series_or_frame_equal(result, expected)
+        assert_almost_equal(result, expected)
 
     def test_asfreq_fill_value(self):
         # test for fill value during resampling, issue 3715
