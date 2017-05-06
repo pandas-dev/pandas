@@ -660,7 +660,7 @@ class TestDataFrameAlterAxes(TestData):
                                                           drop=True)
             tm.assert_frame_equal(result, df[['C', 'D']])
 
-            # With flat Index (GH 16263)
+            # With single-level Index (GH 16263)
             result = df.set_index('A').reset_index(level=levels[0])
             tm.assert_frame_equal(result, df)
 
@@ -671,7 +671,7 @@ class TestDataFrameAlterAxes(TestData):
                                                      drop=True)
             tm.assert_frame_equal(result, df[['B', 'C', 'D']])
 
-        # Missing levels - for both MultiIndex and flat Index:
+        # Missing levels - for both MultiIndex and single-level Index:
         for idx_lev in ['A', 'B'], ['A']:
             with tm.assert_raises_regex(KeyError, 'Level E '):
                 df.set_index(idx_lev).reset_index(level=['A', 'E'])

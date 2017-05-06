@@ -165,7 +165,7 @@ class TestSeriesAlterAxes(TestData):
             with tm.assert_raises_regex(KeyError, 'Level E '):
                 s.reset_index(level=['A', 'E'])
 
-            # With flat Index
+            # With single-level Index
             s = df.set_index('A')['B']
 
             result = s.reset_index(level=levels[0])
