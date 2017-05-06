@@ -9,7 +9,6 @@ from __future__ import division
 import types
 import warnings
 from textwrap import dedent
-import collections
 
 from numpy import nan, ndarray
 import numpy as np
@@ -1086,7 +1085,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             object. Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass an initialized
-            .. versionadded:: 0.20.1
+            .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -1097,7 +1096,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         # GH16122
         into_c = _standardize_mapping(into)
         return into_c(compat.iteritems(self))
-
 
     def to_frame(self, name=None):
         """

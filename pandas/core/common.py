@@ -483,7 +483,7 @@ def _dict_compat(d):
 
 def _standardize_mapping(into):
     """
-    Helper function to standardize the supplied mapping so it can 
+    Helper function to standardize the supplied mapping so it can
     be passed to the ``Series.to_dict()`` and ``DataFrame.to_dict()``
 
     Parameters
@@ -491,14 +491,14 @@ def _standardize_mapping(into):
     into : instance or subclass of collections.Mapping
         The argument supplied to ``to_dict``.  Must be a class, an
         initialized collections.defaultdict, or an empty instance
-        of a collections.Mapping subclass.  
+        of a collections.Mapping subclass.
 
     Returns
     -------
     mapping : a collections.Mapping subclass or other constructor
         a callable object that can accept an iterator to create
         the desired Mapping.
-        
+
     """
     if not inspect.isclass(into):
         if len(into) > 0:

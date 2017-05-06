@@ -889,7 +889,7 @@ class DataFrame(NDFrame):
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass an initialized
             instance.
-            .. versionadded:: 0.20.1
+            .. versionadded:: 0.21.0
 
         Returns
         -------
