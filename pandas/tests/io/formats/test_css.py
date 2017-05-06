@@ -29,32 +29,6 @@ def test_css_parse_normalisation(name, norm, abnorm):
     assert_same_resolution(norm, abnorm)
 
 
-@pytest.mark.xfail(reason='CSS comments not yet stripped')
-def test_css_parse_comments():
-    assert_same_resolution('hello: world',
-                           'hello/* foo */:/* bar \n */ world /*;not:here*/')
-
-
-@pytest.mark.xfail(reason='''we don't need to handle specificity
-                   markers like !important, but we should
-                   ignore them in the future''')
-def test_css_parse_specificity():
-    assert_same_resolution('font-weight: bold', 'font-weight: bold !important')
-
-
-@pytest.mark.xfail(reason='Splitting CSS declarations not yet sensitive to '
-                   '; in CSS strings')
-def test_css_parse_strings():
-    # semicolons in strings
-    with tm.assert_produces_warning(CSSWarning):
-        assert_resolves(
-            'background-image: url(\'http://blah.com/foo?a;b=c\')',
-            {'background-image': 'url(\'http://blah.com/foo?a;b=c\')'})
-        assert_resolves(
-            'background-image: url("http://blah.com/foo?a;b=c")',
-            {'background-image': 'url("http://blah.com/foo?a;b=c")'})
-
-
 @pytest.mark.parametrize(
     'invalid_css,remainder', [
         # No colon
@@ -62,15 +36,7 @@ def test_css_parse_strings():
         ('border-style: solid; hello-world', 'border-style: solid'),
         ('border-style: solid; hello-world; font-weight: bold',
          'border-style: solid; font-weight: bold'),
-        # Unclosed string
-        pytest.mark.xfail(('background-image: "abc', ''),
-                          reason='Unclosed CSS strings not detected'),
-        pytest.mark.xfail(('font-family: "abc', ''),
-                          reason='Unclosed CSS strings not detected'),
-        pytest.mark.xfail(('background-image: \'abc', ''),
-                          reason='Unclosed CSS strings not detected'),
-        pytest.mark.xfail(('font-family: \'abc', ''),
-                          reason='Unclosed CSS strings not detected'),
+        # Unclosed string fail
         # Invalid size
         ('font-size: blah', 'font-size: 1em'),
         ('font-size: 1a2b', 'font-size: 1em'),
@@ -122,46 +88,6 @@ def test_css_side_shorthands(shorthand, expansions):
     with tm.assert_produces_warning(CSSWarning):
         assert_resolves('%s: 1pt 1pt 1pt 1pt 1pt' % shorthand,
                         {})
-
-
-@pytest.mark.xfail(reason='CSS font shorthand not yet handled')
-@pytest.mark.parametrize('css,props', [
-    ('font: italic bold 12pt helvetica,sans-serif',
-     {'font-family': 'helvetica,sans-serif',
-      'font-style': 'italic',
-      'font-weight': 'bold',
-      'font-size': '12pt'}),
-    ('font: bold italic 12pt helvetica,sans-serif',
-     {'font-family': 'helvetica,sans-serif',
-      'font-style': 'italic',
-      'font-weight': 'bold',
-      'font-size': '12pt'}),
-])
-def test_css_font_shorthand(css, props):
-    assert_resolves(css, props)
-
-
-@pytest.mark.xfail(reason='CSS background shorthand not yet handled')
-@pytest.mark.parametrize('css,props', [
-    ('background: blue', {'background-color': 'blue'}),
-    ('background: fixed blue',
-     {'background-color': 'blue', 'background-attachment': 'fixed'}),
-])
-def test_css_background_shorthand(css, props):
-    assert_resolves(css, props)
-
-
-@pytest.mark.xfail(reason='CSS border shorthand not yet handled')
-@pytest.mark.parametrize('style,equiv', [
-    ('border: 1px solid red',
-     'border-width: 1px; border-style: solid; border-color: red'),
-    ('border: solid red 1px',
-     'border-width: 1px; border-style: solid; border-color: red'),
-    ('border: red solid',
-     'border-style: solid; border-color: red'),
-])
-def test_css_border_shorthand(style, equiv):
-    assert_same_resolution(style, equiv)
 
 
 @pytest.mark.parametrize('style,inherited,equiv', [
