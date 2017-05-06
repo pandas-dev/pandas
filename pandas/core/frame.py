@@ -3012,12 +3012,12 @@ it is assumed to be aliases for the column names.')
             return values
 
         new_index = _default_index(len(new_obj))
-        if isinstance(self.index, MultiIndex):
-            if level is not None:
-                if not isinstance(level, (tuple, list)):
-                    level = [level]
-                level = [self.index._get_level_number(lev) for lev in level]
-                if len(level) < len(self.index.levels):
+        if level is not None:
+            if not isinstance(level, (tuple, list)):
+                level = [level]
+            level = [self.index._get_level_number(lev) for lev in level]
+            if isinstance(self.index, MultiIndex):
+                if len(level) < self.index.nlevels:
                     new_index = self.index.droplevel(level)
 
         if not drop:
@@ -3033,6 +3033,8 @@ it is assumed to be aliases for the column names.')
 
             multi_col = isinstance(self.columns, MultiIndex)
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
+                if not (level is None or i in level):
+                    continue
                 name = names[i]
                 if multi_col:
                     col_name = (list(name) if isinstance(name, tuple)
@@ -3049,11 +3051,9 @@ it is assumed to be aliases for the column names.')
                     missing = self.columns.nlevels - len(name_lst)
                     name_lst += [col_fill] * missing
                     name = tuple(name_lst)
-
                 # to ndarray and maybe infer different dtype
                 level_values = _maybe_casted_values(lev, lab)
-                if level is None or i in level:
-                    new_obj.insert(0, name, level_values)
+                new_obj.insert(0, name, level_values)
 
         new_obj.index = new_index
         if not inplace:
