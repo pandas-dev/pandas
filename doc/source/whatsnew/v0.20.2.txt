@@ -1,6 +1,6 @@
-.. _whatsnew_0201:
+.. _whatsnew_0202:
 
-v0.20.1 (???)
+v0.20.2 (???)
 -------------
 
 This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes,
@@ -9,26 +9,26 @@ We recommend that all users upgrade to this version.
 
 Highlights include:
 
-.. contents:: What's new in v0.20.1
+.. contents:: What's new in v0.20.2
     :local:
     :backlinks: none
 
 
-.. _whatsnew_0201.enhancements:
+.. _whatsnew_0202.enhancements:
 
 Enhancements
 ~~~~~~~~~~~~
 
 
 
-.. _whatsnew_0201.performance:
+.. _whatsnew_0202.performance:
 
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 
-.. _whatsnew_0201.bug_fixes:
+.. _whatsnew_0202.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
