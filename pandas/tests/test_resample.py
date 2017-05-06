@@ -53,6 +53,13 @@ def _simple_pts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
+def assert_series_or_frame_equal(result, expected):
+    if isinstance(result, Series):
+        return assert_series_equal(result, expected)
+    elif isinstance(result, DataFrame):
+        return assert_frame_equal(result, expected)
+
+
 class TestResampleAPI(object):
 
     def setup_method(self, method):
@@ -698,6 +705,32 @@ class Base(object):
         factory = self._index_factory()
         return factory(*args, **kwargs)
 
+    _index_fixture_start = datetime(2005, 1, 1)
+    _index_fixture_end = datetime(2005, 1, 10)
+    _index_fixture_freq = 'D'
+
+    @pytest.fixture(scope='class')
+    def index(self):
+        return self.create_index(self._index_fixture_start,
+                                 self._index_fixture_end,
+                                 freq=self._index_fixture_freq)
+
+    @pytest.fixture(scope='class')
+    def series(self, index):
+        return Series(np.arange(len(index)), index=index,
+                      name=self._series_fixture_name)
+
+    @pytest.fixture(scope='class')
+    def frame(self, index):
+        return DataFrame({'value': np.arange(len(index))}, index=index)
+
+    @pytest.fixture(params=[Series, DataFrame], scope='class')
+    def series_and_frame(self, request, index):
+        if request.param == Series:
+            return self.series(index)
+        if request.param == DataFrame:
+            return self.frame(index)
+
     def test_asfreq_downsample(self):
         s = self.create_series()
 
@@ -865,6 +898,7 @@ class Base(object):
 
 class TestDatetimeIndex(Base):
     _index_factory = lambda x: date_range
+    _series_fixture_name = 'dti'
 
     def setup_method(self, method):
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
@@ -2213,84 +2247,47 @@ class TestDatetimeIndex(Base):
 
 class TestPeriodIndex(Base):
     _index_factory = lambda x: period_range
+    _series_fixture_name = 'pi'
 
     def create_series(self):
+        # TODO: replace calls to .create_series() by injecting the series
+        # fixture
         i = period_range(datetime(2005, 1, 1),
                          datetime(2005, 1, 10), freq='D')
 
         return Series(np.arange(len(i)), index=i, name='pi')
 
-    def test_asfreq_downsample(self):
+    @pytest.mark.parametrize('freq', ['2D'])
+    @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
+    def test_asfreq_downsample(self, series_and_frame, freq, kind):
         # GH 12884, 15944
-
-        s = self.create_series()
-        start = s.index[0].to_timestamp(how='start')
-        end = (s.index[-1] + 1).to_timestamp(how='start')
-
-        new_index = date_range(start=start, end=end, freq='2D', closed='left')
-        # series
-        expected = s.to_timestamp().reindex(new_index).to_period('2D')
-        result = s.resample('2D').asfreq()
-        assert_series_equal(result, expected)
-        result_kind_period = s.resample('2D', kind='period').asfreq()
-        assert_series_equal(result_kind_period, expected)
-
-        # frame
-        frame = s.to_frame('value')
-        expected = frame.to_timestamp().reindex(new_index).to_period('2D')
-        result = frame.resample('2D').asfreq()
-        assert_frame_equal(result, expected)
-        result_kind_period = frame.resample('2D', kind='period').asfreq()
-        assert_frame_equal(result_kind_period, expected)
-
-    def test_asfreq_downsample_kind_timestamp(self):
-        # series
-        s = self.create_series()
-        expected = s.to_timestamp().resample('2D').asfreq()
-        result = s.resample('2D', kind='timestamp').asfreq()
-        assert_series_equal(result, expected)
-
-        # frame
-        frame = s.to_frame('value')
-        expected = frame.to_timestamp().resample('2D').asfreq()
-        result = frame.resample('2D', kind='timestamp').asfreq()
-        assert_frame_equal(result, expected)
-
-    def test_asfreq_upsample(self):
-        # GH 12884, 15944
-
-        s = self.create_series()
-        start = s.index[0].to_timestamp(how='start')
-        end = (s.index[-1] + 1).to_timestamp(how='start')
-        for freq in ['1H', '2H']:
-            # check base frequency and frequency multiple
+        obj = series_and_frame
+        start = obj.index[0].to_timestamp(how='start')
+        end = (obj.index[-1] + 1).to_timestamp(how='start')
+        if kind == 'timestamp':
+            expected = obj.to_timestamp().resample(freq).asfreq()
+        else:
             new_index = date_range(start=start, end=end, freq=freq,
                                    closed='left')
-            # series
-            expected = s.to_timestamp().reindex(new_index).to_period(freq)
-            result = s.resample(freq).asfreq()
-            assert_series_equal(result, expected)
-            result_kind_period = s.resample(freq, kind='period').asfreq()
-            assert_series_equal(result_kind_period, expected)
+            expected = obj.to_timestamp().reindex(new_index).to_period(freq)
+        result = obj.resample(freq, kind=kind).asfreq()
+        assert_series_or_frame_equal(result, expected)
 
-            # frame
-            frame = s.to_frame('value')
-            expected = frame.to_timestamp().reindex(new_index).to_period(freq)
-            result = frame.resample(freq).asfreq()
-            assert_frame_equal(result, expected)
-            result_kind_period = frame.resample(freq, kind='period').asfreq()
-            assert_frame_equal(result_kind_period, expected)
-
-    def test_asfreq_upsample_kind_timestamp(self):
-        s = self.create_series()
-        expected = s.to_timestamp().resample('1H').asfreq()
-        result = s.resample('1H', kind='timestamp').asfreq()
-        assert_series_equal(result, expected)
-
-        frame = s.to_frame('value')
-        expected = frame.to_timestamp().resample('1H').asfreq()
-        result = frame.resample('1H', kind='timestamp').asfreq()
-        assert_frame_equal(result, expected)
+    @pytest.mark.parametrize('freq', ['1H', '2H'])
+    @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
+    def test_asfreq_upsample(self, series_and_frame, freq, kind):
+        # GH 12884, 15944
+        obj = series_and_frame
+        start = obj.index[0].to_timestamp(how='start')
+        end = (obj.index[-1] + 1).to_timestamp(how='start')
+        if kind == 'timestamp':
+            expected = obj.to_timestamp().resample(freq).asfreq()
+        else:
+            new_index = date_range(start=start, end=end, freq=freq,
+                                   closed='left')
+            expected = obj.to_timestamp().reindex(new_index).to_period(freq)
+        result = obj.resample(freq, kind=kind).asfreq()
+        assert_series_or_frame_equal(result, expected)
 
     def test_asfreq_fill_value(self):
         # test for fill value during resampling, issue 3715
@@ -2311,8 +2308,9 @@ class TestPeriodIndex(Base):
         result = frame.resample('1H', kind='timestamp').asfreq(fill_value=3.0)
         assert_frame_equal(result, expected)
 
-    def test_selection(self):
-        index = self.create_series().index
+    @pytest.mark.parametrize('freq', ['H', '12H', '2D', 'W'])
+    @pytest.mark.parametrize('kind', [None, 'period', 'timestamp'])
+    def test_selection(self, index, freq, kind):
         # This is a bug, these should be implemented
         # GH 14008
         df = pd.DataFrame({'date': index,
@@ -2320,17 +2318,10 @@ class TestPeriodIndex(Base):
                           index=pd.MultiIndex.from_arrays([
                               np.arange(len(index), dtype=np.int64),
                               index], names=['v', 'd']))
-        for freq in ['H', '12H', '2D', 'W']:
-            # check up- and downsampling with base freqs and freq multiples
-            with pytest.raises(NotImplementedError):
-                df.resample(freq, on='date')
-            with pytest.raises(NotImplementedError):
-                df.resample(freq, level='d')
-            for kind_param in ['timestamp', 'period']:
-                with pytest.raises(NotImplementedError):
-                    df.resample(freq, on='date', kind=kind_param)
-                with pytest.raises(NotImplementedError):
-                    df.resample(freq, level='d', kind=kind_param)
+        with pytest.raises(NotImplementedError):
+            df.resample(freq, on='date', kind=kind)
+        with pytest.raises(NotImplementedError):
+            df.resample(freq, level='d', kind=kind)
 
     def test_annual_upsample_D_s_f(self):
         self._check_annual_upsample_cases('D', 'start', 'ffill')
@@ -2397,15 +2388,15 @@ class TestPeriodIndex(Base):
         pytest.raises(ValueError, lambda: ts.resample('M').mean())
         pytest.raises(ValueError, lambda: ts.resample('w-thu').mean())
 
-    def test_basic_upsample(self):
+    @pytest.mark.parametrize('freq', ['D', '2D'])
+    def test_basic_upsample(self, freq):
         ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec').mean()
 
-        for freq in ['D', '2D']:
-            resampled = result.resample(freq, convention='end').ffill()
-            expected = result.to_timestamp(freq, how='end')
-            expected = expected.asfreq(freq, 'ffill').to_period(freq)
-            assert_series_equal(resampled, expected)
+        resampled = result.resample(freq, convention='end').ffill()
+        expected = result.to_timestamp(freq, how='end')
+        expected = expected.asfreq(freq, 'ffill').to_period(freq)
+        assert_series_equal(resampled, expected)
 
     def test_upsample_with_limit(self):
         rng = period_range('1/1/2000', periods=5, freq='A')
@@ -2470,19 +2461,15 @@ class TestPeriodIndex(Base):
         result2 = s.resample('T', kind='period').mean()
         assert_series_equal(result2, expected)
 
-    def test_resample_count(self):
-
+    @pytest.mark.parametrize('freq,expected_vals', [('M', [31, 29, 31, 9]),
+                                                    ('2M', [31 + 29, 31 + 9])])
+    def test_resample_count(self, freq, expected_vals):
         # GH12774
-        series = pd.Series(1, index=pd.period_range(start='2000',
-                                                    periods=100))
-        result = series.resample('M').count()
-        expected_index = pd.period_range(start='2000', freq='M', periods=4)
-        expected = pd.Series([31, 29, 31, 9], index=expected_index)
-        assert_series_equal(result, expected)
-
-        result = series.resample('2M').count()
-        expected_index = pd.period_range(start='2000', freq='2M', periods=2)
-        expected = pd.Series([31 + 29, 31 + 9], index=expected_index)
+        series = pd.Series(1, index=pd.period_range(start='2000', periods=100))
+        result = series.resample(freq).count()
+        expected_index = pd.period_range(start='2000', freq=freq,
+                                         periods=len(expected_vals))
+        expected = pd.Series(expected_vals, index=expected_index)
         assert_series_equal(result, expected)
 
     def test_resample_same_freq(self):
@@ -2620,22 +2607,15 @@ class TestPeriodIndex(Base):
         s = Series(np.random.randn(5), index=rng)
         pytest.raises(Exception, lambda: s.resample('A').ffill())
 
-    def test_resample_5minute(self):
+    @pytest.mark.parametrize('freq', ['5min'])
+    @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
+    def test_resample_5minute(self, freq, kind):
         rng = period_range('1/1/2000', '1/5/2000', freq='T')
         ts = Series(np.random.randn(len(rng)), index=rng)
-
-        expected = ts.to_timestamp().resample('5min').mean().to_period('5min')
-        result = ts.resample('5min').mean()
-        assert_series_equal(result, expected)
-        result_kind_period = ts.resample('5min', kind='period').mean()
-        assert_series_equal(result_kind_period, expected)
-
-    def test_resample_5minute_kind_timestamp(self):
-        rng = period_range('1/1/2000', '1/5/2000', freq='T')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        result = ts.resample('5min', kind='timestamp').mean()
-        expected = ts.to_timestamp().resample('5min').mean()
+        expected = ts.to_timestamp().resample(freq).mean()
+        if kind != 'timestamp':
+            expected = expected.to_period(freq)
+        result = ts.resample(freq, kind=kind).mean()
         assert_series_equal(result, expected)
 
     def test_upsample_daily_business_daily(self):
@@ -2862,89 +2842,65 @@ class TestPeriodIndex(Base):
         for freq in ['M', 'D', 'H']:
             with pytest.raises(TypeError):
                 series.resample(freq).apply(lambda x: 1)
-    def test_loffset_returns_datetimeindex(self):
+
+    @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
+    @pytest.mark.parametrize('agg_arg', ['mean', {'value': 'mean'}, ['mean']])
+    def test_loffset_returns_datetimeindex(self, frame, kind, agg_arg):
         # make sure passing loffset returns DatetimeIndex in all cases
         # basic method taken from Base.test_resample_loffset_arg_type()
-        df = self.create_series().to_frame('value')
+        df = frame
         expected_means = [df.values[i:i + 2].mean()
                           for i in range(0, len(df.values), 2)]
-        expected_index = self.create_index(df.index[0], periods=len(df.index) /
-                                           2, freq='2D')
-
+        expected_index = self.create_index(df.index[0],
+                                           periods=len(df.index) / 2,
+                                           freq='2D')
         # loffset coreces PeriodIndex to DateTimeIndex
         expected_index = expected_index.to_timestamp()
         expected_index += timedelta(hours=2)
         expected = DataFrame({'value': expected_means}, index=expected_index)
 
-        for arg in ['mean', {'value': 'mean'}, ['mean']]:
-            for kind_param in [None, 'period', 'timestamp']:
-                result_agg = (df.resample('2D', loffset='2H', kind=kind_param)
-                              .agg(arg))
-                with tm.assert_produces_warning(FutureWarning,
-                                                check_stacklevel=False):
-                    result_how = df.resample('2D', how=arg, loffset='2H',
-                                             kind=kind_param)
-                if isinstance(arg, list):
-                    expected.columns = (pd.MultiIndex
-                                        .from_tuples([('value', 'mean')]))
-                assert_frame_equal(result_agg, expected)
-                assert_frame_equal(result_how, expected)
+        result_agg = df.resample('2D', loffset='2H', kind=kind).agg(agg_arg)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result_how = df.resample('2D', how=agg_arg, loffset='2H',
+                                     kind=kind)
+        if isinstance(agg_arg, list):
+            expected.columns = pd.MultiIndex .from_tuples([('value', 'mean')])
+        assert_frame_equal(result_agg, expected)
+        assert_frame_equal(result_how, expected)
 
-    def test_upsampling_ohlc(self):
+    @pytest.mark.parametrize('freq, period_mult', [('H', 24), ('12H', 2)])
+    @pytest.mark.parametrize('kind', [None, 'period'])
+    def test_upsampling_ohlc(self, freq, period_mult, kind):
         # GH 13083
         pi = PeriodIndex(start='2000', freq='D', periods=10)
         s = Series(range(len(pi)), index=pi)
-        expected = s.to_timestamp().resample('H').ohlc().to_period()
+        expected = s.to_timestamp().resample(freq).ohlc().to_period(freq)
         # timestamp-based resampling doesn't include all sub-periods
         # of the last original period, so extend accordingly:
-        pi_ext = PeriodIndex(start='2000', freq='H', periods=24 * len(pi))
-        expected = expected.reindex(pi_ext)
-        result = s.resample('H').ohlc()
+        new_index = PeriodIndex(start='2000', freq=freq,
+                                periods=period_mult * len(pi))
+        expected = expected.reindex(new_index)
+        result = s.resample(freq, kind=kind).ohlc()
         assert_frame_equal(result, expected)
 
-    def test_upsampling_ohlc_freq_multiples(self):
-        pi = PeriodIndex(start='2000', freq='D', periods=10)
-        s = pd.Series(range(len(pi)), index=pi)
-        expected = s.to_timestamp().resample('12H').ohlc().to_period('12H')
-        # timestamp-based resampling doesn't include all sub-periods
-        # of the last original period, so extend accordingly:
-        pi_ext = PeriodIndex(start='2000', freq='12H', periods=2 * len(pi))
-        expected = expected.reindex(pi_ext)
-        result = s.resample('12H', kind='period').ohlc()
-        assert_frame_equal(result, expected)
-
-    def test_resample_with_nat(self):
+    @pytest.mark.parametrize('freq, expected_values',
+                             [('1s', [3, np.NaN, 7, 11]),
+                              ('2s', [3, int((7 + 11) / 2)]),
+                              ('3s', [int((3 + 7) / 2), 11])])
+    def test_resample_with_nat(self, freq, expected_values):
         # GH 13224
         index = PeriodIndex([pd.NaT, '1970-01-01 00:00:00', pd.NaT,
-                             '1970-01-01 00:00:01', '1970-01-01 00:00:02'],
+                             '1970-01-01 00:00:02', '1970-01-01 00:00:03'],
                             freq='S')
         frame = DataFrame([2, 3, 5, 7, 11], index=index)
 
-        index_1s = PeriodIndex(['1970-01-01 00:00:00', '1970-01-01 00:00:01',
-                                '1970-01-01 00:00:02'], freq='S')
-        frame_1s = DataFrame([3, 7, 11], index=index_1s)
-        result_1s = frame.resample('1s').mean()
-        assert_frame_equal(result_1s, frame_1s)
-
-        index_2s = PeriodIndex(['1970-01-01 00:00:00',
-                                '1970-01-01 00:00:02'], freq='2S')
-        frame_2s = DataFrame([5, 11], index=index_2s)
-        result_2s = frame.resample('2s').mean()
-        assert_frame_equal(result_2s, frame_2s)
-
-        index_3s = PeriodIndex(['1970-01-01 00:00:00'], freq='3S')
-        frame_3s = DataFrame([7], index=index_3s)
-        result_3s = frame.resample('3s').mean()
-        assert_frame_equal(result_3s, frame_3s)
-
-        pi = PeriodIndex(['1970-01-01 00:00:00', pd.NaT,
-                          '1970-01-01 00:00:02'], freq='S')
-        frame = DataFrame([2, 3, 5], index=pi)
-        expected_index = period_range(pi[0], periods=len(pi), freq=pi.freq)
-        expected = DataFrame([2, np.NaN, 5], index=expected_index)
-        result = frame.resample('1s').mean()
+        expected_index = period_range('1970-01-01 00:00:00',
+                                      periods=len(expected_values), freq=freq)
+        expected = DataFrame(expected_values, index=expected_index)
+        result = frame.resample(freq).mean()
         assert_frame_equal(result, expected)
 
+    def test_resample_with_only_nat(self):
         pi = PeriodIndex([pd.NaT] * 3, freq='S')
         frame = DataFrame([2, 3, 5], index=pi)
         expected_index = PeriodIndex(data=[], freq=pi.freq)
