@@ -127,7 +127,7 @@ def assert_almost_equal(left, right, check_exact=False,
     ----------
     left : object
     right : object
-    check_exact : bool, default True
+    check_exact : bool, default False
         Whether to compare number exactly.
     check_dtype: bool, default True
         check dtype if both a and b are the same type
