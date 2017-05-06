@@ -641,6 +641,43 @@ class TestDataFrameAlterAxes(TestData):
         xp = xp.set_index(['B'], append=True)
         assert_frame_equal(rs, xp, check_names=False)
 
+    def test_reset_index_level(self):
+        df = pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
+                          columns=['A', 'B', 'C', 'D'])
+
+        for levels in ['A', 'B'], [0, 1]:
+            # With MultiIndex
+            result = df.set_index(['A', 'B']).reset_index(level=levels[0])
+            tm.assert_frame_equal(result, df.set_index('B'))
+
+            result = df.set_index(['A', 'B']).reset_index(level=levels[:1])
+            tm.assert_frame_equal(result, df.set_index('B'))
+
+            result = df.set_index(['A', 'B']).reset_index(level=levels)
+            tm.assert_frame_equal(result, df)
+
+            result = df.set_index(['A', 'B']).reset_index(level=levels,
+                                                          drop=True)
+            tm.assert_frame_equal(result, df[['C', 'D']])
+
+            # With single-level Index (GH 16263)
+            result = df.set_index('A').reset_index(level=levels[0])
+            tm.assert_frame_equal(result, df)
+
+            result = df.set_index('A').reset_index(level=levels[:1])
+            tm.assert_frame_equal(result, df)
+
+            result = df.set_index(['A']).reset_index(level=levels[0],
+                                                     drop=True)
+            tm.assert_frame_equal(result, df[['B', 'C', 'D']])
+
+        # Missing levels - for both MultiIndex and single-level Index:
+        for idx_lev in ['A', 'B'], ['A']:
+            with tm.assert_raises_regex(KeyError, 'Level E '):
+                df.set_index(idx_lev).reset_index(level=['A', 'E'])
+            with tm.assert_raises_regex(IndexError, 'Too many levels'):
+                df.set_index(idx_lev).reset_index(level=[0, 1, 2])
+
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)
         s1 = Series((9.81 * time ** 2) / 2,
