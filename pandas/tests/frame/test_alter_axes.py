@@ -656,12 +656,20 @@ class TestDataFrameAlterAxes(TestData):
             result = df.set_index(['A', 'B']).reset_index(level=levels)
             tm.assert_frame_equal(result, df)
 
+            result = df.set_index(['A', 'B']).reset_index(level=levels,
+                                                          drop=True)
+            tm.assert_frame_equal(result, df[['C', 'D']])
+
             # With flat Index (GH 16263)
             result = df.set_index('A').reset_index(level=levels[0])
             tm.assert_frame_equal(result, df)
 
             result = df.set_index('A').reset_index(level=levels[:1])
             tm.assert_frame_equal(result, df)
+
+            result = df.set_index(['A']).reset_index(level=levels[0],
+                                                     drop=True)
+            tm.assert_frame_equal(result, df[['B', 'C', 'D']])
 
         # Missing levels - for both MultiIndex and flat Index:
         for idx_lev in ['A', 'B'], ['A']:
