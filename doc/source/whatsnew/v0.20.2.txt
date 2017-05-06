@@ -42,7 +42,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
-
+- Bug in ``DataFrame.reset_index(level=)`` with single level index (:issue:`16263`)
 
 
 I/O
