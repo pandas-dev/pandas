@@ -123,12 +123,9 @@ if [ "$BUILD_TEST" ]; then
 
     # build & install testing
     echo ["Starting installation test."]
-    rm -rf dist
-    python setup.py clean
-    python setup.py build_ext --inplace
-    python setup.py sdist --formats=gztar
-    conda uninstall cython
-    pip install dist/*tar.gz || exit 1
+    bash ci/install_release_build.sh
+    conda uninstall -y cython
+    time pip install dist/*tar.gz || exit 1
 
 else
 
@@ -162,14 +159,13 @@ if [ -e ${REQ} ]; then
     time bash $REQ || exit 1
 fi
 
-# finish install if we are not doing a build-testk
-if [ -z "$BUILD_TEST" ]; then
+# remove any installed pandas package
+# w/o removing anything else
+echo
+echo "[removing installed pandas]"
+conda remove pandas --force
 
-    # remove any installed pandas package
-    # w/o removing anything else
-    echo
-    echo "[removing installed pandas]"
-    conda remove pandas --force
+if [ -z "$BUILD_TEST" ]; then
 
     # install our pandas
     echo
@@ -177,6 +173,10 @@ if [ -z "$BUILD_TEST" ]; then
     python setup.py develop  || exit 1
 
 fi
+
+echo
+echo "[show pandas]"
+conda list pandas
 
 echo
 echo "[done]"

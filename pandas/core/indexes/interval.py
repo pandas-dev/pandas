@@ -99,6 +99,9 @@ class IntervalIndex(IntervalMixin, Index):
 
     .. versionadded:: 0.20.0
 
+    Warning: the indexing behaviors are provisional and may change in
+    a future version of pandas.
+
     Attributes
     ----------
     left, right : array-like (1-dimensional)
