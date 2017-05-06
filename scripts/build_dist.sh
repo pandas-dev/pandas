@@ -10,11 +10,7 @@ read -p "Ok to continue (y/n)? " answer
 case ${answer:0:1} in
     y|Y )
         echo "Building distribution"
-        rm -rf dist
-        git clean -xfd
-        python setup.py clean
-        python setup.py cython
-        python setup.py sdist --formats=gztar
+        ./build_dist_for_release.sh
     ;;
     * )
         echo "Not building distribution"

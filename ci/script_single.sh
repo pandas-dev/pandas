@@ -20,8 +20,8 @@ elif [ "$COVERAGE" ]; then
     echo pytest -s -m "single" --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
     pytest -s -m "single" --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
 else
-    echo pytest -m "single" --junitxml=/tmp/single.xml $TEST_ARGS pandas
-    pytest -m "single" --junitxml=/tmp/single.xml $TEST_ARGS pandas # TODO: doctest
+    echo pytest -m "single" -r xX --junitxml=/tmp/single.xml $TEST_ARGS pandas
+    pytest -m "single" -r xX  --junitxml=/tmp/single.xml $TEST_ARGS pandas # TODO: doctest
 fi
 
 RET="$?"
