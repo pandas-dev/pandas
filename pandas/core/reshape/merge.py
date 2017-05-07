@@ -46,11 +46,13 @@ from pandas._libs import hashtable as libhashtable, join as libjoin, lib
 @Appender(_merge_doc, indents=0)
 def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
           left_index=False, right_index=False, sort=False,
-          suffixes=('_x', '_y'), copy=True, indicator=False):
+          suffixes=('_x', '_y'), copy=True, indicator=False,
+          validate=None):
     op = _MergeOperation(left, right, how=how, on=on, left_on=left_on,
                          right_on=right_on, left_index=left_index,
                          right_index=right_index, sort=sort, suffixes=suffixes,
-                         copy=copy, indicator=indicator)
+                         copy=copy, indicator=indicator,
+                         validate=validate)
     return op.get_result()
 
 
@@ -341,6 +343,7 @@ def merge_asof(left, right, on=None,
 
         .. versionadded:: 0.20.0
 
+
     Returns
     -------
     merged : DataFrame
@@ -504,7 +507,8 @@ class _MergeOperation(object):
     def __init__(self, left, right, how='inner', on=None,
                  left_on=None, right_on=None, axis=1,
                  left_index=False, right_index=False, sort=True,
-                 suffixes=('_x', '_y'), copy=True, indicator=False):
+                 suffixes=('_x', '_y'), copy=True, indicator=False,
+                 validate=None):
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
@@ -566,6 +570,12 @@ class _MergeOperation(object):
         # validate the merge keys dtypes. We may need to coerce
         # to avoid incompat dtypes
         self._maybe_coerce_merge_keys()
+
+        # If argument passed to validate,
+        # check if columns specified as unique
+        # are in fact unique.
+        if validate is not None:
+            self._validate(validate)
 
     def get_result(self):
         if self.indicator:
@@ -957,6 +967,49 @@ class _MergeOperation(object):
                 self.left_on = [None] * n
         if len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
+
+    def _validate(self, validate):
+
+        # Check uniqueness of each
+        if self.left_index:
+            left_unique = self.orig_left.index.is_unique
+        else:
+            left_unique = MultiIndex.from_arrays(self.left_join_keys
+                                                 ).is_unique
+
+        if self.right_index:
+            right_unique = self.orig_right.index.is_unique
+        else:
+            right_unique = MultiIndex.from_arrays(self.right_join_keys
+                                                  ).is_unique
+
+        # Check data integrity
+        if validate in ["one_to_one", "1:1"]:
+            if not left_unique and not right_unique:
+                raise ValueError("Merge keys are not unique in either left"
+                                 " or right dataset; not a one-to-one merge")
+            elif not left_unique:
+                raise ValueError("Merge keys are not unique in left dataset;"
+                                 " not a one-to-one merge")
+            elif not right_unique:
+                raise ValueError("Merge keys are not unique in right dataset;"
+                                 " not a one-to-one merge")
+
+        elif validate in ["one_to_many", "1:m"]:
+            if not left_unique:
+                raise ValueError("Merge keys are not unique in left dataset;"
+                                 "not a one-to-many merge")
+
+        elif validate in ["many_to_one", "m:1"]:
+            if not right_unique:
+                raise ValueError("Merge keys are not unique in right dataset;"
+                                 " not a many-to-one merge")
+
+        elif validate in ['many_to_many', 'm:m']:
+            pass
+
+        else:
+            raise ValueError("Not a valid argument for validate")
 
 
 def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
