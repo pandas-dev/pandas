@@ -34,6 +34,7 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- The ``DataFrame.style.to_excel()`` styled Excel export functionality now requires an external dependency, `cssdecl <http://pypi.python.org/pypi/cssdecl>`_.
 
 
 .. _whatsnew_0210.api:
