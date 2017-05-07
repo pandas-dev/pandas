@@ -503,6 +503,13 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 def parallel_sets(frame, class_column, color=None, colormap=None, **kwds):
     """Parallel sets plotting.
 
+    Parallel sets is a visualization technique for categorical data
+    that is useful for identifying discriminating structure within
+    a dataset in most class classification problems. Each sample from
+    the dataset is viewed as a polyline whose segment endpoints
+    are the values of the respective columns in the frame and the line
+    is assigned a colour per the class_column value.
+
     Parameters
     ----------
     frame: DataFrame
@@ -535,6 +542,12 @@ def parallel_sets(frame, class_column, color=None, colormap=None, **kwds):
 
 
 class _ParSets(object):
+    """ Utility class for parallel_sets.
+
+    Used to construct a parallel sets plot. It organizes the helper
+    functions and is useful for testing.
+    """
+
     def __init__(self, color=None, colormap=None):
         """
 

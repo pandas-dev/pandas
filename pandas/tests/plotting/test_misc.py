@@ -3,6 +3,7 @@
 """ Test cases for misc plot functions """
 
 import pytest
+from functools import reduce
 
 from pandas import Series, DataFrame
 from pandas.compat import lmap
@@ -263,8 +264,8 @@ class TestDataFramePlots(TestPlotBase):
             # lables and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
+    @slow
     def test_parallel_sets(self):
-        from functools import reduce
         import pandas as pd
         from pandas.plotting._misc import _ParSets
         df = pd.DataFrame({'1': ['a', 'b', 'c', 'b'],
