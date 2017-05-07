@@ -306,7 +306,6 @@ class TestBusinessDatetimeIndex(object):
         tm.assert_index_equal(result, b)
 
     def test_month_range_union_tz_pytz(self):
-        tm._skip_if_no_pytz()
         from pytz import timezone
         tz = timezone('US/Eastern')
 
@@ -325,7 +324,7 @@ class TestBusinessDatetimeIndex(object):
 
     def test_month_range_union_tz_dateutil(self):
         tm._skip_if_windows_python_3()
-        tm._skip_if_no_dateutil()
+
         from pandas._libs.tslib import _dateutil_gettz as timezone
         tz = timezone('US/Eastern')
 

@@ -4,6 +4,7 @@ from warnings import catch_warnings
 import datetime
 import itertools
 import pytest
+import pytz
 
 from numpy.random import randn
 import numpy as np
@@ -68,8 +69,6 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(result, self.frame['A'])
 
     def test_append_index(self):
-        tm._skip_if_no_pytz()
-
         idx1 = Index([1.1, 1.2, 1.3])
         idx2 = pd.date_range('2011-01-01', freq='D', periods=3,
                              tz='Asia/Tokyo')
@@ -80,8 +79,7 @@ class TestMultiLevel(Base):
 
         result = idx1.append(midx_lv2)
 
-        # GH 7112
-        import pytz
+        # see gh-7112
         tz = pytz.timezone('Asia/Tokyo')
         expected_tuples = [(1.1, tz.localize(datetime.datetime(2011, 1, 1))),
                            (1.2, tz.localize(datetime.datetime(2011, 1, 2))),

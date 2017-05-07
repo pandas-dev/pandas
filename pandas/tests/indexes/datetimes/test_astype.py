@@ -1,8 +1,12 @@
 import pytest
 
+import pytz
+import dateutil
 import numpy as np
 
 from datetime import datetime
+from dateutil.tz import tzlocal
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, date_range, Series, NaT, Index, Timestamp,
@@ -124,8 +128,6 @@ class TestDatetimeIndex(object):
         pytest.raises(ValueError, idx.astype, 'datetime64[D]')
 
     def test_index_convert_to_datetime_array(self):
-        tm._skip_if_no_pytz()
-
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
@@ -143,9 +145,6 @@ class TestDatetimeIndex(object):
         _check_rng(rng_utc)
 
     def test_index_convert_to_datetime_array_explicit_pytz(self):
-        tm._skip_if_no_pytz()
-        import pytz
-
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
@@ -164,9 +163,6 @@ class TestDatetimeIndex(object):
         _check_rng(rng_utc)
 
     def test_index_convert_to_datetime_array_dateutil(self):
-        tm._skip_if_no_dateutil()
-        import dateutil
-
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
@@ -209,8 +205,6 @@ class TestToPeriod(object):
         assert period[1] == Period('2007-01-01 10:11:13.789123Z', 'U')
 
     def test_to_period_tz_pytz(self):
-        tm._skip_if_no_pytz()
-        from dateutil.tz import tzlocal
         from pytz import utc as UTC
 
         xp = date_range('1/1/2000', '4/1/2000').to_period()
@@ -240,10 +234,6 @@ class TestToPeriod(object):
         tm.assert_index_equal(ts.to_period(), xp)
 
     def test_to_period_tz_explicit_pytz(self):
-        tm._skip_if_no_pytz()
-        import pytz
-        from dateutil.tz import tzlocal
-
         xp = date_range('1/1/2000', '4/1/2000').to_period()
 
         ts = date_range('1/1/2000', '4/1/2000', tz=pytz.timezone('US/Eastern'))
@@ -271,10 +261,6 @@ class TestToPeriod(object):
         tm.assert_index_equal(ts.to_period(), xp)
 
     def test_to_period_tz_dateutil(self):
-        tm._skip_if_no_dateutil()
-        import dateutil
-        from dateutil.tz import tzlocal
-
         xp = date_range('1/1/2000', '4/1/2000').to_period()
 
         ts = date_range('1/1/2000', '4/1/2000', tz='dateutil/US/Eastern')

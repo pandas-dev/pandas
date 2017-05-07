@@ -246,9 +246,7 @@ class TestTimeseries(object):
         assert rng1.append(rng2).name is None
 
     def test_append_concat_tz(self):
-        # GH 2938
-        tm._skip_if_no_pytz()
-
+        # see gh-2938
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
                          tz='US/Eastern')
         rng2 = date_range('5/8/2012 2:35', periods=10, freq='5T',
@@ -269,8 +267,7 @@ class TestTimeseries(object):
         tm.assert_index_equal(appended, rng3)
 
     def test_append_concat_tz_explicit_pytz(self):
-        # GH 2938
-        tm._skip_if_no_pytz()
+        # see gh-2938
         from pytz import timezone as timezone
 
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
@@ -293,8 +290,7 @@ class TestTimeseries(object):
         tm.assert_index_equal(appended, rng3)
 
     def test_append_concat_tz_dateutil(self):
-        # GH 2938
-        tm._skip_if_no_dateutil()
+        # see gh-2938
         rng = date_range('5/8/2012 1:45', periods=10, freq='5T',
                          tz='dateutil/US/Eastern')
         rng2 = date_range('5/8/2012 2:35', periods=10, freq='5T',

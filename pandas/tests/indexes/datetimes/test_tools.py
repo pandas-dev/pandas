@@ -1,10 +1,13 @@
 """ test to_datetime """
 
 import sys
+import pytz
 import pytest
 import locale
 import calendar
+import dateutil
 import numpy as np
+from dateutil.parser import parse
 from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
@@ -244,11 +247,7 @@ class TestToDatetime(object):
         pytest.raises(ValueError, lambda: pd.to_datetime(arr))
 
     def test_to_datetime_tz_pytz(self):
-
-        # xref 8260
-        tm._skip_if_no_pytz()
-        import pytz
-
+        # see gh-8260
         us_eastern = pytz.timezone('US/Eastern')
         arr = np.array([us_eastern.localize(datetime(year=2000, month=1, day=1,
                                                      hour=3, minute=0)),
@@ -1124,8 +1123,6 @@ class TestDatetimeParsingWrappers(object):
             pytest.raises(ValueError, tools.parse_time_string, case)
 
     def test_parsers_dayfirst_yearfirst(self):
-        tm._skip_if_no_dateutil()
-
         # OK
         # 2.5.1 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
         # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2012-10-11 00:00:00
@@ -1166,7 +1163,6 @@ class TestDatetimeParsingWrappers(object):
         # 2.5.2 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
         # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
 
-        import dateutil
         is_lt_253 = dateutil.__version__ < LooseVersion('2.5.3')
 
         # str : dayfirst, yearfirst, expected
@@ -1187,7 +1183,6 @@ class TestDatetimeParsingWrappers(object):
                               (True, True,
                                datetime(2020, 12, 21))]}
 
-        from dateutil.parser import parse
         for date_str, values in compat.iteritems(cases):
             for dayfirst, yearfirst, expected in values:
 
@@ -1221,9 +1216,6 @@ class TestDatetimeParsingWrappers(object):
                 assert result4 == expected
 
     def test_parsers_timestring(self):
-        tm._skip_if_no_dateutil()
-        from dateutil.parser import parse
-
         # must be the same as dateutil result
         cases = {'10:15': (parse('10:15'), datetime(1, 1, 1, 10, 15)),
                  '9:05': (parse('9:05'), datetime(1, 1, 1, 9, 5))}
@@ -1365,7 +1357,6 @@ class TestDatetimeParsingWrappers(object):
 class TestArrayToDatetime(object):
 
     def test_try_parse_dates(self):
-        from dateutil.parser import parse
         arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
 
         result = lib.try_parse_dates(arr, dayfirst=True)

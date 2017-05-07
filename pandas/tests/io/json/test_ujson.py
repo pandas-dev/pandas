@@ -5,12 +5,14 @@ try:
 except ImportError:
     import simplejson as json
 import math
+import pytz
 import pytest
 import time
 import datetime
 import calendar
 import re
 import decimal
+import dateutil
 from functools import partial
 from pandas.compat import range, zip, StringIO, u
 import pandas._libs.json as ujson
@@ -396,18 +398,14 @@ class UltraJSONTests(object):
             assert expected == output
 
     def test_encodeTimeConversion_pytz(self):
-        # GH11473 to_json segfaults with timezone-aware datetimes
-        tm._skip_if_no_pytz()
-        import pytz
+        # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, pytz.utc)
         output = ujson.encode(test)
         expected = '"%s"' % test.isoformat()
         assert expected == output
 
     def test_encodeTimeConversion_dateutil(self):
-        # GH11473 to_json segfaults with timezone-aware datetimes
-        tm._skip_if_no_dateutil()
-        import dateutil
+        # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, dateutil.tz.tzutc())
         output = ujson.encode(test)
         expected = '"%s"' % test.isoformat()

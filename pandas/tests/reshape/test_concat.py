@@ -1,5 +1,6 @@
 from warnings import catch_warnings
 
+import dateutil
 import numpy as np
 from numpy.random import randn
 
@@ -1780,9 +1781,6 @@ bar2,12,13,14,15
 
     def test_concat_tz_series_tzlocal(self):
         # see gh-13583
-        tm._skip_if_no_dateutil()
-        import dateutil
-
         x = [pd.Timestamp('2011-01-01', tz=dateutil.tz.tzlocal()),
              pd.Timestamp('2011-02-01', tz=dateutil.tz.tzlocal())]
         y = [pd.Timestamp('2012-01-01', tz=dateutil.tz.tzlocal()),

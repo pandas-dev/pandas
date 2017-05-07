@@ -7,6 +7,8 @@ Test output formatting for Series/DataFrame, including to_string & reprs
 from __future__ import print_function
 import re
 
+import pytz
+import dateutil
 import itertools
 from operator import methodcaller
 import os
@@ -1548,17 +1550,15 @@ c  10  11  12  13  14\
 
     def test_pprint_pathological_object(self):
         """
-        if the test fails, the stack will overflow and nose crash,
-        but it won't hang.
+        If the test fails, it at least won't hang.
         """
 
         class A:
-
             def __getitem__(self, key):
                 return 3  # obviously simplified
 
         df = DataFrame([A()])
-        repr(df)  # just don't dine
+        repr(df)  # just don't die
 
     def test_float_trim_zeros(self):
         vals = [2.08430917305e+10, 3.52205017305e+10, 2.30674817305e+10,
@@ -2508,10 +2508,6 @@ class TestStringRepTimestamp(object):
         assert str(ts_nanos_micros) == "1970-01-01 00:00:00.000001200"
 
     def test_tz_pytz(self):
-        tm._skip_if_no_pytz()
-
-        import pytz
-
         dt_date = datetime(2013, 1, 2, tzinfo=pytz.utc)
         assert str(dt_date) == str(Timestamp(dt_date))
 
@@ -2522,8 +2518,6 @@ class TestStringRepTimestamp(object):
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
 
     def test_tz_dateutil(self):
-        tm._skip_if_no_dateutil()
-        import dateutil
         utc = dateutil.tz.tzutc()
 
         dt_date = datetime(2013, 1, 2, tzinfo=utc)

@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 from datetime import date, timedelta, time
 
+import dateutil
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.compat import lrange
@@ -363,11 +364,7 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(result, exp)
 
     def test_iteration_preserves_tz(self):
-
-        tm._skip_if_no_dateutil()
-
-        # GH 8890
-        import dateutil
+        # see gh-8890
         index = date_range("2012-01-01", periods=3, freq='H', tz='US/Eastern')
 
         for i, ts in enumerate(index):

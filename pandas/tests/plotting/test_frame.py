@@ -27,7 +27,7 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
-tm._skip_module_if_no_mpl()
+tm._skip_if_no_mpl()
 
 
 class TestDataFramePlots(TestPlotBase):

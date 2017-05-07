@@ -1,6 +1,7 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
 import pytest
+import pytz
 
 from datetime import datetime
 import numpy as np
@@ -569,10 +570,8 @@ class TestGroupBy(object):
         tm.assert_series_equal(df1, df2)
 
     def test_timezone_info(self):
-        # GH 11682
-        # Timezone info lost when broadcasting scalar datetime to DataFrame
-        tm._skip_if_no_pytz()
-        import pytz
+        # see gh-11682: Timezone info lost when broadcasting
+        # scalar datetime to DataFrame
 
         df = pd.DataFrame({'a': [1], 'b': [datetime.now(pytz.utc)]})
         assert df['b'][0].tzinfo == pytz.utc

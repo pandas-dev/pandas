@@ -23,7 +23,7 @@ from pandas.plotting._tools import _flatten
 This is a common base class used for various plotting tests
 """
 
-tm._skip_module_if_no_mpl()
+tm._skip_if_no_mpl()
 
 
 def _skip_if_no_scipy_gaussian_kde():

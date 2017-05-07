@@ -4,7 +4,9 @@ from warnings import catch_warnings
 from datetime import datetime, timedelta
 from functools import partial
 
+import pytz
 import pytest
+import dateutil
 import numpy as np
 
 import pandas as pd
@@ -2424,10 +2426,7 @@ class TestPeriodIndex(Base):
                 start='2000', periods=3, freq='M')).resample('W').mean()
 
     def test_with_local_timezone_pytz(self):
-        # GH5430
-        tm._skip_if_no_pytz()
-        import pytz
-
+        # see gh-5430
         local_timezone = pytz.timezone('America/Los_Angeles')
 
         start = datetime(year=2013, month=11, day=1, hour=0, minute=0,
@@ -2450,10 +2449,7 @@ class TestPeriodIndex(Base):
         assert_series_equal(result, expected)
 
     def test_with_local_timezone_dateutil(self):
-        # GH5430
-        tm._skip_if_no_dateutil()
-        import dateutil
-
+        # see gh-5430
         local_timezone = 'dateutil/America/Los_Angeles'
 
         start = datetime(year=2013, month=11, day=1, hour=0, minute=0,

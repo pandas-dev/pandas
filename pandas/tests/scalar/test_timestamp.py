@@ -1,12 +1,18 @@
 """ test the scalar Timestamp """
 
 import sys
+import pytz
 import pytest
+import dateutil
 import operator
 import calendar
 import numpy as np
+
+from dateutil.tz import tzutc
+from pytz import timezone, utc
 from datetime import datetime, timedelta
 from distutils.version import LooseVersion
+from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 import pandas.util.testing as tm
 from pandas.tseries import offsets, frequencies
@@ -44,10 +50,6 @@ class TestTimestamp(object):
                   Timestamp('2014-07-01 09:00:00.000000005'),
                   base_expected + 5)]
 
-        tm._skip_if_no_pytz()
-        tm._skip_if_no_dateutil()
-        import pytz
-        import dateutil
         timezones = [(None, 0), ('UTC', 0), (pytz.utc, 0), ('Asia/Tokyo', 9),
                      ('US/Eastern', -4), ('dateutil/US/Pacific', -7),
                      (pytz.FixedOffset(-180), -3),
@@ -100,10 +102,6 @@ class TestTimestamp(object):
                  ('2014-07-01 11:00:00.000008000+02:00', base_expected + 8000),
                  ('2014-07-01 11:00:00.000000005+02:00', base_expected + 5)]
 
-        tm._skip_if_no_pytz()
-        tm._skip_if_no_dateutil()
-        import pytz
-        import dateutil
         timezones = [(None, 0), ('UTC', 0), (pytz.utc, 0), ('Asia/Tokyo', 9),
                      ('US/Eastern', -4), ('dateutil/US/Pacific', -7),
                      (pytz.FixedOffset(-180), -3),
@@ -274,14 +272,10 @@ class TestTimestamp(object):
         assert result.dtype == expected.dtype
 
     def test_repr(self):
-        tm._skip_if_no_pytz()
-        tm._skip_if_no_dateutil()
-
         dates = ['2014-03-07', '2014-01-01 09:00',
                  '2014-01-01 00:00:00.000000001']
 
         # dateutil zone change (only matters for repr)
-        import dateutil
         if (dateutil.__version__ >= LooseVersion('2.3') and
             (dateutil.__version__ <= LooseVersion('2.4.0') or
              dateutil.__version__ >= LooseVersion('2.6.0'))):
@@ -330,8 +324,6 @@ class TestTimestamp(object):
 
         # This can cause the tz field to be populated, but it's redundant to
         # include this information in the date-string.
-        tm._skip_if_no_pytz()
-        import pytz  # noqa
         date_with_utc_offset = Timestamp('2014-03-13 00:00:00-0400', tz=None)
         assert '2014-03-13 00:00:00-0400' in repr(date_with_utc_offset)
         assert 'tzoffset' not in repr(date_with_utc_offset)
@@ -399,8 +391,7 @@ class TestTimestamp(object):
             Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
 
     def test_tz_localize_nonexistent(self):
-        # See issue 13057
-        from pytz.exceptions import NonExistentTimeError
+        # see gh-13057
         times = ['2015-03-08 02:00', '2015-03-08 02:30',
                  '2015-03-29 02:00', '2015-03-29 02:30']
         timezones = ['US/Eastern', 'US/Pacific',
@@ -414,8 +405,7 @@ class TestTimestamp(object):
             assert ts.tz_localize(tz, errors='coerce') is NaT
 
     def test_tz_localize_errors_ambiguous(self):
-        # See issue 13057
-        from pytz.exceptions import AmbiguousTimeError
+        # see gh-13057
         ts = Timestamp('2015-11-1 01:00')
         pytest.raises(AmbiguousTimeError,
                       ts.tz_localize, 'US/Pacific', errors='coerce')
@@ -709,9 +699,6 @@ class TestTimestamp(object):
             stamp.round('foo')
 
     def test_class_ops_pytz(self):
-        tm._skip_if_no_pytz()
-        from pytz import timezone
-
         def compare(x, y):
             assert (int(Timestamp(x).value / 1e9) ==
                     int(Timestamp(y).value / 1e9))
@@ -732,9 +719,6 @@ class TestTimestamp(object):
                 datetime.combine(date_component, time_component))
 
     def test_class_ops_dateutil(self):
-        tm._skip_if_no_dateutil()
-        from dateutil.tz import tzutc
-
         def compare(x, y):
             assert (int(np.round(Timestamp(x).value / 1e9)) ==
                     int(np.round(Timestamp(y).value / 1e9)))
@@ -910,8 +894,7 @@ class TestTimestamp(object):
         tm.assert_series_equal(a / b, 1 / (b / a))
 
     def test_cant_compare_tz_naive_w_aware(self):
-        tm._skip_if_no_pytz()
-        # #1404
+        # see gh-1404
         a = Timestamp('3/12/2012')
         b = Timestamp('3/12/2012', tz='utc')
 
@@ -932,9 +915,7 @@ class TestTimestamp(object):
             assert not a.to_pydatetime() == b
 
     def test_cant_compare_tz_naive_w_aware_explicit_pytz(self):
-        tm._skip_if_no_pytz()
-        from pytz import utc
-        # #1404
+        # see gh-1404
         a = Timestamp('3/12/2012')
         b = Timestamp('3/12/2012', tz=utc)
 
@@ -955,12 +936,9 @@ class TestTimestamp(object):
             assert not a.to_pydatetime() == b
 
     def test_cant_compare_tz_naive_w_aware_dateutil(self):
-        tm._skip_if_no_dateutil()
-        from dateutil.tz import tzutc
-        utc = tzutc()
-        # #1404
+        # see gh-1404
         a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz=utc)
+        b = Timestamp('3/12/2012', tz=tzutc())
 
         pytest.raises(Exception, a.__eq__, b)
         pytest.raises(Exception, a.__ne__, b)
@@ -1282,7 +1260,6 @@ class TestTimestampToJulianDate(object):
 class TestTimeSeries(object):
 
     def test_timestamp_to_datetime(self):
-        tm._skip_if_no_pytz()
         rng = date_range('20090415', '20090519', tz='US/Eastern')
 
         stamp = rng[0]
@@ -1291,7 +1268,6 @@ class TestTimeSeries(object):
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_datetime_dateutil(self):
-        tm._skip_if_no_pytz()
         rng = date_range('20090415', '20090519', tz='dateutil/US/Eastern')
 
         stamp = rng[0]
@@ -1300,8 +1276,6 @@ class TestTimeSeries(object):
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_datetime_explicit_pytz(self):
-        tm._skip_if_no_pytz()
-        import pytz
         rng = date_range('20090415', '20090519',
                          tz=pytz.timezone('US/Eastern'))
 
@@ -1312,7 +1286,7 @@ class TestTimeSeries(object):
 
     def test_timestamp_to_datetime_explicit_dateutil(self):
         tm._skip_if_windows_python_3()
-        tm._skip_if_no_dateutil()
+
         from pandas._libs.tslib import _dateutil_gettz as gettz
         rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
 
