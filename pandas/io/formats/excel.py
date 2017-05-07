@@ -67,8 +67,7 @@ class CSSToExcelConverter(object):
                               "convert styles to Excel")
         self.compute_css = CSS22Resolver().resolve_string
         if inherited is not None:
-            inherited = self.compute_css(inherited,
-                                         self.compute_css.INITIAL_STYLE)
+            inherited = self.compute_css(inherited)
 
         self.inherited = inherited
 
