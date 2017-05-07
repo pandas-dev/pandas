@@ -12,7 +12,7 @@ from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
                     to_datetime)
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_construction_caching(self):
 
@@ -205,7 +205,7 @@ class TestDatetimeIndex(tm.TestCase):
         exp = DatetimeIndex(
             [Timestamp('2011-01-01'), Timestamp('2011-01-02')], name='idx')
         tm.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
+        assert isinstance(result, DatetimeIndex)
 
         # same tz results in DatetimeIndex
         result = DatetimeIndex([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
@@ -216,7 +216,7 @@ class TestDatetimeIndex(tm.TestCase):
                              Timestamp('2011-01-02 10:00')],
                             tz='Asia/Tokyo', name='idx')
         tm.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
+        assert isinstance(result, DatetimeIndex)
 
         # same tz results in DatetimeIndex (DST)
         result = DatetimeIndex([Timestamp('2011-01-01 10:00', tz='US/Eastern'),
@@ -227,7 +227,7 @@ class TestDatetimeIndex(tm.TestCase):
                              Timestamp('2011-08-01 10:00')],
                             tz='US/Eastern', name='idx')
         tm.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
+        assert isinstance(result, DatetimeIndex)
 
         # different tz coerces tz-naive to tz-awareIndex(dtype=object)
         result = DatetimeIndex([Timestamp('2011-01-01 10:00'),
@@ -237,7 +237,7 @@ class TestDatetimeIndex(tm.TestCase):
                              Timestamp('2011-01-02 10:00')],
                             tz='US/Eastern', name='idx')
         tm.assert_index_equal(result, exp, exact=True)
-        self.assertTrue(isinstance(result, DatetimeIndex))
+        assert isinstance(result, DatetimeIndex)
 
         # tz mismatch affecting to tz-aware raises TypeError/ValueError
 
@@ -246,7 +246,8 @@ class TestDatetimeIndex(tm.TestCase):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           name='idx')
 
-        with tm.assertRaisesRegexp(TypeError, 'data is already tz-aware'):
+        with tm.assert_raises_regex(TypeError,
+                                    'data is already tz-aware'):
             DatetimeIndex([Timestamp('2011-01-01 10:00'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='Asia/Tokyo', name='idx')
@@ -256,7 +257,8 @@ class TestDatetimeIndex(tm.TestCase):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='US/Eastern', name='idx')
 
-        with tm.assertRaisesRegexp(TypeError, 'data is already tz-aware'):
+        with tm.assert_raises_regex(TypeError,
+                                    'data is already tz-aware'):
             # passing tz should results in DatetimeIndex, then mismatch raises
             # TypeError
             Index([pd.NaT, Timestamp('2011-01-01 10:00'),
@@ -434,23 +436,23 @@ class TestDatetimeIndex(tm.TestCase):
     def test_constructor_name(self):
         idx = DatetimeIndex(start='2000-01-01', periods=1, freq='A',
                             name='TEST')
-        self.assertEqual(idx.name, 'TEST')
+        assert idx.name == 'TEST'
 
     def test_000constructor_resolution(self):
         # 2252
         t1 = Timestamp((1352934390 * 1000000000) + 1000000 + 1000 + 1)
         idx = DatetimeIndex([t1])
 
-        self.assertEqual(idx.nanosecond[0], t1.nanosecond)
+        assert idx.nanosecond[0] == t1.nanosecond
 
 
-class TestTimeSeries(tm.TestCase):
+class TestTimeSeries(object):
 
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
 
         rng2 = DatetimeIndex(rng)
-        self.assertEqual(rng.freq, rng2.freq)
+        assert rng.freq == rng2.freq
 
     def test_dti_constructor_years_only(self):
         # GH 6961
@@ -485,19 +487,19 @@ class TestTimeSeries(tm.TestCase):
 
     def test_ctor_str_intraday(self):
         rng = DatetimeIndex(['1-1-2000 00:00:01'])
-        self.assertEqual(rng[0].second, 1)
+        assert rng[0].second == 1
 
     def test_is_(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
-        self.assertTrue(dti.is_(dti))
-        self.assertTrue(dti.is_(dti.view()))
-        self.assertFalse(dti.is_(dti.copy()))
+        assert dti.is_(dti)
+        assert dti.is_(dti.view())
+        assert not dti.is_(dti.copy())
 
     def test_index_cast_datetime64_other_units(self):
         arr = np.arange(0, 100, 10, dtype=np.int64).view('M8[D]')
         idx = Index(arr)
 
-        self.assertTrue((idx.values == tslib.cast_to_nanoseconds(arr)).all())
+        assert (idx.values == tslib.cast_to_nanoseconds(arr)).all()
 
     def test_constructor_int64_nocopy(self):
         # #1624
@@ -505,13 +507,13 @@ class TestTimeSeries(tm.TestCase):
         index = DatetimeIndex(arr)
 
         arr[50:100] = -1
-        self.assertTrue((index.asi8[50:100] == -1).all())
+        assert (index.asi8[50:100] == -1).all()
 
         arr = np.arange(1000, dtype=np.int64)
         index = DatetimeIndex(arr, copy=True)
 
         arr[50:100] = -1
-        self.assertTrue((index.asi8[50:100] != -1).all())
+        assert (index.asi8[50:100] != -1).all()
 
     def test_from_freq_recreate_from_data(self):
         freqs = ['M', 'Q', 'A', 'D', 'B', 'BH', 'T', 'S', 'L', 'U', 'H', 'N',
@@ -558,34 +560,34 @@ class TestTimeSeries(tm.TestCase):
         tm.assert_index_equal(idx7, idx8)
 
         for other in [idx2, idx3, idx4, idx5, idx6]:
-            self.assertTrue((idx1.values == other.values).all())
+            assert (idx1.values == other.values).all()
 
         sdate = datetime(1999, 12, 25)
         edate = datetime(2000, 1, 1)
         idx = DatetimeIndex(start=sdate, freq='1B', periods=20)
-        self.assertEqual(len(idx), 20)
-        self.assertEqual(idx[0], sdate + 0 * offsets.BDay())
-        self.assertEqual(idx.freq, 'B')
+        assert len(idx) == 20
+        assert idx[0] == sdate + 0 * offsets.BDay()
+        assert idx.freq == 'B'
 
         idx = DatetimeIndex(end=edate, freq=('D', 5), periods=20)
-        self.assertEqual(len(idx), 20)
-        self.assertEqual(idx[-1], edate)
-        self.assertEqual(idx.freq, '5D')
+        assert len(idx) == 20
+        assert idx[-1] == edate
+        assert idx.freq == '5D'
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='W-SUN')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.Week(weekday=6))
-        self.assertEqual(len(idx1), len(idx2))
-        self.assertEqual(idx1.offset, idx2.offset)
+        assert len(idx1) == len(idx2)
+        assert idx1.offset == idx2.offset
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='QS')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.QuarterBegin(startingMonth=1))
-        self.assertEqual(len(idx1), len(idx2))
-        self.assertEqual(idx1.offset, idx2.offset)
+        assert len(idx1) == len(idx2)
+        assert idx1.offset == idx2.offset
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='BQ')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.BQuarterEnd(startingMonth=12))
-        self.assertEqual(len(idx1), len(idx2))
-        self.assertEqual(idx1.offset, idx2.offset)
+        assert len(idx1) == len(idx2)
+        assert idx1.offset == idx2.offset

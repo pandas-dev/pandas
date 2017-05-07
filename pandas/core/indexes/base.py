@@ -41,8 +41,8 @@ from pandas.core.common import (is_bool_indexer,
 
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.base as base
-from pandas.util.decorators import (Appender, Substitution, cache_readonly,
-                                    deprecate, deprecate_kwarg)
+from pandas.util._decorators import (Appender, Substitution, cache_readonly,
+                                     deprecate, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
@@ -837,7 +837,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        from pandas.io.formats.format import get_console_size, _get_adjustment
+        from pandas.io.formats.console import get_console_size
+        from pandas.io.formats.format import _get_adjustment
         display_width, _ = get_console_size()
         if display_width is None:
             display_width = get_option('display.width') or 80

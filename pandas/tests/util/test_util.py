@@ -7,11 +7,12 @@ from uuid import uuid4
 from collections import OrderedDict
 
 import pytest
+from pandas.compat import intern
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
-from pandas.util.decorators import deprecate_kwarg
-from pandas.util.validators import (validate_args, validate_kwargs,
-                                    validate_args_and_kwargs,
-                                    validate_bool_kwarg)
+from pandas.util._decorators import deprecate_kwarg
+from pandas.util._validators import (validate_args, validate_kwargs,
+                                     validate_args_and_kwargs,
+                                     validate_bool_kwarg)
 
 import pandas.util.testing as tm
 
@@ -19,9 +20,9 @@ CURRENT_LOCALE = locale.getlocale()
 LOCALE_OVERRIDE = os.environ.get('LOCALE_OVERRIDE', None)
 
 
-class TestDecorators(tm.TestCase):
+class TestDecorators(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         @deprecate_kwarg('old', 'new')
         def _f1(new=False):
             return new
@@ -50,19 +51,19 @@ class TestDecorators(tm.TestCase):
         x = 'yes'
         with tm.assert_produces_warning(FutureWarning):
             result = self.f2(old=x)
-        self.assertEqual(result, True)
+        assert result
 
     def test_missing_deprecate_kwarg(self):
         x = 'bogus'
         with tm.assert_produces_warning(FutureWarning):
             result = self.f2(old=x)
-        self.assertEqual(result, 'bogus')
+        assert result == 'bogus'
 
     def test_callable_deprecate_kwarg(self):
         x = 5
         with tm.assert_produces_warning(FutureWarning):
             result = self.f3(old=x)
-        self.assertEqual(result, x + 1)
+        assert result == x + 1
         with pytest.raises(TypeError):
             self.f3(old='hello')
 
@@ -88,12 +89,12 @@ def test_rands_array():
     assert(len(arr[1, 1]) == 7)
 
 
-class TestValidateArgs(tm.TestCase):
+class TestValidateArgs(object):
     fname = 'func'
 
     def test_bad_min_fname_arg_count(self):
         msg = "'max_fname_arg_count' must be non-negative"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             validate_args(self.fname, (None,), -1, 'foo')
 
     def test_bad_arg_length_max_value_single(self):
@@ -108,7 +109,7 @@ class TestValidateArgs(tm.TestCase):
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args(self.fname, args,
                           min_fname_arg_count,
                           compat_args)
@@ -125,7 +126,7 @@ class TestValidateArgs(tm.TestCase):
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args(self.fname, args,
                           min_fname_arg_count,
                           compat_args)
@@ -144,7 +145,7 @@ class TestValidateArgs(tm.TestCase):
         arg_vals = (1, -1, 3)
 
         for i in range(1, 3):
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 validate_args(self.fname, arg_vals[:i], 2, compat_args)
 
     def test_validation(self):
@@ -158,7 +159,7 @@ class TestValidateArgs(tm.TestCase):
         validate_args(self.fname, (1, None), 2, compat_args)
 
 
-class TestValidateKwargs(tm.TestCase):
+class TestValidateKwargs(object):
     fname = 'func'
 
     def test_bad_kwarg(self):
@@ -173,7 +174,7 @@ class TestValidateKwargs(tm.TestCase):
                r"keyword argument '{arg}'".format(
                    fname=self.fname, arg=badarg))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_kwargs(self.fname, kwargs, compat_args)
 
     def test_not_all_none(self):
@@ -194,7 +195,7 @@ class TestValidateKwargs(tm.TestCase):
             kwargs = dict(zip(kwarg_keys[:i],
                               kwarg_vals[:i]))
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 validate_kwargs(self.fname, kwargs, compat_args)
 
     def test_validation(self):
@@ -213,17 +214,18 @@ class TestValidateKwargs(tm.TestCase):
 
         for name in arg_names:
             for value in invalid_values:
-                with tm.assertRaisesRegexp(ValueError,
-                                           ("For argument \"%s\" expected "
-                                            "type bool, received type %s") %
-                                           (name, type(value).__name__)):
+                with tm.assert_raises_regex(ValueError,
+                                            "For argument \"%s\" "
+                                            "expected type bool, "
+                                            "received type %s" %
+                                            (name, type(value).__name__)):
                     validate_bool_kwarg(value, name)
 
             for value in valid_values:
                 assert validate_bool_kwarg(value, name) == value
 
 
-class TestValidateKwargsAndArgs(tm.TestCase):
+class TestValidateKwargsAndArgs(object):
     fname = 'func'
 
     def test_invalid_total_length_max_length_one(self):
@@ -239,7 +241,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args_and_kwargs(self.fname, args, kwargs,
                                      min_fname_arg_count,
                                      compat_args)
@@ -257,7 +259,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
                .format(fname=self.fname, max_length=max_length,
                        actual_length=actual_length))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args_and_kwargs(self.fname, args, kwargs,
                                      min_fname_arg_count,
                                      compat_args)
@@ -276,17 +278,17 @@ class TestValidateKwargsAndArgs(tm.TestCase):
 
         args = ()
         kwargs = {'foo': -5, bad_arg: 2}
-        tm.assertRaisesRegexp(ValueError, msg,
-                              validate_args_and_kwargs,
-                              self.fname, args, kwargs,
-                              min_fname_arg_count, compat_args)
+        tm.assert_raises_regex(ValueError, msg,
+                               validate_args_and_kwargs,
+                               self.fname, args, kwargs,
+                               min_fname_arg_count, compat_args)
 
         args = (-5, 2)
         kwargs = {}
-        tm.assertRaisesRegexp(ValueError, msg,
-                              validate_args_and_kwargs,
-                              self.fname, args, kwargs,
-                              min_fname_arg_count, compat_args)
+        tm.assert_raises_regex(ValueError, msg,
+                               validate_args_and_kwargs,
+                               self.fname, args, kwargs,
+                               min_fname_arg_count, compat_args)
 
     def test_duplicate_argument(self):
         min_fname_arg_count = 2
@@ -300,7 +302,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
         msg = (r"{fname}\(\) got multiple values for keyword "
                r"argument '{arg}'".format(fname=self.fname, arg='foo'))
 
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             validate_args_and_kwargs(self.fname, args, kwargs,
                                      min_fname_arg_count,
                                      compat_args)
@@ -320,14 +322,14 @@ class TestValidateKwargsAndArgs(tm.TestCase):
                                  compat_args)
 
 
-class TestMove(tm.TestCase):
+class TestMove(object):
 
     def test_cannot_create_instance_of_stolenbuffer(self):
         """Stolen buffers need to be created through the smart constructor
         ``move_into_mutable_buffer`` which has a bunch of checks in it.
         """
         msg = "cannot create 'pandas.util._move.stolenbuf' instances"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             stolenbuf()
 
     def test_more_than_one_ref(self):
@@ -357,7 +359,7 @@ class TestMove(tm.TestCase):
         as_stolen_buf = move_into_mutable_buffer(b[:-3])
 
         # materialize as bytearray to show that it is mutable
-        self.assertEqual(bytearray(as_stolen_buf), b'test')
+        assert bytearray(as_stolen_buf) == b'test'
 
     @pytest.mark.skipif(
         sys.version_info[0] > 2,
@@ -392,12 +394,7 @@ class TestMove(tm.TestCase):
             # be the same instance.
             move_into_mutable_buffer(ref_capture(intern(make_string())))  # noqa
 
-        self.assertEqual(
-            refcount[0],
-            1,
-            msg='The BadMove was probably raised for refcount reasons instead'
-            ' of interning reasons',
-        )
+        assert refcount[0] == 1
 
 
 def test_numpy_errstate_is_default():
@@ -410,11 +407,10 @@ def test_numpy_errstate_is_default():
     assert np.geterr() == expected
 
 
-class TestLocaleUtils(tm.TestCase):
+class TestLocaleUtils(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestLocaleUtils, cls).setUpClass()
+    def setup_class(cls):
         cls.locales = tm.get_locales()
 
         if not cls.locales:
@@ -423,8 +419,7 @@ class TestLocaleUtils(tm.TestCase):
         tm._skip_if_windows()
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestLocaleUtils, cls).tearDownClass()
+    def teardown_class(cls):
         del cls.locales
 
     def test_get_locales(self):
@@ -467,7 +462,7 @@ class TestLocaleUtils(tm.TestCase):
                 new_lang, new_enc = normalized_locale.split('.')
                 new_enc = codecs.lookup(enc).name
                 normalized_locale = new_lang, new_enc
-                self.assertEqual(normalized_locale, new_locale)
+                assert normalized_locale == new_locale
 
         current_locale = locale.getlocale()
-        self.assertEqual(current_locale, CURRENT_LOCALE)
+        assert current_locale == CURRENT_LOCALE

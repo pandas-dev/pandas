@@ -10,28 +10,28 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestSeriesPeriod(tm.TestCase):
+class TestSeriesPeriod(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
 
     def test_auto_conversion(self):
         series = Series(list(period_range('2000-01-01', periods=10, freq='D')))
-        self.assertEqual(series.dtype, 'object')
+        assert series.dtype == 'object'
 
         series = pd.Series([pd.Period('2011-01-01', freq='D'),
                             pd.Period('2011-02-01', freq='D')])
-        self.assertEqual(series.dtype, 'object')
+        assert series.dtype == 'object'
 
     def test_getitem(self):
-        self.assertEqual(self.series[1], pd.Period('2000-01-02', freq='D'))
+        assert self.series[1] == pd.Period('2000-01-02', freq='D')
 
         result = self.series[[2, 4]]
         exp = pd.Series([pd.Period('2000-01-03', freq='D'),
                          pd.Period('2000-01-05', freq='D')],
                         index=[2, 4])
         tm.assert_series_equal(result, exp)
-        self.assertEqual(result.dtype, 'object')
+        assert result.dtype == 'object'
 
     def test_isnull(self):
         # GH 13737
@@ -49,12 +49,12 @@ class TestSeriesPeriod(tm.TestCase):
         exp = Series([pd.Period('2011-01', freq='M'),
                       pd.Period('2012-01', freq='M')])
         tm.assert_series_equal(res, exp)
-        self.assertEqual(res.dtype, 'object')
+        assert res.dtype == 'object'
 
         res = s.fillna('XXX')
         exp = Series([pd.Period('2011-01', freq='M'), 'XXX'])
         tm.assert_series_equal(res, exp)
-        self.assertEqual(res.dtype, 'object')
+        assert res.dtype == 'object'
 
     def test_dropna(self):
         # GH 13737
@@ -89,10 +89,10 @@ class TestSeriesPeriod(tm.TestCase):
         series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
 
         val = series[3]
-        self.assertTrue(isnull(val))
+        assert isnull(val)
 
         series[2] = val
-        self.assertTrue(isnull(series[2]))
+        assert isnull(series[2])
 
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')
@@ -109,10 +109,10 @@ class TestSeriesPeriod(tm.TestCase):
         assert self.series[4] is None
 
         self.series[5] = np.nan
-        self.assertTrue(np.isnan(self.series[5]))
+        assert np.isnan(self.series[5])
 
         self.series[5:7] = np.nan
-        self.assertTrue(np.isnan(self.series[6]))
+        assert np.isnan(self.series[6])
 
     def test_intercept_astype_object(self):
         expected = self.series.astype('object')
@@ -121,12 +121,12 @@ class TestSeriesPeriod(tm.TestCase):
                         'b': np.random.randn(len(self.series))})
 
         result = df.values.squeeze()
-        self.assertTrue((result[:, 0] == expected.values).all())
+        assert (result[:, 0] == expected.values).all()
 
         df = DataFrame({'a': self.series, 'b': ['foo'] * len(self.series)})
 
         result = df.values.squeeze()
-        self.assertTrue((result[:, 0] == expected.values).all())
+        assert (result[:, 0] == expected.values).all()
 
     def test_comp_series_period_scalar(self):
         # GH 13200
@@ -161,10 +161,12 @@ class TestSeriesPeriod(tm.TestCase):
 
             # different base freq
             msg = "Input has different freq=A-DEC from Period"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 base <= Period('2011', freq='A')
 
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 Period('2011', freq='A') >= base
 
     def test_comp_series_period_series(self):
@@ -199,7 +201,8 @@ class TestSeriesPeriod(tm.TestCase):
 
             # different base freq
             msg = "Input has different freq=A-DEC from Period"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 base <= s2
 
     def test_comp_series_period_object(self):
@@ -244,5 +247,5 @@ class TestSeriesPeriod(tm.TestCase):
         for kind in ['inner', 'outer', 'left', 'right']:
             ts.align(ts[::2], join=kind)
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             ts + ts.asfreq('D', how="end")

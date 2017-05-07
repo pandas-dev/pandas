@@ -9,7 +9,7 @@ from pandas import (DatetimeIndex, date_range, Series, NaT, Index, Timestamp,
                     Int64Index, Period)
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_astype(self):
         # GH 13149, GH 13209
@@ -101,11 +101,11 @@ class TestDatetimeIndex(tm.TestCase):
 
         result = idx.astype('datetime64[ns]')
         tm.assert_index_equal(result, idx)
-        self.assertFalse(result is idx)
+        assert result is not idx
 
         result = idx.astype('datetime64[ns]', copy=False)
         tm.assert_index_equal(result, idx)
-        self.assertTrue(result is idx)
+        assert result is idx
 
         idx_tz = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN], tz='EST')
         result = idx_tz.astype('datetime64[ns]')
@@ -131,8 +131,8 @@ class TestDatetimeIndex(tm.TestCase):
             assert isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
                 assert isinstance(x, datetime)
-                self.assertEqual(x, stamp.to_pydatetime())
-                self.assertEqual(x.tzinfo, stamp.tzinfo)
+                assert x == stamp.to_pydatetime()
+                assert x.tzinfo == stamp.tzinfo
 
         rng = date_range('20090415', '20090519')
         rng_eastern = date_range('20090415', '20090519', tz='US/Eastern')
@@ -151,8 +151,8 @@ class TestDatetimeIndex(tm.TestCase):
             assert isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
                 assert isinstance(x, datetime)
-                self.assertEqual(x, stamp.to_pydatetime())
-                self.assertEqual(x.tzinfo, stamp.tzinfo)
+                assert x == stamp.to_pydatetime()
+                assert x.tzinfo == stamp.tzinfo
 
         rng = date_range('20090415', '20090519')
         rng_eastern = date_range('20090415', '20090519',
@@ -172,8 +172,8 @@ class TestDatetimeIndex(tm.TestCase):
             assert isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
                 assert isinstance(x, datetime)
-                self.assertEqual(x, stamp.to_pydatetime())
-                self.assertEqual(x.tzinfo, stamp.tzinfo)
+                assert x == stamp.to_pydatetime()
+                assert x.tzinfo == stamp.tzinfo
 
         rng = date_range('20090415', '20090519')
         rng_eastern = date_range('20090415', '20090519',
@@ -185,9 +185,9 @@ class TestDatetimeIndex(tm.TestCase):
         _check_rng(rng_utc)
 
 
-class TestToPeriod(tm.TestCase):
+class TestToPeriod(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         data = [Timestamp('2007-01-01 10:11:12.123456Z'),
                 Timestamp('2007-01-01 10:11:13.789123Z')]
         self.index = DatetimeIndex(data)
@@ -196,17 +196,17 @@ class TestToPeriod(tm.TestCase):
         index = self.index
 
         period = index.to_period(freq='L')
-        self.assertEqual(2, len(period))
-        self.assertEqual(period[0], Period('2007-01-01 10:11:12.123Z', 'L'))
-        self.assertEqual(period[1], Period('2007-01-01 10:11:13.789Z', 'L'))
+        assert 2 == len(period)
+        assert period[0] == Period('2007-01-01 10:11:12.123Z', 'L')
+        assert period[1] == Period('2007-01-01 10:11:13.789Z', 'L')
 
     def test_to_period_microsecond(self):
         index = self.index
 
         period = index.to_period(freq='U')
-        self.assertEqual(2, len(period))
-        self.assertEqual(period[0], Period('2007-01-01 10:11:12.123456Z', 'U'))
-        self.assertEqual(period[1], Period('2007-01-01 10:11:13.789123Z', 'U'))
+        assert 2 == len(period)
+        assert period[0] == Period('2007-01-01 10:11:12.123456Z', 'U')
+        assert period[1] == Period('2007-01-01 10:11:13.789123Z', 'U')
 
     def test_to_period_tz_pytz(self):
         tm._skip_if_no_pytz()
@@ -220,7 +220,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertEqual(result, expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=UTC)
@@ -228,7 +228,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertEqual(result, expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
@@ -236,7 +236,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertEqual(result, expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
     def test_to_period_tz_explicit_pytz(self):
@@ -251,7 +251,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=pytz.utc)
@@ -259,7 +259,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
@@ -267,7 +267,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
     def test_to_period_tz_dateutil(self):
@@ -282,7 +282,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.tzutc())
@@ -290,7 +290,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
         ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
@@ -298,7 +298,7 @@ class TestToPeriod(tm.TestCase):
         result = ts.to_period()[0]
         expected = ts[0].to_period()
 
-        self.assertTrue(result == expected)
+        assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
     def test_astype_object(self):
@@ -309,4 +309,4 @@ class TestToPeriod(tm.TestCase):
         exp_values = list(rng)
 
         tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
-        self.assertEqual(casted.tolist(), exp_values)
+        assert casted.tolist() == exp_values

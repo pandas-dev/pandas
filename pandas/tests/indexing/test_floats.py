@@ -9,7 +9,7 @@ from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
 
-class TestFloatIndexers(tm.TestCase):
+class TestFloatIndexers(object):
 
     def check(self, result, original, indexer, getitem):
         """
@@ -48,9 +48,9 @@ class TestFloatIndexers(tm.TestCase):
 
             def f():
                 s.iloc[3.0]
-            tm.assertRaisesRegexp(TypeError,
-                                  'cannot do positional indexing',
-                                  f)
+            tm.assert_raises_regex(TypeError,
+                                   'cannot do positional indexing',
+                                   f)
 
             def f():
                 s.iloc[3.0] = 0
@@ -102,7 +102,7 @@ class TestFloatIndexers(tm.TestCase):
                 pytest.raises(error, f)
 
                 # contains
-                self.assertFalse(3.0 in s)
+                assert 3.0 not in s
 
                 # setting with a float fails with iloc
                 def f():
@@ -130,14 +130,14 @@ class TestFloatIndexers(tm.TestCase):
 
                     s2 = s.copy()
                     s2.loc[3.0] = 10
-                    self.assertTrue(s2.index.is_object())
+                    assert s2.index.is_object()
 
                     for idxr in [lambda x: x.ix,
                                  lambda x: x]:
                         s2 = s.copy()
                         with catch_warnings(record=True):
                             idxr(s2)[3.0] = 0
-                        self.assertTrue(s2.index.is_object())
+                        assert s2.index.is_object()
 
             # fallsback to position selection, series only
             s = Series(np.arange(len(i)), index=i)
@@ -165,7 +165,7 @@ class TestFloatIndexers(tm.TestCase):
 
         result = s2.loc['b']
         expected = 2
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # mixed index so we have label
         # indexing
@@ -180,14 +180,14 @@ class TestFloatIndexers(tm.TestCase):
 
             result = idxr(s3)[1]
             expected = 2
-            self.assertEqual(result, expected)
+            assert result == expected
 
         pytest.raises(TypeError, lambda: s3.iloc[1.0])
         pytest.raises(KeyError, lambda: s3.loc[1.0])
 
         result = s3.loc[1.5]
         expected = 3
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_scalar_integer(self):
 
@@ -216,7 +216,8 @@ class TestFloatIndexers(tm.TestCase):
                                       (lambda x: x, True)]:
 
                     if isinstance(s, Series):
-                        compare = self.assertEqual
+                        def compare(x, y):
+                            assert x == y
                         expected = 100
                     else:
                         compare = tm.assert_series_equal
@@ -239,7 +240,7 @@ class TestFloatIndexers(tm.TestCase):
 
                 # contains
                 # coerce to equal int
-                self.assertTrue(3.0 in s)
+                assert 3.0 in s
 
     def test_scalar_float(self):
 
@@ -275,7 +276,7 @@ class TestFloatIndexers(tm.TestCase):
                     pytest.raises(KeyError, lambda: idxr(s)[3.5])
 
             # contains
-            self.assertTrue(3.0 in s)
+            assert 3.0 in s
 
             # iloc succeeds with an integer
             expected = s.iloc[3]
@@ -440,7 +441,7 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         idxr(sc)[l] = 0
                         result = idxr(sc)[l].values.ravel()
-                    self.assertTrue((result == 0).all())
+                    assert (result == 0).all()
 
                 # positional indexing
                 def f():
@@ -534,7 +535,7 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         idxr(sc)[l] = 0
                         result = idxr(sc)[l].values.ravel()
-                    self.assertTrue((result == 0).all())
+                    assert (result == 0).all()
 
                     # positional indexing
                     def f():
@@ -570,16 +571,16 @@ class TestFloatIndexers(tm.TestCase):
                     with catch_warnings(record=True):
                         idxr(s2)[l] = 0
                         result = idxr(s2)[l].values.ravel()
-                    self.assertTrue((result == 0).all())
+                    assert (result == 0).all()
 
     def test_floating_index_doc_example(self):
 
         index = Index([1.5, 2, 3, 4.5, 5])
         s = Series(range(5), index=index)
-        self.assertEqual(s[3], 2)
-        self.assertEqual(s.loc[3], 2)
-        self.assertEqual(s.loc[3], 2)
-        self.assertEqual(s.iloc[3], 3)
+        assert s[3] == 2
+        assert s.loc[3] == 2
+        assert s.loc[3] == 2
+        assert s.iloc[3] == 3
 
     def test_floating_misc(self):
 
@@ -598,16 +599,16 @@ class TestFloatIndexers(tm.TestCase):
         result1 = s[5.0]
         result2 = s.loc[5.0]
         result3 = s.loc[5.0]
-        self.assertEqual(result1, result2)
-        self.assertEqual(result1, result3)
+        assert result1 == result2
+        assert result1 == result3
 
         result1 = s[5]
         result2 = s.loc[5]
         result3 = s.loc[5]
-        self.assertEqual(result1, result2)
-        self.assertEqual(result1, result3)
+        assert result1 == result2
+        assert result1 == result3
 
-        self.assertEqual(s[5.0], s[5])
+        assert s[5.0] == s[5]
 
         # value not found (and no fallbacking at all)
 
@@ -702,15 +703,17 @@ class TestFloatIndexers(tm.TestCase):
         assert_series_equal(result1, Series([1], index=[2.5]))
 
     def test_floating_tuples(self):
-        # GH13509
+        # see gh-13509
         s = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.1, 0.2], name='foo')
-        result = s[0.0]
-        self.assertEqual(result, (1, 1))
 
-        s = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name='foo')
         result = s[0.0]
+        assert result == (1, 1)
+
         expected = Series([(1, 1), (2, 2)], index=[0.0, 0.0], name='foo')
-        assert_series_equal(result, expected)
+        s = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name='foo')
+
+        result = s[0.0]
+        tm.assert_series_equal(result, expected)
 
     def test_float64index_slicing_bug(self):
         # GH 5557, related to slicing a float index

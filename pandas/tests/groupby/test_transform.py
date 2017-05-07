@@ -17,7 +17,7 @@ from pandas.core.groupby import DataError
 from pandas.core.config import option_context
 
 
-class TestGroupBy(MixIn, tm.TestCase):
+class TestGroupBy(MixIn):
 
     def test_transform(self):
         data = Series(np.arange(9) // 3, index=np.arange(9))
@@ -29,7 +29,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = data.groupby(lambda x: x // 3)
 
         transformed = grouped.transform(lambda x: x * x.sum())
-        self.assertEqual(transformed[7], 12)
+        assert transformed[7] == 12
 
         # GH 8046
         # make sure that we preserve the input order
@@ -408,7 +408,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = df.groupby('c')
         result = grouped.apply(f)
 
-        self.assertEqual(result['d'].dtype, np.float64)
+        assert result['d'].dtype == np.float64
 
         # this is by definition a mutating operation!
         with option_context('mode.chained_assignment', None):
@@ -556,7 +556,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         df = pd.DataFrame(np.random.randint(1, 10, (4, 12)),
                           columns=cols,
                           index=['A', 'C', 'G', 'T'])
-        tm.assertRaisesRegexp(ValueError, 'transform must return a scalar '
-                              'value for each group.*', df.groupby
-                              (axis=1, level=1).transform,
-                              lambda z: z.div(z.sum(axis=1), axis=0))
+        tm.assert_raises_regex(ValueError, 'transform must return '
+                               'a scalar value for each '
+                               'group.*',
+                               df.groupby(axis=1, level=1).transform,
+                               lambda z: z.div(z.sum(axis=1), axis=0))

@@ -14,7 +14,7 @@ from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
 
-class TestLoc(Base, tm.TestCase):
+class TestLoc(Base):
 
     def test_loc_getitem_dups(self):
         # GH 5678
@@ -58,7 +58,7 @@ class TestLoc(Base, tm.TestCase):
         indexer = tuple(['r', 'bar'])
         df = df_orig.copy()
         df.loc[indexer] *= 2.0
-        self.assertEqual(df.loc[indexer], 2.0 * df_orig.loc[indexer])
+        assert df.loc[indexer] == 2.0 * df_orig.loc[indexer]
 
         indexer = tuple(['t', ['bar', 'bar2']])
         df = df_orig.copy()
@@ -325,14 +325,14 @@ class TestLoc(Base, tm.TestCase):
 
         # want this to work
         result = df.loc[:, "A":"B"].iloc[0:2, :]
-        self.assertTrue((result.columns == ['A', 'B']).all())
-        self.assertTrue((result.index == ['A', 'B']).all())
+        assert (result.columns == ['A', 'B']).all()
+        assert (result.index == ['A', 'B']).all()
 
         # mixed type
         result = DataFrame({'a': [Timestamp('20130101')], 'b': [1]}).iloc[0]
         expected = Series([Timestamp('20130101'), 1], index=['a', 'b'], name=0)
         tm.assert_series_equal(result, expected)
-        self.assertEqual(result.dtype, object)
+        assert result.dtype == object
 
     def test_loc_setitem_consistency(self):
         # GH 6149
@@ -415,10 +415,10 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         df.loc['a', 'A'] = 1
         result = df.loc['a', 'A']
-        self.assertEqual(result, 1)
+        assert result == 1
 
         result = df.iloc[0, 0]
-        self.assertEqual(result, 1)
+        assert result == 1
 
         df.loc[:, 'B':'D'] = 0
         expected = df.loc[:, 'B':'D']
@@ -588,7 +588,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                               df.take(mask[1:], convert=False)])
 
         df = gen_test(900, 100)
-        self.assertFalse(df.index.is_unique)
+        assert not df.index.is_unique
 
         mask = np.arange(100)
         result = df.loc[mask]
@@ -596,7 +596,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_frame_equal(result, expected)
 
         df = gen_test(900000, 100000)
-        self.assertFalse(df.index.is_unique)
+        assert not df.index.is_unique
 
         mask = np.arange(100000)
         result = df.loc[mask]
@@ -608,14 +608,14 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame([[1, 1], [1, 1]])
         df.index.name = 'index_name'
         result = df.iloc[[0, 1]].index.name
-        self.assertEqual(result, 'index_name')
+        assert result == 'index_name'
 
         with catch_warnings(record=True):
             result = df.ix[[0, 1]].index.name
-        self.assertEqual(result, 'index_name')
+        assert result == 'index_name'
 
         result = df.loc[[0, 1]].index.name
-        self.assertEqual(result, 'index_name')
+        assert result == 'index_name'
 
     def test_loc_empty_list_indexer_is_ok(self):
         from pandas.util.testing import makeCustomDataframe as mkdf

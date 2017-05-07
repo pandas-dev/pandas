@@ -11,7 +11,6 @@ import pandas as pd
 
 from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
-    _coerce_to_dtype,
     _ensure_int64,
     needs_i8_conversion,
     is_scalar,
@@ -23,7 +22,8 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_list_like,
     is_dict_like,
-    is_re_compilable)
+    is_re_compilable,
+    pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isnull, notnull
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel
@@ -43,7 +43,6 @@ from pandas.core.internals import BlockManager
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.missing as missing
-from pandas.errors import UnserializableWarning
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.formats.format import format_percentiles
 from pandas.tseries.frequencies import to_offset
@@ -52,8 +51,8 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types,
                            isidentifier, set_function_name)
 import pandas.core.nanops as nanops
-from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._validators import validate_bool_kwarg
 from pandas.core import config
 
 # goal is to be able to define the docs close to function, while still being
@@ -130,32 +129,7 @@ class NDFrame(PandasObject, SelectionMixin):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
-    def _ipython_display_(self):
-        try:
-            from IPython.display import display
-        except ImportError:
-            return None
-
-        # Series doesn't define _repr_html_ or _repr_latex_
-        latex = self._repr_latex_() if hasattr(self, '_repr_latex_') else None
-        html = self._repr_html_() if hasattr(self, '_repr_html_') else None
-        try:
-            table_schema = self._repr_table_schema_()
-        except Exception as e:
-            warnings.warn("Cannot create table schema representation. "
-                          "{}".format(e), UnserializableWarning)
-            table_schema = None
-        # We need the inital newline since we aren't going through the
-        # usual __repr__. See
-        # https://github.com/pandas-dev/pandas/pull/14904#issuecomment-277829277
-        text = "\n" + repr(self)
-
-        reprs = {"text/plain": text, "text/html": html, "text/latex": latex,
-                 "application/vnd.dataresource+json": table_schema}
-        reprs = {k: v for k, v in reprs.items() if v}
-        display(reprs, raw=True)
-
-    def _repr_table_schema_(self):
+    def _repr_data_resource_(self):
         """
         Not a real Jupyter special repr method, but we use the same
         naming convention.
@@ -170,13 +144,14 @@ class NDFrame(PandasObject, SelectionMixin):
         """ validate the passed dtype """
 
         if dtype is not None:
-            dtype = _coerce_to_dtype(dtype)
+            dtype = pandas_dtype(dtype)
 
             # a compound dtype
             if dtype.kind == 'V':
                 raise NotImplementedError("compound dtypes are not implemented"
                                           "in the {0} constructor"
                                           .format(self.__class__.__name__))
+
         return dtype
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
@@ -1407,7 +1382,7 @@ class NDFrame(PandasObject, SelectionMixin):
           - Windows: none
           - OS X: none
         """
-        from pandas.io import clipboard
+        from pandas.io.clipboard import clipboard
         clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
     def to_xarray(self):
@@ -2878,19 +2853,19 @@ class NDFrame(PandasObject, SelectionMixin):
             return func(self, *args, **kwargs)
 
     _shared_docs['aggregate'] = ("""
-    Aggregate using input function or dict of {column ->
-    function}
+    Aggregate using callable, string, dict, or list of string/callables
 
-    .. versionadded:: 0.20.0
+    %(versionadded)s
 
     Parameters
     ----------
     func : callable, string, dictionary, or list of string/callables
         Function to use for aggregating the data. If a function, must either
-        work when passed a DataFrame or when passed to DataFrame.apply. If
-        passed a dict, the keys must be DataFrame column names.
+        work when passed a %(klass)s or when passed to %(klass)s.apply. For
+        a DataFrame, can pass a dict, if the keys are DataFrame column names.
 
         Accepted Combinations are:
+
         - string function name
         - function
         - list of functions
@@ -2903,12 +2878,11 @@ class NDFrame(PandasObject, SelectionMixin):
     (e.g., np.mean(arr_2d, axis=0)) as opposed to
     mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
 
+    agg is an alias for aggregate. Use it.
+
     Returns
     -------
     aggregated : %(klass)s
-
-    See also
-    --------
     """)
 
     _shared_docs['transform'] = ("""
@@ -2923,18 +2897,40 @@ class NDFrame(PandasObject, SelectionMixin):
         To apply to column
 
         Accepted Combinations are:
+
         - string function name
         - function
         - list of functions
         - dict of column names -> functions (or list of functions)
 
-    Examples
-    --------
-    >>> df.transform(lambda x: (x - x.mean()) / x.std())
-
     Returns
     -------
     transformed : %(klass)s
+
+    Examples
+    --------
+    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+    ...                   index=pd.date_range('1/1/2000', periods=10))
+    df.iloc[3:7] = np.nan
+
+    >>> df.transform(lambda x: (x - x.mean()) / x.std())
+                       A         B         C
+    2000-01-01  0.579457  1.236184  0.123424
+    2000-01-02  0.370357 -0.605875 -1.231325
+    2000-01-03  1.455756 -0.277446  0.288967
+    2000-01-04       NaN       NaN       NaN
+    2000-01-05       NaN       NaN       NaN
+    2000-01-06       NaN       NaN       NaN
+    2000-01-07       NaN       NaN       NaN
+    2000-01-08 -0.498658  1.274522  1.642524
+    2000-01-09 -0.540524 -1.012676 -0.828968
+    2000-01-10 -1.366388 -0.614710  0.005378
+
+    See also
+    --------
+    pandas.%(klass)s.aggregate
+    pandas.%(klass)s.apply
+
     """)
 
     # ----------------------------------------------------------------------

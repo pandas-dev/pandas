@@ -28,7 +28,7 @@ class UsecolsTests(object):
                "all integers or a callable")
         usecols = [0, 'b', 2]
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(data), usecols=usecols)
 
     def test_usecols(self):
@@ -43,9 +43,9 @@ a,b,c
         result2 = self.read_csv(StringIO(data), usecols=('b', 'c'))
         exp = self.read_csv(StringIO(data))
 
-        self.assertEqual(len(result.columns), 2)
-        self.assertTrue((result['b'] == exp['b']).all())
-        self.assertTrue((result['c'] == exp['c']).all())
+        assert len(result.columns) == 2
+        assert (result['b'] == exp['b']).all()
+        assert (result['c'] == exp['c']).all()
 
         tm.assert_frame_equal(result, result2)
 
@@ -351,10 +351,10 @@ a,b,c
         msg = ("'usecols' must either be all strings, all unicode, "
                "all integers or a callable")
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(s), usecols=[u'AAA', b'BBB'])
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(s), usecols=[b'AAA', u'BBB'])
 
     def test_usecols_with_multibyte_characters(self):

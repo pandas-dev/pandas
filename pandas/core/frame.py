@@ -18,6 +18,7 @@ import itertools
 import sys
 import types
 import warnings
+from textwrap import dedent
 
 from numpy import nan as NA
 import numpy as np
@@ -79,8 +80,8 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import Appender, Substitution
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import Appender, Substitution
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -91,6 +92,7 @@ import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
 import pandas.io.formats.format as fmt
+import pandas.io.formats.console as console
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting._core as gfx
 
@@ -513,7 +515,7 @@ class DataFrame(NDFrame):
         GH3541, GH3573
         """
 
-        width, height = fmt.get_console_size()
+        width, height = console.get_console_size()
         max_columns = get_option("display.max_columns")
         nb_columns = len(self.columns)
 
@@ -577,7 +579,7 @@ class DataFrame(NDFrame):
         max_cols = get_option("display.max_columns")
         show_dimensions = get_option("display.show_dimensions")
         if get_option("display.expand_frame_repr"):
-            width, _ = fmt.get_console_size()
+            width, _ = console.get_console_size()
         else:
             width = None
         self.to_string(buf=buf, max_rows=max_rows, max_cols=max_cols,
@@ -3010,52 +3012,48 @@ it is assumed to be aliases for the column names.')
             return values
 
         new_index = _default_index(len(new_obj))
-        if isinstance(self.index, MultiIndex):
-            if level is not None:
-                if not isinstance(level, (tuple, list)):
-                    level = [level]
-                level = [self.index._get_level_number(lev) for lev in level]
-                if len(level) < len(self.index.levels):
+        if level is not None:
+            if not isinstance(level, (tuple, list)):
+                level = [level]
+            level = [self.index._get_level_number(lev) for lev in level]
+            if isinstance(self.index, MultiIndex):
+                if len(level) < self.index.nlevels:
                     new_index = self.index.droplevel(level)
 
-            if not drop:
-                names = self.index.names
-                zipped = lzip(self.index.levels, self.index.labels)
+        if not drop:
+            if isinstance(self.index, MultiIndex):
+                names = [n if n is not None else ('level_%d' % i)
+                         for (i, n) in enumerate(self.index.names)]
+                to_insert = lzip(self.index.levels, self.index.labels)
+            else:
+                default = 'index' if 'index' not in self else 'level_0'
+                names = ([default] if self.index.name is None
+                         else [self.index.name])
+                to_insert = ((self.index, None),)
 
-                multi_col = isinstance(self.columns, MultiIndex)
-                for i, (lev, lab) in reversed(list(enumerate(zipped))):
-                    col_name = names[i]
-                    if col_name is None:
-                        col_name = 'level_%d' % i
+            multi_col = isinstance(self.columns, MultiIndex)
+            for i, (lev, lab) in reversed(list(enumerate(to_insert))):
+                if not (level is None or i in level):
+                    continue
+                name = names[i]
+                if multi_col:
+                    col_name = (list(name) if isinstance(name, tuple)
+                                else [name])
+                    if col_fill is None:
+                        if len(col_name) not in (1, self.columns.nlevels):
+                            raise ValueError("col_fill=None is incompatible "
+                                             "with incomplete column name "
+                                             "{}".format(name))
+                        col_fill = col_name[0]
 
-                    if multi_col:
-                        if col_fill is None:
-                            col_name = tuple([col_name] * self.columns.nlevels)
-                        else:
-                            name_lst = [col_fill] * self.columns.nlevels
-                            lev_num = self.columns._get_level_number(col_level)
-                            name_lst[lev_num] = col_name
-                            col_name = tuple(name_lst)
-
-                    # to ndarray and maybe infer different dtype
-                    level_values = _maybe_casted_values(lev, lab)
-                    if level is None or i in level:
-                        new_obj.insert(0, col_name, level_values)
-
-        elif not drop:
-            name = self.index.name
-            if name is None or name == 'index':
-                name = 'index' if 'index' not in self else 'level_0'
-            if isinstance(self.columns, MultiIndex):
-                if col_fill is None:
-                    name = tuple([name] * self.columns.nlevels)
-                else:
-                    name_lst = [col_fill] * self.columns.nlevels
                     lev_num = self.columns._get_level_number(col_level)
-                    name_lst[lev_num] = name
+                    name_lst = [col_fill] * lev_num + col_name
+                    missing = self.columns.nlevels - len(name_lst)
+                    name_lst += [col_fill] * missing
                     name = tuple(name_lst)
-            values = _maybe_casted_values(self.index)
-            new_obj.insert(0, name, values)
+                # to ndarray and maybe infer different dtype
+                level_values = _maybe_casted_values(lev, lab)
+                new_obj.insert(0, name, level_values)
 
         new_obj.index = new_index
         if not inplace:
@@ -4203,7 +4201,43 @@ it is assumed to be aliases for the column names.')
         # TODO: _shallow_copy(subset)?
         return self[key]
 
-    @Appender(_shared_docs['aggregate'] % _shared_doc_kwargs)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+    ...                   index=pd.date_range('1/1/2000', periods=10))
+    >>> df.iloc[3:7] = np.nan
+
+    Aggregate these functions across all columns
+
+    >>> df.agg(['sum', 'min'])
+                A         B         C
+    sum -0.182253 -0.614014 -2.909534
+    min -1.916563 -1.460076 -1.568297
+
+    Different aggregations per column
+
+    >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
+                A         B
+    max       NaN  1.514318
+    min -1.916563 -1.460076
+    sum -0.182253       NaN
+
+    See also
+    --------
+    pandas.DataFrame.apply
+    pandas.DataFrame.transform
+    pandas.DataFrame.groupby.aggregate
+    pandas.DataFrame.resample.aggregate
+    pandas.DataFrame.rolling.aggregate
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        versionadded='.. versionadded:: 0.20.0',
+        **_shared_doc_kwargs))
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
@@ -4275,7 +4309,7 @@ it is assumed to be aliases for the column names.')
         See also
         --------
         DataFrame.applymap: For elementwise operations
-        DataFrame.agg: only perform aggregating type operations
+        DataFrame.aggregate: only perform aggregating type operations
         DataFrame.transform: only perform transformating type operations
 
         Returns

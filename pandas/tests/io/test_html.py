@@ -23,7 +23,7 @@ from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
                            is_platform_windows)
 from pandas.io.common import URLError, urlopen, file_path_to_url
 from pandas.io.html import read_html
-from pandas.io.libparsers import ParserError
+from pandas._libs.parsers import ParserError
 
 import pandas.util.testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf, network
@@ -93,14 +93,13 @@ class ReadHtmlMixin(object):
         return read_html(*args, **kwargs)
 
 
-class TestReadHtml(tm.TestCase, ReadHtmlMixin):
+class TestReadHtml(ReadHtmlMixin):
     flavor = 'bs4'
     spam_data = os.path.join(DATA_PATH, 'spam.html')
     banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtml, cls).setUpClass()
+    def setup_class(cls):
         _skip_if_none_of(('bs4', 'html5lib'))
 
     def test_to_html_compat(self):
@@ -144,16 +143,16 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
 
-        self.assertEqual(df1[0].iloc[0, 0], 'Proximates')
-        self.assertEqual(df1[0].columns[0], 'Nutrient')
+        assert df1[0].iloc[0, 0] == 'Proximates'
+        assert df1[0].columns[0] == 'Nutrient'
 
     def test_spam_with_types(self):
         df1 = self.read_html(self.spam_data, '.*Water.*')
         df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
 
-        self.assertEqual(df1[0].iloc[0, 0], 'Proximates')
-        self.assertEqual(df1[0].columns[0], 'Nutrient')
+        assert df1[0].iloc[0, 0] == 'Proximates'
+        assert df1[0].columns[0] == 'Nutrient'
 
     def test_spam_no_match(self):
         dfs = self.read_html(self.spam_data)
@@ -167,8 +166,8 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     def test_spam_header(self):
         df = self.read_html(self.spam_data, '.*Water.*', header=1)[0]
-        self.assertEqual(df.columns[0], 'Proximates')
-        self.assertFalse(df.empty)
+        assert df.columns[0] == 'Proximates'
+        assert not df.empty
 
     def test_skiprows_int(self):
         df1 = self.read_html(self.spam_data, '.*Water.*', skiprows=1)
@@ -219,8 +218,8 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_invalid(self):
-        with tm.assertRaisesRegexp(TypeError,
-                                   'is not a valid type for skipping rows'):
+        with tm.assert_raises_regex(TypeError, 'is not a valid type '
+                                    'for skipping rows'):
             self.read_html(self.spam_data, '.*Water.*', skiprows='asdf')
 
     def test_index(self):
@@ -288,7 +287,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                 self.read_html('http://www.a23950sdfa908sd.com',
                                match='.*Water.*')
         except ValueError as e:
-            self.assertEqual(str(e), 'No tables found')
+            assert str(e) == 'No tables found'
 
     @tm.slow
     def test_file_url(self):
@@ -302,7 +301,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     @tm.slow
     def test_invalid_table_attrs(self):
         url = self.banklist_data
-        with tm.assertRaisesRegexp(ValueError, 'No tables found'):
+        with tm.assert_raises_regex(ValueError, 'No tables found'):
             self.read_html(url, 'First Federal Bank of Florida',
                            attrs={'id': 'tasdfable'})
 
@@ -353,22 +352,22 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
             assert isinstance(df, DataFrame)
 
     def test_negative_skiprows(self):
-        with tm.assertRaisesRegexp(ValueError,
-                                   r'\(you passed a negative value\)'):
+        with tm.assert_raises_regex(ValueError,
+                                    r'\(you passed a negative value\)'):
             self.read_html(self.spam_data, 'Water', skiprows=-1)
 
     @network
     def test_multiple_matches(self):
         url = 'https://docs.python.org/2/'
         dfs = self.read_html(url, match='Python')
-        self.assertTrue(len(dfs) > 1)
+        assert len(dfs) > 1
 
     @network
     def test_python_docs_table(self):
         url = 'https://docs.python.org/2/'
         dfs = self.read_html(url, match='Python')
         zz = [df.iloc[0, 0][0:4] for df in dfs]
-        self.assertEqual(sorted(zz), sorted(['Repo', 'What']))
+        assert sorted(zz) == sorted(['Repo', 'What'])
 
     @tm.slow
     def test_thousands_macau_stats(self):
@@ -378,7 +377,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                              attrs={'class': 'style1'})
         df = dfs[all_non_nan_table_index]
 
-        self.assertFalse(any(s.isnull().any() for _, s in df.iteritems()))
+        assert not any(s.isnull().any() for _, s in df.iteritems())
 
     @tm.slow
     def test_thousands_macau_index_col(self):
@@ -387,7 +386,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
-        self.assertFalse(any(s.isnull().any() for _, s in df.iteritems()))
+        assert not any(s.isnull().any() for _, s in df.iteritems())
 
     def test_empty_tables(self):
         """
@@ -518,7 +517,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         columns = Index(['Issue(Roll over for charts and headlines)',
                          'Volume', 'Price', 'Chg', '% Chg'])
         nrows = 100
-        self.assertEqual(df.shape[0], nrows)
+        assert df.shape[0] == nrows
         tm.assert_index_equal(df.columns, columns)
 
     @tm.slow
@@ -536,7 +535,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
                                 converters={'Updated Date': Timestamp,
                                             'Closing Date': Timestamp})
-        self.assertEqual(df.shape, ground_truth.shape)
+        assert df.shape == ground_truth.shape
         old = ['First Vietnamese American BankIn Vietnamese',
                'Westernbank Puerto RicoEn Espanol',
                'R-G Premier Bank of Puerto RicoEn Espanol',
@@ -652,9 +651,10 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     def test_computer_sales_page(self):
         data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        with tm.assertRaisesRegexp(ParserError, r"Passed header=\[0,1\] are "
-                                   "too many rows for this multi_index "
-                                   "of columns"):
+        with tm.assert_raises_regex(ParserError,
+                                    r"Passed header=\[0,1\] are "
+                                    r"too many rows for this "
+                                    r"multi_index of columns"):
             self.read_html(data, header=[0, 1])
 
     def test_wikipedia_states_table(self):
@@ -662,7 +662,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         assert os.path.isfile(data), '%r is not a file' % data
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
-        self.assertEqual(result['sq mi'].dtype, np.dtype('float64'))
+        assert result['sq mi'].dtype == np.dtype('float64')
 
     def test_decimal_rows(self):
 
@@ -777,13 +777,12 @@ def _lang_enc(filename):
     return os.path.splitext(os.path.basename(filename))[0].split('_')
 
 
-class TestReadHtmlEncoding(tm.TestCase):
+class TestReadHtmlEncoding(object):
     files = glob.glob(os.path.join(DATA_PATH, 'html_encoding', '*.html'))
     flavor = 'bs4'
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtmlEncoding, cls).setUpClass()
+    def setup_class(cls):
         _skip_if_none_of((cls.flavor, 'html5lib'))
 
     def read_html(self, *args, **kwargs):
@@ -824,17 +823,16 @@ class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
     flavor = 'lxml'
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtmlEncodingLxml, cls).setUpClass()
+    def setup_class(cls):
+        super(TestReadHtmlEncodingLxml, cls).setup_class()
         _skip_if_no(cls.flavor)
 
 
-class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
+class TestReadHtmlLxml(ReadHtmlMixin):
     flavor = 'lxml'
 
     @classmethod
-    def setUpClass(cls):
-        super(TestReadHtmlLxml, cls).setUpClass()
+    def setup_class(cls):
         _skip_if_no('lxml')
 
     def test_data_fail(self):

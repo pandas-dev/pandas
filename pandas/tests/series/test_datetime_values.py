@@ -20,7 +20,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesDatetimeValues(TestData, tm.TestCase):
+class TestSeriesDatetimeValues(TestData):
 
     def test_dt_namespace_accessor(self):
 
@@ -50,7 +50,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             a = getattr(s.dt, prop)
             b = get_expected(s, prop)
             if not (is_list_like(a) and is_list_like(b)):
-                self.assertEqual(a, b)
+                assert a == b
             else:
                 tm.assert_series_equal(a, b)
 
@@ -71,7 +71,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
             result = s.dt.to_pydatetime()
             assert isinstance(result, np.ndarray)
-            self.assertTrue(result.dtype == object)
+            assert result.dtype == object
 
             result = s.dt.tz_localize('US/Eastern')
             exp_values = DatetimeIndex(s.values).tz_localize('US/Eastern')
@@ -79,10 +79,9 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             tm.assert_series_equal(result, expected)
 
             tz_result = result.dt.tz
-            self.assertEqual(str(tz_result), 'US/Eastern')
+            assert str(tz_result) == 'US/Eastern'
             freq_result = s.dt.freq
-            self.assertEqual(freq_result, DatetimeIndex(s.values,
-                                                        freq='infer').freq)
+            assert freq_result == DatetimeIndex(s.values, freq='infer').freq
 
             # let's localize, then convert
             result = s.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
@@ -141,7 +140,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         result = s.dt.to_pydatetime()
         assert isinstance(result, np.ndarray)
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
         result = s.dt.tz_convert('CET')
         expected = Series(s._values.tz_convert('CET'),
@@ -149,12 +148,11 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         tz_result = result.dt.tz
-        self.assertEqual(str(tz_result), 'CET')
+        assert str(tz_result) == 'CET'
         freq_result = s.dt.freq
-        self.assertEqual(freq_result, DatetimeIndex(s.values,
-                                                    freq='infer').freq)
+        assert freq_result == DatetimeIndex(s.values, freq='infer').freq
 
-        # timedeltaindex
+        # timedelta index
         cases = [Series(timedelta_range('1 day', periods=5),
                         index=list('abcde'), name='xxx'),
                  Series(timedelta_range('1 day 01:23:45', periods=5,
@@ -176,15 +174,14 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
             result = s.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
-            self.assertTrue(result.dtype == object)
+            assert result.dtype == object
 
             result = s.dt.total_seconds()
             assert isinstance(result, pd.Series)
-            self.assertTrue(result.dtype == 'float64')
+            assert result.dtype == 'float64'
 
             freq_result = s.dt.freq
-            self.assertEqual(freq_result, TimedeltaIndex(s.values,
-                                                         freq='infer').freq)
+            assert freq_result == TimedeltaIndex(s.values, freq='infer').freq
 
         # both
         index = date_range('20130101', periods=3, freq='D')
@@ -218,7 +215,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                 getattr(s.dt, prop)
 
             freq_result = s.dt.freq
-            self.assertEqual(freq_result, PeriodIndex(s.values).freq)
+            assert freq_result == PeriodIndex(s.values).freq
 
         # test limited display api
         def get_dir(s):
@@ -251,7 +248,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         # no setting allowed
         s = Series(date_range('20130101', periods=5, freq='D'), name='xxx')
-        with tm.assertRaisesRegexp(ValueError, "modifications"):
+        with tm.assert_raises_regex(ValueError, "modifications"):
             s.dt.hour = 5
 
         # trying to set a copy
@@ -265,8 +262,8 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(date_range('20130101', periods=5, freq='D'))
-        with tm.assertRaisesRegexp(AttributeError,
-                                   "You cannot add any new attribute"):
+        with tm.assert_raises_regex(AttributeError,
+                                    "You cannot add any new attribute"):
             s.dt.xlabel = "a"
 
     def test_strftime(self):
@@ -375,10 +372,10 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
         for s in [Series(np.arange(5)), Series(list('abcde')),
                   Series(np.random.randn(5))]:
-            with tm.assertRaisesRegexp(AttributeError,
-                                       "only use .dt accessor"):
+            with tm.assert_raises_regex(AttributeError,
+                                        "only use .dt accessor"):
                 s.dt
-            self.assertFalse(hasattr(s, 'dt'))
+            assert not hasattr(s, 'dt')
 
     def test_sub_of_datetime_from_TimeSeries(self):
         from pandas.core.tools.timedeltas import to_timedelta
@@ -387,7 +384,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         b = datetime(1993, 6, 22, 13, 30)
         a = Series([a])
         result = to_timedelta(np.abs(a - b))
-        self.assertEqual(result.dtype, 'timedelta64[ns]')
+        assert result.dtype == 'timedelta64[ns]'
 
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).asobject)

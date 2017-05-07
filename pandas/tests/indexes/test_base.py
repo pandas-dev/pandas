@@ -29,10 +29,10 @@ import pandas as pd
 from pandas._libs.lib import Timestamp
 
 
-class TestIndex(Base, tm.TestCase):
+class TestIndex(Base):
     _holder = Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(unicodeIndex=tm.makeUnicodeIndex(100),
                             strIndex=tm.makeStringIndex(100),
                             dateIndex=tm.makeDateIndex(100),
@@ -54,14 +54,14 @@ class TestIndex(Base, tm.TestCase):
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
-        self.assertEqual(new_index.ndim, 2)
+        assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
     def test_copy_and_deepcopy(self):
         super(TestIndex, self).test_copy_and_deepcopy()
 
         new_copy2 = self.intIndex.copy(dtype=int)
-        self.assertEqual(new_copy2.dtype.kind, 'i')
+        assert new_copy2.dtype.kind == 'i'
 
     def test_constructor(self):
         # regular instance creation
@@ -78,10 +78,10 @@ class TestIndex(Base, tm.TestCase):
         arr = np.array(self.strIndex)
         index = Index(arr, copy=True, name='name')
         assert isinstance(index, Index)
-        self.assertEqual(index.name, 'name')
+        assert index.name == 'name'
         tm.assert_numpy_array_equal(arr, index.values)
         arr[0] = "SOMEBIGLONGSTRING"
-        self.assertNotEqual(index[0], "SOMEBIGLONGSTRING")
+        assert index[0] != "SOMEBIGLONGSTRING"
 
         # what to do here?
         # arr = np.array(5.)
@@ -107,11 +107,11 @@ class TestIndex(Base, tm.TestCase):
                             tz='US/Eastern')
         result = pd.Index(idx)
         tm.assert_index_equal(result, idx)
-        self.assertEqual(result.tz, idx.tz)
+        assert result.tz == idx.tz
 
         result = pd.Index(idx.asobject)
         tm.assert_index_equal(result, idx)
-        self.assertEqual(result.tz, idx.tz)
+        assert result.tz == idx.tz
 
     def test_constructor_from_index_timedelta(self):
         idx = pd.timedelta_range('1 days', freq='D', periods=3)
@@ -134,7 +134,7 @@ class TestIndex(Base, tm.TestCase):
                             tz='US/Eastern')
         result = pd.Index(pd.Series(idx))
         tm.assert_index_equal(result, idx)
-        self.assertEqual(result.tz, idx.tz)
+        assert result.tz == idx.tz
 
     def test_constructor_from_series_timedelta(self):
         idx = pd.timedelta_range('1 days', freq='D', periods=3)
@@ -172,7 +172,7 @@ class TestIndex(Base, tm.TestCase):
         result = DatetimeIndex(df['date'], freq='MS')
         expected.name = 'date'
         tm.assert_index_equal(result, expected)
-        self.assertEqual(df['date'].dtype, object)
+        assert df['date'].dtype == object
 
         exp = pd.Series(['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990',
                          '5-1-1990'], name='date')
@@ -181,7 +181,7 @@ class TestIndex(Base, tm.TestCase):
         # GH 6274
         # infer freq of same
         result = pd.infer_freq(df['date'])
-        self.assertEqual(result, 'MS')
+        assert result == 'MS'
 
     def test_constructor_ndarray_like(self):
         # GH 5460#issuecomment-44474502
@@ -206,10 +206,10 @@ class TestIndex(Base, tm.TestCase):
         data = [np.nan]
         msg = "cannot convert"
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Index(data, dtype='int64')
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Index(data, dtype='uint64')
 
         # This, however, should not break
@@ -221,17 +221,17 @@ class TestIndex(Base, tm.TestCase):
     def test_index_ctor_infer_nan_nat(self):
         # GH 13467
         exp = pd.Float64Index([np.nan, np.nan])
-        self.assertEqual(exp.dtype, np.float64)
+        assert exp.dtype == np.float64
         tm.assert_index_equal(Index([np.nan, np.nan]), exp)
         tm.assert_index_equal(Index(np.array([np.nan, np.nan])), exp)
 
         exp = pd.DatetimeIndex([pd.NaT, pd.NaT])
-        self.assertEqual(exp.dtype, 'datetime64[ns]')
+        assert exp.dtype == 'datetime64[ns]'
         tm.assert_index_equal(Index([pd.NaT, pd.NaT]), exp)
         tm.assert_index_equal(Index(np.array([pd.NaT, pd.NaT])), exp)
 
         exp = pd.DatetimeIndex([pd.NaT, pd.NaT])
-        self.assertEqual(exp.dtype, 'datetime64[ns]')
+        assert exp.dtype == 'datetime64[ns]'
 
         for data in [[pd.NaT, np.nan], [np.nan, pd.NaT],
                      [np.nan, np.datetime64('nat')],
@@ -240,7 +240,7 @@ class TestIndex(Base, tm.TestCase):
             tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
 
         exp = pd.TimedeltaIndex([pd.NaT, pd.NaT])
-        self.assertEqual(exp.dtype, 'timedelta64[ns]')
+        assert exp.dtype == 'timedelta64[ns]'
 
         for data in [[np.nan, np.timedelta64('nat')],
                      [np.timedelta64('nat'), np.nan],
@@ -407,20 +407,20 @@ class TestIndex(Base, tm.TestCase):
         # pass on name
         self.intIndex.name = 'foobar'
         casted = self.intIndex.astype('i8')
-        self.assertEqual(casted.name, 'foobar')
+        assert casted.name == 'foobar'
 
     def test_equals_object(self):
         # same
-        self.assertTrue(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'c'])))
+        assert Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'c']))
 
         # different length
-        self.assertFalse(Index(['a', 'b', 'c']).equals(Index(['a', 'b'])))
+        assert not Index(['a', 'b', 'c']).equals(Index(['a', 'b']))
 
         # same length, different values
-        self.assertFalse(Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'd'])))
+        assert not Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'd']))
 
         # Must also be an Index
-        self.assertFalse(Index(['a', 'b', 'c']).equals(['a', 'b', 'c']))
+        assert not Index(['a', 'b', 'c']).equals(['a', 'b', 'c'])
 
     def test_insert(self):
 
@@ -449,12 +449,12 @@ class TestIndex(Base, tm.TestCase):
         expected = Index(['b', 'c', 'd'], name='idx')
         result = idx.delete(0)
         tm.assert_index_equal(result, expected)
-        self.assertEqual(result.name, expected.name)
+        assert result.name == expected.name
 
         expected = Index(['a', 'b', 'c'], name='idx')
         result = idx.delete(-1)
         tm.assert_index_equal(result, expected)
-        self.assertEqual(result.name, expected.name)
+        assert result.name == expected.name
 
         with pytest.raises((IndexError, ValueError)):
             # either depending on numpy version
@@ -466,50 +466,50 @@ class TestIndex(Base, tm.TestCase):
         i1 = Index(['a', 'b', 'c'])
         i2 = Index(['a', 'b', 'c'])
 
-        self.assertTrue(i1.identical(i2))
+        assert i1.identical(i2)
 
         i1 = i1.rename('foo')
-        self.assertTrue(i1.equals(i2))
-        self.assertFalse(i1.identical(i2))
+        assert i1.equals(i2)
+        assert not i1.identical(i2)
 
         i2 = i2.rename('foo')
-        self.assertTrue(i1.identical(i2))
+        assert i1.identical(i2)
 
         i3 = Index([('a', 'a'), ('a', 'b'), ('b', 'a')])
         i4 = Index([('a', 'a'), ('a', 'b'), ('b', 'a')], tupleize_cols=False)
-        self.assertFalse(i3.identical(i4))
+        assert not i3.identical(i4)
 
     def test_is_(self):
         ind = Index(range(10))
-        self.assertTrue(ind.is_(ind))
-        self.assertTrue(ind.is_(ind.view().view().view().view()))
-        self.assertFalse(ind.is_(Index(range(10))))
-        self.assertFalse(ind.is_(ind.copy()))
-        self.assertFalse(ind.is_(ind.copy(deep=False)))
-        self.assertFalse(ind.is_(ind[:]))
-        self.assertFalse(ind.is_(ind.view(np.ndarray).view(Index)))
-        self.assertFalse(ind.is_(np.array(range(10))))
+        assert ind.is_(ind)
+        assert ind.is_(ind.view().view().view().view())
+        assert not ind.is_(Index(range(10)))
+        assert not ind.is_(ind.copy())
+        assert not ind.is_(ind.copy(deep=False))
+        assert not ind.is_(ind[:])
+        assert not ind.is_(ind.view(np.ndarray).view(Index))
+        assert not ind.is_(np.array(range(10)))
 
         # quasi-implementation dependent
-        self.assertTrue(ind.is_(ind.view()))
+        assert ind.is_(ind.view())
         ind2 = ind.view()
         ind2.name = 'bob'
-        self.assertTrue(ind.is_(ind2))
-        self.assertTrue(ind2.is_(ind))
+        assert ind.is_(ind2)
+        assert ind2.is_(ind)
         # doesn't matter if Indices are *actually* views of underlying data,
-        self.assertFalse(ind.is_(Index(ind.values)))
+        assert not ind.is_(Index(ind.values))
         arr = np.array(range(1, 11))
         ind1 = Index(arr, copy=False)
         ind2 = Index(arr, copy=False)
-        self.assertFalse(ind1.is_(ind2))
+        assert not ind1.is_(ind2)
 
     def test_asof(self):
         d = self.dateIndex[0]
-        self.assertEqual(self.dateIndex.asof(d), d)
-        self.assertTrue(isnull(self.dateIndex.asof(d - timedelta(1))))
+        assert self.dateIndex.asof(d) == d
+        assert isnull(self.dateIndex.asof(d - timedelta(1)))
 
         d = self.dateIndex[-1]
-        self.assertEqual(self.dateIndex.asof(d + timedelta(1)), d)
+        assert self.dateIndex.asof(d + timedelta(1)) == d
 
         d = self.dateIndex[0].to_pydatetime()
         assert isinstance(self.dateIndex.asof(d), Timestamp)
@@ -518,8 +518,8 @@ class TestIndex(Base, tm.TestCase):
         idx = pd.date_range('2010-01-01', periods=2, freq='m')
         expected = Timestamp('2010-02-28')
         result = idx.asof('2010-02')
-        self.assertEqual(result, expected)
-        self.assertFalse(isinstance(result, Index))
+        assert result == expected
+        assert not isinstance(result, Index)
 
     def test_nanosecond_index_access(self):
         s = Series([Timestamp('20130101')]).values.view('i8')[0]
@@ -529,12 +529,11 @@ class TestIndex(Base, tm.TestCase):
         first_value = x.asof(x.index[0])
 
         # this does not yet work, as parsing strings is done via dateutil
-        # self.assertEqual(first_value,
-        #                  x['2013-01-01 00:00:00.000000050+0000'])
+        # assert first_value == x['2013-01-01 00:00:00.000000050+0000']
 
         exp_ts = np_datetime64_compat('2013-01-01 00:00:00.000000050+0000',
                                       'ns')
-        self.assertEqual(first_value, x[Timestamp(exp_ts)])
+        assert first_value == x[Timestamp(exp_ts)]
 
     def test_comparators(self):
         index = self.dateIndex
@@ -564,16 +563,16 @@ class TestIndex(Base, tm.TestCase):
         subIndex = self.strIndex[boolIdx]
 
         for i, val in enumerate(subIndex):
-            self.assertEqual(subIndex.get_loc(val), i)
+            assert subIndex.get_loc(val) == i
 
         subIndex = self.strIndex[list(boolIdx)]
         for i, val in enumerate(subIndex):
-            self.assertEqual(subIndex.get_loc(val), i)
+            assert subIndex.get_loc(val) == i
 
     def test_fancy(self):
         sl = self.strIndex[[1, 2, 3]]
         for i in sl:
-            self.assertEqual(i, sl[sl.get_loc(i)])
+            assert i == sl[sl.get_loc(i)]
 
     def test_empty_fancy(self):
         empty_farr = np.array([], dtype=np.float_)
@@ -585,9 +584,9 @@ class TestIndex(Base, tm.TestCase):
         for idx in [self.strIndex, self.intIndex, self.floatIndex]:
             empty_idx = idx.__class__([])
 
-            self.assertTrue(idx[[]].identical(empty_idx))
-            self.assertTrue(idx[empty_iarr].identical(empty_idx))
-            self.assertTrue(idx[empty_barr].identical(empty_idx))
+            assert idx[[]].identical(empty_idx)
+            assert idx[empty_iarr].identical(empty_idx)
+            assert idx[empty_barr].identical(empty_idx)
 
             # np.ndarray only accepts ndarray of int & bool dtypes, so should
             # Index.
@@ -598,13 +597,13 @@ class TestIndex(Base, tm.TestCase):
         exp = self.dateIndex[5]
         exp = _to_m8(exp)
 
-        self.assertEqual(exp, arr[5])
+        assert exp == arr[5]
 
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
         intersect = first.intersection(second)
-        self.assertTrue(tm.equalContents(intersect, second))
+        assert tm.equalContents(intersect, second)
 
         # Corner cases
         inter = first.intersection(first)
@@ -616,14 +615,14 @@ class TestIndex(Base, tm.TestCase):
         expected2 = Index([3, 4, 5], name='idx')
         result2 = idx1.intersection(idx2)
         tm.assert_index_equal(result2, expected2)
-        self.assertEqual(result2.name, expected2.name)
+        assert result2.name == expected2.name
 
         # if target name is different, it will be reset
         idx3 = Index([3, 4, 5, 6, 7], name='other')
         expected3 = Index([3, 4, 5], name=None)
         result3 = idx1.intersection(idx3)
         tm.assert_index_equal(result3, expected3)
-        self.assertEqual(result3.name, expected3.name)
+        assert result3.name == expected3.name
 
         # non monotonic
         idx1 = Index([5, 3, 2, 4, 1], name='idx')
@@ -655,7 +654,7 @@ class TestIndex(Base, tm.TestCase):
         first.name = 'A'
         second.name = 'A'
         intersect = first.intersection(second)
-        self.assertEqual(intersect.name, 'A')
+        assert intersect.name == 'A'
 
         second.name = 'B'
         intersect = first.intersection(second)
@@ -671,13 +670,13 @@ class TestIndex(Base, tm.TestCase):
         second = self.strIndex[:10]
         everything = self.strIndex[:20]
         union = first.union(second)
-        self.assertTrue(tm.equalContents(union, everything))
+        assert tm.equalContents(union, everything)
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             result = first.union(case)
-            self.assertTrue(tm.equalContents(result, everything))
+            assert tm.equalContents(result, everything)
 
         # Corner cases
         union = first.union(first)
@@ -753,8 +752,8 @@ class TestIndex(Base, tm.TestCase):
         else:
             appended = np.append(self.strIndex, self.dateIndex.astype('O'))
 
-        self.assertTrue(tm.equalContents(firstCat, appended))
-        self.assertTrue(tm.equalContents(secondCat, self.strIndex))
+        assert tm.equalContents(firstCat, appended)
+        assert tm.equalContents(secondCat, self.strIndex)
         tm.assert_contains_all(self.strIndex, firstCat)
         tm.assert_contains_all(self.strIndex, secondCat)
         tm.assert_contains_all(self.dateIndex, firstCat)
@@ -838,7 +837,7 @@ class TestIndex(Base, tm.TestCase):
         right = Index([1, 2, 3], name='foo')
 
         result = left.append(right)
-        self.assertEqual(result.name, 'foo')
+        assert result.name == 'foo'
 
         left = Index([], name='foo')
         right = Index([1, 2, 3], name='bar')
@@ -871,23 +870,23 @@ class TestIndex(Base, tm.TestCase):
         # different names
         result = first.difference(second)
 
-        self.assertTrue(tm.equalContents(result, answer))
-        self.assertEqual(result.name, None)
+        assert tm.equalContents(result, answer)
+        assert result.name is None
 
         # same names
         second.name = 'name'
         result = first.difference(second)
-        self.assertEqual(result.name, 'name')
+        assert result.name == 'name'
 
         # with empty
         result = first.difference([])
-        self.assertTrue(tm.equalContents(result, first))
-        self.assertEqual(result.name, first.name)
+        assert tm.equalContents(result, first)
+        assert result.name == first.name
 
-        # with everythin
+        # with everything
         result = first.difference(first)
-        self.assertEqual(len(result), 0)
-        self.assertEqual(result.name, first.name)
+        assert len(result) == 0
+        assert result.name == first.name
 
     def test_symmetric_difference(self):
         # smoke
@@ -895,12 +894,12 @@ class TestIndex(Base, tm.TestCase):
         idx2 = Index([2, 3, 4, 5])
         result = idx1.symmetric_difference(idx2)
         expected = Index([1, 5])
-        self.assertTrue(tm.equalContents(result, expected))
+        assert tm.equalContents(result, expected)
         assert result.name is None
 
         # __xor__ syntax
         expected = idx1 ^ idx2
-        self.assertTrue(tm.equalContents(result, expected))
+        assert tm.equalContents(result, expected)
         assert result.name is None
 
         # multiIndex
@@ -908,7 +907,7 @@ class TestIndex(Base, tm.TestCase):
         idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
         result = idx1.symmetric_difference(idx2)
         expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
-        self.assertTrue(tm.equalContents(result, expected))
+        assert tm.equalContents(result, expected)
 
         # nans:
         # GH 13514 change: {nan} - {nan} == {}
@@ -930,32 +929,32 @@ class TestIndex(Base, tm.TestCase):
         idx2 = np.array([2, 3, 4, 5])
         expected = Index([1, 5])
         result = idx1.symmetric_difference(idx2)
-        self.assertTrue(tm.equalContents(result, expected))
-        self.assertEqual(result.name, 'idx1')
+        assert tm.equalContents(result, expected)
+        assert result.name == 'idx1'
 
         result = idx1.symmetric_difference(idx2, result_name='new_name')
-        self.assertTrue(tm.equalContents(result, expected))
-        self.assertEqual(result.name, 'new_name')
+        assert tm.equalContents(result, expected)
+        assert result.name == 'new_name'
 
     def test_is_numeric(self):
-        self.assertFalse(self.dateIndex.is_numeric())
-        self.assertFalse(self.strIndex.is_numeric())
-        self.assertTrue(self.intIndex.is_numeric())
-        self.assertTrue(self.floatIndex.is_numeric())
-        self.assertFalse(self.catIndex.is_numeric())
+        assert not self.dateIndex.is_numeric()
+        assert not self.strIndex.is_numeric()
+        assert self.intIndex.is_numeric()
+        assert self.floatIndex.is_numeric()
+        assert not self.catIndex.is_numeric()
 
     def test_is_object(self):
-        self.assertTrue(self.strIndex.is_object())
-        self.assertTrue(self.boolIndex.is_object())
-        self.assertFalse(self.catIndex.is_object())
-        self.assertFalse(self.intIndex.is_object())
-        self.assertFalse(self.dateIndex.is_object())
-        self.assertFalse(self.floatIndex.is_object())
+        assert self.strIndex.is_object()
+        assert self.boolIndex.is_object()
+        assert not self.catIndex.is_object()
+        assert not self.intIndex.is_object()
+        assert not self.dateIndex.is_object()
+        assert not self.floatIndex.is_object()
 
     def test_is_all_dates(self):
-        self.assertTrue(self.dateIndex.is_all_dates)
-        self.assertFalse(self.strIndex.is_all_dates)
-        self.assertFalse(self.intIndex.is_all_dates)
+        assert self.dateIndex.is_all_dates
+        assert not self.strIndex.is_all_dates
+        assert not self.intIndex.is_all_dates
 
     def test_summary(self):
         self._check_method_works(Index.summary)
@@ -978,19 +977,19 @@ class TestIndex(Base, tm.TestCase):
             index = Index([now])
             formatted = index.format()
             expected = [str(index[0])]
-            self.assertEqual(formatted, expected)
+            assert formatted == expected
 
         # 2845
         index = Index([1, 2.0 + 3.0j, np.nan])
         formatted = index.format()
         expected = [str(index[0]), str(index[1]), u('NaN')]
-        self.assertEqual(formatted, expected)
+        assert formatted == expected
 
         # is this really allowed?
         index = Index([1, 2.0 + 3.0j, None])
         formatted = index.format()
         expected = [str(index[0]), str(index[1]), u('NaN')]
-        self.assertEqual(formatted, expected)
+        assert formatted == expected
 
         self.strIndex[:0].format()
 
@@ -1000,15 +999,15 @@ class TestIndex(Base, tm.TestCase):
         dates = Index([dt + inc for dt in self.dateIndex], name='something')
 
         formatted = dates.format(name=True)
-        self.assertEqual(formatted[0], 'something')
+        assert formatted[0] == 'something'
 
     def test_format_datetime_with_time(self):
         t = Index([datetime(2012, 2, 7), datetime(2012, 2, 7, 23)])
 
         result = t.format()
         expected = ['2012-02-07 00:00:00', '2012-02-07 23:00:00']
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result, expected)
+        assert len(result) == 2
+        assert result == expected
 
     def test_format_none(self):
         values = ['a', 'b', 'c', None]
@@ -1019,8 +1018,8 @@ class TestIndex(Base, tm.TestCase):
 
     def test_logical_compat(self):
         idx = self.create_index()
-        self.assertEqual(idx.all(), idx.values.all())
-        self.assertEqual(idx.any(), idx.values.any())
+        assert idx.all() == idx.values.all()
+        assert idx.any() == idx.values.any()
 
     def _check_method_works(self, method):
         method(self.empty)
@@ -1062,10 +1061,10 @@ class TestIndex(Base, tm.TestCase):
         # GH10411
         idx = Index(np.arange(10))
 
-        with tm.assertRaisesRegexp(ValueError, 'tolerance argument'):
+        with tm.assert_raises_regex(ValueError, 'tolerance argument'):
             idx.get_indexer([1, 0], tolerance=1)
 
-        with tm.assertRaisesRegexp(ValueError, 'limit argument'):
+        with tm.assert_raises_regex(ValueError, 'limit argument'):
             idx.get_indexer([1, 0], limit=1)
 
     def test_get_indexer_nearest(self):
@@ -1099,7 +1098,7 @@ class TestIndex(Base, tm.TestCase):
             tm.assert_numpy_array_equal(actual, np.array(expected,
                                                          dtype=np.intp))
 
-        with tm.assertRaisesRegexp(ValueError, 'limit argument'):
+        with tm.assert_raises_regex(ValueError, 'limit argument'):
             idx.get_indexer([1, 0], method='nearest', limit=1)
 
     def test_get_indexer_nearest_decreasing(self):
@@ -1138,25 +1137,25 @@ class TestIndex(Base, tm.TestCase):
         idx = pd.Index([0, 1, 2])
         all_methods = [None, 'pad', 'backfill', 'nearest']
         for method in all_methods:
-            self.assertEqual(idx.get_loc(1, method=method), 1)
+            assert idx.get_loc(1, method=method) == 1
             if method is not None:
-                self.assertEqual(idx.get_loc(1, method=method, tolerance=0), 1)
+                assert idx.get_loc(1, method=method, tolerance=0) == 1
             with pytest.raises(TypeError):
                 idx.get_loc([1, 2], method=method)
 
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
-            self.assertEqual(idx.get_loc(1.1, method), loc)
+            assert idx.get_loc(1.1, method) == loc
 
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
-            self.assertEqual(idx.get_loc(1.1, method, tolerance=1), loc)
+            assert idx.get_loc(1.1, method, tolerance=1) == loc
 
         for method in ['pad', 'backfill', 'nearest']:
             with pytest.raises(KeyError):
                 idx.get_loc(1.1, method, tolerance=0.05)
 
-        with tm.assertRaisesRegexp(ValueError, 'must be numeric'):
+        with tm.assert_raises_regex(ValueError, 'must be numeric'):
             idx.get_loc(1.1, 'nearest', tolerance='invalid')
-        with tm.assertRaisesRegexp(ValueError, 'tolerance .* valid if'):
+        with tm.assert_raises_regex(ValueError, 'tolerance .* valid if'):
             idx.get_loc(1.1, tolerance=1)
 
         idx = pd.Index(['a', 'c'])
@@ -1170,26 +1169,26 @@ class TestIndex(Base, tm.TestCase):
             idx = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
             n = len(idx)
 
-            self.assertEqual(idx.slice_locs(start=2), (2, n))
-            self.assertEqual(idx.slice_locs(start=3), (3, n))
-            self.assertEqual(idx.slice_locs(3, 8), (3, 6))
-            self.assertEqual(idx.slice_locs(5, 10), (3, n))
-            self.assertEqual(idx.slice_locs(end=8), (0, 6))
-            self.assertEqual(idx.slice_locs(end=9), (0, 7))
+            assert idx.slice_locs(start=2) == (2, n)
+            assert idx.slice_locs(start=3) == (3, n)
+            assert idx.slice_locs(3, 8) == (3, 6)
+            assert idx.slice_locs(5, 10) == (3, n)
+            assert idx.slice_locs(end=8) == (0, 6)
+            assert idx.slice_locs(end=9) == (0, 7)
 
             # reversed
             idx2 = idx[::-1]
-            self.assertEqual(idx2.slice_locs(8, 2), (2, 6))
-            self.assertEqual(idx2.slice_locs(7, 3), (2, 5))
+            assert idx2.slice_locs(8, 2) == (2, 6)
+            assert idx2.slice_locs(7, 3) == (2, 5)
 
         # float slicing
         idx = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=float))
         n = len(idx)
-        self.assertEqual(idx.slice_locs(5.0, 10.0), (3, n))
-        self.assertEqual(idx.slice_locs(4.5, 10.5), (3, 8))
+        assert idx.slice_locs(5.0, 10.0) == (3, n)
+        assert idx.slice_locs(4.5, 10.5) == (3, 8)
         idx2 = idx[::-1]
-        self.assertEqual(idx2.slice_locs(8.5, 1.5), (2, 6))
-        self.assertEqual(idx2.slice_locs(10.5, -1), (0, n))
+        assert idx2.slice_locs(8.5, 1.5) == (2, 6)
+        assert idx2.slice_locs(10.5, -1) == (0, n)
 
         # int slicing with floats
         # GH 4892, these are all TypeErrors
@@ -1206,35 +1205,35 @@ class TestIndex(Base, tm.TestCase):
 
     def test_slice_locs_dup(self):
         idx = Index(['a', 'a', 'b', 'c', 'd', 'd'])
-        self.assertEqual(idx.slice_locs('a', 'd'), (0, 6))
-        self.assertEqual(idx.slice_locs(end='d'), (0, 6))
-        self.assertEqual(idx.slice_locs('a', 'c'), (0, 4))
-        self.assertEqual(idx.slice_locs('b', 'd'), (2, 6))
+        assert idx.slice_locs('a', 'd') == (0, 6)
+        assert idx.slice_locs(end='d') == (0, 6)
+        assert idx.slice_locs('a', 'c') == (0, 4)
+        assert idx.slice_locs('b', 'd') == (2, 6)
 
         idx2 = idx[::-1]
-        self.assertEqual(idx2.slice_locs('d', 'a'), (0, 6))
-        self.assertEqual(idx2.slice_locs(end='a'), (0, 6))
-        self.assertEqual(idx2.slice_locs('d', 'b'), (0, 4))
-        self.assertEqual(idx2.slice_locs('c', 'a'), (2, 6))
+        assert idx2.slice_locs('d', 'a') == (0, 6)
+        assert idx2.slice_locs(end='a') == (0, 6)
+        assert idx2.slice_locs('d', 'b') == (0, 4)
+        assert idx2.slice_locs('c', 'a') == (2, 6)
 
         for dtype in [int, float]:
             idx = Index(np.array([10, 12, 12, 14], dtype=dtype))
-            self.assertEqual(idx.slice_locs(12, 12), (1, 3))
-            self.assertEqual(idx.slice_locs(11, 13), (1, 3))
+            assert idx.slice_locs(12, 12) == (1, 3)
+            assert idx.slice_locs(11, 13) == (1, 3)
 
             idx2 = idx[::-1]
-            self.assertEqual(idx2.slice_locs(12, 12), (1, 3))
-            self.assertEqual(idx2.slice_locs(13, 11), (1, 3))
+            assert idx2.slice_locs(12, 12) == (1, 3)
+            assert idx2.slice_locs(13, 11) == (1, 3)
 
     def test_slice_locs_na(self):
         idx = Index([np.nan, 1, 2])
         pytest.raises(KeyError, idx.slice_locs, start=1.5)
         pytest.raises(KeyError, idx.slice_locs, end=1.5)
-        self.assertEqual(idx.slice_locs(1), (1, 3))
-        self.assertEqual(idx.slice_locs(np.nan), (0, 3))
+        assert idx.slice_locs(1) == (1, 3)
+        assert idx.slice_locs(np.nan) == (0, 3)
 
         idx = Index([0, np.nan, np.nan, 1, 2])
-        self.assertEqual(idx.slice_locs(np.nan), (1, 5))
+        assert idx.slice_locs(np.nan) == (1, 5)
 
     def test_slice_locs_negative_step(self):
         idx = Index(list('bcdxy'))
@@ -1320,19 +1319,19 @@ class TestIndex(Base, tm.TestCase):
         int_idx = idx1.intersection(idx2)
         # needs to be 1d like idx1 and idx2
         expected = idx1[:4]  # pandas.Index(sorted(set(idx1) & set(idx2)))
-        self.assertEqual(int_idx.ndim, 1)
+        assert int_idx.ndim == 1
         tm.assert_index_equal(int_idx, expected)
 
         # union broken
         union_idx = idx1.union(idx2)
         expected = idx2
-        self.assertEqual(union_idx.ndim, 1)
+        assert union_idx.ndim == 1
         tm.assert_index_equal(union_idx, expected)
 
     def test_is_monotonic_incomparable(self):
         index = Index([5, datetime.now(), 7])
-        self.assertFalse(index.is_monotonic)
-        self.assertFalse(index.is_monotonic_decreasing)
+        assert not index.is_monotonic
+        assert not index.is_monotonic_decreasing
 
     def test_get_set_value(self):
         values = np.random.randn(100)
@@ -1341,7 +1340,7 @@ class TestIndex(Base, tm.TestCase):
         assert_almost_equal(self.dateIndex.get_value(values, date), values[67])
 
         self.dateIndex.set_value(values, date, 10)
-        self.assertEqual(values[67], 10)
+        assert values[67] == 10
 
     def test_isin(self):
         values = ['foo', 'bar', 'quux']
@@ -1358,8 +1357,8 @@ class TestIndex(Base, tm.TestCase):
         # empty, return dtype bool
         idx = Index([])
         result = idx.isin(values)
-        self.assertEqual(len(result), 0)
-        self.assertEqual(result.dtype, np.bool_)
+        assert len(result) == 0
+        assert result.dtype == np.bool_
 
     def test_isin_nan(self):
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([np.nan]),
@@ -1423,7 +1422,7 @@ class TestIndex(Base, tm.TestCase):
 
     def test_slice_keep_name(self):
         idx = Index(['a', 'b'], name='asdf')
-        self.assertEqual(idx.name, idx[1:].name)
+        assert idx.name == idx[1:].name
 
     def test_join_self(self):
         # instance attributes of the form self.<name>Index
@@ -1450,8 +1449,8 @@ class TestIndex(Base, tm.TestCase):
                    MultiIndex.from_tuples([('foo', '1'), ('bar', '3')]),
                    PeriodIndex(start='2000', end='2010', freq='A')]
         for idx in indices:
-            with tm.assertRaisesRegexp(AttributeError,
-                                       'only use .str accessor'):
+            with tm.assert_raises_regex(AttributeError,
+                                        'only use .str accessor'):
                 idx.str.repeat(2)
 
         idx = Index(['a b c', 'd e', 'f'])
@@ -1475,17 +1474,16 @@ class TestIndex(Base, tm.TestCase):
     def test_tab_completion(self):
         # GH 9910
         idx = Index(list('abcd'))
-        self.assertTrue('str' in dir(idx))
+        assert 'str' in dir(idx)
 
         idx = Index(range(4))
-        self.assertTrue('str' not in dir(idx))
+        assert 'str' not in dir(idx)
 
     def test_indexing_doesnt_change_class(self):
         idx = Index([1, 2, 3, 'a', 'b', 'c'])
 
-        self.assertTrue(idx[1:3].identical(pd.Index([2, 3], dtype=np.object_)))
-        self.assertTrue(idx[[0, 1]].identical(pd.Index(
-            [1, 2], dtype=np.object_)))
+        assert idx[1:3].identical(pd.Index([2, 3], dtype=np.object_))
+        assert idx[[0, 1]].identical(pd.Index([1, 2], dtype=np.object_))
 
     def test_outer_join_sort(self):
         left_idx = Index(np.random.permutation(15))
@@ -1526,9 +1524,9 @@ class TestIndex(Base, tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -1537,8 +1535,8 @@ class TestIndex(Base, tm.TestCase):
     def test_reshape_raise(self):
         msg = "reshaping is not supported"
         idx = pd.Index([0, 1, 2])
-        tm.assertRaisesRegexp(NotImplementedError, msg,
-                              idx.reshape, idx.shape)
+        tm.assert_raises_regex(NotImplementedError, msg,
+                               idx.reshape, idx.shape)
 
     def test_reindex_preserves_name_if_target_is_list_or_ndarray(self):
         # GH6552
@@ -1547,28 +1545,28 @@ class TestIndex(Base, tm.TestCase):
         dt_idx = pd.date_range('20130101', periods=3)
 
         idx.name = None
-        self.assertEqual(idx.reindex([])[0].name, None)
-        self.assertEqual(idx.reindex(np.array([]))[0].name, None)
-        self.assertEqual(idx.reindex(idx.tolist())[0].name, None)
-        self.assertEqual(idx.reindex(idx.tolist()[:-1])[0].name, None)
-        self.assertEqual(idx.reindex(idx.values)[0].name, None)
-        self.assertEqual(idx.reindex(idx.values[:-1])[0].name, None)
+        assert idx.reindex([])[0].name is None
+        assert idx.reindex(np.array([]))[0].name is None
+        assert idx.reindex(idx.tolist())[0].name is None
+        assert idx.reindex(idx.tolist()[:-1])[0].name is None
+        assert idx.reindex(idx.values)[0].name is None
+        assert idx.reindex(idx.values[:-1])[0].name is None
 
         # Must preserve name even if dtype changes.
-        self.assertEqual(idx.reindex(dt_idx.values)[0].name, None)
-        self.assertEqual(idx.reindex(dt_idx.tolist())[0].name, None)
+        assert idx.reindex(dt_idx.values)[0].name is None
+        assert idx.reindex(dt_idx.tolist())[0].name is None
 
         idx.name = 'foobar'
-        self.assertEqual(idx.reindex([])[0].name, 'foobar')
-        self.assertEqual(idx.reindex(np.array([]))[0].name, 'foobar')
-        self.assertEqual(idx.reindex(idx.tolist())[0].name, 'foobar')
-        self.assertEqual(idx.reindex(idx.tolist()[:-1])[0].name, 'foobar')
-        self.assertEqual(idx.reindex(idx.values)[0].name, 'foobar')
-        self.assertEqual(idx.reindex(idx.values[:-1])[0].name, 'foobar')
+        assert idx.reindex([])[0].name == 'foobar'
+        assert idx.reindex(np.array([]))[0].name == 'foobar'
+        assert idx.reindex(idx.tolist())[0].name == 'foobar'
+        assert idx.reindex(idx.tolist()[:-1])[0].name == 'foobar'
+        assert idx.reindex(idx.values)[0].name == 'foobar'
+        assert idx.reindex(idx.values[:-1])[0].name == 'foobar'
 
         # Must preserve name even if dtype changes.
-        self.assertEqual(idx.reindex(dt_idx.values)[0].name, 'foobar')
-        self.assertEqual(idx.reindex(dt_idx.tolist())[0].name, 'foobar')
+        assert idx.reindex(dt_idx.values)[0].name == 'foobar'
+        assert idx.reindex(dt_idx.tolist())[0].name == 'foobar'
 
     def test_reindex_preserves_type_if_target_is_empty_list_or_array(self):
         # GH7774
@@ -1577,10 +1575,9 @@ class TestIndex(Base, tm.TestCase):
         def get_reindex_type(target):
             return idx.reindex(target)[0].dtype.type
 
-        self.assertEqual(get_reindex_type([]), np.object_)
-        self.assertEqual(get_reindex_type(np.array([])), np.object_)
-        self.assertEqual(get_reindex_type(np.array([], dtype=np.int64)),
-                         np.object_)
+        assert get_reindex_type([]) == np.object_
+        assert get_reindex_type(np.array([])) == np.object_
+        assert get_reindex_type(np.array([], dtype=np.int64)) == np.object_
 
     def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self):
         # GH7774
@@ -1589,14 +1586,14 @@ class TestIndex(Base, tm.TestCase):
         def get_reindex_type(target):
             return idx.reindex(target)[0].dtype.type
 
-        self.assertEqual(get_reindex_type(pd.Int64Index([])), np.int64)
-        self.assertEqual(get_reindex_type(pd.Float64Index([])), np.float64)
-        self.assertEqual(get_reindex_type(pd.DatetimeIndex([])), np.datetime64)
+        assert get_reindex_type(pd.Int64Index([])) == np.int64
+        assert get_reindex_type(pd.Float64Index([])) == np.float64
+        assert get_reindex_type(pd.DatetimeIndex([])) == np.datetime64
 
         reindexed = idx.reindex(pd.MultiIndex(
             [pd.Int64Index([]), pd.Float64Index([])], [[], []]))[0]
-        self.assertEqual(reindexed.levels[0].dtype.type, np.int64)
-        self.assertEqual(reindexed.levels[1].dtype.type, np.float64)
+        assert reindexed.levels[0].dtype.type == np.int64
+        assert reindexed.levels[1].dtype.type == np.float64
 
     def test_groupby(self):
         idx = Index(range(5))
@@ -1617,11 +1614,11 @@ class TestIndex(Base, tm.TestCase):
         mi2 = MultiIndex.from_tuples([(1, 2), (4, 6)])
         tm.assert_numpy_array_equal(df.index == mi2, np.array([True, False]))
         mi3 = MultiIndex.from_tuples([(1, 2), (4, 5), (8, 9)])
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             df.index == mi3
 
         index_a = Index(['foo', 'bar', 'baz'])
-        with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
+        with tm.assert_raises_regex(ValueError, "Lengths must match"):
             df.index == index_a
         tm.assert_numpy_array_equal(index_a == mi3,
                                     np.array([False, False, False]))
@@ -1629,8 +1626,8 @@ class TestIndex(Base, tm.TestCase):
     def test_conversion_preserves_name(self):
         # GH 10875
         i = pd.Index(['01:02:03', '01:02:04'], name='label')
-        self.assertEqual(i.name, pd.to_datetime(i).name)
-        self.assertEqual(i.name, pd.to_timedelta(i).name)
+        assert i.name == pd.to_datetime(i).name
+        assert i.name == pd.to_timedelta(i).name
 
     def test_string_index_repr(self):
         # py3/py2 repr can differ because of "u" prefix
@@ -1645,10 +1642,10 @@ class TestIndex(Base, tm.TestCase):
         idx = pd.Index(['a', 'bb', 'ccc'])
         if PY3:
             expected = u"""Index(['a', 'bb', 'ccc'], dtype='object')"""
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""Index([u'a', u'bb', u'ccc'], dtype='object')"""
-            self.assertEqual(coerce(idx), expected)
+            assert coerce(idx) == expected
 
         # multiple lines
         idx = pd.Index(['a', 'bb', 'ccc'] * 10)
@@ -1659,7 +1656,7 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc',
        'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
       dtype='object')"""
 
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""\
 Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
@@ -1667,7 +1664,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
        u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
       dtype='object')"""
 
-            self.assertEqual(coerce(idx), expected)
+            assert coerce(idx) == expected
 
         # truncated
         idx = pd.Index(['a', 'bb', 'ccc'] * 100)
@@ -1678,7 +1675,7 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
        'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
       dtype='object', length=300)"""
 
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""\
 Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
@@ -1686,16 +1683,16 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
        u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
       dtype='object', length=300)"""
 
-            self.assertEqual(coerce(idx), expected)
+            assert coerce(idx) == expected
 
         # short
         idx = pd.Index([u'あ', u'いい', u'ううう'])
         if PY3:
             expected = u"""Index(['あ', 'いい', 'ううう'], dtype='object')"""
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = u"""Index([u'あ', u'いい', u'ううう'], dtype='object')"""
-            self.assertEqual(coerce(idx), expected)
+            assert coerce(idx) == expected
 
         # multiple lines
         idx = pd.Index([u'あ', u'いい', u'ううう'] * 10)
@@ -1707,7 +1704,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                         u"       'あ', 'いい', 'ううう', 'あ', 'いい', "
                         u"'ううう'],\n"
                         u"      dtype='object')")
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
                         u"u'ううう', u'あ', u'いい', u'ううう', u'あ',\n"
@@ -1716,7 +1713,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                         u"       u'ううう', u'あ', u'いい', u'ううう', u'あ', "
                         u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
                         u"      dtype='object')")
-            self.assertEqual(coerce(idx), expected)
+            assert coerce(idx) == expected
 
         # truncated
         idx = pd.Index([u'あ', u'いい', u'ううう'] * 100)
@@ -1727,7 +1724,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                         u"       'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', "
                         u"'ううう', 'あ', 'いい', 'ううう'],\n"
                         u"      dtype='object', length=300)")
-            self.assertEqual(repr(idx), expected)
+            assert repr(idx) == expected
         else:
             expected = (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
                         u"u'ううう', u'あ', u'いい', u'ううう', u'あ',\n"
@@ -1736,7 +1733,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                         u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
                         u"      dtype='object', length=300)")
 
-            self.assertEqual(coerce(idx), expected)
+            assert coerce(idx) == expected
 
         # Emable Unicode option -----------------------------------------
         with cf.option_context('display.unicode.east_asian_width', True):
@@ -1746,11 +1743,11 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
             if PY3:
                 expected = (u"Index(['あ', 'いい', 'ううう'], "
                             u"dtype='object')")
-                self.assertEqual(repr(idx), expected)
+                assert repr(idx) == expected
             else:
                 expected = (u"Index([u'あ', u'いい', u'ううう'], "
                             u"dtype='object')")
-                self.assertEqual(coerce(idx), expected)
+                assert coerce(idx) == expected
 
             # multiple lines
             idx = pd.Index([u'あ', u'いい', u'ううう'] * 10)
@@ -1764,7 +1761,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                             u"       'あ', 'いい', 'ううう'],\n"
                             u"      dtype='object')""")
 
-                self.assertEqual(repr(idx), expected)
+                assert repr(idx) == expected
             else:
                 expected = (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
                             u"u'ううう', u'あ', u'いい',\n"
@@ -1776,7 +1773,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                             u"u'あ', u'いい', u'ううう'],\n"
                             u"      dtype='object')")
 
-                self.assertEqual(coerce(idx), expected)
+                assert coerce(idx) == expected
 
             # truncated
             idx = pd.Index([u'あ', u'いい', u'ううう'] * 100)
@@ -1790,7 +1787,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                             u"       'ううう'],\n"
                             u"      dtype='object', length=300)")
 
-                self.assertEqual(repr(idx), expected)
+                assert repr(idx) == expected
             else:
                 expected = (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
                             u"u'ううう', u'あ', u'いい',\n"
@@ -1801,17 +1798,17 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                             u"       u'いい', u'ううう'],\n"
                             u"      dtype='object', length=300)")
 
-                self.assertEqual(coerce(idx), expected)
+                assert coerce(idx) == expected
 
 
-class TestMixedIntIndex(Base, tm.TestCase):
+class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
     # in py2 and py3 because ints and strings are uncomparable in py3
     # (GH 13514)
 
     _holder = Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(mixedIndex=Index([0, 'a', 1, 'b', 2, 'c']))
         self.setup_indices()
 
@@ -1821,10 +1818,10 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def test_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assertRaisesRegexp(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>' not supported"):
                 result = idx.argsort()
         elif PY3:
-            with tm.assertRaisesRegexp(TypeError, "unorderable types"):
+            with tm.assert_raises_regex(TypeError, "unorderable types"):
                 result = idx.argsort()
         else:
             result = idx.argsort()
@@ -1834,10 +1831,10 @@ class TestMixedIntIndex(Base, tm.TestCase):
     def test_numpy_argsort(self):
         idx = self.create_index()
         if PY36:
-            with tm.assertRaisesRegexp(TypeError, "'>' not supported"):
+            with tm.assert_raises_regex(TypeError, "'>' not supported"):
                 result = np.argsort(idx)
         elif PY3:
-            with tm.assertRaisesRegexp(TypeError, "unorderable types"):
+            with tm.assert_raises_regex(TypeError, "unorderable types"):
                 result = np.argsort(idx)
         else:
             result = np.argsort(idx)
@@ -1876,23 +1873,23 @@ class TestMixedIntIndex(Base, tm.TestCase):
         idx = pd.Index([1, 2], name='MyName')
         idx1 = idx.copy()
 
-        self.assertTrue(idx.equals(idx1))
-        self.assertEqual(idx.name, 'MyName')
-        self.assertEqual(idx1.name, 'MyName')
+        assert idx.equals(idx1)
+        assert idx.name == 'MyName'
+        assert idx1.name == 'MyName'
 
         idx2 = idx.copy(name='NewName')
 
-        self.assertTrue(idx.equals(idx2))
-        self.assertEqual(idx.name, 'MyName')
-        self.assertEqual(idx2.name, 'NewName')
+        assert idx.equals(idx2)
+        assert idx.name == 'MyName'
+        assert idx2.name == 'NewName'
 
         idx3 = idx.copy(names=['NewName'])
 
-        self.assertTrue(idx.equals(idx3))
-        self.assertEqual(idx.name, 'MyName')
-        self.assertEqual(idx.names, ['MyName'])
-        self.assertEqual(idx3.name, 'NewName')
-        self.assertEqual(idx3.names, ['NewName'])
+        assert idx.equals(idx3)
+        assert idx.name == 'MyName'
+        assert idx.names == ['MyName']
+        assert idx3.name == 'NewName'
+        assert idx3.names == ['NewName']
 
     def test_union_base(self):
         idx = self.create_index()
@@ -1918,10 +1915,10 @@ class TestMixedIntIndex(Base, tm.TestCase):
                 with tm.assert_produces_warning(RuntimeWarning):
                     # unorderable types
                     result = first.union(case)
-                    self.assertTrue(tm.equalContents(result, idx))
+                    assert tm.equalContents(result, idx)
             else:
                 result = first.union(case)
-                self.assertTrue(tm.equalContents(result, idx))
+                assert tm.equalContents(result, idx)
 
     def test_intersection_base(self):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
@@ -1937,7 +1934,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
                  for klass in [np.array, Series, list]]
         for case in cases:
             result = first.intersection(case)
-            self.assertTrue(tm.equalContents(result, second))
+            assert tm.equalContents(result, second)
 
     def test_difference_base(self):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
@@ -1961,8 +1958,8 @@ class TestMixedIntIndex(Base, tm.TestCase):
 
     def test_logical_compat(self):
         idx = self.create_index()
-        self.assertEqual(idx.all(), idx.values.all())
-        self.assertEqual(idx.any(), idx.values.any())
+        assert idx.all() == idx.values.all()
+        assert idx.any() == idx.values.any()
 
     def test_dropna(self):
         # GH 6194
@@ -2002,7 +1999,7 @@ class TestMixedIntIndex(Base, tm.TestCase):
         tm.assert_index_equal(nanidx.dropna(), idx)
 
         msg = "invalid how option: xxx"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             pd.Index([1, 2, 3]).dropna(how='xxx')
 
     def test_get_combined_index(self):
@@ -2031,14 +2028,14 @@ class TestMixedIntIndex(Base, tm.TestCase):
                     pd.to_datetime(['2000-01-01', 'NaT', '2000-01-02']),
                     pd.to_timedelta(['1 day', 'NaT']), ]
         for index in examples:
-            self.assertFalse(index.is_monotonic_increasing)
-            self.assertFalse(index.is_monotonic_decreasing)
+            assert not index.is_monotonic_increasing
+            assert not index.is_monotonic_decreasing
 
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):
             r = repr(pd.Index(np.arange(1000)))
-            self.assertTrue(len(r) < 200)
-            self.assertTrue("..." in r)
+            assert len(r) < 200
+            assert "..." in r
 
     def test_int_name_format(self):
         index = Index(['a', 'b', 'c'], name=0)
@@ -2075,4 +2072,4 @@ class TestMixedIntIndex(Base, tm.TestCase):
         i2 = Index(['aa'], dtype=object)
         res = i2.intersection(i1)
 
-        self.assertEqual(len(res), 0)
+        assert len(res) == 0

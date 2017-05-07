@@ -9,14 +9,14 @@ import numpy as np
 from pandas.core.dtypes.missing import isnull
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core import common as com
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate_kwarg, Substitution)
+from pandas.util._decorators import (Appender, cache_readonly,
+                                     deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
 
 _shared_docs = dict()
@@ -369,42 +369,6 @@ class SelectionMixin(object):
 
         """
         raise AbstractMethodError(self)
-
-    _agg_doc = """Aggregate using input function or dict of {column ->
-function}
-
-Parameters
-----------
-arg : function or dict
-    Function to use for aggregating groups. If a function, must either
-    work when passed a DataFrame or when passed to DataFrame.apply. If
-    passed a dict, the keys must be DataFrame column names.
-
-    Accepted Combinations are:
-      - string cythonized function name
-      - function
-      - list of functions
-      - dict of columns -> functions
-      - nested dict of names -> dicts of functions
-
-Notes
------
-Numpy functions mean/median/prod/sum/std/var are special cased so the
-default behavior is applying the function along axis=0
-(e.g., np.mean(arr_2d, axis=0)) as opposed to
-mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
-
-Returns
--------
-aggregated : DataFrame
-"""
-
-    _see_also_template = """
-See also
---------
-pandas.Series.%(name)s
-pandas.DataFrame.%(name)s
-"""
 
     def aggregate(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
@@ -1150,30 +1114,39 @@ class IndexOpsMixin(object):
 
         Examples
         --------
+
         >>> x = pd.Series([1, 2, 3])
         >>> x
         0    1
         1    2
         2    3
         dtype: int64
+
         >>> x.searchsorted(4)
         array([3])
+
         >>> x.searchsorted([0, 4])
         array([0, 3])
+
         >>> x.searchsorted([1, 3], side='left')
         array([0, 2])
+
         >>> x.searchsorted([1, 3], side='right')
         array([1, 3])
-        >>>
+
         >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk' ])
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
+
         >>> x.searchsorted('bread')
         array([1])     # Note: an array, not a scalar
+
         >>> x.searchsorted(['bread'])
         array([1])
+
         >>> x.searchsorted(['bread', 'eggs'])
         array([1, 4])
+
         >>> x.searchsorted(['bread', 'eggs'], side='right')
         array([3, 4])    # eggs before milk
         """)

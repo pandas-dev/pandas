@@ -19,7 +19,7 @@ class HeaderTests(object):
     def test_read_with_bad_header(self):
         errmsg = r"but only \d+ lines in file"
 
-        with tm.assertRaisesRegexp(ValueError, errmsg):
+        with tm.assert_raises_regex(ValueError, errmsg):
             s = StringIO(',,')
             self.read_csv(s, header=[10])
 
@@ -62,7 +62,7 @@ baz,7,8,9
         names = ['A', 'B', 'C']
         df = self.read_csv(StringIO(data), names=names)
 
-        self.assertEqual(names, ['A', 'B', 'C'])
+        assert list(df.columns) == ['A', 'B', 'C']
 
         values = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
         expected = DataFrame(values, index=['foo', 'bar', 'baz'],

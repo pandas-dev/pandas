@@ -215,11 +215,11 @@ line 22",2
 
         skiprows = lambda x: True
         msg = "No columns to parse from file"
-        with tm.assertRaisesRegexp(EmptyDataError, msg):
+        with tm.assert_raises_regex(EmptyDataError, msg):
             self.read_csv(StringIO(data), skiprows=skiprows)
 
         # This is a bad callable and should raise.
         msg = "by zero"
         skiprows = lambda x: 1 / 0
-        with tm.assertRaisesRegexp(ZeroDivisionError, msg):
+        with tm.assert_raises_regex(ZeroDivisionError, msg):
             self.read_csv(StringIO(data), skiprows=skiprows)

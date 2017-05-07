@@ -12,10 +12,10 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-class TestIntervalIndex(Base, tm.TestCase):
+class TestIntervalIndex(Base):
     _holder = IntervalIndex
 
-    def setUp(self):
+    def setup_method(self, method):
         self.index = IntervalIndex.from_arrays([0, 1], [1, 2])
         self.index_with_nan = IntervalIndex.from_tuples(
             [(0, 1), np.nan, (1, 2)])
@@ -27,28 +27,28 @@ class TestIntervalIndex(Base, tm.TestCase):
     def test_constructors(self):
         expected = self.index
         actual = IntervalIndex.from_breaks(np.arange(3), closed='right')
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         alternate = IntervalIndex.from_breaks(np.arange(3), closed='left')
-        self.assertFalse(expected.equals(alternate))
+        assert not expected.equals(alternate)
 
         actual = IntervalIndex.from_intervals([Interval(0, 1), Interval(1, 2)])
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = IntervalIndex([Interval(0, 1), Interval(1, 2)])
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = IntervalIndex.from_arrays(np.arange(2), np.arange(2) + 1,
                                            closed='right')
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = Index([Interval(0, 1), Interval(1, 2)])
         assert isinstance(actual, IntervalIndex)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = Index(expected)
         assert isinstance(actual, IntervalIndex)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
     def test_constructors_other(self):
 
@@ -106,8 +106,8 @@ class TestIntervalIndex(Base, tm.TestCase):
 
             expected_scalar_type = type(idx[0])
             i = result[0]
-            self.assertTrue(isinstance(i.left, expected_scalar_type))
-            self.assertTrue(isinstance(i.right, expected_scalar_type))
+            assert isinstance(i.left, expected_scalar_type)
+            assert isinstance(i.right, expected_scalar_type)
 
     def test_constructors_error(self):
 
@@ -118,15 +118,15 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_properties(self):
         index = self.index
-        self.assertEqual(len(index), 2)
-        self.assertEqual(index.size, 2)
-        self.assertEqual(index.shape, (2, ))
+        assert len(index) == 2
+        assert index.size == 2
+        assert index.shape == (2, )
 
         tm.assert_index_equal(index.left, Index([0, 1]))
         tm.assert_index_equal(index.right, Index([1, 2]))
         tm.assert_index_equal(index.mid, Index([0.5, 1.5]))
 
-        self.assertEqual(index.closed, 'right')
+        assert index.closed == 'right'
 
         expected = np.array([Interval(0, 1), Interval(1, 2)], dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
@@ -134,15 +134,15 @@ class TestIntervalIndex(Base, tm.TestCase):
 
         # with nans
         index = self.index_with_nan
-        self.assertEqual(len(index), 3)
-        self.assertEqual(index.size, 3)
-        self.assertEqual(index.shape, (3, ))
+        assert len(index) == 3
+        assert index.size == 3
+        assert index.shape == (3, )
 
         tm.assert_index_equal(index.left, Index([0, np.nan, 1]))
         tm.assert_index_equal(index.right, Index([1, np.nan, 2]))
         tm.assert_index_equal(index.mid, Index([0.5, np.nan, 1.5]))
 
-        self.assertEqual(index.closed, 'right')
+        assert index.closed == 'right'
 
         expected = np.array([Interval(0, 1), np.nan,
                              Interval(1, 2)], dtype=object)
@@ -151,14 +151,14 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_with_nans(self):
         index = self.index
-        self.assertFalse(index.hasnans)
+        assert not index.hasnans
         tm.assert_numpy_array_equal(index.isnull(),
                                     np.array([False, False]))
         tm.assert_numpy_array_equal(index.notnull(),
                                     np.array([True, True]))
 
         index = self.index_with_nan
-        self.assertTrue(index.hasnans)
+        assert index.hasnans
         tm.assert_numpy_array_equal(index.notnull(),
                                     np.array([True, False, True]))
         tm.assert_numpy_array_equal(index.isnull(),
@@ -193,17 +193,16 @@ class TestIntervalIndex(Base, tm.TestCase):
     def test_equals(self):
 
         idx = self.index
-        self.assertTrue(idx.equals(idx))
-        self.assertTrue(idx.equals(idx.copy()))
+        assert idx.equals(idx)
+        assert idx.equals(idx.copy())
 
-        self.assertFalse(idx.equals(idx.astype(object)))
-        self.assertFalse(idx.equals(np.array(idx)))
-        self.assertFalse(idx.equals(list(idx)))
+        assert not idx.equals(idx.astype(object))
+        assert not idx.equals(np.array(idx))
+        assert not idx.equals(list(idx))
 
-        self.assertFalse(idx.equals([1, 2]))
-        self.assertFalse(idx.equals(np.array([1, 2])))
-        self.assertFalse(idx.equals(
-            pd.date_range('20130101', periods=2)))
+        assert not idx.equals([1, 2])
+        assert not idx.equals(np.array([1, 2]))
+        assert not idx.equals(pd.date_range('20130101', periods=2))
 
     def test_astype(self):
 
@@ -216,12 +215,12 @@ class TestIntervalIndex(Base, tm.TestCase):
 
         result = idx.astype(object)
         tm.assert_index_equal(result, Index(idx.values, dtype='object'))
-        self.assertFalse(idx.equals(result))
-        self.assertTrue(idx.equals(IntervalIndex.from_intervals(result)))
+        assert not idx.equals(result)
+        assert idx.equals(IntervalIndex.from_intervals(result))
 
         result = idx.astype('interval')
         tm.assert_index_equal(result, idx)
-        self.assertTrue(result.equals(idx))
+        assert result.equals(idx)
 
         result = idx.astype('category')
         expected = pd.Categorical(idx, ordered=True)
@@ -244,12 +243,12 @@ class TestIntervalIndex(Base, tm.TestCase):
     def test_delete(self):
         expected = IntervalIndex.from_breaks([1, 2])
         actual = self.index.delete(0)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
     def test_insert(self):
         expected = IntervalIndex.from_breaks(range(4))
         actual = self.index.insert(2, Interval(2, 3))
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         pytest.raises(ValueError, self.index.insert, 0, 1)
         pytest.raises(ValueError, self.index.insert, 0,
@@ -257,27 +256,27 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_take(self):
         actual = self.index.take([0, 1])
-        self.assertTrue(self.index.equals(actual))
+        assert self.index.equals(actual)
 
         expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2])
         actual = self.index.take([0, 0, 1])
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
     def test_monotonic_and_unique(self):
-        self.assertTrue(self.index.is_monotonic)
-        self.assertTrue(self.index.is_unique)
+        assert self.index.is_monotonic
+        assert self.index.is_unique
 
         idx = IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)])
-        self.assertTrue(idx.is_monotonic)
-        self.assertTrue(idx.is_unique)
+        assert idx.is_monotonic
+        assert idx.is_unique
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 2)])
-        self.assertFalse(idx.is_monotonic)
-        self.assertTrue(idx.is_unique)
+        assert not idx.is_monotonic
+        assert idx.is_unique
 
         idx = IntervalIndex.from_tuples([(0, 2), (0, 2)])
-        self.assertFalse(idx.is_unique)
-        self.assertTrue(idx.is_monotonic)
+        assert not idx.is_unique
+        assert idx.is_monotonic
 
     @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
     def test_repr(self):
@@ -286,7 +285,7 @@ class TestIntervalIndex(Base, tm.TestCase):
                     "\n              right=[1, 2],"
                     "\n              closed='right',"
                     "\n              dtype='interval[int64]')")
-        self.assertEqual(repr(i), expected)
+        assert repr(i) == expected
 
         i = IntervalIndex.from_tuples((Timestamp('20130101'),
                                        Timestamp('20130102')),
@@ -297,7 +296,7 @@ class TestIntervalIndex(Base, tm.TestCase):
                     "\n              right=['2013-01-02', '2013-01-03'],"
                     "\n              closed='right',"
                     "\n              dtype='interval[datetime64[ns]]')")
-        self.assertEqual(repr(i), expected)
+        assert repr(i) == expected
 
     @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
     def test_repr_max_seq_item_setting(self):
@@ -329,21 +328,21 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def test_get_loc_value(self):
         pytest.raises(KeyError, self.index.get_loc, 0)
-        self.assertEqual(self.index.get_loc(0.5), 0)
-        self.assertEqual(self.index.get_loc(1), 0)
-        self.assertEqual(self.index.get_loc(1.5), 1)
-        self.assertEqual(self.index.get_loc(2), 1)
+        assert self.index.get_loc(0.5) == 0
+        assert self.index.get_loc(1) == 0
+        assert self.index.get_loc(1.5) == 1
+        assert self.index.get_loc(2) == 1
         pytest.raises(KeyError, self.index.get_loc, -1)
         pytest.raises(KeyError, self.index.get_loc, 3)
 
         idx = IntervalIndex.from_tuples([(0, 2), (1, 3)])
-        self.assertEqual(idx.get_loc(0.5), 0)
-        self.assertEqual(idx.get_loc(1), 0)
+        assert idx.get_loc(0.5) == 0
+        assert idx.get_loc(1) == 0
         tm.assert_numpy_array_equal(idx.get_loc(1.5),
                                     np.array([0, 1], dtype='int64'))
         tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
                                     np.array([0, 1], dtype='int64'))
-        self.assertEqual(idx.get_loc(3), 1)
+        assert idx.get_loc(3) == 1
         pytest.raises(KeyError, idx.get_loc, 3.5)
 
         idx = IntervalIndex.from_arrays([0, 2], [1, 3])
@@ -352,29 +351,29 @@ class TestIntervalIndex(Base, tm.TestCase):
     def slice_locs_cases(self, breaks):
         # TODO: same tests for more index types
         index = IntervalIndex.from_breaks([0, 1, 2], closed='right')
-        self.assertEqual(index.slice_locs(), (0, 2))
-        self.assertEqual(index.slice_locs(0, 1), (0, 1))
-        self.assertEqual(index.slice_locs(1, 1), (0, 1))
-        self.assertEqual(index.slice_locs(0, 2), (0, 2))
-        self.assertEqual(index.slice_locs(0.5, 1.5), (0, 2))
-        self.assertEqual(index.slice_locs(0, 0.5), (0, 1))
-        self.assertEqual(index.slice_locs(start=1), (0, 2))
-        self.assertEqual(index.slice_locs(start=1.2), (1, 2))
-        self.assertEqual(index.slice_locs(end=1), (0, 1))
-        self.assertEqual(index.slice_locs(end=1.1), (0, 2))
-        self.assertEqual(index.slice_locs(end=1.0), (0, 1))
-        self.assertEqual(*index.slice_locs(-1, -1))
+        assert index.slice_locs() == (0, 2)
+        assert index.slice_locs(0, 1) == (0, 1)
+        assert index.slice_locs(1, 1) == (0, 1)
+        assert index.slice_locs(0, 2) == (0, 2)
+        assert index.slice_locs(0.5, 1.5) == (0, 2)
+        assert index.slice_locs(0, 0.5) == (0, 1)
+        assert index.slice_locs(start=1) == (0, 2)
+        assert index.slice_locs(start=1.2) == (1, 2)
+        assert index.slice_locs(end=1) == (0, 1)
+        assert index.slice_locs(end=1.1) == (0, 2)
+        assert index.slice_locs(end=1.0) == (0, 1)
+        assert index.slice_locs(-1, -1) == (0, 0)
 
         index = IntervalIndex.from_breaks([0, 1, 2], closed='neither')
-        self.assertEqual(index.slice_locs(0, 1), (0, 1))
-        self.assertEqual(index.slice_locs(0, 2), (0, 2))
-        self.assertEqual(index.slice_locs(0.5, 1.5), (0, 2))
-        self.assertEqual(index.slice_locs(1, 1), (1, 1))
-        self.assertEqual(index.slice_locs(1, 2), (1, 2))
+        assert index.slice_locs(0, 1) == (0, 1)
+        assert index.slice_locs(0, 2) == (0, 2)
+        assert index.slice_locs(0.5, 1.5) == (0, 2)
+        assert index.slice_locs(1, 1) == (1, 1)
+        assert index.slice_locs(1, 2) == (1, 2)
 
         index = IntervalIndex.from_breaks([0, 1, 2], closed='both')
-        self.assertEqual(index.slice_locs(1, 1), (0, 2))
-        self.assertEqual(index.slice_locs(1, 2), (0, 2))
+        assert index.slice_locs(1, 1) == (0, 2)
+        assert index.slice_locs(1, 2) == (0, 2)
 
     def test_slice_locs_int64(self):
         self.slice_locs_cases([0, 1, 2])
@@ -384,14 +383,16 @@ class TestIntervalIndex(Base, tm.TestCase):
 
     def slice_locs_decreasing_cases(self, tuples):
         index = IntervalIndex.from_tuples(tuples)
-        self.assertEqual(index.slice_locs(1.5, 0.5), (1, 3))
-        self.assertEqual(index.slice_locs(2, 0), (1, 3))
-        self.assertEqual(index.slice_locs(2, 1), (1, 3))
-        self.assertEqual(index.slice_locs(3, 1.1), (0, 3))
-        self.assertEqual(index.slice_locs(3, 3), (0, 2))
-        self.assertEqual(index.slice_locs(3.5, 3.3), (0, 1))
-        self.assertEqual(index.slice_locs(1, -3), (2, 3))
-        self.assertEqual(*index.slice_locs(-1, -1))
+        assert index.slice_locs(1.5, 0.5) == (1, 3)
+        assert index.slice_locs(2, 0) == (1, 3)
+        assert index.slice_locs(2, 1) == (1, 3)
+        assert index.slice_locs(3, 1.1) == (0, 3)
+        assert index.slice_locs(3, 3) == (0, 2)
+        assert index.slice_locs(3.5, 3.3) == (0, 1)
+        assert index.slice_locs(1, -3) == (2, 3)
+
+        slice_locs = index.slice_locs(-1, -1)
+        assert slice_locs[0] == slice_locs[1]
 
     def test_slice_locs_decreasing_int64(self):
         self.slice_locs_cases([(2, 4), (1, 3), (0, 2)])
@@ -405,9 +406,9 @@ class TestIntervalIndex(Base, tm.TestCase):
             index.slice_locs(1, 2)
 
     def test_get_loc_interval(self):
-        self.assertEqual(self.index.get_loc(Interval(0, 1)), 0)
-        self.assertEqual(self.index.get_loc(Interval(0, 0.5)), 0)
-        self.assertEqual(self.index.get_loc(Interval(0, 1, 'left')), 0)
+        assert self.index.get_loc(Interval(0, 1)) == 0
+        assert self.index.get_loc(Interval(0, 0.5)) == 0
+        assert self.index.get_loc(Interval(0, 1, 'left')) == 0
         pytest.raises(KeyError, self.index.get_loc, Interval(2, 3))
         pytest.raises(KeyError, self.index.get_loc,
                       Interval(-1, 0, 'left'))
@@ -515,10 +516,10 @@ class TestIntervalIndex(Base, tm.TestCase):
         other = IntervalIndex.from_arrays([2], [3])
         expected = IntervalIndex.from_arrays(range(3), range(1, 4))
         actual = self.index.union(other)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         actual = other.union(self.index)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         tm.assert_index_equal(self.index.union(self.index), self.index)
         tm.assert_index_equal(self.index.union(self.index[:1]),
@@ -528,7 +529,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         other = IntervalIndex.from_breaks([1, 2, 3])
         expected = IntervalIndex.from_breaks([1, 2])
         actual = self.index.intersection(other)
-        self.assertTrue(expected.equals(actual))
+        assert expected.equals(actual)
 
         tm.assert_index_equal(self.index.intersection(self.index),
                               self.index)
@@ -602,9 +603,9 @@ class TestIntervalIndex(Base, tm.TestCase):
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        with tm.assertRaisesRegexp(TypeError, 'unorderable types'):
+        with tm.assert_raises_regex(TypeError, 'unorderable types'):
             self.index > 0
-        with tm.assertRaisesRegexp(TypeError, 'unorderable types'):
+        with tm.assert_raises_regex(TypeError, 'unorderable types'):
             self.index <= 0
         with pytest.raises(TypeError):
             self.index > np.arange(2)
@@ -681,7 +682,7 @@ class TestIntervalIndex(Base, tm.TestCase):
         pytest.raises(ValueError, f)
 
 
-class TestIntervalRange(tm.TestCase):
+class TestIntervalRange(object):
 
     def test_construction(self):
         result = interval_range(0, 5, name='foo', closed='both')
@@ -719,8 +720,8 @@ class TestIntervalRange(tm.TestCase):
         pytest.raises(ValueError, f)
 
 
-class TestIntervalTree(tm.TestCase):
-    def setUp(self):
+class TestIntervalTree(object):
+    def setup_method(self, method):
         gentree = lambda dtype: IntervalTree(np.arange(5, dtype=dtype),
                                              np.arange(5, dtype=dtype) + 2)
         self.tree = gentree('int64')

@@ -17,12 +17,13 @@ import pandas.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _ok_for_gaussian_kde)
 
+tm._skip_module_if_no_mpl()
 
-@tm.mplskip
+
 class TestSeriesPlots(TestPlotBase):
 
-    def setUp(self):
-        TestPlotBase.setUp(self)
+    def setup_method(self, method):
+        TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
         mpl.rcdefaults()
 
@@ -50,7 +51,6 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(bootstrap_plot, series=self.ts, size=10)
 
 
-@tm.mplskip
 class TestDataFramePlots(TestPlotBase):
 
     @slow
@@ -309,7 +309,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # Case len(title) == len(df)
         plot = df.plot(subplots=True, title=title)
-        self.assertEqual([p.get_title() for p in plot], title)
+        assert [p.get_title() for p in plot] == title
 
         # Case len(title) > len(df)
         pytest.raises(ValueError, df.plot, subplots=True,
@@ -325,4 +325,4 @@ class TestDataFramePlots(TestPlotBase):
         plot = df.drop('SepalWidth', axis=1).plot(subplots=True, layout=(2, 2),
                                                   title=title[:-1])
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
-        self.assertEqual(title_list, title[:3] + [''])
+        assert title_list == title[:3] + ['']

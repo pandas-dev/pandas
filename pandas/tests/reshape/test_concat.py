@@ -17,9 +17,9 @@ from pandas.util.testing import (assert_frame_equal,
 import pytest
 
 
-class ConcatenateBase(tm.TestCase):
+class ConcatenateBase(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.frame = DataFrame(tm.getSeriesData())
         self.mixed_frame = self.frame.copy()
         self.mixed_frame['foo'] = 'bar'
@@ -31,7 +31,7 @@ class TestConcatAppendCommon(ConcatenateBase):
     Test common dtype coercion rules between concat and append.
     """
 
-    def setUp(self):
+    def setup_method(self, method):
 
         dt_data = [pd.Timestamp('2011-01-01'),
                    pd.Timestamp('2011-01-02'),
@@ -65,14 +65,14 @@ class TestConcatAppendCommon(ConcatenateBase):
         """
         if isinstance(obj, pd.Index):
             if label == 'bool':
-                self.assertEqual(obj.dtype, 'object')
+                assert obj.dtype == 'object'
             else:
-                self.assertEqual(obj.dtype, label)
+                assert obj.dtype == label
         elif isinstance(obj, pd.Series):
             if label.startswith('period'):
-                self.assertEqual(obj.dtype, 'object')
+                assert obj.dtype == 'object'
             else:
-                self.assertEqual(obj.dtype, label)
+                assert obj.dtype == label
         else:
             raise ValueError
 
@@ -124,10 +124,12 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_index_equal(res, exp)
 
             # cannot append non-index
-            with tm.assertRaisesRegexp(TypeError, 'all inputs must be Index'):
+            with tm.assert_raises_regex(TypeError,
+                                        'all inputs must be Index'):
                 pd.Index(vals1).append(vals2)
 
-            with tm.assertRaisesRegexp(TypeError, 'all inputs must be Index'):
+            with tm.assert_raises_regex(TypeError,
+                                        'all inputs must be Index'):
                 pd.Index(vals1).append([pd.Index(vals2), vals3])
 
             # ----- Series ----- #
@@ -175,16 +177,16 @@ class TestConcatAppendCommon(ConcatenateBase):
 
             # cannot append non-index
             msg = "cannot concatenate a non-NDFrame object"
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 pd.Series(vals1).append(vals2)
 
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 pd.Series(vals1).append([pd.Series(vals2), vals3])
 
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 pd.concat([pd.Series(vals1), vals2])
 
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 pd.concat([pd.Series(vals1), pd.Series(vals2), vals3])
 
     def test_concatlike_dtypes_coercion(self):
@@ -786,8 +788,8 @@ class TestAppend(ConcatenateBase):
         b = df[5:].loc[:, ['strings', 'ints', 'floats']]
 
         appended = a.append(b)
-        self.assertTrue(isnull(appended['strings'][0:4]).all())
-        self.assertTrue(isnull(appended['bools'][5:]).all())
+        assert isnull(appended['strings'][0:4]).all()
+        assert isnull(appended['bools'][5:]).all()
 
     def test_append_many(self):
         chunks = [self.frame[:5], self.frame[5:10],
@@ -800,8 +802,8 @@ class TestAppend(ConcatenateBase):
         chunks[-1]['foo'] = 'bar'
         result = chunks[0].append(chunks[1:])
         tm.assert_frame_equal(result.loc[:, self.frame.columns], self.frame)
-        self.assertTrue((result['foo'][15:] == 'bar').all())
-        self.assertTrue(result['foo'][:15].isnull().all())
+        assert (result['foo'][15:] == 'bar').all()
+        assert result['foo'][:15].isnull().all()
 
     def test_append_preserve_index_name(self):
         # #980
@@ -812,7 +814,7 @@ class TestAppend(ConcatenateBase):
         df2 = df2.set_index(['A'])
 
         result = df1.append(df2)
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
 
     def test_append_dtype_coerce(self):
 
@@ -847,8 +849,8 @@ class TestAppend(ConcatenateBase):
                                        dtype=bool)})
 
         appended = df1.append(df2, ignore_index=True)
-        self.assertEqual(appended['A'].dtype, 'f8')
-        self.assertEqual(appended['B'].dtype, 'O')
+        assert appended['A'].dtype == 'f8'
+        assert appended['B'].dtype == 'O'
 
 
 class TestConcatenate(ConcatenateBase):
@@ -932,7 +934,7 @@ class TestConcatenate(ConcatenateBase):
 
         tm.assert_index_equal(result.columns.levels[0],
                               Index(level, name='group_key'))
-        self.assertEqual(result.columns.names[0], 'group_key')
+        assert result.columns.names[0] == 'group_key'
 
     def test_concat_dataframe_keys_bug(self):
         t1 = DataFrame({
@@ -943,8 +945,7 @@ class TestConcatenate(ConcatenateBase):
 
         # it works
         result = concat([t1, t2], axis=1, keys=['t1', 't2'])
-        self.assertEqual(list(result.columns), [('t1', 'value'),
-                                                ('t2', 'value')])
+        assert list(result.columns) == [('t1', 'value'), ('t2', 'value')]
 
     def test_concat_series_partial_columns_names(self):
         # GH10698
@@ -1018,10 +1019,10 @@ class TestConcatenate(ConcatenateBase):
                           columns=Index(['A', 'B', 'C'], name='exp'))
         result = concat([frame, frame], keys=[0, 1], names=['iteration'])
 
-        self.assertEqual(result.index.names, ('iteration',) + index.names)
+        assert result.index.names == ('iteration',) + index.names
         tm.assert_frame_equal(result.loc[0], frame)
         tm.assert_frame_equal(result.loc[1], frame)
-        self.assertEqual(result.index.nlevels, 3)
+        assert result.index.nlevels == 3
 
     def test_concat_multiindex_with_tz(self):
         # GH 6606
@@ -1086,22 +1087,21 @@ class TestConcatenate(ConcatenateBase):
                                names=names + [None])
         expected.index = exp_index
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # no names
-
         result = concat([df, df2, df, df2],
                         keys=[('foo', 'one'), ('foo', 'two'),
                               ('baz', 'one'), ('baz', 'two')],
                         levels=levels)
-        self.assertEqual(result.index.names, (None,) * 3)
+        assert result.index.names == (None,) * 3
 
         # no levels
         result = concat([df, df2, df, df2],
                         keys=[('foo', 'one'), ('foo', 'two'),
                               ('baz', 'one'), ('baz', 'two')],
                         names=['first', 'second'])
-        self.assertEqual(result.index.names, ('first', 'second') + (None,))
+        assert result.index.names == ('first', 'second') + (None,)
         tm.assert_index_equal(result.index.levels[0],
                               Index(['baz', 'foo'], name='first'))
 
@@ -1133,7 +1133,7 @@ class TestConcatenate(ConcatenateBase):
         exp.index.set_names(names, inplace=True)
 
         tm.assert_frame_equal(result, exp)
-        self.assertEqual(result.index.names, exp.index.names)
+        assert result.index.names == exp.index.names
 
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']
@@ -1158,7 +1158,7 @@ class TestConcatenate(ConcatenateBase):
         df2 = DataFrame(np.random.randn(1, 4), index=['b'])
         result = concat(
             [df, df2], keys=['one', 'two'], names=['first', 'second'])
-        self.assertEqual(result.index.names, ('first', 'second'))
+        assert result.index.names == ('first', 'second')
 
     def test_dups_index(self):
         # GH 4771
@@ -1440,7 +1440,7 @@ class TestConcatenate(ConcatenateBase):
 
         result = concat(pieces)
         tm.assert_series_equal(result, ts)
-        self.assertEqual(result.name, ts.name)
+        assert result.name == ts.name
 
         result = concat(pieces, keys=[0, 1, 2])
         expected = ts.copy()
@@ -1477,8 +1477,8 @@ class TestConcatenate(ConcatenateBase):
 
         s2.name = None
         result = concat([s, s2], axis=1)
-        self.assertTrue(np.array_equal(
-            result.columns, Index(['A', 0], dtype='object')))
+        tm.assert_index_equal(result.columns,
+                              Index(['A', 0], dtype='object'))
 
         # must reindex, #2603
         s = Series(randn(3), index=['c', 'a', 'b'], name='A')
@@ -1510,8 +1510,8 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame({'time': rng})
 
         result = concat([df, df])
-        self.assertTrue((result.iloc[:10]['time'] == rng).all())
-        self.assertTrue((result.iloc[10:]['time'] == rng).all())
+        assert (result.iloc[:10]['time'] == rng).all()
+        assert (result.iloc[10:]['time'] == rng).all()
 
     def test_concat_timedelta64_block(self):
         from pandas import to_timedelta
@@ -1521,8 +1521,8 @@ class TestConcatenate(ConcatenateBase):
         df = DataFrame({'time': rng})
 
         result = concat([df, df])
-        self.assertTrue((result.iloc[:10]['time'] == rng).all())
-        self.assertTrue((result.iloc[10:]['time'] == rng).all())
+        assert (result.iloc[:10]['time'] == rng).all()
+        assert (result.iloc[10:]['time'] == rng).all()
 
     def test_concat_keys_with_none(self):
         # #1649
@@ -1547,7 +1547,7 @@ class TestConcatenate(ConcatenateBase):
         left = concat([ts1, ts2], join='outer', axis=1)
         right = concat([ts2, ts1], join='outer', axis=1)
 
-        self.assertEqual(len(left), len(right))
+        assert len(left) == len(right)
 
     def test_concat_bug_2972(self):
         ts0 = Series(np.zeros(5))
@@ -1591,7 +1591,7 @@ class TestConcatenate(ConcatenateBase):
         s2 = Series(randn(len(dates)), index=dates, name='value')
 
         result = concat([s1, s2], axis=1, ignore_index=True)
-        self.assertTrue(np.array_equal(result.columns, [0, 1]))
+        assert np.array_equal(result.columns, [0, 1])
 
     def test_concat_iterables(self):
         from collections import deque, Iterable
@@ -1704,8 +1704,7 @@ bar2,12,13,14,15
         assert_frame_equal(df2, df3)
 
     def test_concat_tz_series(self):
-        # GH 11755
-        # tz and no tz
+        # gh-11755: tz and no tz
         x = Series(date_range('20151124 08:00',
                               '20151124 09:00',
                               freq='1h', tz='UTC'))
@@ -1715,8 +1714,7 @@ bar2,12,13,14,15
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
-        # GH 11887
-        # concat tz and object
+        # gh-11887: concat tz and object
         x = Series(date_range('20151124 08:00',
                               '20151124 09:00',
                               freq='1h', tz='UTC'))
@@ -1726,10 +1724,8 @@ bar2,12,13,14,15
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
-        # 12217
-        # 12306 fixed I think
-
-        # Concat'ing two UTC times
+        # see gh-12217 and gh-12306
+        # Concatenating two UTC times
         first = pd.DataFrame([[datetime(2016, 1, 1)]])
         first[0] = first[0].dt.tz_localize('UTC')
 
@@ -1737,9 +1733,9 @@ bar2,12,13,14,15
         second[0] = second[0].dt.tz_localize('UTC')
 
         result = pd.concat([first, second])
-        self.assertEqual(result[0].dtype, 'datetime64[ns, UTC]')
+        assert result[0].dtype == 'datetime64[ns, UTC]'
 
-        # Concat'ing two London times
+        # Concatenating two London times
         first = pd.DataFrame([[datetime(2016, 1, 1)]])
         first[0] = first[0].dt.tz_localize('Europe/London')
 
@@ -1747,9 +1743,9 @@ bar2,12,13,14,15
         second[0] = second[0].dt.tz_localize('Europe/London')
 
         result = pd.concat([first, second])
-        self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
+        assert result[0].dtype == 'datetime64[ns, Europe/London]'
 
-        # Concat'ing 2+1 London times
+        # Concatenating 2+1 London times
         first = pd.DataFrame([[datetime(2016, 1, 1)], [datetime(2016, 1, 2)]])
         first[0] = first[0].dt.tz_localize('Europe/London')
 
@@ -1757,7 +1753,7 @@ bar2,12,13,14,15
         second[0] = second[0].dt.tz_localize('Europe/London')
 
         result = pd.concat([first, second])
-        self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
+        assert result[0].dtype == 'datetime64[ns, Europe/London]'
 
         # Concat'ing 1+2 London times
         first = pd.DataFrame([[datetime(2016, 1, 1)]])
@@ -1767,11 +1763,10 @@ bar2,12,13,14,15
         second[0] = second[0].dt.tz_localize('Europe/London')
 
         result = pd.concat([first, second])
-        self.assertEqual(result[0].dtype, 'datetime64[ns, Europe/London]')
+        assert result[0].dtype == 'datetime64[ns, Europe/London]'
 
     def test_concat_tz_series_with_datetimelike(self):
-        # GH 12620
-        # tz and timedelta
+        # see gh-12620: tz and timedelta
         x = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
              pd.Timestamp('2011-02-01', tz='US/Eastern')]
         y = [pd.Timedelta('1 day'), pd.Timedelta('2 day')]
@@ -1784,16 +1779,18 @@ bar2,12,13,14,15
         tm.assert_series_equal(result, pd.Series(x + y, dtype='object'))
 
     def test_concat_tz_series_tzlocal(self):
-        # GH 13583
+        # see gh-13583
         tm._skip_if_no_dateutil()
         import dateutil
+
         x = [pd.Timestamp('2011-01-01', tz=dateutil.tz.tzlocal()),
              pd.Timestamp('2011-02-01', tz=dateutil.tz.tzlocal())]
         y = [pd.Timestamp('2012-01-01', tz=dateutil.tz.tzlocal()),
              pd.Timestamp('2012-02-01', tz=dateutil.tz.tzlocal())]
+
         result = concat([pd.Series(x), pd.Series(y)], ignore_index=True)
         tm.assert_series_equal(result, pd.Series(x + y))
-        self.assertEqual(result.dtype, 'datetime64[ns, tzlocal()]')
+        assert result.dtype == 'datetime64[ns, tzlocal()]'
 
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
@@ -1801,7 +1798,7 @@ bar2,12,13,14,15
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
-        self.assertEqual(result.dtype, 'object')
+        assert result.dtype == 'object'
 
         # different freq
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
@@ -1809,14 +1806,14 @@ bar2,12,13,14,15
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
-        self.assertEqual(result.dtype, 'object')
+        assert result.dtype == 'object'
 
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='M'))
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
-        self.assertEqual(result.dtype, 'object')
+        assert result.dtype == 'object'
 
         # non-period
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
@@ -1824,14 +1821,14 @@ bar2,12,13,14,15
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
-        self.assertEqual(result.dtype, 'object')
+        assert result.dtype == 'object'
 
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(['A', 'B'])
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
-        self.assertEqual(result.dtype, 'object')
+        assert result.dtype == 'object'
 
     def test_concat_empty_series(self):
         # GH 11082

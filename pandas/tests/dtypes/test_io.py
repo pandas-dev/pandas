@@ -7,7 +7,7 @@ import pandas.util.testing as tm
 from pandas.compat import long, u
 
 
-class TestParseSQL(tm.TestCase):
+class TestParseSQL(object):
 
     def test_convert_sql_column_floats(self):
         arr = np.array([1.5, None, 3, 4.2], dtype=object)
@@ -73,7 +73,7 @@ class TestParseSQL(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_convert_downcast_int64(self):
-        from pandas.io.libparsers import na_values
+        from pandas._libs.parsers import na_values
 
         arr = np.array([1, 2, 7, 8, 10], dtype=np.int64)
         expected = np.array([1, 2, 7, 8, 10], dtype=np.int8)

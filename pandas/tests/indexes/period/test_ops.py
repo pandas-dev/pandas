@@ -15,8 +15,8 @@ from pandas.tests.test_base import Ops
 
 class TestPeriodIndexOps(Ops):
 
-    def setUp(self):
-        super(TestPeriodIndexOps, self).setUp()
+    def setup_method(self, method):
+        super(TestPeriodIndexOps, self).setup_method(method)
         mask = lambda x: (isinstance(x, DatetimeIndex) or
                           isinstance(x, PeriodIndex))
         self.is_valid_objs = [o for o in self.objs if mask(o)]
@@ -37,11 +37,11 @@ class TestPeriodIndexOps(Ops):
                          pd.Period('2013-04-30', freq='M')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
         result = idx.asobject
-        self.assertTrue(isinstance(result, Index))
-        self.assertEqual(result.dtype, object)
+        assert isinstance(result, Index)
+        assert result.dtype == object
         tm.assert_index_equal(result, expected)
-        self.assertEqual(result.name, expected.name)
-        self.assertEqual(idx.tolist(), expected_list)
+        assert result.name == expected.name
+        assert idx.tolist() == expected_list
 
         idx = PeriodIndex(['2013-01-01', '2013-01-02', 'NaT',
                            '2013-01-04'], freq='D', name='idx')
@@ -51,17 +51,17 @@ class TestPeriodIndexOps(Ops):
                          pd.Period('2013-01-04', freq='D')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
         result = idx.asobject
-        self.assertTrue(isinstance(result, Index))
-        self.assertEqual(result.dtype, object)
+        assert isinstance(result, Index)
+        assert result.dtype == object
         tm.assert_index_equal(result, expected)
         for i in [0, 1, 3]:
-            self.assertEqual(result[i], expected[i])
+            assert result[i] == expected[i]
         assert result[2] is pd.NaT
-        self.assertEqual(result.name, expected.name)
+        assert result.name == expected.name
 
         result_list = idx.tolist()
         for i in [0, 1, 3]:
-            self.assertEqual(result_list[i], expected_list[i])
+            assert result_list[i] == expected_list[i]
         assert result_list[2] is pd.NaT
 
     def test_minmax(self):
@@ -69,20 +69,20 @@ class TestPeriodIndexOps(Ops):
         # monotonic
         idx1 = pd.PeriodIndex([pd.NaT, '2011-01-01', '2011-01-02',
                                '2011-01-03'], freq='D')
-        self.assertTrue(idx1.is_monotonic)
+        assert idx1.is_monotonic
 
         # non-monotonic
         idx2 = pd.PeriodIndex(['2011-01-01', pd.NaT, '2011-01-03',
                                '2011-01-02', pd.NaT], freq='D')
-        self.assertFalse(idx2.is_monotonic)
+        assert not idx2.is_monotonic
 
         for idx in [idx1, idx2]:
-            self.assertEqual(idx.min(), pd.Period('2011-01-01', freq='D'))
-            self.assertEqual(idx.max(), pd.Period('2011-01-03', freq='D'))
-        self.assertEqual(idx1.argmin(), 1)
-        self.assertEqual(idx2.argmin(), 0)
-        self.assertEqual(idx1.argmax(), 3)
-        self.assertEqual(idx2.argmax(), 2)
+            assert idx.min() == pd.Period('2011-01-01', freq='D')
+            assert idx.max() == pd.Period('2011-01-03', freq='D')
+        assert idx1.argmin() == 1
+        assert idx2.argmin() == 0
+        assert idx1.argmax() == 3
+        assert idx2.argmax() == 2
 
         for op in ['min', 'max']:
             # Return NaT
@@ -101,20 +101,22 @@ class TestPeriodIndexOps(Ops):
     def test_numpy_minmax(self):
         pr = pd.period_range(start='2016-01-15', end='2016-01-20')
 
-        self.assertEqual(np.min(pr), Period('2016-01-15', freq='D'))
-        self.assertEqual(np.max(pr), Period('2016-01-20', freq='D'))
+        assert np.min(pr) == Period('2016-01-15', freq='D')
+        assert np.max(pr) == Period('2016-01-20', freq='D')
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, errmsg, np.min, pr, out=0)
-        tm.assertRaisesRegexp(ValueError, errmsg, np.max, pr, out=0)
+        tm.assert_raises_regex(ValueError, errmsg, np.min, pr, out=0)
+        tm.assert_raises_regex(ValueError, errmsg, np.max, pr, out=0)
 
-        self.assertEqual(np.argmin(pr), 0)
-        self.assertEqual(np.argmax(pr), 5)
+        assert np.argmin(pr) == 0
+        assert np.argmax(pr) == 5
 
         if not _np_version_under1p10:
             errmsg = "the 'out' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, errmsg, np.argmin, pr, out=0)
-            tm.assertRaisesRegexp(ValueError, errmsg, np.argmax, pr, out=0)
+            tm.assert_raises_regex(
+                ValueError, errmsg, np.argmin, pr, out=0)
+            tm.assert_raises_regex(
+                ValueError, errmsg, np.argmax, pr, out=0)
 
     def test_representation(self):
         # GH 7601
@@ -165,7 +167,7 @@ class TestPeriodIndexOps(Ops):
                                   exp6, exp7, exp8, exp9, exp10]):
             for func in ['__repr__', '__unicode__', '__str__']:
                 result = getattr(idx, func)()
-                self.assertEqual(result, expected)
+                assert result == expected
 
     def test_representation_to_series(self):
         # GH 10971
@@ -223,7 +225,7 @@ dtype: object"""
                                  [exp1, exp2, exp3, exp4, exp5,
                                   exp6, exp7, exp8, exp9]):
             result = repr(pd.Series(idx))
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_summary(self):
         # GH9116
@@ -272,7 +274,7 @@ Freq: Q-DEC"""
                                  [exp1, exp2, exp3, exp4, exp5,
                                   exp6, exp7, exp8, exp9]):
             result = idx.summary()
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_resolution(self):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H',
@@ -282,7 +284,7 @@ Freq: Q-DEC"""
                                    'millisecond', 'microsecond']):
 
             idx = pd.period_range(start='2013-04-01', periods=30, freq=freq)
-            self.assertEqual(idx.resolution, expected)
+            assert idx.resolution == expected
 
     def test_add_iadd(self):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
@@ -309,7 +311,8 @@ Freq: Q-DEC"""
                   timedelta(365), Timedelta(days=365)]:
             msg = ('Input has different freq(=.+)? '
                    'from PeriodIndex\\(freq=A-DEC\\)')
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 rng + o
 
         rng = pd.period_range('2014-01', '2016-12', freq='M')
@@ -324,7 +327,8 @@ Freq: Q-DEC"""
                   timedelta(365), Timedelta(days=365)]:
             rng = pd.period_range('2014-01', '2016-12', freq='M')
             msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 rng + o
 
         # Tick
@@ -345,7 +349,8 @@ Freq: Q-DEC"""
                   timedelta(hours=23), Timedelta('23:00:00')]:
             rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
             msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=D\\)'
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 rng + o
 
         offsets = [pd.offsets.Hour(2), timedelta(hours=2),
@@ -367,9 +372,11 @@ Freq: Q-DEC"""
             rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00',
                                   freq='H')
             msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=H\\)'
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
-                result = rng + delta
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
+                rng + delta
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 rng += delta
 
         # int
@@ -415,7 +422,8 @@ Freq: Q-DEC"""
             rng = pd.period_range('2014', '2024', freq='A')
             msg = ('Input has different freq(=.+)? '
                    'from PeriodIndex\\(freq=A-DEC\\)')
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 rng - o
 
         rng = pd.period_range('2014-01', '2016-12', freq='M')
@@ -430,7 +438,8 @@ Freq: Q-DEC"""
                   timedelta(365)]:
             rng = pd.period_range('2014-01', '2016-12', freq='M')
             msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 rng - o
 
         # Tick
@@ -450,7 +459,8 @@ Freq: Q-DEC"""
                   timedelta(hours=23)]:
             rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
             msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=D\\)'
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 rng - o
 
         offsets = [pd.offsets.Hour(2), timedelta(hours=2),
@@ -471,9 +481,11 @@ Freq: Q-DEC"""
             rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00',
                                   freq='H')
             msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=H\\)'
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
-                result = rng + delta
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
+                rng + delta
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 rng += delta
 
         # int
@@ -557,12 +569,12 @@ Freq: Q-DEC"""
         idx = pd.period_range('2011-01-01', '2011-01-31', freq='D', name='idx')
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
-        self.assertEqual(idx.freq, result.freq)
+        assert idx.freq == result.freq
 
         idx_dup = idx.append(idx)  # freq will not be reset
         result = idx_dup.drop_duplicates()
         tm.assert_index_equal(idx, result)
-        self.assertEqual(idx.freq, result.freq)
+        assert idx.freq == result.freq
 
     def test_drop_duplicates(self):
         # to check Index/Series compat
@@ -589,7 +601,7 @@ Freq: Q-DEC"""
     def test_order_compat(self):
         def _check_freq(index, expected_index):
             if isinstance(index, PeriodIndex):
-                self.assertEqual(index.freq, expected_index.freq)
+                assert index.freq == expected_index.freq
 
         pidx = PeriodIndex(['2011', '2012', '2013'], name='pidx', freq='A')
         # for compatibility check
@@ -654,13 +666,13 @@ Freq: Q-DEC"""
         expected = PeriodIndex(['NaT', '2011', '2011', '2013'],
                                name='pidx', freq='D')
         tm.assert_index_equal(result, expected)
-        self.assertEqual(result.freq, 'D')
+        assert result.freq == 'D'
 
         result = pidx.sort_values(ascending=False)
         expected = PeriodIndex(
             ['2013', '2011', '2011', 'NaT'], name='pidx', freq='D')
         tm.assert_index_equal(result, expected)
-        self.assertEqual(result.freq, 'D')
+        assert result.freq == 'D'
 
     def test_order(self):
         for freq in ['D', '2D', '4D']:
@@ -669,20 +681,20 @@ Freq: Q-DEC"""
 
             ordered = idx.sort_values()
             tm.assert_index_equal(ordered, idx)
-            self.assertEqual(ordered.freq, idx.freq)
+            assert ordered.freq == idx.freq
 
             ordered = idx.sort_values(ascending=False)
             expected = idx[::-1]
             tm.assert_index_equal(ordered, expected)
-            self.assertEqual(ordered.freq, expected.freq)
-            self.assertEqual(ordered.freq, freq)
+            assert ordered.freq == expected.freq
+            assert ordered.freq == freq
 
             ordered, indexer = idx.sort_values(return_indexer=True)
             tm.assert_index_equal(ordered, idx)
             tm.assert_numpy_array_equal(indexer, np.array([0, 1, 2]),
                                         check_dtype=False)
-            self.assertEqual(ordered.freq, idx.freq)
-            self.assertEqual(ordered.freq, freq)
+            assert ordered.freq == idx.freq
+            assert ordered.freq == freq
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
@@ -690,8 +702,8 @@ Freq: Q-DEC"""
             tm.assert_index_equal(ordered, expected)
             tm.assert_numpy_array_equal(indexer, np.array([2, 1, 0]),
                                         check_dtype=False)
-            self.assertEqual(ordered.freq, expected.freq)
-            self.assertEqual(ordered.freq, freq)
+            assert ordered.freq == expected.freq
+            assert ordered.freq == freq
 
         idx1 = PeriodIndex(['2011-01-01', '2011-01-03', '2011-01-05',
                             '2011-01-02', '2011-01-01'], freq='D', name='idx1')
@@ -713,18 +725,18 @@ Freq: Q-DEC"""
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
             ordered = idx.sort_values()
             tm.assert_index_equal(ordered, expected)
-            self.assertEqual(ordered.freq, 'D')
+            assert ordered.freq == 'D'
 
             ordered = idx.sort_values(ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
-            self.assertEqual(ordered.freq, 'D')
+            assert ordered.freq == 'D'
 
             ordered, indexer = idx.sort_values(return_indexer=True)
             tm.assert_index_equal(ordered, expected)
 
             exp = np.array([0, 4, 3, 1, 2])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
-            self.assertEqual(ordered.freq, 'D')
+            assert ordered.freq == 'D'
 
             ordered, indexer = idx.sort_values(return_indexer=True,
                                                ascending=False)
@@ -732,7 +744,7 @@ Freq: Q-DEC"""
 
             exp = np.array([2, 1, 3, 4, 0])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
-            self.assertEqual(ordered.freq, 'D')
+            assert ordered.freq == 'D'
 
     def test_nat_new(self):
 
@@ -791,18 +803,18 @@ Freq: Q-DEC"""
         assert pd.PeriodIndex([], freq='M')._na_value is pd.NaT
 
         idx = pd.PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
-        self.assertTrue(idx._can_hold_na)
+        assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        self.assertFalse(idx.hasnans)
+        assert not idx.hasnans
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
         idx = pd.PeriodIndex(['2011-01-01', 'NaT'], freq='D')
-        self.assertTrue(idx._can_hold_na)
+        assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        self.assertTrue(idx.hasnans)
+        assert idx.hasnans
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 
@@ -811,35 +823,35 @@ Freq: Q-DEC"""
         for freq in ['D', 'M']:
             idx = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
                                  freq=freq)
-            self.assertTrue(idx.equals(idx))
-            self.assertTrue(idx.equals(idx.copy()))
-            self.assertTrue(idx.equals(idx.asobject))
-            self.assertTrue(idx.asobject.equals(idx))
-            self.assertTrue(idx.asobject.equals(idx.asobject))
-            self.assertFalse(idx.equals(list(idx)))
-            self.assertFalse(idx.equals(pd.Series(idx)))
+            assert idx.equals(idx)
+            assert idx.equals(idx.copy())
+            assert idx.equals(idx.asobject)
+            assert idx.asobject.equals(idx)
+            assert idx.asobject.equals(idx.asobject)
+            assert not idx.equals(list(idx))
+            assert not idx.equals(pd.Series(idx))
 
             idx2 = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
                                   freq='H')
-            self.assertFalse(idx.equals(idx2))
-            self.assertFalse(idx.equals(idx2.copy()))
-            self.assertFalse(idx.equals(idx2.asobject))
-            self.assertFalse(idx.asobject.equals(idx2))
-            self.assertFalse(idx.equals(list(idx2)))
-            self.assertFalse(idx.equals(pd.Series(idx2)))
+            assert not idx.equals(idx2)
+            assert not idx.equals(idx2.copy())
+            assert not idx.equals(idx2.asobject)
+            assert not idx.asobject.equals(idx2)
+            assert not idx.equals(list(idx2))
+            assert not idx.equals(pd.Series(idx2))
 
             # same internal, different tz
             idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
             tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
-            self.assertFalse(idx.equals(idx3))
-            self.assertFalse(idx.equals(idx3.copy()))
-            self.assertFalse(idx.equals(idx3.asobject))
-            self.assertFalse(idx.asobject.equals(idx3))
-            self.assertFalse(idx.equals(list(idx3)))
-            self.assertFalse(idx.equals(pd.Series(idx3)))
+            assert not idx.equals(idx3)
+            assert not idx.equals(idx3.copy())
+            assert not idx.equals(idx3.asobject)
+            assert not idx.asobject.equals(idx3)
+            assert not idx.equals(list(idx3))
+            assert not idx.equals(pd.Series(idx3))
 
 
-class TestPeriodIndexSeriesMethods(tm.TestCase):
+class TestPeriodIndexSeriesMethods(object):
     """ Test PeriodIndex and Period Series Ops consistency """
 
     def _check(self, values, func, expected):
@@ -884,14 +896,14 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
 
         for obj in [idx, s]:
             for ng in ["str", 1.5]:
-                with tm.assertRaisesRegexp(TypeError, msg):
+                with tm.assert_raises_regex(TypeError, msg):
                     obj + ng
 
                 with pytest.raises(TypeError):
                     # error message differs between PY2 and 3
                     ng + obj
 
-                with tm.assertRaisesRegexp(TypeError, msg):
+                with tm.assert_raises_regex(TypeError, msg):
                     obj - ng
 
                 with pytest.raises(TypeError):
@@ -987,13 +999,16 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
         msg_idx = r"Input has different freq from PeriodIndex\(freq=D\)"
         msg_s = r"Input cannot be converted to Period\(freq=D\)"
         for obj, msg in [(idx, msg_idx), (s, msg_s)]:
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 obj + offsets.Hour(2)
 
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 offsets.Hour(2) + obj
 
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 obj - offsets.Hour(2)
 
     def test_pi_sub_period(self):
@@ -1120,16 +1135,16 @@ class TestPeriodIndexSeriesMethods(tm.TestCase):
         self._check(idx, f, exp)
 
 
-class TestSeriesPeriod(tm.TestCase):
+class TestSeriesPeriod(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
 
     def test_ops_series_timedelta(self):
         # GH 13043
         s = pd.Series([pd.Period('2015-01-01', freq='D'),
                        pd.Period('2015-01-02', freq='D')], name='xxx')
-        self.assertEqual(s.dtype, object)
+        assert s.dtype == object
 
         exp = pd.Series([pd.Period('2015-01-02', freq='D'),
                          pd.Period('2015-01-03', freq='D')], name='xxx')
@@ -1143,7 +1158,7 @@ class TestSeriesPeriod(tm.TestCase):
         # GH 13043
         s = pd.Series([pd.Period('2015-01-01', freq='D'),
                        pd.Period('2015-01-02', freq='D')], name='xxx')
-        self.assertEqual(s.dtype, object)
+        assert s.dtype == object
 
         p = pd.Period('2015-01-10', freq='D')
         # dtype will be object because of original dtype
@@ -1153,14 +1168,14 @@ class TestSeriesPeriod(tm.TestCase):
 
         s2 = pd.Series([pd.Period('2015-01-05', freq='D'),
                         pd.Period('2015-01-04', freq='D')], name='xxx')
-        self.assertEqual(s2.dtype, object)
+        assert s2.dtype == object
 
         exp = pd.Series([4, 2], name='xxx', dtype=object)
         tm.assert_series_equal(s2 - s, exp)
         tm.assert_series_equal(s - s2, -exp)
 
 
-class TestFramePeriod(tm.TestCase):
+class TestFramePeriod(object):
 
     def test_ops_frame_period(self):
         # GH 13043
@@ -1168,8 +1183,8 @@ class TestFramePeriod(tm.TestCase):
                                  pd.Period('2015-02', freq='M')],
                            'B': [pd.Period('2014-01', freq='M'),
                                  pd.Period('2014-02', freq='M')]})
-        self.assertEqual(df['A'].dtype, object)
-        self.assertEqual(df['B'].dtype, object)
+        assert df['A'].dtype == object
+        assert df['B'].dtype == object
 
         p = pd.Period('2015-03', freq='M')
         # dtype will be object because of original dtype
@@ -1182,8 +1197,8 @@ class TestFramePeriod(tm.TestCase):
                                   pd.Period('2015-06', freq='M')],
                             'B': [pd.Period('2015-05', freq='M'),
                                   pd.Period('2015-06', freq='M')]})
-        self.assertEqual(df2['A'].dtype, object)
-        self.assertEqual(df2['B'].dtype, object)
+        assert df2['A'].dtype == object
+        assert df2['B'].dtype == object
 
         exp = pd.DataFrame({'A': np.array([4, 4], dtype=object),
                             'B': np.array([16, 16], dtype=object)})
@@ -1191,7 +1206,7 @@ class TestFramePeriod(tm.TestCase):
         tm.assert_frame_equal(df - df2, -exp)
 
 
-class TestPeriodIndexComparisons(tm.TestCase):
+class TestPeriodIndexComparisons(object):
 
     def test_pi_pi_comp(self):
 
@@ -1247,25 +1262,31 @@ class TestPeriodIndexComparisons(tm.TestCase):
 
             # different base freq
             msg = "Input has different freq=A-DEC from PeriodIndex"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 base <= Period('2011', freq='A')
 
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 Period('2011', freq='A') >= base
 
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
                 base <= idx
 
-            # different mult
+            # Different frequency
             msg = "Input has different freq=4M from PeriodIndex"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 base <= Period('2011', freq='4M')
 
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 Period('2011', freq='4M') >= base
 
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='4M')
                 base <= idx
 
@@ -1317,8 +1338,10 @@ class TestPeriodIndexComparisons(tm.TestCase):
             diff = PeriodIndex(['2011-02', '2011-01', '2011-04',
                                 'NaT'], freq='4M')
             msg = "Input has different freq=4M from PeriodIndex"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 idx1 > diff
 
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assert_raises_regex(
+                    period.IncompatibleFrequency, msg):
                 idx1 == diff

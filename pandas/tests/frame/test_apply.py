@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameApply(tm.TestCase, TestData):
+class TestDataFrameApply(TestData):
 
     def test_apply(self):
         with np.errstate(all='ignore'):
@@ -61,10 +61,10 @@ class TestDataFrameApply(tm.TestCase, TestData):
     def test_apply_empty(self):
         # empty
         applied = self.empty.apply(np.sqrt)
-        self.assertTrue(applied.empty)
+        assert applied.empty
 
         applied = self.empty.apply(np.mean)
-        self.assertTrue(applied.empty)
+        assert applied.empty
 
         no_rows = self.frame[:0]
         result = no_rows.apply(lambda x: x.mean())
@@ -97,7 +97,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
             [], index=pd.Index([], dtype=object)))
 
         # Ensure that x.append hasn't been called
-        self.assertEqual(x, [])
+        assert x == []
 
     def test_apply_standard_nonunique(self):
         df = DataFrame(
@@ -125,12 +125,12 @@ class TestDataFrameApply(tm.TestCase, TestData):
         agged = self.frame.apply(np.mean)
 
         for col, ts in compat.iteritems(broadcasted):
-            self.assertTrue((ts == agged[col]).all())
+            assert (ts == agged[col]).all()
 
         broadcasted = self.frame.apply(np.mean, axis=1, broadcast=True)
         agged = self.frame.apply(np.mean, axis=1)
         for idx in broadcasted.index:
-            self.assertTrue((broadcasted.xs(idx) == agged[idx]).all())
+            assert (broadcasted.xs(idx) == agged[idx]).all()
 
     def test_apply_raw(self):
         result0 = self.frame.apply(np.mean, raw=True)
@@ -150,7 +150,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
     def test_apply_axis1(self):
         d = self.frame.index[0]
         tapplied = self.frame.apply(np.mean, axis=1)
-        self.assertEqual(tapplied[d], np.mean(self.frame.xs(d)))
+        assert tapplied[d] == np.mean(self.frame.xs(d))
 
     def test_apply_ignore_failures(self):
         result = self.mixed_frame._apply_standard(np.mean, 0,
@@ -284,12 +284,11 @@ class TestDataFrameApply(tm.TestCase, TestData):
             return row
 
         try:
-            transformed = data.apply(transform, axis=1)  # noqa
+            data.apply(transform, axis=1)
         except AttributeError as e:
-            self.assertEqual(len(e.args), 2)
-            self.assertEqual(e.args[1], 'occurred at index 4')
-            self.assertEqual(
-                e.args[0], "'float' object has no attribute 'startswith'")
+            assert len(e.args) == 2
+            assert e.args[1] == 'occurred at index 4'
+            assert e.args[0] == "'float' object has no attribute 'startswith'"
 
     def test_apply_bug(self):
 
@@ -383,23 +382,23 @@ class TestDataFrameApply(tm.TestCase, TestData):
 
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
-        assert_frame_equal(applied, self.frame * 2)
-        result = self.frame.applymap(type)
+        tm.assert_frame_equal(applied, self.frame * 2)
+        self.frame.applymap(type)
 
-        # GH #465, function returning tuples
+        # gh-465: function returning tuples
         result = self.frame.applymap(lambda x: (x, x))
         assert isinstance(result['A'][0], tuple)
 
-        # GH 2909, object conversion to float in constructor?
+        # gh-2909: object conversion to float in constructor?
         df = DataFrame(data=[1, 'a'])
         result = df.applymap(lambda x: x)
-        self.assertEqual(result.dtypes[0], object)
+        assert result.dtypes[0] == object
 
         df = DataFrame(data=[1., 'a'])
         result = df.applymap(lambda x: x)
-        self.assertEqual(result.dtypes[0], object)
+        assert result.dtypes[0] == object
 
-        # GH2786
+        # see gh-2786
         df = DataFrame(np.random.random((3, 4)))
         df2 = df.copy()
         cols = ['a', 'a', 'a', 'a']
@@ -408,16 +407,16 @@ class TestDataFrameApply(tm.TestCase, TestData):
         expected = df2.applymap(str)
         expected.columns = cols
         result = df.applymap(str)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # datetime/timedelta
         df['datetime'] = Timestamp('20130101')
         df['timedelta'] = pd.Timedelta('1 min')
         result = df.applymap(str)
         for f in ['datetime', 'timedelta']:
-            self.assertEqual(result.loc[0, f], str(df.loc[0, f]))
+            assert result.loc[0, f] == str(df.loc[0, f])
 
-        # GH 8222
+        # see gh-8222
         empty_frames = [pd.DataFrame(),
                         pd.DataFrame(columns=list('ABC')),
                         pd.DataFrame(index=list('ABC')),
@@ -452,7 +451,7 @@ class TestDataFrameApply(tm.TestCase, TestData):
         df = df.applymap(lambda x: x + BDay())
         df = df.applymap(lambda x: x + BDay())
 
-        self.assertTrue(df.x1.dtype == 'M8[ns]')
+        assert df.x1.dtype == 'M8[ns]'
 
     # See gh-12244
     def test_apply_non_numpy_dtype(self):
@@ -483,7 +482,7 @@ def zip_frames(*frames):
     return pd.concat(zipped, axis=1)
 
 
-class TestDataFrameAggregate(tm.TestCase, TestData):
+class TestDataFrameAggregate(TestData):
 
     _multiprocess_can_split_ = True
 

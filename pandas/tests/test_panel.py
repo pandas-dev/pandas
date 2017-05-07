@@ -23,9 +23,8 @@ from pandas.compat import range, lrange, StringIO, OrderedDict, signature
 from pandas.tseries.offsets import BDay, MonthEnd
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
-                                 ensure_clean, assertRaisesRegexp,
-                                 makeCustomDataframe as mkdf,
-                                 makeMixedDataFrame)
+                                 ensure_clean, makeMixedDataFrame,
+                                 makeCustomDataframe as mkdf)
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
 
@@ -180,8 +179,8 @@ class SafeForLongAndSparse(object):
 
         # Unimplemented numeric_only parameter.
         if 'numeric_only' in signature(f).args:
-            tm.assertRaisesRegexp(NotImplementedError, name, f,
-                                  numeric_only=True)
+            tm.assert_raises_regex(NotImplementedError, name, f,
+                                   numeric_only=True)
 
 
 class SafeForSparse(object):
@@ -223,20 +222,20 @@ class SafeForSparse(object):
         assert self.panel.minor_axis is new_minor
 
     def test_get_axis_number(self):
-        self.assertEqual(self.panel._get_axis_number('items'), 0)
-        self.assertEqual(self.panel._get_axis_number('major'), 1)
-        self.assertEqual(self.panel._get_axis_number('minor'), 2)
+        assert self.panel._get_axis_number('items') == 0
+        assert self.panel._get_axis_number('major') == 1
+        assert self.panel._get_axis_number('minor') == 2
 
-        with tm.assertRaisesRegexp(ValueError, "No axis named foo"):
+        with tm.assert_raises_regex(ValueError, "No axis named foo"):
             self.panel._get_axis_number('foo')
 
-        with tm.assertRaisesRegexp(ValueError, "No axis named foo"):
+        with tm.assert_raises_regex(ValueError, "No axis named foo"):
             self.panel.__ge__(self.panel, axis='foo')
 
     def test_get_axis_name(self):
-        self.assertEqual(self.panel._get_axis_name(0), 'items')
-        self.assertEqual(self.panel._get_axis_name(1), 'major_axis')
-        self.assertEqual(self.panel._get_axis_name(2), 'minor_axis')
+        assert self.panel._get_axis_name(0) == 'items'
+        assert self.panel._get_axis_name(1) == 'major_axis'
+        assert self.panel._get_axis_name(2) == 'minor_axis'
 
     def test_get_plane_axes(self):
         # what to do here?
@@ -304,8 +303,7 @@ class SafeForSparse(object):
         for k, v in self.panel.iteritems():
             pass
 
-        self.assertEqual(len(list(self.panel.iteritems())),
-                         len(self.panel.items))
+        assert len(list(self.panel.iteritems())) == len(self.panel.items)
 
     def test_combineFrame(self):
         with catch_warnings(record=True):
@@ -433,8 +431,8 @@ class SafeForSparse(object):
             expected = np.abs(s)
             assert_series_equal(result, expected)
             assert_series_equal(result2, expected)
-            self.assertEqual(result.name, 'A')
-            self.assertEqual(result2.name, 'A')
+            assert result.name == 'A'
+            assert result2.name == 'A'
 
 
 class CheckIndexing(object):
@@ -498,25 +496,26 @@ class CheckIndexing(object):
             # scalar
             self.panel['ItemG'] = 1
             self.panel['ItemE'] = True
-            self.assertEqual(self.panel['ItemG'].values.dtype, np.int64)
-            self.assertEqual(self.panel['ItemE'].values.dtype, np.bool_)
+            assert self.panel['ItemG'].values.dtype == np.int64
+            assert self.panel['ItemE'].values.dtype == np.bool_
 
             # object dtype
             self.panel['ItemQ'] = 'foo'
-            self.assertEqual(self.panel['ItemQ'].values.dtype, np.object_)
+            assert self.panel['ItemQ'].values.dtype == np.object_
 
             # boolean dtype
             self.panel['ItemP'] = self.panel['ItemA'] > 0
-            self.assertEqual(self.panel['ItemP'].values.dtype, np.bool_)
+            assert self.panel['ItemP'].values.dtype == np.bool_
 
             pytest.raises(TypeError, self.panel.__setitem__, 'foo',
                           self.panel.loc[['ItemP']])
 
             # bad shape
             p = Panel(np.random.randn(4, 3, 2))
-            with tm.assertRaisesRegexp(ValueError,
-                                       r"shape of value must be \(3, 2\), "
-                                       r"shape of given object was \(4, 2\)"):
+            with tm.assert_raises_regex(ValueError,
+                                        r"shape of value must be "
+                                        r"\(3, 2\), shape of given "
+                                        r"object was \(4, 2\)"):
                 p[0] = np.random.randn(4, 2)
 
     def test_setitem_ndarray(self):
@@ -560,7 +559,7 @@ class CheckIndexing(object):
 
             result = xs['ItemA']
             assert_series_equal(result, ref.xs(idx), check_names=False)
-            self.assertEqual(result.name, 'ItemA')
+            assert result.name == 'ItemA'
 
             # not contained
             idx = self.panel.major_axis[0] - BDay()
@@ -570,8 +569,8 @@ class CheckIndexing(object):
         with catch_warnings(record=True):
             self.panel['ItemD'] = 'foo'
             xs = self.panel.major_xs(self.panel.major_axis[0])
-            self.assertEqual(xs['ItemA'].dtype, np.float64)
-            self.assertEqual(xs['ItemD'].dtype, np.object_)
+            assert xs['ItemA'].dtype == np.float64
+            assert xs['ItemD'].dtype == np.object_
 
     def test_minor_xs(self):
         with catch_warnings(record=True):
@@ -590,8 +589,8 @@ class CheckIndexing(object):
             self.panel['ItemD'] = 'foo'
 
             xs = self.panel.minor_xs('D')
-            self.assertEqual(xs['ItemA'].dtype, np.float64)
-            self.assertEqual(xs['ItemD'].dtype, np.object_)
+            assert xs['ItemA'].dtype == np.float64
+            assert xs['ItemD'].dtype == np.object_
 
     def test_xs(self):
         with catch_warnings(record=True):
@@ -808,7 +807,7 @@ class CheckIndexing(object):
         cp = self.panel.copy()
         obj = cp.loc[indexer]
         obj.values[:] = 0
-        self.assertTrue((obj.values == 0).all())
+        assert (obj.values == 0).all()
         comp(cp.loc[indexer].reindex_like(obj), obj)
 
     def test_logical_with_nas(self):
@@ -874,8 +873,9 @@ class CheckIndexing(object):
                     result = self.panel.get_value(item, mjr, mnr)
                     expected = self.panel[item][mnr][mjr]
                     assert_almost_equal(result, expected)
-        with tm.assertRaisesRegexp(TypeError,
-                                   "There must be an argument for each axis"):
+        with tm.assert_raises_regex(TypeError,
+                                    "There must be an argument "
+                                    "for each axis"):
             self.panel.get_value('a')
 
     def test_set_value(self):
@@ -897,18 +897,18 @@ class CheckIndexing(object):
 
             msg = ("There must be an argument for each "
                    "axis plus the value provided")
-            with tm.assertRaisesRegexp(TypeError, msg):
+            with tm.assert_raises_regex(TypeError, msg):
                 self.panel.set_value('a')
 
 
-class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
+class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                 SafeForSparse):
 
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
 
-    def setUp(self):
+    def setup_method(self, method):
         self.panel = make_test_panel()
         self.panel.major_axis.name = None
         self.panel.minor_axis.name = None
@@ -984,16 +984,16 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
     def test_constructor_empty_panel(self):
         with catch_warnings(record=True):
             empty = Panel()
-            self.assertEqual(len(empty.items), 0)
-            self.assertEqual(len(empty.major_axis), 0)
-            self.assertEqual(len(empty.minor_axis), 0)
+            assert len(empty.items) == 0
+            assert len(empty.major_axis) == 0
+            assert len(empty.minor_axis) == 0
 
     def test_constructor_observe_dtype(self):
         with catch_warnings(record=True):
             # GH #411
             panel = Panel(items=lrange(3), major_axis=lrange(3),
                           minor_axis=lrange(3), dtype='O')
-            self.assertEqual(panel.values.dtype, np.object_)
+            assert panel.values.dtype == np.object_
 
     def test_constructor_dtypes(self):
         with catch_warnings(record=True):
@@ -1001,7 +1001,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             def _check_dtype(panel, dtype):
                 for i in panel.items:
-                    self.assertEqual(panel[i].values.dtype.name, dtype)
+                    assert panel[i].values.dtype.name == dtype
 
             # only nan holding types allowed here
             for dtype in ['float64', 'float32', 'object']:
@@ -1041,18 +1041,18 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
     def test_constructor_fails_with_not_3d_input(self):
         with catch_warnings(record=True):
-            with tm.assertRaisesRegexp(ValueError, "The number of dimensions required is 3"):  # noqa
+            with tm.assert_raises_regex(ValueError, "The number of dimensions required is 3"):  # noqa
                     Panel(np.random.randn(10, 2))
 
     def test_consolidate(self):
         with catch_warnings(record=True):
-            self.assertTrue(self.panel._data.is_consolidated())
+            assert self.panel._data.is_consolidated()
 
             self.panel['foo'] = 1.
-            self.assertFalse(self.panel._data.is_consolidated())
+            assert not self.panel._data.is_consolidated()
 
             panel = self.panel._consolidate()
-            self.assertTrue(panel._data.is_consolidated())
+            assert panel._data.is_consolidated()
 
     def test_ctor_dict(self):
         with catch_warnings(record=True):
@@ -1133,10 +1133,10 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 :50]  # unique random int  keys
             d = OrderedDict([(k, mkdf(10, 5)) for k in keys])
             p = Panel(d)
-            self.assertTrue(list(p.items) == keys)
+            assert list(p.items) == keys
 
             p = Panel.from_dict(d)
-            self.assertTrue(list(p.items) == keys)
+            assert list(p.items) == keys
 
     def test_constructor_resize(self):
         with catch_warnings(record=True):
@@ -1172,8 +1172,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             panel = Panel.from_dict(data, orient='minor')
 
-            self.assertEqual(panel['foo'].values.dtype, np.object_)
-            self.assertEqual(panel['A'].values.dtype, np.float64)
+            assert panel['foo'].values.dtype == np.object_
+            assert panel['A'].values.dtype == np.float64
 
     def test_constructor_error_msgs(self):
         with catch_warnings(record=True):
@@ -1181,28 +1181,31 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                 Panel(np.random.randn(3, 4, 5),
                       lrange(4), lrange(5), lrange(5))
 
-            assertRaisesRegexp(ValueError,
-                               r"Shape of passed values is \(3, 4, 5\), "
-                               r"indices imply \(4, 5, 5\)",
-                               testit)
+            tm.assert_raises_regex(ValueError,
+                                   r"Shape of passed values is "
+                                   r"\(3, 4, 5\), indices imply "
+                                   r"\(4, 5, 5\)",
+                                   testit)
 
             def testit():
                 Panel(np.random.randn(3, 4, 5),
                       lrange(5), lrange(4), lrange(5))
 
-            assertRaisesRegexp(ValueError,
-                               r"Shape of passed values is \(3, 4, 5\), "
-                               r"indices imply \(5, 4, 5\)",
-                               testit)
+            tm.assert_raises_regex(ValueError,
+                                   r"Shape of passed values is "
+                                   r"\(3, 4, 5\), indices imply "
+                                   r"\(5, 4, 5\)",
+                                   testit)
 
             def testit():
                 Panel(np.random.randn(3, 4, 5),
                       lrange(5), lrange(5), lrange(4))
 
-            assertRaisesRegexp(ValueError,
-                               r"Shape of passed values is \(3, 4, 5\), "
-                               r"indices imply \(5, 5, 4\)",
-                               testit)
+            tm.assert_raises_regex(ValueError,
+                                   r"Shape of passed values is "
+                                   r"\(3, 4, 5\), indices imply "
+                                   r"\(5, 5, 4\)",
+                                   testit)
 
     def test_conform(self):
         with catch_warnings(record=True):
@@ -1421,7 +1424,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             # this ok
             result = self.panel.reindex()
             assert_panel_equal(result, self.panel)
-            self.assertFalse(result is self.panel)
+            assert result is not self.panel
 
             # with filling
             smaller_major = self.panel.major_axis[::5]
@@ -1436,7 +1439,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             result = self.panel.reindex(
                 major=self.panel.major_axis, copy=False)
             assert_panel_equal(result, self.panel)
-            self.assertTrue(result is self.panel)
+            assert result is self.panel
 
     def test_reindex_multi(self):
         with catch_warnings(record=True):
@@ -1546,7 +1549,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
     def test_fillna(self):
         with catch_warnings(record=True):
             filled = self.panel.fillna(0)
-            self.assertTrue(np.isfinite(filled.values).all())
+            assert np.isfinite(filled.values).all()
 
             filled = self.panel.fillna(method='backfill')
             assert_frame_equal(filled['ItemA'],
@@ -1633,7 +1636,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             # this works, but return a copy
             result = self.panel.swapaxes('items', 'items')
             assert_panel_equal(self.panel, result)
-            self.assertNotEqual(id(self.panel), id(result))
+            assert id(self.panel) != id(result)
 
     def test_transpose(self):
         with catch_warnings(record=True):
@@ -1660,12 +1663,12 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(result, expected)
 
             # duplicate axes
-            with tm.assertRaisesRegexp(TypeError,
-                                       'not enough/duplicate arguments'):
+            with tm.assert_raises_regex(TypeError,
+                                        'not enough/duplicate arguments'):
                 self.panel.transpose('minor', maj='major', minor='items')
 
-            with tm.assertRaisesRegexp(ValueError,
-                                       'repeated axis in transpose'):
+            with tm.assert_raises_regex(ValueError,
+                                        'repeated axis in transpose'):
                 self.panel.transpose('minor', 'major', major='minor',
                                      minor='items')
 
@@ -1691,7 +1694,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(result, expected)
 
             panel.values[0, 1, 1] = np.nan
-            self.assertTrue(notnull(result.values[1, 0, 1]))
+            assert notnull(result.values[1, 0, 1])
 
     def test_to_frame(self):
         with catch_warnings(record=True):
@@ -1705,7 +1708,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(unfiltered.to_panel(), self.panel)
 
             # names
-            self.assertEqual(unfiltered.index.names, ('major', 'minor'))
+            assert unfiltered.index.names == ('major', 'minor')
 
             # unsorted, round trip
             df = self.panel.to_frame(filter_observations=False)
@@ -1722,8 +1725,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             df.columns.name = 'baz'
 
             rdf = df.to_panel().to_frame()
-            self.assertEqual(rdf.index.names, df.index.names)
-            self.assertEqual(rdf.columns.names, df.columns.names)
+            assert rdf.index.names == df.index.names
+            assert rdf.columns.names == df.columns.names
 
     def test_to_frame_mixed(self):
         with catch_warnings(record=True):
@@ -1733,7 +1736,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             lp = panel.to_frame()
             wp = lp.to_panel()
-            self.assertEqual(wp['bool'].values.dtype, np.bool_)
+            assert wp['bool'].values.dtype == np.bool_
             # Previously, this was mutating the underlying
             # index and changing its name
             assert_frame_equal(wp['bool'], panel['bool'], check_names=False)
@@ -1860,14 +1863,14 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                                   [0, 1, 2, 3, 4, 5, 2, 3, 4, 5]])
 
             panel = df.to_panel()
-            self.assertTrue(isnull(panel[0].loc[1, [0, 1]]).all())
+            assert isnull(panel[0].loc[1, [0, 1]]).all()
 
     def test_to_panel_duplicates(self):
         # #2441
         with catch_warnings(record=True):
             df = DataFrame({'a': [0, 0, 1], 'b': [1, 1, 1], 'c': [1, 2, 3]})
             idf = df.set_index(['a', 'b'])
-            assertRaisesRegexp(
+            tm.assert_raises_regex(
                 ValueError, 'non-uniquely indexed', idf.to_panel)
 
     def test_panel_dups(self):
@@ -1992,8 +1995,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             shifted3 = ps.tshift(freq=BDay())
             assert_panel_equal(shifted, shifted3)
 
-            assertRaisesRegexp(ValueError, 'does not match',
-                               ps.tshift, freq='M')
+            tm.assert_raises_regex(ValueError, 'does not match',
+                                   ps.tshift, freq='M')
 
             # DatetimeIndex
             panel = make_test_panel()
@@ -2108,7 +2111,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(expected, result)
 
             msg = "the 'out' parameter is not supported"
-            tm.assertRaisesRegexp(ValueError, msg, np.round, p, out=p)
+            tm.assert_raises_regex(ValueError, msg, np.round, p, out=p)
 
     def test_multiindex_get(self):
         with catch_warnings(record=True):
@@ -2123,8 +2126,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             f2 = wp.loc['a']
             assert_panel_equal(f1, f2)
 
-            self.assertTrue((f1.items == [1, 2]).all())
-            self.assertTrue((f2.items == [1, 2]).all())
+            assert (f1.items == [1, 2]).all()
+            assert (f2.items == [1, 2]).all()
 
             ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
                                          names=['first', 'second'])
@@ -2136,10 +2139,10 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             wp = Panel(self.panel._data)
             wp.items = ind
             f1 = wp['a']
-            self.assertTrue((f1.items == [1, 2]).all())
+            assert (f1.items == [1, 2]).all()
 
             f1 = wp[('b', 1)]
-            self.assertTrue((f1.columns == ['A', 'B', 'C', 'D']).all())
+            assert (f1.columns == ['A', 'B', 'C', 'D']).all()
 
     def test_repr_empty(self):
         with catch_warnings(record=True):
@@ -2161,7 +2164,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             # don't copy
             renamed_nocopy = self.panel.rename_axis(mapper, axis=0, copy=False)
             renamed_nocopy['foo'] = 3.
-            self.assertTrue((self.panel['ItemA'].values == 3).all())
+            assert (self.panel['ItemA'].values == 3).all()
 
     def test_get_attr(self):
         assert_frame_equal(self.panel['ItemA'], self.panel.ItemA)
@@ -2409,30 +2412,30 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
                           **{'raise_conflict': True})
 
     def test_all_any(self):
-        self.assertTrue((self.panel.all(axis=0).values == nanall(
-            self.panel, axis=0)).all())
-        self.assertTrue((self.panel.all(axis=1).values == nanall(
-            self.panel, axis=1).T).all())
-        self.assertTrue((self.panel.all(axis=2).values == nanall(
-            self.panel, axis=2).T).all())
-        self.assertTrue((self.panel.any(axis=0).values == nanany(
-            self.panel, axis=0)).all())
-        self.assertTrue((self.panel.any(axis=1).values == nanany(
-            self.panel, axis=1).T).all())
-        self.assertTrue((self.panel.any(axis=2).values == nanany(
-            self.panel, axis=2).T).all())
+        assert (self.panel.all(axis=0).values == nanall(
+            self.panel, axis=0)).all()
+        assert (self.panel.all(axis=1).values == nanall(
+            self.panel, axis=1).T).all()
+        assert (self.panel.all(axis=2).values == nanall(
+            self.panel, axis=2).T).all()
+        assert (self.panel.any(axis=0).values == nanany(
+            self.panel, axis=0)).all()
+        assert (self.panel.any(axis=1).values == nanany(
+            self.panel, axis=1).T).all()
+        assert (self.panel.any(axis=2).values == nanany(
+            self.panel, axis=2).T).all()
 
     def test_all_any_unhandled(self):
         pytest.raises(NotImplementedError, self.panel.all, bool_only=True)
         pytest.raises(NotImplementedError, self.panel.any, bool_only=True)
 
 
-class TestLongPanel(tm.TestCase):
+class TestLongPanel(object):
     """
     LongPanel no longer exists, but...
     """
 
-    def setUp(self):
+    def setup_method(self, method):
         panel = make_test_panel()
         self.panel = panel.to_frame()
         self.unfiltered_panel = panel.to_frame(filter_observations=False)
@@ -2528,10 +2531,10 @@ class TestLongPanel(tm.TestCase):
             return (arr[1:] > arr[:-1]).any()
 
         sorted_minor = self.panel.sort_index(level=1)
-        self.assertTrue(is_sorted(sorted_minor.index.labels[1]))
+        assert is_sorted(sorted_minor.index.labels[1])
 
         sorted_major = sorted_minor.sort_index(level=0)
-        self.assertTrue(is_sorted(sorted_major.index.labels[0]))
+        assert is_sorted(sorted_major.index.labels[0])
 
     def test_to_string(self):
         buf = StringIO()
@@ -2540,8 +2543,8 @@ class TestLongPanel(tm.TestCase):
     def test_to_sparse(self):
         if isinstance(self.panel, Panel):
             msg = 'sparsifying is not supported'
-            tm.assertRaisesRegexp(NotImplementedError, msg,
-                                  self.panel.to_sparse)
+            tm.assert_raises_regex(NotImplementedError, msg,
+                                   self.panel.to_sparse)
 
     def test_truncate(self):
         with catch_warnings(record=True):
@@ -2587,18 +2590,16 @@ class TestLongPanel(tm.TestCase):
         from pandas.core.reshape.reshape import make_axis_dummies
 
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
-        self.assertEqual(len(minor_dummies.columns),
-                         len(self.panel.index.levels[1]))
+        assert len(minor_dummies.columns) == len(self.panel.index.levels[1])
 
         major_dummies = make_axis_dummies(self.panel, 'major').astype(np.uint8)
-        self.assertEqual(len(major_dummies.columns),
-                         len(self.panel.index.levels[0]))
+        assert len(major_dummies.columns) == len(self.panel.index.levels[0])
 
         mapping = {'A': 'one', 'B': 'one', 'C': 'two', 'D': 'two'}
 
         transformed = make_axis_dummies(self.panel, 'minor',
                                         transform=mapping.get).astype(np.uint8)
-        self.assertEqual(len(transformed.columns), 2)
+        assert len(transformed.columns) == 2
         tm.assert_index_equal(transformed.columns, Index(['one', 'two']))
 
         # TODO: test correctness
@@ -2634,12 +2635,12 @@ class TestLongPanel(tm.TestCase):
             major_count = self.panel.count(level=0)['ItemA']
             labels = index.labels[0]
             for i, idx in enumerate(index.levels[0]):
-                self.assertEqual(major_count[i], (labels == i).sum())
+                assert major_count[i] == (labels == i).sum()
 
             minor_count = self.panel.count(level=1)['ItemA']
             labels = index.labels[1]
             for i, idx in enumerate(index.levels[1]):
-                self.assertEqual(minor_count[i], (labels == i).sum())
+                assert minor_count[i] == (labels == i).sum()
 
     def test_join(self):
         with catch_warnings(record=True):
@@ -2648,7 +2649,7 @@ class TestLongPanel(tm.TestCase):
 
             joined = lp1.join(lp2)
 
-            self.assertEqual(len(joined.columns), 3)
+            assert len(joined.columns) == 3
 
             pytest.raises(Exception, lp1.join,
                           self.panel.filter(['ItemB', 'ItemC']))
@@ -2661,11 +2662,11 @@ class TestLongPanel(tm.TestCase):
                                np.array(['a', 'b', 'c', 'd', 'e']),
                                np.array([1, 2, 3, 5, 4.]))
             df = pivot(one, two, three)
-            self.assertEqual(df['a'][1], 1)
-            self.assertEqual(df['b'][2], 2)
-            self.assertEqual(df['c'][3], 3)
-            self.assertEqual(df['d'][4], 5)
-            self.assertEqual(df['e'][5], 4)
+            assert df['a'][1] == 1
+            assert df['b'][2] == 2
+            assert df['c'][3] == 3
+            assert df['d'][4] == 5
+            assert df['e'][5] == 4
             assert_frame_equal(df, _slow_pivot(one, two, three))
 
             # weird overlap, TODO: test?

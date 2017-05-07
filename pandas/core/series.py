@@ -8,13 +8,14 @@ from __future__ import division
 
 import types
 import warnings
+from textwrap import dedent
 
 from numpy import nan, ndarray
 import numpy as np
 import numpy.ma as ma
 
 from pandas.core.dtypes.common import (
-    _coerce_to_dtype, is_categorical_dtype,
+    is_categorical_dtype,
     is_bool,
     is_integer, is_integer_dtype,
     is_float_dtype,
@@ -28,7 +29,8 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_scalar,
     _is_unorderable_exception,
-    _ensure_platform_int)
+    _ensure_platform_int,
+    pandas_dtype)
 from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
 from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
@@ -58,7 +60,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
-from pandas.util.terminal import get_terminal_size
+from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import zip, u, OrderedDict, StringIO
 from pandas.compat.numpy import function as nv
 
@@ -68,8 +70,8 @@ import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.io.formats.format as fmt
-from pandas.util.decorators import Appender, deprecate_kwarg, Substitution
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import Appender, deprecate_kwarg, Substitution
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
@@ -2173,7 +2175,31 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """
         return self
 
-    @Appender(generic._shared_docs['aggregate'] % _shared_doc_kwargs)
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    >>> s = Series(np.random.randn(10))
+
+    >>> s.agg('min')
+    -1.3018049988556679
+
+    >>> s.agg(['min', 'max'])
+    min   -1.301805
+    max    1.127688
+    dtype: float64
+
+    See also
+    --------
+    pandas.Series.apply
+    pandas.Series.transform
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(generic._shared_docs['aggregate'] % dict(
+        versionadded='.. versionadded:: 0.20.0',
+        **_shared_doc_kwargs))
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
         result, how = self._aggregate(func, *args, **kwargs)
@@ -2872,7 +2898,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     """
 
     if dtype is not None:
-        dtype = _coerce_to_dtype(dtype)
+        dtype = pandas_dtype(dtype)
 
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)

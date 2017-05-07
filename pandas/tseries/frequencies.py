@@ -16,7 +16,7 @@ from pandas.core.dtypes.common import (
 import pandas.core.algorithms as algos
 from pandas.core.algorithms import unique
 from pandas.tseries.offsets import DateOffset
-from pandas.util.decorators import cache_readonly, deprecate_kwarg
+from pandas.util._decorators import cache_readonly, deprecate_kwarg
 import pandas.tseries.offsets as offsets
 
 from pandas._libs import lib, tslib

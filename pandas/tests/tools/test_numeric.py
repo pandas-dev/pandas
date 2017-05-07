@@ -9,7 +9,7 @@ from pandas.util import testing as tm
 from numpy import iinfo
 
 
-class TestToNumeric(tm.TestCase):
+class TestToNumeric(object):
 
     def test_series(self):
         s = pd.Series(['1', '-3.14', '7'])
@@ -39,7 +39,7 @@ class TestToNumeric(tm.TestCase):
     def test_error(self):
         s = pd.Series([1, -3.14, 'apple'])
         msg = 'Unable to parse string "apple" at position 2'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             to_numeric(s, errors='raise')
 
         res = to_numeric(s, errors='ignore')
@@ -52,13 +52,13 @@ class TestToNumeric(tm.TestCase):
 
         s = pd.Series(['orange', 1, -3.14, 'apple'])
         msg = 'Unable to parse string "orange" at position 0'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             to_numeric(s, errors='raise')
 
     def test_error_seen_bool(self):
         s = pd.Series([True, False, 'apple'])
         msg = 'Unable to parse string "apple" at position 2'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             to_numeric(s, errors='raise')
 
         res = to_numeric(s, errors='ignore')
@@ -149,24 +149,24 @@ class TestToNumeric(tm.TestCase):
     def test_type_check(self):
         # GH 11776
         df = pd.DataFrame({'a': [1, -3.14, 7], 'b': ['4', '5', '6']})
-        with tm.assertRaisesRegexp(TypeError, "1-d array"):
+        with tm.assert_raises_regex(TypeError, "1-d array"):
             to_numeric(df)
         for errors in ['ignore', 'raise', 'coerce']:
-            with tm.assertRaisesRegexp(TypeError, "1-d array"):
+            with tm.assert_raises_regex(TypeError, "1-d array"):
                 to_numeric(df, errors=errors)
 
     def test_scalar(self):
-        self.assertEqual(pd.to_numeric(1), 1)
-        self.assertEqual(pd.to_numeric(1.1), 1.1)
+        assert pd.to_numeric(1) == 1
+        assert pd.to_numeric(1.1) == 1.1
 
-        self.assertEqual(pd.to_numeric('1'), 1)
-        self.assertEqual(pd.to_numeric('1.1'), 1.1)
+        assert pd.to_numeric('1') == 1
+        assert pd.to_numeric('1.1') == 1.1
 
         with pytest.raises(ValueError):
             to_numeric('XX', errors='raise')
 
-        self.assertEqual(to_numeric('XX', errors='ignore'), 'XX')
-        self.assertTrue(np.isnan(to_numeric('XX', errors='coerce')))
+        assert to_numeric('XX', errors='ignore') == 'XX'
+        assert np.isnan(to_numeric('XX', errors='coerce'))
 
     def test_numeric_dtypes(self):
         idx = pd.Index([1, 2, 3], name='xxx')
@@ -253,7 +253,7 @@ class TestToNumeric(tm.TestCase):
         res = pd.to_numeric(s, errors='ignore')
         tm.assert_series_equal(res, pd.Series([[10.0, 2], 1.0, 'apple']))
 
-        with tm.assertRaisesRegexp(TypeError, "Invalid object type"):
+        with tm.assert_raises_regex(TypeError, "Invalid object type"):
             pd.to_numeric(s)
 
     def test_downcast(self):
@@ -274,7 +274,7 @@ class TestToNumeric(tm.TestCase):
         smallest_float_dtype = float_32_char
 
         for data in (mixed_data, int_data, date_data):
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 pd.to_numeric(data, downcast=invalid_downcast)
 
             expected = np.array([1, 2, 3], dtype=np.int64)
