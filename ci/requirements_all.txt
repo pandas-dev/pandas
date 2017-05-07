@@ -9,7 +9,6 @@ python-dateutil
 pytz
 openpyxl
 xlsxwriter
-cssdecl
 xlrd
 xlwt
 html5lib

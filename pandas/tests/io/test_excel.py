@@ -2377,6 +2377,7 @@ def styled_dataframe():
 
 def assert_equal_style(cell1, cell2):
     # XXX: should find a better way to check equality
+    # Neither OpenPyXl's Cell, nor its style objects have __eq__ defined
     assert cell1.alignment.__dict__ == cell2.alignment.__dict__
     assert cell1.border.__dict__ == cell2.border.__dict__
     assert cell1.fill.__dict__ == cell2.fill.__dict__
