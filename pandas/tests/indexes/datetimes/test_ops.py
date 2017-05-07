@@ -1,4 +1,6 @@
+import pytz
 import pytest
+import dateutil
 import warnings
 import numpy as np
 from datetime import timedelta
@@ -1177,13 +1179,9 @@ class TestBusinessDatetimeIndex(object):
         self.rng[2:2].summary()
 
     def test_summary_pytz(self):
-        tm._skip_if_no_pytz()
-        import pytz
         bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
 
     def test_summary_dateutil(self):
-        tm._skip_if_no_dateutil()
-        import dateutil
         bdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
 
     def test_equals(self):
@@ -1279,13 +1277,9 @@ class TestCustomDatetimeIndex(object):
         self.rng[2:2].summary()
 
     def test_summary_pytz(self):
-        tm._skip_if_no_pytz()
-        import pytz
         cdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
 
     def test_summary_dateutil(self):
-        tm._skip_if_no_dateutil()
-        import dateutil
         cdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
 
     def test_equals(self):

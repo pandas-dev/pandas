@@ -148,8 +148,6 @@ class Base(object):
             assert isinstance(result, datetime)
             assert result.tzinfo is None
 
-            tm._skip_if_no_pytz()
-            tm._skip_if_no_dateutil()
             # Check tz is preserved
             for tz in self.timezones:
                 t = Timestamp('20080101', tz=tz)
@@ -157,7 +155,7 @@ class Base(object):
                 assert isinstance(result, datetime)
                 assert t.tzinfo == result.tzinfo
 
-        except (tslib.OutOfBoundsDatetime):
+        except tslib.OutOfBoundsDatetime:
             raise
         except (ValueError, KeyError) as e:
             pytest.skip(
@@ -284,9 +282,6 @@ class TestCommon(Base):
         if isinstance(dt, np.datetime64):
             # test tz when input is datetime or Timestamp
             return
-
-        tm._skip_if_no_pytz()
-        tm._skip_if_no_dateutil()
 
         for tz in self.timezones:
             expected_localize = expected.tz_localize(tz)
@@ -468,7 +463,6 @@ class TestCommon(Base):
                 assert isinstance(result, Timestamp)
                 assert result == expected
 
-            tm._skip_if_no_pytz()
             for tz in self.timezones:
                 expected_localize = expected.tz_localize(tz)
                 result = Timestamp(dt, tz=tz) + offset_s

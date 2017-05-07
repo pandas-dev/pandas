@@ -21,7 +21,7 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 """ Test cases for .boxplot method """
 
-tm._skip_module_if_no_mpl()
+tm._skip_if_no_mpl()
 
 
 def _skip_if_mpl_14_or_dev_boxplot():

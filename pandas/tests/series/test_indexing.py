@@ -338,9 +338,7 @@ class TestSeriesIndexing(TestData):
         assert not (s[4:] == 0).any()
 
     def test_getitem_setitem_datetime_tz_pytz(self):
-        tm._skip_if_no_pytz()
         from pytz import timezone as tz
-
         from pandas import date_range
 
         N = 50
@@ -374,7 +372,6 @@ class TestSeriesIndexing(TestData):
         assert_series_equal(result, ts)
 
     def test_getitem_setitem_datetime_tz_dateutil(self):
-        tm._skip_if_no_dateutil()
         from dateutil.tz import tzutc
         from pandas._libs.tslib import _dateutil_gettz as gettz
 
