@@ -95,7 +95,7 @@ def _get_terminal_size_linux():
             import termios
             import struct
             cr = struct.unpack(
-                'hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+                'hhhh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '12345678'))
         except:
             return None
         return cr
@@ -107,7 +107,7 @@ def _get_terminal_size_linux():
             os.close(fd)
         except:
             pass
-    if not cr or cr == (0, 0):
+    if not cr or cr[:2] == (0, 0):
         try:
             from os import environ as env
             cr = (env['LINES'], env['COLUMNS'])
