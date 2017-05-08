@@ -271,9 +271,9 @@ class TestDataFramePlots(TestPlotBase):
         df = pd.DataFrame({'1': ['a', 'b', 'c', 'b'],
                            '2': ['d', 'f', 'g', 'd'],
                            '3': ['h', 'e', 'j', 'h'],
-                           '4': ['x', 'y', 'x', 'y']})
+                           'four': ['x', 'y', 'x', 'y']})
         expected_pairs = [list(zip(df[i].values, df[j].values))
-                          for i, j in [('1', '2'), ('2', '4')]]
+                          for i, j in [('1', '2'), ('2', 'four')]]
         expected_data_pairs = reduce(list.__add__, expected_pairs)
 
         class _ParSetsProxy(_ParSets):
@@ -296,7 +296,7 @@ class TestDataFramePlots(TestPlotBase):
         par_sets = _ParSetsProxy()
         axes = par_sets.par_sets(df, class_column='3')
 
-        expected_x_ticks = ['1', '2', '4']
+        expected_x_ticks = ['1', '2', 'four']
         actual_x_ticks = [ax.get_xticklabels()[0].get_text() for ax in axes]
         assert expected_x_ticks == actual_x_ticks
 
@@ -304,6 +304,27 @@ class TestDataFramePlots(TestPlotBase):
         actual_y_ticks = [list(map(lambda i: i.get_text(),
                                    ax.get_yticklabels())) for ax in axes]
         assert expected_y_ticks == actual_y_ticks
+
+        last_axes = axes[-1]
+        spine_keys = ['right', 'bottom', 'top']
+        for spine_key in spine_keys:
+            assert last_axes.spines[spine_key].get_visible() is False
+        assert last_axes.spines['left'].get_visible() is True
+
+        par_sets = _ParSets()
+        actual_colour_map = par_sets._get_colours_for_par_sets([1, 2, 3])
+        expected_colour_map = {1: '#17becf', 2: '#1f77b4', 3: '#1f77b4'}
+        assert actual_colour_map == expected_colour_map
+
+        colours = ['b', 'g', 'r']
+        df = DataFrame({"A": [1, 2, 3],
+                        "B": [1, 2, 3],
+                        "C": [1, 2, 3],
+                        "Name": colours})
+        par_sets = _ParSets(color=colours)
+        actual_colour_map = par_sets._get_colours_for_par_sets([1, 2, 3])
+        expected_colour_map = {1: 'b', 2: 'g', 3: 'r'}
+        assert actual_colour_map == expected_colour_map
 
     @slow
     def test_radviz(self):

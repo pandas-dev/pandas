@@ -648,7 +648,7 @@ class _ParSets(object):
         from matplotlib.ticker import MaxNLocator
         for n, ax in enumerate(axes):
             ax.set_xticks([0])
-            ax.set_xticklabels(df_to_use.columns[n])
+            ax.set_xticklabels([df_to_use.columns[n]])
             ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
         for cat_index in range(len(column_cats_list)):
