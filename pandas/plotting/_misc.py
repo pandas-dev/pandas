@@ -564,7 +564,12 @@ class _ParSets(object):
         classes = df[class_column].drop_duplicates()
         colour_map = self._get_colours_for_par_sets(classes)
 
+        class_column_ref = df[class_column]
+
         df_to_use = df.drop(class_column, axis=1)
+        df_to_use.insert(len(df_to_use.columns), class_column,
+                         class_column_ref)
+
         class_column_values = df[class_column]
         data = df_to_use.values
 

@@ -273,7 +273,8 @@ class TestDataFramePlots(TestPlotBase):
                            '3': ['h', 'e', 'j', 'h'],
                            'four': ['x', 'y', 'x', 'y']})
         expected_pairs = [list(zip(df[i].values, df[j].values))
-                          for i, j in [('1', '2'), ('2', 'four')]]
+                          for i, j in [('1', '2'), ('2', 'four'),
+                                       ('four', '3')]]
         expected_data_pairs = reduce(list.__add__, expected_pairs)
 
         class _ParSetsProxy(_ParSets):
@@ -296,19 +297,20 @@ class TestDataFramePlots(TestPlotBase):
         par_sets = _ParSetsProxy()
         axes = par_sets.par_sets(df, class_column='3')
 
-        expected_x_ticks = ['1', '2', 'four']
+        expected_x_ticks = ['1', '2', 'four', '3']
         actual_x_ticks = [ax.get_xticklabels()[0].get_text() for ax in axes]
         assert expected_x_ticks == actual_x_ticks
 
-        expected_y_ticks = [['a', 'b', 'c'], ['d', 'f', 'g'], ['x', 'y']]
+        expected_y_ticks = [['a', 'b', 'c'], ['d', 'f', 'g'], ['x', 'y'],
+                            ['h', 'e', 'j']]
         actual_y_ticks = [list(map(lambda i: i.get_text(),
                                    ax.get_yticklabels())) for ax in axes]
         assert expected_y_ticks == actual_y_ticks
 
         last_axes = axes[-1]
-        spine_keys = ['right', 'bottom', 'top']
-        for spine_key in spine_keys:
-            assert last_axes.spines[spine_key].get_visible() is False
+        hidden_spine_keys = ['right', 'bottom', 'top']
+        for hidden_spine_key in hidden_spine_keys:
+            assert last_axes.spines[hidden_spine_key].get_visible() is False
         assert last_axes.spines['left'].get_visible() is True
 
         par_sets = _ParSets()
