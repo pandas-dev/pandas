@@ -21,13 +21,16 @@ from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
 from pandas.core.common import AbstractMethodError
 
-from pandas.types.hinting import (
-    typing,
-    Any, Callable, Text, Optional, Union,
-    Tuple, Dict,
-    ArrayLike, Scalar, PythonScalar, Buffer,
-    SelectionKey, SelectionFunction
-)
+try:
+    from pandas.types.hinting import (  # noqa
+        typing,
+        Any, Callable, Text, Optional, Union,
+        Tuple, Dict,
+        ArrayLike, Scalar, PythonScalar, Buffer,
+        SelectionKey, SelectionFunction
+    )
+except ImportError:
+    pass
 
 MYPY = False
 if MYPY:
