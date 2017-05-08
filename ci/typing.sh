@@ -9,7 +9,8 @@ RET=0
 if [ "$TYPING" ]; then
 
     echo "Typing  *.py"
-    mypy -2 pandas/core/base.py
+    mypy \
+        pandas/core/base.py
     if [ $? -ne "0" ]; then
         RET=1
     fi
