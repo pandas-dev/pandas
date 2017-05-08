@@ -313,16 +313,7 @@ class TestDataFramePlots(TestPlotBase):
             assert last_axes.spines[hidden_spine_key].get_visible() is False
         assert last_axes.spines['left'].get_visible() is True
 
-        par_sets = _ParSets()
-        actual_colour_map = par_sets._get_colours_for_par_sets([1, 2, 3])
-        expected_colour_map = {1: '#17becf', 2: '#1f77b4', 3: '#1f77b4'}
-        assert actual_colour_map == expected_colour_map
-
         colours = ['b', 'g', 'r']
-        df = DataFrame({"A": [1, 2, 3],
-                        "B": [1, 2, 3],
-                        "C": [1, 2, 3],
-                        "Name": colours})
         par_sets = _ParSets(color=colours)
         actual_colour_map = par_sets._get_colours_for_par_sets([1, 2, 3])
         expected_colour_map = {1: 'b', 2: 'g', 3: 'r'}
