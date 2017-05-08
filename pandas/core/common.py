@@ -481,10 +481,12 @@ def _dict_compat(d):
                 for key, value in iteritems(d))
 
 
-def _standardize_mapping(into):
+def prep_maping_for_to_dict(into):
     """
     Helper function to standardize the supplied mapping so it can
     be passed to the ``Series.to_dict()`` and ``DataFrame.to_dict()``
+    
+    .. versionadded:: 0.21.0
 
     Parameters
     ----------
@@ -504,11 +506,11 @@ def _standardize_mapping(into):
         if len(into) > 0:
             raise ValueError(
                 "to_dict() only accepts empty mappings.")
-        elif type(into) == collections.defaultdict:
+        elif isinstance(into, collections.defaultdict):
             return partial(
                 collections.defaultdict, into.default_factory)
         else:
-            return _standardize_mapping(type(into))
+            return prep_maping_for_to_dict(type(into))
     elif not issubclass(into, collections.Mapping):
         raise TypeError('unsupported type: {}'.format(into))
     elif into == collections.defaultdict:

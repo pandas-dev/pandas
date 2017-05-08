@@ -47,7 +47,7 @@ from pandas.core.common import (is_bool_indexer,
                                 SettingWithCopyError,
                                 _maybe_box_datetimelike,
                                 _dict_compat,
-                                _standardize_mapping)
+                                prep_maping_for_to_dict)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -1085,6 +1085,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             object. Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass an initialized
+            
             .. versionadded:: 0.21.0
 
         Returns
@@ -1092,9 +1093,23 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         value_dict : collections.Mapping
             If ``into`` is collections.defaultdict, the return
             value's default_factory will be None.
+            
+        Examples
+        --------
+        >>> from pandas import Series
+        >>> from collections import OrderedDict, defaultdict
+        >>> s = Series([1, 2, 3, 4])
+        >>> s.to_dict()
+        {0: 1, 1: 2, 2: 3, 3: 4}
+        >>> s.to_dict(OrderedDict)
+        OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
+        >>> dd = defaultdict(list)
+        >>> s.to_dict(dd)
+        defaultdict(list, {0: 1, 1: 2, 2: 3, 3: 4})
+        
         """
         # GH16122
-        into_c = _standardize_mapping(into)
+        into_c = prep_maping_for_to_dict(into)
         return into_c(compat.iteritems(self))
 
     def to_frame(self, name=None):

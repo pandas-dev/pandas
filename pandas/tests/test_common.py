@@ -199,26 +199,26 @@ def test_dict_compat():
     assert (com._dict_compat(data_unchanged) == data_unchanged)
 
 
-def test_standardize_mapping():
+def test_prep_maping_for_to_dict():
     # No non-empty
     bad = {'bad': 'data'}
     with pytest.raises(ValueError):
-        com._standardize_mapping(bad)
+        com.prep_maping_for_to_dict(bad)
 
     # No uninitialized defaultdicts
     with pytest.raises(TypeError):
-        com._standardize_mapping(collections.defaultdict)
+        com.prep_maping_for_to_dict(collections.defaultdict)
 
     # No non-mapping subtypes, instance
     with pytest.raises(TypeError):
-        com._standardize_mapping([])
+        com.prep_maping_for_to_dict([])
 
     # No non-mapping subtypes, class
     with pytest.raises(TypeError):
-        com._standardize_mapping(list)
+        com.prep_maping_for_to_dict(list)
 
     # Convert instance to type
-    assert (com._standardize_mapping({}) == dict)
+    assert (com.prep_maping_for_to_dict({}) == dict)
 
     dd = collections.defaultdict(list)
-    assert (type(com._standardize_mapping(dd)) == partial)
+    assert (type(com.prep_maping_for_to_dict(dd)) == partial)
