@@ -33,18 +33,13 @@ from pandas.core import common as com
 from pandas.compat import string_types
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
-import pandas.types.hinting as T  # noqa
-from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa
 
 
 # --------------- #
 # dtype access    #
 # --------------- #
 
-def _ensure_data(values,     # type: T.ArrayLike
-                 dtype=None  # type: T.Optional[ExtensionDtype]
-                 ):
-    # type: (...) -> T.Tuple[T.ArrayLike, str, str]
+def _ensure_data(values, dtype=None):
     """
     routine to ensure that our data is of the correct
     input dtype for lower-level routines
@@ -135,7 +130,6 @@ def _ensure_data(values,     # type: T.ArrayLike
 
 
 def _reconstruct_data(values, dtype, original):
-    # type: (T.ArrayLike, str, str) -> T.ArrayLike
     """
     reverse of _ensure_data
 
@@ -162,7 +156,6 @@ def _reconstruct_data(values, dtype, original):
 
 
 def _ensure_arraylike(values):
-    # type: (T.Iterable) -> T.ArrayLike
     """
     ensure that we are arraylike if not already
     """
@@ -186,7 +179,6 @@ _hashtables = {
 
 
 def _get_hashtable_algo(values):
-    # type: (T.ArrayLike) -> T.Tuple(type, str, str)
     """
     Parameters
     ----------
