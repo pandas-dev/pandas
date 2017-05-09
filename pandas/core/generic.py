@@ -1387,8 +1387,8 @@ class NDFrame(PandasObject, SelectionMixin):
           - Windows: none
           - OS X: none
         """
-        from pandas.io.clipboard import clipboard
-        clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
+        from pandas.io import clipboards
+        clipboards.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
     def to_xarray(self):
         """
