@@ -950,7 +950,6 @@ def clean_index_list(list obj):
     Utility used in pandas.core.index._ensure_index
     """
     cdef:
-        ndarray[object] converted
         Py_ssize_t i, n = len(obj)
         object v
         bint all_arrays = 1
@@ -964,15 +963,20 @@ def clean_index_list(list obj):
     if all_arrays:
         return obj, all_arrays
 
-    converted = np.empty(n, dtype=object)
-    for i in range(n):
-        v = obj[i]
-        if PyList_Check(v) or np.PyArray_Check(v) or hasattr(v, '_data'):
-            converted[i] = tuple(v)
-        else:
-            converted[i] = v
+    # don't force numpy coerce with nan's
+    inferred = infer_dtype(obj)
+    if inferred in ['string', 'bytes', 'unicode',
+                    'mixed', 'mixed-integer']:
+        return np.asarray(obj, dtype=object), 0
+    elif inferred in ['integer']:
 
-    return maybe_convert_objects(converted), 0
+        # TODO: we infer an integer but it *could* be a unint64
+        try:
+            return np.asarray(obj, dtype='int64'), 0
+        except OverflowError:
+            return np.asarray(obj, dtype='object'), 0
+
+    return np.asarray(obj), 0
 
 
 ctypedef fused pandas_string:

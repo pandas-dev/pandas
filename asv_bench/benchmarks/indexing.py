@@ -19,6 +19,9 @@ class Int64Indexing(object):
     def time_getitem_array(self):
         self.s[np.arange(10000)]
 
+    def time_getitem_lists(self):
+        self.s[np.arange(10000).tolist()]
+
     def time_iloc_array(self):
         self.s.iloc[np.arange(10000)]
 
