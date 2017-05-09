@@ -26,6 +26,7 @@ Enhancements
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Performance regression fix when indexing with a list-like (:issue:`16285`)
 
 
 .. _whatsnew_0202.bug_fixes:
