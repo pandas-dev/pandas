@@ -3,6 +3,7 @@ from pandas.compat import PY2
 import pandas.util.testing as tm
 import os
 import io
+import pytest
 import numpy as np
 
 
