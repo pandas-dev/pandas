@@ -53,7 +53,7 @@ cdef class Int64Vector:
     cdef Int64VectorData *data
     cdef ndarray ao
 
-    cdef resize(self)
-    cpdef to_array(self)
-    cdef inline void append(self, int64_t x)
-    cdef extend(self, int64_t[:] x)
+    cdef resize(self, refcheck=*)
+    cpdef to_array(self, refcheck=*)
+    cdef inline void append(self, int64_t x, refcheck=*)
+    cdef extend(self, int64_t[:] x, refcheck=*)

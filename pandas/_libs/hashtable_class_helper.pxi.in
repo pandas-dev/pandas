@@ -85,10 +85,11 @@ cdef class {{name}}Vector:
         self.ao = np.empty(self.data.m, dtype={{idtype}})
         self.data.data = <{{arg}}*> self.ao.data
 
-    cdef resize(self):
-        self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
-        self.ao.resize(self.data.m)
+    cdef resize(self, refcheck=True):
+        m = max(self.data.m * 4, _INIT_VEC_CAP)
+        self.ao.resize(m, refcheck=refcheck) # could raise, change m later
         self.data.data = <{{arg}}*> self.ao.data
+        self.data.m = m
 
     def __dealloc__(self):
         if self.data is not NULL:
@@ -98,21 +99,21 @@ cdef class {{name}}Vector:
     def __len__(self):
         return self.data.n
 
-    cpdef to_array(self):
-        self.ao.resize(self.data.n)
+    cpdef to_array(self, refcheck=True):
+        self.ao.resize(self.data.n, refcheck=refcheck)
         self.data.m = self.data.n
+        self.data.data = <{{arg}}*> self.ao.data
         return self.ao
 
-    cdef inline void append(self, {{arg}} x):
+    cdef inline void append(self, {{arg}} x, refcheck=True):
 
         if needs_resize(self.data):
-            self.resize()
-
+            self.resize(refcheck=refcheck)
         append_data_{{dtype}}(self.data, x)
 
-    cdef extend(self, {{arg}}[:] x):
+    cdef extend(self, {{arg}}[:] x, refcheck=True):
         for i in range(len(x)):
-            self.append(x[i])
+            self.append(x[i], refcheck=refcheck)
 
 {{endfor}}
 
@@ -130,11 +131,12 @@ cdef class StringVector:
         self.data.m = _INIT_VEC_CAP
         self.data.data = <char **> malloc(self.data.m * sizeof(char *))
 
-    cdef resize(self):
+    cdef resize(self, refcheck=True):
         cdef:
             char **orig_data
             size_t i, m
 
+        # refcheck ignored, for compatibility only
         m = self.data.m
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
 
@@ -154,12 +156,13 @@ cdef class StringVector:
     def __len__(self):
         return self.data.n
 
-    def to_array(self):
+    def to_array(self, refcheck=True):
         cdef:
             ndarray ao
             size_t n
             object val
 
+        # refcheck ignored, for compatibility only
         ao = np.empty(self.data.n, dtype=np.object)
         for i in range(self.data.n):
             val = self.data.data[i]
@@ -167,10 +170,10 @@ cdef class StringVector:
         self.data.m = self.data.n
         return ao
 
-    cdef inline void append(self, char * x):
+    cdef inline void append(self, char * x, refcheck=True):
 
         if needs_resize(self.data):
-            self.resize()
+            self.resize(refcheck=refcheck)
 
         append_data_string(self.data, x)
 
@@ -191,18 +194,18 @@ cdef class ObjectVector:
     def __len__(self):
         return self.n
 
-    cdef inline append(self, object o):
+    cdef inline append(self, object o, refcheck=True):
         if self.n == self.m:
             self.m = max(self.m * 2, _INIT_VEC_CAP)
-            self.ao.resize(self.m)
+            self.ao.resize(self.m, refcheck=refcheck)
             self.data = <PyObject**> self.ao.data
 
         Py_INCREF(o)
         self.data[self.n] = <PyObject*> o
         self.n += 1
 
-    def to_array(self):
-        self.ao.resize(self.n)
+    def to_array(self, refcheck=True):
+        self.ao.resize(self.n, refcheck=refcheck)
         self.m = self.n
         return self.ao
 
@@ -324,13 +327,13 @@ cdef class {{name}}HashTable(HashTable):
 
     def factorize(self, {{dtype}}_t values):
         uniques = {{name}}Vector()
-        labels = self.get_labels(values, uniques, 0, 0)
-        return uniques.to_array(), labels
+        labels = self.get_labels(values, uniques, 0, 0, refcheck=False)
+        return uniques.to_array(refcheck=False), labels
 
     @cython.boundscheck(False)
     def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
-                   bint check_null=True):
+                   bint check_null=True, bint refcheck=True):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -362,7 +365,7 @@ cdef class {{name}}HashTable(HashTable):
 
                     if needs_resize(ud):
                         with gil:
-                            uniques.resize()
+                            uniques.resize(refcheck=refcheck)
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
@@ -405,12 +408,12 @@ cdef class {{name}}HashTable(HashTable):
 
                     if needs_resize(ud):
                         with gil:
-                            uniques.resize()
+                            uniques.resize(refcheck=False)
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
 
-        arr_uniques = uniques.to_array()
+        arr_uniques = uniques.to_array(refcheck=False)
 
         return np.asarray(labels), arr_uniques
 
@@ -438,13 +441,13 @@ cdef class {{name}}HashTable(HashTable):
                         kh_put_{{dtype}}(self.table, val, &ret)
                         if needs_resize(ud):
                             with gil:
-                                uniques.resize()
+                                uniques.resize(refcheck=False)
                         append_data_{{dtype}}(ud, val)
                 elif not seen_na:
                     seen_na = 1
                     if needs_resize(ud):
                         with gil:
-                            uniques.resize()
+                            uniques.resize(refcheck=False)
                     append_data_{{dtype}}(ud, NAN)
                 {{else}}
                 k = kh_get_{{dtype}}(self.table, val)
@@ -452,11 +455,11 @@ cdef class {{name}}HashTable(HashTable):
                     kh_put_{{dtype}}(self.table, val, &ret)
                     if needs_resize(ud):
                         with gil:
-                            uniques.resize()
+                            uniques.resize(refcheck=False)
                     append_data_{{dtype}}(ud, val)
                 {{endif}}
 
-        return uniques.to_array()
+        return uniques.to_array(refcheck=False)
 
 {{endfor}}
 
@@ -570,13 +573,13 @@ cdef class StringHashTable(HashTable):
         # uniques
         uniques = ObjectVector()
         for i in range(count):
-            uniques.append(values[uindexer[i]])
-        return uniques.to_array()
+            uniques.append(values[uindexer[i]], refcheck=False)
+        return uniques.to_array(refcheck=False)
 
     def factorize(self, ndarray[object] values):
         uniques = ObjectVector()
-        labels = self.get_labels(values, uniques, 0, 0)
-        return uniques.to_array(), labels
+        labels = self.get_labels(values, uniques, 0, 0, refcheck=False)
+        return uniques.to_array(refcheck=False), labels
 
     @cython.boundscheck(False)
     def lookup(self, ndarray[object] values):
@@ -642,7 +645,7 @@ cdef class StringHashTable(HashTable):
     @cython.boundscheck(False)
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=1):
+                   bint check_null=1, bint refcheck=1):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -653,6 +656,7 @@ cdef class StringHashTable(HashTable):
             char *v
             char **vecs
             khiter_t k
+
 
         # these by-definition *must* be strings
         labels = np.zeros(n, dtype=np.int64)
@@ -692,7 +696,7 @@ cdef class StringHashTable(HashTable):
 
         # uniques
         for i in range(count):
-            uniques.append(values[uindexer[i]])
+            uniques.append(values[uindexer[i]], refcheck=refcheck)
 
         return np.asarray(labels)
 
@@ -806,16 +810,16 @@ cdef class PyObjectHashTable(HashTable):
                 k = kh_get_pymap(self.table, <PyObject*>val)
                 if k == self.table.n_buckets:
                     kh_put_pymap(self.table, <PyObject*>val, &ret)
-                    uniques.append(val)
+                    uniques.append(val, refcheck=False)
             elif not seen_na:
                 seen_na = 1
-                uniques.append(nan)
+                uniques.append(nan, refcheck=False)
 
-        return uniques.to_array()
+        return uniques.to_array(refcheck=False)
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=True):
+                   bint check_null=True, bint refcheck=True):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -841,7 +845,7 @@ cdef class PyObjectHashTable(HashTable):
             else:
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
                 self.table.vals[k] = count
-                uniques.append(val)
+                uniques.append(val, refcheck=refcheck)
                 labels[i] = count
                 count += 1
 

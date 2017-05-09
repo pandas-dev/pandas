@@ -12,7 +12,7 @@ cimport cython
 cimport numpy as cnp
 cnp.import_array()
 
-from hashtable cimport Int64Vector, Int64VectorData
+from hashtable cimport Int64Vector
 
 
 ctypedef fused scalar_t:
@@ -91,10 +91,10 @@ cdef class IntervalTree(IntervalMixin):
         the given scalar key
         """
         result = Int64Vector()
-        self.root.query(result, key)
+        self.root.query(result, key, False)
         if not result.data.n:
             raise KeyError(key)
-        return result.to_array()
+        return result.to_array(refcheck=False)
 
     def _get_partial_overlap(self, key_left, key_right, side):
         """Return all positions corresponding to intervals with the given side
@@ -137,14 +137,14 @@ cdef class IntervalTree(IntervalMixin):
         result = Int64Vector()
         old_len = 0
         for i in range(len(target)):
-            self.root.query(result, target[i])
+            self.root.query(result, target[i], False)
             if result.data.n == old_len:
-                result.append(-1)
+                result.append(-1, refcheck=False)
             elif result.data.n > old_len + 1:
                 raise KeyError(
                     'indexer does not intersect a unique set of intervals')
             old_len = result.data.n
-        return result.to_array()
+        return result.to_array(refcheck=False)
 
     def get_indexer_non_unique(self, scalar_t[:] target):
         """Return the positions corresponding to intervals that overlap with
@@ -159,12 +159,12 @@ cdef class IntervalTree(IntervalMixin):
         missing = Int64Vector()
         old_len = 0
         for i in range(len(target)):
-            self.root.query(result, target[i])
+            self.root.query(result, target[i], False)
             if result.data.n == old_len:
-                result.append(-1)
-                missing.append(i)
+                result.append(-1, refcheck=False)
+                missing.append(i, refcheck=False)
             old_len = result.data.n
-        return result.to_array(), missing.to_array()
+        return result.to_array(refcheck=False), missing.to_array(refcheck=False)
 
     def __repr__(self):
         return ('<IntervalTree[{dtype},{closed}]: '
@@ -298,15 +298,15 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
 
         for i in range(self.n_elements):
             if right[i] {{cmp_right_converse}} self.pivot:
-                left_ind.append(i)
+                left_ind.append(i, refcheck=False)
             elif self.pivot {{cmp_left_converse}} left[i]:
-                right_ind.append(i)
+                right_ind.append(i, refcheck=False)
             else:
-                overlapping_ind.append(i)
+                overlapping_ind.append(i, refcheck=False)
 
-        return (left_ind.to_array(),
-                right_ind.to_array(),
-                overlapping_ind.to_array())
+        return (left_ind.to_array(refcheck=False),
+                right_ind.to_array(refcheck=False),
+                overlapping_ind.to_array(refcheck=False))
 
     cdef new_child_node(self,
                         ndarray[{{dtype}}_t, ndim=1] left,
@@ -321,12 +321,15 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
         return {{dtype_title}}Closed{{closed_title}}IntervalNode(
             left, right, indices, self.leaf_size)
 
+    # XXX older cython does not allow kwarg here, would be better as
+    # refcheck=True
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
-    cpdef query(self, Int64Vector result, scalar_t point):
+    cpdef query(self, Int64Vector result, scalar_t point, refcheck):
         """Recursively query this node and its sub-nodes for intervals that
-        overlap with the query point.
+        overlap with the query point. refcheck should be False, it is passed
+        to result.append, which uses NumPy resize(refcheck=refcheck)
         """
         cdef:
             int64_t[:] indices
@@ -339,7 +342,7 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
             # search.
             for i in range(self.n_elements):
                 if self.left[i] {{cmp_left}} point {{cmp_right}} self.right[i]:
-                    result.append(self.indices[i])
+                    result.append(self.indices[i], refcheck=refcheck)
         else:
             # There are child nodes. Based on comparing our query to the pivot,
             # look at the center values, then go to the relevant child.
@@ -349,20 +352,20 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
                 for i in range(self.n_center):
                     if not values[i] {{cmp_left}} point:
                         break
-                    result.append(indices[i])
+                    result.append(indices[i], refcheck=refcheck)
                 if point {{cmp_right}} self.left_node.max_right:
-                    self.left_node.query(result, point)
+                    self.left_node.query(result, point, refcheck)
             elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
                 for i in range(self.n_center - 1, -1, -1):
                     if not point {{cmp_right}} values[i]:
                         break
-                    result.append(indices[i])
+                    result.append(indices[i], refcheck=refcheck)
                 if self.right_node.min_left {{cmp_left}} point:
-                    self.right_node.query(result, point)
+                    self.right_node.query(result, point, refcheck)
             else:
-                result.extend(self.center_left_indices)
+                result.extend(self.center_left_indices, refcheck=refcheck)
 
     def __repr__(self):
         if self.is_leaf_node:

@@ -1407,7 +1407,7 @@ def _factorize_keys(lk, rk, sort=True):
     count = rizer.get_count()
 
     if sort:
-        uniques = rizer.uniques.to_array()
+        uniques = rizer.uniques.to_array(refcheck=False)
         llab, rlab = _sort_labels(uniques, llab, rlab)
 
     # NA group
