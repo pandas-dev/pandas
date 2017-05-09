@@ -50,7 +50,7 @@ Indexing
 I/O
 ^^^
 
-
+- Bug that would force importing of the clipboard routines unecessarily, potentially causing an import error on startup (:issue:`16288`)
 
 
 Plotting
