@@ -5,7 +5,7 @@ Data IO api
 # flake8: noqa
 
 from pandas.io.parsers import read_csv, read_table, read_fwf
-from pandas.io.clipboard.clipboard import read_clipboard
+from pandas.io.clipboards import read_clipboard
 from pandas.io.excel import ExcelFile, ExcelWriter, read_excel
 from pandas.io.pytables import HDFStore, get_store, read_hdf
 from pandas.io.json import read_json
