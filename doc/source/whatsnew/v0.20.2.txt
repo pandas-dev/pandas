@@ -33,6 +33,8 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in using ``pathlib.Path`` object with io functions (:issue:`16291`)
+
 Conversion
 ^^^^^^^^^^
 

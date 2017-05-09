@@ -267,6 +267,7 @@ def test_round_trip_current(current_pickle_data):
                     compare_element(result, expected, typ)
 
 
+
 def test_pickle_v0_14_1():
 
     cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
@@ -298,6 +299,15 @@ def test_pickle_v0_15_2():
     #
     tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
+
+def test_pickle_path_pathlib():
+    tm._skip_if_no_pathlib()
+    from pathlib import Path
+    with tm.ensure_clean('pkl') as path:
+        df = pd.DataFrame({'a': [1, 2, 3]})
+        df.to_pickle(Path(path))
+        result = pd.read_pickle(Path(path))
+        tm.assert_frame_equal(df, result)
 
 # ---------------------
 # test pickle compression
