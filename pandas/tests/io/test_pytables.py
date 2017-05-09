@@ -16,7 +16,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
                     date_range, timedelta_range, Index, DatetimeIndex,
                     isnull)
 
-from pandas.compat import is_platform_windows, PY3, PY35
+from pandas.compat import is_platform_windows, PY3, PY35, BytesIO
 from pandas.io.formats.printing import pprint_thing
 
 tables = pytest.importorskip('tables')
@@ -4290,7 +4290,6 @@ class TestHDFStore(Base):
             lambda p: pd.read_hdf(p, 'df'))
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.xfail(reason='pathlib currently doesnt work with HDFStore')
     def test_path_pathlib_hdfstore(self):
         df = tm.makeDataFrame()
 
@@ -4300,7 +4299,8 @@ class TestHDFStore(Base):
 
         def reader(path):
             with pd.HDFStore(path) as store:
-                pd.read_hdf(store, 'df')
+                return pd.read_hdf(store, 'df')
+
         result = tm.round_trip_pathlib(writer, reader)
         tm.assert_frame_equal(df, result)
 
@@ -4311,7 +4311,6 @@ class TestHDFStore(Base):
             lambda p: pd.read_hdf(p, 'df'))
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.xfail(reason='localpath currently doesnt work with HDFStore')
     def test_path_localpath_hdfstore(self):
         df = tm.makeDataFrame()
 
@@ -4321,7 +4320,8 @@ class TestHDFStore(Base):
 
         def reader(path):
             with pd.HDFStore(path) as store:
-                pd.read_hdf(store, 'df')
+                return pd.read_hdf(store, 'df')
+
         result = tm.round_trip_localpath(writer, reader)
         tm.assert_frame_equal(df, result)
 
@@ -5007,8 +5007,9 @@ class TestHDFStore(Base):
             store = HDFStore(path, mode='r')
             store.close()
             pytest.raises(IOError, read_hdf, store, 'df')
-            with open(path, mode='r') as store:
-                pytest.raises(NotImplementedError, read_hdf, store, 'df')
+
+    def test_read_hdf_generic_buffer_errors(self):
+        pytest.raises(NotImplementedError, read_hdf, BytesIO(b''), 'df')
 
     def test_invalid_complib(self):
         df = DataFrame(np.random.rand(4, 5),

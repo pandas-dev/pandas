@@ -617,6 +617,9 @@ class ExcelFormatter(object):
             and ``io.excel.xlsm.writer``.
         """
         from pandas.io.excel import ExcelWriter
+        from pandas.io.common import _stringify_path
+
+        writer = _stringify_path(writer)
         need_save = False
         if isinstance(writer, string_types):
             writer = ExcelWriter(writer, engine=engine)
