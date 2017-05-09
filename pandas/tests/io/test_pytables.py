@@ -4255,10 +4255,34 @@ class TestHDFStore(Base):
                                        lambda p: pd.read_hdf(p, 'df'))
         tm.assert_frame_equal(df, result)
 
+    @pytest.mark.xfail(reason='pathlib currently doesnt workth with HDFStore')
+    def test_path_pathlib_hdfstore(self):
+        df = tm.makeDataFrame()
+        def writer(path):
+            with pd.HDFStore(path) as store:
+                df.to_hdf(store, 'df')
+        def reader(path):
+            with pd.HDFStore(path) as store:
+                pd.read_hdf(store, 'df')
+        result = tm.round_trip_pathlib(writer, reader)
+        tm.assert_frame_equal(df, result)
+
     def test_pickle_path_localpath(self):
         df = tm.makeDataFrame()
         result = tm.round_trip_pathlib(lambda p: df.to_hdf(p, 'df'),
                                        lambda p: pd.read_hdf(p, 'df'))
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.xfail(reason='localpath currently doesnt workth with HDFStore')
+    def test_path_localpath_hdfstore(self):
+        df = tm.makeDataFrame()
+        def writer(path):
+            with pd.HDFStore(path) as store:
+                df.to_hdf(store, 'df')
+        def reader(path):
+            with pd.HDFStore(path) as store:
+                pd.read_hdf(store, 'df')
+        result = tm.round_trip_localpath(writer, reader)
         tm.assert_frame_equal(df, result)
 
     def _check_roundtrip(self, obj, comparator, compression=False, **kwargs):
