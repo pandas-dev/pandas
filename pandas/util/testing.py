@@ -118,7 +118,26 @@ def round_trip_pickle(obj, path=None):
 
 
 def round_trip_pathlib(writer, reader, path=None):
-    from pathlib import Path
+    """
+    Write an object to file specifed by a pathlib.Path and read it back
+
+    Parameters
+    ----------
+    writer : callable bound to pandas object
+        IO writing function (e.g. DataFrame.to_csv )
+    reader : callable
+        IO reading function (e.g. pd.read_csv )
+    path : str, default None
+        The path where the object is written and then read.
+
+    Returns
+    -------
+    round_trip_object : pandas object
+        The original object that was serialized and then re-read.
+    """
+
+    import pytest
+    Path = pytest.importorskip('pathlib').Path
     if path is None:
         path = '___pathlib___'
     with ensure_clean(path) as path:
@@ -128,7 +147,25 @@ def round_trip_pathlib(writer, reader, path=None):
 
 
 def round_trip_localpath(writer, reader, path=None):
-    from py.path import local as LocalPath
+    """
+    Write an object to file specifed by a py.path LocalPath and read it back
+
+    Parameters
+    ----------
+    writer : callable bound to pandas object
+        IO writing function (e.g. DataFrame.to_csv )
+    reader : callable
+        IO reading function (e.g. pd.read_csv )
+    path : str, default None
+        The path where the object is written and then read.
+
+    Returns
+    -------
+    round_trip_object : pandas object
+        The original object that was serialized and then re-read.
+    """
+    import pytest
+    LocalPath = pytest.importorskip('py.path').local
     if path is None:
         path = '___localpath___'
     with ensure_clean(path) as path:
