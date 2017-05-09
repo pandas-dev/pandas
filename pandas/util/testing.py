@@ -117,6 +117,26 @@ def round_trip_pickle(obj, path=None):
         return pd.read_pickle(path)
 
 
+def round_trip_pathlib(writer, reader, path=None):
+    from pathlib import Path
+    if path is None:
+        path = '___pathlib___'
+    with ensure_clean(path) as path:
+        writer(Path(path))
+        obj = reader(Path(path))
+    return obj
+
+
+def round_trip_localpath(writer, reader, path=None):
+    from py.path import local as LocalPath
+    if path is None:
+        path = '___localpath___'
+    with ensure_clean(path) as path:
+        writer(LocalPath(path))
+        obj = reader(LocalPath(path))
+    return obj
+
+
 def assert_almost_equal(left, right, check_exact=False,
                         check_dtype='equiv', check_less_precise=False,
                         **kwargs):

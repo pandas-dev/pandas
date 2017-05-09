@@ -302,12 +302,16 @@ def test_pickle_v0_15_2():
 
 def test_pickle_path_pathlib():
     tm._skip_if_no_pathlib()
-    from pathlib import Path
-    with tm.ensure_clean('pkl') as path:
-        df = pd.DataFrame({'a': [1, 2, 3]})
-        df.to_pickle(Path(path))
-        result = pd.read_pickle(Path(path))
-        tm.assert_frame_equal(df, result)
+    df = tm.makeDataFrame()
+    result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle)
+    tm.assert_frame_equal(df, result)
+
+
+def test_pickle_path_localpath():
+    tm._skip_if_no_localpath()
+    df = tm.makeDataFrame()
+    result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
+    tm.assert_frame_equal(df, result)
 
 # ---------------------
 # test pickle compression
