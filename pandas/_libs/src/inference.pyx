@@ -947,8 +947,13 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     -------
     numeric_array : array of converted object values to numerical ones
     """
+
+    if len(values) == 0:
+        return np.array([], dtype='i8')
+
     # fastpath for ints - try to convert all based on first value
     cdef object val = values[0]
+
     if util.is_integer_object(val):
         try:
             maybe_ints = values.astype('i8')
