@@ -27,7 +27,7 @@ if [ "$BUILD_TEST" ]; then
     echo "[running]"
     cd /tmp
     unset PYTHONPATH
-    python -c "import pandas; pandas.test(['-n 2', '--skip-slow', '--skip-network', '-r xX'])"
+    python -c 'import pandas; pandas.test(["-n 2", "--skip-slow", "--skip-network", "-r xX", "-m not single"])'
 
 elif [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
