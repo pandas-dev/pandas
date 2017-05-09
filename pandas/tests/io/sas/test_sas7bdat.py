@@ -65,6 +65,7 @@ class TestSAS7BDAT(object):
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
                 rdr.close()
 
+    @pytest.mark.xfail(reason="read_sas currently doesn't work with pathlib")
     def test_path_pathlib(self):
         tm._skip_if_no_pathlib()
         from pathlib import Path
@@ -75,6 +76,7 @@ class TestSAS7BDAT(object):
                 df = pd.read_sas(fname, encoding='utf-8')
                 tm.assert_frame_equal(df, df0)
 
+    @pytest.mark.xfail(reason="read_sas currently doesn't work with localpath")
     def test_path_localpath(self):
         tm._skip_if_no_localpath()
         from py.path import local as LocalPath

@@ -685,10 +685,11 @@ bar"""
                                        lambda p: self.read_csv(p, index_col=0))
         tm.assert_frame_equal(df, result)
 
-    def test_pickle_path_localpath(self):
+    def test_path_localpath(self):
         df = tm.makeDataFrame()
-        result = tm.round_trip_pathlib(df.to_csv,
-                                       lambda p: self.read_csv(p, index_col=0))
+        result = tm.round_trip_localpath(
+            df.to_csv,
+            lambda p: self.read_csv(p, index_col=0))
         tm.assert_frame_equal(df, result)
 
     def test_nonexistent_path(self):
