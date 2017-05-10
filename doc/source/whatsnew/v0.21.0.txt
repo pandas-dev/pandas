@@ -82,6 +82,7 @@ Indexing
 I/O
 ^^^
 
+- Bug in ``HDFStore.select_as_multiple()`` where start/stop arguments were not respected (:issue:`16209`)
 
 
 Plotting
