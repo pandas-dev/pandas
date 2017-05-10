@@ -32,6 +32,14 @@ from pandas.io.formats.excel import CSSToExcelConverter
     ('font-family: roman, fantasy', {'font': {'name': 'roman', 'family': 5}}),
     # - size
     ('font-size: 1em', {'font': {'size': 12}}),
+    ('font-size: xx-small', {'font': {'size': 6}}),
+    ('font-size: x-small', {'font': {'size': 7.5}}),
+    ('font-size: small', {'font': {'size': 9.6}}),
+    ('font-size: medium', {'font': {'size': 12}}),
+    ('font-size: large', {'font': {'size': 13.5}}),
+    ('font-size: x-large', {'font': {'size': 18}}),
+    ('font-size: xx-large', {'font': {'size': 24}}),
+    ('font-size: 50%', {'font': {'size': 6}}),
     # - bold
     ('font-weight: 100', {'font': {'bold': False}}),
     ('font-weight: 200', {'font': {'bold': False}}),
@@ -45,6 +53,8 @@ from pandas.io.formats.excel import CSSToExcelConverter
     ('font-weight: 800', {'font': {'bold': True}}),
     ('font-weight: 900', {'font': {'bold': True}}),
     # - italic
+    ('font-style: italic', {'font': {'italic': True}}),
+    ('font-style: oblique', {'font': {'italic': True}}),
     # - underline
     ('text-decoration: underline',
      {'font': {'underline': 'single'}}),
