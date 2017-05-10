@@ -267,7 +267,6 @@ def test_round_trip_current(current_pickle_data):
                     compare_element(result, expected, typ)
 
 
-
 def test_pickle_v0_14_1():
 
     cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
