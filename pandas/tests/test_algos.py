@@ -1072,18 +1072,20 @@ class TestHashTable(object):
 
         def _test_vector_resize(htable, uniques, dtype, nvals, safely_resizes):
             vals = np.array(np.random.randn(1000), dtype=dtype)
-            # get_labels appends to the vector
+            # get_labels may append to uniques
             htable.get_labels(vals[:nvals], uniques, 0, -1)
-            # to_array may resize the vector
+            # to_array() set an external_view_exists flag on uniques.
             tmp = uniques.to_array()
             oldshape = tmp.shape
+            # subsequent get_labels() calls can no longer append to it
+            # (for all but StringHashTables + ObjectVector)
             if safely_resizes:
                 htable.get_labels(vals, uniques, 0, -1)
             else:
                 with pytest.raises(ValueError) as excinfo:
                     htable.get_labels(vals, uniques, 0, -1)
                 assert str(excinfo.value).startswith('external reference')
-            uniques.to_array()   # should not raise
+            uniques.to_array()   # should not raise here
             assert tmp.shape == oldshape
 
         test_cases = [

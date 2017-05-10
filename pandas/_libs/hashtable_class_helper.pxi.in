@@ -103,9 +103,10 @@ cdef class {{name}}Vector:
     cpdef to_array(self):
         if self.data.m != self.data.n:
             if self.external_view_exists:
-                raise ValueError("should have raised on append(), m=%d n=%d" % (self.data.m, self.data.n))
+                # should never happen
+                raise ValueError("should have raised on append()")
             self.ao.resize(self.data.n, refcheck=False)
-        self.data.m = self.data.n
+            self.data.m = self.data.n
         self.external_view_exists = True
         return self.ao
 
