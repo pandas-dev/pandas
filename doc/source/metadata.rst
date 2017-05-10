@@ -34,7 +34,8 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
 .. code-block:: text
 
    {'index_columns': ['__index_level_0__', '__index_level_1__', ...],
-    'columns': [<c0>, <c1>, ...]}
+    'columns': [<c0>, <c1>, ...],
+    'pandas_version': '0.20.0'}
 
 Here, ``<c0>`` and so forth are dictionaries containing the metadata for each
 column. This has JSON form:
@@ -76,7 +77,7 @@ As an example of fully-formed metadata:
          'numpy_type': 'int8',
          'metadata': None},
         {'name': 'c1',
-         'type': 'string',
+         'type': 'bytes',
          'numpy_type': 'object',
          'metadata': None},
         {'name': 'c2',
@@ -91,4 +92,5 @@ As an example of fully-formed metadata:
          'type': 'int64',
          'numpy_type': 'int64',
          'metadata': None}
-    ]}
+    ],
+    'pandas_version': '0.20.0'}
