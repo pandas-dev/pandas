@@ -344,7 +344,7 @@ class TestObservanceRules(object):
 
 class TestFederalHolidayCalendar(object):
 
-    def test_no_mlk_before_1984(self):
+    def test_no_mlk_before_1986(self):
         # see gh-10278
         class MLKCalendar(AbstractHolidayCalendar):
             rules = [USMartinLutherKingJr]

@@ -270,25 +270,16 @@ def close(fignum=None):
 
 
 def _skip_if_32bit():
-    import pytest
     if is_platform_32bit():
+        import pytest
         pytest.skip("skipping for 32 bit")
 
 
-def _skip_module_if_no_mpl():
+def _skip_if_no_mpl():
     import pytest
 
     mpl = pytest.importorskip("matplotlib")
     mpl.use("Agg", warn=False)
-
-
-def _skip_if_no_mpl():
-    try:
-        import matplotlib as mpl
-        mpl.use("Agg", warn=False)
-    except ImportError:
-        import pytest
-        pytest.skip("matplotlib not installed")
 
 
 def _skip_if_mpl_1_5():
@@ -303,21 +294,11 @@ def _skip_if_mpl_1_5():
 
 
 def _skip_if_no_scipy():
-    try:
-        import scipy.stats  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("no scipy.stats module")
-    try:
-        import scipy.interpolate  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip('scipy.interpolate missing')
-    try:
-        import scipy.sparse  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip('scipy.sparse missing')
+    import pytest
+
+    pytest.importorskip("scipy.stats")
+    pytest.importorskip("scipy.sparse")
+    pytest.importorskip("scipy.interpolate")
 
 
 def _check_if_lzma():
@@ -333,32 +314,14 @@ def _skip_if_no_lzma():
 
 
 def _skip_if_no_xarray():
-    try:
-        import xarray
-    except ImportError:
-        import pytest
-        pytest.skip("xarray not installed")
+    import pytest
 
+    xarray = pytest.importorskip("xarray")
     v = xarray.__version__
+
     if v < LooseVersion('0.7.0'):
         import pytest
         pytest.skip("xarray not version is too low: {0}".format(v))
-
-
-def _skip_if_no_pytz():
-    try:
-        import pytz  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("pytz not installed")
-
-
-def _skip_if_no_dateutil():
-    try:
-        import dateutil  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("dateutil not installed")
 
 
 def _skip_if_windows_python_3():
@@ -441,16 +404,13 @@ def _skip_if_no_mock():
         try:
             from unittest import mock  # noqa
         except ImportError:
-            import nose
-            raise nose.SkipTest("mock is not installed")
+            import pytest
+            raise pytest.skip("mock is not installed")
 
 
 def _skip_if_no_ipython():
-    try:
-        import IPython  # noqa
-    except ImportError:
-        import nose
-        raise nose.SkipTest("IPython not installed")
+    import pytest
+    pytest.importorskip("IPython")
 
 # -----------------------------------------------------------------------------
 # locale utilities

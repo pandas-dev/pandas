@@ -11,6 +11,21 @@ from numpy import iinfo
 
 class TestToNumeric(object):
 
+    def test_empty(self):
+        # see gh-16302
+        s = pd.Series([], dtype=object)
+
+        res = to_numeric(s)
+        expected = pd.Series([], dtype=np.int64)
+
+        tm.assert_series_equal(res, expected)
+
+        # Original issue example
+        res = to_numeric(s, errors='coerce', downcast='integer')
+        expected = pd.Series([], dtype=np.int8)
+
+        tm.assert_series_equal(res, expected)
+
     def test_series(self):
         s = pd.Series(['1', '-3.14', '7'])
         res = to_numeric(s)

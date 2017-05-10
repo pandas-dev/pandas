@@ -1,5 +1,6 @@
 import pytest
 
+import pytz
 import numpy as np
 from datetime import datetime, date, timedelta
 
@@ -210,8 +211,6 @@ class TestPeriodProperties(object):
             Period('2011-01', freq='1D1W')
 
     def test_timestamp_tz_arg(self):
-        tm._skip_if_no_pytz()
-        import pytz
         for case in ['Europe/Brussels', 'Asia/Tokyo', 'US/Pacific']:
             p = Period('1/1/2005', freq='M').to_timestamp(tz=case)
             exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
