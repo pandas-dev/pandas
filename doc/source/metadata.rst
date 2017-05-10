@@ -66,6 +66,9 @@ The ``type_metadata`` is ``None`` except for:
 * ``datetimetz``: ``{'timezone': zone}``, e.g. ``{'timezone', 'America/New_York'}``
 * ``categorical``: ``{'num_categories': K}``
 
+For types other than these, the ``'metadata'`` key can be
+omitted. Implementations can assume ``None`` if the key is not present.
+
 As an example of fully-formed metadata:
 
 .. code-block:: text
