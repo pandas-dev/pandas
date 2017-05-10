@@ -4453,7 +4453,7 @@ class TestHDFStore(Base):
             pytest.raises(ClosedFileError, lambda: 'df' in store)
             pytest.raises(ClosedFileError, lambda: len(store))
             pytest.raises(ClosedFileError, lambda: store['df'])
-            pytest.raises(ClosedFileError, lambda: store.df)
+            pytest.raises(AttributeError, lambda: store.df)
             pytest.raises(ClosedFileError, store.select, 'df')
             pytest.raises(ClosedFileError, store.get, 'df')
             pytest.raises(ClosedFileError, store.append, 'df2', df)

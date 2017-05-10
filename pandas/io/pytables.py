@@ -472,7 +472,6 @@ class HDFStore(StringMixin):
 
     def __getattr__(self, name):
         """ allow attribute access to get stores """
-        self._check_if_open()
         try:
             return self.get(name)
         except:
