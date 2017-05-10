@@ -58,10 +58,10 @@ cdef inline bint needs_resize(vector_data *data) nogil:
 
 {{py:
 
-# name, dtype, arg, idtype
-dtypes = [('Float64', 'float64', 'float64_t', 'np.float64'),
-          ('UInt64', 'uint64', 'uint64_t', 'np.uint64'),
-          ('Int64', 'int64', 'int64_t', 'np.int64')]
+# name, dtype, arg, type_id
+dtypes = [('Float64', 'float64', 'float64_t', 'cnp.NPY_FLOAT64'),
+          ('UInt64', 'uint64', 'uint64_t', 'cnp.NPY_UINT64'),
+          ('Int64', 'int64', 'int64_t', 'cnp.NPY_INT64')]
 
 }}
 
@@ -71,6 +71,7 @@ cdef class {{name}}Vector:
 
     {{if dtype != 'int64'}}
     cdef:
+        bint external_view_exists
         {{name}}VectorData *data
         ndarray ao
     {{endif}}
@@ -80,18 +81,25 @@ cdef class {{name}}Vector:
             sizeof({{name}}VectorData))
         if not self.data:
             raise MemoryError()
+        self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
-        self.ao = np.empty(self.data.m, dtype={{idtype}})
-        self.data.data = <{{arg}}*> self.ao.data
+        self.data.data = <{{arg}}*> malloc(self.data.m * sizeof({{arg}}))
+        if not self.data.data:
+            raise MemoryError()
 
-    cdef resize(self):
+    cdef void resize(self) nogil:
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
-        self.ao.resize(self.data.m)
-        self.data.data = <{{arg}}*> self.ao.data
+        self.data.data = <{{arg}}*> realloc(self.data.data, self.data.m * sizeof({{arg}}))
+        if not self.data.data:
+            with gil:
+                raise MemoryError()
 
     def __dealloc__(self):
         if self.data is not NULL:
+            if not self.external_view_exists and self.data.data:
+                # buffer was never returned as array, so free
+                free(self.data.data)
             PyMem_Free(self.data)
             self.data = NULL
 
@@ -99,13 +107,26 @@ cdef class {{name}}Vector:
         return self.data.n
 
     cpdef to_array(self):
-        self.ao.resize(self.data.n)
-        self.data.m = self.data.n
-        return self.ao
+        cdef:
+            ndarray ao
+            cnp.npy_intp shape[1]
+        if self.data.m != self.data.n:
+            if self.external_view_exists:
+                raise ValueError("Vector.to_array() can only be called once")
+            self.data.data = <{{arg}}*> realloc(self.data.data, self.data.n * sizeof({{arg}}))
+            self.data.m = self.data.n
+        self.external_view_exists = True
+        shape[0] = self.data.n
+        ao = cnp.PyArray_SimpleNewFromData(1, shape, {{idtype}}, <void*>self.data.data)
+        # ownership transfer so numpy eventually frees
+        set_array_owndata(ao)
+        return ao
 
     cdef inline void append(self, {{arg}} x):
 
         if needs_resize(self.data):
+            if self.external_view_exists:
+                raise ValueError("external reference but Vector.resize() needed")
             self.resize()
 
         append_data_{{dtype}}(self.data, x)
@@ -120,32 +141,33 @@ cdef class StringVector:
 
     cdef:
         StringVectorData *data
+        bint external_view_exists
 
     def __cinit__(self):
         self.data = <StringVectorData *>PyMem_Malloc(
             sizeof(StringVectorData))
         if not self.data:
             raise MemoryError()
+        self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        if not self.data.data:
+            raise MemoryError()
 
-    cdef resize(self):
-        cdef:
-            char **orig_data
-            size_t i, m
-
-        m = self.data.m
+    cdef void resize(self) nogil:
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
 
-        # TODO: can resize?
-        orig_data = self.data.data
-        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
-        for i in range(m):
-            self.data.data[i] = orig_data[i]
+        self.data.data = <char **> realloc(self.data.data,
+                                           self.data.m * sizeof(char *))
+        if not self.data.data:
+            with gil:
+                raise MemoryError()
 
     def __dealloc__(self):
         if self.data is not NULL:
+            # unlike numeric vectors, strings were copied
+            # into python objects so always free
             if self.data.data is not NULL:
                 free(self.data.data)
             PyMem_Free(self.data)
@@ -159,19 +181,17 @@ cdef class StringVector:
             ndarray ao
             size_t n
             object val
-
         ao = np.empty(self.data.n, dtype=np.object)
         for i in range(self.data.n):
             val = self.data.data[i]
             ao[i] = val
-        self.data.m = self.data.n
+        self.external_view_exists = True
         return ao
 
     cdef inline void append(self, char * x):
 
         if needs_resize(self.data):
             self.resize()
-
         append_data_string(self.data, x)
 
 
@@ -181,8 +201,10 @@ cdef class ObjectVector:
         PyObject **data
         size_t n, m
         ndarray ao
+        bint external_view_exists
 
     def __cinit__(self):
+        self.external_view_exists = False
         self.n = 0
         self.m = _INIT_VEC_CAP
         self.ao = np.empty(_INIT_VEC_CAP, dtype=object)
@@ -193,8 +215,10 @@ cdef class ObjectVector:
 
     cdef inline append(self, object o):
         if self.n == self.m:
+            if self.external_view_exists:
+                raise ValueError("external reference but Vector.resize() needed")
             self.m = max(self.m * 2, _INIT_VEC_CAP)
-            self.ao.resize(self.m)
+            self.ao.resize(self.m, refcheck=False)
             self.data = <PyObject**> self.ao.data
 
         Py_INCREF(o)
@@ -202,8 +226,12 @@ cdef class ObjectVector:
         self.n += 1
 
     def to_array(self):
-        self.ao.resize(self.n)
-        self.m = self.n
+        if self.m != self.n:
+            if self.external_view_exists:
+                raise ValueError("Vector.to_array() can only be called once")
+            self.ao.resize(self.n, refcheck=False)
+            self.m = self.n
+        self.external_view_exists = True
         return self.ao
 
 
@@ -361,8 +389,8 @@ cdef class {{name}}HashTable(HashTable):
                     self.table.vals[k] = count
 
                     if needs_resize(ud):
-                        with gil:
-                            uniques.resize()
+                        uniques.resize()
+                        ud = uniques.data
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
@@ -404,8 +432,7 @@ cdef class {{name}}HashTable(HashTable):
                     self.table.vals[k] = count
 
                     if needs_resize(ud):
-                        with gil:
-                            uniques.resize()
+                        uniques.resize()
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
@@ -437,22 +464,22 @@ cdef class {{name}}HashTable(HashTable):
                     if k == self.table.n_buckets:
                         kh_put_{{dtype}}(self.table, val, &ret)
                         if needs_resize(ud):
-                            with gil:
-                                uniques.resize()
+                            uniques.resize()
+                            ud = uniques.data
                         append_data_{{dtype}}(ud, val)
                 elif not seen_na:
                     seen_na = 1
                     if needs_resize(ud):
-                        with gil:
-                            uniques.resize()
+                        uniques.resize()
+                        ud = uniques.data
                     append_data_{{dtype}}(ud, NAN)
                 {{else}}
                 k = kh_get_{{dtype}}(self.table, val)
                 if k == self.table.n_buckets:
                     kh_put_{{dtype}}(self.table, val, &ret)
                     if needs_resize(ud):
-                        with gil:
-                            uniques.resize()
+                        uniques.resize()
+                        ud = uniques.data
                     append_data_{{dtype}}(ud, val)
                 {{endif}}
 
