@@ -35,7 +35,7 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
 
    {'index_columns': ['__index_level_0__', '__index_level_1__', ...],
     'columns': [<c0>, <c1>, ...],
-    'pandas_version': '0.20.0'}
+    'pandas_version': $VERSION}
 
 Here, ``<c0>`` and so forth are dictionaries containing the metadata for each
 column. This has JSON form:
