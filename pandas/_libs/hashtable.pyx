@@ -66,9 +66,7 @@ cdef class Factorizer:
         """
         if self.uniques.external_view_exists:
             uniques = ObjectVector()
-            data = self.uniques.to_array()
-            for v in data:
-                uniques.append(v)
+            uniques.extend(self.uniques.to_array())
             self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel, check_null)
