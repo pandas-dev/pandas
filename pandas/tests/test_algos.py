@@ -14,7 +14,7 @@ import pandas as pd
 
 from pandas import compat
 from pandas._libs import (groupby as libgroupby, algos as libalgos,
-                          hashtable)
+                          hashtable as ht)
 from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
@@ -259,7 +259,7 @@ class TestFactorize(object):
         # rizer.factorize should not raise an exception if na_sentinel indexes
         # outside of reverse_indexer
         key = np.array([1, 2, 1, np.nan], dtype='O')
-        rizer = hashtable.Factorizer(len(key))
+        rizer = ht.Factorizer(len(key))
         for na_sentinel in (-1, 20):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype='int32')
@@ -1049,14 +1049,14 @@ class TestHashTable(object):
 
     def test_lookup_nan(self):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
-        m = hashtable.Float64HashTable()
+        m = ht.Float64HashTable()
         m.map_locations(xs)
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs),
                                                             dtype=np.int64))
 
     def test_lookup_overflow(self):
         xs = np.array([1, 2, 2**63], dtype=np.uint64)
-        m = hashtable.UInt64HashTable()
+        m = ht.UInt64HashTable()
         m.map_locations(xs)
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs),
                                                             dtype=np.int64))
@@ -1070,25 +1070,35 @@ class TestHashTable(object):
         # Test for memory errors after internal vector
         # reallocations (pull request #7157)
 
-        def _test_vector_resize(htable, uniques, dtype, nvals):
+        def _test_vector_resize(htable, uniques, dtype, nvals, safely_resizes):
             vals = np.array(np.random.randn(1000), dtype=dtype)
-            # get_labels appends to the vector
+            # get_labels may append to uniques
             htable.get_labels(vals[:nvals], uniques, 0, -1)
-            # to_array resizes the vector
-            uniques.to_array()
-            htable.get_labels(vals, uniques, 0, -1)
+            # to_array() set an external_view_exists flag on uniques.
+            tmp = uniques.to_array()
+            oldshape = tmp.shape
+            # subsequent get_labels() calls can no longer append to it
+            # (for all but StringHashTables + ObjectVector)
+            if safely_resizes:
+                htable.get_labels(vals, uniques, 0, -1)
+            else:
+                with pytest.raises(ValueError) as excinfo:
+                    htable.get_labels(vals, uniques, 0, -1)
+                assert str(excinfo.value).startswith('external reference')
+            uniques.to_array()   # should not raise here
+            assert tmp.shape == oldshape
 
         test_cases = [
-            (hashtable.PyObjectHashTable, hashtable.ObjectVector, 'object'),
-            (hashtable.StringHashTable, hashtable.ObjectVector, 'object'),
-            (hashtable.Float64HashTable, hashtable.Float64Vector, 'float64'),
-            (hashtable.Int64HashTable, hashtable.Int64Vector, 'int64'),
-            (hashtable.UInt64HashTable, hashtable.UInt64Vector, 'uint64')]
+            (ht.PyObjectHashTable, ht.ObjectVector, 'object', False),
+            (ht.StringHashTable, ht.ObjectVector, 'object', True),
+            (ht.Float64HashTable, ht.Float64Vector, 'float64', False),
+            (ht.Int64HashTable, ht.Int64Vector, 'int64', False),
+            (ht.UInt64HashTable, ht.UInt64Vector, 'uint64', False)]
 
-        for (tbl, vect, dtype) in test_cases:
+        for (tbl, vect, dtype, safely_resizes) in test_cases:
             # resizing to empty is a special case
-            _test_vector_resize(tbl(), vect(), dtype, 0)
-            _test_vector_resize(tbl(), vect(), dtype, 10)
+            _test_vector_resize(tbl(), vect(), dtype, 0, safely_resizes)
+            _test_vector_resize(tbl(), vect(), dtype, 10, safely_resizes)
 
 
 def test_quantile():
