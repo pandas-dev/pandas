@@ -1146,8 +1146,8 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(res.to_dense(), exp)
 
 
-@pytest.mark.parametrize('index', [None, list('ab')])  # noqa: F811
-@pytest.mark.parametrize('columns', [None, list('cd')])
+@pytest.mark.parametrize('index', [None, list('abc')])  # noqa: F811
+@pytest.mark.parametrize('columns', [None, list('def')])
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])
 @pytest.mark.parametrize('dtype', [bool, int, float, np.uint16])
 def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
@@ -1156,7 +1156,9 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
 
     # Make one ndarray and from it one sparse matrix, both to be used for
     # constructing frames and comparing results
-    arr = np.eye(2, dtype=dtype)
+    arr = np.eye(3, dtype=dtype)
+    # GH 16179
+    arr[0, 1] = dtype(2)
     try:
         spm = spmatrix(arr)
         assert spm.dtype == arr.dtype
@@ -1243,6 +1245,26 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     res_dtype = object
     tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
     assert sdf.to_coo().dtype == res_dtype
+
+
+def test_from_scipy_correct_ordering(spmatrix):
+    # GH 16179
+    tm.skip_if_no_package('scipy')
+
+    arr = np.arange(1, 5).reshape(2, 2)
+    try:
+        spm = spmatrix(arr)
+        assert spm.dtype == arr.dtype
+    except (TypeError, AssertionError):
+        # If conversion to sparse fails for this spmatrix type and arr.dtype,
+        # then the combination is not currently supported in NumPy, so we
+        # can just skip testing it thoroughly
+        return
+
+    sdf = pd.SparseDataFrame(spm)
+    expected = pd.SparseDataFrame(arr)
+    tm.assert_sp_frame_equal(sdf, expected)
+    tm.assert_frame_equal(sdf.to_dense(), expected.to_dense())
 
 
 class TestSparseDataFrameArithmetic(object):
