@@ -69,8 +69,7 @@ Groupby/Resample/Rolling
 Sparse
 ^^^^^^
 
-
-
+- Bug in construction of SparseDataFrame from ``scipy.sparse.dok_matrix`` (:issue:`16179`)
 
 Reshaping
 ^^^^^^^^^
