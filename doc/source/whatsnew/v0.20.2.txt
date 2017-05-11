@@ -76,7 +76,7 @@ Sparse
 Reshaping
 ^^^^^^^^^
 
-
+- Bug in ``DataFrame.stack`` with unsorted levels in MultiIndex columns (:issue:`16323`)
 
 
 Numeric
