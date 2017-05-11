@@ -402,12 +402,17 @@ class HDFStore(StringMixin):
             and if the file does not exist it is created.
         ``'r+'``
             It is similar to ``'a'``, but the file must already exist.
-    complevel : int, 1-9, default 0
-            If a complib is specified compression will be applied
-            where possible
-    complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
-            If complevel is > 0 apply compression to objects written
-            in the store wherever possible
+    complevel : int, 0-9, default 0
+            Specifies a compression level for data.
+            A value of 0 disables compression.
+    complib : {'zlib', 'lzo', 'bzip2', 'blosc', None}, default None
+            Specifies the compression library to be used.
+            As of v0.20.2 these additional compressors for Blosc are supported
+            (default if no compressor specified: 'blosc:blosclz'):
+            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
+             'blosc:zlib', 'blosc:zstd'}.
+            Specifying a compression library which is not available issues
+            a ValueError.
     fletcher32 : bool, default False
             If applying compression use the fletcher32 checksum
 
@@ -430,9 +435,10 @@ class HDFStore(StringMixin):
             raise ImportError('HDFStore requires PyTables, "{ex}" problem '
                               'importing'.format(ex=str(ex)))
 
-        if complib not in (None, 'blosc', 'bzip2', 'lzo', 'zlib'):
-            raise ValueError("complib only supports 'blosc', 'bzip2', lzo' "
-                             "or 'zlib' compression.")
+        if complib is not None and complib not in tables.filters.all_complibs:
+            raise ValueError(
+                "complib only supports {libs} compression.".format(
+                    libs=tables.filters.all_complibs))
 
         self._path = path
         if mode is None:
