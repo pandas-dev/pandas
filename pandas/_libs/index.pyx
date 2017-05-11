@@ -553,7 +553,34 @@ cdef inline bint _is_utc(object tz):
     return tz is UTC or isinstance(tz, _du_utc)
 
 
-cdef class MultiIndexEngine(IndexEngine):
+cdef class MultiIndexObjectEngine(ObjectEngine):
+    """
+    provide the same interface as the MultiIndexEngine
+    but use the IndexEngine for computation
+
+    This provides good performance with samller MI's
+    """
+    def get_indexer(self, values):
+        # convert a MI to an ndarray
+        if hasattr(values, 'values'):
+            values = values.values
+        return super(MultiIndexObjectEngine, self).get_indexer(values)
+
+    cpdef get_loc(self, object val):
+
+        # convert a MI to an ndarray
+        if hasattr(val, 'values'):
+            val = val.values
+        return super(MultiIndexObjectEngine, self).get_loc(val)
+
+
+cdef class MultiIndexHashEngine(ObjectEngine):
+    """
+    Use a hashing based MultiIndex impl
+    but use the IndexEngine for computation
+
+    This provides good performance with larger MI's
+    """
 
     def _call_monotonic(self, object mi):
         # defer these back to the mi iteself
@@ -583,6 +610,10 @@ cdef class MultiIndexEngine(IndexEngine):
             return self.mapping.get_item(val)
         except TypeError:
             raise KeyError(val)
+
+    def get_indexer(self, values):
+        self._ensure_mapping_populated()
+        return self.mapping.lookup(values)
 
     cdef _make_hash_table(self, n):
         return _hash.MultiIndexHashTable(n)

@@ -88,12 +88,12 @@ class ExtensionDtype(object):
         """
         if hasattr(dtype, 'dtype'):
             dtype = dtype.dtype
-        if isinstance(dtype, cls):
-            return True
-        elif isinstance(dtype, np.dtype):
+        if isinstance(dtype, np.dtype):
             return False
         elif dtype is None:
             return False
+        elif isinstance(dtype, cls):
+            return True
         try:
             return cls.construct_from_string(dtype) is not None
         except:
