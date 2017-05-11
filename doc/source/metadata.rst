@@ -12,8 +12,9 @@ writing pandas objects to different third party file formats.
 Apache Parquet
 --------------
 
-The Apache Parquet format provides key-value metadata at the file and column
-level, stored in the footer of the Parquet file:
+The `Apache Parquet <https://github.com/apache/parquet-format>`__ format
+provides key-value metadata at the file and column level, stored in the footer
+of the Parquet file:
 
 .. code-block:: shell
 
@@ -64,7 +65,7 @@ any of the supported integer categorical types.
 The ``type_metadata`` is ``None`` except for:
 
 * ``datetimetz``: ``{'timezone': zone}``, e.g. ``{'timezone', 'America/New_York'}``
-* ``categorical``: ``{'num_categories': K}``
+* ``categorical``: ``{'num_categories': K, 'ordered': is_ordered}``
 
 For types other than these, the ``'metadata'`` key can be
 omitted. Implementations can assume ``None`` if the key is not present.
