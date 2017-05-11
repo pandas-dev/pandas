@@ -689,7 +689,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_labels = [np.arange(N).repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
-    new_levels.append(frame.columns.levels[level_num])
+    new_levels.append(level_vals)
     new_labels.append(np.tile(level_labels, N))
     new_names.append(frame.columns.names[level_num])
 
