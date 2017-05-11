@@ -14,7 +14,7 @@ from pandas import (date_range, bdate_range, Timestamp,
 from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal,
-                                 assert_index_equal, assertRaisesRegexp)
+                                 assert_index_equal)
 from pandas.compat import (range, long, lrange, StringIO, lmap, lzip, map, zip,
                            builtins, OrderedDict, product as cart_product)
 from pandas import compat
@@ -28,7 +28,7 @@ import pandas as pd
 from .common import MixIn
 
 
-class TestGroupBy(MixIn, tm.TestCase):
+class TestGroupBy(MixIn):
 
     def test_basic(self):
         def checkit(dtype):
@@ -41,10 +41,10 @@ class TestGroupBy(MixIn, tm.TestCase):
             grouped = data.groupby(lambda x: x // 3)
 
             for k, v in grouped:
-                self.assertEqual(len(v), 3)
+                assert len(v) == 3
 
             agged = grouped.aggregate(np.mean)
-            self.assertEqual(agged[1], 1)
+            assert agged[1] == 1
 
             assert_series_equal(agged, grouped.agg(np.mean))  # shorthand
             assert_series_equal(agged, grouped.mean())
@@ -52,7 +52,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
             expected = grouped.apply(lambda x: x * x.sum())
             transformed = grouped.transform(lambda x: x * x.sum())
-            self.assertEqual(transformed[7], 12)
+            assert transformed[7] == 12
             assert_series_equal(transformed, expected)
 
             value_grouped = data.groupby(data)
@@ -68,7 +68,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
             group_constants = {0: 10, 1: 20, 2: 30}
             agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
-            self.assertEqual(agged[1], 21)
+            assert agged[1] == 21
 
             # corner cases
             pytest.raises(Exception, grouped.aggregate, lambda x: x * 2)
@@ -82,7 +82,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
 
         pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
-        with assertRaisesRegexp(KeyError, '^[^A]+$'):
+        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'C']]
@@ -330,7 +330,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = df_multi_both.groupby([pd.Grouper(key='inner')]).mean()
         assert_frame_equal(result, expected)
         not_expected = df_multi_both.groupby(pd.Grouper(level='inner')).mean()
-        self.assertFalse(result.index.equals(not_expected.index))
+        assert not result.index.equals(not_expected.index)
 
         # Group single Index by single key
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -339,7 +339,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = df_single_both.groupby([pd.Grouper(key='inner')]).mean()
         assert_frame_equal(result, expected)
         not_expected = df_single_both.groupby(pd.Grouper(level='inner')).mean()
-        self.assertFalse(result.index.equals(not_expected.index))
+        assert not result.index.equals(not_expected.index)
 
         # Group MultiIndex by single key list
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -348,7 +348,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = df_multi_both.groupby([pd.Grouper(key='inner')]).mean()
         assert_frame_equal(result, expected)
         not_expected = df_multi_both.groupby(pd.Grouper(level='inner')).mean()
-        self.assertFalse(result.index.equals(not_expected.index))
+        assert not result.index.equals(not_expected.index)
 
         # Group single Index by single key list
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -357,7 +357,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected = df_single_both.groupby([pd.Grouper(key='inner')]).mean()
         assert_frame_equal(result, expected)
         not_expected = df_single_both.groupby(pd.Grouper(level='inner')).mean()
-        self.assertFalse(result.index.equals(not_expected.index))
+        assert not result.index.equals(not_expected.index)
 
         # Group MultiIndex by two keys (1)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -369,7 +369,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         not_expected = df_multi_both.groupby(['B',
                                               pd.Grouper(level='inner')
                                               ]).mean()
-        self.assertFalse(result.index.equals(not_expected.index))
+        assert not result.index.equals(not_expected.index)
 
         # Group MultiIndex by two keys (2)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -380,7 +380,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(result, expected)
         not_expected = df_multi_both.groupby([pd.Grouper(level='inner'),
                                               'B']).mean()
-        self.assertFalse(result.index.equals(not_expected.index))
+        assert not result.index.equals(not_expected.index)
 
         # Group single Index by two keys (1)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -392,7 +392,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         not_expected = df_single_both.groupby(['B',
                                                pd.Grouper(level='inner')
                                                ]).mean()
-        self.assertFalse(result.index.equals(not_expected.index))
+        assert not result.index.equals(not_expected.index)
 
         # Group single Index by two keys (2)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -403,7 +403,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(result, expected)
         not_expected = df_single_both.groupby([pd.Grouper(level='inner'),
                                                'B']).mean()
-        self.assertFalse(result.index.equals(not_expected.index))
+        assert not result.index.equals(not_expected.index)
 
     def test_grouper_getting_correct_binner(self):
 
@@ -423,10 +423,10 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert_frame_equal(result, expected)
 
     def test_grouper_iter(self):
-        self.assertEqual(sorted(self.df.groupby('A').grouper), ['bar', 'foo'])
+        assert sorted(self.df.groupby('A').grouper) == ['bar', 'foo']
 
     def test_empty_groups(self):
-        # GH # 1048
+        # see gh-1048
         pytest.raises(ValueError, self.df.groupby, [])
 
     def test_groupby_grouper(self):
@@ -434,7 +434,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         result = self.df.groupby(grouped.grouper).mean()
         expected = grouped.mean()
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_duplicated_column_errormsg(self):
         # GH7511
@@ -446,8 +446,8 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         grouped = df.groupby('B')
         c = grouped.count()
-        self.assertTrue(c.columns.nlevels == 1)
-        self.assertTrue(c.columns.size == 3)
+        assert c.columns.nlevels == 1
+        assert c.columns.size == 3
 
     def test_groupby_dict_mapping(self):
         # GH #679
@@ -744,17 +744,17 @@ class TestGroupBy(MixIn, tm.TestCase):
         df = tm.makeTimeDataFrame()
         grouped = df.groupby([lambda x: x.year, lambda x: x.month,
                               lambda x: x.day])
-        self.assertEqual(len(grouped), len(df))
+        assert len(grouped) == len(df)
 
         grouped = df.groupby([lambda x: x.year, lambda x: x.month])
         expected = len(set([(x.year, x.month) for x in df.index]))
-        self.assertEqual(len(grouped), expected)
+        assert len(grouped) == expected
 
         # issue 11016
         df = pd.DataFrame(dict(a=[np.nan] * 3, b=[1, 2, 3]))
-        self.assertEqual(len(df.groupby(('a'))), 0)
-        self.assertEqual(len(df.groupby(('b'))), 3)
-        self.assertEqual(len(df.groupby(('a', 'b'))), 3)
+        assert len(df.groupby(('a'))) == 0
+        assert len(df.groupby(('b'))) == 3
+        assert len(df.groupby(('a', 'b'))) == 3
 
     def test_groups(self):
         grouped = self.df.groupby(['A'])
@@ -798,7 +798,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
             assert_series_equal(agged, expected, check_dtype=False)
 
-            # self.assertTrue(issubclass(agged.dtype.type, np.integer))
+            # assert issubclass(agged.dtype.type, np.integer)
 
             # explicity return a float from my function
             def f(x):
@@ -808,7 +808,7 @@ class TestGroupBy(MixIn, tm.TestCase):
             expected = Series([4, 2], index=['bar', 'foo'])
 
             assert_series_equal(agged, expected, check_dtype=False)
-            self.assertTrue(issubclass(agged.dtype.type, np.dtype(dtype).type))
+            assert issubclass(agged.dtype.type, np.dtype(dtype).type)
 
     def test_indices_concatenation_order(self):
 
@@ -900,7 +900,7 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_series_index_name(self):
         grouped = self.df.loc[:, ['C']].groupby(self.df['A'])
         result = grouped.agg(lambda x: x.mean())
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
 
     def test_frame_describe_multikey(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
@@ -962,8 +962,8 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         # aggregate
         aggregated = grouped.aggregate(np.mean)
-        self.assertEqual(len(aggregated), 5)
-        self.assertEqual(len(aggregated.columns), 4)
+        assert len(aggregated) == 5
+        assert len(aggregated.columns) == 4
 
         # by string
         tscopy = self.tsframe.copy()
@@ -974,8 +974,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         # transform
         grouped = self.tsframe.head(30).groupby(lambda x: x.weekday())
         transformed = grouped.transform(lambda x: x - x.mean())
-        self.assertEqual(len(transformed), 30)
-        self.assertEqual(len(transformed.columns), 4)
+        assert len(transformed) == 30
+        assert len(transformed.columns) == 4
 
         # transform propagate
         transformed = grouped.transform(lambda x: x.mean())
@@ -987,7 +987,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         # iterate
         for weekday, group in grouped:
-            self.assertEqual(group.index[0].weekday(), weekday)
+            assert group.index[0].weekday() == weekday
 
         # groups / group_indices
         groups = grouped.groups
@@ -995,7 +995,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         for k, v in compat.iteritems(groups):
             samething = self.tsframe.index.take(indices[k])
-            self.assertTrue((samething == v).all())
+            assert (samething == v).all()
 
     def test_grouping_is_iterable(self):
         # this code path isn't used anywhere else
@@ -1013,8 +1013,8 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         # aggregate
         aggregated = grouped.aggregate(np.mean)
-        self.assertEqual(len(aggregated), len(self.tsframe))
-        self.assertEqual(len(aggregated.columns), 2)
+        assert len(aggregated) == len(self.tsframe)
+        assert len(aggregated.columns) == 2
 
         # transform
         tf = lambda x: x - x.mean()
@@ -1023,34 +1023,34 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         # iterate
         for k, v in grouped:
-            self.assertEqual(len(v.columns), 2)
+            assert len(v.columns) == 2
 
     def test_frame_set_name_single(self):
         grouped = self.df.groupby('A')
 
         result = grouped.mean()
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
 
         result = self.df.groupby('A', as_index=False).mean()
-        self.assertNotEqual(result.index.name, 'A')
+        assert result.index.name != 'A'
 
         result = grouped.agg(np.mean)
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
 
         result = grouped.agg({'C': np.mean, 'D': np.std})
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
 
         result = grouped['C'].mean()
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
         result = grouped['C'].agg(np.mean)
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
         result = grouped['C'].agg([np.mean, np.std])
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
 
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             result = grouped['C'].agg({'foo': np.mean, 'bar': np.std})
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
 
     def test_multi_iter(self):
         s = Series(np.arange(6))
@@ -1064,8 +1064,8 @@ class TestGroupBy(MixIn, tm.TestCase):
                     ('b', '1', s[[4]]), ('b', '2', s[[3, 5]])]
         for i, ((one, two), three) in enumerate(iterated):
             e1, e2, e3 = expected[i]
-            self.assertEqual(e1, one)
-            self.assertEqual(e2, two)
+            assert e1 == one
+            assert e2 == two
             assert_series_equal(three, e3)
 
     def test_multi_iter_frame(self):
@@ -1087,8 +1087,8 @@ class TestGroupBy(MixIn, tm.TestCase):
                     ('b', '2', df.loc[idx[[1]]])]
         for i, ((one, two), three) in enumerate(iterated):
             e1, e2, e3 = expected[i]
-            self.assertEqual(e1, one)
-            self.assertEqual(e2, two)
+            assert e1 == one
+            assert e2 == two
             assert_frame_equal(three, e3)
 
         # don't iterate through groups with no data
@@ -1098,7 +1098,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         groups = {}
         for key, gp in grouped:
             groups[key] = gp
-        self.assertEqual(len(groups), 2)
+        assert len(groups) == 2
 
         # axis = 1
         three_levels = self.three_group.groupby(['A', 'B', 'C']).mean()
@@ -1563,7 +1563,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         agged = grouped.apply(lambda x: x.mean())
         agged_A = grouped['A'].apply(np.mean)
         assert_series_equal(agged['A'], agged_A)
-        self.assertEqual(agged.index.name, 'first')
+        assert agged.index.name == 'first'
 
     def test_apply_concat_preserve_names(self):
         grouped = self.three_group.groupby(['A', 'B'])
@@ -1591,13 +1591,13 @@ class TestGroupBy(MixIn, tm.TestCase):
             return result
 
         result = grouped.apply(desc)
-        self.assertEqual(result.index.names, ('A', 'B', 'stat'))
+        assert result.index.names == ('A', 'B', 'stat')
 
         result2 = grouped.apply(desc2)
-        self.assertEqual(result2.index.names, ('A', 'B', 'stat'))
+        assert result2.index.names == ('A', 'B', 'stat')
 
         result3 = grouped.apply(desc3)
-        self.assertEqual(result3.index.names, ('A', 'B', None))
+        assert result3.index.names == ('A', 'B', None)
 
     def test_nonsense_func(self):
         df = DataFrame([0])
@@ -1637,16 +1637,16 @@ class TestGroupBy(MixIn, tm.TestCase):
                         'ss': 4 * ['mama']})
 
         result = aa.groupby('nn').max()
-        self.assertTrue('ss' in result)
+        assert 'ss' in result
 
         result = aa.groupby('nn').max(numeric_only=False)
-        self.assertTrue('ss' in result)
+        assert 'ss' in result
 
         result = aa.groupby('nn').min()
-        self.assertTrue('ss' in result)
+        assert 'ss' in result
 
         result = aa.groupby('nn').min(numeric_only=False)
-        self.assertTrue('ss' in result)
+        assert 'ss' in result
 
     def test_arg_passthru(self):
         # make sure that we are passing thru kwargs
@@ -1789,7 +1789,7 @@ class TestGroupBy(MixIn, tm.TestCase):
                 return ser.sum()
 
         agged2 = df.groupby(keys).aggregate(aggfun)
-        self.assertEqual(len(agged2.columns) + 1, len(df.columns))
+        assert len(agged2.columns) + 1 == len(df.columns)
 
     def test_groupby_level(self):
         frame = self.mframe
@@ -1804,13 +1804,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         expected0 = expected0.reindex(frame.index.levels[0])
         expected1 = expected1.reindex(frame.index.levels[1])
 
-        self.assertEqual(result0.index.name, 'first')
-        self.assertEqual(result1.index.name, 'second')
+        assert result0.index.name == 'first'
+        assert result1.index.name == 'second'
 
         assert_frame_equal(result0, expected0)
         assert_frame_equal(result1, expected1)
-        self.assertEqual(result0.index.name, frame.index.names[0])
-        self.assertEqual(result1.index.name, frame.index.names[1])
+        assert result0.index.name == frame.index.names[0]
+        assert result1.index.name == frame.index.names[1]
 
         # groupby level name
         result0 = frame.groupby(level='first').sum()
@@ -1860,12 +1860,12 @@ class TestGroupBy(MixIn, tm.TestCase):
         frame = self.mframe
 
         result = frame.groupby(level=0).count()
-        self.assertEqual(result.index.name, 'first')
+        assert result.index.name == 'first'
         result = frame.groupby(level=1).count()
-        self.assertEqual(result.index.name, 'second')
+        assert result.index.name == 'second'
 
         result = frame['A'].groupby(level=0).count()
-        self.assertEqual(result.index.name, 'first')
+        assert result.index.name == 'first'
 
     def test_groupby_args(self):
         # PR8618 and issue 8015
@@ -1874,16 +1874,14 @@ class TestGroupBy(MixIn, tm.TestCase):
         def j():
             frame.groupby()
 
-        self.assertRaisesRegexp(TypeError,
-                                "You have to supply one of 'by' and 'level'",
-                                j)
+        tm.assert_raises_regex(TypeError, "You have to supply one of "
+                               "'by' and 'level'", j)
 
         def k():
             frame.groupby(by=None, level=None)
 
-        self.assertRaisesRegexp(TypeError,
-                                "You have to supply one of 'by' and 'level'",
-                                k)
+        tm.assert_raises_regex(TypeError, "You have to supply one of "
+                               "'by' and 'level'", k)
 
     def test_groupby_level_mapper(self):
         frame = self.mframe
@@ -1967,16 +1965,16 @@ class TestGroupBy(MixIn, tm.TestCase):
 
     def test_apply_series_yield_constant(self):
         result = self.df.groupby(['A', 'B'])['C'].apply(len)
-        self.assertEqual(result.index.names[:2], ('A', 'B'))
+        assert result.index.names[:2] == ('A', 'B')
 
     def test_apply_frame_yield_constant(self):
         # GH13568
         result = self.df.groupby(['A', 'B']).apply(len)
-        self.assertTrue(isinstance(result, Series))
+        assert isinstance(result, Series)
         assert result.name is None
 
         result = self.df.groupby(['A', 'B'])[['C', 'D']].apply(len)
-        self.assertTrue(isinstance(result, Series))
+        assert isinstance(result, Series)
         assert result.name is None
 
     def test_apply_frame_to_series(self):
@@ -2001,7 +1999,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         result = df.groupby('A').apply(trans)
         exp = df.groupby('A')['C'].apply(trans2)
         assert_series_equal(result, exp, check_names=False)
-        self.assertEqual(result.name, 'C')
+        assert result.name == 'C'
 
     def test_apply_transform(self):
         grouped = self.ts.groupby(lambda x: x.month)
@@ -2163,17 +2161,17 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = self.df.groupby(['A', 'B'])
         result = grouped.size()
         for key, group in grouped:
-            self.assertEqual(result[key], len(group))
+            assert result[key] == len(group)
 
         grouped = self.df.groupby('A')
         result = grouped.size()
         for key, group in grouped:
-            self.assertEqual(result[key], len(group))
+            assert result[key] == len(group)
 
         grouped = self.df.groupby('B')
         result = grouped.size()
         for key, group in grouped:
-            self.assertEqual(result[key], len(group))
+            assert result[key] == len(group)
 
         df = DataFrame(np.random.choice(20, (1000, 3)), columns=list('abc'))
         for sort, key in cart_product((False, True), ('a', 'b', ['a', 'b'])):
@@ -2461,7 +2459,7 @@ class TestGroupBy(MixIn, tm.TestCase):
             return g
 
         result = grouped.apply(f)
-        self.assertTrue('value3' in result)
+        assert 'value3' in result
 
     def test_groupby_wrong_multi_labels(self):
         from pandas import read_csv
@@ -2483,24 +2481,24 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_groupby_series_with_name(self):
         result = self.df.groupby(self.df['A']).mean()
         result2 = self.df.groupby(self.df['A'], as_index=False).mean()
-        self.assertEqual(result.index.name, 'A')
+        assert result.index.name == 'A'
         assert 'A' in result2
 
         result = self.df.groupby([self.df['A'], self.df['B']]).mean()
         result2 = self.df.groupby([self.df['A'], self.df['B']],
                                   as_index=False).mean()
-        self.assertEqual(result.index.names, ('A', 'B'))
+        assert result.index.names == ('A', 'B')
         assert 'A' in result2
         assert 'B' in result2
 
     def test_seriesgroupby_name_attr(self):
         # GH 6265
         result = self.df.groupby('A')['C']
-        self.assertEqual(result.count().name, 'C')
-        self.assertEqual(result.mean().name, 'C')
+        assert result.count().name == 'C'
+        assert result.mean().name == 'C'
 
         testFunc = lambda x: np.sum(x) * 2
-        self.assertEqual(result.agg(testFunc).name, 'C')
+        assert result.agg(testFunc).name == 'C'
 
     def test_consistency_name(self):
         # GH 12363
@@ -2532,11 +2530,11 @@ class TestGroupBy(MixIn, tm.TestCase):
             }, name=df.iloc[0]['A'])
 
         metrics = self.df.groupby('A').apply(summarize)
-        self.assertEqual(metrics.columns.name, None)
+        assert metrics.columns.name is None
         metrics = self.df.groupby('A').apply(summarize, 'metrics')
-        self.assertEqual(metrics.columns.name, 'metrics')
+        assert metrics.columns.name == 'metrics'
         metrics = self.df.groupby('A').apply(summarize_random_name)
-        self.assertEqual(metrics.columns.name, None)
+        assert metrics.columns.name is None
 
     def test_groupby_nonstring_columns(self):
         df = DataFrame([np.arange(10) for x in range(10)])
@@ -2564,7 +2562,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         inds = np.tile(lrange(10), 10)
 
         result = obj.groupby(inds).agg(Series.median)
-        self.assertTrue(result.isnull().all())
+        assert result.isnull().all()
 
     def test_series_grouper_noncontig_index(self):
         index = Index(tm.rands_array(10, 100))
@@ -2597,11 +2595,11 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = s.groupby(labels)
 
         result = grouped.agg(convert_fast)
-        self.assertEqual(result.dtype, np.object_)
+        assert result.dtype == np.object_
         assert isinstance(result[0], Decimal)
 
         result = grouped.agg(convert_force_pure)
-        self.assertEqual(result.dtype, np.object_)
+        assert result.dtype == np.object_
         assert isinstance(result[0], Decimal)
 
     def test_fast_apply(self):
@@ -2628,7 +2626,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         group_keys = grouper._get_group_keys()
 
         values, mutated = splitter.fast_apply(f, group_keys)
-        self.assertFalse(mutated)
+        assert not mutated
 
     def test_apply_with_mixed_dtype(self):
         # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
@@ -2672,7 +2670,7 @@ class TestGroupBy(MixIn, tm.TestCase):
     def test_groupby_dtype_inference_empty(self):
         # GH 6733
         df = DataFrame({'x': [], 'range': np.arange(0, dtype='int64')})
-        self.assertEqual(df['x'].dtype, np.float64)
+        assert df['x'].dtype == np.float64
 
         result = df.groupby('x').first()
         exp_index = Index([], name='x', dtype=np.float64)
@@ -2727,7 +2725,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         expected = [pd.Index([1, 7]), pd.Index([3, 5])]
         keys = sorted(grouped.groups.keys())
-        self.assertEqual(len(keys), 2)
+        assert len(keys) == 2
         for k, e in zip(keys, expected):
             # grouped.groups keys are np.datetime64 with system tz
             # not to be affected by tz, only compare values
@@ -2735,7 +2733,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         # confirm obj is not filtered
         tm.assert_frame_equal(grouped.grouper.groupings[0].obj, df)
-        self.assertEqual(grouped.ngroups, 2)
+        assert grouped.ngroups == 2
 
         expected = {
             Timestamp('2013-01-01 00:00:00'): np.array([1, 7], dtype=np.int64),
@@ -2754,14 +2752,14 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         nan_df = DataFrame({'nan': [np.nan, np.nan, np.nan],
                             'nat': [pd.NaT, pd.NaT, pd.NaT]})
-        self.assertEqual(nan_df['nan'].dtype, 'float64')
-        self.assertEqual(nan_df['nat'].dtype, 'datetime64[ns]')
+        assert nan_df['nan'].dtype == 'float64'
+        assert nan_df['nat'].dtype == 'datetime64[ns]'
 
         for key in ['nan', 'nat']:
             grouped = nan_df.groupby(key)
-            self.assertEqual(grouped.groups, {})
-            self.assertEqual(grouped.ngroups, 0)
-            self.assertEqual(grouped.indices, {})
+            assert grouped.groups == {}
+            assert grouped.ngroups == 0
+            assert grouped.indices == {}
             pytest.raises(KeyError, grouped.get_group, np.nan)
             pytest.raises(KeyError, grouped.get_group, pd.NaT)
 
@@ -2839,7 +2837,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         left = df.groupby(['A', 'B', 'C', 'D']).sum()
         right = df.groupby(['D', 'C', 'B', 'A']).sum()
-        self.assertEqual(len(left), len(right))
+        assert len(left) == len(right)
 
     def test_groupby_sort_multi(self):
         df = DataFrame({'a': ['foo', 'bar', 'baz'],
@@ -2965,7 +2963,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
         grouped = x.groupby('test')
         result = grouped.agg({'fl': 'sum', 2: 'size'})
-        self.assertEqual(result['fl'].dtype, np.float64)
+        assert result['fl'].dtype == np.float64
 
     def test_handle_dict_return_value(self):
         def f(group):
@@ -3058,14 +3056,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         assert names == expected_names
 
     def test_no_dummy_key_names(self):
-        # GH #1291
-
+        # see gh-1291
         result = self.df.groupby(self.df['A'].values).sum()
         assert result.index.name is None
 
         result = self.df.groupby([self.df['A'].values, self.df['B'].values
                                   ]).sum()
-        self.assertEqual(result.index.names, (None, None))
+        assert result.index.names == (None, None)
 
     def test_groupby_sort_multiindex_series(self):
         # series multiindex groupby sort argument was not being passed through
@@ -3123,16 +3120,16 @@ class TestGroupBy(MixIn, tm.TestCase):
         df = DataFrame([[long(1), 'A']], columns=midx)
 
         grouped = df.groupby('to filter').groups
-        self.assertEqual(grouped['A'], [0])
+        assert grouped['A'] == [0]
 
         grouped = df.groupby([('to filter', '')]).groups
-        self.assertEqual(grouped['A'], [0])
+        assert grouped['A'] == [0]
 
         df = DataFrame([[long(1), 'A'], [long(2), 'B']], columns=midx)
 
         expected = df.groupby('to filter').groups
         result = df.groupby([('to filter', '')]).groups
-        self.assertEqual(result, expected)
+        assert result == expected
 
         df = DataFrame([[long(1), 'A'], [long(2), 'A']], columns=midx)
 
@@ -3232,7 +3229,7 @@ class TestGroupBy(MixIn, tm.TestCase):
 
                 grpd = df.groupby('a')
                 res = getattr(grpd, method)(*data['args'])
-                self.assertEqual(res.iloc[0].b, data['expected'])
+                assert res.iloc[0].b == data['expected']
 
     def test_groupby_multiindex_missing_pair(self):
         # GH9049
@@ -3256,7 +3253,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         lexsorted_mi = MultiIndex.from_tuples(
             [('a', ''), ('b1', 'c1'), ('b2', 'c2')], names=['b', 'c'])
         lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
-        self.assertTrue(lexsorted_df.columns.is_lexsorted())
+        assert lexsorted_df.columns.is_lexsorted()
 
         # define the non-lexsorted version
         not_lexsorted_df = DataFrame(columns=['a', 'b', 'c', 'd'],
@@ -3265,7 +3262,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         not_lexsorted_df = not_lexsorted_df.pivot_table(
             index='a', columns=['b', 'c'], values='d')
         not_lexsorted_df = not_lexsorted_df.reset_index()
-        self.assertFalse(not_lexsorted_df.columns.is_lexsorted())
+        assert not not_lexsorted_df.columns.is_lexsorted()
 
         # compare the results
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
@@ -3280,7 +3277,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         df = DataFrame({'x': ['a', 'a', 'b', 'a'],
                         'y': [1, 1, 2, 2],
                         'z': [1, 2, 3, 4]}).set_index(['x', 'y'])
-        self.assertFalse(df.index.is_lexsorted())
+        assert not df.index.is_lexsorted()
 
         for level in [0, 1, [0, 1]]:
             for sort in [False, True]:
@@ -3597,7 +3594,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         r = gb[['File']].max()
         e = gb['File'].max().to_frame()
         tm.assert_frame_equal(r, e)
-        self.assertFalse(r['File'].isnull().any())
+        assert not r['File'].isnull().any()
 
     def test_nlargest(self):
         a = Series([1, 3, 5, 7, 2, 9, 0, 4, 6, 10])
@@ -3753,10 +3750,10 @@ class TestGroupBy(MixIn, tm.TestCase):
         msg = "numpy operations are not valid with groupby"
 
         for func in ('mean', 'var', 'std', 'cumprod', 'cumsum'):
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(g, func), 1, 2, 3)
-            tm.assertRaisesRegexp(UnsupportedFunctionCall, msg,
-                                  getattr(g, func), foo=1)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(g, func), 1, 2, 3)
+            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
+                                   getattr(g, func), foo=1)
 
     def test_grouping_string_repr(self):
         # GH 13394

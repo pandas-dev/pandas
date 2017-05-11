@@ -7,7 +7,6 @@ import pandas as pd
 from pandas import compat
 import pandas.io.formats.printing as printing
 import pandas.io.formats.format as fmt
-import pandas.util.testing as tm
 import pandas.core.config as cf
 
 
@@ -35,7 +34,7 @@ def test_repr_binary_type():
     assert res == b
 
 
-class TestFormattBase(tm.TestCase):
+class TestFormattBase(object):
 
     def test_adjoin(self):
         data = [['a', 'b', 'c'], ['dd', 'ee', 'ff'], ['ggg', 'hhh', 'iii']]
@@ -43,13 +42,13 @@ class TestFormattBase(tm.TestCase):
 
         adjoined = printing.adjoin(2, *data)
 
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
 
     def test_adjoin_unicode(self):
         data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'], ['ggg', 'hhh', u'いいい']]
         expected = u'あ  dd  ggg\nb  ええ  hhh\nc  ff  いいい'
         adjoined = printing.adjoin(2, *data)
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
 
         adj = fmt.EastAsianTextAdjustment()
 
@@ -58,22 +57,22 @@ b   ええ  hhh
 c   ff    いいい"""
 
         adjoined = adj.adjoin(2, *data)
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
         cols = adjoined.split('\n')
-        self.assertEqual(adj.len(cols[0]), 13)
-        self.assertEqual(adj.len(cols[1]), 13)
-        self.assertEqual(adj.len(cols[2]), 16)
+        assert adj.len(cols[0]) == 13
+        assert adj.len(cols[1]) == 13
+        assert adj.len(cols[2]) == 16
 
         expected = u"""あ       dd         ggg
 b        ええ       hhh
 c        ff         いいい"""
 
         adjoined = adj.adjoin(7, *data)
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
         cols = adjoined.split('\n')
-        self.assertEqual(adj.len(cols[0]), 23)
-        self.assertEqual(adj.len(cols[1]), 23)
-        self.assertEqual(adj.len(cols[2]), 26)
+        assert adj.len(cols[0]) == 23
+        assert adj.len(cols[1]) == 23
+        assert adj.len(cols[2]) == 26
 
     def test_justify(self):
         adj = fmt.EastAsianTextAdjustment()
@@ -82,51 +81,51 @@ c        ff         いいい"""
             # wrapper to test single str
             return adj.justify([x], *args, **kwargs)[0]
 
-        self.assertEqual(just('abc', 5, mode='left'), 'abc  ')
-        self.assertEqual(just('abc', 5, mode='center'), ' abc ')
-        self.assertEqual(just('abc', 5, mode='right'), '  abc')
-        self.assertEqual(just(u'abc', 5, mode='left'), 'abc  ')
-        self.assertEqual(just(u'abc', 5, mode='center'), ' abc ')
-        self.assertEqual(just(u'abc', 5, mode='right'), '  abc')
+        assert just('abc', 5, mode='left') == 'abc  '
+        assert just('abc', 5, mode='center') == ' abc '
+        assert just('abc', 5, mode='right') == '  abc'
+        assert just(u'abc', 5, mode='left') == 'abc  '
+        assert just(u'abc', 5, mode='center') == ' abc '
+        assert just(u'abc', 5, mode='right') == '  abc'
 
-        self.assertEqual(just(u'パンダ', 5, mode='left'), u'パンダ')
-        self.assertEqual(just(u'パンダ', 5, mode='center'), u'パンダ')
-        self.assertEqual(just(u'パンダ', 5, mode='right'), u'パンダ')
+        assert just(u'パンダ', 5, mode='left') == u'パンダ'
+        assert just(u'パンダ', 5, mode='center') == u'パンダ'
+        assert just(u'パンダ', 5, mode='right') == u'パンダ'
 
-        self.assertEqual(just(u'パンダ', 10, mode='left'), u'パンダ    ')
-        self.assertEqual(just(u'パンダ', 10, mode='center'), u'  パンダ  ')
-        self.assertEqual(just(u'パンダ', 10, mode='right'), u'    パンダ')
+        assert just(u'パンダ', 10, mode='left') == u'パンダ    '
+        assert just(u'パンダ', 10, mode='center') == u'  パンダ  '
+        assert just(u'パンダ', 10, mode='right') == u'    パンダ'
 
     def test_east_asian_len(self):
         adj = fmt.EastAsianTextAdjustment()
 
-        self.assertEqual(adj.len('abc'), 3)
-        self.assertEqual(adj.len(u'abc'), 3)
+        assert adj.len('abc') == 3
+        assert adj.len(u'abc') == 3
 
-        self.assertEqual(adj.len(u'パンダ'), 6)
-        self.assertEqual(adj.len(u'ﾊﾟﾝﾀﾞ'), 5)
-        self.assertEqual(adj.len(u'パンダpanda'), 11)
-        self.assertEqual(adj.len(u'ﾊﾟﾝﾀﾞpanda'), 10)
+        assert adj.len(u'パンダ') == 6
+        assert adj.len(u'ﾊﾟﾝﾀﾞ') == 5
+        assert adj.len(u'パンダpanda') == 11
+        assert adj.len(u'ﾊﾟﾝﾀﾞpanda') == 10
 
     def test_ambiguous_width(self):
         adj = fmt.EastAsianTextAdjustment()
-        self.assertEqual(adj.len(u'¡¡ab'), 4)
+        assert adj.len(u'¡¡ab') == 4
 
         with cf.option_context('display.unicode.ambiguous_as_wide', True):
             adj = fmt.EastAsianTextAdjustment()
-            self.assertEqual(adj.len(u'¡¡ab'), 6)
+            assert adj.len(u'¡¡ab') == 6
 
         data = [[u'あ', 'b', 'c'], ['dd', u'ええ', 'ff'],
                 ['ggg', u'¡¡ab', u'いいい']]
         expected = u'あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい'
         adjoined = adj.adjoin(2, *data)
-        self.assertEqual(adjoined, expected)
+        assert adjoined == expected
 
 
-class TestTableSchemaRepr(tm.TestCase):
+class TestTableSchemaRepr(object):
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         pytest.importorskip('IPython')
         try:
             import mock
@@ -136,8 +135,11 @@ class TestTableSchemaRepr(tm.TestCase):
             except ImportError:
                 pytest.skip("Mock is not installed")
         cls.mock = mock
+        from IPython.core.interactiveshell import InteractiveShell
+        cls.display_formatter = InteractiveShell.instance().display_formatter
 
     def test_publishes(self):
+
         df = pd.DataFrame({"A": [1, 2]})
         objects = [df['A'], df, df]  # dataframe / series
         expected_keys = [
@@ -145,29 +147,20 @@ class TestTableSchemaRepr(tm.TestCase):
             {'text/plain', 'text/html', 'application/vnd.dataresource+json'},
         ]
 
-        make_patch = self.mock.patch('IPython.display.display')
         opt = pd.option_context('display.html.table_schema', True)
         for obj, expected in zip(objects, expected_keys):
-            with opt, make_patch as mock_display:
-                handle = obj._ipython_display_()
-                self.assertEqual(mock_display.call_count, 1)
-                assert handle is None
-                args, kwargs = mock_display.call_args
-                arg, = args  # just one argument
-
-            self.assertEqual(kwargs, {"raw": True})
-            self.assertEqual(set(arg.keys()), expected)
+            with opt:
+                formatted = self.display_formatter.format(obj)
+            assert set(formatted[0].keys()) == expected
 
         with_latex = pd.option_context('display.latex.repr', True)
 
-        with opt, with_latex, make_patch as mock_display:
-            handle = obj._ipython_display_()
-            args, kwargs = mock_display.call_args
-            arg, = args
+        with opt, with_latex:
+            formatted = self.display_formatter.format(obj)
 
         expected = {'text/plain', 'text/html', 'text/latex',
                     'application/vnd.dataresource+json'}
-        self.assertEqual(set(arg.keys()), expected)
+        assert set(formatted[0].keys()) == expected
 
     def test_publishes_not_implemented(self):
         # column MultiIndex
@@ -175,25 +168,47 @@ class TestTableSchemaRepr(tm.TestCase):
         midx = pd.MultiIndex.from_product([['A', 'B'], ['a', 'b', 'c']])
         df = pd.DataFrame(np.random.randn(5, len(midx)), columns=midx)
 
-        make_patch = self.mock.patch('IPython.display.display')
         opt = pd.option_context('display.html.table_schema', True)
-        with opt, make_patch as mock_display:  # noqa
-            with pytest.raises(NotImplementedError):
-                df._ipython_display_()
+
+        with opt:
+            formatted = self.display_formatter.format(df)
+
+        expected = {'text/plain', 'text/html'}
+        assert set(formatted[0].keys()) == expected
 
     def test_config_on(self):
         df = pd.DataFrame({"A": [1, 2]})
         with pd.option_context("display.html.table_schema", True):
-            result = df._repr_table_schema_()
+            result = df._repr_data_resource_()
 
         assert result is not None
 
     def test_config_default_off(self):
         df = pd.DataFrame({"A": [1, 2]})
         with pd.option_context("display.html.table_schema", False):
-            result = df._repr_table_schema_()
+            result = df._repr_data_resource_()
 
         assert result is None
+
+    def test_enable_data_resource_formatter(self):
+        # GH 10491
+        formatters = self.display_formatter.formatters
+        mimetype = 'application/vnd.dataresource+json'
+
+        with pd.option_context('display.html.table_schema', True):
+            assert 'application/vnd.dataresource+json' in formatters
+            assert formatters[mimetype].enabled
+
+        # still there, just disabled
+        assert 'application/vnd.dataresource+json' in formatters
+        assert not formatters[mimetype].enabled
+
+        # able to re-set
+        with pd.option_context('display.html.table_schema', True):
+            assert 'application/vnd.dataresource+json' in formatters
+            assert formatters[mimetype].enabled
+            # smoke test that it works
+            self.display_formatter.format(cf)
 
 
 # TODO: fix this broken test

@@ -7,7 +7,7 @@ from pandas import (Index, DatetimeIndex, datetime, offsets,
                     Float64Index, date_range, Timestamp)
 
 
-class TestDateTimeIndexToJulianDate(tm.TestCase):
+class TestDateTimeIndexToJulianDate(object):
 
     def test_1700(self):
         r1 = Float64Index([2345897.5, 2345898.5, 2345899.5, 2345900.5,
@@ -53,7 +53,7 @@ class TestDateTimeIndexToJulianDate(tm.TestCase):
         tm.assert_index_equal(r1, r2)
 
 
-class TestTimeSeries(tm.TestCase):
+class TestTimeSeries(object):
 
     def test_pass_datetimeindex_to_index(self):
         # Bugs in #1396
@@ -166,11 +166,11 @@ class TestTimeSeries(tm.TestCase):
                                                   "datetime64[ns]"))
         tm.assert_index_equal(rng_ns_normalized, expected)
 
-        self.assertTrue(result.is_normalized)
-        self.assertFalse(rng.is_normalized)
+        assert result.is_normalized
+        assert not rng.is_normalized
 
 
-class TestDatetime64(tm.TestCase):
+class TestDatetime64(object):
 
     def test_datetimeindex_accessors(self):
 
@@ -181,81 +181,80 @@ class TestDatetime64(tm.TestCase):
                                periods=365, tz='US/Eastern')
         for dti in [dti_naive, dti_tz]:
 
-            self.assertEqual(dti.year[0], 1998)
-            self.assertEqual(dti.month[0], 1)
-            self.assertEqual(dti.day[0], 1)
-            self.assertEqual(dti.hour[0], 0)
-            self.assertEqual(dti.minute[0], 0)
-            self.assertEqual(dti.second[0], 0)
-            self.assertEqual(dti.microsecond[0], 0)
-            self.assertEqual(dti.dayofweek[0], 3)
+            assert dti.year[0] == 1998
+            assert dti.month[0] == 1
+            assert dti.day[0] == 1
+            assert dti.hour[0] == 0
+            assert dti.minute[0] == 0
+            assert dti.second[0] == 0
+            assert dti.microsecond[0] == 0
+            assert dti.dayofweek[0] == 3
 
-            self.assertEqual(dti.dayofyear[0], 1)
-            self.assertEqual(dti.dayofyear[120], 121)
+            assert dti.dayofyear[0] == 1
+            assert dti.dayofyear[120] == 121
 
-            self.assertEqual(dti.weekofyear[0], 1)
-            self.assertEqual(dti.weekofyear[120], 18)
+            assert dti.weekofyear[0] == 1
+            assert dti.weekofyear[120] == 18
 
-            self.assertEqual(dti.quarter[0], 1)
-            self.assertEqual(dti.quarter[120], 2)
+            assert dti.quarter[0] == 1
+            assert dti.quarter[120] == 2
 
-            self.assertEqual(dti.days_in_month[0], 31)
-            self.assertEqual(dti.days_in_month[90], 30)
+            assert dti.days_in_month[0] == 31
+            assert dti.days_in_month[90] == 30
 
-            self.assertEqual(dti.is_month_start[0], True)
-            self.assertEqual(dti.is_month_start[1], False)
-            self.assertEqual(dti.is_month_start[31], True)
-            self.assertEqual(dti.is_quarter_start[0], True)
-            self.assertEqual(dti.is_quarter_start[90], True)
-            self.assertEqual(dti.is_year_start[0], True)
-            self.assertEqual(dti.is_year_start[364], False)
-            self.assertEqual(dti.is_month_end[0], False)
-            self.assertEqual(dti.is_month_end[30], True)
-            self.assertEqual(dti.is_month_end[31], False)
-            self.assertEqual(dti.is_month_end[364], True)
-            self.assertEqual(dti.is_quarter_end[0], False)
-            self.assertEqual(dti.is_quarter_end[30], False)
-            self.assertEqual(dti.is_quarter_end[89], True)
-            self.assertEqual(dti.is_quarter_end[364], True)
-            self.assertEqual(dti.is_year_end[0], False)
-            self.assertEqual(dti.is_year_end[364], True)
+            assert dti.is_month_start[0]
+            assert not dti.is_month_start[1]
+            assert dti.is_month_start[31]
+            assert dti.is_quarter_start[0]
+            assert dti.is_quarter_start[90]
+            assert dti.is_year_start[0]
+            assert not dti.is_year_start[364]
+            assert not dti.is_month_end[0]
+            assert dti.is_month_end[30]
+            assert not dti.is_month_end[31]
+            assert dti.is_month_end[364]
+            assert not dti.is_quarter_end[0]
+            assert not dti.is_quarter_end[30]
+            assert dti.is_quarter_end[89]
+            assert dti.is_quarter_end[364]
+            assert not dti.is_year_end[0]
+            assert dti.is_year_end[364]
 
             # GH 11128
-            self.assertEqual(dti.weekday_name[4], u'Monday')
-            self.assertEqual(dti.weekday_name[5], u'Tuesday')
-            self.assertEqual(dti.weekday_name[6], u'Wednesday')
-            self.assertEqual(dti.weekday_name[7], u'Thursday')
-            self.assertEqual(dti.weekday_name[8], u'Friday')
-            self.assertEqual(dti.weekday_name[9], u'Saturday')
-            self.assertEqual(dti.weekday_name[10], u'Sunday')
+            assert dti.weekday_name[4] == u'Monday'
+            assert dti.weekday_name[5] == u'Tuesday'
+            assert dti.weekday_name[6] == u'Wednesday'
+            assert dti.weekday_name[7] == u'Thursday'
+            assert dti.weekday_name[8] == u'Friday'
+            assert dti.weekday_name[9] == u'Saturday'
+            assert dti.weekday_name[10] == u'Sunday'
 
-            self.assertEqual(Timestamp('2016-04-04').weekday_name, u'Monday')
-            self.assertEqual(Timestamp('2016-04-05').weekday_name, u'Tuesday')
-            self.assertEqual(Timestamp('2016-04-06').weekday_name,
-                             u'Wednesday')
-            self.assertEqual(Timestamp('2016-04-07').weekday_name, u'Thursday')
-            self.assertEqual(Timestamp('2016-04-08').weekday_name, u'Friday')
-            self.assertEqual(Timestamp('2016-04-09').weekday_name, u'Saturday')
-            self.assertEqual(Timestamp('2016-04-10').weekday_name, u'Sunday')
+            assert Timestamp('2016-04-04').weekday_name == u'Monday'
+            assert Timestamp('2016-04-05').weekday_name == u'Tuesday'
+            assert Timestamp('2016-04-06').weekday_name == u'Wednesday'
+            assert Timestamp('2016-04-07').weekday_name == u'Thursday'
+            assert Timestamp('2016-04-08').weekday_name == u'Friday'
+            assert Timestamp('2016-04-09').weekday_name == u'Saturday'
+            assert Timestamp('2016-04-10').weekday_name == u'Sunday'
 
-            self.assertEqual(len(dti.year), 365)
-            self.assertEqual(len(dti.month), 365)
-            self.assertEqual(len(dti.day), 365)
-            self.assertEqual(len(dti.hour), 365)
-            self.assertEqual(len(dti.minute), 365)
-            self.assertEqual(len(dti.second), 365)
-            self.assertEqual(len(dti.microsecond), 365)
-            self.assertEqual(len(dti.dayofweek), 365)
-            self.assertEqual(len(dti.dayofyear), 365)
-            self.assertEqual(len(dti.weekofyear), 365)
-            self.assertEqual(len(dti.quarter), 365)
-            self.assertEqual(len(dti.is_month_start), 365)
-            self.assertEqual(len(dti.is_month_end), 365)
-            self.assertEqual(len(dti.is_quarter_start), 365)
-            self.assertEqual(len(dti.is_quarter_end), 365)
-            self.assertEqual(len(dti.is_year_start), 365)
-            self.assertEqual(len(dti.is_year_end), 365)
-            self.assertEqual(len(dti.weekday_name), 365)
+            assert len(dti.year) == 365
+            assert len(dti.month) == 365
+            assert len(dti.day) == 365
+            assert len(dti.hour) == 365
+            assert len(dti.minute) == 365
+            assert len(dti.second) == 365
+            assert len(dti.microsecond) == 365
+            assert len(dti.dayofweek) == 365
+            assert len(dti.dayofyear) == 365
+            assert len(dti.weekofyear) == 365
+            assert len(dti.quarter) == 365
+            assert len(dti.is_month_start) == 365
+            assert len(dti.is_month_end) == 365
+            assert len(dti.is_quarter_start) == 365
+            assert len(dti.is_quarter_end) == 365
+            assert len(dti.is_year_start) == 365
+            assert len(dti.is_year_end) == 365
+            assert len(dti.weekday_name) == 365
 
             dti.name = 'name'
 
@@ -283,10 +282,10 @@ class TestDatetime64(tm.TestCase):
         dti = DatetimeIndex(freq='BQ-FEB', start=datetime(1998, 1, 1),
                             periods=4)
 
-        self.assertEqual(sum(dti.is_quarter_start), 0)
-        self.assertEqual(sum(dti.is_quarter_end), 4)
-        self.assertEqual(sum(dti.is_year_start), 0)
-        self.assertEqual(sum(dti.is_year_end), 1)
+        assert sum(dti.is_quarter_start) == 0
+        assert sum(dti.is_quarter_end) == 4
+        assert sum(dti.is_year_start) == 0
+        assert sum(dti.is_year_end) == 1
 
         # Ensure is_start/end accessors throw ValueError for CustomBusinessDay,
         # CBD requires np >= 1.7
@@ -296,7 +295,7 @@ class TestDatetime64(tm.TestCase):
 
         dti = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
 
-        self.assertEqual(dti.is_month_start[0], 1)
+        assert dti.is_month_start[0] == 1
 
         tests = [
             (Timestamp('2013-06-01', freq='M').is_month_start, 1),
@@ -333,7 +332,15 @@ class TestDatetime64(tm.TestCase):
             (Timestamp('2013-02-01').days_in_month, 28)]
 
         for ts, value in tests:
-            self.assertEqual(ts, value)
+            assert ts == value
+
+        # GH 6538: Check that DatetimeIndex and its TimeStamp elements
+        # return the same weekofyear accessor close to new year w/ tz
+        dates = ["2013/12/29", "2013/12/30", "2013/12/31"]
+        dates = DatetimeIndex(dates, tz="Europe/Brussels")
+        expected = [52, 1, 1]
+        assert dates.weekofyear.tolist() == expected
+        assert [d.weekofyear for d in dates] == expected
 
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))

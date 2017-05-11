@@ -26,7 +26,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.util import testing as tm
 
 
-class TestMaybeDowncast(tm.TestCase):
+class TestMaybeDowncast(object):
 
     def test_downcast_conv(self):
         # test downcasting
@@ -156,84 +156,84 @@ class TestInferDtype(object):
         assert dtype == expected
 
 
-class TestMaybe(tm.TestCase):
+class TestMaybe(object):
 
     def test_maybe_convert_string_to_array(self):
         result = maybe_convert_string_to_object('x')
         tm.assert_numpy_array_equal(result, np.array(['x'], dtype=object))
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
         result = maybe_convert_string_to_object(1)
-        self.assertEqual(result, 1)
+        assert result == 1
 
         arr = np.array(['x', 'y'], dtype=str)
         result = maybe_convert_string_to_object(arr)
         tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
         # unicode
         arr = np.array(['x', 'y']).astype('U')
         result = maybe_convert_string_to_object(arr)
         tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
         # object
         arr = np.array(['x', 2], dtype=object)
         result = maybe_convert_string_to_object(arr)
         tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
-        self.assertTrue(result.dtype == object)
+        assert result.dtype == object
 
     def test_maybe_convert_scalar(self):
 
         # pass thru
         result = maybe_convert_scalar('x')
-        self.assertEqual(result, 'x')
+        assert result == 'x'
         result = maybe_convert_scalar(np.array([1]))
-        self.assertEqual(result, np.array([1]))
+        assert result == np.array([1])
 
         # leave scalar dtype
         result = maybe_convert_scalar(np.int64(1))
-        self.assertEqual(result, np.int64(1))
+        assert result == np.int64(1)
         result = maybe_convert_scalar(np.int32(1))
-        self.assertEqual(result, np.int32(1))
+        assert result == np.int32(1)
         result = maybe_convert_scalar(np.float32(1))
-        self.assertEqual(result, np.float32(1))
+        assert result == np.float32(1)
         result = maybe_convert_scalar(np.int64(1))
-        self.assertEqual(result, np.float64(1))
+        assert result == np.float64(1)
 
         # coerce
         result = maybe_convert_scalar(1)
-        self.assertEqual(result, np.int64(1))
+        assert result == np.int64(1)
         result = maybe_convert_scalar(1.0)
-        self.assertEqual(result, np.float64(1))
+        assert result == np.float64(1)
         result = maybe_convert_scalar(Timestamp('20130101'))
-        self.assertEqual(result, Timestamp('20130101').value)
+        assert result == Timestamp('20130101').value
         result = maybe_convert_scalar(datetime(2013, 1, 1))
-        self.assertEqual(result, Timestamp('20130101').value)
+        assert result == Timestamp('20130101').value
         result = maybe_convert_scalar(Timedelta('1 day 1 min'))
-        self.assertEqual(result, Timedelta('1 day 1 min').value)
+        assert result == Timedelta('1 day 1 min').value
 
 
-class TestConvert(tm.TestCase):
+class TestConvert(object):
 
     def test_maybe_convert_objects_copy(self):
         values = np.array([1, 2])
 
         out = maybe_convert_objects(values, copy=False)
-        self.assertTrue(values is out)
+        assert values is out
 
         out = maybe_convert_objects(values, copy=True)
-        self.assertTrue(values is not out)
+        assert values is not out
 
         values = np.array(['apply', 'banana'])
         out = maybe_convert_objects(values, copy=False)
-        self.assertTrue(values is out)
+        assert values is out
 
         out = maybe_convert_objects(values, copy=True)
-        self.assertTrue(values is not out)
+        assert values is not out
 
 
-class TestCommonTypes(tm.TestCase):
+class TestCommonTypes(object):
 
     def test_numpy_dtypes(self):
         # (source_types, destination_type)
@@ -291,7 +291,7 @@ class TestCommonTypes(tm.TestCase):
             ((np.dtype('datetime64[ns]'), np.int64), np.object)
         )
         for src, common in testcases:
-            self.assertEqual(find_common_type(src), common)
+            assert find_common_type(src) == common
 
         with pytest.raises(ValueError):
             # empty
@@ -299,26 +299,25 @@ class TestCommonTypes(tm.TestCase):
 
     def test_categorical_dtype(self):
         dtype = CategoricalDtype()
-        self.assertEqual(find_common_type([dtype]), 'category')
-        self.assertEqual(find_common_type([dtype, dtype]), 'category')
-        self.assertEqual(find_common_type([np.object, dtype]), np.object)
+        assert find_common_type([dtype]) == 'category'
+        assert find_common_type([dtype, dtype]) == 'category'
+        assert find_common_type([np.object, dtype]) == np.object
 
     def test_datetimetz_dtype(self):
         dtype = DatetimeTZDtype(unit='ns', tz='US/Eastern')
-        self.assertEqual(find_common_type([dtype, dtype]),
-                         'datetime64[ns, US/Eastern]')
+        assert find_common_type([dtype, dtype]) == 'datetime64[ns, US/Eastern]'
 
         for dtype2 in [DatetimeTZDtype(unit='ns', tz='Asia/Tokyo'),
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
-            self.assertEqual(find_common_type([dtype, dtype2]), np.object)
-            self.assertEqual(find_common_type([dtype2, dtype]), np.object)
+            assert find_common_type([dtype, dtype2]) == np.object
+            assert find_common_type([dtype2, dtype]) == np.object
 
     def test_period_dtype(self):
         dtype = PeriodDtype(freq='D')
-        self.assertEqual(find_common_type([dtype, dtype]), 'period[D]')
+        assert find_common_type([dtype, dtype]) == 'period[D]'
 
         for dtype2 in [DatetimeTZDtype(unit='ns', tz='Asia/Tokyo'),
                        PeriodDtype(freq='2D'), PeriodDtype(freq='H'),
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
-            self.assertEqual(find_common_type([dtype, dtype2]), np.object)
-            self.assertEqual(find_common_type([dtype2, dtype]), np.object)
+            assert find_common_type([dtype, dtype2]) == np.object
+            assert find_common_type([dtype2, dtype]) == np.object

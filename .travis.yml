@@ -123,7 +123,7 @@ after_success:
 
 after_script:
   - echo "after_script start"
-  - source activate pandas && python -c "import pandas; pandas.show_versions();"
+  - source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
   - if [ -e /tmp/single.xml ]; then
     ci/print_skipped.py /tmp/single.xml;
     fi

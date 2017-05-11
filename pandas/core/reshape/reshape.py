@@ -20,7 +20,7 @@ from pandas.core.frame import DataFrame
 
 from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 from pandas.core.sparse.array import SparseArray
-from pandas.core.sparse.libsparse import IntIndex
+from pandas._libs.sparse import IntIndex
 
 from pandas.core.categorical import Categorical, _factorize_from_iterable
 from pandas.core.sorting import (get_group_index, get_compressed_ids,
@@ -30,7 +30,7 @@ import pandas.core.algorithms as algos
 from pandas._libs import algos as _algos, reshape as _reshape
 
 from pandas.core.frame import _shared_docs
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from pandas.core.index import MultiIndex, _get_na_value
 
 
@@ -689,7 +689,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_labels = [np.arange(N).repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
-    new_levels.append(frame.columns.levels[level_num])
+    new_levels.append(level_vals)
     new_labels.append(np.tile(level_labels, N))
     new_names.append(frame.columns.names[level_num])
 

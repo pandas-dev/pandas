@@ -26,8 +26,10 @@ https://github.com/pandas-dev/pandas/issues/15961
 https://bugs.python.org/issue29943
 */
 
-#if PY_VERSION_HEX < 0x03070000 && defined(PySlice_GetIndicesEx)
-  #undef PySlice_GetIndicesEx
+#ifndef PYPY_VERSION
+# if PY_VERSION_HEX < 0x03070000 && defined(PySlice_GetIndicesEx)
+#   undef PySlice_GetIndicesEx
+# endif
 #endif
 
 PANDAS_INLINE int slice_get_indices(PyObject *s,

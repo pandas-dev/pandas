@@ -72,7 +72,7 @@ NaN,nan
         _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
                           '#N/A', 'N/A', 'NA', '#NA', 'NULL', 'NaN',
                           'nan', '-NaN', '-nan', '#N/A N/A', ''])
-        self.assertEqual(_NA_VALUES, parsers._NA_VALUES)
+        assert _NA_VALUES == parsers._NA_VALUES
         nv = len(_NA_VALUES)
 
         def f(i, v):
@@ -248,8 +248,8 @@ nan,B
 2012-05-12,USD,SBUX,SELL,500"""
 
         result = self.read_csv(StringIO(data))
-        self.assertEqual(result['Date'][1], '2012-05-12')
-        self.assertTrue(result['UnitPrice'].isnull().all())
+        assert result['Date'][1] == '2012-05-12'
+        assert result['UnitPrice'].isnull().all()
 
     def test_na_values_scalar(self):
         # see gh-12224

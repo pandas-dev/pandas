@@ -44,7 +44,7 @@ bar2,12,13,14,15
 """
         # Parsers support only length-1 decimals
         msg = 'Only length-1 decimal markers supported'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(data), decimal='')
 
     def test_bad_stream_exception(self):
@@ -64,7 +64,7 @@ bar2,12,13,14,15
             msg = "'utf-8' codec can't decode byte"
         else:
             msg = "'utf8' codec can't decode byte"
-        with tm.assertRaisesRegexp(UnicodeDecodeError, msg):
+        with tm.assert_raises_regex(UnicodeDecodeError, msg):
             self.read_csv(stream)
         stream.close()
 
@@ -113,7 +113,7 @@ c,3
         # Series should not be a view
         data = """time,data\n0,10\n1,11\n2,12\n4,14\n5,15\n3,13"""
         result = self.read_csv(StringIO(data), index_col='time', squeeze=True)
-        self.assertFalse(result._is_view)
+        assert not result._is_view
 
     def test_malformed(self):
         # see gh-6607
@@ -126,7 +126,7 @@ A,B,C
 2,3,4
 """
         msg = 'Expected 3 fields in line 4, saw 5'
-        with tm.assertRaisesRegexp(Exception, msg):
+        with tm.assert_raises_regex(Exception, msg):
             self.read_table(StringIO(data), sep=',',
                             header=1, comment='#')
 
@@ -140,7 +140,7 @@ skip
 2,3,4
 """
         msg = 'Expected 3 fields in line 6, saw 5'
-        with tm.assertRaisesRegexp(Exception, msg):
+        with tm.assert_raises_regex(Exception, msg):
             it = self.read_table(StringIO(data), sep=',',
                                  header=1, comment='#',
                                  iterator=True, chunksize=1,
@@ -157,7 +157,7 @@ skip
 2,3,4
 """
         msg = 'Expected 3 fields in line 6, saw 5'
-        with tm.assertRaisesRegexp(Exception, msg):
+        with tm.assert_raises_regex(Exception, msg):
             it = self.read_table(StringIO(data), sep=',', header=1,
                                  comment='#', iterator=True, chunksize=1,
                                  skiprows=[2])
@@ -173,7 +173,7 @@ skip
 2,3,4
 """
         msg = 'Expected 3 fields in line 6, saw 5'
-        with tm.assertRaisesRegexp(Exception, msg):
+        with tm.assert_raises_regex(Exception, msg):
             it = self.read_table(StringIO(data), sep=',', header=1,
                                  comment='#', iterator=True, chunksize=1,
                                  skiprows=[2])
@@ -190,7 +190,7 @@ A,B,C
 footer
 """
             msg = 'Expected 3 fields in line 4, saw 5'
-            with tm.assertRaisesRegexp(Exception, msg):
+            with tm.assert_raises_regex(Exception, msg):
                 self.read_table(StringIO(data), sep=',',
                                 header=1, comment='#',
                                 skipfooter=1)
@@ -207,7 +207,7 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
 
         good_line_small = bad_line_small + '"'
         df = self.read_table(StringIO(good_line_small), sep='\t')
-        self.assertEqual(len(df), 3)
+        assert len(df) == 3
 
     def test_unnamed_columns(self):
         data = """A,B,C,,
@@ -237,13 +237,11 @@ Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhan
 
             # check default behavior
             df = getattr(self, method)(StringIO(data), sep=',')
-            self.assertEqual(list(df.columns),
-                             ['A', 'A.1', 'B', 'B.1', 'B.2'])
+            assert list(df.columns) == ['A', 'A.1', 'B', 'B.1', 'B.2']
 
             df = getattr(self, method)(StringIO(data), sep=',',
                                        mangle_dupe_cols=True)
-            self.assertEqual(list(df.columns),
-                             ['A', 'A.1', 'B', 'B.1', 'B.2'])
+            assert list(df.columns) == ['A', 'A.1', 'B', 'B.1', 'B.2']
 
     def test_csv_mixed_type(self):
         data = """A,B,C
@@ -262,10 +260,10 @@ c,4,5
         df2 = self.read_table(self.csv1, sep=',', index_col=0,
                               parse_dates=True)
         tm.assert_index_equal(df.columns, pd.Index(['A', 'B', 'C', 'D']))
-        self.assertEqual(df.index.name, 'index')
+        assert df.index.name == 'index'
         assert isinstance(
             df.index[0], (datetime, np.datetime64, Timestamp))
-        self.assertEqual(df.values.dtype, np.float64)
+        assert df.values.dtype == np.float64
         tm.assert_frame_equal(df, df2)
 
     def test_read_csv_no_index_name(self):
@@ -333,7 +331,7 @@ False,2
 True,3
 """
         data = self.read_csv(StringIO(data))
-        self.assertEqual(data['A'].dtype, np.bool_)
+        assert data['A'].dtype == np.bool_
 
         data = """A,B
 YES,1
@@ -345,7 +343,7 @@ Yes,3
         data = self.read_csv(StringIO(data),
                              true_values=['yes', 'Yes', 'YES'],
                              false_values=['no', 'NO', 'No'])
-        self.assertEqual(data['A'].dtype, np.bool_)
+        assert data['A'].dtype == np.bool_
 
         data = """A,B
 TRUE,1
@@ -353,7 +351,7 @@ FALSE,2
 TRUE,3
 """
         data = self.read_csv(StringIO(data))
-        self.assertEqual(data['A'].dtype, np.bool_)
+        assert data['A'].dtype == np.bool_
 
         data = """A,B
 foo,bar
@@ -370,8 +368,8 @@ bar,foo"""
 3.0,3
 """
         data = self.read_csv(StringIO(data))
-        self.assertEqual(data['A'].dtype, np.float64)
-        self.assertEqual(data['B'].dtype, np.int64)
+        assert data['A'].dtype == np.float64
+        assert data['B'].dtype == np.int64
 
     def test_read_nrows(self):
         expected = self.read_csv(StringIO(self.data1))[:3]
@@ -385,13 +383,13 @@ bar,foo"""
 
         msg = r"'nrows' must be an integer >=0"
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows=1.2)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows='foo')
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), nrows=-1)
 
     def test_read_chunksize(self):
@@ -407,13 +405,13 @@ bar,foo"""
         # with invalid chunksize value:
         msg = r"'chunksize' must be an integer >=1"
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), chunksize=1.3)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), chunksize='foo')
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(self.data1), chunksize=0)
 
     def test_read_chunksize_and_nrows(self):
@@ -463,7 +461,7 @@ bar,foo"""
         result = self.read_csv(StringIO(data), chunksize=2)
 
         piece = result.get_chunk()
-        self.assertEqual(len(piece), 2)
+        assert len(piece) == 2
 
     def test_read_chunksize_generated_index(self):
         # GH 12185
@@ -537,7 +535,7 @@ baz,7,8,9
         result = list(reader)
         expected = DataFrame(dict(A=[1, 4, 7], B=[2, 5, 8], C=[
             3, 6, 9]), index=['foo', 'bar', 'baz'])
-        self.assertEqual(len(result), 3)
+        assert len(result) == 3
         tm.assert_frame_equal(pd.concat(result), expected)
 
         # skipfooter is not supported with the C parser yet
@@ -693,7 +691,7 @@ bar"""
 1,3,3,
 1,4,5"""
         result = self.read_csv(StringIO(data))
-        self.assertTrue(result['D'].isnull()[1:].all())
+        assert result['D'].isnull()[1:].all()
 
     def test_skipinitialspace(self):
         s = ('"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
@@ -707,7 +705,7 @@ bar"""
         # it's 33 columns
         result = self.read_csv(sfile, names=lrange(33), na_values=['-9999.0'],
                                header=None, skipinitialspace=True)
-        self.assertTrue(pd.isnull(result.iloc[0, 29]))
+        assert pd.isnull(result.iloc[0, 29])
 
     def test_utf16_bom_skiprows(self):
         # #2298
@@ -751,12 +749,12 @@ A,B,C
 
         # it works! and is the right length
         result = self.read_table(path, encoding='utf-16')
-        self.assertEqual(len(result), 50)
+        assert len(result) == 50
 
         if not compat.PY3:
             buf = BytesIO(open(path, 'rb').read())
             result = self.read_table(buf, encoding='utf-16')
-            self.assertEqual(len(result), 50)
+            assert len(result) == 50
 
     def test_unicode_encoding(self):
         pth = tm.get_data_path('unicode_series.csv')
@@ -767,7 +765,7 @@ A,B,C
         got = result[1][1632]
         expected = u('\xc1 k\xf6ldum klaka (Cold Fever) (1994)')
 
-        self.assertEqual(got, expected)
+        assert got == expected
 
     def test_trailing_delimiters(self):
         # #2442. grumble grumble
@@ -792,10 +790,10 @@ A,B,C
 
         result = self.read_csv(StringIO(data), escapechar='\\',
                                quotechar='"', encoding='utf-8')
-        self.assertEqual(result['SEARCH_TERM'][2],
-                         'SLAGBORD, "Bergslagen", IKEA:s 1700-tals serie')
-        self.assertTrue(np.array_equal(result.columns,
-                                       ['SEARCH_TERM', 'ACTUAL_URL']))
+        assert result['SEARCH_TERM'][2] == ('SLAGBORD, "Bergslagen", '
+                                            'IKEA:s 1700-tals serie')
+        tm.assert_index_equal(result.columns,
+                              Index(['SEARCH_TERM', 'ACTUAL_URL']))
 
     def test_int64_min_issues(self):
         # #2599
@@ -831,7 +829,7 @@ A,B,C
                                           17007000002000192,
                                           17007000002000194]})
 
-        self.assertTrue(np.array_equal(result['Numbers'], expected['Numbers']))
+        assert np.array_equal(result['Numbers'], expected['Numbers'])
 
     def test_chunks_have_consistent_numerical_type(self):
         integers = [str(i) for i in range(499999)]
@@ -840,8 +838,8 @@ A,B,C
         with tm.assert_produces_warning(False):
             df = self.read_csv(StringIO(data))
         # Assert that types were coerced.
-        self.assertTrue(type(df.a[0]) is np.float64)
-        self.assertEqual(df.a.dtype, np.float)
+        assert type(df.a[0]) is np.float64
+        assert df.a.dtype == np.float
 
     def test_warn_if_chunks_have_mismatched_type(self):
         warning_type = False
@@ -855,17 +853,17 @@ A,B,C
 
         with tm.assert_produces_warning(warning_type):
             df = self.read_csv(StringIO(data))
-        self.assertEqual(df.a.dtype, np.object)
+        assert df.a.dtype == np.object
 
     def test_integer_overflow_bug(self):
         # see gh-2601
         data = "65248E10 11\n55555E55 22\n"
 
         result = self.read_csv(StringIO(data), header=None, sep=' ')
-        self.assertTrue(result[0].dtype == np.float64)
+        assert result[0].dtype == np.float64
 
         result = self.read_csv(StringIO(data), header=None, sep=r'\s+')
-        self.assertTrue(result[0].dtype == np.float64)
+        assert result[0].dtype == np.float64
 
     def test_catch_too_many_names(self):
         # see gh-5156
@@ -888,7 +886,7 @@ A,B,C
         # see gh-10022
         data = '\n hello\nworld\n'
         result = self.read_csv(StringIO(data), header=None)
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
         # see gh-9735: this issue is C parser-specific (bug when
         # parsing whitespace and characters at chunk boundary)
@@ -953,7 +951,7 @@ A,B,C
         # 13007854817840016671868 > UINT64_MAX, so this
         # will overflow and return object as the dtype.
         result = self.read_csv(StringIO(data))
-        self.assertTrue(result['ID'].dtype == object)
+        assert result['ID'].dtype == object
 
         # 13007854817840016671868 > UINT64_MAX, so attempts
         # to cast to either int64 or uint64 will result in
@@ -1104,7 +1102,7 @@ A,B,C
         # make sure that an error is still thrown
         # when the 'usecols' parameter is not provided
         msg = r"Expected \d+ fields in line \d+, saw \d+"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             df = self.read_csv(StringIO(csv))
 
         expected = DataFrame({
@@ -1130,10 +1128,10 @@ A,B,C
         # throws the correct error, with or without usecols
         errmsg = "No columns to parse from file"
 
-        with tm.assertRaisesRegexp(EmptyDataError, errmsg):
+        with tm.assert_raises_regex(EmptyDataError, errmsg):
             self.read_csv(StringIO(''))
 
-        with tm.assertRaisesRegexp(EmptyDataError, errmsg):
+        with tm.assert_raises_regex(EmptyDataError, errmsg):
             self.read_csv(StringIO(''), usecols=usecols)
 
         expected = DataFrame(columns=usecols, index=[0], dtype=np.float64)
@@ -1172,7 +1170,8 @@ A,B,C
     def test_raise_on_sep_with_delim_whitespace(self):
         # see gh-6607
         data = 'a b c\n1 2 3'
-        with tm.assertRaisesRegexp(ValueError, 'you can only specify one'):
+        with tm.assert_raises_regex(ValueError,
+                                    'you can only specify one'):
             self.read_table(StringIO(data), sep=r'\s', delim_whitespace=True)
 
     def test_single_char_leading_whitespace(self):
@@ -1360,9 +1359,9 @@ eight,1,2,3"""
 3;878,158;108013,434;GHI;rez;2,735694704"""
 
         df2 = self.read_csv(StringIO(data), sep=';', decimal=',')
-        self.assertEqual(df2['Number1'].dtype, float)
-        self.assertEqual(df2['Number2'].dtype, float)
-        self.assertEqual(df2['Number3'].dtype, float)
+        assert df2['Number1'].dtype == float
+        assert df2['Number2'].dtype == float
+        assert df2['Number3'].dtype == float
 
     def test_read_duplicate_names(self):
         # See gh-7160
@@ -1462,7 +1461,7 @@ j,-inF"""
             result = self.read_csv(StringIO(data), delimiter=',', header=None,
                                    compact_ints=True, as_recarray=True)
             ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
-            self.assertEqual(result.dtype, ex_dtype)
+            assert result.dtype == ex_dtype
 
         with tm.assert_produces_warning(
                 FutureWarning, check_stacklevel=False):
@@ -1470,7 +1469,7 @@ j,-inF"""
                                    as_recarray=True, compact_ints=True,
                                    use_unsigned=True)
             ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
-            self.assertEqual(result.dtype, ex_dtype)
+            assert result.dtype == ex_dtype
 
     def test_as_recarray(self):
         # basic test
@@ -1563,7 +1562,7 @@ j,-inF"""
             tm.assert_frame_equal(out, expected)
         else:
             msg = "NULL byte detected"
-            with tm.assertRaisesRegexp(ParserError, msg):
+            with tm.assert_raises_regex(ParserError, msg):
                 self.read_csv(StringIO(data), names=cols)
 
     def test_utf8_bom(self):
@@ -1655,11 +1654,11 @@ j,-inF"""
 
         fh = StringIO('a,b\n1,2')
         self.read_csv(fh)
-        self.assertFalse(fh.closed)
+        assert not fh.closed
 
         with open(self.csv1, 'r') as f:
             self.read_csv(f)
-            self.assertFalse(f.closed)
+            assert not f.closed
 
         # mmap not working with python engine
         if self.engine != 'python':
@@ -1670,7 +1669,7 @@ j,-inF"""
                 self.read_csv(m)
                 # closed attribute new in python 3.2
                 if PY3:
-                    self.assertFalse(m.closed)
+                    assert not m.closed
                 m.close()
 
     def test_invalid_file_buffer(self):
@@ -1681,13 +1680,33 @@ j,-inF"""
 
         msg = "Invalid file path or buffer object type"
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(InvalidBuffer())
+
+        # gh-16135: we want to ensure that "tell" and "seek"
+        # aren't actually being used when we call `read_csv`
+        #
+        # Thus, while the object may look "invalid" (these
+        # methods are attributes of the `StringIO` class),
+        # it is still a valid file-object for our purposes.
+        class NoSeekTellBuffer(StringIO):
+            def tell(self):
+                raise AttributeError("No tell method")
+
+            def seek(self, pos, whence=0):
+                raise AttributeError("No seek method")
+
+        data = "a\n1"
+
+        expected = pd.DataFrame({"a": [1]})
+        result = self.read_csv(NoSeekTellBuffer(data))
+
+        tm.assert_frame_equal(result, expected)
 
         if PY3:
             from unittest import mock
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 self.read_csv(mock.Mock())
 
     @tm.capture_stderr

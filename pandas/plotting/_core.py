@@ -9,7 +9,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.util.decorators import cache_readonly
+from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -25,7 +25,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
 from pandas.io.formats.printing import pprint_thing
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
                                      _mpl_ge_1_5_0)

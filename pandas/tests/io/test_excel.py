@@ -84,7 +84,7 @@ _mixed_frame['foo'] = 'bar'
 
 class SharedItems(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -161,9 +161,9 @@ class ReadingTestsBase(SharedItems):
     # 3. Add a property engine_name, which is the name of the reader class.
     #    For the reader this is not used for anything at the moment.
 
-    def setUp(self):
+    def setup_method(self, method):
         self.check_skip()
-        super(ReadingTestsBase, self).setUp()
+        super(ReadingTestsBase, self).setup_method(method)
 
     def test_parse_cols_int(self):
 
@@ -656,7 +656,7 @@ class XlrdTests(ReadingTestsBase):
             # parses okay
             read_excel(xlsx, 'Sheet1', index_col=0)
 
-        self.assertTrue(f.closed)
+        assert f.closed
 
     def test_creating_and_reading_multiple_sheets(self):
         # Test reading multiple sheets, from a runtime created excel file
@@ -989,19 +989,19 @@ class XlrdTests(ReadingTestsBase):
         tm.assert_series_equal(actual, expected)
 
 
-class XlsReaderTests(XlrdTests, tm.TestCase):
+class XlsReaderTests(XlrdTests):
     ext = '.xls'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
 
 
-class XlsxReaderTests(XlrdTests, tm.TestCase):
+class XlsxReaderTests(XlrdTests):
     ext = '.xlsx'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
 
 
-class XlsmReaderTests(XlrdTests, tm.TestCase):
+class XlsmReaderTests(XlrdTests):
     ext = '.xlsm'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
@@ -1019,14 +1019,14 @@ class ExcelWriterBase(SharedItems):
     # Test with MultiIndex and Hierarchical Rows as merged cells.
     merge_cells = True
 
-    def setUp(self):
+    def setup_method(self, method):
         self.check_skip()
-        super(ExcelWriterBase, self).setUp()
+        super(ExcelWriterBase, self).setup_method(method)
         self.option_name = 'io.excel.%s.writer' % self.ext.strip('.')
         self.prev_engine = get_option(self.option_name)
         set_option(self.option_name, self.engine_name)
 
-    def tearDown(self):
+    def teardown_method(self, method):
         set_option(self.option_name, self.prev_engine)
 
     def test_excel_sheet_by_name_raise(self):
@@ -1216,9 +1216,9 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(self.frame, recons)
             recons = read_excel(reader, 'test2', index_col=0)
             tm.assert_frame_equal(self.tsframe, recons)
-            self.assertEqual(2, len(reader.sheet_names))
-            self.assertEqual('test1', reader.sheet_names[0])
-            self.assertEqual('test2', reader.sheet_names[1])
+            assert 2 == len(reader.sheet_names)
+            assert 'test1' == reader.sheet_names[0]
+            assert 'test2' == reader.sheet_names[1]
 
     def test_colaliases(self):
         _skip_if_no_xlrd()
@@ -1262,7 +1262,7 @@ class ExcelWriterBase(SharedItems):
                                 index_col=0,
                                 ).astype(np.int64)
             frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
+            assert frame.index.names == recons.index.names
 
             frame = (DataFrame(np.random.randn(10, 2)) >= 0)
             frame.to_excel(path,
@@ -1274,7 +1274,7 @@ class ExcelWriterBase(SharedItems):
                                 index_col=0,
                                 ).astype(np.int64)
             frame.index.names = ['test']
-            self.assertEqual(frame.index.names, recons.index.names)
+            assert frame.index.names == recons.index.names
 
             frame = (DataFrame(np.random.randn(10, 2)) >= 0)
             frame.to_excel(path,
@@ -1316,7 +1316,7 @@ class ExcelWriterBase(SharedItems):
                                 index_col=0)
 
             tm.assert_frame_equal(result, df)
-            self.assertEqual(result.index.name, 'foo')
+            assert result.index.name == 'foo'
 
     def test_excel_roundtrip_datetime(self):
         _skip_if_no_xlrd()
@@ -1463,7 +1463,7 @@ class ExcelWriterBase(SharedItems):
                                 index_col=[0, 1])
 
             tm.assert_frame_equal(tsframe, recons)
-            self.assertEqual(recons.index.names, ('time', 'foo'))
+            assert recons.index.names == ('time', 'foo')
 
     def test_to_excel_multiindex_no_write_index(self):
         _skip_if_no_xlrd()
@@ -1577,21 +1577,20 @@ class ExcelWriterBase(SharedItems):
 
     #     wbk = xlrd.open_workbook(filename,
     #                              formatting_info=True)
-    #     self.assertEqual(["test1"], wbk.sheet_names())
+    #     assert ["test1"] == wbk.sheet_names()
     #     ws = wbk.sheet_by_name('test1')
-    #     self.assertEqual([(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)],
-    #                       ws.merged_cells)
+    #     assert [(0, 1, 5, 7), (0, 1, 3, 5), (0, 1, 1, 3)] == ws.merged_cells
     #     for i in range(0, 2):
     #         for j in range(0, 7):
     #             xfx = ws.cell_xf_index(0, 0)
     #             cell_xf = wbk.xf_list[xfx]
     #             font = wbk.font_list
-    #             self.assertEqual(1, font[cell_xf.font_index].bold)
-    #             self.assertEqual(1, cell_xf.border.top_line_style)
-    #             self.assertEqual(1, cell_xf.border.right_line_style)
-    #             self.assertEqual(1, cell_xf.border.bottom_line_style)
-    #             self.assertEqual(1, cell_xf.border.left_line_style)
-    #             self.assertEqual(2, cell_xf.alignment.hor_align)
+    #             assert 1 == font[cell_xf.font_index].bold
+    #             assert 1 == cell_xf.border.top_line_style
+    #             assert 1 == cell_xf.border.right_line_style
+    #             assert 1 == cell_xf.border.bottom_line_style
+    #             assert 1 == cell_xf.border.left_line_style
+    #             assert 2 == cell_xf.alignment.hor_align
     #     os.remove(filename)
     # def test_to_excel_header_styling_xlsx(self):
     #     import StringIO
@@ -1623,27 +1622,27 @@ class ExcelWriterBase(SharedItems):
     #     filename = '__tmp_to_excel_header_styling_xlsx__.xlsx'
     #     pdf.to_excel(filename, 'test1')
     #     wbk = openpyxl.load_workbook(filename)
-    #     self.assertEqual(["test1"], wbk.get_sheet_names())
+    #     assert ["test1"] == wbk.get_sheet_names()
     #     ws = wbk.get_sheet_by_name('test1')
     #     xlsaddrs = ["%s2" % chr(i) for i in range(ord('A'), ord('H'))]
     #     xlsaddrs += ["A%s" % i for i in range(1, 6)]
     #     xlsaddrs += ["B1", "D1", "F1"]
     #     for xlsaddr in xlsaddrs:
     #         cell = ws.cell(xlsaddr)
-    #         self.assertTrue(cell.style.font.bold)
-    #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-    #                           cell.style.borders.top.border_style)
-    #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-    #                           cell.style.borders.right.border_style)
-    #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-    #                           cell.style.borders.bottom.border_style)
-    #         self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-    #                           cell.style.borders.left.border_style)
-    #         self.assertEqual(openpyxl.style.Alignment.HORIZONTAL_CENTER,
-    #                           cell.style.alignment.horizontal)
+    #         assert cell.style.font.bold
+    #         assert (openpyxl.style.Border.BORDER_THIN ==
+    #                 cell.style.borders.top.border_style)
+    #         assert (openpyxl.style.Border.BORDER_THIN ==
+    #                 cell.style.borders.right.border_style)
+    #         assert (openpyxl.style.Border.BORDER_THIN ==
+    #                 cell.style.borders.bottom.border_style)
+    #         assert (openpyxl.style.Border.BORDER_THIN ==
+    #                 cell.style.borders.left.border_style)
+    #         assert (openpyxl.style.Alignment.HORIZONTAL_CENTER ==
+    #                 cell.style.alignment.horizontal)
     #     mergedcells_addrs = ["C1", "E1", "G1"]
     #     for maddr in mergedcells_addrs:
-    #         self.assertTrue(ws.cell(maddr).merged)
+    #         assert ws.cell(maddr).merged
     #     os.remove(filename)
 
     def test_excel_010_hemstring(self):
@@ -1681,23 +1680,23 @@ class ExcelWriterBase(SharedItems):
                         res = roundtrip(df, use_headers)
 
                     if use_headers:
-                        self.assertEqual(res.shape, (nrows, ncols + i))
+                        assert res.shape == (nrows, ncols + i)
                     else:
                         # first row taken as columns
-                        self.assertEqual(res.shape, (nrows - 1, ncols + i))
+                        assert res.shape == (nrows - 1, ncols + i)
 
                     # no nans
                     for r in range(len(res.index)):
                         for c in range(len(res.columns)):
-                            self.assertTrue(res.iloc[r, c] is not np.nan)
+                            assert res.iloc[r, c] is not np.nan
 
         res = roundtrip(DataFrame([0]))
-        self.assertEqual(res.shape, (1, 1))
-        self.assertTrue(res.iloc[0, 0] is not np.nan)
+        assert res.shape == (1, 1)
+        assert res.iloc[0, 0] is not np.nan
 
         res = roundtrip(DataFrame([0]), False, None)
-        self.assertEqual(res.shape, (1, 2))
-        self.assertTrue(res.iloc[0, 0] is not np.nan)
+        assert res.shape == (1, 2)
+        assert res.iloc[0, 0] is not np.nan
 
     def test_excel_010_hemstring_raises_NotImplementedError(self):
         # This test was failing only for j>1 and header=False,
@@ -1870,7 +1869,7 @@ def raise_wrapper(major_ver):
             else:
                 msg = (r'Installed openpyxl is not supported at this '
                        r'time\. Use.+')
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     orig_method(self, *args, **kwargs)
         return wrapped
     return versioned_raise_wrapper
@@ -1888,7 +1887,7 @@ def raise_on_incompat_version(major_ver):
 
 
 @raise_on_incompat_version(1)
-class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
+class OpenpyxlTests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl1'
     check_skip = staticmethod(lambda *args, **kwargs: None)
@@ -1908,26 +1907,26 @@ class OpenpyxlTests(ExcelWriterBase, tm.TestCase):
                   "alignment": {"horizontal": "center", "vertical": "top"}}
 
         xlsx_style = _Openpyxl1Writer._convert_to_style(hstyle)
-        self.assertTrue(xlsx_style.font.bold)
-        self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                         xlsx_style.borders.top.border_style)
-        self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                         xlsx_style.borders.right.border_style)
-        self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                         xlsx_style.borders.bottom.border_style)
-        self.assertEqual(openpyxl.style.Border.BORDER_THIN,
-                         xlsx_style.borders.left.border_style)
-        self.assertEqual(openpyxl.style.Alignment.HORIZONTAL_CENTER,
-                         xlsx_style.alignment.horizontal)
-        self.assertEqual(openpyxl.style.Alignment.VERTICAL_TOP,
-                         xlsx_style.alignment.vertical)
+        assert xlsx_style.font.bold
+        assert (openpyxl.style.Border.BORDER_THIN ==
+                xlsx_style.borders.top.border_style)
+        assert (openpyxl.style.Border.BORDER_THIN ==
+                xlsx_style.borders.right.border_style)
+        assert (openpyxl.style.Border.BORDER_THIN ==
+                xlsx_style.borders.bottom.border_style)
+        assert (openpyxl.style.Border.BORDER_THIN ==
+                xlsx_style.borders.left.border_style)
+        assert (openpyxl.style.Alignment.HORIZONTAL_CENTER ==
+                xlsx_style.alignment.horizontal)
+        assert (openpyxl.style.Alignment.VERTICAL_TOP ==
+                xlsx_style.alignment.vertical)
 
 
 def skip_openpyxl_gt21(cls):
-    """Skip a TestCase instance if openpyxl >= 2.2"""
+    """Skip test case if openpyxl >= 2.2"""
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         _skip_if_no_openpyxl()
         import openpyxl
         ver = openpyxl.__version__
@@ -1935,13 +1934,13 @@ def skip_openpyxl_gt21(cls):
                  LooseVersion(ver) < LooseVersion('2.2.0'))):
             pytest.skip("openpyxl %s >= 2.2" % str(ver))
 
-    cls.setUpClass = setUpClass
+    cls.setup_class = setup_class
     return cls
 
 
 @raise_on_incompat_version(2)
 @skip_openpyxl_gt21
-class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
+class Openpyxl20Tests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl20'
     check_skip = staticmethod(lambda *args, **kwargs: None)
@@ -1999,12 +1998,12 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
         protection = styles.Protection(locked=True, hidden=False)
 
         kw = _Openpyxl20Writer._convert_to_style_kwargs(hstyle)
-        self.assertEqual(kw['font'], font)
-        self.assertEqual(kw['border'], border)
-        self.assertEqual(kw['alignment'], alignment)
-        self.assertEqual(kw['fill'], fill)
-        self.assertEqual(kw['number_format'], number_format)
-        self.assertEqual(kw['protection'], protection)
+        assert kw['font'] == font
+        assert kw['border'] == border
+        assert kw['alignment'] == alignment
+        assert kw['fill'] == fill
+        assert kw['number_format'] == number_format
+        assert kw['protection'] == protection
 
     def test_write_cells_merge_styled(self):
         from pandas.io.formats.excel import ExcelCell
@@ -2036,28 +2035,28 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
             wks = writer.sheets[sheet_name]
             xcell_b1 = wks['B1']
             xcell_a2 = wks['A2']
-            self.assertEqual(xcell_b1.style, openpyxl_sty_merged)
-            self.assertEqual(xcell_a2.style, openpyxl_sty_merged)
+            assert xcell_b1.style == openpyxl_sty_merged
+            assert xcell_a2.style == openpyxl_sty_merged
 
 
 def skip_openpyxl_lt22(cls):
-    """Skip a TestCase instance if openpyxl < 2.2"""
+    """Skip test case if openpyxl < 2.2"""
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         _skip_if_no_openpyxl()
         import openpyxl
         ver = openpyxl.__version__
         if LooseVersion(ver) < LooseVersion('2.2.0'):
             pytest.skip("openpyxl %s < 2.2" % str(ver))
 
-    cls.setUpClass = setUpClass
+    cls.setup_class = setup_class
     return cls
 
 
 @raise_on_incompat_version(2)
 @skip_openpyxl_lt22
-class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
+class Openpyxl22Tests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl22'
     check_skip = staticmethod(lambda *args, **kwargs: None)
@@ -2109,12 +2108,12 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
         protection = styles.Protection(locked=True, hidden=False)
 
         kw = _Openpyxl22Writer._convert_to_style_kwargs(hstyle)
-        self.assertEqual(kw['font'], font)
-        self.assertEqual(kw['border'], border)
-        self.assertEqual(kw['alignment'], alignment)
-        self.assertEqual(kw['fill'], fill)
-        self.assertEqual(kw['number_format'], number_format)
-        self.assertEqual(kw['protection'], protection)
+        assert kw['font'] == font
+        assert kw['border'] == border
+        assert kw['alignment'] == alignment
+        assert kw['fill'] == fill
+        assert kw['number_format'] == number_format
+        assert kw['protection'] == protection
 
     def test_write_cells_merge_styled(self):
         if not openpyxl_compat.is_compat(major_ver=2):
@@ -2148,11 +2147,11 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
             wks = writer.sheets[sheet_name]
             xcell_b1 = wks['B1']
             xcell_a2 = wks['A2']
-            self.assertEqual(xcell_b1.font, openpyxl_sty_merged)
-            self.assertEqual(xcell_a2.font, openpyxl_sty_merged)
+            assert xcell_b1.font == openpyxl_sty_merged
+            assert xcell_a2.font == openpyxl_sty_merged
 
 
-class XlwtTests(ExcelWriterBase, tm.TestCase):
+class XlwtTests(ExcelWriterBase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -2200,16 +2199,16 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
                   "alignment": {"horizontal": "center", "vertical": "top"}}
 
         xls_style = _XlwtWriter._convert_to_style(hstyle)
-        self.assertTrue(xls_style.font.bold)
-        self.assertEqual(xlwt.Borders.THIN, xls_style.borders.top)
-        self.assertEqual(xlwt.Borders.THIN, xls_style.borders.right)
-        self.assertEqual(xlwt.Borders.THIN, xls_style.borders.bottom)
-        self.assertEqual(xlwt.Borders.THIN, xls_style.borders.left)
-        self.assertEqual(xlwt.Alignment.HORZ_CENTER, xls_style.alignment.horz)
-        self.assertEqual(xlwt.Alignment.VERT_TOP, xls_style.alignment.vert)
+        assert xls_style.font.bold
+        assert xlwt.Borders.THIN == xls_style.borders.top
+        assert xlwt.Borders.THIN == xls_style.borders.right
+        assert xlwt.Borders.THIN == xls_style.borders.bottom
+        assert xlwt.Borders.THIN == xls_style.borders.left
+        assert xlwt.Alignment.HORZ_CENTER == xls_style.alignment.horz
+        assert xlwt.Alignment.VERT_TOP == xls_style.alignment.vert
 
 
-class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
+class XlsxWriterTests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
@@ -2259,10 +2258,10 @@ class XlsxWriterTests(ExcelWriterBase, tm.TestCase):
             except:
                 read_num_format = cell.style.number_format._format_code
 
-            self.assertEqual(read_num_format, num_format)
+            assert read_num_format == num_format
 
 
-class OpenpyxlTests_NoMerge(ExcelWriterBase, tm.TestCase):
+class OpenpyxlTests_NoMerge(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl'
     check_skip = staticmethod(_skip_if_no_openpyxl)
@@ -2271,7 +2270,7 @@ class OpenpyxlTests_NoMerge(ExcelWriterBase, tm.TestCase):
     merge_cells = False
 
 
-class XlwtTests_NoMerge(ExcelWriterBase, tm.TestCase):
+class XlwtTests_NoMerge(ExcelWriterBase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -2280,7 +2279,7 @@ class XlwtTests_NoMerge(ExcelWriterBase, tm.TestCase):
     merge_cells = False
 
 
-class XlsxWriterTests_NoMerge(ExcelWriterBase, tm.TestCase):
+class XlsxWriterTests_NoMerge(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
@@ -2289,10 +2288,10 @@ class XlsxWriterTests_NoMerge(ExcelWriterBase, tm.TestCase):
     merge_cells = False
 
 
-class ExcelWriterEngineTests(tm.TestCase):
+class ExcelWriterEngineTests(object):
 
     def test_ExcelWriter_dispatch(self):
-        with tm.assertRaisesRegexp(ValueError, 'No engine'):
+        with tm.assert_raises_regex(ValueError, 'No engine'):
             ExcelWriter('nothing')
 
         try:
@@ -2332,8 +2331,8 @@ class ExcelWriterEngineTests(tm.TestCase):
 
         def check_called(func):
             func()
-            self.assertTrue(len(called_save) >= 1)
-            self.assertTrue(len(called_write_cells) >= 1)
+            assert len(called_save) >= 1
+            assert len(called_write_cells) >= 1
             del called_save[:]
             del called_write_cells[:]
 

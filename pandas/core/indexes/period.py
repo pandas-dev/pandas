@@ -40,8 +40,8 @@ from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, _ensure_index
 
 from pandas import compat
-from pandas.util.decorators import (Appender, Substitution, cache_readonly,
-                                    deprecate_kwarg)
+from pandas.util._decorators import (Appender, Substitution, cache_readonly,
+                                     deprecate_kwarg)
 from pandas.compat import zip, u
 
 import pandas.core.indexes.base as ibase

@@ -12,7 +12,7 @@ from pandas.tseries.offsets import Minute, BMonthEnd, MonthEnd
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_union(self):
         i1 = Int64Index(np.arange(0, 20, 2))
@@ -29,7 +29,7 @@ class TestDatetimeIndex(tm.TestCase):
 
         result = ordered[:0].union(ordered)
         tm.assert_index_equal(result, ordered)
-        self.assertEqual(result.freq, ordered.freq)
+        assert result.freq == ordered.freq
 
     def test_union_bug_1730(self):
         rng_a = date_range('1/1/2012', periods=4, freq='3H')
@@ -106,9 +106,9 @@ class TestDatetimeIndex(tm.TestCase):
                                     (rng4, expected4)]:
                 result = base.intersection(rng)
                 tm.assert_index_equal(result, expected)
-                self.assertEqual(result.name, expected.name)
-                self.assertEqual(result.freq, expected.freq)
-                self.assertEqual(result.tz, expected.tz)
+                assert result.name == expected.name
+                assert result.freq == expected.freq
+                assert result.tz == expected.tz
 
             # non-monotonic
             base = DatetimeIndex(['2011-01-05', '2011-01-04',
@@ -136,17 +136,17 @@ class TestDatetimeIndex(tm.TestCase):
                                     (rng4, expected4)]:
                 result = base.intersection(rng)
                 tm.assert_index_equal(result, expected)
-                self.assertEqual(result.name, expected.name)
+                assert result.name == expected.name
                 assert result.freq is None
-                self.assertEqual(result.tz, expected.tz)
+                assert result.tz == expected.tz
 
         # empty same freq GH2129
         rng = date_range('6/1/2000', '6/15/2000', freq='T')
         result = rng[0:0].intersection(rng)
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
         result = rng.intersection(rng[0:0])
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
     def test_intersection_bug_1708(self):
         from pandas import DateOffset
@@ -154,7 +154,7 @@ class TestDatetimeIndex(tm.TestCase):
         index_2 = index_1 + DateOffset(hours=1)
 
         result = index_1 & index_2
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
     def test_difference_freq(self):
         # GH14323: difference of DatetimeIndex should not preserve frequency
@@ -177,7 +177,7 @@ class TestDatetimeIndex(tm.TestCase):
                              periods=100)
         dti2 = DatetimeIndex(freq='Q-JAN', start=datetime(1997, 12, 31),
                              periods=98)
-        self.assertEqual(len(dti1.difference(dti2)), 2)
+        assert len(dti1.difference(dti2)) == 2
 
     def test_datetimeindex_union_join_empty(self):
         dti = DatetimeIndex(start='1/1/2001', end='2/1/2001', freq='D')
@@ -196,12 +196,12 @@ class TestDatetimeIndex(tm.TestCase):
         idx2 = to_datetime(['2012-11-06 15:11:09.006507',
                             '2012-11-06 15:11:09.006507'])
         rs = idx1.join(idx2, how='outer')
-        self.assertTrue(rs.is_monotonic)
+        assert rs.is_monotonic
 
 
-class TestBusinessDatetimeIndex(tm.TestCase):
+class TestBusinessDatetimeIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = bdate_range(START, END)
 
     def test_union(self):
@@ -288,7 +288,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         expected = rng[10:25]
         tm.assert_index_equal(the_int, expected)
         assert isinstance(the_int, DatetimeIndex)
-        self.assertEqual(the_int.offset, rng.offset)
+        assert the_int.offset == rng.offset
 
         the_int = rng1.intersection(rng2.view(DatetimeIndex))
         tm.assert_index_equal(the_int, expected)
@@ -306,7 +306,6 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         tm.assert_index_equal(result, b)
 
     def test_month_range_union_tz_pytz(self):
-        tm._skip_if_no_pytz()
         from pytz import timezone
         tz = timezone('US/Eastern')
 
@@ -325,7 +324,7 @@ class TestBusinessDatetimeIndex(tm.TestCase):
 
     def test_month_range_union_tz_dateutil(self):
         tm._skip_if_windows_python_3()
-        tm._skip_if_no_dateutil()
+
         from pandas._libs.tslib import _dateutil_gettz as timezone
         tz = timezone('US/Eastern')
 
@@ -343,9 +342,9 @@ class TestBusinessDatetimeIndex(tm.TestCase):
         early_dr.union(late_dr)
 
 
-class TestCustomDatetimeIndex(tm.TestCase):
+class TestCustomDatetimeIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = cdate_range(START, END)
 
     def test_union(self):

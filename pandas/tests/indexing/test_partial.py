@@ -14,7 +14,7 @@ from pandas import Series, DataFrame, Panel, Index, date_range
 from pandas.util import testing as tm
 
 
-class TestPartialSetting(tm.TestCase):
+class TestPartialSetting(object):
 
     def test_partial_setting(self):
 
@@ -392,7 +392,7 @@ class TestPartialSetting(tm.TestCase):
         tm.assert_frame_equal(df, exp)
         tm.assert_index_equal(df.index,
                               pd.Index(orig.index.tolist() + ['a']))
-        self.assertEqual(df.index.dtype, 'object')
+        assert df.index.dtype == 'object'
 
     def test_partial_set_empty_series(self):
 

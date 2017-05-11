@@ -52,6 +52,7 @@ cdef struct Int64VectorData:
 cdef class Int64Vector:
     cdef Int64VectorData *data
     cdef ndarray ao
+    cdef bint external_view_exists
 
     cdef resize(self)
     cpdef to_array(self)

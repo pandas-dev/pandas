@@ -86,12 +86,13 @@ def test_join_index(frame):
     tm.assert_index_equal(joined.index, frame.index.sort_values())
     tm.assert_index_equal(joined.columns, expected_columns)
 
-    tm.assertRaisesRegexp(ValueError, 'join method', f.join, f2, how='foo')
+    tm.assert_raises_regex(
+        ValueError, 'join method', f.join, f2, how='foo')
 
     # corner case - overlapping columns
     for how in ('outer', 'left', 'inner'):
-        with tm.assertRaisesRegexp(ValueError, 'columns overlap but '
-                                   'no suffix'):
+        with tm.assert_raises_regex(ValueError, 'columns overlap but '
+                                    'no suffix'):
             frame.join(frame, how=how)
 
 
@@ -122,7 +123,7 @@ def test_join_index_series(frame):
     tm.assert_frame_equal(joined, frame, check_names=False)
 
     s.name = None
-    tm.assertRaisesRegexp(ValueError, 'must have a name', df.join, s)
+    tm.assert_raises_regex(ValueError, 'must have a name', df.join, s)
 
 
 def test_join_overlap(frame):

@@ -2,16 +2,15 @@
 
 import pandas as pd
 import pandas.core.dtypes.concat as _concat
-import pandas.util.testing as tm
 
 
-class TestConcatCompat(tm.TestCase):
+class TestConcatCompat(object):
 
     def check_concat(self, to_concat, exp):
         for klass in [pd.Index, pd.Series]:
             to_concat_klass = [klass(c) for c in to_concat]
             res = _concat.get_dtype_kinds(to_concat_klass)
-            self.assertEqual(res, set(exp))
+            assert res == set(exp)
 
     def test_get_dtype_kinds(self):
         to_concat = [['a'], [1, 2]]
@@ -60,19 +59,19 @@ class TestConcatCompat(tm.TestCase):
         to_concat = [pd.PeriodIndex(['2011-01'], freq='M'),
                      pd.PeriodIndex(['2011-01'], freq='M')]
         res = _concat.get_dtype_kinds(to_concat)
-        self.assertEqual(res, set(['period[M]']))
+        assert res == set(['period[M]'])
 
         to_concat = [pd.Series([pd.Period('2011-01', freq='M')]),
                      pd.Series([pd.Period('2011-02', freq='M')])]
         res = _concat.get_dtype_kinds(to_concat)
-        self.assertEqual(res, set(['object']))
+        assert res == set(['object'])
 
         to_concat = [pd.PeriodIndex(['2011-01'], freq='M'),
                      pd.PeriodIndex(['2011-01'], freq='D')]
         res = _concat.get_dtype_kinds(to_concat)
-        self.assertEqual(res, set(['period[M]', 'period[D]']))
+        assert res == set(['period[M]', 'period[D]'])
 
         to_concat = [pd.Series([pd.Period('2011-01', freq='M')]),
                      pd.Series([pd.Period('2011-02', freq='D')])]
         res = _concat.get_dtype_kinds(to_concat)
-        self.assertEqual(res, set(['object']))
+        assert res == set(['object'])
