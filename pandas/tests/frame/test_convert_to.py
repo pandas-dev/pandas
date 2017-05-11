@@ -156,6 +156,7 @@ class TestDataFrameConvertTo(TestData):
             'A': {'1': 1, '2': 2},
             'B': {'1': '1', '2': '2', '3': '3'},
         }
+
         # GH16122
         recons_data = DataFrame(test_data).to_dict(into=mapping)
 
@@ -193,6 +194,15 @@ class TestDataFrameConvertTo(TestData):
         recons_data = DataFrame(test_data).to_dict("i")
 
         for k, v in compat.iteritems(test_data):
+            for k2, v2 in compat.iteritems(v):
+                assert (v2 == recons_data[k2][k])
+
+        df = DataFrame(test_data)
+        df['duped'] = df[df.columns[0]]
+        recons_data = df.to_dict("i")
+        comp_data = test_data.copy()
+        comp_data['duped'] = comp_data[df.columns[0]]
+        for k, v in compat.iteritems(comp_data):
             for k2, v2 in compat.iteritems(v):
                 assert (v2 == recons_data[k2][k])
 

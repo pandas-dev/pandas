@@ -64,7 +64,7 @@ from pandas.core.common import (_try_sort,
                                 _values_from_object,
                                 _maybe_box_datetimelike,
                                 _dict_compat,
-                                prep_maping_for_to_dict)
+                                standardize_mapping)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
@@ -889,7 +889,7 @@ class DataFrame(NDFrame):
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass an initialized
             instance.
-            
+
             .. versionadded:: 0.21.0
 
         Returns
@@ -897,21 +897,22 @@ class DataFrame(NDFrame):
         result : collections.Mapping like {column -> {index -> value}}
             If ``into`` is collections.defaultdict, the return
             value's default_factory will be None.
-            
+
         Examples
         --------
         >>> from pandas import DataFrame
         >>> from collections import OrderedDict, defaultdict
-        >>> df = DataFrame({'col1': [1, 2], 'col2': [0.5, 0.75]}, index=['a', 'b'])
+        >>> df = DataFrame(
+                {'col1': [1, 2], 'col2': [0.5, 0.75]}, index=['a', 'b'])
         >>> df
            col1  col2
         a     1   0.1
         b     2   0.2
         >>> df.to_dict()
         {'col1': {'a': 1, 'b': 2}, 'col2': {'a': 0.5, 'b': 0.75}}
-        
+
         You can specify the return orientation.
-        
+
         >>> df.to_dict('series')
         {'col1': a    1
         b    2
@@ -926,22 +927,25 @@ class DataFrame(NDFrame):
         [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
         >>> df.to_dict('index')
         {'a': {'col1': 1.0, 'col2': 0.5}, 'b': {'col1': 2.0, 'col2': 0.75}}
-        
-        You can also specify the mapping type.  
-        
+
+        You can also specify the mapping type.
+
         >>> df.to_dict(into=OrderedDict)
-        OrderedDict([('col2', OrderedDict([('a', 0.5), ('b', 0.75)])),
-                     ('col1', OrderedDict([('a', 1), ('b', 2)]))])
+        OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
+                   ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
+
+        If you want a `defaultdict`, you need to initialize it:
+
         >>> dd = defaultdict(list)
         >>> df.to_dict('records', into=dd)
-        [defaultdict(list, {'col1': 1.0, 'col2': 0.5}),
-         defaultdict(list, {'col1': 2.0, 'col2': 0.75})]        
+        [defaultdict(<type 'list'>, {'col2': 0.5, 'col1': 1.0}),
+        defaultdict(<type 'list'>, {'col2': 0.75, 'col1': 2.0})]
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
                           "columns will be omitted.", UserWarning)
         # GH16122
-        into_c = prep_maping_for_to_dict(into)
+        into_c = standardize_mapping(into)
         if orient.lower().startswith('d'):
             return into_c(
                 (k, v.to_dict(into)) for k, v in compat.iteritems(self))

@@ -481,19 +481,16 @@ def _dict_compat(d):
                 for key, value in iteritems(d))
 
 
-def prep_maping_for_to_dict(into):
+def standardize_mapping(into):
     """
-    Helper function to standardize the supplied mapping so it can
-    be passed to the ``Series.to_dict()`` and ``DataFrame.to_dict()``
-    
+    Helper function to standardize a supplied mapping.
     .. versionadded:: 0.21.0
 
     Parameters
     ----------
     into : instance or subclass of collections.Mapping
-        The argument supplied to ``to_dict``.  Must be a class, an
-        initialized collections.defaultdict, or an empty instance
-        of a collections.Mapping subclass.
+        Must be a class, an initialized collections.defaultdict,
+        or an empty instance of a collections.Mapping subclass.
 
     Returns
     -------
@@ -501,23 +498,22 @@ def prep_maping_for_to_dict(into):
         a callable object that can accept an iterator to create
         the desired Mapping.
 
+    See Also
+    --------
+    DataFrame.to_dict
+    Series.to_dict
     """
     if not inspect.isclass(into):
-        if len(into) > 0:
-            raise ValueError(
-                "to_dict() only accepts empty mappings.")
-        elif isinstance(into, collections.defaultdict):
+        if isinstance(into, collections.defaultdict):
             return partial(
                 collections.defaultdict, into.default_factory)
-        else:
-            return prep_maping_for_to_dict(type(into))
-    elif not issubclass(into, collections.Mapping):
+        into = type(into)
+    if not issubclass(into, collections.Mapping):
         raise TypeError('unsupported type: {}'.format(into))
     elif into == collections.defaultdict:
         raise TypeError(
             'to_dict() only accepts initialized defaultdicts')
-    else:
-        return into
+    return into
 
 
 def sentinel_factory():
