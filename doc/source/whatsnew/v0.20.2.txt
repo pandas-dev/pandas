@@ -19,7 +19,7 @@ Highlights include:
 Enhancements
 ~~~~~~~~~~~~
 
-
+- Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`) 
 
 .. _whatsnew_0201.performance:
 
