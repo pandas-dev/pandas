@@ -180,7 +180,8 @@ class MPLPlot(object):
             colors = self.kwds.pop('colors')
             self.kwds['color'] = colors
 
-        if ('color' in self.kwds and self.nseries == 1):
+        if ('color' in self.kwds and self.nseries == 1 and
+                not is_list_like(self.kwds['color'])):
             # support series.plot(color='green')
             self.kwds['color'] = [self.kwds['color']]
 

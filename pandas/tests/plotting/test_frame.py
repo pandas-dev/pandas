@@ -153,6 +153,11 @@ class TestDataFramePlots(TestPlotBase):
         else:
             pytest.skip("not supported in matplotlib < 2.0.0")
 
+    def test_color_single_series_list(self):
+        # GH 3486
+        df = DataFrame({"A": [1, 2, 3]})
+        _check_plot_works(df.plot, color=['red'])
+
     def test_color_empty_string(self):
         df = DataFrame(randn(10, 2))
         with pytest.raises(ValueError):
