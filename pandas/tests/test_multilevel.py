@@ -1195,6 +1195,37 @@ Thur,Lunch,Yes,51.51,17"""
         recons = result.stack()
         tm.assert_frame_equal(recons, df)
 
+    def test_stack_order_with_unsorted_levels(self):
+        # GH 16323
+
+        def manual_compare_stacked(df, df_stacked, lev0, lev1):
+            assert all(df.loc[row, col] ==
+                       df_stacked.loc[(row, col[lev0]), col[lev1]]
+                       for row in df.index for col in df.columns)
+
+        # deep check for 1-row case
+        for width in [2, 3]:
+            levels_poss = itertools.product(
+                itertools.permutations([0, 1, 2], width),
+                repeat=2)
+
+            for levels in levels_poss:
+                columns = MultiIndex(levels=levels,
+                                     labels=[[0, 0, 1, 1],
+                                             [0, 1, 0, 1]])
+                df = DataFrame(columns=columns, data=[range(4)])
+                for stack_lev in range(2):
+                    df_stacked = df.stack(stack_lev)
+                    manual_compare_stacked(df, df_stacked,
+                                           stack_lev, 1 - stack_lev)
+
+        # check multi-row case
+        mi = MultiIndex(levels=[["A", "C", "B"], ["B", "A", "C"]],
+                        labels=[np.repeat(range(3), 3), np.tile(range(3), 3)])
+        df = DataFrame(columns=mi, index=range(5),
+                       data=np.arange(5 * len(mi)).reshape(5, -1))
+        manual_compare_stacked(df, df.stack(0), 0, 1)
+
     def test_groupby_corner(self):
         midx = MultiIndex(levels=[['foo'], ['bar'], ['baz']],
                           labels=[[0], [0], [0]],
