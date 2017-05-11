@@ -49,8 +49,7 @@ from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types,
-                           isidentifier, set_function_name)
-from pandas.compat import cPickle as pkl
+                           isidentifier, set_function_name, cPickle as pkl)
 import pandas.core.nanops as nanops
 from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util.validators import validate_bool_kwarg
@@ -1356,11 +1355,17 @@ class NDFrame(PandasObject, SelectionMixin):
             File path
         compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
             a string representing the compression to use in the output file
-        protocol : int
-            Int which indicates which protocol should be used by the pickler,
-            default HIGHEST_PROTOCOL (Pickle module).
 
             .. versionadded:: 0.20.0
+        protocol : int
+            Int which indicates which protocol should be used by the pickler,
+            default HIGHEST_PROTOCOL (Pickle module). The possible values for
+            this parameter depend on the version of Python. For Python 2.x,
+            possible values are 0, 1, 2. For Python>=3.0, 3 is a valid value.
+            For Python >= 3.4, 4 is a valid value.
+
+            .. versionadded:: 0.21.0
+
         """
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path, compression=compression,
