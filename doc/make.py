@@ -115,15 +115,28 @@ def maybe_exclude_notebooks():
     notebooks = [os.path.join(base, 'source', nb)
                  for nb in ['style.ipynb']]
     contents = {}
-    try:
-        import nbconvert
-        nbconvert.utils.pandoc.get_pandoc_version()
-    except (ImportError, nbconvert.utils.pandoc.PandocMissing):
-        print("Warning: Pandoc is not installed. Skipping Notebooks.")
+
+    def _remove_notebooks():
         for nb in notebooks:
             with open(nb, 'rt') as f:
                 contents[nb] = f.read()
             os.remove(nb)
+
+    # Skip notebook conversion if
+    # 1. nbconvert isn't installed, or
+    # 2. nbconvert is installed, but pandoc isn't
+    try:
+        import nbconvert
+    except ImportError:
+        print("Warning: nbconvert not installed. Skipping notebooks.")
+        _remove_notebooks()
+    else:
+        try:
+            nbconvert.utils.pandoc.get_pandoc_version()
+        except nbconvert.utils.pandoc.PandocMissing:
+            print("Warning: Pandoc is not installed. Skipping notebooks.")
+            _remove_notebooks()
+
     yield
     for nb, content in contents.items():
         with open(nb, 'wt') as f:
