@@ -519,8 +519,9 @@ class TestProtocol(object):
         else:
             expect_hp = 3
         with tm.assert_raises_regex(ValueError,
-                                    "pickle protocol must be <= %d" %
-                                    expect_hp):
+                                    "pickle protocol %d asked for; the highest"
+                                    " available protocol is %d" % (protocol,
+                                                                   expect_hp)):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, protocol=protocol)
