@@ -1,5 +1,6 @@
 import pytest
 
+import pytz
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -97,10 +98,7 @@ class TestDatetimeIndex(object):
         assert result.name == expected.name
         assert result.freq is None
 
-        # GH 7299
-        tm._skip_if_no_pytz()
-        import pytz
-
+        # see gh-7299
         idx = date_range('1/1/2000', periods=3, freq='D', tz='Asia/Tokyo',
                          name='idx')
         with pytest.raises(ValueError):

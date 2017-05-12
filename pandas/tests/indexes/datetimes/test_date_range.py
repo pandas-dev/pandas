@@ -6,6 +6,7 @@ construction from the convenience range functions
 import pytest
 
 import numpy as np
+from pytz import timezone
 from datetime import datetime, timedelta, time
 
 import pandas as pd
@@ -299,10 +300,7 @@ class TestBusinessDateRange(object):
         tm.assert_index_equal(result, DatetimeIndex(exp_values))
 
     def test_range_tz_pytz(self):
-        # GH 2906
-        tm._skip_if_no_pytz()
-        from pytz import timezone
-
+        # see gh-2906
         tz = timezone('US/Eastern')
         start = tz.localize(datetime(2011, 1, 1))
         end = tz.localize(datetime(2011, 1, 3))
@@ -323,9 +321,6 @@ class TestBusinessDateRange(object):
         assert dr[2] == end
 
     def test_range_tz_dst_straddle_pytz(self):
-
-        tm._skip_if_no_pytz()
-        from pytz import timezone
         tz = timezone('US/Eastern')
         dates = [(tz.localize(datetime(2014, 3, 6)),
                   tz.localize(datetime(2014, 3, 12))),
@@ -349,8 +344,8 @@ class TestBusinessDateRange(object):
             assert np.all(dr.hour == 0)
 
     def test_range_tz_dateutil(self):
-        # GH 2906
-        tm._skip_if_no_dateutil()
+        # see gh-2906
+
         # Use maybe_get_tz to fix filename in tz under dateutil.
         from pandas._libs.tslib import maybe_get_tz
         tz = lambda x: maybe_get_tz('dateutil/' + x)

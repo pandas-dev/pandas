@@ -524,7 +524,7 @@ ext_data = {
                       'sources': ['pandas/_libs/src/parser/tokenizer.c',
                                   'pandas/_libs/src/parser/io.c']},
     '_libs.sparse': {'pyxfile': '_libs/sparse',
-                     'depends': (['pandas/core/sparse/sparse.pyx'] +
+                     'depends': (['pandas/_libs/sparse.pyx'] +
                                  _pxi_dep['sparse'])},
     '_libs.testing': {'pyxfile': '_libs/testing',
                       'depends': ['pandas/_libs/testing.pyx']},

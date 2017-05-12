@@ -117,6 +117,63 @@ def round_trip_pickle(obj, path=None):
         return pd.read_pickle(path)
 
 
+def round_trip_pathlib(writer, reader, path=None):
+    """
+    Write an object to file specifed by a pathlib.Path and read it back
+
+    Parameters
+    ----------
+    writer : callable bound to pandas object
+        IO writing function (e.g. DataFrame.to_csv )
+    reader : callable
+        IO reading function (e.g. pd.read_csv )
+    path : str, default None
+        The path where the object is written and then read.
+
+    Returns
+    -------
+    round_trip_object : pandas object
+        The original object that was serialized and then re-read.
+    """
+
+    import pytest
+    Path = pytest.importorskip('pathlib').Path
+    if path is None:
+        path = '___pathlib___'
+    with ensure_clean(path) as path:
+        writer(Path(path))
+        obj = reader(Path(path))
+    return obj
+
+
+def round_trip_localpath(writer, reader, path=None):
+    """
+    Write an object to file specifed by a py.path LocalPath and read it back
+
+    Parameters
+    ----------
+    writer : callable bound to pandas object
+        IO writing function (e.g. DataFrame.to_csv )
+    reader : callable
+        IO reading function (e.g. pd.read_csv )
+    path : str, default None
+        The path where the object is written and then read.
+
+    Returns
+    -------
+    round_trip_object : pandas object
+        The original object that was serialized and then re-read.
+    """
+    import pytest
+    LocalPath = pytest.importorskip('py.path').local
+    if path is None:
+        path = '___localpath___'
+    with ensure_clean(path) as path:
+        writer(LocalPath(path))
+        obj = reader(LocalPath(path))
+    return obj
+
+
 def assert_almost_equal(left, right, check_exact=False,
                         check_dtype='equiv', check_less_precise=False,
                         **kwargs):
@@ -127,7 +184,7 @@ def assert_almost_equal(left, right, check_exact=False,
     ----------
     left : object
     right : object
-    check_exact : bool, default True
+    check_exact : bool, default False
         Whether to compare number exactly.
     check_dtype: bool, default True
         check dtype if both a and b are the same type
@@ -270,25 +327,16 @@ def close(fignum=None):
 
 
 def _skip_if_32bit():
-    import pytest
     if is_platform_32bit():
+        import pytest
         pytest.skip("skipping for 32 bit")
 
 
-def _skip_module_if_no_mpl():
+def _skip_if_no_mpl():
     import pytest
 
     mpl = pytest.importorskip("matplotlib")
     mpl.use("Agg", warn=False)
-
-
-def _skip_if_no_mpl():
-    try:
-        import matplotlib as mpl
-        mpl.use("Agg", warn=False)
-    except ImportError:
-        import pytest
-        pytest.skip("matplotlib not installed")
 
 
 def _skip_if_mpl_1_5():
@@ -303,21 +351,11 @@ def _skip_if_mpl_1_5():
 
 
 def _skip_if_no_scipy():
-    try:
-        import scipy.stats  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("no scipy.stats module")
-    try:
-        import scipy.interpolate  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip('scipy.interpolate missing')
-    try:
-        import scipy.sparse  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip('scipy.sparse missing')
+    import pytest
+
+    pytest.importorskip("scipy.stats")
+    pytest.importorskip("scipy.sparse")
+    pytest.importorskip("scipy.interpolate")
 
 
 def _check_if_lzma():
@@ -333,32 +371,14 @@ def _skip_if_no_lzma():
 
 
 def _skip_if_no_xarray():
-    try:
-        import xarray
-    except ImportError:
-        import pytest
-        pytest.skip("xarray not installed")
+    import pytest
 
+    xarray = pytest.importorskip("xarray")
     v = xarray.__version__
+
     if v < LooseVersion('0.7.0'):
         import pytest
         pytest.skip("xarray not version is too low: {0}".format(v))
-
-
-def _skip_if_no_pytz():
-    try:
-        import pytz  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("pytz not installed")
-
-
-def _skip_if_no_dateutil():
-    try:
-        import dateutil  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("dateutil not installed")
 
 
 def _skip_if_windows_python_3():
@@ -441,16 +461,13 @@ def _skip_if_no_mock():
         try:
             from unittest import mock  # noqa
         except ImportError:
-            import nose
-            raise nose.SkipTest("mock is not installed")
+            import pytest
+            raise pytest.skip("mock is not installed")
 
 
 def _skip_if_no_ipython():
-    try:
-        import IPython  # noqa
-    except ImportError:
-        import nose
-        raise nose.SkipTest("IPython not installed")
+    import pytest
+    pytest.importorskip("IPython")
 
 # -----------------------------------------------------------------------------
 # locale utilities

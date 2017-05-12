@@ -134,6 +134,18 @@ class TestAPI(TestPackers):
             result = read_msgpack(p)
             tm.assert_frame_equal(result, df)
 
+    @pytest.mark.xfail(reason="msgpack currently doesn't work with pathlib")
+    def test_path_pathlib(self):
+        df = tm.makeDataFrame()
+        result = tm.round_trip_pathlib(df.to_msgpack, read_msgpack)
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.xfail(reason="msgpack currently doesn't work with localpath")
+    def test_path_localpath(self):
+        df = tm.makeDataFrame()
+        result = tm.round_trip_localpath(df.to_msgpack, read_msgpack)
+        tm.assert_frame_equal(df, result)
+
     def test_iterator_with_string_io(self):
 
         dfs = [DataFrame(np.random.randn(10, 2)) for i in range(5)]

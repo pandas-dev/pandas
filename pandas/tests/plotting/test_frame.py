@@ -27,7 +27,7 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
-tm._skip_module_if_no_mpl()
+tm._skip_if_no_mpl()
 
 
 class TestDataFramePlots(TestPlotBase):
@@ -152,6 +152,11 @@ class TestDataFramePlots(TestPlotBase):
                 _check_plot_works(df.plot, color=c)
         else:
             pytest.skip("not supported in matplotlib < 2.0.0")
+
+    def test_color_single_series_list(self):
+        # GH 3486
+        df = DataFrame({"A": [1, 2, 3]})
+        _check_plot_works(df.plot, color=['red'])
 
     def test_color_empty_string(self):
         df = DataFrame(randn(10, 2))

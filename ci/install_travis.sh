@@ -119,15 +119,7 @@ if [ "$COVERAGE" ]; then
 fi
 
 echo
-if [ "$BUILD_TEST" ]; then
-
-    # build & install testing
-    echo ["Starting installation test."]
-    bash ci/install_release_build.sh
-    conda uninstall -y cython
-    time pip install dist/*tar.gz || exit 1
-
-else
+if [ -z "$BUILD_TEST" ]; then
 
     # build but don't install
     echo "[build em]"
@@ -163,9 +155,22 @@ fi
 # w/o removing anything else
 echo
 echo "[removing installed pandas]"
-conda remove pandas --force
+conda remove pandas -y --force
 
-if [ -z "$BUILD_TEST" ]; then
+if [ "$BUILD_TEST" ]; then
+
+    # remove any installation
+    pip uninstall -y pandas
+    conda list pandas
+    pip list --format columns |grep pandas
+
+    # build & install testing
+    echo ["building release"]
+    bash scripts/build_dist_for_release.sh
+    conda uninstall -y cython
+    time pip install dist/*tar.gz || exit 1
+
+else
 
     # install our pandas
     echo
