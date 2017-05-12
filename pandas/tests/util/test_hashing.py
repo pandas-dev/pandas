@@ -6,7 +6,7 @@ import pandas as pd
 
 from pandas import DataFrame, Series, Index, MultiIndex
 from pandas.util import hash_array, hash_pandas_object
-from pandas.core.util.hashing import hash_tuples
+from pandas.core.util.hashing import hash_tuples, hash_tuple
 import pandas.util.testing as tm
 
 
@@ -78,6 +78,13 @@ class TestHashing(object):
 
         result = hash_tuples(tups[0])
         assert result == expected[0]
+
+    def test_hash_tuple(self):
+        # test equivalence between hash_tuples and hash_tuple
+        tup = (1, 'one')
+        result = hash_tuple(tup)
+        expected = hash_tuples([tup])[0]
+        assert result == expected
 
     def test_hash_tuples_err(self):
 

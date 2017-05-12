@@ -164,6 +164,29 @@ def hash_tuples(vals, encoding='utf8', hash_key=None):
     return h
 
 
+def hash_tuple(val, encoding='utf8', hash_key=None):
+    """
+    Hash a single tuple efficiently
+
+    Parameters
+    ----------
+    val : single tuple
+    encoding : string, default 'utf8'
+    hash_key : string key to encode, default to _default_hash_key
+
+    Returns
+    -------
+    hash
+
+    """
+    hashes = (hash_array(np.array([v]), encoding=encoding, hash_key=hash_key,
+                         categorize=False)
+              for v in val)
+    h = _combine_hash_arrays(hashes, len(val))[0]
+
+    return h
+
+
 def _hash_categorical(c, encoding, hash_key):
     """
     Hash a Categorical by hashing its categories, and then mapping the codes
@@ -264,7 +287,7 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
 
         try:
             vals = hashing.hash_object_array(vals, hash_key, encoding)
-        except TypeError:
+        except (TypeError, ValueError):
             # we have mixed types
             vals = hashing.hash_object_array(vals.astype(str).astype(object),
                                              hash_key, encoding)
