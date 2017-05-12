@@ -887,8 +887,7 @@ class DataFrame(NDFrame):
             The collections.Mapping subclass used for all Mappings
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
-            collections.defaultdict, you must pass an initialized
-            instance.
+            collections.defaultdict, you must pass it initialized.
 
             .. versionadded:: 0.21.0
 

@@ -1084,7 +1084,7 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
             The collections.Mapping subclass to use as the return
             object. Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
-            collections.defaultdict, you must pass an initialized
+            collections.defaultdict, you must pass it initialized.
 
             .. versionadded:: 0.21.0
 

@@ -206,6 +206,16 @@ class TestDataFrameConvertTo(TestData):
             for k2, v2 in compat.iteritems(v):
                 assert (v2 == recons_data[k2][k])
 
+    @pytest.mark.parametrize('mapping', [
+        list,
+        collections.defaultdict,
+        []])
+    def test_to_dict_errors(self, mapping):
+        # GH16122
+        df = DataFrame(np.random.randn(3, 3))
+        with pytest.raises(TypeError):
+            df.to_dict(into=mapping)
+
     @pytest.mark.parametrize('tz', ['UTC', 'GMT', 'US/Eastern'])
     def test_to_records_datetimeindex_with_tz(self, tz):
         # GH13937

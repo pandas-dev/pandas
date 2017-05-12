@@ -484,13 +484,14 @@ def _dict_compat(d):
 def standardize_mapping(into):
     """
     Helper function to standardize a supplied mapping.
+
     .. versionadded:: 0.21.0
 
     Parameters
     ----------
     into : instance or subclass of collections.Mapping
         Must be a class, an initialized collections.defaultdict,
-        or an empty instance of a collections.Mapping subclass.
+        or an instance of a collections.Mapping subclass.
 
     Returns
     -------
