@@ -34,6 +34,8 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
+
 Conversion
 ^^^^^^^^^^
 
