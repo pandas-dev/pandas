@@ -2559,17 +2559,17 @@ it is assumed to be aliases for the column names.')
         """
         Insert column into DataFrame at specified location.
 
-        If `allow_duplicates` is False, raises Exception if column
-        is already contained in the DataFrame.
+        Raises a ValueError if `column` is already contained in the DataFrame,
+        unless `allow_duplicates` is set to True.
 
         Parameters
         ----------
         loc : int
             Insertion index. Must verify 0 <= loc <= len(columns)
         column : string, number, or hashable object
-            label of the column
-        value : scalar, Series, or array-like
-        allow_duplicates : bool
+            label of the inserted column
+        value : int, Series, or array-like
+        allow_duplicates : bool, optional
         """
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
