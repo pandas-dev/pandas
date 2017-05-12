@@ -1283,3 +1283,15 @@ class TestStata(object):
         with pytest.raises(ValueError):
             with tm.ensure_clean() as path:
                 original.to_stata(path, encoding='utf-8')
+
+    @pytest.mark.xfail(reason="stata currently doesn't work with pathlib")
+    def test_path_pathlib(self):
+        df = tm.makeDataFrame()
+        result = tm.round_trip_pathlib(df.to_stata, read_stata)
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.xfail(reason="stata currently doesn't work with localpath")
+    def test_pickle_path_localpath(self):
+        df = tm.makeDataFrame()
+        result = tm.round_trip_localpath(df.to_stata, read_stata)
+        tm.assert_frame_equal(df, result)
