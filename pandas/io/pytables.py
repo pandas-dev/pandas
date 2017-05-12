@@ -437,7 +437,7 @@ class HDFStore(StringMixin):
                 "complib only supports {libs} compression.".format(
                     libs=tables.filters.all_complibs))
 
-        self._path = path
+        self._path = _stringify_path(path)
         if mode is None:
             mode = 'a'
         self._mode = mode
@@ -447,6 +447,9 @@ class HDFStore(StringMixin):
         self._fletcher32 = fletcher32
         self._filters = None
         self.open(mode=mode, **kwargs)
+
+    def __fspath__(self):
+        return self._path
 
     @property
     def root(self):

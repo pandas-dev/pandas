@@ -5155,6 +5155,12 @@ class TestHDFStore(Base):
                         expected = df.loc[[], :]
                     tm.assert_frame_equal(expected, result)
 
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason="Need python 3.6")
+    def test_fspath(self):
+        with tm.ensure_clean('foo.h5') as path:
+            with pd.HDFStore(path) as store:
+                assert os.fspath(store) == str(path)
+
 
 class TestHDFComplexValues(Base):
     # GH10447

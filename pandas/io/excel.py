@@ -263,6 +263,9 @@ class ExcelFile(object):
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
 
+    def __fspath__(self):
+        return self._io
+
     def parse(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
               names=None, index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
@@ -757,6 +760,9 @@ class ExcelWriter(object):
             self.datetime_format = 'YYYY-MM-DD HH:MM:SS'
         else:
             self.datetime_format = datetime_format
+
+    def __fspath__(self):
+        return _stringify_path(self.path)
 
     def _get_sheet_name(self, sheet_name):
         if sheet_name is None:
