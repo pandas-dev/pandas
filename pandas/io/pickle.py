@@ -25,7 +25,9 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
         default HIGHEST_PROTOCOL (Pickle module). The possible values for
         this parameter depend on the version of Python. For Python 2.x,
         possible values are 0, 1, 2. For Python>=3.0, 3 is a valid value.
-        For Python >= 3.4, 4 is a valid value.
+        For Python >= 3.4, 4 is a valid value. A negative value for the
+        protocol parameter is equivalent to setting its value to
+        HIGHEST_PROTOCOL.
 
         .. versionadded:: 0.21.0
 
@@ -35,6 +37,8 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     f, fh = _get_handle(path, 'wb',
                         compression=inferred_compression,
                         is_text=False)
+    if protocol < 0:
+        protocol = pkl.HIGHEST_PROTOCOL
     try:
         pkl.dump(obj, f, protocol=protocol)
     finally:
