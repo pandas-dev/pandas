@@ -109,6 +109,10 @@ Numeric
 ^^^^^^^
 
 
+Categorical
+^^^^^^^^^^^
+
+- The Categorical constructor no longer accepts a scalar for the ``categories`` keyword (:issue:`16022`)
 
 Other
 ^^^^^

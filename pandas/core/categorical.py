@@ -533,6 +533,9 @@ class Categorical(PandasObject):
         if not isinstance(categories, ABCIndexClass):
             dtype = None
             if not hasattr(categories, "dtype"):
+                if not is_list_like(categories):
+                    raise TypeError("`categories` must be list-like. "
+                                    "Got {} instead".format(repr(categories)))
                 categories = _convert_to_list_like(categories)
                 # On categories with NaNs, int values would be converted to
                 # float. Use "object" dtype to prevent this.
