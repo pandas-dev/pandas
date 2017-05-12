@@ -1590,7 +1590,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         hash(key)
         try:
             return key in self._engine
-        except TypeError:
+        except (TypeError, ValueError):
             return False
 
     _index_shared_docs['contains'] = """
@@ -1610,7 +1610,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         hash(key)
         try:
             return key in self._engine
-        except TypeError:
+        except (TypeError, ValueError):
             return False
 
     def __hash__(self):

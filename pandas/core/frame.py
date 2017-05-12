@@ -1919,7 +1919,7 @@ it is assumed to be aliases for the column names.')
 
         try:
             return engine.get_value(series._values, index)
-        except TypeError:
+        except (TypeError, ValueError):
 
             # we cannot handle direct indexing
             # use positional
