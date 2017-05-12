@@ -2565,9 +2565,11 @@ it is assumed to be aliases for the column names.')
         Parameters
         ----------
         loc : int
-            Must have 0 <= loc <= len(columns)
-        column : object
+            Insertion index. Must verify 0 <= loc <= len(columns)
+        column : string, number, or hashable object
+            label of the column
         value : scalar, Series, or array-like
+        allow_duplicates : bool
         """
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
