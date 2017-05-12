@@ -117,6 +117,63 @@ def round_trip_pickle(obj, path=None):
         return pd.read_pickle(path)
 
 
+def round_trip_pathlib(writer, reader, path=None):
+    """
+    Write an object to file specifed by a pathlib.Path and read it back
+
+    Parameters
+    ----------
+    writer : callable bound to pandas object
+        IO writing function (e.g. DataFrame.to_csv )
+    reader : callable
+        IO reading function (e.g. pd.read_csv )
+    path : str, default None
+        The path where the object is written and then read.
+
+    Returns
+    -------
+    round_trip_object : pandas object
+        The original object that was serialized and then re-read.
+    """
+
+    import pytest
+    Path = pytest.importorskip('pathlib').Path
+    if path is None:
+        path = '___pathlib___'
+    with ensure_clean(path) as path:
+        writer(Path(path))
+        obj = reader(Path(path))
+    return obj
+
+
+def round_trip_localpath(writer, reader, path=None):
+    """
+    Write an object to file specifed by a py.path LocalPath and read it back
+
+    Parameters
+    ----------
+    writer : callable bound to pandas object
+        IO writing function (e.g. DataFrame.to_csv )
+    reader : callable
+        IO reading function (e.g. pd.read_csv )
+    path : str, default None
+        The path where the object is written and then read.
+
+    Returns
+    -------
+    round_trip_object : pandas object
+        The original object that was serialized and then re-read.
+    """
+    import pytest
+    LocalPath = pytest.importorskip('py.path').local
+    if path is None:
+        path = '___localpath___'
+    with ensure_clean(path) as path:
+        writer(LocalPath(path))
+        obj = reader(LocalPath(path))
+    return obj
+
+
 def assert_almost_equal(left, right, check_exact=False,
                         check_dtype='equiv', check_less_precise=False,
                         **kwargs):
