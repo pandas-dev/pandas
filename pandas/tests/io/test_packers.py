@@ -141,7 +141,7 @@ class TestAPI(TestPackers):
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.xfail(reason="msgpack currently doesn't work with localpath")
-    def test_pickle_path_localpath(self):
+    def test_path_localpath(self):
         df = tm.makeDataFrame()
         result = tm.round_trip_localpath(df.to_msgpack, read_msgpack)
         tm.assert_frame_equal(df, result)
