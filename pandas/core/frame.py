@@ -894,14 +894,10 @@ class DataFrame(NDFrame):
         Returns
         -------
         result : collections.Mapping like {column -> {index -> value}}
-            If ``into`` is collections.defaultdict, the return
-            value's default_factory will be None.
 
         Examples
         --------
-        >>> from pandas import DataFrame
-        >>> from collections import OrderedDict, defaultdict
-        >>> df = DataFrame(
+        >>> df = pd.DataFrame(
                 {'col1': [1, 2], 'col2': [0.5, 0.75]}, index=['a', 'b'])
         >>> df
            col1  col2
@@ -928,7 +924,7 @@ class DataFrame(NDFrame):
         {'a': {'col1': 1.0, 'col2': 0.5}, 'b': {'col1': 2.0, 'col2': 0.75}}
 
         You can also specify the mapping type.
-
+        >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
         OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
                    ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])

@@ -1077,7 +1077,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def to_dict(self, into=dict):
         """
-        Convert Series to {label -> value} dict or dict-like object
+        Convert Series to {label -> value} dict or dict-like object.
+
         Parameters
         ----------
         into : class, default dict
@@ -1096,11 +1097,10 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
         Examples
         --------
-        >>> from pandas import Series
-        >>> from collections import OrderedDict, defaultdict
-        >>> s = Series([1, 2, 3, 4])
+        >>> s = pd.Series([1, 2, 3, 4])
         >>> s.to_dict()
         {0: 1, 1: 2, 2: 3, 3: 4}
+        >>> from collections import OrderedDict, defaultdict
         >>> s.to_dict(OrderedDict)
         OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
         >>> dd = defaultdict(list)
