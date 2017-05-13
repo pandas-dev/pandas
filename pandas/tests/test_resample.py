@@ -850,7 +850,7 @@ class Base(object):
                                            periods=len(df.index) / 2,
                                            freq='2D')
 
-        # loffset coreces PeriodIndex to DateTimeIndex
+        # loffset coerces PeriodIndex to DateTimeIndex
         if isinstance(expected_index, PeriodIndex):
             expected_index = expected_index.to_timestamp()
 
@@ -2847,7 +2847,8 @@ class TestPeriodIndex(Base):
         expected_index = self.create_index(df.index[0],
                                            periods=len(df.index) / 2,
                                            freq='2D')
-        # loffset coreces PeriodIndex to DateTimeIndex
+
+        # loffset coerces PeriodIndex to DateTimeIndex
         expected_index = expected_index.to_timestamp()
         expected_index += timedelta(hours=2)
         expected = DataFrame({'value': expected_means}, index=expected_index)
@@ -2857,7 +2858,7 @@ class TestPeriodIndex(Base):
             result_how = df.resample('2D', how=agg_arg, loffset='2H',
                                      kind=kind)
         if isinstance(agg_arg, list):
-            expected.columns = pd.MultiIndex .from_tuples([('value', 'mean')])
+            expected.columns = pd.MultiIndex.from_tuples([('value', 'mean')])
         assert_frame_equal(result_agg, expected)
         assert_frame_equal(result_how, expected)
 
@@ -2868,6 +2869,7 @@ class TestPeriodIndex(Base):
         pi = PeriodIndex(start='2000', freq='D', periods=10)
         s = Series(range(len(pi)), index=pi)
         expected = s.to_timestamp().resample(freq).ohlc().to_period(freq)
+
         # timestamp-based resampling doesn't include all sub-periods
         # of the last original period, so extend accordingly:
         new_index = PeriodIndex(start='2000', freq=freq,
