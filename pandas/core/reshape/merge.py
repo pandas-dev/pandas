@@ -347,12 +347,15 @@ def merge_asof(left, right, on=None,
 
     Examples
     --------
+    >>> left = pd.DataFrame({'a': [1, 5, 10], 'left_val': ['a', 'b', 'c']})
     >>> left
         a left_val
     0   1        a
     1   5        b
     2  10        c
 
+    >>> right = pd.DataFrame({'a': [1, 2, 3, 6, 7],
+    ...                       'right_val': [1, 2, 3, 6, 7]})
     >>> right
        a  right_val
     0  1          1
@@ -387,12 +390,15 @@ def merge_asof(left, right, on=None,
 
     We can use indexed DataFrames as well.
 
+    >>> left = pd.DataFrame({'left_val': ['a', 'b', 'c']}, index=[1, 5, 10])
     >>> left
        left_val
     1         a
     5         b
     10        c
 
+    >>> right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7]},
+    ...                      index=[1, 2, 3, 6, 7])
     >>> right
        right_val
     1          1
