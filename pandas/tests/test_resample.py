@@ -702,27 +702,28 @@ class Base(object):
     _index_fixture_end = datetime(2005, 1, 10)
     _index_fixture_freq = 'D'
 
-    @pytest.fixture(scope='class')
+    @pytest.fixture
     def index(self):
         return self.create_index(self._index_fixture_start,
                                  self._index_fixture_end,
                                  freq=self._index_fixture_freq)
 
-    @pytest.fixture(scope='class')
+    @pytest.fixture
     def series(self, index):
         return Series(np.arange(len(index)), index=index,
                       name=self._series_fixture_name)
 
-    @pytest.fixture(scope='class')
+    @pytest.fixture
     def frame(self, index):
         return DataFrame({'value': np.arange(len(index))}, index=index)
 
-    @pytest.fixture(params=[Series, DataFrame], scope='class')
+    @pytest.fixture(params=[Series, DataFrame])
     def series_and_frame(self, request, index):
         if request.param == Series:
-            return self.series(index)
+            return Series(np.arange(len(index)), index=index,
+                          name=self._series_fixture_name)
         if request.param == DataFrame:
-            return self.frame(index)
+            return DataFrame({'value': np.arange(len(index))}, index=index)
 
     @pytest.mark.parametrize('freq', ['2D', '1H'])
     def test_asfreq(self, series_and_frame, freq):
