@@ -724,35 +724,19 @@ class Base(object):
         if request.param == DataFrame:
             return self.frame(index)
 
-    def test_asfreq_downsample(self):
-        s = self.create_series()
+    @pytest.mark.parametrize('freq', ['2D', '1H'])
+    def test_asfreq(self, series_and_frame, freq):
+        obj = series_and_frame
 
-        result = s.resample('2D').asfreq()
-        expected = s.reindex(s.index.take(np.arange(0, len(s.index), 2)))
-        expected.index.freq = to_offset('2D')
-        assert_series_equal(result, expected)
-
-        frame = s.to_frame('value')
-        result = frame.resample('2D').asfreq()
-        expected = frame.reindex(
-            frame.index.take(np.arange(0, len(frame.index), 2)))
-        expected.index.freq = to_offset('2D')
-        assert_frame_equal(result, expected)
-
-    def test_asfreq_upsample(self):
-        s = self.create_series()
-
-        result = s.resample('1H').asfreq()
-        new_index = self.create_index(s.index[0], s.index[-1], freq='1H')
-        expected = s.reindex(new_index)
-        assert_series_equal(result, expected)
-
-        frame = s.to_frame('value')
-        result = frame.resample('1H').asfreq()
-        new_index = self.create_index(frame.index[0],
-                                      frame.index[-1], freq='1H')
-        expected = frame.reindex(new_index)
-        assert_frame_equal(result, expected)
+        result = obj.resample(freq).asfreq()
+        if freq == '2D':
+            new_index = obj.index.take(np.arange(0, len(obj.index), 2))
+            new_index.freq = to_offset('2D')
+        else:
+            new_index = self.create_index(obj.index[0], obj.index[-1],
+                                          freq=freq)
+        expected = obj.reindex(new_index)
+        assert_almost_equal(result, expected)
 
     def test_asfreq_fill_value(self):
         # test for fill value during resampling, issue 3715
@@ -2250,32 +2234,18 @@ class TestPeriodIndex(Base):
 
         return Series(np.arange(len(i)), index=i, name='pi')
 
-    @pytest.mark.parametrize('freq', ['2D'])
+    @pytest.mark.parametrize('freq', ['2D', '1H', '2H'])
     @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
-    def test_asfreq_downsample(self, series_and_frame, freq, kind):
+    def test_asfreq(self, series_and_frame, freq, kind):
         # GH 12884, 15944
-        obj = series_and_frame
-        start = obj.index[0].to_timestamp(how='start')
-        end = (obj.index[-1] + 1).to_timestamp(how='start')
-        if kind == 'timestamp':
-            expected = obj.to_timestamp().resample(freq).asfreq()
-        else:
-            new_index = date_range(start=start, end=end, freq=freq,
-                                   closed='left')
-            expected = obj.to_timestamp().reindex(new_index).to_period(freq)
-        result = obj.resample(freq, kind=kind).asfreq()
-        assert_almost_equal(result, expected)
+        # make sure .asfreq() returns PeriodIndex (except kind='timestamp')
 
-    @pytest.mark.parametrize('freq', ['1H', '2H'])
-    @pytest.mark.parametrize('kind', ['period', None, 'timestamp'])
-    def test_asfreq_upsample(self, series_and_frame, freq, kind):
-        # GH 12884, 15944
         obj = series_and_frame
-        start = obj.index[0].to_timestamp(how='start')
-        end = (obj.index[-1] + 1).to_timestamp(how='start')
         if kind == 'timestamp':
             expected = obj.to_timestamp().resample(freq).asfreq()
         else:
+            start = obj.index[0].to_timestamp(how='start')
+            end = (obj.index[-1] + 1).to_timestamp(how='start')
             new_index = date_range(start=start, end=end, freq=freq,
                                    closed='left')
             expected = obj.to_timestamp().reindex(new_index).to_period(freq)
@@ -2913,6 +2883,9 @@ class TestPeriodIndex(Base):
 
 class TestTimedeltaIndex(Base):
     _index_factory = lambda x: timedelta_range
+    _series_fixture_name = 'tdi'
+    _index_fixture_start = '1 day'
+    _index_fixture_end = '10 day'
 
     def create_series(self):
         i = timedelta_range('1 day',
