@@ -2902,6 +2902,7 @@ class TestPeriodIndex(Base):
         assert_frame_equal(result, expected)
 
     def test_resample_with_only_nat(self):
+        # GH 13224
         pi = PeriodIndex([pd.NaT] * 3, freq='S')
         frame = DataFrame([2, 3, 5], index=pi)
         expected_index = PeriodIndex(data=[], freq=pi.freq)
