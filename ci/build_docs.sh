@@ -44,6 +44,11 @@ if [ "$DOC" ]; then
 
     # create the repo
     git init
+
+    git remote remove origin
+    git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-docs/pandas-docs-travis.git"
+    git fetch origin
+
     touch README
     git add README
     git commit -m "Initial commit" --allow-empty
@@ -52,8 +57,7 @@ if [ "$DOC" ]; then
     touch .nojekyll
     git add --all .
     git commit -m "Version" --allow-empty
-    git remote remove origin
-    git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-docs/pandas-docs-travis.git"
+
     git push origin gh-pages -f
 fi
 
