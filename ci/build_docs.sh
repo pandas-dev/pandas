@@ -40,14 +40,9 @@ if [ "$DOC" ]; then
     cd /tmp/doc/build/html
     git config --global user.email "pandas-docs-bot@localhost.foo"
     git config --global user.name "pandas-docs-bot"
-    git config --global credential.helper cache
 
     # create the repo
     git init
-
-    git remote remove origin
-    git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-docs/pandas-docs-travis.git"
-    git fetch origin
 
     touch README
     git add README
@@ -57,6 +52,11 @@ if [ "$DOC" ]; then
     touch .nojekyll
     git add --all .
     git commit -m "Version" --allow-empty
+
+    git remote remove origin
+    git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-docs/pandas-docs-travis.git"
+    git fetch origin
+    git remote -v
 
     git push origin gh-pages -f
 fi
