@@ -17,8 +17,10 @@ cache:
 env:
   global:
 
-  # pandas-docs-travis GH
-  - secure: "YvvTc+FrSYHgdxqoxn9s8VOaCWjvZzlkaf6k55kkmQqCYR9dPiLMsot1F96/N7o3YlD1s0znPQCak93Du8HHi/8809zAXloTaMSZrWz4R4qn96xlZFRE88O/w/Z1t3VVYpKX3MHlCggBc8MtXrqmvWKJMAqXyysZ4TTzoiJDPvE="
+  # create a github personal access token:
+  # echo PANDAS_GH_TOKEN=personal_access_token | travis encrypt --repo pandas-docs/pandas-docs-travis
+  # pandas-docs/pandas-docs-travis GH
+  - secure: PfEfa2O785XHMnYAPCi46c4m62EO6j7e7qPE3rOEu8xCjtIq+I2HMykWzU/B2oJi4RDimCQSs+Q2b3PX3It4E8/BWh/15/pdM5X5SqdElOJ4dMfnqfyN+Cmes7UdZHmys27kTZmgrGQU2uCtE2DzJdwVgYtyDb6tcFAJbAKnom8=
 
 git:
     # for cloning
