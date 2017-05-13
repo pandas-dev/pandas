@@ -18,7 +18,7 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
-from pandas.core.base import SpecificationError
+from pandas.core.base import SpecificationError, AbstractMethodError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
 from pandas.tseries.frequencies import MONTHS, DAYS
@@ -698,32 +698,44 @@ class Base(object):
         factory = self._index_factory()
         return factory(*args, **kwargs)
 
-    _index_fixture_start = datetime(2005, 1, 1)
-    _index_fixture_end = datetime(2005, 1, 10)
-    _index_fixture_freq = 'D'
+    @pytest.fixture
+    def _index_start(self):
+        return datetime(2005, 1, 1)
 
     @pytest.fixture
-    def index(self):
-        return self.create_index(self._index_fixture_start,
-                                 self._index_fixture_end,
-                                 freq=self._index_fixture_freq)
+    def _index_end(self):
+        return datetime(2005, 1, 10)
 
     @pytest.fixture
-    def series(self, index):
-        return Series(np.arange(len(index)), index=index,
-                      name=self._series_fixture_name)
+    def _index_freq(self):
+        return 'D'
 
     @pytest.fixture
-    def frame(self, index):
-        return DataFrame({'value': np.arange(len(index))}, index=index)
+    def index(self, _index_start, _index_end, _index_freq):
+        return self.create_index(_index_start, _index_end, freq=_index_freq)
+
+    @pytest.fixture
+    def _series_name(self):
+        raise AbstractMethodError(self)
+
+    @pytest.fixture
+    def _static_values(self, index):
+        return np.arange(len(index))
+
+    @pytest.fixture
+    def series(self, index, _series_name, _static_values):
+        return Series(_static_values, index=index, name=_series_name)
+
+    @pytest.fixture
+    def frame(self, index, _static_values):
+        return DataFrame({'value': _static_values}, index=index)
 
     @pytest.fixture(params=[Series, DataFrame])
-    def series_and_frame(self, request, index):
+    def series_and_frame(self, request, index, _series_name, _static_values):
         if request.param == Series:
-            return Series(np.arange(len(index)), index=index,
-                          name=self._series_fixture_name)
+            return Series(_static_values, index=index, name=_series_name)
         if request.param == DataFrame:
-            return DataFrame({'value': np.arange(len(index))}, index=index)
+            return DataFrame({'value': _static_values}, index=index)
 
     @pytest.mark.parametrize('freq', ['2D', '1H'])
     def test_asfreq(self, series_and_frame, freq):
@@ -876,7 +888,10 @@ class Base(object):
 
 class TestDatetimeIndex(Base):
     _index_factory = lambda x: date_range
-    _series_fixture_name = 'dti'
+
+    @pytest.fixture
+    def _series_name(self):
+        return 'dti'
 
     def setup_method(self, method):
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
@@ -2225,7 +2240,10 @@ class TestDatetimeIndex(Base):
 
 class TestPeriodIndex(Base):
     _index_factory = lambda x: period_range
-    _series_fixture_name = 'pi'
+
+    @pytest.fixture
+    def _series_name(self):
+        return 'pi'
 
     def create_series(self):
         # TODO: replace calls to .create_series() by injecting the series
@@ -2884,9 +2902,18 @@ class TestPeriodIndex(Base):
 
 class TestTimedeltaIndex(Base):
     _index_factory = lambda x: timedelta_range
-    _series_fixture_name = 'tdi'
-    _index_fixture_start = '1 day'
-    _index_fixture_end = '10 day'
+
+    @pytest.fixture
+    def _index_start(self):
+        return '1 day'
+
+    @pytest.fixture
+    def _index_end(self):
+        return '10 day'
+
+    @pytest.fixture
+    def _series_name(self):
+        return 'tdi'
 
     def create_series(self):
         i = timedelta_range('1 day',
