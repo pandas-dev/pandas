@@ -249,6 +249,7 @@ Optional Dependencies
   * `openpyxl <http://packages.python.org/openpyxl/>`__: openpyxl version 1.6.1
     or higher (but lower than 2.0.0), or version 2.2 or higher, for writing .xlsx files (xlrd >= 0.9.0)
   * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
+  * `cssdecl <https://pypi.python.org/pypi/cssdecl>`__: along with one of openpyxl or XlsxWriter for exporting styled DataFrames
 
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
 * `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).

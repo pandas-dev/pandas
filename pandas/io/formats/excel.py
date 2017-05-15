@@ -8,7 +8,6 @@ import itertools
 import numpy as np
 
 from pandas.compat import reduce, string_types
-from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.common import is_float
 import pandas._libs.lib as lib
@@ -61,13 +60,16 @@ class CSSToExcelConverter(object):
     #     without monkey-patching.
 
     def __init__(self, inherited=None):
+        try:
+            from cssdecl import CSS22Resolver
+        except ImportError:
+            raise ImportError("cssdecl is not installed and is requied to "
+                              "convert styles to Excel")
+        self.compute_css = CSS22Resolver().resolve_string
         if inherited is not None:
-            inherited = self.compute_css(inherited,
-                                         self.compute_css.INITIAL_STYLE)
+            inherited = self.compute_css(inherited)
 
         self.inherited = inherited
-
-    compute_css = CSSResolver()
 
     def __call__(self, declarations_str):
         """Convert CSS declarations to ExcelWriter style
@@ -302,6 +304,7 @@ class CSSToExcelConverter(object):
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
+            from cssdecl import CSSWarning
             warnings.warn('Unhandled colour format: %r' % val, CSSWarning)
 
 
@@ -333,7 +336,8 @@ class ExcelFormatter(object):
         A `'-'` sign will be added in front of -inf.
     style_converter : callable, optional
         This translates Styler styles (CSS) into ExcelWriter styles.
-        Defaults to ``CSSToExcelConverter()``.
+        Defaults to ``CSSToExcelConverter()`` which requires the ``cssdecl``
+        package installed.
         It should have signature css_declarations string -> excel style.
         This is only called for body cells.
     """
