@@ -193,9 +193,15 @@ class MultiIndexing(object):
              np.arange(1000)], names=['one', 'two'])
 
         import string
-        self.mistring = MultiIndex.from_product(
-            [np.arange(1000),
-             np.arange(20), list(string.ascii_letters)],
+
+        self.mi_large = MultiIndex.from_product(
+            [np.arange(1000), np.arange(20), list(string.ascii_letters)],
+            names=['one', 'two', 'three'])
+        self.mi_med = MultiIndex.from_product(
+            [np.arange(1000), np.arange(10), list('A')],
+            names=['one', 'two', 'three'])
+        self.mi_small = MultiIndex.from_product(
+            [np.arange(100), list('A'), list('A')],
             names=['one', 'two', 'three'])
 
     def time_series_xs_mi_ix(self):
@@ -218,8 +224,14 @@ class MultiIndexing(object):
                       (0, 16), (0, 17), (0, 18),
                       (0, 19)], dtype=object))
 
+    def time_multiindex_large_get_loc(self):
+        self.mi_large.get_loc((999, 19, 'Z'))
+
+    def time_multiindex_med_get_loc(self):
+        self.mi_med.get_loc((999, 9, 'A'))
+
     def time_multiindex_string_get_loc(self):
-        self.mistring.get_loc((999, 19, 'Z'))
+        self.mi_small.get_loc((99, 'A', 'A'))
 
     def time_is_monotonic(self):
         self.miint.is_monotonic

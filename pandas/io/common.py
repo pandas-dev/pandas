@@ -314,6 +314,9 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
     handles = list()
     f = path_or_buf
+
+    # Convert pathlib.Path/py.path.local or string
+    path_or_buf = _stringify_path(path_or_buf)
     is_path = isinstance(path_or_buf, compat.string_types)
 
     if compression:

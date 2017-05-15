@@ -75,7 +75,6 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _labels = FrozenList()
     _comparables = ['names']
-    _engine_type = libindex.MultiIndexEngine
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
@@ -629,7 +628,16 @@ class MultiIndex(Index):
 
     @cache_readonly
     def _engine(self):
-        return self._engine_type(lambda: self, len(self))
+
+        # choose our engine based on our size
+        # the hashing based MultiIndex for larger
+        # sizes, and the MultiIndexOjbect for smaller
+        # xref: https://github.com/pandas-dev/pandas/pull/16324
+        l = len(self)
+        if l > 10000:
+            return libindex.MultiIndexHashEngine(lambda: self, l)
+
+        return libindex.MultiIndexObjectEngine(lambda: self.values, l)
 
     @property
     def values(self):
