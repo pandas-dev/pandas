@@ -736,6 +736,59 @@ class TestHDFStore(Base):
             store.put('c', df, format='table', complib='blosc')
             tm.assert_frame_equal(store['c'], df)
 
+    def test_complibs_default_settings(self):
+        # GH15943
+        df = tm.makeDataFrame()
+
+        # Set complevel and check if complib is automatically set to
+        # default value
+        with ensure_clean_path(self.path) as tmpfile:
+            df.to_hdf(tmpfile, 'df', complevel=9)
+            result = pd.read_hdf(tmpfile, 'df')
+            tm.assert_frame_equal(result, df)
+
+            with tables.open_file(tmpfile, mode='r') as h5file:
+                for node in h5file.walk_nodes(where='/df', classname='Leaf'):
+                    assert node.filters.complevel == 9
+                    assert node.filters.complib == 'zlib'
+
+        # Set complib and check to see if compression is disabled
+        with ensure_clean_path(self.path) as tmpfile:
+            df.to_hdf(tmpfile, 'df', complib='zlib')
+            result = pd.read_hdf(tmpfile, 'df')
+            tm.assert_frame_equal(result, df)
+
+            with tables.open_file(tmpfile, mode='r') as h5file:
+                for node in h5file.walk_nodes(where='/df', classname='Leaf'):
+                    assert node.filters.complevel == 0
+                    assert node.filters.complib is None
+
+        # Check if not setting complib or complevel results in no compression
+        with ensure_clean_path(self.path) as tmpfile:
+            df.to_hdf(tmpfile, 'df')
+            result = pd.read_hdf(tmpfile, 'df')
+            tm.assert_frame_equal(result, df)
+
+            with tables.open_file(tmpfile, mode='r') as h5file:
+                for node in h5file.walk_nodes(where='/df', classname='Leaf'):
+                    assert node.filters.complevel == 0
+                    assert node.filters.complib is None
+
+        # Check if file-defaults can be overridden on a per table basis
+        with ensure_clean_path(self.path) as tmpfile:
+            store = pd.HDFStore(tmpfile)
+            store.append('dfc', df, complevel=9, complib='blosc')
+            store.append('df', df)
+            store.close()
+
+            with tables.open_file(tmpfile, mode='r') as h5file:
+                for node in h5file.walk_nodes(where='/df', classname='Leaf'):
+                    assert node.filters.complevel == 0
+                    assert node.filters.complib is None
+                for node in h5file.walk_nodes(where='/dfc', classname='Leaf'):
+                    assert node.filters.complevel == 9
+                    assert node.filters.complib == 'blosc'
+
     def test_complibs(self):
         # GH14478
         df = tm.makeDataFrame()
