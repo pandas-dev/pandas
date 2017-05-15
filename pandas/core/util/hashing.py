@@ -182,14 +182,6 @@ def hash_tuple(val, encoding='utf8', hash_key=None):
     hash
 
     """
-    #def to_array(v):
-    #    dtype, arr = infer_dtype_from_array([v])
-    #    return np.asarray(arr, dtype=dtype)
-
-    #hashes = (hash_array(to_array(v), encoding=encoding, hash_key=hash_key,
-    #                     categorize=False)
-    #          for v in val)
-
     hashes = (_hash_scalar(v, encoding=encoding, hash_key=hash_key)
               for v in val)
 
@@ -298,7 +290,7 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
 
         try:
             vals = hashing.hash_object_array(vals, hash_key, encoding)
-        except (TypeError, ValueError):
+        except TypeError:
             # we have mixed types
             vals = hashing.hash_object_array(vals.astype(str).astype(object),
                                              hash_key, encoding)
@@ -321,52 +313,24 @@ def _hash_scalar(val, encoding='utf8', hash_key=None):
     1d uint64 numpy array of hash value, of length 1
     """
 
-    if hash_key is None:
-        hash_key = _default_hash_key
-
     if isnull(val):
         # this is to be consistent with the _hash_categorical implementation
         return np.array([np.iinfo(np.uint64).max], dtype='u8')
 
     if isinstance(val, string_and_binary_types + (text_type,)):
         vals = np.array([val], dtype=object)
-        string_like = True
     else:
         vals = np.array([val])
-        string_like = False
 
-    dtype = vals.dtype
+        if vals.dtype == np.object_:
+            from pandas import Timestamp, Timedelta, Period, Interval
+            if isinstance(val, (Timestamp, Timedelta)):
+                vals = np.array([val.value])
+            elif isinstance(val, (Period, Interval)):
+                pass
+            else:
+                from pandas import Index
+                vals = Index(vals).values
 
-    #dtype, vals = infer_dtype_from_array([vals])
-    #if dtype == np.object_:
-    #    vals = np.asarray(vals, dtype='object')
-    #    dtype = vals.dtype
-
-    # we'll be working with everything as 64-bit values, so handle this
-    # 128-bit value early
-    if np.issubdtype(dtype, np.complex128):
-        return hash_array(vals.real) + 23 * hash_array(vals.imag)
-
-    # First, turn whatever array this is into unsigned 64-bit ints, if we can
-    # manage it.
-    elif isinstance(dtype, np.bool):
-        vals = vals.astype('u8')
-    elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
-        vals = vals.view('i8').astype('u8', copy=False)
-    elif issubclass(dtype.type, np.number) and dtype.itemsize <= 8:
-        vals = vals.view('u{}'.format(vals.dtype.itemsize)).astype('u8')
-    else:
-        if not string_like:
-            from pandas import Index
-            vals = Index(vals).values
-            return hash_array(vals, hash_key=hash_key, encoding=encoding,
-                              categorize=False)
-        vals = hashing.hash_object_array(vals, hash_key, encoding)
-
-    # Then, redistribute these 64-bit ints within the space of 64-bit ints
-    vals ^= vals >> 30
-    vals *= np.uint64(0xbf58476d1ce4e5b9)
-    vals ^= vals >> 27
-    vals *= np.uint64(0x94d049bb133111eb)
-    vals ^= vals >> 31
-    return vals
+    return hash_array(vals, hash_key=hash_key, encoding=encoding,
+                      categorize=False)
