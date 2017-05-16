@@ -256,12 +256,6 @@ class TestCategorical(object):
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        cat = pd.Categorical([1], categories=1)
-        assert len(cat.categories) == 1
-        assert cat.categories[0] == 1
-        assert len(cat.codes) == 1
-        assert cat.codes[0] == 0
-
         # Catch old style constructor useage: two arrays, codes + categories
         # We can only catch two cases:
         #  - when the first is an integer dtype and the second is not
@@ -284,6 +278,11 @@ class TestCategorical(object):
         with tm.assert_produces_warning(None):
             c = Categorical(np.array([], dtype='int64'),  # noqa
                             categories=[3, 2, 1], ordered=True)
+
+    def test_constructor_not_sequence(self):
+        # https://github.com/pandas-dev/pandas/issues/16022
+        with pytest.raises(TypeError):
+            Categorical(['a', 'b'], categories='a')
 
     def test_constructor_with_null(self):
 
