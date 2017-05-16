@@ -55,7 +55,7 @@ column. This has JSON form:
 
    {'name': column_name,
     'pandas_type': pandas_type,
-    'numpy_dtype': numpy_type,
+    'numpy_type': numpy_type,
     'metadata': type_metadata}
 
 ``pandas_type`` is the logical type of the column, and is one of:
