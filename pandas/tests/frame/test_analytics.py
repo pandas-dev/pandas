@@ -1863,6 +1863,23 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
         tm.assert_frame_equal(clipped_df[mask], df[mask])
 
+    def test_clip_na(self):
+        msg = "Cannot use an NA"
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(lower=np.nan)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(lower=[np.nan])
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(upper=np.nan)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(upper=[np.nan])
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(lower=np.nan, upper=np.nan)
+
     # Matrix-like
 
     def test_dot(self):
