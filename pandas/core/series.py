@@ -28,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_dict_like,
     is_scalar,
+    is_unsigned_integer_dtype,
     _is_unorderable_exception,
     _ensure_platform_int,
     pandas_dtype)
@@ -2919,6 +2920,18 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = maybe_cast_to_datetime(arr, dtype)
             if not is_extension_type(subarr):
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
+
+            # Raises if coercion from unsigned to signed with neg data
+            if is_unsigned_integer_dtype(dtype) and (np.asarray(data) < 0)\
+                    .any():
+                raise OverflowError("Trying to coerce negative values to "
+                                    "negative integers")
+
+            # Raises if coercion from float to integer
+            if is_integer_dtype(dtype) and is_float_dtype(np.asarray(data)):
+                raise OverflowError("Trying to coerce float values to "
+                                    "integers")
+
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
                 subarr = Categorical(arr)

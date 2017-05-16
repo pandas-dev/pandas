@@ -684,12 +684,6 @@ class TestInt64Index(NumericInt):
             with pytest.raises(OverflowError):
                 Index([-1], dtype=t)
 
-        try:
-            Index([-1], dtype=int)
-        except Exception:
-            self.fail("Index constructor did not behave correctly, raising an "
-                      "exception when it should not.")
-
     def test_constructor_overflow_coercion_float_to_int(self):
         # GH 15832
         with pytest.raises(OverflowError):

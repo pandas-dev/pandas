@@ -212,6 +212,10 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     if is_integer_dtype(dtype):
                         inferred = lib.infer_dtype(data)
                         if inferred == 'integer':
+                            if (np.asarray(data) < 0).any():
+                                raise OverflowError("Trying to coerce "
+                                                    "negative values to "
+                                                    "negative integers")
                             data = np.array(data, copy=copy, dtype=dtype)
                         elif inferred in ['floating', 'mixed-integer-float']:
                             if isnull(data).any():
@@ -224,7 +228,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                 return cls._try_convert_to_int_index(
                                     data, copy, name)
                             except ValueError:
-                                pass
+                                raise OverflowError("Trying to coerce float "
+                                                    "values to integers")
 
                             # Return an actual float index.
                             from .numeric import Float64Index

@@ -1,30 +1,26 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime, timedelta
 
-from numpy import nan
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
+import pytest
+from numpy import nan
+from pandas import (Index, Series, isnull, date_range,
+                    NaT, period_range, MultiIndex, IntervalIndex)
+from pandas import compat
+from pandas.compat import lrange, range, zip, OrderedDict, long
 
+import pandas.util.testing as tm
+from pandas._libs import lib
+from pandas._libs.tslib import iNaT
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64tz_dtype)
-from pandas import (Index, Series, isnull, date_range,
-                    NaT, period_range, MultiIndex, IntervalIndex)
 from pandas.core.indexes.datetimes import Timestamp, DatetimeIndex
-
-from pandas._libs import lib
-from pandas._libs.tslib import iNaT
-
-from pandas.compat import lrange, range, zip, OrderedDict, long
-from pandas import compat
 from pandas.util.testing import assert_series_equal
-import pandas.util.testing as tm
-
 from .common import TestData
 
 
