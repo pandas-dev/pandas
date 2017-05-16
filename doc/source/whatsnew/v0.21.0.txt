@@ -35,7 +35,7 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
+- Support has been dropped for Python 3.4 (:issue:`15251`)
 
 .. _whatsnew_0210.api:
 
