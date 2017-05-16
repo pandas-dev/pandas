@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import (
     _ensure_int64,
     needs_i8_conversion,
     is_scalar,
+    is_number,
     is_integer, is_bool,
     is_bool_dtype,
     is_numeric_dtype,
@@ -4104,6 +4105,22 @@ class NDFrame(PandasObject, SelectionMixin):
     def notnull(self):
         return notnull(self).__finalize__(self)
 
+    def _clip_with_scalar(self, lower, upper):
+
+        if ((lower is not None and np.any(isnull(lower))) or
+                (upper is not None and np.any(isnull(upper)))):
+            raise ValueError("Cannot use an NA value as a clip threshold")
+
+        result = self.values
+        mask = isnull(result)
+        if upper is not None:
+            result = np.where(result >= upper, upper, result)
+        if lower is not None:
+            result = np.where(result <= lower, lower, result)
+        result[mask] = np.nan
+        return self._constructor(
+            result, **self._construct_axes_dict()).__finalize__(self)
+
     def clip(self, lower=None, upper=None, axis=None, *args, **kwargs):
         """
         Trim values at input threshold(s).
@@ -4122,12 +4139,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df
-          0         1
+                  0         1
         0  0.335232 -1.256177
         1 -1.367855  0.746646
         2  0.027753 -1.176076
         3  0.230930 -0.679613
         4  1.261967  0.570967
+
         >>> df.clip(-1.0, 0.5)
                   0         1
         0  0.335232 -1.000000
@@ -4135,6 +4153,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2  0.027753 -1.000000
         3  0.230930 -0.679613
         4  0.500000  0.500000
+
         >>> t
         0   -0.3
         1   -0.2
@@ -4142,6 +4161,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    0.0
         4    0.1
         dtype: float64
+
         >>> df.clip(t, t + 1, axis=0)
                   0         1
         0  0.335232 -0.300000
@@ -4159,6 +4179,11 @@ class NDFrame(PandasObject, SelectionMixin):
         if lower is not None and upper is not None:
             if is_scalar(lower) and is_scalar(upper):
                 lower, upper = min(lower, upper), max(lower, upper)
+
+        # fast-path for scalars
+        if ((lower is None or (is_scalar(lower) and is_number(lower))) and
+                (upper is None or (is_scalar(upper) and is_number(upper)))):
+            return self._clip_with_scalar(lower, upper)
 
         result = self
         if lower is not None:
@@ -4189,6 +4214,9 @@ class NDFrame(PandasObject, SelectionMixin):
         if np.any(isnull(threshold)):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
+        if is_scalar(threshold) and is_number(threshold):
+            return self._clip_with_scalar(None, threshold)
+
         subset = self.le(threshold, axis=axis) | isnull(self)
         return self.where(subset, threshold, axis=axis)
 
@@ -4212,6 +4240,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         if np.any(isnull(threshold)):
             raise ValueError("Cannot use an NA value as a clip threshold")
+
+        if is_scalar(threshold) and is_number(threshold):
+            return self._clip_with_scalar(threshold, None)
 
         subset = self.ge(threshold, axis=axis) | isnull(self)
         return self.where(subset, threshold, axis=axis)
