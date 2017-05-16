@@ -1092,8 +1092,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         Returns
         -------
         value_dict : collections.Mapping
-            If ``into`` is collections.defaultdict, the return
-            value's default_factory will be None.
 
         Examples
         --------

@@ -924,6 +924,7 @@ class DataFrame(NDFrame):
         {'a': {'col1': 1.0, 'col2': 0.5}, 'b': {'col1': 2.0, 'col2': 0.75}}
 
         You can also specify the mapping type.
+
         >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
         OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
