@@ -2,6 +2,8 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime
+import collections
+import pytest
 
 import numpy as np
 import pandas as pd
@@ -126,9 +128,6 @@ class TestSeriesIO(TestData):
             dict(testdifferent=self.ts.values), index=self.ts.index)
         assert_frame_equal(rs, xp)
 
-    def test_to_dict(self):
-        tm.assert_series_equal(Series(self.ts.to_dict(), name='ts'), self.ts)
-
     def test_timeseries_periodindex(self):
         # GH2891
         from pandas import period_range
@@ -166,6 +165,19 @@ class TestSeriesIO(TestData):
         assert isinstance(result, SubclassedFrame)
         expected = SubclassedFrame({'X': [1, 2, 3]})
         assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('mapping', (
+        dict,
+        collections.defaultdict(list),
+        collections.OrderedDict))
+    def test_to_dict(self, mapping):
+        # GH16122
+        ts = TestData().ts
+        tm.assert_series_equal(
+            Series(ts.to_dict(mapping), name='ts'), ts)
+        from_method = Series(ts.to_dict(collections.Counter))
+        from_constructor = Series(collections.Counter(ts.iteritems()))
+        tm.assert_series_equal(from_method, from_constructor)
 
 
 class TestSeriesToList(TestData):

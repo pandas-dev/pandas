@@ -46,7 +46,8 @@ from pandas.core.common import (is_bool_indexer,
                                 _maybe_match_name,
                                 SettingWithCopyError,
                                 _maybe_box_datetimelike,
-                                _dict_compat)
+                                _dict_compat,
+                                standardize_mapping)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
@@ -1074,15 +1075,39 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """ Convert Series to a nested list """
         return list(self.asobject)
 
-    def to_dict(self):
+    def to_dict(self, into=dict):
         """
-        Convert Series to {label -> value} dict
+        Convert Series to {label -> value} dict or dict-like object.
+
+        Parameters
+        ----------
+        into : class, default dict
+            The collections.Mapping subclass to use as the return
+            object. Can be the actual class or an empty
+            instance of the mapping type you want.  If you want a
+            collections.defaultdict, you must pass it initialized.
+
+            .. versionadded:: 0.21.0
 
         Returns
         -------
-        value_dict : dict
+        value_dict : collections.Mapping
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> s.to_dict()
+        {0: 1, 1: 2, 2: 3, 3: 4}
+        >>> from collections import OrderedDict, defaultdict
+        >>> s.to_dict(OrderedDict)
+        OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
+        >>> dd = defaultdict(list)
+        >>> s.to_dict(dd)
+        defaultdict(<type 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})
         """
-        return dict(compat.iteritems(self))
+        # GH16122
+        into_c = standardize_mapping(into)
+        return into_c(compat.iteritems(self))
 
     def to_frame(self, name=None):
         """
