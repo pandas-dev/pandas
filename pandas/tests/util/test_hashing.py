@@ -1,4 +1,5 @@
 import pytest
+import datetime
 
 from warnings import catch_warnings
 import numpy as np
@@ -81,7 +82,8 @@ class TestHashing(object):
 
     def test_hash_tuple(self):
         # test equivalence between hash_tuples and hash_tuple
-        for tup in [(1, 'one'), (1, np.nan), (1.0, pd.NaT, 'A')]:
+        for tup in [(1, 'one'), (1, np.nan), (1.0, pd.NaT, 'A'),
+                    ('A', pd.Timestamp("2012-01-01"))]:
             result = hash_tuple(tup)
             expected = hash_tuples([tup])[0]
             assert result == expected
@@ -89,8 +91,11 @@ class TestHashing(object):
     def test_hash_scalar(self):
         for val in [1, 1.4, 'A', b'A', u'A', pd.Timestamp("2012-01-01"),
                     pd.Timestamp("2012-01-01", tz='Europe/Brussels'),
-                    pd.Period('2012-01-01', freq='D'), pd.Timedelta('1 days'),
-                    pd.Interval(0, 1), np.nan, pd.NaT, None]:
+                    datetime.datetime(2012, 1, 1),
+                    pd.Timestamp("2012-01-01", tz='EST').to_pydatetime(),
+                    pd.Timedelta('1 days'), datetime.timedelta(1),
+                    pd.Period('2012-01-01', freq='D'), pd.Interval(0, 1),
+                    np.nan, pd.NaT, None]:
             result = _hash_scalar(val)
             expected = hash_array(np.array([val], dtype=object),
                                   categorize=True)
