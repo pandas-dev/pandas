@@ -63,7 +63,7 @@ column. This has JSON form:
 * Boolean: ``'bool'``
 * Integers: ``'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'``
 * Floats: ``'float16', 'float32', 'float64'``
-* Datetime: ``'datetime', 'datetimetz'``
+* Date and Time Types: ``'datetime', 'datetimetz'``, ``'timedelta'``
 * String: ``'unicode', 'bytes'``
 * Categorical: ``'categorical'``
 * Other Python objects: ``'object'``
@@ -75,7 +75,9 @@ any of the supported integer categorical types.
 
 The ``type_metadata`` is ``None`` except for:
 
-* ``datetimetz``: ``{'timezone': zone}``, e.g. ``{'timezone', 'America/New_York'}``
+* ``datetimetz``: ``{'timezone': zone, 'unit': 'ns'}``, e.g. ``{'timezone',
+  'America/New_York', 'unit': 'ns'}``. The ``'unit'`` is optional, and if
+  omitted it is assumed to be nanoseconds.
 * ``categorical``: ``{'num_categories': K, 'ordered': is_ordered, 'type': $TYPE}``
 
   * Here ``'type'`` is optional, and can be a nested pandas type specification
@@ -92,6 +94,9 @@ The ``type_metadata`` is ``None`` except for:
   * ``'msgpack'``
   * ``'bson'``
   * ``'json'``
+
+* ``timedelta``: ``{'unit': 'ns'}``. The ``'unit'`` is optional, and if omitted
+  it is assumed to be nanoseconds. This metadata is optional altogether
 
 For types other than these, the ``'metadata'`` key can be
 omitted. Implementations can assume ``None`` if the key is not present.
