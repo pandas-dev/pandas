@@ -9,16 +9,14 @@ from pandas.compat import lrange, u
 from pandas import DataFrame, Series, MultiIndex, date_range
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
+class TestDataFrameNonuniqueIndexes(TestData):
 
     def test_column_dups_operations(self):
 
@@ -53,7 +51,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
                               [2, 1, 3, 5, 'bah']],
                              columns=['foo', 'bar', 'foo', 'hello', 'string'])
         check(df, expected)
-        with assertRaisesRegexp(ValueError, 'Length of value'):
+        with tm.assert_raises_regex(ValueError, 'Length of value'):
             df.insert(0, 'AnotherColumn', range(len(df.index) - 1))
 
         # insert same dtype
@@ -103,8 +101,8 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         check(df, expected)
 
         # insert a dup
-        assertRaisesRegexp(ValueError, 'cannot insert',
-                           df.insert, 2, 'new_col', 4.)
+        tm.assert_raises_regex(ValueError, 'cannot insert',
+                               df.insert, 2, 'new_col', 4.)
         df.insert(2, 'new_col', 4., allow_duplicates=True)
         expected = DataFrame([[1, 1, 4., 5., 'bah', 3],
                               [1, 2, 4., 5., 'bah', 3],
@@ -153,7 +151,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         df = DataFrame([[1, 2.5], [3, 4.5]], index=[1, 2], columns=['x', 'x'])
         result = df.values
         expected = np.array([[1, 2.5], [3, 4.5]])
-        self.assertTrue((result == expected).all().all())
+        assert (result == expected).all().all()
 
         # rename, GH 4403
         df4 = DataFrame(
@@ -427,8 +425,8 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
                           columns=df_float.columns)
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
-        self.assertEqual(len(df._data._blknos), len(df.columns))
-        self.assertEqual(len(df._data._blklocs), len(df.columns))
+        assert len(df._data._blknos) == len(df.columns)
+        assert len(df._data._blklocs) == len(df.columns)
 
         # testing iloc
         for i in range(len(df.columns)):
@@ -450,7 +448,7 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
         expected = np.array([[1, 2, 'a', 'b'], [1, 2, 'a', 'b']],
                             dtype=object)
 
-        self.assertTrue(np.array_equal(result, expected))
+        assert np.array_equal(result, expected)
 
     def test_set_value_by_index(self):
         # See gh-12344

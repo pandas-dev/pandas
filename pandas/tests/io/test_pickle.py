@@ -299,6 +299,18 @@ def test_pickle_v0_15_2():
     tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
 
+def test_pickle_path_pathlib():
+    df = tm.makeDataFrame()
+    result = tm.round_trip_pathlib(df.to_pickle, pd.read_pickle)
+    tm.assert_frame_equal(df, result)
+
+
+def test_pickle_path_localpath():
+    df = tm.makeDataFrame()
+    result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
+    tm.assert_frame_equal(df, result)
+
+
 # ---------------------
 # test pickle compression
 # ---------------------
@@ -403,8 +415,8 @@ class TestCompression(object):
 
     @pytest.mark.parametrize('compression', ['', 'None', 'bad', '7z'])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with tm.assertRaisesRegexp(ValueError,
-                                   "Unrecognized compression type"):
+        with tm.assert_raises_regex(ValueError,
+                                    "Unrecognized compression type"):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)

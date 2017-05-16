@@ -25,8 +25,8 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays)
 import pandas.core.generic as generic
 from pandas.core.sparse.series import SparseSeries, SparseArray
-from pandas.core.sparse.libsparse import BlockIndex, get_blocks
-from pandas.util.decorators import Appender
+from pandas._libs.sparse import BlockIndex, get_blocks
+from pandas.util._decorators import Appender
 import pandas.core.ops as ops
 
 
@@ -190,8 +190,8 @@ class SparseDataFrame(DataFrame):
         values = Series(data.data, index=data.row, copy=False)
         for col, rowvals in values.groupby(data.col):
             # get_blocks expects int32 row indices in sorted order
+            rowvals = rowvals.sort_index()
             rows = rowvals.index.values.astype(np.int32)
-            rows.sort()
             blocs, blens = get_blocks(rows)
 
             sdict[columns[col]] = SparseSeries(

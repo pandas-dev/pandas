@@ -119,18 +119,7 @@ if [ "$COVERAGE" ]; then
 fi
 
 echo
-if [ "$BUILD_TEST" ]; then
-
-    # build & install testing
-    echo ["Starting installation test."]
-    rm -rf dist
-    python setup.py clean
-    python setup.py build_ext --inplace
-    python setup.py sdist --formats=gztar
-    conda uninstall cython
-    pip install dist/*tar.gz || exit 1
-
-else
+if [ -z "$BUILD_TEST" ]; then
 
     # build but don't install
     echo "[build em]"
@@ -162,14 +151,26 @@ if [ -e ${REQ} ]; then
     time bash $REQ || exit 1
 fi
 
-# finish install if we are not doing a build-testk
-if [ -z "$BUILD_TEST" ]; then
+# remove any installed pandas package
+# w/o removing anything else
+echo
+echo "[removing installed pandas]"
+conda remove pandas -y --force
 
-    # remove any installed pandas package
-    # w/o removing anything else
-    echo
-    echo "[removing installed pandas]"
-    conda remove pandas --force
+if [ "$BUILD_TEST" ]; then
+
+    # remove any installation
+    pip uninstall -y pandas
+    conda list pandas
+    pip list --format columns |grep pandas
+
+    # build & install testing
+    echo ["building release"]
+    bash scripts/build_dist_for_release.sh
+    conda uninstall -y cython
+    time pip install dist/*tar.gz || exit 1
+
+else
 
     # install our pandas
     echo
@@ -177,6 +178,10 @@ if [ -z "$BUILD_TEST" ]; then
     python setup.py develop  || exit 1
 
 fi
+
+echo
+echo "[show pandas]"
+conda list pandas
 
 echo
 echo "[done]"

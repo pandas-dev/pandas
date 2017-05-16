@@ -2,13 +2,12 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Index, Series, isnull
 from pandas.compat import lrange
-from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 from .common import MixIn
 
 
-class TestNth(MixIn, tm.TestCase):
+class TestNth(MixIn):
 
     def test_first_last_nth(self):
         # tests for first / last / nth
@@ -42,9 +41,9 @@ class TestNth(MixIn, tm.TestCase):
         grouped['B'].nth(0)
 
         self.df.loc[self.df['A'] == 'foo', 'B'] = np.nan
-        self.assertTrue(isnull(grouped['B'].first()['foo']))
-        self.assertTrue(isnull(grouped['B'].last()['foo']))
-        self.assertTrue(isnull(grouped['B'].nth(0)['foo']))
+        assert isnull(grouped['B'].first()['foo'])
+        assert isnull(grouped['B'].last()['foo'])
+        assert isnull(grouped['B'].nth(0)['foo'])
 
         # v0.14.0 whatsnew
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
@@ -87,9 +86,9 @@ class TestNth(MixIn, tm.TestCase):
         idx = lrange(10)
         idx.append(9)
         s = Series(data=lrange(11), index=idx, name='IntCol')
-        self.assertEqual(s.dtype, 'int64')
+        assert s.dtype == 'int64'
         f = s.groupby(level=0).first()
-        self.assertEqual(f.dtype, 'int64')
+        assert f.dtype == 'int64'
 
     def test_nth(self):
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
@@ -154,13 +153,13 @@ class TestNth(MixIn, tm.TestCase):
         expected = s.groupby(g).first()
         expected2 = s.groupby(g).apply(lambda x: x.iloc[0])
         assert_series_equal(expected2, expected, check_names=False)
-        self.assertTrue(expected.name, 0)
-        self.assertEqual(expected.name, 1)
+        assert expected.name, 0
+        assert expected.name == 1
 
         # validate first
         v = s[g == 1].iloc[0]
-        self.assertEqual(expected.iloc[0], v)
-        self.assertEqual(expected2.iloc[0], v)
+        assert expected.iloc[0] == v
+        assert expected2.iloc[0] == v
 
         # this is NOT the same as .first (as sorted is default!)
         # as it keeps the order in the series (and not the group order)

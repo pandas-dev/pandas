@@ -176,10 +176,10 @@ class Numeric(Base):
         tm.assert_index_equal(index % 2, expected)
 
 
-class TestFloat64Index(Numeric, tm.TestCase):
+class TestFloat64Index(Numeric):
     _holder = Float64Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(mixed=Float64Index([1.5, 2, 3, 4, 5]),
                             float=Float64Index(np.arange(5) * 2.5))
         self.setup_indices()
@@ -216,23 +216,23 @@ class TestFloat64Index(Numeric, tm.TestCase):
         assert isinstance(index, Float64Index)
         index = Float64Index(np.array([1., 2, 3, 4, 5]))
         assert isinstance(index, Float64Index)
-        self.assertEqual(index.dtype, float)
+        assert index.dtype == float
 
         index = Float64Index(np.array([1., 2, 3, 4, 5]), dtype=np.float32)
         assert isinstance(index, Float64Index)
-        self.assertEqual(index.dtype, np.float64)
+        assert index.dtype == np.float64
 
         index = Float64Index(np.array([1, 2, 3, 4, 5]), dtype=np.float32)
         assert isinstance(index, Float64Index)
-        self.assertEqual(index.dtype, np.float64)
+        assert index.dtype == np.float64
 
         # nan handling
         result = Float64Index([np.nan, np.nan])
-        self.assertTrue(pd.isnull(result.values).all())
+        assert pd.isnull(result.values).all()
         result = Float64Index(np.array([np.nan]))
-        self.assertTrue(pd.isnull(result.values).all())
+        assert pd.isnull(result.values).all()
         result = Index(np.array([np.nan]))
-        self.assertTrue(pd.isnull(result.values).all())
+        assert pd.isnull(result.values).all()
 
     def test_constructor_invalid(self):
 
@@ -260,15 +260,15 @@ class TestFloat64Index(Numeric, tm.TestCase):
     def test_astype(self):
 
         result = self.float.astype(object)
-        self.assertTrue(result.equals(self.float))
-        self.assertTrue(self.float.equals(result))
+        assert result.equals(self.float)
+        assert self.float.equals(result)
         self.check_is_index(result)
 
         i = self.mixed.copy()
         i.name = 'foo'
         result = i.astype(object)
-        self.assertTrue(result.equals(i))
-        self.assertTrue(i.equals(result))
+        assert result.equals(i)
+        assert i.equals(result)
         self.check_is_index(result)
 
         # GH 12881
@@ -307,18 +307,18 @@ class TestFloat64Index(Numeric, tm.TestCase):
     def test_equals_numeric(self):
 
         i = Float64Index([1.0, 2.0])
-        self.assertTrue(i.equals(i))
-        self.assertTrue(i.identical(i))
+        assert i.equals(i)
+        assert i.identical(i)
 
         i2 = Float64Index([1.0, 2.0])
-        self.assertTrue(i.equals(i2))
+        assert i.equals(i2)
 
         i = Float64Index([1.0, np.nan])
-        self.assertTrue(i.equals(i))
-        self.assertTrue(i.identical(i))
+        assert i.equals(i)
+        assert i.identical(i)
 
         i2 = Float64Index([1.0, np.nan])
-        self.assertTrue(i.equals(i2))
+        assert i.equals(i2)
 
     def test_get_indexer(self):
         idx = Float64Index([0.0, 1.0, 2.0])
@@ -336,54 +336,54 @@ class TestFloat64Index(Numeric, tm.TestCase):
     def test_get_loc(self):
         idx = Float64Index([0.0, 1.0, 2.0])
         for method in [None, 'pad', 'backfill', 'nearest']:
-            self.assertEqual(idx.get_loc(1, method), 1)
+            assert idx.get_loc(1, method) == 1
             if method is not None:
-                self.assertEqual(idx.get_loc(1, method, tolerance=0), 1)
+                assert idx.get_loc(1, method, tolerance=0) == 1
 
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
-            self.assertEqual(idx.get_loc(1.1, method), loc)
-            self.assertEqual(idx.get_loc(1.1, method, tolerance=0.9), loc)
+            assert idx.get_loc(1.1, method) == loc
+            assert idx.get_loc(1.1, method, tolerance=0.9) == loc
 
         pytest.raises(KeyError, idx.get_loc, 'foo')
         pytest.raises(KeyError, idx.get_loc, 1.5)
         pytest.raises(KeyError, idx.get_loc, 1.5, method='pad',
                       tolerance=0.1)
 
-        with tm.assertRaisesRegexp(ValueError, 'must be numeric'):
+        with tm.assert_raises_regex(ValueError, 'must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
 
     def test_get_loc_na(self):
         idx = Float64Index([np.nan, 1, 2])
-        self.assertEqual(idx.get_loc(1), 1)
-        self.assertEqual(idx.get_loc(np.nan), 0)
+        assert idx.get_loc(1) == 1
+        assert idx.get_loc(np.nan) == 0
 
         idx = Float64Index([np.nan, 1, np.nan])
-        self.assertEqual(idx.get_loc(1), 1)
+        assert idx.get_loc(1) == 1
 
         # representable by slice [0:2:2]
         # pytest.raises(KeyError, idx.slice_locs, np.nan)
         sliced = idx.slice_locs(np.nan)
-        self.assertTrue(isinstance(sliced, tuple))
-        self.assertEqual(sliced, (0, 3))
+        assert isinstance(sliced, tuple)
+        assert sliced == (0, 3)
 
         # not representable by slice
         idx = Float64Index([np.nan, 1, np.nan, np.nan])
-        self.assertEqual(idx.get_loc(1), 1)
+        assert idx.get_loc(1) == 1
         pytest.raises(KeyError, idx.slice_locs, np.nan)
 
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
-        self.assertTrue(np.nan in i)
+        assert np.nan in i
 
     def test_contains_not_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
-        self.assertTrue(1.0 in i)
+        assert 1.0 in i
 
     def test_doesnt_contain_all_the_things(self):
         i = Float64Index([np.nan])
-        self.assertFalse(i.isin([0]).item())
-        self.assertFalse(i.isin([1]).item())
-        self.assertTrue(i.isin([np.nan]).item())
+        assert not i.isin([0]).item()
+        assert not i.isin([1]).item()
+        assert i.isin([np.nan]).item()
 
     def test_nan_multiple_containment(self):
         i = Float64Index([1.0, np.nan])
@@ -400,7 +400,7 @@ class TestFloat64Index(Numeric, tm.TestCase):
         index = Index([1.0, np.nan, 0.2], dtype='object')
         result = index.astype(float)
         expected = Float64Index([1.0, np.nan, 0.2])
-        self.assertEqual(result.dtype, expected.dtype)
+        assert result.dtype == expected.dtype
         tm.assert_index_equal(result, expected)
 
     def test_fillna_float64(self):
@@ -438,9 +438,9 @@ class TestFloat64Index(Numeric, tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -454,7 +454,7 @@ class NumericInt(Numeric):
 
         i = self._holder([], name='Foo')
         i_view = i.view()
-        self.assertEqual(i_view.name, 'Foo')
+        assert i_view.name == 'Foo'
 
         i_view = i.view(self._dtype)
         tm.assert_index_equal(i, self._holder(i_view, name='Foo'))
@@ -463,42 +463,41 @@ class NumericInt(Numeric):
         tm.assert_index_equal(i, self._holder(i_view, name='Foo'))
 
     def test_is_monotonic(self):
-        self.assertTrue(self.index.is_monotonic)
-        self.assertTrue(self.index.is_monotonic_increasing)
-        self.assertFalse(self.index.is_monotonic_decreasing)
+        assert self.index.is_monotonic
+        assert self.index.is_monotonic_increasing
+        assert not self.index.is_monotonic_decreasing
 
         index = self._holder([4, 3, 2, 1])
-        self.assertFalse(index.is_monotonic)
-        self.assertTrue(index.is_monotonic_decreasing)
+        assert not index.is_monotonic
+        assert index.is_monotonic_decreasing
 
         index = self._holder([1])
-        self.assertTrue(index.is_monotonic)
-        self.assertTrue(index.is_monotonic_increasing)
-        self.assertTrue(index.is_monotonic_decreasing)
+        assert index.is_monotonic
+        assert index.is_monotonic_increasing
+        assert index.is_monotonic_decreasing
 
     def test_logical_compat(self):
         idx = self.create_index()
-        self.assertEqual(idx.all(), idx.values.all())
-        self.assertEqual(idx.any(), idx.values.any())
+        assert idx.all() == idx.values.all()
+        assert idx.any() == idx.values.any()
 
     def test_identical(self):
         i = Index(self.index.copy())
-        self.assertTrue(i.identical(self.index))
+        assert i.identical(self.index)
 
         same_values_different_type = Index(i, dtype=object)
-        self.assertFalse(i.identical(same_values_different_type))
+        assert not i.identical(same_values_different_type)
 
         i = self.index.copy(dtype=object)
         i = i.rename('foo')
         same_values = Index(i, dtype=object)
-        self.assertTrue(same_values.identical(i))
+        assert same_values.identical(i)
 
-        self.assertFalse(i.identical(self.index))
-        self.assertTrue(Index(same_values, name='foo', dtype=object).identical(
-            i))
+        assert not i.identical(self.index)
+        assert Index(same_values, name='foo', dtype=object).identical(i)
 
-        self.assertFalse(self.index.copy(dtype=object)
-                         .identical(self.index.copy(dtype=self._dtype)))
+        assert not self.index.copy(dtype=object).identical(
+            self.index.copy(dtype=self._dtype))
 
     def test_join_non_unique(self):
         left = Index([4, 4, 3, 3])
@@ -518,7 +517,7 @@ class NumericInt(Numeric):
         kinds = 'outer', 'inner', 'left', 'right'
         for kind in kinds:
             joined = self.index.join(self.index, how=kind)
-            self.assertIs(self.index, joined)
+            assert self.index is joined
 
     def test_union_noncomparable(self):
         from datetime import datetime, timedelta
@@ -547,12 +546,12 @@ class NumericInt(Numeric):
 
     def test_prevent_casting(self):
         result = self.index.astype('O')
-        self.assertEqual(result.dtype, np.object_)
+        assert result.dtype == np.object_
 
     def test_take_preserve_name(self):
         index = self._holder([1, 2, 3, 4], name='foo')
         taken = index.take([3, 0, 1])
-        self.assertEqual(index.name, taken.name)
+        assert index.name == taken.name
 
     def test_take_fill_value(self):
         # see gh-12631
@@ -566,7 +565,7 @@ class NumericInt(Numeric):
                "{name} cannot contain NA").format(name=name)
 
         # fill_value=True
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -1]), fill_value=True)
 
         # allow_fill=False
@@ -575,9 +574,9 @@ class NumericInt(Numeric):
         expected = self._holder([2, 1, 3], name='xxx')
         tm.assert_index_equal(result, expected)
 
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -585,7 +584,7 @@ class NumericInt(Numeric):
 
     def test_slice_keep_name(self):
         idx = self._holder([1, 2], name='asdf')
-        self.assertEqual(idx.name, idx[1:].name)
+        assert idx.name == idx[1:].name
 
     def test_ufunc_coercions(self):
         idx = self._holder([1, 2, 3, 4, 5], name='x')
@@ -622,11 +621,11 @@ class NumericInt(Numeric):
         tm.assert_index_equal(result, exp)
 
 
-class TestInt64Index(NumericInt, tm.TestCase):
+class TestInt64Index(NumericInt):
     _dtype = 'int64'
     _holder = Int64Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=Int64Index(np.arange(0, 20, 2)))
         self.setup_indices()
 
@@ -654,7 +653,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
 
         # this should not change index
         arr[0] = val
-        self.assertNotEqual(new_index[0], val)
+        assert new_index[0] != val
 
         # interpret list-like
         expected = Int64Index([5, 0])
@@ -667,16 +666,16 @@ class TestInt64Index(NumericInt, tm.TestCase):
     def test_constructor_corner(self):
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = Int64Index(arr)
-        self.assertEqual(index.values.dtype, np.int64)
+        assert index.values.dtype == np.int64
         tm.assert_index_equal(index, Index(arr))
 
         # preventing casting
         arr = np.array([1, '2', 3, '4'], dtype=object)
-        with tm.assertRaisesRegexp(TypeError, 'casting'):
+        with tm.assert_raises_regex(TypeError, 'casting'):
             Int64Index(arr)
 
         arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
-        with tm.assertRaisesRegexp(TypeError, 'casting'):
+        with tm.assert_raises_regex(TypeError, 'casting'):
             Int64Index(arr_with_floats)
 
     def test_coerce_list(self):
@@ -791,7 +790,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
 
         assert isinstance(res, Int64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # monotonic
@@ -801,7 +800,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
                          dtype=np.intp)
         assert isinstance(res, Int64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # non-unique
@@ -828,7 +827,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
         assert isinstance(other, Int64Index)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
-        self.assertIsNone(ridx)
+        assert ridx is None
 
         # monotonic
         res, lidx, ridx = self.index.join(other_mono, how='right',
@@ -838,7 +837,7 @@ class TestInt64Index(NumericInt, tm.TestCase):
         assert isinstance(other, Int64Index)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
-        self.assertIsNone(ridx)
+        assert ridx is None
 
         # non-unique
         idx = Index([1, 1, 2, 5])
@@ -916,12 +915,12 @@ class TestInt64Index(NumericInt, tm.TestCase):
         tm.assert_numpy_array_equal(ridx, eridx)
 
 
-class TestUInt64Index(NumericInt, tm.TestCase):
+class TestUInt64Index(NumericInt):
 
     _dtype = 'uint64'
     _holder = UInt64Index
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=UInt64Index([2**63, 2**63 + 10, 2**63 + 15,
                                                2**63 + 20, 2**63 + 25]))
         self.setup_indices()
@@ -1031,7 +1030,7 @@ class TestUInt64Index(NumericInt, tm.TestCase):
 
         assert isinstance(res, UInt64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # monotonic
@@ -1041,7 +1040,7 @@ class TestUInt64Index(NumericInt, tm.TestCase):
 
         assert isinstance(res, UInt64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(lidx)
+        assert lidx is None
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # non-unique
@@ -1074,7 +1073,7 @@ class TestUInt64Index(NumericInt, tm.TestCase):
         tm.assert_numpy_array_equal(lidx, elidx)
         assert isinstance(other, UInt64Index)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(ridx)
+        assert ridx is None
 
         # monotonic
         res, lidx, ridx = self.index.join(other_mono, how='right',
@@ -1085,7 +1084,7 @@ class TestUInt64Index(NumericInt, tm.TestCase):
         assert isinstance(other, UInt64Index)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_index_equal(res, eres)
-        self.assertIsNone(ridx)
+        assert ridx is None
 
         # non-unique
         idx = UInt64Index(2**63 + np.array([1, 1, 2, 5], dtype='uint64'))

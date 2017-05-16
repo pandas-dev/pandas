@@ -32,6 +32,14 @@ from pandas.io.formats.excel import CSSToExcelConverter
     ('font-family: roman, fantasy', {'font': {'name': 'roman', 'family': 5}}),
     # - size
     ('font-size: 1em', {'font': {'size': 12}}),
+    ('font-size: xx-small', {'font': {'size': 6}}),
+    ('font-size: x-small', {'font': {'size': 7.5}}),
+    ('font-size: small', {'font': {'size': 9.6}}),
+    ('font-size: medium', {'font': {'size': 12}}),
+    ('font-size: large', {'font': {'size': 13.5}}),
+    ('font-size: x-large', {'font': {'size': 18}}),
+    ('font-size: xx-large', {'font': {'size': 24}}),
+    ('font-size: 50%', {'font': {'size': 6}}),
     # - bold
     ('font-weight: 100', {'font': {'bold': False}}),
     ('font-weight: 200', {'font': {'bold': False}}),
@@ -45,6 +53,8 @@ from pandas.io.formats.excel import CSSToExcelConverter
     ('font-weight: 800', {'font': {'bold': True}}),
     ('font-weight: 900', {'font': {'bold': True}}),
     # - italic
+    ('font-style: italic', {'font': {'italic': True}}),
+    ('font-style: oblique', {'font': {'italic': True}}),
     # - underline
     ('text-decoration: underline',
      {'font': {'underline': 'single'}}),
@@ -73,14 +83,7 @@ from pandas.io.formats.excel import CSSToExcelConverter
     ('text-shadow: 0px -0em 2px #CCC', {'font': {'shadow': True}}),
     ('text-shadow: 0px -0em 2px', {'font': {'shadow': True}}),
     ('text-shadow: 0px -2em', {'font': {'shadow': True}}),
-    pytest.mark.xfail(('text-shadow: #CCC 3px 3px 3px',
-                       {'font': {'shadow': True}}),
-                      reason='text-shadow with color preceding width not yet '
-                             'identified as shadow'),
-    pytest.mark.xfail(('text-shadow: #999 0px 0px 0px',
-                       {'font': {'shadow': False}}),
-                      reason='text-shadow with color preceding zero width not '
-                             'yet identified as non-shadow'),
+
     # FILL
     # - color, fillType
     ('background-color: red', {'fill': {'fgColor': 'FF0000',
@@ -209,11 +212,3 @@ def test_css_to_excel_multiple():
 def test_css_to_excel_inherited(css, inherited, expected):
     convert = CSSToExcelConverter(inherited)
     assert expected == convert(css)
-
-
-@pytest.mark.xfail(reason='We are not currently warning for all unconverted '
-                          'CSS, but possibly should')
-def test_css_to_excel_warns_when_not_supported():
-    convert = CSSToExcelConverter()
-    with pytest.warns(UserWarning):
-        convert('background: red')

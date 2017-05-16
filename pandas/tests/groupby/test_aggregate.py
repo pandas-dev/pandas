@@ -25,9 +25,9 @@ from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
 
-class TestGroupByAggregate(tm.TestCase):
+class TestGroupByAggregate(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.ts = tm.makeTimeSeries()
 
         self.seriesd = tm.getSeriesData()
@@ -197,7 +197,7 @@ class TestGroupByAggregate(tm.TestCase):
     def test_agg_apply_corner(self):
         # nothing to group, all NA
         grouped = self.ts.groupby(self.ts * np.nan)
-        self.assertEqual(self.ts.dtype, np.float64)
+        assert self.ts.dtype == np.float64
 
         # groupby float64 values results in Float64Index
         exp = Series([], dtype=np.float64, index=pd.Index(
@@ -445,7 +445,7 @@ class TestGroupByAggregate(tm.TestCase):
         # def aggfun(ser):
         #     return len(ser + 'a')
         # result = grouped.agg(aggfun)
-        # self.assertEqual(len(result.columns), 1)
+        # assert len(result.columns) == 1
 
         aggfun = lambda ser: ser.size
         result = grouped.agg(aggfun)
@@ -468,7 +468,7 @@ class TestGroupByAggregate(tm.TestCase):
 
         result = DataFrame().groupby(self.df.A).agg(aggfun)
         assert isinstance(result, DataFrame)
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
     def test_agg_item_by_item_raise_typeerror(self):
         from numpy.random import randint
@@ -577,7 +577,8 @@ class TestGroupByAggregate(tm.TestCase):
                            'b': ['foo', 'bar'] * 25,
                            'dates': pd.date_range('now', periods=50,
                                                   freq='T')})
-        with tm.assertRaisesRegexp(DataError, "No numeric types to aggregate"):
+        with tm.assert_raises_regex(DataError,
+                                    "No numeric types to aggregate"):
             frame.groupby('b').dates.mean()
 
     def test_cython_agg_frame_columns(self):

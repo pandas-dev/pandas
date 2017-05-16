@@ -41,8 +41,8 @@ from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.core.tools.datetimes import (
     parse_time_string, normalize_date, to_time)
 from pandas.core.tools.timedeltas import to_timedelta
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate_kwarg, Substitution)
+from pandas.util._decorators import (Appender, cache_readonly,
+                                     deprecate_kwarg, Substitution)
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools

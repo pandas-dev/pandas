@@ -15,8 +15,41 @@ import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
                                 is_one_of_factory, get_default_val,
                                 is_callable)
-from pandas.io.formats.format import detect_console_encoding
+from pandas.io.formats.console import detect_console_encoding
 
+# compute
+
+use_bottleneck_doc = """
+: bool
+    Use the bottleneck library to accelerate if it is installed,
+    the default is True
+    Valid values: False,True
+"""
+
+
+def use_bottleneck_cb(key):
+    from pandas.core import nanops
+    nanops.set_use_bottleneck(cf.get_option(key))
+
+
+use_numexpr_doc = """
+: bool
+    Use the numexpr library to accelerate computation if it is installed,
+    the default is True
+    Valid values: False,True
+"""
+
+
+def use_numexpr_cb(key):
+    from pandas.core.computation import expressions
+    expressions.set_use_numexpr(cf.get_option(key))
+
+
+with cf.config_prefix('compute'):
+    cf.register_option('use_bottleneck', True, use_bottleneck_doc,
+                       validator=is_bool, cb=use_bottleneck_cb)
+    cf.register_option('use_numexpr', True, use_numexpr_doc,
+                       validator=is_bool, cb=use_numexpr_cb)
 #
 # options from the "display" namespace
 
@@ -307,6 +340,11 @@ def mpl_style_cb(key):
     return val
 
 
+def table_schema_cb(key):
+    from pandas.io.formats.printing import _enable_data_resource_formatter
+    _enable_data_resource_formatter(cf.get_option(key))
+
+
 with cf.config_prefix('display'):
     cf.register_option('precision', 6, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc,
@@ -374,7 +412,7 @@ with cf.config_prefix('display'):
     cf.register_option('latex.multirow', False, pc_latex_multirow,
                        validator=is_bool)
     cf.register_option('html.table_schema', False, pc_table_schema_doc,
-                       validator=is_bool)
+                       validator=is_bool, cb=table_schema_cb)
 
 
 cf.deprecate_option('display.line_width',

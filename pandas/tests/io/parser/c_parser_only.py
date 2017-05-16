@@ -33,7 +33,7 @@ class CParserTests(object):
             try:
                 self.read_table(StringIO(malf))
             except Exception as err:
-                self.assertIn(cperr, str(err))
+                assert cperr in str(err)
 
     def test_buffer_rd_bytes(self):
         # see gh-12098: src->buffer in the C parser can be freed twice leading
@@ -96,7 +96,7 @@ nan 2
 3.0 3
 """
         # fallback casting, but not castable
-        with tm.assertRaisesRegexp(ValueError, 'cannot safely convert'):
+        with tm.assert_raises_regex(ValueError, 'cannot safely convert'):
             self.read_csv(StringIO(data), sep=r'\s+', header=None,
                           names=['a', 'b'], dtype={'a': np.int32})
 
@@ -152,10 +152,10 @@ nan 2
             precise_errors.append(error(precise_val))
 
             # round-trip should match float()
-            self.assertEqual(roundtrip_val, float(text[2:]))
+            assert roundtrip_val == float(text[2:])
 
-        self.assertTrue(sum(precise_errors) <= sum(normal_errors))
-        self.assertTrue(max(precise_errors) <= max(normal_errors))
+        assert sum(precise_errors) <= sum(normal_errors)
+        assert max(precise_errors) <= max(normal_errors)
 
     def test_pass_dtype_as_recarray(self):
         if compat.is_platform_windows() and self.low_memory:
@@ -173,8 +173,8 @@ one,two
                 FutureWarning, check_stacklevel=False):
             result = self.read_csv(StringIO(data), dtype={
                 'one': 'u1', 1: 'S1'}, as_recarray=True)
-            self.assertEqual(result['one'].dtype, 'u1')
-            self.assertEqual(result['two'].dtype, 'S1')
+            assert result['one'].dtype == 'u1'
+            assert result['two'].dtype == 'S1'
 
     def test_usecols_dtypes(self):
         data = """\
@@ -195,8 +195,8 @@ one,two
                                 converters={'a': str},
                                 dtype={'b': int, 'c': float},
                                 )
-        self.assertTrue((result.dtypes == [object, np.int, np.float]).all())
-        self.assertTrue((result2.dtypes == [object, np.float]).all())
+        assert (result.dtypes == [object, np.int, np.float]).all()
+        assert (result2.dtypes == [object, np.float]).all()
 
     def test_disable_bool_parsing(self):
         # #2090
@@ -208,10 +208,10 @@ Yes,,Yes
 No,No,No"""
 
         result = self.read_csv(StringIO(data), dtype=object)
-        self.assertTrue((result.dtypes == object).all())
+        assert (result.dtypes == object).all()
 
         result = self.read_csv(StringIO(data), dtype=object, na_filter=False)
-        self.assertEqual(result['B'][2], '')
+        assert result['B'][2] == ''
 
     def test_custom_lineterminator(self):
         data = 'a,b,c~1,2,3~4,5,6'
@@ -388,7 +388,7 @@ No,No,No"""
 
         df = self.read_csv(StringIO(test_input), sep='\t', nrows=1010)
 
-        self.assertTrue(df.size == 1010 * 10)
+        assert df.size == 1010 * 10
 
     def test_float_precision_round_trip_with_text(self):
         # gh-15140 - This should not segfault on Python 2.7+

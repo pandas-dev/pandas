@@ -24,7 +24,7 @@ except ImportError:
     pass
 
 
-class TestCommonIOCapabilities(tm.TestCase):
+class TestCommonIOCapabilities(object):
     data1 = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -38,24 +38,24 @@ bar2,12,13,14,15
         filename = '~/sometest'
         expanded_name = common._expand_user(filename)
 
-        self.assertNotEqual(expanded_name, filename)
-        self.assertTrue(isabs(expanded_name))
-        self.assertEqual(os.path.expanduser(filename), expanded_name)
+        assert expanded_name != filename
+        assert isabs(expanded_name)
+        assert os.path.expanduser(filename) == expanded_name
 
     def test_expand_user_normal_path(self):
         filename = '/somefolder/sometest'
         expanded_name = common._expand_user(filename)
 
-        self.assertEqual(expanded_name, filename)
-        self.assertEqual(os.path.expanduser(filename), expanded_name)
+        assert expanded_name == filename
+        assert os.path.expanduser(filename) == expanded_name
 
     def test_stringify_path_pathlib(self):
         tm._skip_if_no_pathlib()
 
         rel_path = common._stringify_path(Path('.'))
-        self.assertEqual(rel_path, '.')
+        assert rel_path == '.'
         redundant_path = common._stringify_path(Path('foo//bar'))
-        self.assertEqual(redundant_path, os.path.join('foo', 'bar'))
+        assert redundant_path == os.path.join('foo', 'bar')
 
     def test_stringify_path_localpath(self):
         tm._skip_if_no_localpath()
@@ -63,19 +63,19 @@ bar2,12,13,14,15
         path = os.path.join('foo', 'bar')
         abs_path = os.path.abspath(path)
         lpath = LocalPath(path)
-        self.assertEqual(common._stringify_path(lpath), abs_path)
+        assert common._stringify_path(lpath) == abs_path
 
     def test_get_filepath_or_buffer_with_path(self):
         filename = '~/sometest'
         filepath_or_buffer, _, _ = common.get_filepath_or_buffer(filename)
-        self.assertNotEqual(filepath_or_buffer, filename)
-        self.assertTrue(isabs(filepath_or_buffer))
-        self.assertEqual(os.path.expanduser(filename), filepath_or_buffer)
+        assert filepath_or_buffer != filename
+        assert isabs(filepath_or_buffer)
+        assert os.path.expanduser(filename) == filepath_or_buffer
 
     def test_get_filepath_or_buffer_with_buffer(self):
         input_buffer = StringIO()
         filepath_or_buffer, _, _ = common.get_filepath_or_buffer(input_buffer)
-        self.assertEqual(filepath_or_buffer, input_buffer)
+        assert filepath_or_buffer == input_buffer
 
     def test_iterator(self):
         reader = read_csv(StringIO(self.data1), chunksize=1)
@@ -90,9 +90,9 @@ bar2,12,13,14,15
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
 
 
-class TestMMapWrapper(tm.TestCase):
+class TestMMapWrapper(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.mmap_file = os.path.join(tm.get_data_path(),
                                       'test_mmap.csv')
 
@@ -108,13 +108,14 @@ class TestMMapWrapper(tm.TestCase):
             msg = "[Errno 22]"
             err = mmap.error
 
-        tm.assertRaisesRegexp(err, msg, common.MMapWrapper, non_file)
+        tm.assert_raises_regex(err, msg, common.MMapWrapper, non_file)
 
         target = open(self.mmap_file, 'r')
         target.close()
 
         msg = "I/O operation on closed file"
-        tm.assertRaisesRegexp(ValueError, msg, common.MMapWrapper, target)
+        tm.assert_raises_regex(
+            ValueError, msg, common.MMapWrapper, target)
 
     def test_get_attr(self):
         with open(self.mmap_file, 'r') as target:
@@ -126,9 +127,9 @@ class TestMMapWrapper(tm.TestCase):
         attrs.append('__next__')
 
         for attr in attrs:
-            self.assertTrue(hasattr(wrapper, attr))
+            assert hasattr(wrapper, attr)
 
-        self.assertFalse(hasattr(wrapper, 'foo'))
+        assert not hasattr(wrapper, 'foo')
 
     def test_next(self):
         with open(self.mmap_file, 'r') as target:
@@ -137,6 +138,6 @@ class TestMMapWrapper(tm.TestCase):
 
         for line in lines:
             next_line = next(wrapper)
-            self.assertEqual(next_line.strip(), line.strip())
+            assert next_line.strip() == line.strip()
 
         pytest.raises(StopIteration, next, wrapper)

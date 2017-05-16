@@ -10,7 +10,6 @@ import inspect
 import os
 import subprocess
 import locale
-import unittest
 import traceback
 
 from datetime import datetime
@@ -49,7 +48,7 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     Index, MultiIndex,
                     Series, DataFrame, Panel, Panel4D)
 
-from pandas.util import libtesting
+from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
 try:
     import pytest
@@ -86,25 +85,6 @@ def reset_testing_mode():
 set_testing_mode()
 
 
-class TestCase(unittest.TestCase):
-    """
-    The test case class that we originally used when using the
-    nosetests framework. Under the new pytest framework, we are
-    moving away from this class.
-
-    Do not create new test classes derived from this one. Rather,
-    they should inherit from object directly.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        pd.set_option('chained_assignment', 'raise')
-
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
-
 def reset_display_options():
     """
     Reset the display options for printing and representing objects.
@@ -137,16 +117,74 @@ def round_trip_pickle(obj, path=None):
         return pd.read_pickle(path)
 
 
+def round_trip_pathlib(writer, reader, path=None):
+    """
+    Write an object to file specifed by a pathlib.Path and read it back
+
+    Parameters
+    ----------
+    writer : callable bound to pandas object
+        IO writing function (e.g. DataFrame.to_csv )
+    reader : callable
+        IO reading function (e.g. pd.read_csv )
+    path : str, default None
+        The path where the object is written and then read.
+
+    Returns
+    -------
+    round_trip_object : pandas object
+        The original object that was serialized and then re-read.
+    """
+
+    import pytest
+    Path = pytest.importorskip('pathlib').Path
+    if path is None:
+        path = '___pathlib___'
+    with ensure_clean(path) as path:
+        writer(Path(path))
+        obj = reader(Path(path))
+    return obj
+
+
+def round_trip_localpath(writer, reader, path=None):
+    """
+    Write an object to file specifed by a py.path LocalPath and read it back
+
+    Parameters
+    ----------
+    writer : callable bound to pandas object
+        IO writing function (e.g. DataFrame.to_csv )
+    reader : callable
+        IO reading function (e.g. pd.read_csv )
+    path : str, default None
+        The path where the object is written and then read.
+
+    Returns
+    -------
+    round_trip_object : pandas object
+        The original object that was serialized and then re-read.
+    """
+    import pytest
+    LocalPath = pytest.importorskip('py.path').local
+    if path is None:
+        path = '___localpath___'
+    with ensure_clean(path) as path:
+        writer(LocalPath(path))
+        obj = reader(LocalPath(path))
+    return obj
+
+
 def assert_almost_equal(left, right, check_exact=False,
                         check_dtype='equiv', check_less_precise=False,
                         **kwargs):
-    """Check that left and right Index are equal.
+    """
+    Check that the left and right objects are approximately equal.
 
     Parameters
     ----------
     left : object
     right : object
-    check_exact : bool, default True
+    check_exact : bool, default False
         Whether to compare number exactly.
     check_dtype: bool, default True
         check dtype if both a and b are the same type
@@ -189,7 +227,7 @@ def assert_almost_equal(left, right, check_exact=False,
                 else:
                     obj = 'Input'
                 assert_class_equal(left, right, obj=obj)
-        return libtesting.assert_almost_equal(
+        return _testing.assert_almost_equal(
             left, right,
             check_dtype=check_dtype,
             check_less_precise=check_less_precise,
@@ -225,7 +263,7 @@ def _check_isinstance(left, right, cls):
 def assert_dict_equal(left, right, compare_keys=True):
 
     _check_isinstance(left, right, dict)
-    return libtesting.assert_dict_equal(left, right, compare_keys=compare_keys)
+    return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
 def randbool(size=(), p=0.5):
@@ -289,59 +327,35 @@ def close(fignum=None):
 
 
 def _skip_if_32bit():
-    import pytest
     if is_platform_32bit():
+        import pytest
         pytest.skip("skipping for 32 bit")
 
 
-def mplskip(cls):
-    """Skip a TestCase instance if matplotlib isn't installed"""
-
-    @classmethod
-    def setUpClass(cls):
-        try:
-            import matplotlib as mpl
-            mpl.use("Agg", warn=False)
-        except ImportError:
-            import pytest
-            pytest.skip("matplotlib not installed")
-
-    cls.setUpClass = setUpClass
-    return cls
-
-
 def _skip_if_no_mpl():
-    try:
-        import matplotlib  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("matplotlib not installed")
+    import pytest
+
+    mpl = pytest.importorskip("matplotlib")
+    mpl.use("Agg", warn=False)
 
 
 def _skip_if_mpl_1_5():
-    import matplotlib
-    v = matplotlib.__version__
+    import matplotlib as mpl
+
+    v = mpl.__version__
     if v > LooseVersion('1.4.3') or v[0] == '0':
         import pytest
         pytest.skip("matplotlib 1.5")
+    else:
+        mpl.use("Agg", warn=False)
 
 
 def _skip_if_no_scipy():
-    try:
-        import scipy.stats  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("no scipy.stats module")
-    try:
-        import scipy.interpolate  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip('scipy.interpolate missing')
-    try:
-        import scipy.sparse  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip('scipy.sparse missing')
+    import pytest
+
+    pytest.importorskip("scipy.stats")
+    pytest.importorskip("scipy.sparse")
+    pytest.importorskip("scipy.interpolate")
 
 
 def _check_if_lzma():
@@ -357,32 +371,14 @@ def _skip_if_no_lzma():
 
 
 def _skip_if_no_xarray():
-    try:
-        import xarray
-    except ImportError:
-        import pytest
-        pytest.skip("xarray not installed")
+    import pytest
 
+    xarray = pytest.importorskip("xarray")
     v = xarray.__version__
+
     if v < LooseVersion('0.7.0'):
         import pytest
         pytest.skip("xarray not version is too low: {0}".format(v))
-
-
-def _skip_if_no_pytz():
-    try:
-        import pytz  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("pytz not installed")
-
-
-def _skip_if_no_dateutil():
-    try:
-        import dateutil  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("dateutil not installed")
 
 
 def _skip_if_windows_python_3():
@@ -465,16 +461,13 @@ def _skip_if_no_mock():
         try:
             from unittest import mock  # noqa
         except ImportError:
-            import nose
-            raise nose.SkipTest("mock is not installed")
+            import pytest
+            raise pytest.skip("mock is not installed")
 
 
 def _skip_if_no_ipython():
-    try:
-        import IPython  # noqa
-    except ImportError:
-        import nose
-        raise nose.SkipTest("IPython not installed")
+    import pytest
+    pytest.importorskip("IPython")
 
 # -----------------------------------------------------------------------------
 # locale utilities
@@ -894,7 +887,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             assert_attr_equal('dtype', l, r, obj=obj)
             # allow string-like to have different inferred_types
             if l.inferred_type in ('string', 'unicode'):
-                assertIn(r.inferred_type, ('string', 'unicode'))
+                assert r.inferred_type in ('string', 'unicode')
             else:
                 assert_attr_equal('inferred_type', l, r, obj=obj)
 
@@ -947,10 +940,10 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
                 .format(obj, np.round(diff, 5))
             raise_assert_detail(obj, msg, left, right)
     else:
-        libtesting.assert_almost_equal(left.values, right.values,
-                                       check_less_precise=check_less_precise,
-                                       check_dtype=exact,
-                                       obj=obj, lobj=left, robj=right)
+        _testing.assert_almost_equal(left.values, right.values,
+                                     check_less_precise=check_less_precise,
+                                     check_dtype=exact,
+                                     obj=obj, lobj=left, robj=right)
 
     # metadata comparison
     if check_names:
@@ -1058,29 +1051,6 @@ def is_sorted(seq):
         seq = seq.values
     # sorting does not change precisions
     return assert_numpy_array_equal(seq, np.sort(np.array(seq)))
-
-
-def assertIs(first, second, msg=''):
-    """Checks that 'first' is 'second'"""
-    a, b = first, second
-    assert a is b, "%s: %r is not %r" % (msg.format(a, b), a, b)
-
-
-def assertIn(first, second, msg=''):
-    """Checks that 'first' is in 'second'"""
-    a, b = first, second
-    assert a in b, "%s: %r is not in %r" % (msg.format(a, b), a, b)
-
-
-def assertNotIn(first, second, msg=''):
-    """Checks that 'first' is not in 'second'"""
-    a, b = first, second
-    assert a not in b, "%s: %r is in %r" % (msg.format(a, b), a, b)
-
-
-def assertIsNone(expr, msg=''):
-    """Checks that 'expr' is None"""
-    return assertIs(expr, None, msg)
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
@@ -1306,10 +1276,10 @@ def assert_series_equal(left, right, check_dtype=True,
         assert_index_equal(l, r, obj='{0}.index'.format(obj))
 
     else:
-        libtesting.assert_almost_equal(left.get_values(), right.get_values(),
-                                       check_less_precise=check_less_precise,
-                                       check_dtype=check_dtype,
-                                       obj='{0}'.format(obj))
+        _testing.assert_almost_equal(left.get_values(), right.get_values(),
+                                     check_less_precise=check_less_precise,
+                                     check_dtype=check_dtype,
+                                     obj='{0}'.format(obj))
 
     # metadata comparison
     if check_names:
@@ -1523,8 +1493,8 @@ def assert_sp_array_equal(left, right, check_dtype=True):
                              check_dtype=check_dtype)
 
     # SparseIndex comparison
-    assert isinstance(left.sp_index, pd.core.sparse.libsparse.SparseIndex)
-    assert isinstance(right.sp_index, pd.core.sparse.libsparse.SparseIndex)
+    assert isinstance(left.sp_index, pd._libs.sparse.SparseIndex)
+    assert isinstance(right.sp_index, pd._libs.sparse.SparseIndex)
 
     if not left.sp_index.equals(right.sp_index):
         raise_assert_detail('SparseArray.index', 'index are not equal',
@@ -2446,7 +2416,8 @@ def stdin_encoding(encoding=None):
     sys.stdin = _stdin
 
 
-def assertRaisesRegexp(_exception, _regexp, _callable=None, *args, **kwargs):
+def assert_raises_regex(_exception, _regexp, _callable=None,
+                        *args, **kwargs):
     """
     Check that the specified Exception is raised and that the error message
     matches a given regular expression pattern. This may be a regular
@@ -2463,27 +2434,26 @@ def assertRaisesRegexp(_exception, _regexp, _callable=None, *args, **kwargs):
 
     Examples
     --------
-    >>> assertRaisesRegexp(ValueError, 'invalid literal for.*XYZ',
-    ...                                int, 'XYZ')
+    >>> assert_raises_regex(ValueError, 'invalid literal for.*XYZ', int, 'XYZ')
     >>> import re
-    >>> assertRaisesRegexp(ValueError, re.compile('literal'), int, 'XYZ')
+    >>> assert_raises_regex(ValueError, re.compile('literal'), int, 'XYZ')
 
     If an exception of a different type is raised, it bubbles up.
 
-    >>> assertRaisesRegexp(TypeError, 'literal', int, 'XYZ')
+    >>> assert_raises_regex(TypeError, 'literal', int, 'XYZ')
     Traceback (most recent call last):
         ...
     ValueError: invalid literal for int() with base 10: 'XYZ'
     >>> dct = dict()
-    >>> assertRaisesRegexp(KeyError, 'pear', dct.__getitem__, 'apple')
+    >>> assert_raises_regex(KeyError, 'pear', dct.__getitem__, 'apple')
     Traceback (most recent call last):
         ...
     AssertionError: "pear" does not match "'apple'"
 
     You can also use this in a with statement.
-    >>> with assertRaisesRegexp(TypeError, 'unsupported operand type\(s\)'):
+    >>> with assert_raises_regex(TypeError, 'unsupported operand type\(s\)'):
     ...     1 + {}
-    >>> with assertRaisesRegexp(TypeError, 'banana'):
+    >>> with assert_raises_regex(TypeError, 'banana'):
     ...     'apple'[0] = 'b'
     Traceback (most recent call last):
         ...
@@ -2500,40 +2470,79 @@ item assignment"
 
 class _AssertRaisesContextmanager(object):
     """
-    Handles the behind the scenes work
-    for assertRaises and assertRaisesRegexp
+    Context manager behind `assert_raises_regex`.
     """
 
-    def __init__(self, exception, regexp=None, *args, **kwargs):
+    def __init__(self, exception, regexp=None):
+        """
+        Initialize an _AssertRaisesContextManager instance.
+
+        Parameters
+        ----------
+        exception : class
+            The expected Exception class.
+        regexp : str, default None
+            The regex to compare against the Exception message.
+        """
+
         self.exception = exception
+
         if regexp is not None and not hasattr(regexp, "search"):
             regexp = re.compile(regexp, re.DOTALL)
+
         self.regexp = regexp
 
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, trace_back):
         expected = self.exception
+
         if not exc_type:
-            name = getattr(expected, "__name__", str(expected))
-            raise AssertionError("{0} not raised.".format(name))
-        if issubclass(exc_type, expected):
-            return self.handle_success(exc_type, exc_value, traceback)
-        return self.handle_failure(exc_type, exc_value, traceback)
+            exp_name = getattr(expected, "__name__", str(expected))
+            raise AssertionError("{0} not raised.".format(exp_name))
 
-    def handle_failure(*args, **kwargs):
-        # Failed, so allow Exception to bubble up
-        return False
+        return self.exception_matches(exc_type, exc_value, trace_back)
 
-    def handle_success(self, exc_type, exc_value, traceback):
-        if self.regexp is not None:
-            val = str(exc_value)
-            if not self.regexp.search(val):
-                e = AssertionError('"%s" does not match "%s"' %
-                                   (self.regexp.pattern, str(val)))
-                raise_with_traceback(e, traceback)
-        return True
+    def exception_matches(self, exc_type, exc_value, trace_back):
+        """
+        Check that the Exception raised matches the expected Exception
+        and expected error message regular expression.
+
+        Parameters
+        ----------
+        exc_type : class
+            The type of Exception raised.
+        exc_value : Exception
+            The instance of `exc_type` raised.
+        trace_back : stack trace object
+            The traceback object associated with `exc_value`.
+
+        Returns
+        -------
+        is_matched : bool
+            Whether or not the Exception raised matches the expected
+            Exception class and expected error message regular expression.
+
+        Raises
+        ------
+        AssertionError : The error message provided does not match
+                         the expected error message regular expression.
+        """
+
+        if issubclass(exc_type, self.exception):
+            if self.regexp is not None:
+                val = str(exc_value)
+
+                if not self.regexp.search(val):
+                    e = AssertionError('"%s" does not match "%s"' %
+                                       (self.regexp.pattern, str(val)))
+                    raise_with_traceback(e, trace_back)
+
+            return True
+        else:
+            # Failed, so allow Exception to bubble up.
+            return False
 
 
 @contextmanager
@@ -2647,12 +2656,6 @@ def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
     yield
     expr._MIN_ELEMENTS = oldmin
     expr.set_use_numexpr(olduse)
-
-
-# Also provide all assert_* functions in the TestCase class
-for name, obj in inspect.getmembers(sys.modules[__name__]):
-    if inspect.isfunction(obj) and name.startswith('assert'):
-        setattr(TestCase, name, staticmethod(obj))
 
 
 def test_parallel(num_threads=2, kwargs_list=None):

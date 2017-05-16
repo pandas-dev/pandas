@@ -45,9 +45,10 @@ class CheckImmutable(object):
     mutable_regex = re.compile('does not support mutable operations')
 
     def check_mutable_error(self, *args, **kwargs):
-        # pass whatever functions you normally would to assertRaises (after the
-        # Exception kind)
-        tm.assertRaisesRegexp(TypeError, self.mutable_regex, *args, **kwargs)
+        # Pass whatever function you normally would to assert_raises_regex
+        # (after the Exception kind).
+        tm.assert_raises_regex(
+            TypeError, self.mutable_regex, *args, **kwargs)
 
     def test_no_mutable_funcs(self):
         def setitem():
@@ -70,6 +71,7 @@ class CheckImmutable(object):
 
         self.check_mutable_error(delslice)
         mutable_methods = getattr(self, "mutable_methods", [])
+
         for meth in mutable_methods:
             self.check_mutable_error(getattr(self.container, meth))
 
@@ -81,10 +83,10 @@ class CheckImmutable(object):
     def check_result(self, result, expected, klass=None):
         klass = klass or self.klass
         assert isinstance(result, klass)
-        self.assertEqual(result, expected)
+        assert result == expected
 
 
-class TestPandasDelegate(tm.TestCase):
+class TestPandasDelegate(object):
 
     class Delegator(object):
         _properties = ['foo']
@@ -107,7 +109,7 @@ class TestPandasDelegate(tm.TestCase):
         def __init__(self, obj):
             self.obj = obj
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_invalida_delgation(self):
@@ -150,7 +152,7 @@ class TestPandasDelegate(tm.TestCase):
         sys.getsizeof(delegate)
 
 
-class Ops(tm.TestCase):
+class Ops(object):
 
     def _allow_na_ops(self, obj):
         """Whether to skip test cases including NaN"""
@@ -160,7 +162,7 @@ class Ops(tm.TestCase):
             return False
         return True
 
-    def setUp(self):
+    def setup_method(self, method):
         self.bool_index = tm.makeBoolIndex(10, name='a')
         self.int_index = tm.makeIntIndex(10, name='a')
         self.float_index = tm.makeFloatIndex(10, name='a')
@@ -217,7 +219,7 @@ class Ops(tm.TestCase):
                                                                    np.ndarray):
                     tm.assert_numpy_array_equal(result, expected)
                 else:
-                    self.assertEqual(result, expected)
+                    assert result == expected
 
             # freq raises AttributeError on an Int64Index because its not
             # defined we mostly care about Series here anyhow
@@ -248,19 +250,17 @@ class Ops(tm.TestCase):
                 operand2 = 'other'
                 op = op_map[op_name]
                 expected_str = ' '.join([operand1, op, operand2])
-                self.assertTrue(expected_str in getattr(klass,
-                                                        op_name).__doc__)
+                assert expected_str in getattr(klass, op_name).__doc__
 
                 # reverse version of the binary ops
                 expected_str = ' '.join([operand2, op, operand1])
-                self.assertTrue(expected_str in getattr(klass, 'r' +
-                                                        op_name).__doc__)
+                assert expected_str in getattr(klass, 'r' + op_name).__doc__
 
 
 class TestIndexOps(Ops):
 
-    def setUp(self):
-        super(TestIndexOps, self).setUp()
+    def setup_method(self, method):
+        super(TestIndexOps, self).setup_method(method)
         self.is_valid_objs = [o for o in self.objs if o._allow_index_ops]
         self.not_valid_objs = [o for o in self.objs if not o._allow_index_ops]
 
@@ -275,31 +275,31 @@ class TestIndexOps(Ops):
 
                 # noinspection PyComparisonWithNone
                 result = o == None  # noqa
-                self.assertFalse(result.iat[0])
-                self.assertFalse(result.iat[1])
+                assert not result.iat[0]
+                assert not result.iat[1]
 
                 # noinspection PyComparisonWithNone
                 result = o != None  # noqa
-                self.assertTrue(result.iat[0])
-                self.assertTrue(result.iat[1])
+                assert result.iat[0]
+                assert result.iat[1]
 
                 result = None == o  # noqa
-                self.assertFalse(result.iat[0])
-                self.assertFalse(result.iat[1])
+                assert not result.iat[0]
+                assert not result.iat[1]
 
                 # this fails for numpy < 1.9
                 # and oddly for *some* platforms
                 # result = None != o  # noqa
-                # self.assertTrue(result.iat[0])
-                # self.assertTrue(result.iat[1])
+                # assert result.iat[0]
+                # assert result.iat[1]
 
                 result = None > o
-                self.assertFalse(result.iat[0])
-                self.assertFalse(result.iat[1])
+                assert not result.iat[0]
+                assert not result.iat[1]
 
                 result = o < None
-                self.assertFalse(result.iat[0])
-                self.assertFalse(result.iat[1])
+                assert not result.iat[0]
+                assert not result.iat[1]
 
     def test_ndarray_compat_properties(self):
 
@@ -337,12 +337,12 @@ class TestIndexOps(Ops):
                     expected = pd.Period(ordinal=getattr(o._values, op)(),
                                          freq=o.freq)
                 try:
-                    self.assertEqual(result, expected)
+                    assert result == expected
                 except TypeError:
                     # comparing tz-aware series with np.array results in
                     # TypeError
                     expected = expected.astype('M8[ns]').astype('int64')
-                    self.assertEqual(result.value, expected)
+                    assert result.value == expected
 
     def test_nanops(self):
         # GH 7261
@@ -350,43 +350,43 @@ class TestIndexOps(Ops):
             for klass in [Index, Series]:
 
                 obj = klass([np.nan, 2.0])
-                self.assertEqual(getattr(obj, op)(), 2.0)
+                assert getattr(obj, op)() == 2.0
 
                 obj = klass([np.nan])
-                self.assertTrue(pd.isnull(getattr(obj, op)()))
+                assert pd.isnull(getattr(obj, op)())
 
                 obj = klass([])
-                self.assertTrue(pd.isnull(getattr(obj, op)()))
+                assert pd.isnull(getattr(obj, op)())
 
                 obj = klass([pd.NaT, datetime(2011, 11, 1)])
                 # check DatetimeIndex monotonic path
-                self.assertEqual(getattr(obj, op)(), datetime(2011, 11, 1))
+                assert getattr(obj, op)() == datetime(2011, 11, 1)
 
                 obj = klass([pd.NaT, datetime(2011, 11, 1), pd.NaT])
                 # check DatetimeIndex non-monotonic path
-                self.assertEqual(getattr(obj, op)(), datetime(2011, 11, 1))
+                assert getattr(obj, op)(), datetime(2011, 11, 1)
 
         # argmin/max
         obj = Index(np.arange(5, dtype='int64'))
-        self.assertEqual(obj.argmin(), 0)
-        self.assertEqual(obj.argmax(), 4)
+        assert obj.argmin() == 0
+        assert obj.argmax() == 4
 
         obj = Index([np.nan, 1, np.nan, 2])
-        self.assertEqual(obj.argmin(), 1)
-        self.assertEqual(obj.argmax(), 3)
+        assert obj.argmin() == 1
+        assert obj.argmax() == 3
 
         obj = Index([np.nan])
-        self.assertEqual(obj.argmin(), -1)
-        self.assertEqual(obj.argmax(), -1)
+        assert obj.argmin() == -1
+        assert obj.argmax() == -1
 
         obj = Index([pd.NaT, datetime(2011, 11, 1), datetime(2011, 11, 2),
                      pd.NaT])
-        self.assertEqual(obj.argmin(), 1)
-        self.assertEqual(obj.argmax(), 2)
+        assert obj.argmin() == 1
+        assert obj.argmax() == 2
 
         obj = Index([pd.NaT])
-        self.assertEqual(obj.argmin(), -1)
-        self.assertEqual(obj.argmax(), -1)
+        assert obj.argmin() == -1
+        assert obj.argmax() == -1
 
     def test_value_counts_unique_nunique(self):
         for orig in self.objs:
@@ -414,23 +414,23 @@ class TestIndexOps(Ops):
                 o = klass(rep, index=idx, name='a')
 
             # check values has the same dtype as the original
-            self.assertEqual(o.dtype, orig.dtype)
+            assert o.dtype == orig.dtype
 
             expected_s = Series(range(10, 0, -1), index=expected_index,
                                 dtype='int64', name='a')
 
             result = o.value_counts()
             tm.assert_series_equal(result, expected_s)
-            self.assertTrue(result.index.name is None)
-            self.assertEqual(result.name, 'a')
+            assert result.index.name is None
+            assert result.name == 'a'
 
             result = o.unique()
             if isinstance(o, Index):
-                self.assertTrue(isinstance(result, o.__class__))
+                assert isinstance(result, o.__class__)
                 tm.assert_index_equal(result, orig)
             elif is_datetimetz(o):
                 # datetimetz Series returns array of Timestamp
-                self.assertEqual(result[0], orig[0])
+                assert result[0] == orig[0]
                 for r in result:
                     assert isinstance(r, pd.Timestamp)
                 tm.assert_numpy_array_equal(result,
@@ -438,7 +438,7 @@ class TestIndexOps(Ops):
             else:
                 tm.assert_numpy_array_equal(result, orig.values)
 
-            self.assertEqual(o.nunique(), len(np.unique(o.values)))
+            assert o.nunique() == len(np.unique(o.values))
 
     def test_value_counts_unique_nunique_null(self):
 
@@ -469,7 +469,7 @@ class TestIndexOps(Ops):
                     values[0:2] = null_obj
                 # check values has the same dtype as the original
 
-                self.assertEqual(values.dtype, o.dtype)
+                assert values.dtype == o.dtype
 
                 # create repeated values, 'n'th element is repeated by n+1
                 # times
@@ -490,7 +490,7 @@ class TestIndexOps(Ops):
                     o.name = 'a'
 
                 # check values has the same dtype as the original
-                self.assertEqual(o.dtype, orig.dtype)
+                assert o.dtype == orig.dtype
                 # check values correctly have NaN
                 nanloc = np.zeros(len(o), dtype=np.bool)
                 nanloc[:3] = True
@@ -509,12 +509,12 @@ class TestIndexOps(Ops):
 
                 result_s_na = o.value_counts(dropna=False)
                 tm.assert_series_equal(result_s_na, expected_s_na)
-                self.assertTrue(result_s_na.index.name is None)
-                self.assertEqual(result_s_na.name, 'a')
+                assert result_s_na.index.name is None
+                assert result_s_na.name == 'a'
                 result_s = o.value_counts()
                 tm.assert_series_equal(o.value_counts(), expected_s)
-                self.assertTrue(result_s.index.name is None)
-                self.assertEqual(result_s.name, 'a')
+                assert result_s.index.name is None
+                assert result_s.name == 'a'
 
                 result = o.unique()
                 if isinstance(o, Index):
@@ -524,15 +524,15 @@ class TestIndexOps(Ops):
                     # unable to compare NaT / nan
                     tm.assert_numpy_array_equal(result[1:],
                                                 values[2:].asobject.values)
-                    self.assertIs(result[0], pd.NaT)
+                    assert result[0] is pd.NaT
                 else:
                     tm.assert_numpy_array_equal(result[1:], values[2:])
 
-                    self.assertTrue(pd.isnull(result[0]))
-                    self.assertEqual(result.dtype, orig.dtype)
+                    assert pd.isnull(result[0])
+                    assert result.dtype == orig.dtype
 
-                self.assertEqual(o.nunique(), 8)
-                self.assertEqual(o.nunique(dropna=False), 9)
+                assert o.nunique() == 8
+                assert o.nunique(dropna=False) == 9
 
     def test_value_counts_inferred(self):
         klasses = [Index, Series]
@@ -549,7 +549,7 @@ class TestIndexOps(Ops):
                 exp = np.unique(np.array(s_values, dtype=np.object_))
                 tm.assert_numpy_array_equal(s.unique(), exp)
 
-            self.assertEqual(s.nunique(), 4)
+            assert s.nunique() == 4
             # don't sort, have to sort after the fact as not sorting is
             # platform-dep
             hist = s.value_counts(sort=False).sort_values()
@@ -666,14 +666,14 @@ class TestIndexOps(Ops):
             else:
                 tm.assert_numpy_array_equal(s.unique(), expected)
 
-            self.assertEqual(s.nunique(), 3)
+            assert s.nunique() == 3
 
             # with NaT
             s = df['dt'].copy()
             s = klass([v for v in s.values] + [pd.NaT])
 
             result = s.value_counts()
-            self.assertEqual(result.index.dtype, 'datetime64[ns]')
+            assert result.index.dtype == 'datetime64[ns]'
             tm.assert_series_equal(result, expected_s)
 
             result = s.value_counts(dropna=False)
@@ -681,7 +681,7 @@ class TestIndexOps(Ops):
             tm.assert_series_equal(result, expected_s)
 
             unique = s.unique()
-            self.assertEqual(unique.dtype, 'datetime64[ns]')
+            assert unique.dtype == 'datetime64[ns]'
 
             # numpy_array_equal cannot compare pd.NaT
             if isinstance(s, Index):
@@ -689,10 +689,10 @@ class TestIndexOps(Ops):
                 tm.assert_index_equal(unique, exp_idx)
             else:
                 tm.assert_numpy_array_equal(unique[:3], expected)
-                self.assertTrue(pd.isnull(unique[3]))
+                assert pd.isnull(unique[3])
 
-            self.assertEqual(s.nunique(), 3)
-            self.assertEqual(s.nunique(dropna=False), 4)
+            assert s.nunique() == 3
+            assert s.nunique(dropna=False) == 4
 
             # timedelta64[ns]
             td = df.dt - df.dt + timedelta(1)
@@ -791,13 +791,13 @@ class TestIndexOps(Ops):
                 expected = np.array([False] * len(original), dtype=bool)
                 duplicated = original.duplicated()
                 tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
+                assert duplicated.dtype == bool
                 result = original.drop_duplicates()
                 tm.assert_index_equal(result, original)
-                self.assertFalse(result is original)
+                assert result is not original
 
                 # has_duplicates
-                self.assertFalse(original.has_duplicates)
+                assert not original.has_duplicates
 
                 # create repeated values, 3rd and 5th values are duplicated
                 idx = original[list(range(len(original))) + [5, 3]]
@@ -805,7 +805,7 @@ class TestIndexOps(Ops):
                                     dtype=bool)
                 duplicated = idx.duplicated()
                 tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
+                assert duplicated.dtype == bool
                 tm.assert_index_equal(idx.drop_duplicates(), original)
 
                 base = [False] * len(idx)
@@ -815,7 +815,7 @@ class TestIndexOps(Ops):
 
                 duplicated = idx.duplicated(keep='last')
                 tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
+                assert duplicated.dtype == bool
                 result = idx.drop_duplicates(keep='last')
                 tm.assert_index_equal(result, idx[~expected])
 
@@ -826,11 +826,11 @@ class TestIndexOps(Ops):
 
                 duplicated = idx.duplicated(keep=False)
                 tm.assert_numpy_array_equal(duplicated, expected)
-                self.assertTrue(duplicated.dtype == bool)
+                assert duplicated.dtype == bool
                 result = idx.drop_duplicates(keep=False)
                 tm.assert_index_equal(result, idx[~expected])
 
-                with tm.assertRaisesRegexp(
+                with tm.assert_raises_regex(
                         TypeError, r"drop_duplicates\(\) got an unexpected "
                         "keyword argument"):
                     idx.drop_duplicates(inplace=True)
@@ -841,7 +841,7 @@ class TestIndexOps(Ops):
                 tm.assert_series_equal(original.duplicated(), expected)
                 result = original.drop_duplicates()
                 tm.assert_series_equal(result, original)
-                self.assertFalse(result is original)
+                assert result is not original
 
                 idx = original.index[list(range(len(original))) + [5, 3]]
                 values = original._values[list(range(len(original))) + [5, 3]]
@@ -905,7 +905,7 @@ class TestIndexOps(Ops):
             else:
                 tm.assert_series_equal(o, result)
             # check shallow_copied
-            self.assertFalse(o is result)
+            assert o is not result
 
         for null_obj in [np.nan, None]:
             for orig in self.objs:
@@ -931,7 +931,7 @@ class TestIndexOps(Ops):
                 o = klass(values)
 
                 # check values has the same dtype as the original
-                self.assertEqual(o.dtype, orig.dtype)
+                assert o.dtype == orig.dtype
 
                 result = o.fillna(fill_value)
                 if isinstance(o, Index):
@@ -939,7 +939,7 @@ class TestIndexOps(Ops):
                 else:
                     tm.assert_series_equal(result, expected)
                 # check shallow_copied
-                self.assertFalse(o is result)
+                assert o is not result
 
     def test_memory_usage(self):
         for o in self.objs:
@@ -949,30 +949,28 @@ class TestIndexOps(Ops):
             if (is_object_dtype(o) or (isinstance(o, Series) and
                                        is_object_dtype(o.index))):
                 # if there are objects, only deep will pick them up
-                self.assertTrue(res_deep > res)
+                assert res_deep > res
             else:
-                self.assertEqual(res, res_deep)
+                assert res == res_deep
 
             if isinstance(o, Series):
-                self.assertEqual(
-                    (o.memory_usage(index=False) +
-                        o.index.memory_usage()),
-                    o.memory_usage(index=True)
-                )
+                assert ((o.memory_usage(index=False) +
+                         o.index.memory_usage()) ==
+                        o.memory_usage(index=True))
 
             # sys.getsizeof will call the .memory_usage with
             # deep=True, and add on some GC overhead
             diff = res_deep - sys.getsizeof(o)
-            self.assertTrue(abs(diff) < 100)
+            assert abs(diff) < 100
 
     def test_searchsorted(self):
         # See gh-12238
         for o in self.objs:
             index = np.searchsorted(o, max(o))
-            self.assertTrue(0 <= index <= len(o))
+            assert 0 <= index <= len(o)
 
             index = np.searchsorted(o, max(o), sorter=range(len(o)))
-            self.assertTrue(0 <= index <= len(o))
+            assert 0 <= index <= len(o)
 
     def test_validate_bool_args(self):
         invalid_values = [1, "True", [1, 2, 3], 5.0]
@@ -994,10 +992,10 @@ class TestTranspose(Ops):
 
     def test_transpose_non_default_axes(self):
         for obj in self.objs:
-            tm.assertRaisesRegexp(ValueError, self.errmsg,
-                                  obj.transpose, 1)
-            tm.assertRaisesRegexp(ValueError, self.errmsg,
-                                  obj.transpose, axes=1)
+            tm.assert_raises_regex(ValueError, self.errmsg,
+                                   obj.transpose, 1)
+            tm.assert_raises_regex(ValueError, self.errmsg,
+                                   obj.transpose, axes=1)
 
     def test_numpy_transpose(self):
         for obj in self.objs:
@@ -1006,26 +1004,28 @@ class TestTranspose(Ops):
             else:
                 tm.assert_series_equal(np.transpose(obj), obj)
 
-            tm.assertRaisesRegexp(ValueError, self.errmsg,
-                                  np.transpose, obj, axes=1)
+            tm.assert_raises_regex(ValueError, self.errmsg,
+                                   np.transpose, obj, axes=1)
 
 
-class TestNoNewAttributesMixin(tm.TestCase):
+class TestNoNewAttributesMixin(object):
 
     def test_mixin(self):
         class T(NoNewAttributesMixin):
             pass
 
         t = T()
-        self.assertFalse(hasattr(t, "__frozen"))
+        assert not hasattr(t, "__frozen")
+
         t.a = "test"
-        self.assertEqual(t.a, "test")
+        assert t.a == "test"
+
         t._freeze()
-        # self.assertTrue("__frozen" not in dir(t))
-        self.assertIs(getattr(t, "__frozen"), True)
+        assert "__frozen" in dir(t)
+        assert getattr(t, "__frozen")
 
         def f():
             t.b = "test"
 
         pytest.raises(AttributeError, f)
-        self.assertFalse(hasattr(t, "b"))
+        assert not hasattr(t, "b")

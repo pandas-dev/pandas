@@ -17,8 +17,7 @@ import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
                                  assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+                                 assert_frame_equal)
 
 import pandas.util.testing as tm
 
@@ -29,7 +28,7 @@ from pandas.tests.frame.common import TestData
 # structure
 
 
-class TestDataFrameBlockInternals(tm.TestCase, TestData):
+class TestDataFrameBlockInternals(TestData):
 
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)
@@ -70,18 +69,18 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
 
     def test_as_matrix_consolidate(self):
         self.frame['E'] = 7.
-        self.assertFalse(self.frame._data.is_consolidated())
+        assert not self.frame._data.is_consolidated()
         _ = self.frame.as_matrix()  # noqa
-        self.assertTrue(self.frame._data.is_consolidated())
+        assert self.frame._data.is_consolidated()
 
     def test_modify_values(self):
         self.frame.values[5] = 5
-        self.assertTrue((self.frame.values[5] == 5).all())
+        assert (self.frame.values[5] == 5).all()
 
         # unconsolidated
         self.frame['E'] = 7.
         self.frame.values[6] = 6
-        self.assertTrue((self.frame.values[6] == 6).all())
+        assert (self.frame.values[6] == 6).all()
 
     def test_boolean_set_uncons(self):
         self.frame['E'] = 7.
@@ -96,47 +95,47 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         self.frame['foo'] = 'bar'
 
         values = self.frame.as_matrix(['A', 'B', 'C', 'D'])
-        self.assertEqual(values.dtype, np.float64)
+        assert values.dtype == np.float64
 
     def test_as_matrix_lcd(self):
 
         # mixed lcd
         values = self.mixed_float.as_matrix(['A', 'B', 'C', 'D'])
-        self.assertEqual(values.dtype, np.float64)
+        assert values.dtype == np.float64
 
         values = self.mixed_float.as_matrix(['A', 'B', 'C'])
-        self.assertEqual(values.dtype, np.float32)
+        assert values.dtype == np.float32
 
         values = self.mixed_float.as_matrix(['C'])
-        self.assertEqual(values.dtype, np.float16)
+        assert values.dtype == np.float16
 
         # GH 10364
         # B uint64 forces float because there are other signed int types
         values = self.mixed_int.as_matrix(['A', 'B', 'C', 'D'])
-        self.assertEqual(values.dtype, np.float64)
+        assert values.dtype == np.float64
 
         values = self.mixed_int.as_matrix(['A', 'D'])
-        self.assertEqual(values.dtype, np.int64)
+        assert values.dtype == np.int64
 
         # B uint64 forces float because there are other signed int types
         values = self.mixed_int.as_matrix(['A', 'B', 'C'])
-        self.assertEqual(values.dtype, np.float64)
+        assert values.dtype == np.float64
 
         # as B and C are both unsigned, no forcing to float is needed
         values = self.mixed_int.as_matrix(['B', 'C'])
-        self.assertEqual(values.dtype, np.uint64)
+        assert values.dtype == np.uint64
 
         values = self.mixed_int.as_matrix(['A', 'C'])
-        self.assertEqual(values.dtype, np.int32)
+        assert values.dtype == np.int32
 
         values = self.mixed_int.as_matrix(['C', 'D'])
-        self.assertEqual(values.dtype, np.int64)
+        assert values.dtype == np.int64
 
         values = self.mixed_int.as_matrix(['A'])
-        self.assertEqual(values.dtype, np.int32)
+        assert values.dtype == np.int32
 
         values = self.mixed_int.as_matrix(['C'])
-        self.assertEqual(values.dtype, np.uint8)
+        assert values.dtype == np.uint8
 
     def test_constructor_with_convert(self):
         # this is actually mostly a test of lib.maybe_convert_objects
@@ -221,8 +220,8 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         # mixed-type frames
         self.mixed_frame['datetime'] = datetime.now()
         self.mixed_frame['timedelta'] = timedelta(days=1, seconds=1)
-        self.assertEqual(self.mixed_frame['datetime'].dtype, 'M8[ns]')
-        self.assertEqual(self.mixed_frame['timedelta'].dtype, 'm8[ns]')
+        assert self.mixed_frame['datetime'].dtype == 'M8[ns]'
+        assert self.mixed_frame['timedelta'].dtype == 'm8[ns]'
         result = self.mixed_frame.get_dtype_counts().sort_values()
         expected = Series({'float64': 4,
                            'object': 1,
@@ -308,12 +307,12 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         df1 = df0.reset_index()[["A", "B", "C"]]
         # this assert verifies that the above operations have
         # induced a block rearrangement
-        self.assertTrue(df0._data.blocks[0].dtype !=
-                        df1._data.blocks[0].dtype)
+        assert (df0._data.blocks[0].dtype != df1._data.blocks[0].dtype)
+
         # do the real tests
         assert_frame_equal(df0, df1)
-        self.assertTrue(df0.equals(df1))
-        self.assertTrue(df1.equals(df0))
+        assert df0.equals(df1)
+        assert df1.equals(df0)
 
     def test_copy_blocks(self):
         # API/ENH 9607
@@ -327,7 +326,7 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
                 _df.loc[:, column] = _df[column] + 1
 
         # make sure we did not change the original DataFrame
-        self.assertFalse(_df[column].equals(df[column]))
+        assert not _df[column].equals(df[column])
 
     def test_no_copy_blocks(self):
         # API/ENH 9607
@@ -341,7 +340,7 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
                 _df.loc[:, column] = _df[column] + 1
 
         # make sure we did change the original DataFrame
-        self.assertTrue(_df[column].equals(df[column]))
+        assert _df[column].equals(df[column])
 
     def test_copy(self):
         cop = self.frame.copy()
@@ -400,8 +399,8 @@ starting,ending,measure
         tm.assert_index_equal(pd.DatetimeIndex(df.ending), ser_ending.index)
 
     def test_is_mixed_type(self):
-        self.assertFalse(self.frame._is_mixed_type)
-        self.assertTrue(self.mixed_frame._is_mixed_type)
+        assert not self.frame._is_mixed_type
+        assert self.mixed_frame._is_mixed_type
 
     def test_get_numeric_data(self):
         # TODO(wesm): unused?
@@ -453,7 +452,7 @@ starting,ending,measure
         oops = self.mixed_frame.T.T
         converted = oops._convert(datetime=True)
         assert_frame_equal(converted, self.mixed_frame)
-        self.assertEqual(converted['A'].dtype, np.float64)
+        assert converted['A'].dtype == np.float64
 
         # force numeric conversion
         self.mixed_frame['H'] = '1.'
@@ -465,23 +464,23 @@ starting,ending,measure
         self.mixed_frame['K'] = '1'
         self.mixed_frame.loc[0:5, ['J', 'K']] = 'garbled'
         converted = self.mixed_frame._convert(datetime=True, numeric=True)
-        self.assertEqual(converted['H'].dtype, 'float64')
-        self.assertEqual(converted['I'].dtype, 'int64')
-        self.assertEqual(converted['J'].dtype, 'float64')
-        self.assertEqual(converted['K'].dtype, 'float64')
-        self.assertEqual(len(converted['J'].dropna()), l - 5)
-        self.assertEqual(len(converted['K'].dropna()), l - 5)
+        assert converted['H'].dtype == 'float64'
+        assert converted['I'].dtype == 'int64'
+        assert converted['J'].dtype == 'float64'
+        assert converted['K'].dtype == 'float64'
+        assert len(converted['J'].dropna()) == l - 5
+        assert len(converted['K'].dropna()) == l - 5
 
         # via astype
         converted = self.mixed_frame.copy()
         converted['H'] = converted['H'].astype('float64')
         converted['I'] = converted['I'].astype('int64')
-        self.assertEqual(converted['H'].dtype, 'float64')
-        self.assertEqual(converted['I'].dtype, 'int64')
+        assert converted['H'].dtype == 'float64'
+        assert converted['I'].dtype == 'int64'
 
         # via astype, but errors
         converted = self.mixed_frame.copy()
-        with assertRaisesRegexp(ValueError, 'invalid literal'):
+        with tm.assert_raises_regex(ValueError, 'invalid literal'):
             converted['H'].astype('int32')
 
         # mixed in a single column
@@ -508,7 +507,7 @@ starting,ending,measure
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y['g'].sum()  # noqa
-            self.assertTrue(pd.isnull(Y['g']['c']))
+            assert pd.isnull(Y['g']['c'])
 
     def test_get_X_columns(self):
         # numeric and object columns
@@ -543,4 +542,4 @@ starting,ending,measure
 
         first = len(df.loc[pd.isnull(df[myid]), [myid]])
         second = len(df.loc[pd.isnull(df[myid]), [myid]])
-        self.assertTrue(first == second == 0)
+        assert first == second == 0

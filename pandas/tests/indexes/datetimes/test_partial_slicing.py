@@ -11,7 +11,7 @@ from pandas import (DatetimeIndex, Series, DataFrame,
 from pandas.util import testing as tm
 
 
-class TestSlicing(tm.TestCase):
+class TestSlicing(object):
 
     def test_slice_year(self):
         dti = DatetimeIndex(freq='B', start=datetime(2005, 1, 1), periods=500)
@@ -30,24 +30,24 @@ class TestSlicing(tm.TestCase):
 
         result = rng.get_loc('2009')
         expected = slice(3288, 3653)
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_slice_quarter(self):
         dti = DatetimeIndex(freq='D', start=datetime(2000, 6, 1), periods=500)
 
         s = Series(np.arange(len(dti)), index=dti)
-        self.assertEqual(len(s['2001Q1']), 90)
+        assert len(s['2001Q1']) == 90
 
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
-        self.assertEqual(len(df.loc['1Q01']), 90)
+        assert len(df.loc['1Q01']) == 90
 
     def test_slice_month(self):
         dti = DatetimeIndex(freq='D', start=datetime(2005, 1, 1), periods=500)
         s = Series(np.arange(len(dti)), index=dti)
-        self.assertEqual(len(s['2005-11']), 30)
+        assert len(s['2005-11']) == 30
 
         df = DataFrame(np.random.rand(len(dti), 5), index=dti)
-        self.assertEqual(len(df.loc['2005-11']), 30)
+        assert len(df.loc['2005-11']) == 30
 
         tm.assert_series_equal(s['2005-11'], s['11-2005'])
 
@@ -68,7 +68,7 @@ class TestSlicing(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         result = s['2005-1-1']
-        self.assertEqual(result, s.iloc[0])
+        assert result == s.iloc[0]
 
         pytest.raises(Exception, s.__getitem__, '2004-12-31')
 
@@ -92,7 +92,7 @@ class TestSlicing(tm.TestCase):
         result = s['2005-1-1 20']
         tm.assert_series_equal(result, s.iloc[:60])
 
-        self.assertEqual(s['2005-1-1 20:00'], s.iloc[0])
+        assert s['2005-1-1 20:00'] == s.iloc[0]
         pytest.raises(Exception, s.__getitem__, '2004-12-31 00:15')
 
     def test_partial_slice_minutely(self):
@@ -106,7 +106,7 @@ class TestSlicing(tm.TestCase):
         result = s['2005-1-1']
         tm.assert_series_equal(result, s.iloc[:60])
 
-        self.assertEqual(s[Timestamp('2005-1-1 23:59:00')], s.iloc[0])
+        assert s[Timestamp('2005-1-1 23:59:00')] == s.iloc[0]
         pytest.raises(Exception, s.__getitem__, '2004-12-31 00:00:00')
 
     def test_partial_slice_second_precision(self):
@@ -121,9 +121,9 @@ class TestSlicing(tm.TestCase):
         tm.assert_series_equal(s['2005-1-1 00:01'], s.iloc[10:])
         tm.assert_series_equal(s['2005-1-1 00:01:00'], s.iloc[10:])
 
-        self.assertEqual(s[Timestamp('2005-1-1 00:00:59.999990')], s.iloc[0])
-        self.assertRaisesRegexp(KeyError, '2005-1-1 00:00:00',
-                                lambda: s['2005-1-1 00:00:00'])
+        assert s[Timestamp('2005-1-1 00:00:59.999990')] == s.iloc[0]
+        tm.assert_raises_regex(KeyError, '2005-1-1 00:00:00',
+                               lambda: s['2005-1-1 00:00:00'])
 
     def test_partial_slicing_dataframe(self):
         # GH14856
@@ -144,7 +144,7 @@ class TestSlicing(tm.TestCase):
                                    middate, middate + unit])
             values = [1, 2, 3]
             df = DataFrame({'a': values}, index, dtype=np.int64)
-            self.assertEqual(df.index.resolution, resolution)
+            assert df.index.resolution == resolution
 
             # Timestamp with the same resolution as index
             # Should be exact match for Series (return scalar)
@@ -154,7 +154,7 @@ class TestSlicing(tm.TestCase):
                 # make ts_string as precise as index
                 result = df['a'][ts_string]
                 assert isinstance(result, np.int64)
-                self.assertEqual(result, expected)
+                assert result == expected
                 pytest.raises(KeyError, df.__getitem__, ts_string)
 
             # Timestamp with resolution less precise than index
@@ -181,7 +181,7 @@ class TestSlicing(tm.TestCase):
                 ts_string = index[1].strftime(fmt)
                 result = df['a'][ts_string]
                 assert isinstance(result, np.int64)
-                self.assertEqual(result, 2)
+                assert result == 2
                 pytest.raises(KeyError, df.__getitem__, ts_string)
 
             # Not compatible with existing key
@@ -249,14 +249,14 @@ class TestSlicing(tm.TestCase):
         timestamp = pd.Timestamp('2014-01-10')
 
         tm.assert_series_equal(nonmonotonic['2014-01-10':], expected)
-        self.assertRaisesRegexp(KeyError,
-                                r"Timestamp\('2014-01-10 00:00:00'\)",
-                                lambda: nonmonotonic[timestamp:])
+        tm.assert_raises_regex(KeyError,
+                               r"Timestamp\('2014-01-10 00:00:00'\)",
+                               lambda: nonmonotonic[timestamp:])
 
         tm.assert_series_equal(nonmonotonic.loc['2014-01-10':], expected)
-        self.assertRaisesRegexp(KeyError,
-                                r"Timestamp\('2014-01-10 00:00:00'\)",
-                                lambda: nonmonotonic.loc[timestamp:])
+        tm.assert_raises_regex(KeyError,
+                               r"Timestamp\('2014-01-10 00:00:00'\)",
+                               lambda: nonmonotonic.loc[timestamp:])
 
     def test_loc_datetime_length_one(self):
         # GH16071

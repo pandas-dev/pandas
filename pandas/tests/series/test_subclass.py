@@ -6,7 +6,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSeriesSubclassing(tm.TestCase):
+class TestSeriesSubclassing(object):
 
     def test_indexing_sliced(self):
         s = tm.SubclassedSeries([1, 2, 3, 4], index=list('abcd'))
@@ -33,36 +33,36 @@ class TestSeriesSubclassing(tm.TestCase):
         assert isinstance(res, tm.SubclassedDataFrame)
 
 
-class TestSparseSeriesSubclassing(tm.TestCase):
+class TestSparseSeriesSubclassing(object):
 
     def test_subclass_sparse_slice(self):
         # int64
         s = tm.SubclassedSparseSeries([1, 2, 3, 4, 5])
         exp = tm.SubclassedSparseSeries([2, 3, 4], index=[1, 2, 3])
         tm.assert_sp_series_equal(s.loc[1:3], exp)
-        self.assertEqual(s.loc[1:3].dtype, np.int64)
+        assert s.loc[1:3].dtype == np.int64
 
         exp = tm.SubclassedSparseSeries([2, 3], index=[1, 2])
         tm.assert_sp_series_equal(s.iloc[1:3], exp)
-        self.assertEqual(s.iloc[1:3].dtype, np.int64)
+        assert s.iloc[1:3].dtype == np.int64
 
         exp = tm.SubclassedSparseSeries([2, 3], index=[1, 2])
         tm.assert_sp_series_equal(s[1:3], exp)
-        self.assertEqual(s[1:3].dtype, np.int64)
+        assert s[1:3].dtype == np.int64
 
         # float64
         s = tm.SubclassedSparseSeries([1., 2., 3., 4., 5.])
         exp = tm.SubclassedSparseSeries([2., 3., 4.], index=[1, 2, 3])
         tm.assert_sp_series_equal(s.loc[1:3], exp)
-        self.assertEqual(s.loc[1:3].dtype, np.float64)
+        assert s.loc[1:3].dtype == np.float64
 
         exp = tm.SubclassedSparseSeries([2., 3.], index=[1, 2])
         tm.assert_sp_series_equal(s.iloc[1:3], exp)
-        self.assertEqual(s.iloc[1:3].dtype, np.float64)
+        assert s.iloc[1:3].dtype == np.float64
 
         exp = tm.SubclassedSparseSeries([2., 3.], index=[1, 2])
         tm.assert_sp_series_equal(s[1:3], exp)
-        self.assertEqual(s[1:3].dtype, np.float64)
+        assert s[1:3].dtype == np.float64
 
     def test_subclass_sparse_addition(self):
         s1 = tm.SubclassedSparseSeries([1, 3, 5])

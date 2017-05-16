@@ -42,7 +42,7 @@ class BaseParser(CommentTests, CompressionTests,
     def float_precision_choices(self):
         raise AbstractMethodError(self)
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
@@ -50,7 +50,7 @@ class BaseParser(CommentTests, CompressionTests,
         self.csv_shiftjs = os.path.join(self.dirpath, 'sauron.SHIFT_JIS.csv')
 
 
-class TestCParserHighMemory(BaseParser, CParserTests, tm.TestCase):
+class TestCParserHighMemory(BaseParser, CParserTests):
     engine = 'c'
     low_memory = False
     float_precision_choices = [None, 'high', 'round_trip']
@@ -68,7 +68,7 @@ class TestCParserHighMemory(BaseParser, CParserTests, tm.TestCase):
         return read_table(*args, **kwds)
 
 
-class TestCParserLowMemory(BaseParser, CParserTests, tm.TestCase):
+class TestCParserLowMemory(BaseParser, CParserTests):
     engine = 'c'
     low_memory = True
     float_precision_choices = [None, 'high', 'round_trip']
@@ -86,7 +86,7 @@ class TestCParserLowMemory(BaseParser, CParserTests, tm.TestCase):
         return read_table(*args, **kwds)
 
 
-class TestPythonParser(BaseParser, PythonParserTests, tm.TestCase):
+class TestPythonParser(BaseParser, PythonParserTests):
     engine = 'python'
     float_precision_choices = [None]
 

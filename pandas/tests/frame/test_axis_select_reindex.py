@@ -14,9 +14,7 @@ from pandas import (compat, DataFrame, Series, Index, MultiIndex,
                     date_range, isnull)
 import pandas as pd
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_frame_equal
 
 from pandas.errors import PerformanceWarning
 import pandas.util.testing as tm
@@ -24,7 +22,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameSelectReindex(tm.TestCase, TestData):
+class TestDataFrameSelectReindex(TestData):
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
@@ -39,9 +37,9 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         df_inplace_b.drop('b', inplace=True)
         df_inplace_e.drop('e', axis=1, inplace=True)
         for obj in (df_dropped_b, df_dropped_e, df_inplace_b, df_inplace_e):
-            self.assertEqual(obj.index.name, 'first')
-            self.assertEqual(obj.columns.name, 'second')
-        self.assertEqual(list(df.columns), ['d', 'e', 'f'])
+            assert obj.index.name == 'first'
+            assert obj.columns.name == 'second'
+        assert list(df.columns) == ['d', 'e', 'f']
 
         pytest.raises(ValueError, df.drop, ['g'])
         pytest.raises(ValueError, df.drop, ['g'], 1)
@@ -122,7 +120,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         lexsorted_mi = MultiIndex.from_tuples(
             [('a', ''), ('b1', 'c1'), ('b2', 'c2')], names=['b', 'c'])
         lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
-        self.assertTrue(lexsorted_df.columns.is_lexsorted())
+        assert lexsorted_df.columns.is_lexsorted()
 
         # define the non-lexsorted version
         not_lexsorted_df = DataFrame(columns=['a', 'b', 'c', 'd'],
@@ -131,7 +129,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         not_lexsorted_df = not_lexsorted_df.pivot_table(
             index='a', columns=['b', 'c'], values='d')
         not_lexsorted_df = not_lexsorted_df.reset_index()
-        self.assertFalse(not_lexsorted_df.columns.is_lexsorted())
+        assert not not_lexsorted_df.columns.is_lexsorted()
 
         # compare the results
         tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
@@ -174,16 +172,16 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
             for idx, val in compat.iteritems(newFrame[col]):
                 if idx in self.frame.index:
                     if np.isnan(val):
-                        self.assertTrue(np.isnan(self.frame[col][idx]))
+                        assert np.isnan(self.frame[col][idx])
                     else:
-                        self.assertEqual(val, self.frame[col][idx])
+                        assert val == self.frame[col][idx]
                 else:
-                    self.assertTrue(np.isnan(val))
+                    assert np.isnan(val)
 
         for col, series in compat.iteritems(newFrame):
-            self.assertTrue(tm.equalContents(series.index, newFrame.index))
+            assert tm.equalContents(series.index, newFrame.index)
         emptyFrame = self.frame.reindex(Index([]))
-        self.assertEqual(len(emptyFrame.index), 0)
+        assert len(emptyFrame.index) == 0
 
         # Cython code should be unit-tested directly
         nonContigFrame = self.frame.reindex(self.ts1.index[::2])
@@ -192,32 +190,31 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
             for idx, val in compat.iteritems(nonContigFrame[col]):
                 if idx in self.frame.index:
                     if np.isnan(val):
-                        self.assertTrue(np.isnan(self.frame[col][idx]))
+                        assert np.isnan(self.frame[col][idx])
                     else:
-                        self.assertEqual(val, self.frame[col][idx])
+                        assert val == self.frame[col][idx]
                 else:
-                    self.assertTrue(np.isnan(val))
+                    assert np.isnan(val)
 
         for col, series in compat.iteritems(nonContigFrame):
-            self.assertTrue(tm.equalContents(series.index,
-                                             nonContigFrame.index))
+            assert tm.equalContents(series.index, nonContigFrame.index)
 
         # corner cases
 
         # Same index, copies values but not index if copy=False
         newFrame = self.frame.reindex(self.frame.index, copy=False)
-        self.assertIs(newFrame.index, self.frame.index)
+        assert newFrame.index is self.frame.index
 
         # length zero
         newFrame = self.frame.reindex([])
-        self.assertTrue(newFrame.empty)
-        self.assertEqual(len(newFrame.columns), len(self.frame.columns))
+        assert newFrame.empty
+        assert len(newFrame.columns) == len(self.frame.columns)
 
         # length zero with columns reindexed with non-empty index
         newFrame = self.frame.reindex([])
         newFrame = newFrame.reindex(self.frame.index)
-        self.assertEqual(len(newFrame.index), len(self.frame.index))
-        self.assertEqual(len(newFrame.columns), len(self.frame.columns))
+        assert len(newFrame.index) == len(self.frame.index)
+        assert len(newFrame.columns) == len(self.frame.columns)
 
         # pass non-Index
         newFrame = self.frame.reindex(list(self.ts1.index))
@@ -226,7 +223,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         # copy with no axes
         result = self.frame.reindex()
         assert_frame_equal(result, self.frame)
-        self.assertFalse(result is self.frame)
+        assert result is not self.frame
 
     def test_reindex_nan(self):
         df = pd.DataFrame([[1, 2], [3, 5], [7, 11], [9, 23]],
@@ -258,27 +255,27 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         i = Series(np.arange(10), name='iname')
 
         df = df.reindex(i)
-        self.assertEqual(df.index.name, 'iname')
+        assert df.index.name == 'iname'
 
         df = df.reindex(Index(np.arange(10), name='tmpname'))
-        self.assertEqual(df.index.name, 'tmpname')
+        assert df.index.name == 'tmpname'
 
         s = Series(random.rand(10))
         df = DataFrame(s.T, index=np.arange(len(s)))
         i = Series(np.arange(10), name='iname')
         df = df.reindex(columns=i)
-        self.assertEqual(df.columns.name, 'iname')
+        assert df.columns.name == 'iname'
 
     def test_reindex_int(self):
         smaller = self.intframe.reindex(self.intframe.index[::2])
 
-        self.assertEqual(smaller['A'].dtype, np.int64)
+        assert smaller['A'].dtype == np.int64
 
         bigger = smaller.reindex(self.intframe.index)
-        self.assertEqual(bigger['A'].dtype, np.float64)
+        assert bigger['A'].dtype == np.float64
 
         smaller = self.intframe.reindex(columns=['A', 'B'])
-        self.assertEqual(smaller['A'].dtype, np.int64)
+        assert smaller['A'].dtype == np.int64
 
     def test_reindex_like(self):
         other = self.frame.reindex(index=self.frame.index[:10],
@@ -287,15 +284,15 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         assert_frame_equal(other, self.frame.reindex_like(other))
 
     def test_reindex_columns(self):
-        newFrame = self.frame.reindex(columns=['A', 'B', 'E'])
+        new_frame = self.frame.reindex(columns=['A', 'B', 'E'])
 
-        assert_series_equal(newFrame['B'], self.frame['B'])
-        self.assertTrue(np.isnan(newFrame['E']).all())
-        self.assertNotIn('C', newFrame)
+        tm.assert_series_equal(new_frame['B'], self.frame['B'])
+        assert np.isnan(new_frame['E']).all()
+        assert 'C' not in new_frame
 
-        # length zero
-        newFrame = self.frame.reindex(columns=[])
-        self.assertTrue(newFrame.empty)
+        # Length zero
+        new_frame = self.frame.reindex(columns=[])
+        assert new_frame.empty
 
     def test_reindex_columns_method(self):
 
@@ -349,15 +346,15 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         both_freq = df.reindex(index=time_freq, columns=some_cols).index.freq
         seq_freq = df.reindex(index=time_freq).reindex(
             columns=some_cols).index.freq
-        self.assertEqual(index_freq, both_freq)
-        self.assertEqual(index_freq, seq_freq)
+        assert index_freq == both_freq
+        assert index_freq == seq_freq
 
     def test_reindex_fill_value(self):
         df = DataFrame(np.random.randn(10, 4))
 
         # axis=0
         result = df.reindex(lrange(15))
-        self.assertTrue(np.isnan(result.values[-5:]).all())
+        assert np.isnan(result.values[-5:]).all()
 
         result = df.reindex(lrange(15), fill_value=0)
         expected = df.reindex(lrange(15)).fillna(0)
@@ -659,33 +656,33 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         tm.assert_frame_equal(res2, exp1)
 
     def test_filter(self):
-        # items
+        # Items
         filtered = self.frame.filter(['A', 'B', 'E'])
-        self.assertEqual(len(filtered.columns), 2)
-        self.assertNotIn('E', filtered)
+        assert len(filtered.columns) == 2
+        assert 'E' not in filtered
 
         filtered = self.frame.filter(['A', 'B', 'E'], axis='columns')
-        self.assertEqual(len(filtered.columns), 2)
-        self.assertNotIn('E', filtered)
+        assert len(filtered.columns) == 2
+        assert 'E' not in filtered
 
-        # other axis
+        # Other axis
         idx = self.frame.index[0:4]
         filtered = self.frame.filter(idx, axis='index')
         expected = self.frame.reindex(index=idx)
-        assert_frame_equal(filtered, expected)
+        tm.assert_frame_equal(filtered, expected)
 
         # like
         fcopy = self.frame.copy()
         fcopy['AA'] = 1
 
         filtered = fcopy.filter(like='A')
-        self.assertEqual(len(filtered.columns), 2)
-        self.assertIn('AA', filtered)
+        assert len(filtered.columns) == 2
+        assert 'AA' in filtered
 
         # like with ints in column names
         df = DataFrame(0., index=[0, 1, 2], columns=[0, 1, '_A', '_B'])
         filtered = df.filter(like='_')
-        self.assertEqual(len(filtered.columns), 2)
+        assert len(filtered.columns) == 2
 
         # regex with ints in column names
         # from PR #10384
@@ -693,41 +690,41 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
         expected = DataFrame(
             0., index=[0, 1, 2], columns=pd.Index([1, 2], dtype=object))
         filtered = df.filter(regex='^[0-9]+$')
-        assert_frame_equal(filtered, expected)
+        tm.assert_frame_equal(filtered, expected)
 
         expected = DataFrame(0., index=[0, 1, 2], columns=[0, '0', 1, '1'])
         # shouldn't remove anything
         filtered = expected.filter(regex='^[0-9]+$')
-        assert_frame_equal(filtered, expected)
+        tm.assert_frame_equal(filtered, expected)
 
         # pass in None
-        with assertRaisesRegexp(TypeError, 'Must pass'):
+        with tm.assert_raises_regex(TypeError, 'Must pass'):
             self.frame.filter()
-        with assertRaisesRegexp(TypeError, 'Must pass'):
+        with tm.assert_raises_regex(TypeError, 'Must pass'):
             self.frame.filter(items=None)
-        with assertRaisesRegexp(TypeError, 'Must pass'):
+        with tm.assert_raises_regex(TypeError, 'Must pass'):
             self.frame.filter(axis=1)
 
         # test mutually exclusive arguments
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$', like='bbi')
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$', axis=1)
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$')
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], like='bbi', axis=0)
-        with assertRaisesRegexp(TypeError, 'mutually exclusive'):
+        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
             self.frame.filter(items=['one', 'three'], like='bbi')
 
         # objects
         filtered = self.mixed_frame.filter(like='foo')
-        self.assertIn('foo', filtered)
+        assert 'foo' in filtered
 
         # unicode columns, won't ascii-encode
         df = self.frame.rename(columns={'B': u('\u2202')})
         filtered = df.filter(like='C')
-        self.assertTrue('C' in filtered)
+        assert 'C' in filtered
 
     def test_filter_regex_search(self):
         fcopy = self.frame.copy()
@@ -735,8 +732,8 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # regex
         filtered = fcopy.filter(regex='[A]+')
-        self.assertEqual(len(filtered.columns), 2)
-        self.assertIn('AA', filtered)
+        assert len(filtered.columns) == 2
+        assert 'AA' in filtered
 
         # doesn't have to be at beginning
         df = DataFrame({'aBBa': [1, 2],
@@ -848,19 +845,19 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
                           columns=[0, 2])
 
         reindexed = frame.reindex(np.arange(10))
-        self.assertEqual(reindexed.values.dtype, np.object_)
-        self.assertTrue(isnull(reindexed[0][1]))
+        assert reindexed.values.dtype == np.object_
+        assert isnull(reindexed[0][1])
 
         reindexed = frame.reindex(columns=lrange(3))
-        self.assertEqual(reindexed.values.dtype, np.object_)
-        self.assertTrue(isnull(reindexed[1]).all())
+        assert reindexed.values.dtype == np.object_
+        assert isnull(reindexed[1]).all()
 
     def test_reindex_objects(self):
         reindexed = self.mixed_frame.reindex(columns=['foo', 'A', 'B'])
-        self.assertIn('foo', reindexed)
+        assert 'foo' in reindexed
 
         reindexed = self.mixed_frame.reindex(columns=['A', 'B'])
-        self.assertNotIn('foo', reindexed)
+        assert 'foo' not in reindexed
 
     def test_reindex_corner(self):
         index = Index(['a', 'b', 'c'])
@@ -870,7 +867,7 @@ class TestDataFrameSelectReindex(tm.TestCase, TestData):
 
         # ints are weird
         smaller = self.intframe.reindex(columns=['A', 'B', 'E'])
-        self.assertEqual(smaller['E'].dtype, np.float64)
+        assert smaller['E'].dtype == np.float64
 
     def test_reindex_axis(self):
         cols = ['A', 'B', 'E']

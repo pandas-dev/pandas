@@ -48,7 +48,7 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestSeriesMissingData(TestData, tm.TestCase):
+class TestSeriesMissingData(TestData):
 
     def test_timedelta_fillna(self):
         # GH 3371
@@ -190,7 +190,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
             idx = pd.DatetimeIndex(['2011-01-01 10:00', pd.NaT,
                                     '2011-01-03 10:00', pd.NaT], tz=tz)
             s = pd.Series(idx)
-            self.assertEqual(s.dtype, 'datetime64[ns, {0}]'.format(tz))
+            assert s.dtype == 'datetime64[ns, {0}]'.format(tz)
             tm.assert_series_equal(pd.isnull(s), null_loc)
 
             result = s.fillna(pd.Timestamp('2011-01-02 10:00'))
@@ -459,7 +459,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         try:
             self.ts.fillna(method='ffil')
         except ValueError as inst:
-            self.assertIn('ffil', str(inst))
+            assert 'ffil' in str(inst)
 
     def test_ffill(self):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
@@ -484,28 +484,28 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         # nan ops on timedeltas
         td1 = td.copy()
         td1[0] = np.nan
-        self.assertTrue(isnull(td1[0]))
-        self.assertEqual(td1[0].value, iNaT)
+        assert isnull(td1[0])
+        assert td1[0].value == iNaT
         td1[0] = td[0]
-        self.assertFalse(isnull(td1[0]))
+        assert not isnull(td1[0])
 
         td1[1] = iNaT
-        self.assertTrue(isnull(td1[1]))
-        self.assertEqual(td1[1].value, iNaT)
+        assert isnull(td1[1])
+        assert td1[1].value == iNaT
         td1[1] = td[1]
-        self.assertFalse(isnull(td1[1]))
+        assert not isnull(td1[1])
 
         td1[2] = NaT
-        self.assertTrue(isnull(td1[2]))
-        self.assertEqual(td1[2].value, iNaT)
+        assert isnull(td1[2])
+        assert td1[2].value == iNaT
         td1[2] = td[2]
-        self.assertFalse(isnull(td1[2]))
+        assert not isnull(td1[2])
 
         # boolean setting
         # this doesn't work, not sure numpy even supports it
         # result = td[(td>np.timedelta64(timedelta(days=3))) &
         # td<np.timedelta64(timedelta(days=7)))] = np.nan
-        # self.assertEqual(isnull(result).sum(), 7)
+        # assert isnull(result).sum() == 7
 
         # NumPy limitiation =(
 
@@ -517,9 +517,9 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
     def test_dropna_empty(self):
         s = Series([])
-        self.assertEqual(len(s.dropna()), 0)
+        assert len(s.dropna()) == 0
         s.dropna(inplace=True)
-        self.assertEqual(len(s), 0)
+        assert len(s) == 0
 
         # invalid axis
         pytest.raises(ValueError, s.dropna, axis=1)
@@ -538,12 +538,12 @@ class TestSeriesMissingData(TestData, tm.TestCase):
                                 '2011-01-03 10:00', pd.NaT],
                                tz='Asia/Tokyo')
         s = pd.Series(idx)
-        self.assertEqual(s.dtype, 'datetime64[ns, Asia/Tokyo]')
+        assert s.dtype == 'datetime64[ns, Asia/Tokyo]'
         result = s.dropna()
         expected = Series([Timestamp('2011-01-01 10:00', tz='Asia/Tokyo'),
                            Timestamp('2011-01-03 10:00', tz='Asia/Tokyo')],
                           index=[0, 2])
-        self.assertEqual(result.dtype, 'datetime64[ns, Asia/Tokyo]')
+        assert result.dtype == 'datetime64[ns, Asia/Tokyo]'
         tm.assert_series_equal(result, expected)
 
     def test_dropna_no_nan(self):
@@ -552,7 +552,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
 
             result = s.dropna()
             tm.assert_series_equal(result, s)
-            self.assertFalse(result is s)
+            assert result is not s
 
             s2 = s.copy()
             s2.dropna(inplace=True)
@@ -572,7 +572,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         ts[::2] = np.NaN
 
         result = ts.valid()
-        self.assertEqual(len(result), ts.count())
+        assert len(result) == ts.count()
         tm.assert_series_equal(result, ts[1::2])
         tm.assert_series_equal(result, ts[pd.notnull(ts)])
 
@@ -599,7 +599,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         expected = Series([np.nan, 1.0, 1.0, 3.0, 3.0],
                           ['z', 'a', 'b', 'c', 'd'], dtype=float)
         assert_series_equal(x[1:], expected[1:])
-        self.assertTrue(np.isnan(x[0]), np.isnan(expected[0]))
+        assert np.isnan(x[0]), np.isnan(expected[0])
 
     def test_pad_require_monotonicity(self):
         rng = date_range('1/1/2000', '3/1/2000', freq='B')
@@ -612,11 +612,11 @@ class TestSeriesMissingData(TestData, tm.TestCase):
     def test_dropna_preserve_name(self):
         self.ts[:5] = np.nan
         result = self.ts.dropna()
-        self.assertEqual(result.name, self.ts.name)
+        assert result.name == self.ts.name
         name = self.ts.name
         ts = self.ts.copy()
         ts.dropna(inplace=True)
-        self.assertEqual(ts.name, name)
+        assert ts.name == name
 
     def test_fill_value_when_combine_const(self):
         # GH12723
@@ -700,7 +700,7 @@ class TestSeriesMissingData(TestData, tm.TestCase):
         assert_series_equal(result, expected)
 
 
-class TestSeriesInterpolateData(TestData, tm.TestCase):
+class TestSeriesInterpolateData(TestData):
 
     def test_interpolate(self):
         ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
@@ -1078,8 +1078,8 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
     def test_spline_smooth(self):
         tm._skip_if_no_scipy()
         s = Series([1, 2, np.nan, 4, 5.1, np.nan, 7])
-        self.assertNotEqual(s.interpolate(method='spline', order=3, s=0)[5],
-                            s.interpolate(method='spline', order=3)[5])
+        assert (s.interpolate(method='spline', order=3, s=0)[5] !=
+                s.interpolate(method='spline', order=3)[5])
 
     def test_spline_interpolation(self):
         tm._skip_if_no_scipy()
@@ -1090,8 +1090,8 @@ class TestSeriesInterpolateData(TestData, tm.TestCase):
         expected1 = s.interpolate(method='spline', order=1)
         assert_series_equal(result1, expected1)
 
-    # GH #10633
     def test_spline_error(self):
+        # see gh-10633
         tm._skip_if_no_scipy()
 
         s = pd.Series(np.arange(10) ** 2)

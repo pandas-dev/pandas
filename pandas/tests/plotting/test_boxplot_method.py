@@ -21,6 +21,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 """ Test cases for .boxplot method """
 
+tm._skip_if_no_mpl()
+
 
 def _skip_if_mpl_14_or_dev_boxplot():
     # GH 8382
@@ -31,7 +33,6 @@ def _skip_if_mpl_14_or_dev_boxplot():
         pytest.skip("Matplotlib Regression in 1.4 and current dev.")
 
 
-@tm.mplskip
 class TestDataFramePlots(TestPlotBase):
 
     @slow
@@ -71,32 +72,32 @@ class TestDataFramePlots(TestPlotBase):
         fig, ax = self.plt.subplots()
         axes = df.boxplot('Col1', by='X', ax=ax)
         ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
-        self.assertIs(ax_axes, axes)
+        assert ax_axes is axes
 
         fig, ax = self.plt.subplots()
         axes = df.groupby('Y').boxplot(ax=ax, return_type='axes')
         ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
-        self.assertIs(ax_axes, axes['A'])
+        assert ax_axes is axes['A']
 
         # Multiple columns with an ax argument should use same figure
         fig, ax = self.plt.subplots()
         with tm.assert_produces_warning(UserWarning):
             axes = df.boxplot(column=['Col1', 'Col2'],
                               by='X', ax=ax, return_type='axes')
-        self.assertIs(axes['Col1'].get_figure(), fig)
+        assert axes['Col1'].get_figure() is fig
 
         # When by is None, check that all relevant lines are present in the
         # dict
         fig, ax = self.plt.subplots()
         d = df.boxplot(ax=ax, return_type='dict')
         lines = list(itertools.chain.from_iterable(d.values()))
-        self.assertEqual(len(ax.get_lines()), len(lines))
+        assert len(ax.get_lines()) == len(lines)
 
     @slow
     def test_boxplot_return_type_none(self):
         # GH 12216; return_type=None & by=None -> axes
         result = self.hist_df.boxplot()
-        self.assertTrue(isinstance(result, self.plt.Axes))
+        assert isinstance(result, self.plt.Axes)
 
     @slow
     def test_boxplot_return_type_legacy(self):
@@ -129,8 +130,8 @@ class TestDataFramePlots(TestPlotBase):
 
         def _check_ax_limits(col, ax):
             y_min, y_max = ax.get_ylim()
-            self.assertTrue(y_min <= col.min())
-            self.assertTrue(y_max >= col.max())
+            assert y_min <= col.min()
+            assert y_max >= col.max()
 
         df = self.hist_df.copy()
         df['age'] = np.random.randint(1, 20, df.shape[0])
@@ -138,7 +139,7 @@ class TestDataFramePlots(TestPlotBase):
         height_ax, weight_ax = df.boxplot(['height', 'weight'], by='category')
         _check_ax_limits(df['height'], height_ax)
         _check_ax_limits(df['weight'], weight_ax)
-        self.assertEqual(weight_ax._sharey, height_ax)
+        assert weight_ax._sharey == height_ax
 
         # Two rows, one partial
         p = df.boxplot(['height', 'weight', 'age'], by='category')
@@ -148,9 +149,9 @@ class TestDataFramePlots(TestPlotBase):
         _check_ax_limits(df['height'], height_ax)
         _check_ax_limits(df['weight'], weight_ax)
         _check_ax_limits(df['age'], age_ax)
-        self.assertEqual(weight_ax._sharey, height_ax)
-        self.assertEqual(age_ax._sharey, height_ax)
-        self.assertIsNone(dummy_ax._sharey)
+        assert weight_ax._sharey == height_ax
+        assert age_ax._sharey == height_ax
+        assert dummy_ax._sharey is None
 
     @slow
     def test_boxplot_empty_column(self):
@@ -165,7 +166,6 @@ class TestDataFramePlots(TestPlotBase):
                                 xlabelsize=16, ylabelsize=16)
 
 
-@tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @slow
@@ -209,13 +209,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         gb = df.groupby('gender')
 
         res = gb.plot()
-        self.assertEqual(len(self.plt.get_fignums()), 2)
-        self.assertEqual(len(res), 2)
+        assert len(self.plt.get_fignums()) == 2
+        assert len(res) == 2
         tm.close()
 
         res = gb.boxplot(return_type='axes')
-        self.assertEqual(len(self.plt.get_fignums()), 1)
-        self.assertEqual(len(res), 2)
+        assert len(self.plt.get_fignums()) == 1
+        assert len(res) == 2
         tm.close()
 
         # now works with GH 5610 as gender is excluded
@@ -357,7 +357,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         tm.assert_numpy_array_equal(returned, axes[0])
-        self.assertIs(returned[0].figure, fig)
+        assert returned[0].figure is fig
 
         # draw on second row
         with tm.assert_produces_warning(UserWarning):
@@ -367,7 +367,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         returned = np.array(list(returned.values))
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         tm.assert_numpy_array_equal(returned, axes[1])
-        self.assertIs(returned[0].figure, fig)
+        assert returned[0].figure is fig
 
         with pytest.raises(ValueError):
             fig, axes = self.plt.subplots(2, 3)

@@ -3,12 +3,13 @@ from pandas.compat import PY2
 import pandas.util.testing as tm
 import os
 import io
+import pytest
 import numpy as np
 
 
-class TestSAS7BDAT(tm.TestCase):
+class TestSAS7BDAT(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.data = []
         self.test_ix = [list(range(1, 16)), [16]]
@@ -65,6 +66,29 @@ class TestSAS7BDAT(tm.TestCase):
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
                 rdr.close()
 
+    @pytest.mark.xfail(reason="read_sas currently doesn't work with pathlib")
+    def test_path_pathlib(self):
+        tm._skip_if_no_pathlib()
+        from pathlib import Path
+        for j in 0, 1:
+            df0 = self.data[j]
+            for k in self.test_ix[j]:
+                fname = Path(os.path.join(self.dirpath, "test%d.sas7bdat" % k))
+                df = pd.read_sas(fname, encoding='utf-8')
+                tm.assert_frame_equal(df, df0)
+
+    @pytest.mark.xfail(reason="read_sas currently doesn't work with localpath")
+    def test_path_localpath(self):
+        tm._skip_if_no_localpath()
+        from py.path import local as LocalPath
+        for j in 0, 1:
+            df0 = self.data[j]
+            for k in self.test_ix[j]:
+                fname = LocalPath(os.path.join(self.dirpath,
+                                               "test%d.sas7bdat" % k))
+                df = pd.read_sas(fname, encoding='utf-8')
+                tm.assert_frame_equal(df, df0)
+
     def test_iterator_loop(self):
         # github #13654
         for j in 0, 1:
@@ -75,7 +99,7 @@ class TestSAS7BDAT(tm.TestCase):
                     y = 0
                     for x in rdr:
                         y += x.shape[0]
-                    self.assertTrue(y == rdr.row_count)
+                    assert y == rdr.row_count
                     rdr.close()
 
     def test_iterator_read_too_much(self):

@@ -26,8 +26,8 @@ from pandas.core.common import (_values_from_object,
                                 is_null_slice)
 
 import pandas.core.base as base
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate, deprecate_kwarg)
+from pandas.util._decorators import (Appender, cache_readonly,
+                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -75,7 +75,6 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _labels = FrozenList()
     _comparables = ['names']
-    _engine_type = libindex.MultiIndexEngine
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
@@ -629,7 +628,16 @@ class MultiIndex(Index):
 
     @cache_readonly
     def _engine(self):
-        return self._engine_type(lambda: self, len(self))
+
+        # choose our engine based on our size
+        # the hashing based MultiIndex for larger
+        # sizes, and the MultiIndexOjbect for smaller
+        # xref: https://github.com/pandas-dev/pandas/pull/16324
+        l = len(self)
+        if l > 10000:
+            return libindex.MultiIndexHashEngine(lambda: self, l)
+
+        return libindex.MultiIndexObjectEngine(lambda: self.values, l)
 
     @property
     def values(self):
@@ -718,7 +726,7 @@ class MultiIndex(Index):
     @cache_readonly
     def _hashed_values(self):
         """ return a uint64 ndarray of my hashed values """
-        from pandas.util.hashing import hash_tuples
+        from pandas.core.util.hashing import hash_tuples
         return hash_tuples(self)
 
     def _hashed_indexing_key(self, key):
@@ -740,7 +748,7 @@ class MultiIndex(Index):
         we need to stringify if we have mixed levels
 
         """
-        from pandas.util.hashing import hash_tuples
+        from pandas.core.util.hashing import hash_tuples
 
         if not isinstance(key, tuple):
             return hash_tuples(key)

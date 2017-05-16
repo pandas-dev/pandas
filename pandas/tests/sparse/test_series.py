@@ -17,7 +17,7 @@ from pandas.core.reshape.util import cartesian_product
 
 import pandas.core.sparse.frame as spf
 
-from pandas.core.sparse.libsparse import BlockIndex, IntIndex
+from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.core.sparse.api import SparseSeries
 from pandas.tests.series.test_api import SharedWithSparse
 
@@ -56,9 +56,9 @@ def _test_data2_zero():
     return arr, index
 
 
-class TestSparseSeries(tm.TestCase, SharedWithSparse):
+class TestSparseSeries(SharedWithSparse):
 
-    def setUp(self):
+    def setup_method(self, method):
         arr, index = _test_data1()
 
         date_index = bdate_range('1/1/2011', periods=len(index))
@@ -90,24 +90,24 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_constructor_dtype(self):
         arr = SparseSeries([np.nan, 1, 2, np.nan])
-        self.assertEqual(arr.dtype, np.float64)
-        self.assertTrue(np.isnan(arr.fill_value))
+        assert arr.dtype == np.float64
+        assert np.isnan(arr.fill_value)
 
         arr = SparseSeries([np.nan, 1, 2, np.nan], fill_value=0)
-        self.assertEqual(arr.dtype, np.float64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.float64
+        assert arr.fill_value == 0
 
         arr = SparseSeries([0, 1, 2, 4], dtype=np.int64, fill_value=np.nan)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertTrue(np.isnan(arr.fill_value))
+        assert arr.dtype == np.int64
+        assert np.isnan(arr.fill_value)
 
         arr = SparseSeries([0, 1, 2, 4], dtype=np.int64)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         arr = SparseSeries([0, 1, 2, 4], fill_value=0, dtype=np.int64)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
     def test_iteration_and_str(self):
         [x for x in self.bseries]
@@ -135,12 +135,12 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_constructor_preserve_attr(self):
         arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         s = pd.SparseSeries(arr, name='x')
-        self.assertEqual(s.dtype, np.int64)
-        self.assertEqual(s.fill_value, 0)
+        assert s.dtype == np.int64
+        assert s.fill_value == 0
 
     def test_series_density(self):
         # GH2803
@@ -148,7 +148,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         ts[2:-2] = nan
         sts = ts.to_sparse()
         density = sts.density  # don't die
-        self.assertEqual(density, 4 / 10.0)
+        assert density == 4 / 10.0
 
     def test_sparse_to_dense(self):
         arr, index = _test_data1()
@@ -203,12 +203,12 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         iseries = series.to_sparse(kind='integer')
         tm.assert_sp_series_equal(bseries, self.bseries)
         tm.assert_sp_series_equal(iseries, self.iseries, check_names=False)
-        self.assertEqual(iseries.name, self.bseries.name)
+        assert iseries.name == self.bseries.name
 
-        self.assertEqual(len(series), len(bseries))
-        self.assertEqual(len(series), len(iseries))
-        self.assertEqual(series.shape, bseries.shape)
-        self.assertEqual(series.shape, iseries.shape)
+        assert len(series) == len(bseries)
+        assert len(series) == len(iseries)
+        assert series.shape == bseries.shape
+        assert series.shape == iseries.shape
 
         # non-NaN fill value
         series = self.zbseries.to_dense()
@@ -216,26 +216,26 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         ziseries = series.to_sparse(kind='integer', fill_value=0)
         tm.assert_sp_series_equal(zbseries, self.zbseries)
         tm.assert_sp_series_equal(ziseries, self.ziseries, check_names=False)
-        self.assertEqual(ziseries.name, self.zbseries.name)
+        assert ziseries.name == self.zbseries.name
 
-        self.assertEqual(len(series), len(zbseries))
-        self.assertEqual(len(series), len(ziseries))
-        self.assertEqual(series.shape, zbseries.shape)
-        self.assertEqual(series.shape, ziseries.shape)
+        assert len(series) == len(zbseries)
+        assert len(series) == len(ziseries)
+        assert series.shape == zbseries.shape
+        assert series.shape == ziseries.shape
 
     def test_to_dense_preserve_name(self):
         assert (self.bseries.name is not None)
         result = self.bseries.to_dense()
-        self.assertEqual(result.name, self.bseries.name)
+        assert result.name == self.bseries.name
 
     def test_constructor(self):
         # test setup guys
-        self.assertTrue(np.isnan(self.bseries.fill_value))
+        assert np.isnan(self.bseries.fill_value)
         assert isinstance(self.bseries.sp_index, BlockIndex)
-        self.assertTrue(np.isnan(self.iseries.fill_value))
+        assert np.isnan(self.iseries.fill_value)
         assert isinstance(self.iseries.sp_index, IntIndex)
 
-        self.assertEqual(self.zbseries.fill_value, 0)
+        assert self.zbseries.fill_value == 0
         tm.assert_numpy_array_equal(self.zbseries.values.values,
                                     self.bseries.to_dense().fillna(0).values)
 
@@ -244,13 +244,13 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
             # use passed series name
             result = SparseSeries(sparse)
             tm.assert_sp_series_equal(result, sparse)
-            self.assertEqual(sparse.name, name)
-            self.assertEqual(result.name, name)
+            assert sparse.name == name
+            assert result.name == name
 
             # use passed name
             result = SparseSeries(sparse, name='x')
             tm.assert_sp_series_equal(result, sparse, check_names=False)
-            self.assertEqual(result.name, 'x')
+            assert result.name == 'x'
 
         _check_const(self.bseries, 'bseries')
         _check_const(self.iseries, 'iseries')
@@ -271,31 +271,31 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         values = np.ones(self.bseries.npoints)
         sp = SparseSeries(values, sparse_index=self.bseries.sp_index)
         sp.sp_values[:5] = 97
-        self.assertEqual(values[0], 97)
+        assert values[0] == 97
 
-        self.assertEqual(len(sp), 20)
-        self.assertEqual(sp.shape, (20, ))
+        assert len(sp) == 20
+        assert sp.shape == (20, )
 
         # but can make it copy!
         sp = SparseSeries(values, sparse_index=self.bseries.sp_index,
                           copy=True)
         sp.sp_values[:5] = 100
-        self.assertEqual(values[0], 97)
+        assert values[0] == 97
 
-        self.assertEqual(len(sp), 20)
-        self.assertEqual(sp.shape, (20, ))
+        assert len(sp) == 20
+        assert sp.shape == (20, )
 
     def test_constructor_scalar(self):
         data = 5
         sp = SparseSeries(data, np.arange(100))
         sp = sp.reindex(np.arange(200))
-        self.assertTrue((sp.loc[:99] == data).all())
-        self.assertTrue(isnull(sp.loc[100:]).all())
+        assert (sp.loc[:99] == data).all()
+        assert isnull(sp.loc[100:]).all()
 
         data = np.nan
         sp = SparseSeries(data, np.arange(100))
-        self.assertEqual(len(sp), 100)
-        self.assertEqual(sp.shape, (100, ))
+        assert len(sp) == 100
+        assert sp.shape == (100, )
 
     def test_constructor_ndarray(self):
         pass
@@ -304,14 +304,14 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         arr = [0, 0, 0, nan, nan]
         sp_series = SparseSeries(arr, fill_value=0)
         tm.assert_numpy_array_equal(sp_series.values.values, np.array(arr))
-        self.assertEqual(len(sp_series), 5)
-        self.assertEqual(sp_series.shape, (5, ))
+        assert len(sp_series) == 5
+        assert sp_series.shape == (5, )
 
-    # GH 9272
     def test_constructor_empty(self):
+        # see gh-9272
         sp = SparseSeries()
-        self.assertEqual(len(sp.index), 0)
-        self.assertEqual(sp.shape, (0, ))
+        assert len(sp.index) == 0
+        assert sp.shape == (0, )
 
     def test_copy_astype(self):
         cop = self.bseries.astype(np.float64)
@@ -342,16 +342,16 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         assert (self.bseries.sp_values[:5] == 5).all()
 
     def test_shape(self):
-        # GH 10452
-        self.assertEqual(self.bseries.shape, (20, ))
-        self.assertEqual(self.btseries.shape, (20, ))
-        self.assertEqual(self.iseries.shape, (20, ))
+        # see gh-10452
+        assert self.bseries.shape == (20, )
+        assert self.btseries.shape == (20, )
+        assert self.iseries.shape == (20, )
 
-        self.assertEqual(self.bseries2.shape, (15, ))
-        self.assertEqual(self.iseries2.shape, (15, ))
+        assert self.bseries2.shape == (15, )
+        assert self.iseries2.shape == (15, )
 
-        self.assertEqual(self.zbseries2.shape, (15, ))
-        self.assertEqual(self.ziseries2.shape, (15, ))
+        assert self.zbseries2.shape == (15, )
+        assert self.ziseries2.shape == (15, )
 
     def test_astype(self):
         with pytest.raises(ValueError):
@@ -365,12 +365,12 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
                  np.int32, np.int16, np.int8]
         for typ in types:
             res = s.astype(typ)
-            self.assertEqual(res.dtype, typ)
+            assert res.dtype == typ
             tm.assert_series_equal(res.to_dense(), orig.astype(typ))
 
     def test_kind(self):
-        self.assertEqual(self.bseries.kind, 'block')
-        self.assertEqual(self.iseries.kind, 'integer')
+        assert self.bseries.kind == 'block'
+        assert self.iseries.kind == 'integer'
 
     def test_to_frame(self):
         # GH 9850
@@ -435,7 +435,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
     def test_get_get_value(self):
         tm.assert_almost_equal(self.bseries.get(10), self.bseries[10])
-        self.assertIsNone(self.bseries.get(len(self.bseries) + 1))
+        assert self.bseries.get(len(self.bseries) + 1) is None
 
         dt = self.btseries.index[10]
         result = self.btseries.get(dt)
@@ -448,11 +448,11 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
 
         idx = self.btseries.index[7]
         self.btseries.set_value(idx, 0)
-        self.assertEqual(self.btseries[idx], 0)
+        assert self.btseries[idx] == 0
 
         self.iseries.set_value('foobar', 0)
-        self.assertEqual(self.iseries.index[-1], 'foobar')
-        self.assertEqual(self.iseries['foobar'], 0)
+        assert self.iseries.index[-1] == 'foobar'
+        assert self.iseries['foobar'] == 0
 
     def test_getitem_slice(self):
         idx = self.bseries.index
@@ -506,16 +506,16 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
                                np.take(sp.to_dense(), indices, axis=0))
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.take,
-                              sp, indices, out=np.empty(sp.shape))
+        tm.assert_raises_regex(ValueError, msg, np.take,
+                               sp, indices, out=np.empty(sp.shape))
 
         msg = "the 'mode' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.take,
-                              sp, indices, mode='clip')
+        tm.assert_raises_regex(ValueError, msg, np.take,
+                               sp, indices, mode='clip')
 
     def test_setitem(self):
         self.bseries[5] = 7.
-        self.assertEqual(self.bseries[5], 7.)
+        assert self.bseries[5] == 7.
 
     def test_setslice(self):
         self.bseries[5:10] = 7.
@@ -592,30 +592,30 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         expected = SparseSeries([1, 2, 3], name='x')
         result = s.abs()
         tm.assert_sp_series_equal(result, expected)
-        self.assertEqual(result.name, 'x')
+        assert result.name == 'x'
 
         result = abs(s)
         tm.assert_sp_series_equal(result, expected)
-        self.assertEqual(result.name, 'x')
+        assert result.name == 'x'
 
         result = np.abs(s)
         tm.assert_sp_series_equal(result, expected)
-        self.assertEqual(result.name, 'x')
+        assert result.name == 'x'
 
         s = SparseSeries([1, -2, 2, -3], fill_value=-2, name='x')
         expected = SparseSeries([1, 2, 3], sparse_index=s.sp_index,
                                 fill_value=2, name='x')
         result = s.abs()
         tm.assert_sp_series_equal(result, expected)
-        self.assertEqual(result.name, 'x')
+        assert result.name == 'x'
 
         result = abs(s)
         tm.assert_sp_series_equal(result, expected)
-        self.assertEqual(result.name, 'x')
+        assert result.name == 'x'
 
         result = np.abs(s)
         tm.assert_sp_series_equal(result, expected)
-        self.assertEqual(result.name, 'x')
+        assert result.name == 'x'
 
     def test_reindex(self):
         def _compare_with_series(sps, new_index):
@@ -664,7 +664,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
             first_series = SparseSeries(values, sparse_index=index1,
                                         fill_value=fill_value)
             reindexed = first_series.sparse_reindex(index2)
-            self.assertIs(reindexed.sp_index, index2)
+            assert reindexed.sp_index is index2
 
             int_indices1 = index1.to_int_index().indices
             int_indices2 = index2.to_int_index().indices
@@ -703,8 +703,8 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         first_series = SparseSeries(values1,
                                     sparse_index=IntIndex(length, index1),
                                     fill_value=nan)
-        with tm.assertRaisesRegexp(TypeError,
-                                   'new index must be a SparseIndex'):
+        with tm.assert_raises_regex(TypeError,
+                                    'new index must be a SparseIndex'):
             reindexed = first_series.sparse_reindex(0)  # noqa
 
     def test_repr(self):
@@ -729,7 +729,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
             sparse_result = getattr(obj, op)()
             series = obj.to_dense()
             dense_result = getattr(series, op)()
-            self.assertEqual(sparse_result, dense_result)
+            assert sparse_result == dense_result
 
         to_compare = ['count', 'sum', 'mean', 'std', 'var', 'skew']
 
@@ -797,7 +797,7 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         # must have NaN fill value
         data = {'a': SparseSeries(np.arange(7), sparse_index=expected2,
                                   fill_value=0)}
-        with tm.assertRaisesRegexp(TypeError, "NaN fill value"):
+        with tm.assert_raises_regex(TypeError, "NaN fill value"):
             spf.homogenize(data)
 
     def test_fill_value_corner(self):
@@ -805,13 +805,13 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         cop.fill_value = 0
         result = self.bseries / cop
 
-        self.assertTrue(np.isnan(result.fill_value))
+        assert np.isnan(result.fill_value)
 
         cop2 = self.zbseries.copy()
         cop2.fill_value = 1
         result = cop2 / cop
         # 1 / 0 is inf
-        self.assertTrue(np.isinf(result.fill_value))
+        assert np.isinf(result.fill_value)
 
     def test_fill_value_when_combine_const(self):
         # GH12723
@@ -934,9 +934,9 @@ class TestSparseSeries(tm.TestCase, SharedWithSparse):
         tm.assert_sp_series_equal(result, expected)
 
 
-class TestSparseHandlingMultiIndexes(tm.TestCase):
+class TestSparseHandlingMultiIndexes(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         miindex = pd.MultiIndex.from_product(
             [["x", "y"], ["10", "20"]], names=['row-foo', 'row-bar'])
         micol = pd.MultiIndex.from_product(
@@ -960,10 +960,10 @@ class TestSparseHandlingMultiIndexes(tm.TestCase):
                               check_names=True)
 
 
-class TestSparseSeriesScipyInteraction(tm.TestCase):
+class TestSparseSeriesScipyInteraction(object):
     # Issue 8048: add SparseSeries coo methods
 
-    def setUp(self):
+    def setup_method(self, method):
         tm._skip_if_no_scipy()
         import scipy.sparse
         # SparseSeries inputs used in tests, the tests rely on the order
@@ -1097,8 +1097,8 @@ class TestSparseSeriesScipyInteraction(tm.TestCase):
         # or compare directly as difference of sparse
         # assert(abs(A - A_result).max() < 1e-12) # max is failing in python
         # 2.6
-        self.assertEqual(il, il_result)
-        self.assertEqual(jl, jl_result)
+        assert il == il_result
+        assert jl == jl_result
 
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
@@ -1310,9 +1310,9 @@ def _dense_series_compare(s, f):
     tm.assert_series_equal(result.to_dense(), dense_result)
 
 
-class TestSparseSeriesAnalytics(tm.TestCase):
+class TestSparseSeriesAnalytics(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         arr, index = _test_data1()
         self.bseries = SparseSeries(arr, index=index, kind='block',
                                     name='bseries')
@@ -1332,7 +1332,7 @@ class TestSparseSeriesAnalytics(tm.TestCase):
 
         axis = 1  # Series is 1-D, so only axis = 0 is valid.
         msg = "No axis named {axis}".format(axis=axis)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             self.bseries.cumsum(axis=axis)
 
     def test_numpy_cumsum(self):
@@ -1345,12 +1345,12 @@ class TestSparseSeriesAnalytics(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                              self.bseries, dtype=np.int64)
+        tm.assert_raises_regex(ValueError, msg, np.cumsum,
+                               self.bseries, dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assertRaisesRegexp(ValueError, msg, np.cumsum,
-                              self.zbseries, out=result)
+        tm.assert_raises_regex(ValueError, msg, np.cumsum,
+                               self.zbseries, out=result)
 
     def test_numpy_func_call(self):
         # no exception should be raised even though

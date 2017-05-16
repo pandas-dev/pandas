@@ -3,11 +3,10 @@
 from warnings import catch_warnings
 import numpy as np
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.core.dtypes import generic as gt
 
 
-class TestABCClasses(tm.TestCase):
+class TestABCClasses(object):
     tuples = [[1, 2, 2], ['red', 'blue', 'red']]
     multi_index = pd.MultiIndex.from_arrays(tuples, names=('number', 'color'))
     datetime_index = pd.to_datetime(['2000/1/1', '2010/1/1'])

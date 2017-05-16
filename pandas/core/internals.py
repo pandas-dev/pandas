@@ -64,8 +64,8 @@ from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement
 
 import pandas.core.computation.expressions as expressions
-from pandas.util.decorators import cache_readonly
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import cache_readonly
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas import compat, _np_version_under1p9
 from pandas.compat import range, map, zip, u
@@ -3807,7 +3807,7 @@ class BlockManager(PandasObject):
         """
         if not allow_duplicates and item in self.items:
             # Should this be a different kind of error??
-            raise ValueError('cannot insert %s, already exists' % item)
+            raise ValueError('cannot insert {}, already exists'.format(item))
 
         if not isinstance(loc, int):
             raise TypeError("loc must be int")

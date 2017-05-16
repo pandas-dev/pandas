@@ -11,10 +11,10 @@ import pandas as pd
 
 from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
-    _coerce_to_dtype,
     _ensure_int64,
     needs_i8_conversion,
     is_scalar,
+    is_number,
     is_integer, is_bool,
     is_bool_dtype,
     is_numeric_dtype,
@@ -23,7 +23,8 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_list_like,
     is_dict_like,
-    is_re_compilable)
+    is_re_compilable,
+    pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isnull, notnull
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel
@@ -51,8 +52,8 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types,
                            isidentifier, set_function_name)
 import pandas.core.nanops as nanops
-from pandas.util.decorators import Appender, Substitution, deprecate_kwarg
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._validators import validate_bool_kwarg
 from pandas.core import config
 
 # goal is to be able to define the docs close to function, while still being
@@ -129,27 +130,7 @@ class NDFrame(PandasObject, SelectionMixin):
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
 
-    def _ipython_display_(self):
-        try:
-            from IPython.display import display
-        except ImportError:
-            return None
-
-        # Series doesn't define _repr_html_ or _repr_latex_
-        latex = self._repr_latex_() if hasattr(self, '_repr_latex_') else None
-        html = self._repr_html_() if hasattr(self, '_repr_html_') else None
-        table_schema = self._repr_table_schema_()
-        # We need the inital newline since we aren't going through the
-        # usual __repr__. See
-        # https://github.com/pandas-dev/pandas/pull/14904#issuecomment-277829277
-        text = "\n" + repr(self)
-
-        reprs = {"text/plain": text, "text/html": html, "text/latex": latex,
-                 "application/vnd.dataresource+json": table_schema}
-        reprs = {k: v for k, v in reprs.items() if v}
-        display(reprs, raw=True)
-
-    def _repr_table_schema_(self):
+    def _repr_data_resource_(self):
         """
         Not a real Jupyter special repr method, but we use the same
         naming convention.
@@ -164,13 +145,14 @@ class NDFrame(PandasObject, SelectionMixin):
         """ validate the passed dtype """
 
         if dtype is not None:
-            dtype = _coerce_to_dtype(dtype)
+            dtype = pandas_dtype(dtype)
 
             # a compound dtype
             if dtype.kind == 'V':
                 raise NotImplementedError("compound dtypes are not implemented"
                                           "in the {0} constructor"
                                           .format(self.__class__.__name__))
+
         return dtype
 
     def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
@@ -1285,12 +1267,17 @@ class NDFrame(PandasObject, SelectionMixin):
             <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
 
             Applicable only to format='table'.
-        complevel : int, 1-9, default 0
-            If a complib is specified compression will be applied
-            where possible
-        complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
-            If complevel is > 0 apply compression to objects written
-            in the store wherever possible
+        complevel : int, 0-9, default 0
+            Specifies a compression level for data.
+            A value of 0 disables compression.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc', None}, default None
+            Specifies the compression library to be used.
+            As of v0.20.2 these additional compressors for Blosc are supported
+            (default if no compressor specified: 'blosc:blosclz'):
+            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
+             'blosc:zlib', 'blosc:zstd'}.
+            Specifying a compression library which is not available issues
+            a ValueError.
         fletcher32 : bool, default False
             If applying compression use the fletcher32 checksum
         dropna : boolean, default False.
@@ -1401,8 +1388,8 @@ class NDFrame(PandasObject, SelectionMixin):
           - Windows: none
           - OS X: none
         """
-        from pandas.io import clipboard
-        clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
+        from pandas.io import clipboards
+        clipboards.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
     def to_xarray(self):
         """
@@ -2872,19 +2859,19 @@ class NDFrame(PandasObject, SelectionMixin):
             return func(self, *args, **kwargs)
 
     _shared_docs['aggregate'] = ("""
-    Aggregate using input function or dict of {column ->
-    function}
+    Aggregate using callable, string, dict, or list of string/callables
 
-    .. versionadded:: 0.20.0
+    %(versionadded)s
 
     Parameters
     ----------
     func : callable, string, dictionary, or list of string/callables
         Function to use for aggregating the data. If a function, must either
-        work when passed a DataFrame or when passed to DataFrame.apply. If
-        passed a dict, the keys must be DataFrame column names.
+        work when passed a %(klass)s or when passed to %(klass)s.apply. For
+        a DataFrame, can pass a dict, if the keys are DataFrame column names.
 
         Accepted Combinations are:
+
         - string function name
         - function
         - list of functions
@@ -2897,12 +2884,11 @@ class NDFrame(PandasObject, SelectionMixin):
     (e.g., np.mean(arr_2d, axis=0)) as opposed to
     mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
 
+    agg is an alias for aggregate. Use it.
+
     Returns
     -------
     aggregated : %(klass)s
-
-    See also
-    --------
     """)
 
     _shared_docs['transform'] = ("""
@@ -2917,18 +2903,40 @@ class NDFrame(PandasObject, SelectionMixin):
         To apply to column
 
         Accepted Combinations are:
+
         - string function name
         - function
         - list of functions
         - dict of column names -> functions (or list of functions)
 
-    Examples
-    --------
-    >>> df.transform(lambda x: (x - x.mean()) / x.std())
-
     Returns
     -------
     transformed : %(klass)s
+
+    Examples
+    --------
+    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+    ...                   index=pd.date_range('1/1/2000', periods=10))
+    df.iloc[3:7] = np.nan
+
+    >>> df.transform(lambda x: (x - x.mean()) / x.std())
+                       A         B         C
+    2000-01-01  0.579457  1.236184  0.123424
+    2000-01-02  0.370357 -0.605875 -1.231325
+    2000-01-03  1.455756 -0.277446  0.288967
+    2000-01-04       NaN       NaN       NaN
+    2000-01-05       NaN       NaN       NaN
+    2000-01-06       NaN       NaN       NaN
+    2000-01-07       NaN       NaN       NaN
+    2000-01-08 -0.498658  1.274522  1.642524
+    2000-01-09 -0.540524 -1.012676 -0.828968
+    2000-01-10 -1.366388 -0.614710  0.005378
+
+    See also
+    --------
+    pandas.%(klass)s.aggregate
+    pandas.%(klass)s.apply
+
     """)
 
     # ----------------------------------------------------------------------
@@ -4097,6 +4105,22 @@ class NDFrame(PandasObject, SelectionMixin):
     def notnull(self):
         return notnull(self).__finalize__(self)
 
+    def _clip_with_scalar(self, lower, upper):
+
+        if ((lower is not None and np.any(isnull(lower))) or
+                (upper is not None and np.any(isnull(upper)))):
+            raise ValueError("Cannot use an NA value as a clip threshold")
+
+        result = self.values
+        mask = isnull(result)
+        if upper is not None:
+            result = np.where(result >= upper, upper, result)
+        if lower is not None:
+            result = np.where(result <= lower, lower, result)
+        result[mask] = np.nan
+        return self._constructor(
+            result, **self._construct_axes_dict()).__finalize__(self)
+
     def clip(self, lower=None, upper=None, axis=None, *args, **kwargs):
         """
         Trim values at input threshold(s).
@@ -4115,12 +4139,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df
-          0         1
+                  0         1
         0  0.335232 -1.256177
         1 -1.367855  0.746646
         2  0.027753 -1.176076
         3  0.230930 -0.679613
         4  1.261967  0.570967
+
         >>> df.clip(-1.0, 0.5)
                   0         1
         0  0.335232 -1.000000
@@ -4128,6 +4153,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2  0.027753 -1.000000
         3  0.230930 -0.679613
         4  0.500000  0.500000
+
         >>> t
         0   -0.3
         1   -0.2
@@ -4135,6 +4161,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    0.0
         4    0.1
         dtype: float64
+
         >>> df.clip(t, t + 1, axis=0)
                   0         1
         0  0.335232 -0.300000
@@ -4152,6 +4179,11 @@ class NDFrame(PandasObject, SelectionMixin):
         if lower is not None and upper is not None:
             if is_scalar(lower) and is_scalar(upper):
                 lower, upper = min(lower, upper), max(lower, upper)
+
+        # fast-path for scalars
+        if ((lower is None or (is_scalar(lower) and is_number(lower))) and
+                (upper is None or (is_scalar(upper) and is_number(upper)))):
+            return self._clip_with_scalar(lower, upper)
 
         result = self
         if lower is not None:
@@ -4182,6 +4214,9 @@ class NDFrame(PandasObject, SelectionMixin):
         if np.any(isnull(threshold)):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
+        if is_scalar(threshold) and is_number(threshold):
+            return self._clip_with_scalar(None, threshold)
+
         subset = self.le(threshold, axis=axis) | isnull(self)
         return self.where(subset, threshold, axis=axis)
 
@@ -4205,6 +4240,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         if np.any(isnull(threshold)):
             raise ValueError("Cannot use an NA value as a clip threshold")
+
+        if is_scalar(threshold) and is_number(threshold):
+            return self._clip_with_scalar(threshold, None)
 
         subset = self.ge(threshold, axis=axis) | isnull(self)
         return self.where(subset, threshold, axis=axis)

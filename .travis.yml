@@ -17,8 +17,13 @@ cache:
 env:
   global:
 
-  # pandas-docs-travis GH
-  - secure: "YvvTc+FrSYHgdxqoxn9s8VOaCWjvZzlkaf6k55kkmQqCYR9dPiLMsot1F96/N7o3YlD1s0znPQCak93Du8HHi/8809zAXloTaMSZrWz4R4qn96xlZFRE88O/w/Z1t3VVYpKX3MHlCggBc8MtXrqmvWKJMAqXyysZ4TTzoiJDPvE="
+  # pandas-docs/pandas-docs-travis GH #
+  #
+  # create a github personal access token
+  # cd pandas-docs/pandas-docs-travis
+  # travis encrypt
+  # PANDAS_GH_TOKEN=personal_access_token
+  secure: "Vldn32VpfPbnLbTaJ8z1zkHRe3vHjgSwSg3hFTRhQeFQlWK7SDXjWwbNK+X9OF+ju4Cfczn2m+gssOGgOPq3HRNYih5p7pKVk2WII7V1mlcXuXGkVDws340aA9KoUbq+A2bnNcovBQjX3FRz+gofnQXOHVD3l/Eh7nEmXdgP+Ls="
 
 git:
     # for cloning
@@ -123,7 +128,7 @@ after_success:
 
 after_script:
   - echo "after_script start"
-  - source activate pandas && python -c "import pandas; pandas.show_versions();"
+  - source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
   - if [ -e /tmp/single.xml ]; then
     ci/print_skipped.py /tmp/single.xml;
     fi

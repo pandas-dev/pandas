@@ -13,7 +13,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesSorting(TestData, tm.TestCase):
+class TestSeriesSorting(TestData):
 
     def test_sortlevel_deprecated(self):
         ts = self.ts.copy()
@@ -35,12 +35,12 @@ class TestSeriesSorting(TestData, tm.TestCase):
         vals = ts.values
 
         result = ts.sort_values()
-        self.assertTrue(np.isnan(result[-5:]).all())
+        assert np.isnan(result[-5:]).all()
         tm.assert_numpy_array_equal(result[:-5].values, np.sort(vals[5:]))
 
         # na_position
         result = ts.sort_values(na_position='first')
-        self.assertTrue(np.isnan(result[:5]).all())
+        assert np.isnan(result[:5]).all()
         tm.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
 
         # something object-type
@@ -129,16 +129,17 @@ class TestSeriesSorting(TestData, tm.TestCase):
         # descending
         random_order = self.ts.reindex(rindex)
         result = random_order.sort_index(ascending=False, inplace=True)
-        self.assertIs(result, None,
-                      msg='sort_index() inplace should return None')
-        assert_series_equal(random_order, self.ts.reindex(self.ts.index[::-1]))
+
+        assert result is None
+        tm.assert_series_equal(random_order, self.ts.reindex(
+            self.ts.index[::-1]))
 
         # ascending
         random_order = self.ts.reindex(rindex)
         result = random_order.sort_index(ascending=True, inplace=True)
-        self.assertIs(result, None,
-                      msg='sort_index() inplace should return None')
-        assert_series_equal(random_order, self.ts)
+
+        assert result is None
+        tm.assert_series_equal(random_order, self.ts)
 
     def test_sort_index_multiindex(self):
 

@@ -37,6 +37,248 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.20.0 / 0.20.1
+----------------------
+
+**Release date:** May 5, 2017
+
+
+This is a major release from 0.19.2 and includes a number of API changes, deprecations, new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+- New ``.agg()`` API for Series/DataFrame similar to the groupby-rolling-resample API's, see :ref:`here <whatsnew_0200.enhancements.agg>`
+- Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
+- The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
+- ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
+- Addition of an ``IntervalIndex`` and ``Interval`` scalar type, see :ref:`here <whatsnew_0200.enhancements.intervalindex>`
+- Improved user API when grouping by index levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
+- Improved support for ``UInt64`` dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
+- A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec and that gives the possibility for a more interactive repr in the Jupyter Notebook, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
+- Experimental support for exporting styled DataFrames (``DataFrame.style``) to Excel, see :ref:`here <whatsnew_0200.enhancements.style_excel>`
+- Window binary corr/cov operations now return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
+- Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
+- Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
+
+See the :ref:`v0.20.1 Whatsnew <whatsnew_0200>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.20.1.
+
+
+.. note::
+
+   This is a combined release for 0.20.0 and and 0.20.1.
+   Version 0.20.1 contains one additional change for backwards-compatibility with downstream projects using pandas' ``utils`` routines. (:issue:`16250`)
+
+Thanks
+~~~~~~
+
+- abaldenko
+- Adam J. Stewart
+- Adrian
+- adrian-stepien
+- Ajay Saxena
+- Akash Tandon
+- Albert Villanova del Moral
+- Aleksey Bilogur
+- alexandercbooth
+- Alexis Mignon
+- Amol Kahat
+- Andreas Winkler
+- Andrew Kittredge
+- Anthonios Partheniou
+- Arco Bast
+- Ashish Singal
+- atbd
+- bastewart
+- Baurzhan Muftakhidinov
+- Ben Kandel
+- Ben Thayer
+- Ben Welsh
+- Bill Chambers
+- bmagnusson
+- Brandon M. Burroughs
+- Brian
+- Brian McFee
+- carlosdanielcsantos
+- Carlos Souza
+- chaimdemulder
+- Chris
+- chris-b1
+- Chris Ham
+- Christopher C. Aycock
+- Christoph Gohlke
+- Christoph Paulik
+- Chris Warth
+- Clemens Brunner
+- DaanVanHauwermeiren
+- Daniel Himmelstein
+- Dave Willmer
+- David Cook
+- David Gwynne
+- David Hoffman
+- David Krych
+- dickreuter
+- Diego Fernandez
+- Dimitris Spathis
+- discort
+- Dmitry L
+- Dody Suria Wijaya
+- Dominik Stanczak
+- Dr-Irv
+- Dr. Irv
+- dr-leo
+- D.S. McNeil
+- dubourg
+- dwkenefick
+- Elliott Sales de Andrade
+- Ennemoser Christoph
+- Francesc Alted
+- Fumito Hamamura
+- funnycrab
+- gfyoung
+- Giacomo Ferroni
+- goldenbull
+- Graham R. Jeffries
+- Greg Williams
+- Guilherme Beltramini
+- Guilherme Samora
+- Hao Wu
+- Harshit Patni
+- hesham.shabana@hotmail.com
+- Ilya V. Schurov
+- Iván Vallés Pérez
+- Jackie Leng
+- Jaehoon Hwang
+- James Draper
+- James Goppert
+- James McBride
+- James Santucci
+- Jan Schulz
+- Jeff Carey
+- Jeff Reback
+- JennaVergeynst
+- Jim
+- Jim Crist
+- Joe Jevnik
+- Joel Nothman
+- John
+- John Tucker
+- John W. O'Brien
+- John Zwinck
+- jojomdt
+- Jonathan de Bruin
+- Jonathan Whitmore
+- Jon Mease
+- Jon M. Mease
+- Joost Kranendonk
+- Joris Van den Bossche
+- Joshua Bradt
+- Julian Santander
+- Julien Marrec
+- Jun Kim
+- Justin Solinsky
+- Kacawi
+- Kamal Kamalaldin
+- Kerby Shedden
+- Kernc
+- Keshav Ramaswamy
+- Kevin Sheppard
+- Kyle Kelley
+- Larry Ren
+- Leon Yin
+- linebp
+- Line Pedersen
+- Lorenzo Cestaro
+- Luca Scarabello
+- Lukasz
+- Mahmoud Lababidi
+- manu
+- manuels
+- Mark Mandel
+- Matthew Brett
+- Matthew Roeschke
+- mattip
+- Matti Picus
+- Matt Roeschke
+- maxalbert
+- Maximilian Roos
+- mcocdawc
+- Michael Charlton
+- Michael Felt
+- Michael Lamparski
+- Michiel Stock
+- Mikolaj Chwalisz
+- Min RK
+- Miroslav Šedivý
+- Mykola Golubyev
+- Nate Yoder
+- Nathalie Rud
+- Nicholas Ver Halen
+- Nick Chmura
+- Nolan Nichols
+- nuffe
+- Pankaj Pandey
+- paul-mannino
+- Pawel Kordek
+- pbreach
+- Pete Huang
+- Peter
+- Peter Csizsek
+- Petio Petrov
+- Phil Ruffwind
+- Pietro Battiston
+- Piotr Chromiec
+- Prasanjit Prakash
+- Robert Bradshaw
+- Rob Forgione
+- Robin
+- Rodolfo Fernandez
+- Roger Thomas
+- Rouz Azari
+- Sahil Dua
+- sakkemo
+- Sam Foo
+- Sami Salonen
+- Sarah Bird
+- Sarma Tangirala
+- scls19fr
+- Scott Sanderson
+- Sebastian Bank
+- Sebastian Gsänger
+- Sébastien de Menten
+- Shawn Heide
+- Shyam Saladi
+- sinhrks
+- Sinhrks
+- Stephen Rauch
+- stijnvanhoey
+- Tara Adiseshan
+- themrmax
+- the-nose-knows
+- Thiago Serafim
+- Thoralf Gutierrez
+- Thrasibule
+- Tobias Gustafsson
+- Tom Augspurger
+- tomrod
+- Tong Shen
+- Tong SHEN
+- TrigonaMinima
+- tzinckgraf
+- Uwe
+- wandersoncferreira
+- watercrossing
+- wcwagner
+- Wes Turner
+- Wiktor Tomczak
+- WillAyd
+- xgdgsc
+- Yaroslav Halchenko
+- Yimeng Zhang
+- yui-knk
+
 
 pandas 0.19.2
 -------------

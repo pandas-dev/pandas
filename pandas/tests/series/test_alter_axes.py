@@ -18,7 +18,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesAlterAxes(TestData, tm.TestCase):
+class TestSeriesAlterAxes(TestData):
 
     def test_setindex(self):
         # wrong type
@@ -38,7 +38,7 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
     def test_rename(self):
         renamer = lambda x: x.strftime('%Y%m%d')
         renamed = self.ts.rename(renamer)
-        self.assertEqual(renamed.index[0], renamer(self.ts.index[0]))
+        assert renamed.index[0] == renamer(self.ts.index[0])
 
         # dict
         rename_dict = dict(zip(self.ts.index, renamed.index))
@@ -55,7 +55,7 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
                          index=Index(['a', 'b', 'c', 'd'], name='name'),
                          dtype='int64')
         renamed = renamer.rename({})
-        self.assertEqual(renamed.index.name, renamer.index.name)
+        assert renamed.index.name == renamer.index.name
 
     def test_rename_by_series(self):
         s = Series(range(5), name='foo')
@@ -68,15 +68,15 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
         s = Series(range(4), index=list('abcd'))
         for name in ['foo', 123, 123., datetime(2001, 11, 11), ('foo',)]:
             result = s.rename(name)
-            self.assertEqual(result.name, name)
+            assert result.name == name
             tm.assert_numpy_array_equal(result.index.values, s.index.values)
-            self.assertTrue(s.name is None)
+            assert s.name is None
 
     def test_rename_set_name_inplace(self):
         s = Series(range(3), index=list('abc'))
         for name in ['foo', 123, 123., datetime(2001, 11, 11), ('foo',)]:
             s.rename(name, inplace=True)
-            self.assertEqual(s.name, name)
+            assert s.name == name
 
             exp = np.array(['a', 'b', 'c'], dtype=np.object_)
             tm.assert_numpy_array_equal(s.index.values, exp)
@@ -86,30 +86,30 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
         s2 = Series([1, 2, 3], name='bar')
         for name in [7, 7., 'name', datetime(2001, 1, 1), (1,), u"\u05D0"]:
             s.name = name
-            self.assertEqual(s.name, name)
+            assert s.name == name
             s2.name = name
-            self.assertEqual(s2.name, name)
+            assert s2.name == name
 
     def test_set_name(self):
         s = Series([1, 2, 3])
         s2 = s._set_name('foo')
-        self.assertEqual(s2.name, 'foo')
-        self.assertTrue(s.name is None)
-        self.assertTrue(s is not s2)
+        assert s2.name == 'foo'
+        assert s.name is None
+        assert s is not s2
 
     def test_rename_inplace(self):
         renamer = lambda x: x.strftime('%Y%m%d')
         expected = renamer(self.ts.index[0])
 
         self.ts.rename(renamer, inplace=True)
-        self.assertEqual(self.ts.index[0], expected)
+        assert self.ts.index[0] == expected
 
     def test_set_index_makes_timeseries(self):
         idx = tm.makeDateIndex(10)
 
         s = Series(lrange(10))
         s.index = idx
-        self.assertTrue(s.index.is_all_dates)
+        assert s.index.is_all_dates
 
     def test_reset_index(self):
         df = tm.makeDataFrame()[:5]
@@ -118,10 +118,10 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
 
         ser.name = 'value'
         df = ser.reset_index()
-        self.assertIn('value', df)
+        assert 'value' in df
 
         df = ser.reset_index(name='value2')
-        self.assertIn('value2', df)
+        assert 'value2' in df
 
         # check inplace
         s = ser.reset_index(drop=True)
@@ -135,11 +135,50 @@ class TestSeriesAlterAxes(TestData, tm.TestCase):
                                    [0, 1, 0, 1, 0, 1]])
         s = Series(np.random.randn(6), index=index)
         rs = s.reset_index(level=1)
-        self.assertEqual(len(rs.columns), 2)
+        assert len(rs.columns) == 2
 
         rs = s.reset_index(level=[0, 2], drop=True)
         tm.assert_index_equal(rs.index, Index(index.get_level_values(1)))
         assert isinstance(rs, Series)
+
+    def test_reset_index_level(self):
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]],
+                          columns=['A', 'B', 'C'])
+
+        for levels in ['A', 'B'], [0, 1]:
+            # With MultiIndex
+            s = df.set_index(['A', 'B'])['C']
+
+            result = s.reset_index(level=levels[0])
+            tm.assert_frame_equal(result, df.set_index('B'))
+
+            result = s.reset_index(level=levels[:1])
+            tm.assert_frame_equal(result, df.set_index('B'))
+
+            result = s.reset_index(level=levels)
+            tm.assert_frame_equal(result, df)
+
+            result = df.set_index(['A', 'B']).reset_index(level=levels,
+                                                          drop=True)
+            tm.assert_frame_equal(result, df[['C']])
+
+            with tm.assert_raises_regex(KeyError, 'Level E '):
+                s.reset_index(level=['A', 'E'])
+
+            # With single-level Index
+            s = df.set_index('A')['B']
+
+            result = s.reset_index(level=levels[0])
+            tm.assert_frame_equal(result, df[['A', 'B']])
+
+            result = s.reset_index(level=levels[:1])
+            tm.assert_frame_equal(result, df[['A', 'B']])
+
+            result = s.reset_index(level=levels[0], drop=True)
+            tm.assert_series_equal(result, df['B'])
+
+            with tm.assert_raises_regex(IndexError, 'Too many levels'):
+                s.reset_index(level=[0, 1, 2])
 
     def test_reset_index_range(self):
         # GH 12071
