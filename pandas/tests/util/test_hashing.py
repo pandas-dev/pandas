@@ -81,13 +81,13 @@ class TestHashing(object):
 
     def test_hash_tuple(self):
         # test equivalence between hash_tuples and hash_tuple
-        for tup in [(1, 'one'), (1, np.nan)]:
+        for tup in [(1, 'one'), (1, np.nan), (1.0, pd.NaT, 'A')]:
             result = hash_tuple(tup)
             expected = hash_tuples([tup])[0]
             assert result == expected
 
     def test_hash_scalar(self):
-        for val in [1, 1.4, 'A', b'A', u'A',  pd.Timestamp("2012-01-01"),
+        for val in [1, 1.4, 'A', b'A', u'A', pd.Timestamp("2012-01-01"),
                     pd.Timestamp("2012-01-01", tz='Europe/Brussels'),
                     pd.Period('2012-01-01', freq='D'), pd.Timedelta('1 days'),
                     pd.Interval(0, 1), np.nan, pd.NaT, None]:

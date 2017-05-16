@@ -333,7 +333,7 @@ def maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def infer_dtype_from_scalar(val, pandas_dtype=False):
+def infer_dtype_from_scalar(val, pandas_dtype=False, use_datetimetz=True):
     """
     interpret the dtype from a scalar
 
@@ -368,7 +368,7 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
 
     elif isinstance(val, (np.datetime64, datetime)):
         val = tslib.Timestamp(val)
-        if val is tslib.NaT or val.tz is None:
+        if val is tslib.NaT or val.tz is None or not use_datetimetz:
             dtype = np.dtype('M8[ns]')
         else:
             if pandas_dtype:

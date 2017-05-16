@@ -5,7 +5,6 @@ import itertools
 
 import numpy as np
 from pandas._libs import hashing
-from pandas.compat import string_and_binary_types, text_type
 from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCIndexClass,
@@ -14,6 +13,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_list_like)
 from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
 
 
 # 16 byte long hashing key
@@ -317,20 +317,8 @@ def _hash_scalar(val, encoding='utf8', hash_key=None):
         # this is to be consistent with the _hash_categorical implementation
         return np.array([np.iinfo(np.uint64).max], dtype='u8')
 
-    if isinstance(val, string_and_binary_types + (text_type,)):
-        vals = np.array([val], dtype=object)
-    else:
-        vals = np.array([val])
-
-        if vals.dtype == np.object_:
-            from pandas import Timestamp, Timedelta, Period, Interval
-            if isinstance(val, (Timestamp, Timedelta)):
-                vals = np.array([val.value])
-            elif isinstance(val, (Period, Interval)):
-                pass
-            else:
-                from pandas import Index
-                vals = Index(vals).values
+    dtype, val = infer_dtype_from_scalar(val, use_datetimetz=False)
+    vals = np.array([val], dtype=dtype)
 
     return hash_array(vals, hash_key=hash_key, encoding=encoding,
                       categorize=False)
