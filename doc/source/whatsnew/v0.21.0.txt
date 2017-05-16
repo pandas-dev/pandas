@@ -37,6 +37,8 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Support has been dropped for Python 3.4 (:issue:`15251`)
+- The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
+
 
 .. _whatsnew_0210.api:
 
@@ -109,6 +111,9 @@ Reshaping
 Numeric
 ^^^^^^^
 
+
+Categorical
+^^^^^^^^^^^
 
 
 Other
