@@ -19,7 +19,7 @@ Highlights include:
 Enhancements
 ~~~~~~~~~~~~
 
-- Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`) 
+- Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`)
 
 .. _whatsnew_0202.performance:
 
@@ -28,6 +28,7 @@ Performance Improvements
 
 - Performance regression fix when indexing with a list-like (:issue:`16285`)
 - Performance regression fix for small MultiIndexes (:issuse:`16319`)
+- Improved performance of ``.clip()`` with scalar arguments (:issue:`15400`)
 
 .. _whatsnew_0202.bug_fixes:
 
