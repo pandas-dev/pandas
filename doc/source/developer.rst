@@ -17,6 +17,8 @@ Developer
 
 This section will focus on downstream applications of pandas.
 
+.. _apache.parquet:
+
 Storing pandas DataFrame objects in Apache Parquet format
 ---------------------------------------------------------
 
@@ -74,16 +76,22 @@ any of the supported integer categorical types.
 The ``type_metadata`` is ``None`` except for:
 
 * ``datetimetz``: ``{'timezone': zone}``, e.g. ``{'timezone', 'America/New_York'}``
-* ``categorical``: ``{'num_categories': K, 'ordered': is_ordered}``
-* ``object``: ``{'encoding': encoding}``
+* ``categorical``: ``{'num_categories': K, 'ordered': is_ordered, 'type': $TYPE}``
 
-Objects can be serialized and stored in ``BYTE_ARRAY`` Parquet columns. The
-encoding can be one of:
+  * Here ``'type'`` is optional, and can be a nested pandas type specification
+    here (but not categorical)
 
-* ``'pickle'``
-* ``'msgpack'``
-* ``'bson'``
-* ``'json'``
+* ``unicode``: ``{'encoding': encoding}``
+
+  * The encoding is optional, and if not present is UTF-8
+
+* ``object``: ``{'encoding': encoding}``. Objects can be serialized and stored
+  in ``BYTE_ARRAY`` Parquet columns. The encoding can be one of:
+
+  * ``'pickle'``
+  * ``'msgpack'``
+  * ``'bson'``
+  * ``'json'``
 
 For types other than these, the ``'metadata'`` key can be
 omitted. Implementations can assume ``None`` if the key is not present.
