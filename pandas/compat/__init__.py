@@ -7,7 +7,7 @@ Cross-compatible functions for Python 2 and 3.
 Key items to import for 2/3 compatible code:
 * iterators: range(), map(), zip(), filter(), reduce()
 * lists: lrange(), lmap(), lzip(), lfilter()
-* unicode: u() [u"" is a syntax error in Python 3.0-3.2]
+* unicode: u() [no unicode builtin in Python 3]
 * longs: long (int in Python 3)
 * callable
 * iterable method compatibility: iteritems, iterkeys, itervalues
@@ -110,7 +110,7 @@ if PY3:
     unichr = chr
 
     # This was introduced in Python 3.3, but we don't support
-    # Python 3.x < 3.4, so checking PY3 is safe.
+    # Python 3.x < 3.5, so checking PY3 is safe.
     FileNotFoundError = FileNotFoundError
 
     # list-producing versions of the major Python iterating functions

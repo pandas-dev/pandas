@@ -1,4 +1,0 @@
-python=3.4*
-numpy=1.8.1
-cython=0.24.1
-libgfortran=1.0

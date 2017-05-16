@@ -23,9 +23,9 @@ dependencies:
        0)
          sudo apt-get install language-pack-it && ./ci/install_circle.sh JOB="2.7_COMPAT" LOCALE_OVERRIDE="it_IT.UTF-8" ;;
        1)
-         sudo apt-get install language-pack-zh-hans && ./ci/install_circle.sh JOB="3.4_SLOW" LOCALE_OVERRIDE="zh_CN.UTF-8" ;;
+         sudo apt-get install language-pack-zh-hans && ./ci/install_circle.sh JOB="3.6_LOCALE" LOCALE_OVERRIDE="zh_CN.UTF-8" ;;
        2)
-         sudo apt-get install language-pack-zh-hans && ./ci/install_circle.sh JOB="3.4" LOCALE_OVERRIDE="zh_CN.UTF-8" ;;
+         sudo apt-get install language-pack-zh-hans && ./ci/install_circle.sh JOB="3.6_LOCALE_SLOW" LOCALE_OVERRIDE="zh_CN.UTF-8" ;;
        3)
          ./ci/install_circle.sh JOB="3.5_ASCII" LOCALE_OVERRIDE="C" ;;
       esac
