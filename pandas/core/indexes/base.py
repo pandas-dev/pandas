@@ -212,7 +212,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     if is_integer_dtype(dtype):
                         inferred = lib.infer_dtype(data)
                         if inferred == 'integer':
-                            if (np.asarray(data) < 0).any():
+                            if is_unsigned_integer_dtype(dtype) and\
+                                    (np.asarray(data) < 0).any():
                                 raise OverflowError("Trying to coerce "
                                                     "negative values to "
                                                     "negative integers")
