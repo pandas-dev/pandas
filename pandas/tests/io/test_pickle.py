@@ -20,7 +20,7 @@ import os
 from distutils.version import LooseVersion
 import pandas as pd
 from pandas import Index
-from pandas.compat import is_platform_little_endian, cPickle as pkl
+from pandas.compat import is_platform_little_endian
 import pandas
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Day, MonthEnd
