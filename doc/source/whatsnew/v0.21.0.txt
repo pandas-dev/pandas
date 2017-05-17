@@ -27,10 +27,7 @@ New features
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-Pickle file I/O protocol parameter
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-- Added protocol parameter to :func:`to_pickle`. The 'protocol' parameter defaults to HIGHEST_PROTOCOL.
+- Added protocol parameter to :func:`to_pickle`. The 'protocol' parameter defaults to HIGHEST_PROTOCOL. (:issue:`16252`)
 
 .. _whatsnew_0210.api_breaking:
 
