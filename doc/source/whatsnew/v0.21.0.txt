@@ -30,26 +30,7 @@ Other Enhancements
 Pickle file I/O protocol parameter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:func:`to_pickle` now allows to specify the protocol used by the Pickler.
-The 'protocol' parameter defaults to HIGHEST_PROTOCOL. For Python 2.x, HIGHEST_PROTOCOL is 2.
-Since Python 3.0 (respectively 3.4), HIGHEST_PROTOCOL is 3 (respectively 4).
-A negative value for the protocol parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
-
-.. ipython:: python
-
-   df = pd.DataFrame({
-       'A': np.random.randn(1000),
-       'B': 'foo',
-       'C': pd.date_range('20130101', periods=1000, freq='s')})
-
-Using an explicit protocol parameter
-
-.. ipython:: python
-
-   df.to_pickle("data.pkl", protocol=2)
-   rt = pd.read_pickle("data.pkl")
-   rt
-
+- Added protocol parameter to :func:`to_pickle`. The 'protocol' parameter defaults to HIGHEST_PROTOCOL.
 
 .. _whatsnew_0210.api_breaking:
 
