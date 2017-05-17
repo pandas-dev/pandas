@@ -23,7 +23,7 @@ env:
   # cd pandas-docs/pandas-docs-travis
   # travis encrypt
   # PANDAS_GH_TOKEN=personal_access_token
-  secure: "Vldn32VpfPbnLbTaJ8z1zkHRe3vHjgSwSg3hFTRhQeFQlWK7SDXjWwbNK+X9OF+ju4Cfczn2m+gssOGgOPq3HRNYih5p7pKVk2WII7V1mlcXuXGkVDws340aA9KoUbq+A2bnNcovBQjX3FRz+gofnQXOHVD3l/Eh7nEmXdgP+Ls="
+  secure: "S49Tn5dzBRu6QaQcSV8MoCeX9rn7l8xuHFJbFsT9jPm1l0YPb94S8iDk0Isw71SqvHBgh+j2cms9jgYn2N3VCArh5MpA0oKwTKRZEX3iLQv248dCY2C6LdzAKLA+8m2naDGcfc0qMLeNieCGZICccs0EKIGDt8m7VQBMqeT0YU0="
 
 git:
     # for cloning
