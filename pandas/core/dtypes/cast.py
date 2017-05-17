@@ -827,7 +827,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         except:
             pass
 
-        return v.reshape(shape)
+        return v
 
     def try_timedelta(v):
         # safe coerce to timedelta64
@@ -835,7 +835,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         # will try first with a string & object conversion
         from pandas import to_timedelta
         try:
-            return to_timedelta(v)._values.reshape(shape)
+            return to_timedelta(v)._values.
         except:
             return v
 
@@ -862,7 +862,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             if lib.infer_dtype(value) in ['mixed']:
                 value = try_datetime(v)
 
-    return value
+    return value.reshape(shape)
 
 
 def maybe_cast_to_datetime(value, dtype, errors='raise'):
