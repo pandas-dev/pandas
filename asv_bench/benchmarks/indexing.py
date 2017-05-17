@@ -227,11 +227,23 @@ class MultiIndexing(object):
     def time_multiindex_large_get_loc(self):
         self.mi_large.get_loc((999, 19, 'Z'))
 
+    def time_multiindex_large_get_loc_warm(self):
+        for _ in range(1000):
+            self.mi_large.get_loc((999, 19, 'Z'))
+
     def time_multiindex_med_get_loc(self):
         self.mi_med.get_loc((999, 9, 'A'))
 
+    def time_multiindex_med_get_loc_warm(self):
+        for _ in range(1000):
+            self.mi_med.get_loc((999, 9, 'A'))
+
     def time_multiindex_string_get_loc(self):
         self.mi_small.get_loc((99, 'A', 'A'))
+
+    def time_multiindex_small_get_loc_warm(self):
+        for _ in range(1000):
+            self.mi_small.get_loc((99, 'A', 'A'))
 
     def time_is_monotonic(self):
         self.miint.is_monotonic

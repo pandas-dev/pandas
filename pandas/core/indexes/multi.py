@@ -748,7 +748,7 @@ class MultiIndex(Index):
         we need to stringify if we have mixed levels
 
         """
-        from pandas.core.util.hashing import hash_tuples
+        from pandas.core.util.hashing import hash_tuples, hash_tuple
 
         if not isinstance(key, tuple):
             return hash_tuples(key)
@@ -762,7 +762,7 @@ class MultiIndex(Index):
             return k
         key = tuple([f(k, stringify)
                      for k, stringify in zip(key, self._have_mixed_levels)])
-        return hash_tuples(key)
+        return hash_tuple(key)
 
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
