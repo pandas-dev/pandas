@@ -4113,11 +4113,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         result = self.values
         mask = isnull(result)
-        if upper is not None:
-            result = np.where(result >= upper, upper, result)
-        if lower is not None:
-            result = np.where(result <= lower, lower, result)
-        result[mask] = np.nan
+
+        with np.errstate(all='ignore'):
+            if upper is not None:
+                result = np.where(result >= upper, upper, result)
+            if lower is not None:
+                result = np.where(result <= lower, lower, result)
+        if np.any(mask):
+            result[mask] = np.nan
+
         return self._constructor(
             result, **self._construct_axes_dict()).__finalize__(self)
 
