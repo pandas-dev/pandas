@@ -1951,17 +1951,58 @@ it is assumed to be aliases for the column names.')
 
     def get_value(self, index, col, takeable=False):
         """
-        Quickly retrieve single value at passed column and index
+        An internal method to quickly retrieve single value from the
+        provided column and index. Slated for deprecation.
 
         Parameters
         ----------
         index : row label
         col : column label
-        takeable : interpret the index/col as indexers, default False
+        takeable : Instructs the method to interpret the index
+        and col parameters as indexers. The default is ``False``.
 
         Returns
         -------
         value : scalar value
+
+        Notes
+        -----
+
+        The recommended public methods to use as alternative to this
+        method are ``.at`` and ``.iat``.
+
+        Examples
+        --------
+        Retrieve values from a ``DataFrame`` by providing an index value
+        and column name.
+
+        >>> df = pd.DataFrame([[1, 'a'], [2, 'b']],
+        ...                   columns=['numeric', 'object'])
+        >>> df
+           numeric object
+        0        1      a
+        1        2      b
+        >>> df.get_value(0, 'numeric')
+        1
+        >>> df.get_value(0, 'object')
+        'a'
+        >>> df.get_value(1, 'numeric')
+        2
+        >>> df.get_value(1, 'object')
+        'b'
+
+        If the ``DataFrame`` has a non-numeric index you can use that as well.
+
+        >>> df.set_index('object', inplace=True)
+        >>> df
+                numeric
+        object
+        a             1
+        b             2
+        >>> df.get_value('a', 'numeric')
+        1
+        >>> df.get_value('b', 'numeric')
+        2
         """
 
         if takeable:
