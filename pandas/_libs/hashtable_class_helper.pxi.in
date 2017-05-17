@@ -4,6 +4,9 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
+from lib cimport is_null_datetimelike
+
+
 #----------------------------------------------------------------------
 # VectorData
 #----------------------------------------------------------------------
@@ -889,6 +892,19 @@ cdef class MultiIndexHashTable(HashTable):
                     "hash collision\nlocs:\n{}\n"
                     "result:\n{}\nmi:\n{}".format(alocs, result, mi))
 
+    cdef inline void _check_for_collision(self, Py_ssize_t loc, object label):
+        # validate that the loc maps to the actual value
+        # version of _check_for_collisions above for single label (tuple)
+
+        result = self.mi[loc]
+
+        if not all(l == r or (is_null_datetimelike(l)
+                              and is_null_datetimelike(r))
+                   for l, r in zip(result, label)):
+            raise AssertionError(
+                "hash collision\nloc:\n{}\n"
+                "result:\n{}\nmi:\n{}".format(loc, result, label))
+
     def __contains__(self, object key):
         try:
             self.get_item(key)
@@ -907,8 +923,7 @@ cdef class MultiIndexHashTable(HashTable):
         k = kh_get_uint64(self.table, value)
         if k != self.table.n_buckets:
             loc = self.table.vals[k]
-            locs = np.array([loc], dtype=np.int64)
-            self._check_for_collisions(locs, key)
+            self._check_for_collision(loc, key)
             return loc
         else:
             raise KeyError(key)
