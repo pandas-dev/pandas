@@ -965,8 +965,6 @@ class TestSeriesInterpolateData(TestData):
                                limit_direction='backward')
         assert_series_equal(result, expected)
 
-
-
     def test_interp_limit_bad_direction(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 
@@ -976,7 +974,6 @@ class TestSeriesInterpolateData(TestData):
         # raises an error even if no limit is specified.
         pytest.raises(ValueError, s.interpolate, method='linear',
                       limit_direction='abc')
-
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
