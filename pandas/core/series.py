@@ -2927,10 +2927,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 raise OverflowError("Trying to coerce negative values to "
                                     "negative integers")
 
-            # Raises if coercion from float to integer
+            # Raises if coercion from float to integer loses precision
             if is_integer_dtype(dtype) and is_float_dtype(np.asarray(data)):
-                raise OverflowError("Trying to coerce float values to "
-                                    "integers")
+                if not np.array_equal(np.asarray(data),
+                                      np.asarray(data).astype(int).
+                                      astype(float)):
+                    raise OverflowError("Trying to coerce float values to "
+                                        "integers")
 
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
