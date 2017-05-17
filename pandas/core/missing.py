@@ -175,8 +175,13 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     # If Limit is not an integer greater than 0, then use default behavior
     # of filling without limit in the direction specified by limit_direction
 
-    if not (is_integer(limit) and limit > 0):
+    # default limit is unlimited GH Issue:16282
+    if limit is None:
         limit = len(xvalues)
+    elif not is_integer(limit):
+        raise ValueError('Limit must be an integer')
+    elif limit < 1:
+        raise ValueError('Limit must be greater than 0')
 
     # each possible limit_direction
     if limit_direction == 'forward':
