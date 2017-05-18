@@ -7,7 +7,7 @@ import itertools
 
 import numpy as np
 
-from pandas.compat import reduce, string_types
+from pandas.compat import reduce
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.common import is_float
@@ -617,9 +617,12 @@ class ExcelFormatter(object):
             and ``io.excel.xlsm.writer``.
         """
         from pandas.io.excel import ExcelWriter
-        need_save = False
-        if isinstance(writer, string_types):
-            writer = ExcelWriter(writer, engine=engine)
+        from pandas.io.common import _stringify_path
+
+        if isinstance(writer, ExcelWriter):
+            need_save = False
+        else:
+            writer = ExcelWriter(_stringify_path(writer), engine=engine)
             need_save = True
 
         formatted_cells = self.get_formatted_cells()

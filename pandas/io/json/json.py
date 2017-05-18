@@ -7,7 +7,8 @@ from pandas._libs.tslib import iNaT
 from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
 from pandas import Series, DataFrame, to_datetime, MultiIndex
-from pandas.io.common import get_filepath_or_buffer, _get_handle
+from pandas.io.common import (get_filepath_or_buffer, _get_handle,
+                              _stringify_path)
 from pandas.core.common import AbstractMethodError
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
@@ -25,6 +26,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
             default_handler=None, lines=False):
 
+    path_or_buf = _stringify_path(path_or_buf)
     if lines and orient != 'records':
         raise ValueError(
             "'lines' keyword only valid when 'orient' is records")

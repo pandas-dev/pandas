@@ -146,8 +146,7 @@ def _validate_header_arg(header):
 
 
 def _stringify_path(filepath_or_buffer):
-    """Return the argument coerced to a string if it was a pathlib.Path
-       or a py.path.local
+    """Attempt to convert a path-like object to a string.
 
     Parameters
     ----------
@@ -155,8 +154,21 @@ def _stringify_path(filepath_or_buffer):
 
     Returns
     -------
-    str_filepath_or_buffer : a the string version of the input path
+    str_filepath_or_buffer : maybe a string version of the object
+
+    Notes
+    -----
+    Objects supporting the fspath protocol (python 3.6+) are coerced
+    according to its __fspath__ method.
+
+    For backwards compatibility with older pythons, pathlib.Path and
+    py.path objects are specially coerced.
+
+    Any other object is passed through unchanged, which includes bytes,
+    strings, buffers, or anything else that's not even path-like.
     """
+    if hasattr(filepath_or_buffer, '__fspath__'):
+        return filepath_or_buffer.__fspath__()
     if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
         return text_type(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
@@ -180,10 +192,10 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     -------
     a filepath_or_buffer, the encoding, the compression
     """
+    filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if _is_url(filepath_or_buffer):
-        url = str(filepath_or_buffer)
-        req = _urlopen(url)
+        req = _urlopen(filepath_or_buffer)
         content_encoding = req.headers.get('Content-Encoding', None)
         if content_encoding == 'gzip':
             # Override compression based on Content-Encoding header
@@ -196,9 +208,6 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         return s3.get_filepath_or_buffer(filepath_or_buffer,
                                          encoding=encoding,
                                          compression=compression)
-
-    # Convert pathlib.Path/py.path.local or string
-    filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, (compat.string_types,
                                        compat.binary_type,
