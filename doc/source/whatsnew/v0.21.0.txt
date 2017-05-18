@@ -27,7 +27,8 @@ New features
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- Added protocol parameter to :func:`to_pickle`. The 'protocol' parameter defaults to HIGHEST_PROTOCOL. (:issue:`16252`)
+- :func:`to_pickle` has gained a protocol parameter (:issue:`16252`). By default,
+this parameter is set to HIGHEST_PROTOCOL (see https://docs.python.org/3/library/pickle.html, 12.1.2).
 
 .. _whatsnew_0210.api_breaking:
 
