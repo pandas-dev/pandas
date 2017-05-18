@@ -50,7 +50,7 @@ from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types,
-                           isidentifier, set_function_name)
+                           isidentifier, set_function_name, cPickle as pkl)
 import pandas.core.nanops as nanops
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_bool_kwarg
@@ -1350,7 +1350,8 @@ class NDFrame(PandasObject, SelectionMixin):
                    if_exists=if_exists, index=index, index_label=index_label,
                    chunksize=chunksize, dtype=dtype)
 
-    def to_pickle(self, path, compression='infer'):
+    def to_pickle(self, path, compression='infer',
+                  protocol=pkl.HIGHEST_PROTOCOL):
         """
         Pickle (serialize) object to input file path.
 
@@ -1362,9 +1363,22 @@ class NDFrame(PandasObject, SelectionMixin):
             a string representing the compression to use in the output file
 
             .. versionadded:: 0.20.0
+        protocol : int
+            Int which indicates which protocol should be used by the pickler,
+            default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
+            values for this parameter depend on the version of Python. For
+            Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
+            valid value. For Python >= 3.4, 4 is a valid value.A negative value
+            for the protocol parameter is equivalent to setting its value to
+            HIGHEST_PROTOCOL.
+
+            .. [1] https://docs.python.org/3/library/pickle.html
+            .. versionadded:: 0.21.0
+
         """
         from pandas.io.pickle import to_pickle
-        return to_pickle(self, path, compression=compression)
+        return to_pickle(self, path, compression=compression,
+                         protocol=protocol)
 
     def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
