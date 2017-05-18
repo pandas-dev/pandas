@@ -20,10 +20,10 @@ env:
   # pandas-docs/pandas-docs-travis GH #
   #
   # create a github personal access token
-  # cd pandas-docs/pandas-docs-travis
-  # travis encrypt
-  # PANDAS_GH_TOKEN=personal_access_token
-  secure: "S49Tn5dzBRu6QaQcSV8MoCeX9rn7l8xuHFJbFsT9jPm1l0YPb94S8iDk0Isw71SqvHBgh+j2cms9jgYn2N3VCArh5MpA0oKwTKRZEX3iLQv248dCY2C6LdzAKLA+8m2naDGcfc0qMLeNieCGZICccs0EKIGDt8m7VQBMqeT0YU0="
+  # cd pandas-dev/pandas
+  # travis encrypt PANDAS_GH_TOKEN=personal_access_token
+  # correct the repo to be pandas-dev/pandas, not your fork
+  secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
 
 git:
     # for cloning
