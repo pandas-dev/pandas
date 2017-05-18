@@ -453,6 +453,14 @@ the original values:
 
     np.asarray(cat) > base
 
+When you compare two unordered categoricals with the same categories, the order is not considered:
+
+.. ipython:: python
+
+   c1 = pd.Categorical(['a', 'b'], categories=['a', 'b'], ordered=False)
+   c2 = pd.Categorical(['a', 'b'], categories=['b', 'a'], ordered=False)
+   c1 == c2
+
 Operations
 ----------
 
