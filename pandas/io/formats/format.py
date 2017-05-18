@@ -369,7 +369,10 @@ class DataFrameFormatter(TableFormatter):
                  index_names=True, line_width=None, max_rows=None,
                  max_cols=None, show_dimensions=False, decimal='.', **kwds):
         self.frame = frame
-        self.buf = _expand_user(buf) if buf is not None else StringIO()
+        if buf is not None:
+            self.buf = _expand_user(_stringify_path(buf))
+        else:
+            self.buf = StringIO()
         self.show_index_names = index_names
 
         if sparsify is None:

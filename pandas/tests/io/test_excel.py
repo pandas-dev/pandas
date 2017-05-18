@@ -2499,3 +2499,24 @@ def test_styler_to_excel(engine):
             n_cells += 1
 
     assert n_cells == (10 + 1) * (3 + 1)
+
+
+class TestFSPath(object):
+
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
+    def test_excelfile_fspath(self):
+        _skip_if_no_openpyxl()
+        with tm.ensure_clean('foo.xlsx') as path:
+            df = DataFrame({"A": [1, 2]})
+            df.to_excel(path)
+            xl = ExcelFile(path)
+            result = os.fspath(xl)
+            assert result == path
+
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
+    # @pytest.mark.xfail
+    def test_excelwriter_fspath(self):
+        _skip_if_no_openpyxl()
+        with tm.ensure_clean('foo.xlsx') as path:
+            writer = ExcelWriter(path)
+            assert os.fspath(writer) == str(path)

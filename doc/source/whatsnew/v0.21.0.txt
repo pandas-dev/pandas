@@ -20,6 +20,10 @@ Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
+- Support for `PEP 519 -- Adding a file system path protocol
+  <https://www.python.org/dev/peps/pep-0519/>`_ on most readers and writers (:issue:`13823`)
+- Added `__fspath__` method to :class`:pandas.HDFStore`, :class:`pandas.ExcelFile`,
+  and :class:`pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 
 
 .. _whatsnew_0210.enhancements.other:
@@ -40,6 +44,8 @@ Backwards incompatible API changes
 - Support has been dropped for Python 3.4 (:issue:`15251`)
 - The Categorical constructor no longer accepts a scalar for the ``categories`` keyword. (:issue:`16022`)
 
+- Accessing a non-existent attribute on a closed :class:`HDFStore` will now
+  raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
 
 .. _whatsnew_0210.api:
 
