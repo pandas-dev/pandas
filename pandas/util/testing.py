@@ -1802,22 +1802,24 @@ def makePeriodFrame(nper=None):
 
 
 def makePanel(nper=None):
-    cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-    data = dict((c, makeTimeDataFrame(nper)) for c in cols)
-    return Panel.fromDict(data)
+    with warnings.catch_warnings(record=True):
+        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
+        data = dict((c, makeTimeDataFrame(nper)) for c in cols)
+        return Panel.fromDict(data)
 
 
 def makePeriodPanel(nper=None):
-    cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-    data = dict((c, makePeriodFrame(nper)) for c in cols)
-    return Panel.fromDict(data)
+    with warnings.catch_warnings(record=True):
+        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
+        data = dict((c, makePeriodFrame(nper)) for c in cols)
+        return Panel.fromDict(data)
 
 
 def makePanel4D(nper=None):
     with warnings.catch_warnings(record=True):
         d = dict(l1=makePanel(nper), l2=makePanel(nper),
                  l3=makePanel(nper))
-    return Panel4D(d)
+        return Panel4D(d)
 
 
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
