@@ -2929,9 +2929,10 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
             # Raises if coercion from float to integer loses precision
             if is_integer_dtype(dtype) and is_float_dtype(np.asarray(data)):
-                if not np.array_equal(np.asarray(data),
-                                      np.asarray(data).astype(int).
-                                      astype(float)):
+                #if not np.array_equal(np.asarray(data),
+                #                      np.asarray(data).astype(int).
+                #                      astype(float)):
+                if ((np.asarray(data) % np.asarray(data).astype(int)) > 0).any():
                     raise OverflowError("Trying to coerce float values to "
                                         "integers")
 
