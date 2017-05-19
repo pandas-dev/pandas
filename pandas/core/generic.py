@@ -13,7 +13,6 @@ from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
-    needs_i8_conversion,
     is_scalar,
     is_number,
     is_integer, is_bool,
@@ -5301,48 +5300,6 @@ it is assumed to be aliases for the column names.')
                 raise NotImplemented("cannot align with a higher dimensional "
                                      "NDFrame")
 
-        elif is_list_like(other):
-
-            if self.ndim == 1:
-
-                # try to set the same dtype as ourselves
-                try:
-                    new_other = np.array(other, dtype=self.dtype)
-                except ValueError:
-                    new_other = np.array(other)
-                except TypeError:
-                    new_other = other
-
-                # we can end up comparing integers and m8[ns]
-                # which is a numpy no no
-                is_i8 = needs_i8_conversion(self.dtype)
-                if is_i8:
-                    matches = False
-                else:
-                    matches = (new_other == np.array(other))
-
-                if matches is False or not matches.all():
-
-                    # coerce other to a common dtype if we can
-                    if needs_i8_conversion(self.dtype):
-                        try:
-                            other = np.array(other, dtype=self.dtype)
-                        except:
-                            other = np.array(other)
-                    else:
-                        other = np.asarray(other)
-                        other = np.asarray(other,
-                                           dtype=np.common_type(other,
-                                                                new_other))
-
-                    # we need to use the new dtype
-                    try_quick = False
-                else:
-                    other = new_other
-            else:
-
-                other = np.array(other)
-
         if isinstance(other, np.ndarray):
 
             if other.shape != self.shape:
@@ -5407,7 +5364,7 @@ it is assumed to be aliases for the column names.')
             # reconstruct the block manager
 
             self._check_inplace_setting(other)
-            new_data = self._data.putmask(mask=cond, new=other, align=align,
+            new_data = self._data.putmask(mask=cond, other=other, align=align,
                                           inplace=True, axis=block_axis,
                                           transpose=self._AXIS_REVERSED)
             self._update_inplace(new_data)

@@ -9,8 +9,9 @@ import pytest
 from datetime import datetime, timedelta, date
 import numpy as np
 
-from pandas import Timedelta, Timestamp, DatetimeIndex, DataFrame, NaT
-
+from pandas import Period, Timedelta, Timestamp, DatetimeIndex, DataFrame, NaT
+from pandas.api.types import is_dtype_equal
+import pandas as pd
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
     maybe_convert_objects,
@@ -18,7 +19,8 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_array,
     maybe_convert_string_to_object,
     maybe_convert_scalar,
-    find_common_type)
+    find_common_type,
+    cast_scalar_to_array)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -131,29 +133,85 @@ class TestInferDtype(object):
             dtype, val = infer_dtype_from_scalar(data)
             assert dtype == 'm8[ns]'
 
-        for data in [date(2000, 1, 1),
-                     Timestamp(1, tz='US/Eastern'), 'foo']:
+        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo']:
+            dt = Timestamp(1, tz=tz)
+            dtype, val = infer_dtype_from_scalar(dt, pandas_dtype=True)
+            assert dtype == 'datetime64[ns, {0}]'.format(tz)
+            assert val == dt.value
+
+            dtype, val = infer_dtype_from_scalar(dt)
+            assert dtype == np.object_
+            assert val == dt
+
+        for freq in ['M', 'D']:
+            p = Period('2011-01-01', freq=freq)
+            dtype, val = infer_dtype_from_scalar(p, pandas_dtype=True)
+            assert dtype == 'period[{0}]'.format(freq)
+            assert val == p.ordinal
+
+            dtype, val = infer_dtype_from_scalar(p)
+            dtype == np.object_
+            assert val == p
+
+        # misc
+        for data in [date(2000, 1, 1), 'foo']:
             dtype, val = infer_dtype_from_scalar(data)
             assert dtype == np.object_
 
     @pytest.mark.parametrize(
-        "arr, expected",
-        [('foo', np.object_),
-         (b'foo', np.object_),
-         (1, np.int_),
-         (1.5, np.float_),
-         ([1], np.int_),
-         (np.array([1]), np.int_),
-         ([np.nan, 1, ''], np.object_),
-         (np.array([[1.0, 2.0]]), np.float_),
-         (Timestamp('20160101'), np.object_),
-         (np.datetime64('2016-01-01'), np.dtype('<M8[D]')),
+        "arr, expected, pandas_dtype",
+        [('foo', np.object_, False),
+         (b'foo', np.object_, False),
+         (1, np.int_, False),
+         (1.5, np.float_, False),
+         ([1], np.int_, False),
+         (np.array([1]), np.int_, False),
+         ([np.nan, 1, ''], np.object_, False),
+         (np.array([[1.0, 2.0]]), np.float_, False),
+         (pd.Categorical(list('aabc')), np.object_, False),
+         (pd.Categorical([1, 2, 3]), np.int_, False),
+         (pd.Categorical(list('aabc')), 'category', True),
+         (pd.Categorical([1, 2, 3]), 'category', True),
+         (Timestamp('20160101'), np.object_, False),
+         (np.datetime64('2016-01-01'), np.dtype('<M8[D]'), False),
+         (pd.date_range('20160101', periods=3),
+          np.dtype('<M8[ns]'), False),
+         (pd.date_range('20160101', periods=3, tz='US/Eastern'),
+          'datetime64[ns, US/Eastern]', True),
          ])
-    def test_infer_dtype_from_array(self, arr, expected):
+    def test_infer_dtype_from_array(self, arr, expected, pandas_dtype):
 
         # these infer specifically to numpy dtypes
-        dtype, _ = infer_dtype_from_array(arr)
-        assert dtype == expected
+        dtype, _ = infer_dtype_from_array(arr, pandas_dtype=pandas_dtype)
+        assert is_dtype_equal(dtype, expected)
+
+    def test_cast_scalar_to_array(self):
+        arr = cast_scalar_to_array((3, 2), 1, dtype=np.int64)
+        exp = np.ones((3, 2), dtype=np.int64)
+        tm.assert_numpy_array_equal(arr, exp)
+
+        arr = cast_scalar_to_array((3, 2), 1.1)
+        exp = np.empty((3, 2), dtype=np.float64)
+        exp.fill(1.1)
+        tm.assert_numpy_array_equal(arr, exp)
+
+        arr = cast_scalar_to_array((2, 3), Timestamp('2011-01-01'))
+        exp = np.empty((2, 3), dtype='datetime64[ns]')
+        exp.fill(np.datetime64('2011-01-01'))
+        tm.assert_numpy_array_equal(arr, exp)
+
+        # pandas dtype is stored as object dtype
+        obj = Timestamp('2011-01-01', tz='US/Eastern')
+        arr = cast_scalar_to_array((2, 3), obj)
+        exp = np.empty((2, 3), dtype=np.object)
+        exp.fill(obj)
+        tm.assert_numpy_array_equal(arr, exp)
+
+        obj = Period('2011-01-01', freq='D')
+        arr = cast_scalar_to_array((2, 3), obj)
+        exp = np.empty((2, 3), dtype=np.object)
+        exp.fill(obj)
+        tm.assert_numpy_array_equal(arr, exp)
 
 
 class TestMaybe(object):
@@ -332,100 +390,3 @@ class TestCommonTypes(object):
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
             assert find_common_type([dtype, dtype2]) == np.object
             assert find_common_type([dtype2, dtype]) == np.object
-
-
-class TestInferDtype2(tm.TestCase):
-
-    def test_infer_dtype_from_scalar(self):
-        # Test that _infer_dtype_from_scalar is returning correct dtype for int
-        # and float.
-
-        for dtypec in [np.uint8, np.int8, np.uint16, np.int16, np.uint32,
-                       np.int32, np.uint64, np.int64]:
-            data = dtypec(12)
-            dtype, val = _infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, type(data))
-
-        data = 12
-        dtype, val = _infer_dtype_from_scalar(data)
-        self.assertEqual(dtype, np.int64)
-
-        for dtypec in [np.float16, np.float32, np.float64]:
-            data = dtypec(12)
-            dtype, val = _infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, dtypec)
-
-        data = np.float(12)
-        dtype, val = _infer_dtype_from_scalar(data)
-        self.assertEqual(dtype, np.float64)
-
-        for data in [True, False]:
-            dtype, val = _infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, np.bool_)
-
-        for data in [np.complex64(1), np.complex128(1)]:
-            dtype, val = _infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, np.complex_)
-
-        import datetime
-        for data in [np.datetime64(1, 'ns'), Timestamp(1),
-                     datetime.datetime(2000, 1, 1, 0, 0)]:
-            dtype, val = _infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, 'M8[ns]')
-
-        for data in [np.timedelta64(1, 'ns'), Timedelta(1),
-                     datetime.timedelta(1)]:
-            dtype, val = _infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, 'm8[ns]')
-
-        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo']:
-            dt = Timestamp(1, tz=tz)
-            dtype, val = _infer_dtype_from_scalar(dt, pandas_dtype=True)
-            self.assertEqual(dtype, 'datetime64[ns, {0}]'.format(tz))
-            self.assertEqual(val, dt.value)
-
-            dtype, val = _infer_dtype_from_scalar(dt)
-            self.assertEqual(dtype, np.object_)
-            self.assertEqual(val, dt)
-
-        for freq in ['M', 'D']:
-            p = Period('2011-01-01', freq=freq)
-            dtype, val = _infer_dtype_from_scalar(p, pandas_dtype=True)
-            self.assertEqual(dtype, 'period[{0}]'.format(freq))
-            self.assertEqual(val, p.ordinal)
-
-            dtype, val = _infer_dtype_from_scalar(p)
-            self.assertEqual(dtype, np.object_)
-            self.assertEqual(val, p)
-
-        for data in [datetime.date(2000, 1, 1), 'foo']:
-            dtype, val = _infer_dtype_from_scalar(data)
-            self.assertEqual(dtype, np.object_)
-
-    def test_cast_scalar_to_array(self):
-        arr = _cast_scalar_to_array((3, 2), 1, dtype=np.int64)
-        exp = np.ones((3, 2), dtype=np.int64)
-        tm.assert_numpy_array_equal(arr, exp)
-
-        arr = _cast_scalar_to_array((3, 2), 1.1)
-        exp = np.empty((3, 2), dtype=np.float64)
-        exp.fill(1.1)
-        tm.assert_numpy_array_equal(arr, exp)
-
-        arr = _cast_scalar_to_array((2, 3), Timestamp('2011-01-01'))
-        exp = np.empty((2, 3), dtype='datetime64[ns]')
-        exp.fill(np.datetime64('2011-01-01'))
-        tm.assert_numpy_array_equal(arr, exp)
-
-        # pandas dtype is stored as object dtype
-        obj = Timestamp('2011-01-01', tz='US/Eastern')
-        arr = _cast_scalar_to_array((2, 3), obj)
-        exp = np.empty((2, 3), dtype=np.object)
-        exp.fill(obj)
-        tm.assert_numpy_array_equal(arr, exp)
-
-        obj = Period('2011-01-01', freq='D')
-        arr = _cast_scalar_to_array((2, 3), obj)
-        exp = np.empty((2, 3), dtype=np.object)
-        exp.fill(obj)
-        tm.assert_numpy_array_equal(arr, exp)

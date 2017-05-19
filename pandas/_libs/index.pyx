@@ -19,6 +19,7 @@ cimport tslib
 from hashtable cimport *
 from pandas._libs import tslib, algos, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
+from datetime import datetime, timedelta
 
 from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
                        pandas_datetimestruct)
@@ -507,24 +508,37 @@ cdef class TimedeltaEngine(DatetimeEngine):
         return 'm8[ns]'
 
 cpdef convert_scalar(ndarray arr, object value):
+    # we don't turn integers
+    # into datetimes/timedeltas
+
+    # we don't turn bools into int/float/complex
+
     if arr.descr.type_num == NPY_DATETIME:
         if isinstance(value, np.ndarray):
             pass
-        elif isinstance(value, Timestamp):
-            return value.value
+        elif isinstance(value, datetime):
+            return Timestamp(value).value
         elif value is None or value != value:
             return iNaT
-        else:
+        elif util.is_string_object(value):
             return Timestamp(value).value
+        raise ValueError("cannot set a Timestamp with a non-timestamp")
+
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if isinstance(value, np.ndarray):
             pass
-        elif isinstance(value, Timedelta):
-            return value.value
+        elif isinstance(value, timedelta):
+            return Timedelta(value).value
         elif value is None or value != value:
             return iNaT
-        else:
+        elif util.is_string_object(value):
             return Timedelta(value).value
+        raise ValueError("cannot set a Timedelta with a non-timedelta")
+
+    if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and not
+            issubclass(arr.dtype.type, np.bool_)):
+        if util.is_bool_object(value):
+            raise ValueError('Cannot assign bool to float/integer series')
 
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         if util.is_float_object(value) and value != value:

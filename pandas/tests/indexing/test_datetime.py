@@ -1,5 +1,3 @@
-import pytest
-
 import numpy as np
 import pandas as pd
 from pandas import date_range, Index, DataFrame, Series, Timestamp
@@ -12,7 +10,6 @@ class TestDatetimeIndex(object):
 
         # 8260
         # support datetime64 with tz
-
         idx = Index(date_range('20130101', periods=3, tz='US/Eastern'),
                     name='foo')
         dr = date_range('20130110', periods=3)
@@ -56,10 +53,11 @@ class TestDatetimeIndex(object):
             'US/Pacific')
 
         # trying to set a single element on a part of a different timezone
-        def f():
-            df.loc[df.new_col == 'new', 'time'] = v
+        df2 = df.copy()
+        assert df2.time.dtype == 'datetime64[ns, UTC]'
 
-        pytest.raises(ValueError, f)
+        df2.loc[df2.new_col == 'new', 'time'] = v
+        assert df2.time.dtype == 'object'
 
         v = df.loc[df.new_col == 'new', 'time'] + pd.Timedelta('1s')
         df.loc[df.new_col == 'new', 'time'] = v

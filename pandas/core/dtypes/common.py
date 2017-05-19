@@ -11,7 +11,8 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      ExtensionDtype)
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
-                      ABCSparseArray, ABCSparseSeries)
+                      ABCSparseArray, ABCSparseSeries,
+                      ABCIndexClass)
 from .inference import is_string_like
 from .inference import *  # noqa
 
@@ -1535,11 +1536,22 @@ def is_bool_dtype(arr_or_dtype):
 
     if arr_or_dtype is None:
         return False
+
     try:
         tipo = _get_dtype_type(arr_or_dtype)
     except ValueError:
         # this isn't even a dtype
         return False
+
+    if isinstance(arr_or_dtype, ABCIndexClass):
+
+        # TODO(jreback)
+        # we don't have a boolean Index class
+        # so its object, we need to infer to
+        # guess this
+        return (arr_or_dtype.is_object and
+                arr_or_dtype.inferred_type == 'boolean')
+
     return issubclass(tipo, np.bool_)
 
 

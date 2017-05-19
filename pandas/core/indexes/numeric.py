@@ -4,7 +4,9 @@ from pandas._libs import (index as libindex,
 from pandas.core.dtypes.common import (
     is_dtype_equal, pandas_dtype,
     is_float_dtype, is_object_dtype,
-    is_integer_dtype, is_scalar)
+    is_bool_dtype,
+    is_integer_dtype, is_scalar,
+    is_bool)
 from pandas.core.common import _asarray_tuplesafe, _values_from_object
 
 from pandas import compat
@@ -62,6 +64,16 @@ class NumericIndex(Index):
         except ValueError:
             raise ValueError('tolerance argument for %s must be numeric: %r' %
                              (type(self).__name__, tolerance))
+
+    def _convert_for_op(self, value):
+        """ Convert value to be insertable to ndarray """
+
+        if is_bool(value) or is_bool_dtype(value):
+            # force conversion to object
+            # so we don't lose the bools
+            raise TypeError
+
+        return value
 
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
