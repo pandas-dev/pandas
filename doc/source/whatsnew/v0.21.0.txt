@@ -46,6 +46,7 @@ Backwards incompatible API changes
 
 - Accessing a non-existent attribute on a closed :class:`HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
+- ``pd.read_csv()`` now treats ``'n/a'`` strings as missing values by default (:issue:`16078`)
 
 .. _whatsnew_0210.api:
 
