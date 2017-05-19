@@ -16,6 +16,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_timedelta64_dtype, is_dtype_equal,
                      is_float_dtype, is_complex_dtype,
                      is_integer_dtype,
+                     is_unsigned_integer_dtype,
                      is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
                      _string_dtypes,
@@ -1026,3 +1027,28 @@ def find_common_type(types):
             return np.object
 
     return np.find_common_type(types, [])
+
+
+def maybe_cast_to_integer(arr, dtype):
+    """
+    Find a common data type among the given dtypes.
+
+    Parameters
+    ----------
+    arr : array
+    dtype : dtype
+
+    Returns
+    -------
+    integer or unsigned integer array (or raise if the dtype is incompatible)
+
+    """
+
+    if is_unsigned_integer_dtype(dtype) and (np.asarray(arr) < 0).any():
+        raise OverflowError("Trying to coerce negative values to negative "
+                            "integers")
+    elif is_integer_dtype(dtype) and is_float_dtype(np.asarray(arr)):
+        if ((np.asarray(arr) % np.asarray(arr).astype(int)) > 0).any():
+            raise OverflowError("Trying to coerce float values to integers")
+    else:
+        return arr

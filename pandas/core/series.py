@@ -36,7 +36,8 @@ from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
 from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
-    maybe_cast_to_datetime, maybe_castable)
+    maybe_cast_to_datetime, maybe_castable,
+    maybe_cast_to_integer)
 from pandas.core.dtypes.missing import isnull, notnull
 
 from pandas.core.common import (is_bool_indexer,
@@ -2917,24 +2918,10 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 return arr
 
         try:
+            subarr = maybe_cast_to_integer(arr, dtype)
             subarr = maybe_cast_to_datetime(arr, dtype)
             if not is_extension_type(subarr):
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
-
-            # Raises if coercion from unsigned to signed with neg data
-            if is_unsigned_integer_dtype(dtype) and (np.asarray(data) < 0)\
-                    .any():
-                raise OverflowError("Trying to coerce negative values to "
-                                    "negative integers")
-
-            # Raises if coercion from float to integer loses precision
-            if is_integer_dtype(dtype) and is_float_dtype(np.asarray(data)):
-                #if not np.array_equal(np.asarray(data),
-                #                      np.asarray(data).astype(int).
-                #                      astype(float)):
-                if ((np.asarray(data) % np.asarray(data).astype(int)) > 0).any():
-                    raise OverflowError("Trying to coerce float values to "
-                                        "integers")
 
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):

@@ -52,6 +52,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
 from pandas.core.config import get_option
+from pandas.core.dtypes.cast import maybe_cast_to_integer
 
 
 # simplify
@@ -212,11 +213,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                     if is_integer_dtype(dtype):
                         inferred = lib.infer_dtype(data)
                         if inferred == 'integer':
-                            if is_unsigned_integer_dtype(dtype) and\
-                                    (np.asarray(data) < 0).any():
-                                raise OverflowError("Trying to coerce "
-                                                    "negative values to "
-                                                    "negative integers")
+                            data = maybe_cast_to_integer(data, dtype=dtype)
                             data = np.array(data, copy=copy, dtype=dtype)
                         elif inferred in ['floating', 'mixed-integer-float']:
                             if isnull(data).any():
