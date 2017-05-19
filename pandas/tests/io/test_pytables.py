@@ -5282,7 +5282,7 @@ class TestTimezones(Base, tm.TestCase):
 
         # use maybe_get_tz instead of dateutil.tz.gettz to handle the windows
         # filename issues.
-        from pandas.tslib import maybe_get_tz
+        from pandas._libs.tslib import maybe_get_tz
         gettz = lambda x: maybe_get_tz('dateutil/' + x)
 
         # as columns

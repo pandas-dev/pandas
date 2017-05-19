@@ -17,7 +17,7 @@ from pandas.core.internals import (BlockPlacement, SingleBlockManager,
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas as pd
-from pandas import lib
+from pandas._libs import lib
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  randn, assert_series_equal)
 from pandas.compat import zip, u
@@ -651,7 +651,7 @@ class TestBlockManager(tm.TestCase):
         mgr = create_mgr('a: f8; b: i8')
         self.assertEqual(mgr.as_matrix().dtype, 'f8')
         mgr = create_mgr('a: f4; b: i8')
-        self.assertEqual(mgr.as_matrix().dtype, 'f4')
+        self.assertEqual(mgr.as_matrix().dtype, 'f8')
         mgr = create_mgr('a: f4; b: i8; d: object')
         self.assertEqual(mgr.as_matrix().dtype, 'object')
         mgr = create_mgr('a: bool; b: i8')

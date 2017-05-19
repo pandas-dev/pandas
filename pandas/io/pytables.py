@@ -44,9 +44,7 @@ from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option
 from pandas.computation.pytables import Expr, maybe_expression
 
-import pandas.lib as lib
-import pandas.algos as algos
-import pandas.tslib as tslib
+from pandas._libs import tslib, algos, lib
 
 from distutils.version import LooseVersion
 

@@ -2033,6 +2033,126 @@ using Hadoop or Spark.
   df
   df.to_json(orient='records', lines=True)
 
+
+.. _io.table_schema:
+
+Table Schema
+''''''''''''
+
+.. versionadded:: 0.20.0
+
+`Table Schema`_ is a spec for describing tabular datasets as a JSON
+object. The JSON includes information on the field names, types, and
+other attributes. You can use the orient ``table`` to build
+a JSON string with two fields, ``schema`` and ``data``.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {'A': [1, 2, 3],
+        'B': ['a', 'b', 'c'],
+        'C': pd.date_range('2016-01-01', freq='d', periods=3),
+       }, index=pd.Index(range(3), name='idx'))
+   df
+   df.to_json(orient='table', date_format="iso")
+
+The ``schema`` field contains the ``fields`` key, which itself contains
+a list of column name to type pairs, including the ``Index`` or ``MultiIndex``
+(see below for a list of types).
+The ``schema`` field also contains a ``primaryKey`` field if the (Multi)index
+is unique.
+
+The second field, ``data``, contains the serialized data with the ``records``
+orient.
+The index is included, and any datetimes are ISO 8601 formatted, as required
+by the Table Schema spec.
+
+The full list of types supported are described in the Table Schema
+spec. This table shows the mapping from pandas types:
+
+=============== =================
+Pandas type     Table Schema type
+=============== =================
+int64           integer
+float64         number
+bool            boolean
+datetime64[ns]  datetime
+timedelta64[ns] duration
+categorical     any
+object          str
+=============== =================
+
+A few notes on the generated table schema:
+
+- The ``schema`` object contains a ``pandas_version`` field. This contains
+  the version of pandas' dialect of the schema, and will be incremented
+  with each revision.
+- All dates are converted to UTC when serializing. Even timezone naïve values,
+  which are treated as UTC with an offset of 0.
+
+  .. ipython:: python
+
+     from pandas.io.json import build_table_schema
+     s = pd.Series(pd.date_range('2016', periods=4))
+     build_table_schema(s)
+
+- datetimes with a timezone (before serializing), include an additional field
+  ``tz`` with the time zone name (e.g. ``'US/Central'``).
+
+  .. ipython:: python
+
+     s_tz = pd.Series(pd.date_range('2016', periods=12,
+                                    tz='US/Central'))
+     build_table_schema(s_tz)
+
+- Periods are converted to timestamps before serialization, and so have the
+  same behavior of being converted to UTC. In addition, periods will contain
+  and additional field ``freq`` with the period's frequency, e.g. ``'A-DEC'``
+
+  .. ipython:: python
+
+     s_per = pd.Series(1, index=pd.period_range('2016', freq='A-DEC',
+                                                periods=4))
+     build_table_schema(s_per)
+
+- Categoricals use the ``any`` type and an ``enum`` constraint listing
+  the set of possible values. Additionally, an ``ordered`` field is included
+
+  .. ipython:: python
+
+     s_cat = pd.Series(pd.Categorical(['a', 'b', 'a']))
+     build_table_schema(s_cat)
+
+- A ``primaryKey`` field, containing an array of labels, is included
+  *if the index is unique*:
+
+  .. ipython:: python
+
+     s_dupe = pd.Series([1, 2], index=[1, 1])
+     build_table_schema(s_dupe)
+
+- The ``primaryKey`` behavior is the same with MultiIndexes, but in this
+  case the ``primaryKey`` is an array:
+
+  .. ipython:: python
+
+     s_multi = pd.Series(1, index=pd.MultiIndex.from_product([('a', 'b'),
+                                                              (0, 1)]))
+     build_table_schema(s_multi)
+
+- The default naming roughly follows these rules:
+
+  + For series, the ``object.name`` is used. If that's none, then the
+    name is ``values``
+  + For DataFrames, the stringified version of the column name is used
+  + For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
+    fallback to ``index`` if that is None.
+  + For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
+    then ``level_<i>`` is used.
+
+
+_Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+
 HTML
 ----
 
@@ -2922,9 +3042,66 @@ any pickled pandas object (or any other pickled object) from file:
    See `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
-.. note::
+.. _io.pickle.compression:
 
-    These methods were previously ``pd.save`` and ``pd.load``, prior to 0.12.0, and are now deprecated.
+Compressed pickle files
+'''''''''''''''''''''''
+
+.. versionadded:: 0.20.0
+
+:func:`read_pickle`, :meth:`DataFame.to_pickle` and :meth:`Series.to_pickle` can read
+and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
+`zip`` file supports read only and must contain only one data file
+to be read in.
+
+The compression type can be an explicit parameter or be inferred from the file extension.
+If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
+``'.xz'``, respectively.
+
+.. ipython:: python
+
+   df = pd.DataFrame({
+       'A': np.random.randn(1000),
+       'B': 'foo',
+       'C': pd.date_range('20130101', periods=1000, freq='s')})
+   df
+
+Using an explicit compression type
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.compress", compression="gzip")
+   rt = pd.read_pickle("data.pkl.compress", compression="gzip")
+   rt
+
+Inferring compression type from the extension
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.xz", compression="infer")
+   rt = pd.read_pickle("data.pkl.xz", compression="infer")
+   rt
+
+The default is to 'infer
+
+.. ipython:: python
+
+   df.to_pickle("data.pkl.gz")
+   rt = pd.read_pickle("data.pkl.gz")
+   rt
+
+   df["A"].to_pickle("s1.pkl.bz2")
+   rt = pd.read_pickle("s1.pkl.bz2")
+   rt
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove("data.pkl.compress")
+   os.remove("data.pkl.xz")
+   os.remove("data.pkl.gz")
+   os.remove("s1.pkl.bz2")
 
 .. _io.msgpack:
 
@@ -3638,7 +3815,7 @@ be data_columns
 
    # on-disk operations
    store.append('df_dc', df_dc, data_columns = ['B', 'C', 'string', 'string2'])
-   store.select('df_dc', [ pd.Term('B>0') ])
+   store.select('df_dc', where='B>0')
 
    # getting creative
    store.select('df_dc', 'B > 0 & C > 0 & string == foo')
@@ -4232,6 +4409,9 @@ HDFStore supports ``Panel4D`` storage.
 .. ipython:: python
    :okwarning:
 
+   wp = pd.Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
+                 major_axis=pd.date_range('1/1/2000', periods=5),
+                 minor_axis=['A', 'B', 'C', 'D'])
    p4d = pd.Panel4D({ 'l1' : wp })
    p4d
    store.append('p4d', p4d)
@@ -4248,8 +4428,7 @@ object). This cannot be changed after table creation.
    :okwarning:
 
    store.append('p4d2', p4d, axes=['labels', 'major_axis', 'minor_axis'])
-   store
-   store.select('p4d2', [ pd.Term('labels=l1'), pd.Term('items=Item1'), pd.Term('minor_axis=A_big_strings') ])
+   store.select('p4d2', where='labels=l1 and items=Item1 and minor_axis=A')
 
 .. ipython:: python
    :suppress:

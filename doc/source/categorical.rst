@@ -617,6 +617,7 @@ Assigning a `Categorical` to parts of a column of other types will use the value
     df
     df.dtypes
 
+.. _categorical.merge:
 
 Merging
 ~~~~~~~
@@ -645,6 +646,9 @@ In this case the categories are not the same and so an error is raised:
         print("ValueError: " + str(e))
 
 The same applies to ``df.append(df_different)``.
+
+See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about preserving merge dtypes and performance.
+
 
 .. _categorical.union:
 

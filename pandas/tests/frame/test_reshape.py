@@ -121,19 +121,22 @@ class TestDataFrameReshape(tm.TestCase, TestData):
         assert_frame_equal(result, expected)
 
     def test_stack_unstack(self):
-        stacked = self.frame.stack()
+        f = self.frame.copy()
+        f[:] = np.arange(np.prod(f.shape)).reshape(f.shape)
+
+        stacked = f.stack()
         stacked_df = DataFrame({'foo': stacked, 'bar': stacked})
 
         unstacked = stacked.unstack()
         unstacked_df = stacked_df.unstack()
 
-        assert_frame_equal(unstacked, self.frame)
-        assert_frame_equal(unstacked_df['bar'], self.frame)
+        assert_frame_equal(unstacked, f)
+        assert_frame_equal(unstacked_df['bar'], f)
 
         unstacked_cols = stacked.unstack(0)
         unstacked_cols_df = stacked_df.unstack(0)
-        assert_frame_equal(unstacked_cols.T, self.frame)
-        assert_frame_equal(unstacked_cols_df['bar'].T, self.frame)
+        assert_frame_equal(unstacked_cols.T, f)
+        assert_frame_equal(unstacked_cols_df['bar'].T, f)
 
     def test_unstack_fill(self):
 

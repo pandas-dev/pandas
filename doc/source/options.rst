@@ -397,6 +397,9 @@ display.width                       80           Width of the display in charact
                                                  IPython qtconsole, or IDLE do not run in a
                                                  terminal and hence it is not possible
                                                  to correctly detect the width.
+display.html.table_schema           False        Whether to publish a Table Schema
+                                                 representation for frontends that
+                                                 support it.
 html.border                         1            A ``border=value`` attribute is
                                                  inserted in the ``<table>`` tag
                                                  for the DataFrame HTML repr.
@@ -423,6 +426,7 @@ mode.use_inf_as_null                False        True means treat None, NaN, -IN
                                                  None and NaN are null, but INF, -INF
                                                  are not null (new way).
 =================================== ============ ==================================
+
 
 .. _basics.console_output:
 
@@ -512,3 +516,26 @@ Enabling ``display.unicode.ambiguous_as_wide`` lets pandas to figure these chara
 
    pd.set_option('display.unicode.east_asian_width', False)
    pd.set_option('display.unicode.ambiguous_as_wide', False)
+
+.. _options.table_schema:
+
+Table Schema Display
+--------------------
+
+.. versionadded:: 0.20.0
+
+``DataFrame`` and ``Series`` will publish a Table Schema representation
+by default. False by default, this can be enabled globally with the
+``display.html.table_schema`` option:
+
+.. ipython:: python
+
+  pd.set_option('display.html.table_schema', True)
+
+Only ``'display.max_rows'`` are serialized and published.
+
+
+.. ipython:: python
+    :suppress:
+
+    pd.reset_option('display.html.table_schema')

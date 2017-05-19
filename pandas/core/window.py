@@ -24,13 +24,14 @@ from pandas.types.common import (is_integer,
                                  needs_i8_conversion,
                                  is_timedelta64_dtype,
                                  is_list_like,
-                                 _ensure_float64)
+                                 _ensure_float64,
+                                 is_scalar)
 import pandas as pd
-from pandas.lib import isscalar
+
 from pandas.core.base import (PandasObject, SelectionMixin,
                               GroupByMixin)
 import pandas.core.common as com
-import pandas._window as _window
+import pandas.core.libwindow as _window
 from pandas.tseries.offsets import DateOffset
 from pandas import compat
 from pandas.compat.numpy import function as nv
@@ -154,7 +155,7 @@ class _Window(PandasObject, SelectionMixin):
         self = self._shallow_copy(subset)
         self._reset_cache()
         if subset.ndim == 2:
-            if isscalar(key) and key in subset or is_list_like(key):
+            if is_scalar(key) and key in subset or is_list_like(key):
                 self._selection = key
         return self
 
@@ -543,7 +544,8 @@ class Window(_Window):
                 return all_args
 
             win_type = _validate_win_type(self.win_type, kwargs)
-            return sig.get_window(win_type, window).astype(float)
+            # GH #15662. `False` makes symmetric window, rather than periodic.
+            return sig.get_window(win_type, window, False).astype(float)
 
     def _apply_window(self, mean=True, how=None, **kwargs):
         """

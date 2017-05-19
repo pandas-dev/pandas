@@ -6,7 +6,7 @@ except ImportError:
     from pandas import ordered_merge as merge_ordered
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Append
 
 class Append(object):
@@ -35,7 +35,7 @@ class Append(object):
         self.mdf1.append(self.mdf2)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Concat
 
 class Concat(object):
@@ -120,7 +120,7 @@ class ConcatFrames(object):
         concat(self.frames_f, axis=1, ignore_index=True)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Joins
 
 class Join(object):
@@ -202,7 +202,7 @@ class join_non_unique_equal(object):
         (self.fracofday * self.temp[self.fracofday.index])
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Merges
 
 class Merge(object):
@@ -257,7 +257,31 @@ class i8merge(object):
         merge(self.left, self.right, how='outer')
 
 
-#----------------------------------------------------------------------
+class MergeCategoricals(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.left_object = pd.DataFrame(
+            {'X': np.random.choice(range(0, 10), size=(10000,)),
+             'Y': np.random.choice(['one', 'two', 'three'], size=(10000,))})
+
+        self.right_object = pd.DataFrame(
+            {'X': np.random.choice(range(0, 10), size=(10000,)),
+             'Z': np.random.choice(['jjj', 'kkk', 'sss'], size=(10000,))})
+
+        self.left_cat = self.left_object.assign(
+            Y=self.left_object['Y'].astype('category'))
+        self.right_cat = self.right_object.assign(
+            Z=self.right_object['Z'].astype('category'))
+
+    def time_merge_object(self):
+        merge(self.left_object, self.right_object, on='X')
+
+    def time_merge_cat(self):
+        merge(self.left_cat, self.right_cat, on='X')
+
+
+# ----------------------------------------------------------------------
 # Ordered merge
 
 class MergeOrdered(object):
@@ -332,7 +356,7 @@ class MergeAsof(object):
         merge_asof(self.df1e, self.df2e, on='time', by=['key', 'key2'])
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # data alignment
 
 class Align(object):

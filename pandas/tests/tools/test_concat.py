@@ -13,6 +13,8 @@ from pandas.util.testing import (assert_frame_equal,
                                  makeCustomDataframe as mkdf,
                                  assert_almost_equal)
 
+import pytest
+
 
 class ConcatenateBase(tm.TestCase):
 
@@ -1899,3 +1901,26 @@ bar2,12,13,14,15
         tm.assert_frame_equal(result_copy, expected)
         result_no_copy = pd.concat(example_dict, names=['testname'])
         tm.assert_frame_equal(result_no_copy, expected)
+
+
+@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
+@pytest.mark.parametrize('dt', np.sctypes['float'])
+def test_concat_no_unnecessary_upcast(dt, pdt):
+    # GH 13247
+    dims = pdt().ndim
+    dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
+           pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
+           pdt(np.array([5], dtype=dt, ndmin=dims))]
+    x = pd.concat(dfs)
+    assert x.values.dtype == dt
+
+
+@pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
+@pytest.mark.parametrize('dt', np.sctypes['int'])
+def test_concat_will_upcast(dt, pdt):
+    dims = pdt().ndim
+    dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
+           pdt(np.array([np.nan], ndmin=dims)),
+           pdt(np.array([5], dtype=dt, ndmin=dims))]
+    x = pd.concat(dfs)
+    assert x.values.dtype == 'float64'

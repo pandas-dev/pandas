@@ -18,8 +18,10 @@ from pandas.types.common import (is_datetime64tz_dtype,
                                  is_datetime64_dtype,
                                  needs_i8_conversion,
                                  is_int64_dtype,
+                                 is_categorical_dtype,
                                  is_integer_dtype,
                                  is_float_dtype,
+                                 is_numeric_dtype,
                                  is_integer,
                                  is_int_or_datetime_dtype,
                                  is_dtype_equal,
@@ -37,9 +39,7 @@ from pandas.util.decorators import Appender, Substitution
 from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-
-import pandas._join as _join
-import pandas.hashtable as _hash
+from pandas._libs import hashtable as libhashtable, join as libjoin, lib
 
 
 # back-compat of pseudo-public API
@@ -572,6 +572,10 @@ class _MergeOperation(object):
          self.right_join_keys,
          self.join_names) = self._get_merge_keys()
 
+        # validate the merge keys dtypes. We may need to coerce
+        # to avoid incompat dtypes
+        self._maybe_coerce_merge_keys()
+
     def get_result(self):
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(
@@ -762,26 +766,6 @@ class _MergeOperation(object):
             join_index = join_index.astype(object)
         return join_index, left_indexer, right_indexer
 
-    def _get_merge_data(self):
-        """
-        Handles overlapping column names etc.
-        """
-        ldata, rdata = self.left._data, self.right._data
-        lsuf, rsuf = self.suffixes
-
-        llabels, rlabels = items_overlap_with_suffix(
-            ldata.items, lsuf, rdata.items, rsuf)
-
-        if not llabels.equals(ldata.items):
-            ldata = ldata.copy(deep=False)
-            ldata.set_axis(0, llabels)
-
-        if not rlabels.equals(rdata.items):
-            rdata = rdata.copy(deep=False)
-            rdata.set_axis(0, rlabels)
-
-        return ldata, rdata
-
     def _get_merge_keys(self):
         """
         Note: has side effects (copy/delete key columns)
@@ -893,6 +877,51 @@ class _MergeOperation(object):
 
         return left_keys, right_keys, join_names
 
+    def _maybe_coerce_merge_keys(self):
+        # we have valid mergee's but we may have to further
+        # coerce these if they are originally incompatible types
+        #
+        # for example if these are categorical, but are not dtype_equal
+        # or if we have object and integer dtypes
+
+        for lk, rk, name in zip(self.left_join_keys,
+                                self.right_join_keys,
+                                self.join_names):
+            if (len(lk) and not len(rk)) or (not len(lk) and len(rk)):
+                continue
+
+            # if either left or right is a categorical
+            # then the must match exactly in categories & ordered
+            if is_categorical_dtype(lk) and is_categorical_dtype(rk):
+                if lk.is_dtype_equal(rk):
+                    continue
+            elif is_categorical_dtype(lk) or is_categorical_dtype(rk):
+                pass
+
+            elif is_dtype_equal(lk.dtype, rk.dtype):
+                continue
+
+            # if we are numeric, then allow differing
+            # kinds to proceed, eg. int64 and int8
+            # further if we are object, but we infer to
+            # the same, then proceed
+            if (is_numeric_dtype(lk) and is_numeric_dtype(rk)):
+                if lk.dtype.kind == rk.dtype.kind:
+                    continue
+
+                # let's infer and see if we are ok
+                if lib.infer_dtype(lk) == lib.infer_dtype(rk):
+                    continue
+
+            # Houston, we have a problem!
+            # let's coerce to object
+            if name in self.left.columns:
+                self.left = self.left.assign(
+                    **{name: self.left[name].astype(object)})
+            if name in self.right.columns:
+                self.right = self.right.assign(
+                    **{name: self.right[name].astype(object)})
+
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??
         if self.on is None and self.left_on is None and self.right_on is None:
@@ -944,9 +973,15 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
 
     Parameters
     ----------
+    left_keys: ndarray, Index, Series
+    right_keys: ndarray, Index, Series
+    sort: boolean, default False
+    how: string {'inner', 'outer', 'left', 'right'}, default 'inner'
 
     Returns
     -------
+    tuple of (left_indexer, right_indexer)
+        indexers into the left_keys, right_keys
 
     """
     from functools import partial
@@ -1005,8 +1040,8 @@ class _OrderedMerge(_MergeOperation):
                                                      rdata.items, rsuf)
 
         if self.fill_method == 'ffill':
-            left_join_indexer = _join.ffill_indexer(left_indexer)
-            right_join_indexer = _join.ffill_indexer(right_indexer)
+            left_join_indexer = libjoin.ffill_indexer(left_indexer)
+            right_join_indexer = libjoin.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
@@ -1030,11 +1065,11 @@ class _OrderedMerge(_MergeOperation):
 
 
 def _asof_function(direction, on_type):
-    return getattr(_join, 'asof_join_%s_%s' % (direction, on_type), None)
+    return getattr(libjoin, 'asof_join_%s_%s' % (direction, on_type), None)
 
 
 def _asof_by_function(direction, on_type, by_type):
-    return getattr(_join, 'asof_join_%s_%s_by_%s' %
+    return getattr(libjoin, 'asof_join_%s_%s_by_%s' %
                    (direction, on_type, by_type), None)
 
 
@@ -1130,13 +1165,16 @@ class _AsOfMerge(_OrderedMerge):
         if self.left_by is not None and self.right_by is None:
             raise MergeError('missing right_by')
 
-        # add by to our key-list so we can have it in the
+        # add 'by' to our key-list so we can have it in the
         # output as a key
         if self.left_by is not None:
             if not is_list_like(self.left_by):
                 self.left_by = [self.left_by]
             if not is_list_like(self.right_by):
                 self.right_by = [self.right_by]
+
+            if len(self.left_by) != len(self.right_by):
+                raise MergeError('left_by and right_by must be same length')
 
             self.left_on = self.left_by + list(self.left_on)
             self.right_on = self.right_by + list(self.right_on)
@@ -1229,13 +1267,21 @@ class _AsOfMerge(_OrderedMerge):
 
         # a "by" parameter requires special handling
         if self.left_by is not None:
-            if len(self.left_join_keys) > 2:
-                # get tuple representation of values if more than one
-                left_by_values = flip(self.left_join_keys[0:-1])
-                right_by_values = flip(self.right_join_keys[0:-1])
+            # remove 'on' parameter from values if one existed
+            if self.left_index and self.right_index:
+                left_by_values = self.left_join_keys
+                right_by_values = self.right_join_keys
             else:
-                left_by_values = self.left_join_keys[0]
-                right_by_values = self.right_join_keys[0]
+                left_by_values = self.left_join_keys[0:-1]
+                right_by_values = self.right_join_keys[0:-1]
+
+            # get tuple representation of values if more than one
+            if len(left_by_values) == 1:
+                left_by_values = left_by_values[0]
+                right_by_values = right_by_values[0]
+            else:
+                left_by_values = flip(left_by_values)
+                right_by_values = flip(right_by_values)
 
             # upcast 'by' parameter because HashTable is limited
             by_type = _get_cython_type_upcast(left_by_values.dtype)
@@ -1294,13 +1340,13 @@ def _get_multiindex_indexer(join_keys, index, sort):
     # factorize keys to a dense i8 space
     lkey, rkey, count = fkeys(lkey, rkey)
 
-    return _join.left_outer_join(lkey, rkey, count, sort=sort)
+    return libjoin.left_outer_join(lkey, rkey, count, sort=sort)
 
 
 def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
-    left_indexer, right_indexer = _join.left_outer_join(
+    left_indexer, right_indexer = libjoin.left_outer_join(
         _ensure_int64(left_key),
         _ensure_int64(right_key),
         count, sort=sort)
@@ -1335,15 +1381,15 @@ def _left_join_on_index(left_ax, right_ax, join_keys, sort=False):
 
 
 def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = _join.left_outer_join(y, x, max_groups)
+    right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
 
 
 _join_functions = {
-    'inner': _join.inner_join,
-    'left': _join.left_outer_join,
+    'inner': libjoin.inner_join,
+    'left': libjoin.left_outer_join,
     'right': _right_outer_join,
-    'outer': _join.full_outer_join,
+    'outer': libjoin.full_outer_join,
 }
 
 
@@ -1351,12 +1397,19 @@ def _factorize_keys(lk, rk, sort=True):
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = lk.values
         rk = rk.values
+
+    # if we exactly match in categories, allow us to use codes
+    if (is_categorical_dtype(lk) and
+            is_categorical_dtype(rk) and
+            lk.is_dtype_equal(rk)):
+        return lk.codes, rk.codes, len(lk.categories)
+
     if is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
-        klass = _hash.Int64Factorizer
+        klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))
         rk = _ensure_int64(com._values_from_object(rk))
     else:
-        klass = _hash.Factorizer
+        klass = libhashtable.Factorizer
         lk = _ensure_object(lk)
         rk = _ensure_object(rk)
 

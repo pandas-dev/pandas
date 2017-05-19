@@ -10,6 +10,7 @@ from pandas.compat import (
     zip, range, lzip,
     callable, map
 )
+
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat.numpy import _np_version_under1p8
@@ -55,13 +56,12 @@ from pandas.util.decorators import (cache_readonly, Substitution, Appender,
 from pandas.formats.printing import pprint_thing
 from pandas.util.validators import validate_kwargs
 
-import pandas.core.algorithms as algos
+import pandas.core.algorithms as algorithms
 import pandas.core.common as com
 from pandas.core.config import option_context
-import pandas.lib as lib
-from pandas.lib import Timestamp
-import pandas.tslib as tslib
-import pandas.algos as _algos
+
+from pandas._libs import lib, algos as libalgos, Timestamp, NaT, iNaT
+from pandas._libs.lib import count_level_2d
 
 _doc_template = """
 
@@ -1442,7 +1442,7 @@ class GroupBy(_GroupBy):
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
 
-        return self._cython_transform('cummin', **kwargs)
+        return self._cython_transform('cummin', numeric_only=False)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1451,7 +1451,7 @@ class GroupBy(_GroupBy):
         if axis != 0:
             return self.apply(lambda x: np.maximum.accumulate(x, axis))
 
-        return self._cython_transform('cummax', **kwargs)
+        return self._cython_transform('cummax', numeric_only=False)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1474,11 +1474,11 @@ class GroupBy(_GroupBy):
 
         # filled in by Cython
         indexer = np.zeros_like(labels)
-        _algos.group_shift_indexer(indexer, labels, ngroups, periods)
+        libalgos.group_shift_indexer(indexer, labels, ngroups, periods)
 
         output = {}
         for name, obj in self._iterate_slices():
-            output[name] = algos.take_nd(obj.values, indexer)
+            output[name] = algorithms.take_nd(obj.values, indexer)
 
         return self._wrap_transformed_output(output)
 
@@ -1815,13 +1815,13 @@ class BaseGrouper(object):
         def get_func(fname):
             # see if there is a fused-type version of function
             # only valid for numeric
-            f = getattr(_algos, fname, None)
+            f = getattr(libalgos, fname, None)
             if f is not None and is_numeric:
                 return f
 
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, 'object']:
-                f = getattr(_algos, "%s_%s" % (fname, dtype_str), None)
+                f = getattr(libalgos, "%s_%s" % (fname, dtype_str), None)
                 if f is not None:
                     return f
 
@@ -1901,7 +1901,7 @@ class BaseGrouper(object):
         elif is_integer_dtype(values):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
-            if (values == tslib.iNaT).any():
+            if (values == iNaT).any():
                 values = _ensure_float64(values)
             else:
                 values = values.astype('int64', copy=False)
@@ -1943,7 +1943,7 @@ class BaseGrouper(object):
                 result, values, labels, func, is_numeric, is_datetimelike)
 
         if is_integer_dtype(result):
-            mask = result == tslib.iNaT
+            mask = result == iNaT
             if mask.any():
                 result = result.astype('float64')
                 result[mask] = np.nan
@@ -2034,7 +2034,8 @@ class BaseGrouper(object):
         dummy = obj._get_values(slice(None, 0)).to_dense()
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer, convert=False)
-        group_index = algos.take_nd(group_index, indexer, allow_fill=False)
+        group_index = algorithms.take_nd(
+            group_index, indexer, allow_fill=False)
         grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
                                     dummy)
         result, counts = grouper.get_result()
@@ -2132,7 +2133,7 @@ class BinGrouper(BaseGrouper):
         # GH 3881
         result = {}
         for key, value in zip(self.binlabels, self.bins):
-            if key is not tslib.NaT:
+            if key is not NaT:
                 result[key] = value
         return result
 
@@ -2159,7 +2160,7 @@ class BinGrouper(BaseGrouper):
 
         start = 0
         for edge, label in zip(self.bins, self.binlabels):
-            if label is not tslib.NaT:
+            if label is not NaT:
                 yield label, slicer(start, edge)
             start = edge
 
@@ -2173,7 +2174,7 @@ class BinGrouper(BaseGrouper):
         i = 0
         for label, bin in zip(self.binlabels, self.bins):
             if i < bin:
-                if label is not tslib.NaT:
+                if label is not NaT:
                     indices[label] = list(range(i, bin))
                 i = bin
         return indices
@@ -2383,7 +2384,8 @@ class Grouping(object):
 
     def _make_labels(self):
         if self._labels is None or self._group_index is None:
-            labels, uniques = algos.factorize(self.grouper, sort=self.sort)
+            labels, uniques = algorithms.factorize(
+                self.grouper, sort=self.sort)
             uniques = Index(uniques, name=self.name)
             self._labels = labels
             self._group_index = uniques
@@ -2928,7 +2930,7 @@ class SeriesGroupBy(GroupBy):
 
         ids, _, ngroup = self.grouper.group_info
         cast = (self.size().fillna(0) > 0).any()
-        out = algos.take_1d(func().values, ids)
+        out = algorithms.take_1d(func().values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
@@ -2985,7 +2987,7 @@ class SeriesGroupBy(GroupBy):
         except TypeError:  # catches object dtypes
             assert val.dtype == object, \
                 'val.dtype must be object, got %s' % val.dtype
-            val, _ = algos.factorize(val, sort=False)
+            val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
             _isnull = lambda a: a == -1
         else:
@@ -3069,7 +3071,7 @@ class SeriesGroupBy(GroupBy):
         ids, val = ids[mask], val[mask]
 
         if bins is None:
-            lab, lev = algos.factorize(val, sort=True)
+            lab, lev = algorithms.factorize(val, sort=True)
         else:
             cat, bins = cut(val, bins, retbins=True)
             # bins[:-1] for backward compat;
@@ -3108,7 +3110,7 @@ class SeriesGroupBy(GroupBy):
             if dropna:
                 m = ids[lab == -1]
                 if _np_version_under1p8:
-                    mi, ml = algos.factorize(m)
+                    mi, ml = algorithms.factorize(m)
                     d[ml] = d[ml] - np.bincount(mi)
                 else:
                     np.add.at(d, m, -1)
@@ -3130,7 +3132,7 @@ class SeriesGroupBy(GroupBy):
                 out = _ensure_int64(out)
             return Series(out, index=mi, name=self.name)
 
-        # for compat. with algos.value_counts need to ensure every
+        # for compat. with libalgos.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
         diff = np.zeros(len(out), dtype='bool')
         for lab in labels[:-1]:
@@ -3423,6 +3425,7 @@ class NDFrameGroupBy(GroupBy):
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         from pandas.core.index import _all_indexes_same
+        from pandas.tools.util import to_numeric
 
         if len(keys) == 0:
             return DataFrame(index=keys)
@@ -3565,7 +3568,8 @@ class NDFrameGroupBy(GroupBy):
                 # as we are stacking can easily have object dtypes here
                 so = self._selected_obj
                 if (so.ndim == 2 and so.dtypes.apply(is_datetimelike).any()):
-                    result = result._convert(numeric=True)
+                    result = result.apply(
+                        lambda x: to_numeric(x, errors='ignore'))
                     date_cols = self._selected_obj.select_dtypes(
                         include=['datetime', 'timedelta']).columns
                     date_cols = date_cols.intersection(result.columns)
@@ -3701,7 +3705,7 @@ class NDFrameGroupBy(GroupBy):
         ids, _, ngroup = self.grouper.group_info
         output = []
         for i, _ in enumerate(result.columns):
-            res = algos.take_1d(result.iloc[:, i].values, ids)
+            res = algorithms.take_1d(result.iloc[:, i].values, ids)
             if cast:
                 res = self._try_cast(res, obj.iloc[:, i])
             output.append(res)
@@ -3995,7 +3999,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
     def count(self):
         """ Compute count of group, excluding missing values """
         from functools import partial
-        from pandas.lib import count_level_2d
         from pandas.types.missing import _isnull_ndarraylike as isnull
 
         data, _ = self._get_data_to_aggregate()
@@ -4190,7 +4193,7 @@ class DataSplitter(object):
     @cache_readonly
     def slabels(self):
         # Sorted labels
-        return algos.take_nd(self.labels, self.sort_idx, allow_fill=False)
+        return algorithms.take_nd(self.labels, self.sort_idx, allow_fill=False)
 
     @cache_readonly
     def sort_idx(self):

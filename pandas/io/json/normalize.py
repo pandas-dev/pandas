@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 import numpy as np
 
-from pandas.lib import convert_json_to_lines
+from pandas._libs.lib import convert_json_to_lines
 from pandas import compat, DataFrame
 
 
@@ -156,6 +156,9 @@ def json_normalize(data, record_path=None, meta=None,
             result = result[spec]
 
         return result
+
+    if isinstance(data, list) and len(data) is 0:
+        return DataFrame()
 
     # A bit of a hackjob
     if isinstance(data, dict):

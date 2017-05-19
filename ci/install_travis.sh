@@ -53,14 +53,17 @@ conda config --set ssl_verify false || exit 1
 conda config --set always_yes true --set changeps1 false || exit 1
 conda update -q conda
 
+echo "[add channels]"
 # add the pandas channel to take priority
 # to add extra packages
-echo "[add channels]"
 conda config --add channels pandas || exit 1
 conda config --remove channels defaults || exit 1
 conda config --add channels defaults || exit 1
 
-conda install anaconda-client
+if [ "$CONDA_FORGE" ]; then
+    # add conda-forge channel as priority
+    conda config --add channels conda-forge || exit 1
+fi
 
 # Useful for debugging any issues with conda
 conda info -a || exit 1

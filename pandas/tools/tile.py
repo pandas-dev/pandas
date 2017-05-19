@@ -13,7 +13,7 @@ import pandas.core.nanops as nanops
 from pandas.compat import zip
 from pandas import to_timedelta, to_datetime
 from pandas.types.common import is_datetime64_dtype, is_timedelta64_dtype
-from pandas.lib import infer_dtype
+from pandas._libs.lib import infer_dtype
 
 import numpy as np
 
@@ -104,8 +104,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         mn, mx = [mi + 0.0 for mi in rng]
 
         if mn == mx:  # adjust end points before binning
-            mn -= .001 * abs(mn)
-            mx += .001 * abs(mx)
+            mn -= .001 * abs(mn) if mn != 0 else .001
+            mx += .001 * abs(mx) if mx != 0 else .001
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
         else:  # adjust end points after binning
             bins = np.linspace(mn, mx, bins + 1, endpoint=True)
@@ -206,7 +206,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
                          "valid options are: raise, drop")
 
     unique_bins = algos.unique(bins)
-    if len(unique_bins) < len(bins):
+    if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == 'raise':
             raise ValueError("Bin edges must be unique: {}.\nYou "
                              "can drop duplicate edges by setting "

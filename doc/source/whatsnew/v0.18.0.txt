@@ -518,7 +518,7 @@ Other enhancements
 - Added ``DataFrame.style.format`` for more flexible formatting of cell values (:issue:`11692`)
 - ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
 - ``pivot_table()`` now accepts most iterables for the ``values`` parameter (:issue:`12017`)
-- Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`, :issue:`12572`). For further details see :ref:`here <io.bigquery_authentication>`
+- Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`, :issue:`12572`). For further details see `here <https://pandas-gbq.readthedocs.io/en/latest/intro.html>`__
 - ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue:`12221`).
 - Add missing methods/fields to ``.dt`` for ``Period`` (:issue:`8848`)
 - The entire codebase has been ``PEP``-ified (:issue:`12096`)

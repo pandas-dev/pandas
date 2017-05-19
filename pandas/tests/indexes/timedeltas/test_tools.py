@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
-from pandas import (Series, Timedelta, to_timedelta, tslib, isnull,
+from pandas import (Series, Timedelta, to_timedelta, isnull,
                     TimedeltaIndex)
+from pandas._libs.tslib import iNaT
 
 
 class TestTimedeltas(tm.TestCase):
@@ -26,7 +27,7 @@ class TestTimedeltas(tm.TestCase):
 
         # empty string
         result = to_timedelta('', box=False)
-        self.assertEqual(result.astype('int64'), tslib.iNaT)
+        self.assertEqual(result.astype('int64'), iNaT)
 
         result = to_timedelta(['', ''])
         self.assertTrue(isnull(result).all())

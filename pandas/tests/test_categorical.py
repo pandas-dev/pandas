@@ -682,7 +682,7 @@ class TestCategorical(tm.TestCase):
 
     def test_big_print(self):
         factor = Categorical([0, 1, 2, 0, 1, 2] * 100, ['a', 'b', 'c'],
-                             name='cat', fastpath=True)
+                             fastpath=True)
         expected = ["[a, b, c, a, b, ..., b, c, a, b, c]", "Length: 600",
                     "Categories (3, object): [a, b, c]"]
         expected = "\n".join(expected)
@@ -1634,15 +1634,6 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
         # GH13854, `.from_array` is deprecated
         with tm.assert_produces_warning(FutureWarning):
             Categorical.from_array([0, 1])
-
-    def test_removed_names_produces_warning(self):
-
-        # 10482
-        with tm.assert_produces_warning(UserWarning):
-            Categorical([0, 1], name="a")
-
-        with tm.assert_produces_warning(UserWarning):
-            Categorical.from_codes([1, 2], ["a", "b", "c"], name="a")
 
     def test_datetime_categorical_comparison(self):
         dt_cat = pd.Categorical(
@@ -4097,9 +4088,12 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         expected = df.copy()
 
         # object-cat
+        # note that we propogate the category
+        # because we don't have any matching rows
         cright = right.copy()
         cright['d'] = cright['d'].astype('category')
         result = pd.merge(left, cright, how='left', left_on='b', right_on='c')
+        expected['d'] = expected['d'].astype('category', categories=['null'])
         tm.assert_frame_equal(result, expected)
 
         # cat-object

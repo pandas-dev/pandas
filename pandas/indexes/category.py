@@ -1,5 +1,5 @@
 import numpy as np
-import pandas.index as _index
+from pandas._libs import index as libindex
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
@@ -18,6 +18,8 @@ from pandas.indexes.base import Index, _index_shared_docs
 import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.indexes.base as ibase
+from pandas.core.common import _asarray_tuplesafe
+
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
 
@@ -45,7 +47,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
     """
 
     _typ = 'categoricalindex'
-    _engine_type = _index.Int64Engine
+    _engine_type = libindex.Int64Engine
     _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
@@ -303,7 +305,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
                                                    False: 'first'})
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
-        from pandas.hashtable import duplicated_int64
+        from pandas._libs.hashtable import duplicated_int64
         codes = self.codes.astype('i8')
         return duplicated_int64(codes, keep)
 
@@ -458,18 +460,25 @@ class CategoricalIndex(Index, base.PandasDelegate):
         codes = self.categories.get_indexer(target)
         return self._engine.get_indexer_non_unique(codes)
 
+    @Appender(_index_shared_docs['_convert_list_indexer'])
     def _convert_list_indexer(self, keyarr, kind=None):
-        """
-        we are passed a list indexer.
-        Return our indexer or raise if all of the values are not included in
-        the categories
-        """
+        # Return our indexer or raise if all of the values are not included in
+        # the categories
         codes = self.categories.get_indexer(keyarr)
         if (codes == -1).any():
             raise KeyError("a list-indexer must only include values that are "
                            "in the categories")
 
         return None
+
+    @Appender(_index_shared_docs['_convert_arr_indexer'])
+    def _convert_arr_indexer(self, keyarr):
+        keyarr = _asarray_tuplesafe(keyarr)
+        return self._shallow_copy(keyarr)
+
+    @Appender(_index_shared_docs['_convert_index_indexer'])
+    def _convert_index_indexer(self, keyarr):
+        return self._shallow_copy(keyarr)
 
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
