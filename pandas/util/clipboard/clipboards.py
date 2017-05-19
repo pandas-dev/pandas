@@ -1,5 +1,3 @@
-# flake8: noqa
-
 import sys
 import subprocess
 from .exceptions import PyperclipException
@@ -8,7 +6,7 @@ EXCEPT_MSG = """
     Pyperclip could not find a copy/paste mechanism for your system.
     For more information, please visit https://pyperclip.readthedocs.org """
 PY2 = sys.version_info[0] == 2
-text_type = unicode if PY2 else str
+text_type = unicode if PY2 else str  # noqa
 
 
 def init_osx_clipboard():
@@ -50,7 +48,8 @@ def init_qt_clipboard():
     # $DISPLAY should exist
     from PyQt4.QtGui import QApplication
 
-    app = QApplication([])
+    # use the global instance if it exists
+    app = QApplication.instance() or QApplication([])
 
     def copy_qt(text):
         cb = app.clipboard()

@@ -12,20 +12,22 @@ import numpy as np
 from collections import defaultdict
 from datetime import timedelta
 
-from pandas.types.generic import (ABCSeries,
-                                  ABCDataFrame,
-                                  ABCDatetimeIndex,
-                                  ABCTimedeltaIndex,
-                                  ABCPeriodIndex)
-from pandas.types.common import (is_integer,
-                                 is_bool,
-                                 is_float_dtype,
-                                 is_integer_dtype,
-                                 needs_i8_conversion,
-                                 is_timedelta64_dtype,
-                                 is_list_like,
-                                 _ensure_float64,
-                                 is_scalar)
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCDataFrame,
+    ABCDatetimeIndex,
+    ABCTimedeltaIndex,
+    ABCPeriodIndex)
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_bool,
+    is_float_dtype,
+    is_integer_dtype,
+    needs_i8_conversion,
+    is_timedelta64_dtype,
+    is_list_like,
+    _ensure_float64,
+    is_scalar)
 import pandas as pd
 
 from pandas.core.base import (PandasObject, SelectionMixin,
@@ -56,11 +58,12 @@ pandas.DataFrame.%(name)s
 
 class _Window(PandasObject, SelectionMixin):
     _attributes = ['window', 'min_periods', 'freq', 'center', 'win_type',
-                   'axis', 'on']
+                   'axis', 'on', 'closed']
     exclusions = set()
 
     def __init__(self, obj, window=None, min_periods=None, freq=None,
-                 center=False, win_type=None, axis=0, on=None, **kwargs):
+                 center=False, win_type=None, axis=0, on=None, closed=None,
+                 **kwargs):
 
         if freq is not None:
             warnings.warn("The freq kw is deprecated and will be removed in a "
@@ -71,6 +74,7 @@ class _Window(PandasObject, SelectionMixin):
         self.blocks = []
         self.obj = obj
         self.on = on
+        self.closed = closed
         self.window = window
         self.min_periods = min_periods
         self.freq = freq
@@ -101,6 +105,10 @@ class _Window(PandasObject, SelectionMixin):
         if self.min_periods is not None and not \
            is_integer(self.min_periods):
             raise ValueError("min_periods must be an integer")
+        if self.closed is not None and self.closed not in \
+           ['right', 'both', 'left', 'neither']:
+            raise ValueError("closed must be 'right', 'left', 'both' or "
+                             "'neither'")
 
     def _convert_freq(self, how=None):
         """ resample according to the how, return a new object """
@@ -374,8 +382,14 @@ class Window(_Window):
     on : string, optional
         For a DataFrame, column on which to calculate
         the rolling window, rather than the index
+    closed : string, default None
+        Make the interval closed on the 'right', 'left', 'both' or
+        'neither' endpoints.
+        For offset-based windows, it defaults to 'right'.
+        For fixed windows, defaults to 'both'. Remaining cases not implemented
+        for fixed windows.
 
-        .. versionadded:: 0.19.0
+        .. versionadded:: 0.20.0
 
     axis : int or string, default 0
 
@@ -717,12 +731,12 @@ class _Rolling(_Window):
                     raise ValueError("we do not support this function "
                                      "in _window.{0}".format(func))
 
-                def func(arg, window, min_periods=None):
+                def func(arg, window, min_periods=None, closed=None):
                     minp = check_minp(min_periods, window)
                     # ensure we are only rolling on floats
                     arg = _ensure_float64(arg)
                     return cfunc(arg,
-                                 window, minp, indexi, **kwargs)
+                                 window, minp, indexi, closed, **kwargs)
 
             # calculation function
             if center:
@@ -731,11 +745,13 @@ class _Rolling(_Window):
 
                 def calc(x):
                     return func(np.concatenate((x, additional_nans)),
-                                window, min_periods=self.min_periods)
+                                window, min_periods=self.min_periods,
+                                closed=self.closed)
             else:
 
                 def calc(x):
-                    return func(x, window, min_periods=self.min_periods)
+                    return func(x, window, min_periods=self.min_periods,
+                                closed=self.closed)
 
             with np.errstate(all='ignore'):
                 if values.ndim > 1:
@@ -768,7 +784,8 @@ class _Rolling_and_Expanding(_Rolling):
         for b in blocks:
             result = b.notnull().astype(int)
             result = self._constructor(result, window=window, min_periods=0,
-                                       center=self.center).sum()
+                                       center=self.center,
+                                       closed=self.closed).sum()
             results.append(result)
 
         return self._wrap_results(results, blocks, obj)
@@ -789,11 +806,10 @@ class _Rolling_and_Expanding(_Rolling):
         offset = _offset(window, self.center)
         index, indexi = self._get_index()
 
-        def f(arg, window, min_periods):
+        def f(arg, window, min_periods, closed):
             minp = _use_window(min_periods, window)
-            return _window.roll_generic(arg, window, minp, indexi,
-                                        offset, func, args,
-                                        kwargs)
+            return _window.roll_generic(arg, window, minp, indexi, closed,
+                                        offset, func, args, kwargs)
 
         return self._apply(f, func, args=args, kwargs=kwargs,
                            center=False)
@@ -864,7 +880,7 @@ class _Rolling_and_Expanding(_Rolling):
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
             return _zsqrt(_window.roll_var(arg, window, minp, indexi,
-                                           ddof))
+                                           self.closed, ddof))
 
         return self._apply(f, 'std', check_minp=_require_min_periods(1),
                            ddof=ddof, **kwargs)
@@ -911,7 +927,7 @@ class _Rolling_and_Expanding(_Rolling):
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
             return _window.roll_quantile(arg, window, minp, indexi,
-                                         quantile)
+                                         self.closed, quantile)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
@@ -927,8 +943,9 @@ class _Rolling_and_Expanding(_Rolling):
         If False then only matching columns between self and other will be used
         and the output will be a DataFrame.
         If True then all pairwise combinations will be calculated and the
-        output will be a Panel in the case of DataFrame inputs. In the case of
-        missing elements, only complete pairwise observations will be used.
+        output will be a MultiIndexed DataFrame in the case of DataFrame
+        inputs. In the case of missing elements, only complete pairwise
+        observations will be used.
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.""")
@@ -964,11 +981,12 @@ class _Rolling_and_Expanding(_Rolling):
     other : Series, DataFrame, or ndarray, optional
         if not supplied then will default to self and produce pairwise output
     pairwise : bool, default None
-        If False then only matching columns between self and other will be used
-        and the output will be a DataFrame.
+        If False then only matching columns between self and other will be
+        used and the output will be a DataFrame.
         If True then all pairwise combinations will be calculated and the
-        output will be a Panel in the case of DataFrame inputs. In the case of
-        missing elements, only complete pairwise observations will be used.""")
+        output will be a MultiIndex DataFrame in the case of DataFrame inputs.
+        In the case of missing elements, only complete pairwise observations
+        will be used.""")
 
     def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
@@ -1041,6 +1059,10 @@ class Rolling(_Rolling_and_Expanding):
             raise ValueError("window must be an integer")
         elif self.window < 0:
             raise ValueError("window must be non-negative")
+
+        if not self.is_datetimelike and self.closed is not None:
+            raise ValueError("closed only implemented for datetimelike "
+                             "and offset based windows")
 
     def _validate_monotonic(self):
         """ validate on is monotonic """
@@ -1397,8 +1419,9 @@ pairwise : bool, default None
     If False then only matching columns between self and other will be used and
     the output will be a DataFrame.
     If True then all pairwise combinations will be calculated and the output
-    will be a Panel in the case of DataFrame inputs. In the case of missing
-    elements, only complete pairwise observations will be used.
+    will be a MultiIndex DataFrame in the case of DataFrame inputs.
+    In the case of missing elements, only complete pairwise observations will
+    be used.
 bias : boolean, default False
    Use a standard estimation bias correction
 """
@@ -1652,7 +1675,8 @@ class EWM(_Rolling):
 
 
 def _flex_binary_moment(arg1, arg2, f, pairwise=False):
-    from pandas import Series, DataFrame, Panel
+    from pandas import Series, DataFrame
+
     if not (isinstance(arg1, (np.ndarray, Series, DataFrame)) and
             isinstance(arg2, (np.ndarray, Series, DataFrame))):
         raise TypeError("arguments to moment function must be of type "
@@ -1684,10 +1708,13 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                         raise ValueError("'arg1' columns are not unique")
                     if not arg2.columns.is_unique:
                         raise ValueError("'arg2' columns are not unique")
-                    X, Y = arg1.align(arg2, join='outer')
+                    with warnings.catch_warnings(record=True):
+                        X, Y = arg1.align(arg2, join='outer')
                     X = X + 0 * Y
                     Y = Y + 0 * X
-                    res_columns = arg1.columns.union(arg2.columns)
+
+                    with warnings.catch_warnings(record=True):
+                        res_columns = arg1.columns.union(arg2.columns)
                     for col in res_columns:
                         if col in X and col in Y:
                             results[col] = f(X[col], Y[col])
@@ -1703,12 +1730,39 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                         else:
                             results[i][j] = f(*_prep_binary(arg1.iloc[:, i],
                                                             arg2.iloc[:, j]))
-                p = Panel.from_dict(results).swapaxes('items', 'major')
-                if len(p.major_axis) > 0:
-                    p.major_axis = arg1.columns[p.major_axis]
-                if len(p.minor_axis) > 0:
-                    p.minor_axis = arg2.columns[p.minor_axis]
-                return p
+
+                # TODO: not the most efficient (perf-wise)
+                # though not bad code-wise
+                from pandas import Panel, MultiIndex, Index
+                with warnings.catch_warnings(record=True):
+                    p = Panel.from_dict(results).swapaxes('items', 'major')
+                    if len(p.major_axis) > 0:
+                        p.major_axis = arg1.columns[p.major_axis]
+                    if len(p.minor_axis) > 0:
+                        p.minor_axis = arg2.columns[p.minor_axis]
+
+                if len(p.items):
+                    result = pd.concat(
+                        [p.iloc[i].T for i in range(len(p.items))],
+                        keys=p.items)
+                else:
+
+                    result = DataFrame(
+                        index=MultiIndex(levels=[arg1.index, arg1.columns],
+                                         labels=[[], []]),
+                        columns=arg2.columns,
+                        dtype='float64')
+
+                # reset our index names to arg1 names
+                # reset our column names to arg2 names
+                # careful not to mutate the original names
+                result.columns = Index(result.columns).set_names(
+                    arg2.columns.name)
+                result.index = result.index.set_names(
+                    [arg1.index.name, arg1.columns.name])
+
+                return result
+
             else:
                 raise ValueError("'pairwise' is not True/False")
         else:

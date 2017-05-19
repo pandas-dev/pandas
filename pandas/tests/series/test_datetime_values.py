@@ -1,17 +1,17 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 from datetime import datetime, date
 
 import numpy as np
 import pandas as pd
 
-from pandas.types.common import is_integer_dtype, is_list_like
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 from pandas import (Index, Series, DataFrame, bdate_range,
-                    date_range, period_range, timedelta_range)
-from pandas.tseries.period import PeriodIndex
-from pandas.tseries.index import Timestamp, DatetimeIndex
-from pandas.tseries.tdi import TimedeltaIndex
+                    date_range, period_range, timedelta_range,
+                    PeriodIndex, Timestamp, DatetimeIndex, TimedeltaIndex)
 import pandas.core.common as com
 
 from pandas.util.testing import assert_series_equal
@@ -27,21 +27,13 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         # GH 7207, 11128
         # test .dt namespace accessor
 
-        ok_for_base = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                       'weekofyear', 'week', 'dayofweek', 'weekday',
-                       'dayofyear', 'quarter', 'freq', 'days_in_month',
-                       'daysinmonth', 'is_leap_year']
-        ok_for_period = ok_for_base + ['qyear', 'start_time', 'end_time']
+        ok_for_period = PeriodIndex._datetimelike_ops
         ok_for_period_methods = ['strftime', 'to_timestamp', 'asfreq']
-        ok_for_dt = ok_for_base + ['date', 'time', 'microsecond', 'nanosecond',
-                                   'is_month_start', 'is_month_end',
-                                   'is_quarter_start', 'is_quarter_end',
-                                   'is_year_start', 'is_year_end', 'tz',
-                                   'weekday_name']
+        ok_for_dt = DatetimeIndex._datetimelike_ops
         ok_for_dt_methods = ['to_period', 'to_pydatetime', 'tz_localize',
                              'tz_convert', 'normalize', 'strftime', 'round',
                              'floor', 'ceil', 'weekday_name']
-        ok_for_td = ['days', 'seconds', 'microseconds', 'nanoseconds']
+        ok_for_td = TimedeltaIndex._datetimelike_ops
         ok_for_td_methods = ['components', 'to_pytimedelta', 'total_seconds',
                              'round', 'floor', 'ceil']
 
@@ -78,7 +70,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                 getattr(s.dt, prop)
 
             result = s.dt.to_pydatetime()
-            self.assertIsInstance(result, np.ndarray)
+            assert isinstance(result, np.ndarray)
             self.assertTrue(result.dtype == object)
 
             result = s.dt.tz_localize('US/Eastern')
@@ -148,7 +140,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             getattr(s.dt, prop)
 
         result = s.dt.to_pydatetime()
-        self.assertIsInstance(result, np.ndarray)
+        assert isinstance(result, np.ndarray)
         self.assertTrue(result.dtype == object)
 
         result = s.dt.tz_convert('CET')
@@ -179,15 +171,15 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
                 getattr(s.dt, prop)
 
             result = s.dt.components
-            self.assertIsInstance(result, DataFrame)
+            assert isinstance(result, DataFrame)
             tm.assert_index_equal(result.index, s.index)
 
             result = s.dt.to_pytimedelta()
-            self.assertIsInstance(result, np.ndarray)
+            assert isinstance(result, np.ndarray)
             self.assertTrue(result.dtype == object)
 
             result = s.dt.total_seconds()
-            self.assertIsInstance(result, pd.Series)
+            assert isinstance(result, pd.Series)
             self.assertTrue(result.dtype == 'float64')
 
             freq_result = s.dt.freq
@@ -268,7 +260,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             def f():
                 s.dt.hour[0] = 5
 
-            self.assertRaises(com.SettingWithCopyError, f)
+            pytest.raises(com.SettingWithCopyError, f)
 
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
@@ -319,13 +311,13 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
         expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
                              '2015/03/04', '2015/03/05'], dtype=np.object_)
         # dtype may be S10 or U10 depending on python version
-        self.assert_numpy_array_equal(result, expected, check_dtype=False)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
         period_index = period_range('20150301', periods=5)
         result = period_index.strftime("%Y/%m/%d")
         expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
                              '2015/03/04', '2015/03/05'], dtype='=U10')
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         s = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14,
                                                               32, 1)])
@@ -374,12 +366,12 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
 
     def test_dt_accessor_api(self):
         # GH 9322
-        from pandas.tseries.common import (CombinedDatetimelikeProperties,
-                                           DatetimeProperties)
-        self.assertIs(Series.dt, CombinedDatetimelikeProperties)
+        from pandas.core.indexes.accessors import (
+            CombinedDatetimelikeProperties, DatetimeProperties)
+        assert Series.dt is CombinedDatetimelikeProperties
 
         s = Series(date_range('2000-01-01', periods=3))
-        self.assertIsInstance(s.dt, DatetimeProperties)
+        assert isinstance(s.dt, DatetimeProperties)
 
         for s in [Series(np.arange(5)), Series(list('abcde')),
                   Series(np.random.randn(5))]:
@@ -389,7 +381,7 @@ class TestSeriesDatetimeValues(TestData, tm.TestCase):
             self.assertFalse(hasattr(s, 'dt'))
 
     def test_sub_of_datetime_from_TimeSeries(self):
-        from pandas.tseries.timedeltas import to_timedelta
+        from pandas.core.tools.timedeltas import to_timedelta
         from datetime import datetime
         a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
         b = datetime(1993, 6, 22, 13, 30)

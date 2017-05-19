@@ -459,6 +459,48 @@ default of the index) in a DataFrame.
    dft
    dft.rolling('2s', on='foo').sum()
 
+.. _stats.rolling_window.endpoints:
+
+Rolling Window Endpoints
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
+parameter:
+
+.. csv-table::
+    :header: "``closed``", "Description", "Default for"
+    :widths: 20, 30, 30
+
+    ``right``, close right endpoint, time-based windows
+    ``left``, close left endpoint,
+    ``both``, close both endpoints, fixed windows
+    ``neither``, open endpoints,
+
+For example, having the right endpoint open is useful in many problems that require that there is no contamination
+from present information back to past information. This allows the rolling window to compute statistics
+"up to that point in time", but not including that point in time.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'x': 1},
+                     index = [pd.Timestamp('20130101 09:00:01'),
+                              pd.Timestamp('20130101 09:00:02'),
+                              pd.Timestamp('20130101 09:00:03'),
+                              pd.Timestamp('20130101 09:00:04'),
+                              pd.Timestamp('20130101 09:00:06')])
+
+   df["right"] = df.rolling('2s', closed='right').x.sum()  # default
+   df["both"] = df.rolling('2s', closed='both').x.sum()
+   df["left"] = df.rolling('2s', closed='left').x.sum()
+   df["neither"] = df.rolling('2s', closed='neither').x.sum()
+
+   df
+
+Currently, this feature is only implemented for time-based windows.
+For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
+
 .. _stats.moments.ts-versus-resampling:
 
 Time-aware Rolling vs. Resampling
@@ -505,12 +547,17 @@ two ``Series`` or any combination of ``DataFrame/Series`` or
 - ``DataFrame/DataFrame``: by default compute the statistic for matching column
   names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
   passed then computes the statistic for each pair of columns, returning a
-  ``Panel`` whose ``items`` are the dates in question (see :ref:`the next section
+  ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
   <stats.moments.corr_pairwise>`).
 
 For example:
 
 .. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(1000, 4),
+                     index=pd.date_range('1/1/2000', periods=1000),
+                     columns=['A', 'B', 'C', 'D'])
+   df = df.cumsum()
 
    df2 = df[:20]
    df2.rolling(window=5).corr(df2['B'])
@@ -520,11 +567,16 @@ For example:
 Computing rolling pairwise covariances and correlations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   Prior to version 0.20.0 if ``pairwise=True`` was passed, a ``Panel`` would be returned.
+   This will now return a 2-level MultiIndexed DataFrame, see the whatsnew :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
+
 In financial data analysis and other fields it's common to compute covariance
 and correlation matrices for a collection of time series. Often one is also
 interested in moving-window covariance and correlation matrices. This can be
 done by passing the ``pairwise`` keyword argument, which in the case of
-``DataFrame`` inputs will yield a ``Panel`` whose ``items`` are the dates in
+``DataFrame`` inputs will yield a MultiIndexed ``DataFrame`` whose ``index`` are the dates in
 question. In the case of a single DataFrame argument the ``pairwise`` argument
 can even be omitted:
 
@@ -539,15 +591,15 @@ can even be omitted:
 .. ipython:: python
 
    covs = df[['B','C','D']].rolling(window=50).cov(df[['A','B','C']], pairwise=True)
-   covs[df.index[-50]]
+   covs.loc['2002-09-22':]
 
 .. ipython:: python
 
    correls = df.rolling(window=50).corr()
-   correls[df.index[-50]]
+   correls.loc['2002-09-22':]
 
 You can efficiently retrieve the time series of correlations between two
-columns using ``.loc`` indexing:
+columns by reshaping and indexing:
 
 .. ipython:: python
    :suppress:
@@ -557,7 +609,7 @@ columns using ``.loc`` indexing:
 .. ipython:: python
 
    @savefig rolling_corr_pairwise_ex.png
-   correls.loc[:, 'A', 'C'].plot()
+   correls.unstack(1)[('A', 'C')].plot()
 
 .. _stats.aggregate:
 
@@ -565,7 +617,9 @@ Aggregation
 -----------
 
 Once the ``Rolling``, ``Expanding`` or ``EWM`` objects have been created, several methods are available to
-perform multiple computations on the data. This is very similar to a ``.groupby(...).agg`` seen :ref:`here <groupby.aggregate>`.
+perform multiple computations on the data. These operations are similar to the :ref:`aggregating API <basics.aggregate>`,
+:ref:`groupby API <groupby.aggregate>`, and :ref:`resample API <timeseries.aggregate>`.
+
 
 .. ipython:: python
 
@@ -590,23 +644,15 @@ columns if none are selected.
 
 .. _stats.aggregate.multifunc:
 
-Applying multiple functions at once
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Applying multiple functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With windowed Series you can also pass a list or dict of functions to do
+With windowed ``Series`` you can also pass a list of functions to do
 aggregation with, outputting a DataFrame:
 
 .. ipython:: python
 
    r['A'].agg([np.sum, np.mean, np.std])
-
-If a dict is passed, the keys will be used to name the columns. Otherwise the
-function's name (stored in the function object) will be used.
-
-.. ipython:: python
-
-   r['A'].agg({'result1' : np.sum,
-               'result2' : np.mean})
 
 On a widowed DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
@@ -622,7 +668,7 @@ Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By passing a dict to ``aggregate`` you can apply a different aggregation to the
-columns of a DataFrame:
+columns of a ``DataFrame``:
 
 .. ipython:: python
    :okexcept:

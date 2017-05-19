@@ -11,7 +11,7 @@ import numpy as np
 from pandas.core.index import Index, MultiIndex
 from pandas import Panel, DataFrame, Series, notnull, isnull, Timestamp
 
-from pandas.types.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.compat import (range, lrange, StringIO, lzip, u, product as
@@ -83,9 +83,9 @@ class TestMultiLevel(Base, tm.TestCase):
         # GH 7112
         import pytz
         tz = pytz.timezone('Asia/Tokyo')
-        expected_tuples = [(1.1, datetime.datetime(2011, 1, 1, tzinfo=tz)),
-                           (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz)),
-                           (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz))]
+        expected_tuples = [(1.1, tz.localize(datetime.datetime(2011, 1, 1))),
+                           (1.2, tz.localize(datetime.datetime(2011, 1, 2))),
+                           (1.3, tz.localize(datetime.datetime(2011, 1, 3)))]
         expected = Index([1.1, 1.2, 1.3] + expected_tuples)
         tm.assert_index_equal(result, expected)
 
@@ -103,9 +103,9 @@ class TestMultiLevel(Base, tm.TestCase):
 
         result = midx_lv3.append(midx_lv2)
         expected = Index._simple_new(
-            np.array([(1.1, datetime.datetime(2011, 1, 1, tzinfo=tz), 'A'),
-                      (1.2, datetime.datetime(2011, 1, 2, tzinfo=tz), 'B'),
-                      (1.3, datetime.datetime(2011, 1, 3, tzinfo=tz), 'C')] +
+            np.array([(1.1, tz.localize(datetime.datetime(2011, 1, 1)), 'A'),
+                      (1.2, tz.localize(datetime.datetime(2011, 1, 2)), 'B'),
+                      (1.3, tz.localize(datetime.datetime(2011, 1, 3)), 'C')] +
                      expected_tuples), None)
         tm.assert_index_equal(result, expected)
 
@@ -113,25 +113,25 @@ class TestMultiLevel(Base, tm.TestCase):
         multi = DataFrame(np.random.randn(4, 4),
                           index=[np.array(['a', 'a', 'b', 'b']),
                                  np.array(['x', 'y', 'x', 'y'])])
-        tm.assertIsInstance(multi.index, MultiIndex)
-        self.assertNotIsInstance(multi.columns, MultiIndex)
+        assert isinstance(multi.index, MultiIndex)
+        assert not isinstance(multi.columns, MultiIndex)
 
         multi = DataFrame(np.random.randn(4, 4),
                           columns=[['a', 'a', 'b', 'b'],
                                    ['x', 'y', 'x', 'y']])
-        tm.assertIsInstance(multi.columns, MultiIndex)
+        assert isinstance(multi.columns, MultiIndex)
 
     def test_series_constructor(self):
         multi = Series(1., index=[np.array(['a', 'a', 'b', 'b']), np.array(
             ['x', 'y', 'x', 'y'])])
-        tm.assertIsInstance(multi.index, MultiIndex)
+        assert isinstance(multi.index, MultiIndex)
 
         multi = Series(1., index=[['a', 'a', 'b', 'b'], ['x', 'y', 'x', 'y']])
-        tm.assertIsInstance(multi.index, MultiIndex)
+        assert isinstance(multi.index, MultiIndex)
 
         multi = Series(lrange(4), index=[['a', 'a', 'b', 'b'],
                                          ['x', 'y', 'x', 'y']])
-        tm.assertIsInstance(multi.index, MultiIndex)
+        assert isinstance(multi.index, MultiIndex)
 
     def test_reindex_level(self):
         # axis=0
@@ -178,7 +178,7 @@ class TestMultiLevel(Base, tm.TestCase):
 
     def test_pickle(self):
         def _test_roundtrip(frame):
-            unpickled = self.round_trip_pickle(frame)
+            unpickled = tm.round_trip_pickle(frame)
             tm.assert_frame_equal(frame, unpickled)
 
         _test_roundtrip(self.frame)
@@ -198,21 +198,21 @@ class TestMultiLevel(Base, tm.TestCase):
     def test_reindex_preserve_levels(self):
         new_index = self.ymd.index[::10]
         chunk = self.ymd.reindex(new_index)
-        self.assertIs(chunk.index, new_index)
+        assert chunk.index is new_index
 
         chunk = self.ymd.loc[new_index]
-        self.assertIs(chunk.index, new_index)
+        assert chunk.index is new_index
 
         with catch_warnings(record=True):
             chunk = self.ymd.ix[new_index]
-        self.assertIs(chunk.index, new_index)
+        assert chunk.index is new_index
 
         ymdT = self.ymd.T
         chunk = ymdT.reindex(columns=new_index)
-        self.assertIs(chunk.columns, new_index)
+        assert chunk.columns is new_index
 
         chunk = ymdT.loc[:, new_index]
-        self.assertIs(chunk.columns, new_index)
+        assert chunk.columns is new_index
 
     def test_repr_to_string(self):
         repr(self.frame)
@@ -271,14 +271,14 @@ class TestMultiLevel(Base, tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         # key error
-        self.assertRaises(KeyError, s.__getitem__, (2000, 3, 4))
+        pytest.raises(KeyError, s.__getitem__, (2000, 3, 4))
 
     def test_series_getitem_corner(self):
         s = self.ymd['A']
 
         # don't segfault, GH #495
         # out of bounds access
-        self.assertRaises(IndexError, s.__getitem__, len(self.ymd))
+        pytest.raises(IndexError, s.__getitem__, len(self.ymd))
 
         # generator
         result = s[(x > 0 for x in s)]
@@ -508,7 +508,7 @@ class TestMultiLevel(Base, tm.TestCase):
         def f(x):
             x[:] = 10
 
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        pytest.raises(com.SettingWithCopyError, f, result)
 
     def test_xs_level_multiple(self):
         from pandas import read_table
@@ -532,7 +532,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         def f(x):
             x[:] = 10
 
-        self.assertRaises(com.SettingWithCopyError, f, result)
+        pytest.raises(com.SettingWithCopyError, f, result)
 
         # GH2107
         dates = lrange(20111201, 20111205)
@@ -573,7 +573,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # not implementing this for now
 
-        self.assertRaises(TypeError, s.__getitem__, (2000, slice(3, 4)))
+        pytest.raises(TypeError, s.__getitem__, (2000, slice(3, 4)))
 
         # result = s[2000, 3:4]
         # lv =s.index.get_level_values(1)
@@ -640,7 +640,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(result, expected)
 
         # raises exception
-        self.assertRaises(KeyError, frame.loc.__getitem__, 3)
+        pytest.raises(KeyError, frame.loc.__getitem__, 3)
 
         # however this will work
         result = self.frame.iloc[2]
@@ -660,7 +660,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         s = dft['foo', 'two']
         dft['foo', 'two'] = s > s.median()
         tm.assert_series_equal(dft['foo', 'two'], s > s.median())
-        # tm.assertIsInstance(dft._data.blocks[1].items, MultiIndex)
+        # assert isinstance(dft._data.blocks[1].items, MultiIndex)
 
         reindexed = dft.reindex(columns=[('foo', 'two')])
         tm.assert_series_equal(reindexed['foo', 'two'], s > s.median())
@@ -708,8 +708,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             result = df.ix[('a', 'y'), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
-        self.assertRaises(KeyError, df.loc.__getitem__,
-                          (('a', 'foo'), slice(None, None)))
+        pytest.raises(KeyError, df.loc.__getitem__,
+                      (('a', 'foo'), slice(None, None)))
 
     def test_delevel_infer_dtype(self):
         tuples = [tuple
@@ -727,12 +727,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         self.assertEqual(len(deleveled.columns), len(self.ymd.columns))
 
         deleveled = self.series.reset_index()
-        tm.assertIsInstance(deleveled, DataFrame)
+        assert isinstance(deleveled, DataFrame)
         self.assertEqual(len(deleveled.columns),
                          len(self.series.index.levels) + 1)
 
         deleveled = self.series.reset_index(drop=True)
-        tm.assertIsInstance(deleveled, Series)
+        assert isinstance(deleveled, Series)
 
     def test_count_level(self):
         def _check_counts(frame, axis=0):
@@ -937,9 +937,9 @@ Thur,Lunch,Yes,51.51,17"""
         df = df.sort_index(level=1, axis=1)
 
         stacked = df.stack()
-        result = df['foo'].stack()
+        result = df['foo'].stack().sort_index()
         tm.assert_series_equal(stacked['foo'], result, check_names=False)
-        self.assertIs(result.name, None)
+        assert result.name is None
         self.assertEqual(stacked['bar'].dtype, np.float_)
 
     def test_unstack_bug(self):
@@ -1252,14 +1252,15 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(swapped, exp)
 
     def test_swaplevel_panel(self):
-        panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
-        expected = panel.copy()
-        expected.major_axis = expected.major_axis.swaplevel(0, 1)
+        with catch_warnings(record=True):
+            panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
+            expected = panel.copy()
+            expected.major_axis = expected.major_axis.swaplevel(0, 1)
 
-        for result in (panel.swaplevel(axis='major'),
-                       panel.swaplevel(0, axis='major'),
-                       panel.swaplevel(0, 1, axis='major')):
-            tm.assert_panel_equal(result, expected)
+            for result in (panel.swaplevel(axis='major'),
+                           panel.swaplevel(0, axis='major'),
+                           panel.swaplevel(0, 1, axis='major')):
+                tm.assert_panel_equal(result, expected)
 
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(['month', 'day', 'year'])
@@ -1283,7 +1284,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_insert_index(self):
         df = self.ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]
-        tm.assertIsInstance(df.columns, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
         self.assertTrue((df[2000, 1, 10] == df[2000, 1, 7]).all())
 
     def test_alignment(self):
@@ -1321,7 +1322,7 @@ Thur,Lunch,Yes,51.51,17"""
             df['foo']['one'] = 2
             return df
 
-        self.assertRaises(com.SettingWithCopyError, f)
+        pytest.raises(com.SettingWithCopyError, f)
 
         try:
             df = f()
@@ -1354,8 +1355,8 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expect, check_names=False)
         self.assertEqual(result.index.name, 'a')
 
-        self.assertRaises(KeyError, series.count, 'x')
-        self.assertRaises(KeyError, frame.count, level='x')
+        pytest.raises(KeyError, series.count, 'x')
+        pytest.raises(KeyError, frame.count, level='x')
 
     AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                      'mad', 'std', 'var', 'sem']
@@ -1550,8 +1551,8 @@ Thur,Lunch,Yes,51.51,17"""
         self.assertEqual(result.shape, (500, 2))
 
     def test_getitem_lowerdim_corner(self):
-        self.assertRaises(KeyError, self.frame.loc.__getitem__,
-                          (('bar', 'three'), 'B'))
+        pytest.raises(KeyError, self.frame.loc.__getitem__,
+                      (('bar', 'three'), 'B'))
 
         # in theory should be inserting in a sorted space????
         self.frame.loc[('bar', 'three'), 'B'] = 0
@@ -1573,8 +1574,8 @@ Thur,Lunch,Yes,51.51,17"""
         # self.assertTrue((self.ymd.loc[2000]['A'] == 0).all())
 
         # Pretty sure the second (and maybe even the first) is already wrong.
-        self.assertRaises(Exception, self.ymd.loc.__getitem__, (2000, 6))
-        self.assertRaises(Exception, self.ymd.loc.__getitem__, (2000, 6), 0)
+        pytest.raises(Exception, self.ymd.loc.__getitem__, (2000, 6))
+        pytest.raises(Exception, self.ymd.loc.__getitem__, (2000, 6), 0)
 
     # ---------------------------------------------------------------------
 
@@ -1598,7 +1599,7 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
 
-        self.assertRaises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
+        pytest.raises(KeyError, series.__getitem__, (('foo', 'bar', 0), 2))
 
         result = frame.loc[('foo', 'bar', 0)]
         result2 = frame.xs(('foo', 'bar', 0))
@@ -1916,7 +1917,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         result = frame.iloc[:, 1]
         exp = frame.loc[:, ('Ohio', 'Red')]
-        tm.assertIsInstance(result, Series)
+        assert isinstance(result, Series)
         tm.assert_series_equal(result, exp)
 
     def test_nonunique_assignment_1750(self):
@@ -2037,17 +2038,6 @@ Thur,Lunch,Yes,51.51,17"""
         expected = MultiIndex.from_arrays(([2, 3, 2, 3], [1, 1, 2, 2]))
         tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
 
-        # deprecate take_last
-        expected = np.array([True, False, False, False, False, False])
-        with tm.assert_produces_warning(FutureWarning):
-            duplicated = idx.duplicated(take_last=True)
-        tm.assert_numpy_array_equal(duplicated, expected)
-        self.assertTrue(duplicated.dtype == bool)
-        expected = MultiIndex.from_arrays(([2, 3, 1, 2, 3], [1, 1, 1, 2, 2]))
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_index_equal(
-                idx.drop_duplicates(take_last=True), expected)
-
     def test_multiindex_set_index(self):
         # segfault in #3308
         d = {'t1': [2, 2.5, 3], 't2': [4, 5, 6]}
@@ -2082,8 +2072,8 @@ Thur,Lunch,Yes,51.51,17"""
         for d1, d2 in itertools.product(
                 [date1, date2, date3], [date1, date2, date3]):
             index = pd.MultiIndex.from_product([[d1], [d2]])
-            self.assertIsInstance(index.levels[0], pd.DatetimeIndex)
-            self.assertIsInstance(index.levels[1], pd.DatetimeIndex)
+            assert isinstance(index.levels[0], pd.DatetimeIndex)
+            assert isinstance(index.levels[1], pd.DatetimeIndex)
 
     def test_constructor_with_tz(self):
 
@@ -2244,6 +2234,22 @@ Thur,Lunch,Yes,51.51,17"""
             'a': np.arange(9, dtype='int64')
         }, columns=['month', 'feature', 'a'])
         tm.assert_frame_equal(df.reset_index(), expected)
+
+    def test_reset_index_multiindex_columns(self):
+        levels = [['A', ''], ['B', 'b']]
+        df = pd.DataFrame([[0, 2], [1, 3]],
+                          columns=pd.MultiIndex.from_tuples(levels))
+        expected = df.copy()
+        df.index.name = 'A'
+        result = df[['B']].reset_index()
+        tm.assert_frame_equal(result, expected)
+
+        # GH 16120
+        # already existing column
+        with tm.assertRaisesRegexp(ValueError,
+                                   ("cannot insert \('A', ''\), "
+                                    "already exists")):
+            df.reset_index()
 
     def test_set_index_period(self):
         # GH 6631
@@ -2449,6 +2455,30 @@ class TestSorted(Base, tm.TestCase):
         expected = df.reindex(columns=df.columns[:3])
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_getitem_not_sorted2(self):
+        # 13431
+        df = DataFrame({'col1': ['b', 'd', 'b', 'a'],
+                        'col2': [3, 1, 1, 2],
+                        'data': ['one', 'two', 'three', 'four']})
+
+        df2 = df.set_index(['col1', 'col2'])
+        df2_original = df2.copy()
+
+        df2.index.set_levels(['b', 'd', 'a'], level='col1', inplace=True)
+        df2.index.set_labels([0, 1, 0, 2], level='col1', inplace=True)
+        assert not df2.index.is_lexsorted()
+        assert not df2.index.is_monotonic
+
+        assert df2_original.index.equals(df2.index)
+        expected = df2.sort_index()
+        assert expected.index.is_lexsorted()
+        assert expected.index.is_monotonic
+
+        result = df2.sort_index(level=0)
+        assert result.index.is_lexsorted()
+        assert result.index.is_monotonic
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_getitem_not_sorted(self):
         df = self.frame.T
         df['foo', 'four'] = 'foo'
@@ -2485,3 +2515,200 @@ class TestSorted(Base, tm.TestCase):
         expected.index = expected.index.droplevel(0)
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
+
+    def test_sort_index_and_reconstruction(self):
+
+        # 15622
+        # lexsortedness should be identical
+        # across MultiIndex consruction methods
+
+        df = DataFrame([[1, 1], [2, 2]], index=list('ab'))
+        expected = DataFrame([[1, 1], [2, 2], [1, 1], [2, 2]],
+                             index=MultiIndex.from_tuples([(0.5, 'a'),
+                                                           (0.5, 'b'),
+                                                           (0.8, 'a'),
+                                                           (0.8, 'b')]))
+        assert expected.index.is_lexsorted()
+
+        result = DataFrame(
+            [[1, 1], [2, 2], [1, 1], [2, 2]],
+            index=MultiIndex.from_product([[0.5, 0.8], list('ab')]))
+        result = result.sort_index()
+        assert result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
+        tm.assert_frame_equal(result, expected)
+
+        result = DataFrame(
+            [[1, 1], [2, 2], [1, 1], [2, 2]],
+            index=MultiIndex(levels=[[0.5, 0.8], ['a', 'b']],
+                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+        result = result.sort_index()
+        assert result.index.is_lexsorted()
+
+        tm.assert_frame_equal(result, expected)
+
+        concatted = pd.concat([df, df], keys=[0.8, 0.5])
+        result = concatted.sort_index()
+
+        assert result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
+        tm.assert_frame_equal(result, expected)
+
+        # 14015
+        df = DataFrame([[1, 2], [6, 7]],
+                       columns=MultiIndex.from_tuples(
+                           [(0, '20160811 12:00:00'),
+                            (0, '20160809 12:00:00')],
+                           names=['l1', 'Date']))
+
+        df.columns.set_levels(pd.to_datetime(df.columns.levels[1]),
+                              level=1,
+                              inplace=True)
+        assert not df.columns.is_lexsorted()
+        assert not df.columns.is_monotonic
+        result = df.sort_index(axis=1)
+        assert result.columns.is_lexsorted()
+        assert result.columns.is_monotonic
+        result = df.sort_index(axis=1, level=1)
+        assert result.columns.is_lexsorted()
+        assert result.columns.is_monotonic
+
+    def test_sort_index_and_reconstruction_doc_example(self):
+        # doc example
+        df = DataFrame({'value': [1, 2, 3, 4]},
+                       index=MultiIndex(
+                           levels=[['a', 'b'], ['bb', 'aa']],
+                           labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+        assert df.index.is_lexsorted()
+        assert not df.index.is_monotonic
+
+        # sort it
+        expected = DataFrame({'value': [2, 1, 4, 3]},
+                             index=MultiIndex(
+                                 levels=[['a', 'b'], ['aa', 'bb']],
+                                 labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+        result = df.sort_index()
+        assert result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
+        tm.assert_frame_equal(result, expected)
+
+        # reconstruct
+        result = df.sort_index().copy()
+        result.index = result.index._sort_levels_monotonic()
+        assert result.index.is_lexsorted()
+        assert result.index.is_monotonic
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_reorder_on_ops(self):
+        # 15687
+        df = pd.DataFrame(
+            np.random.randn(8, 2),
+            index=MultiIndex.from_product(
+                [['a', 'b'],
+                 ['big', 'small'],
+                 ['red', 'blu']],
+                names=['letter', 'size', 'color']),
+            columns=['near', 'far'])
+        df = df.sort_index()
+
+        def my_func(group):
+            group.index = ['newz', 'newa']
+            return group
+
+        result = df.groupby(level=['letter', 'size']).apply(
+            my_func).sort_index()
+        expected = MultiIndex.from_product(
+            [['a', 'b'],
+             ['big', 'small'],
+             ['newa', 'newz']],
+            names=['letter', 'size', None])
+
+        tm.assert_index_equal(result.index, expected)
+
+    def test_sort_non_lexsorted(self):
+        # degenerate case where we sort but don't
+        # have a satisfying result :<
+        # GH 15797
+        idx = MultiIndex([['A', 'B', 'C'],
+                          ['c', 'b', 'a']],
+                         [[0, 1, 2, 0, 1, 2],
+                          [0, 2, 1, 1, 0, 2]])
+
+        df = DataFrame({'col': range(len(idx))},
+                       index=idx,
+                       dtype='int64')
+        assert df.index.is_lexsorted() is False
+        assert df.index.is_monotonic is False
+
+        sorted = df.sort_index()
+        assert sorted.index.is_lexsorted() is True
+        assert sorted.index.is_monotonic is True
+
+        expected = DataFrame(
+            {'col': [1, 4, 5, 2]},
+            index=MultiIndex.from_tuples([('B', 'a'), ('B', 'c'),
+                                          ('C', 'a'), ('C', 'b')]),
+            dtype='int64')
+        result = sorted.loc[pd.IndexSlice['B':'C', 'a':'c'], :]
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_nan(self):
+        # GH 14784
+        # incorrect sorting w.r.t. nans
+        tuples = [[12, 13], [np.nan, np.nan], [np.nan, 3], [1, 2]]
+        mi = MultiIndex.from_tuples(tuples)
+
+        df = DataFrame(np.arange(16).reshape(4, 4),
+                       index=mi, columns=list('ABCD'))
+        s = Series(np.arange(4), index=mi)
+
+        df2 = DataFrame({
+            'date': pd.to_datetime([
+                '20121002', '20121007', '20130130', '20130202', '20130305',
+                '20121002', '20121207', '20130130', '20130202', '20130305',
+                '20130202', '20130305'
+            ]),
+            'user_id': [1, 1, 1, 1, 1, 3, 3, 3, 5, 5, 5, 5],
+            'whole_cost': [1790, np.nan, 280, 259, np.nan, 623, 90, 312,
+                           np.nan, 301, 359, 801],
+            'cost': [12, 15, 10, 24, 39, 1, 0, np.nan, 45, 34, 1, 12]
+        }).set_index(['date', 'user_id'])
+
+        # sorting frame, default nan position is last
+        result = df.sort_index()
+        expected = df.iloc[[3, 0, 2, 1], :]
+        tm.assert_frame_equal(result, expected)
+
+        # sorting frame, nan position last
+        result = df.sort_index(na_position='last')
+        expected = df.iloc[[3, 0, 2, 1], :]
+        tm.assert_frame_equal(result, expected)
+
+        # sorting frame, nan position first
+        result = df.sort_index(na_position='first')
+        expected = df.iloc[[1, 2, 3, 0], :]
+        tm.assert_frame_equal(result, expected)
+
+        # sorting frame with removed rows
+        result = df2.dropna().sort_index()
+        expected = df2.sort_index().dropna()
+        tm.assert_frame_equal(result, expected)
+
+        # sorting series, default nan position is last
+        result = s.sort_index()
+        expected = s.iloc[[3, 0, 2, 1]]
+        tm.assert_series_equal(result, expected)
+
+        # sorting series, nan position last
+        result = s.sort_index(na_position='last')
+        expected = s.iloc[[3, 0, 2, 1]]
+        tm.assert_series_equal(result, expected)
+
+        # sorting series, nan position first
+        result = s.sort_index(na_position='first')
+        expected = s.iloc[[1, 2, 3, 0]]
+        tm.assert_series_equal(result, expected)

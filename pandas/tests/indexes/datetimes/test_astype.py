@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 from datetime import datetime
@@ -24,8 +26,8 @@ class TestDatetimeIndex(tm.TestCase):
 
         rng = date_range('1/1/2000', periods=10)
         result = rng.astype('i8')
-        self.assert_index_equal(result, Index(rng.asi8))
-        self.assert_numpy_array_equal(result.values, rng.asi8)
+        tm.assert_index_equal(result, Index(rng.asi8))
+        tm.assert_numpy_array_equal(result.values, rng.asi8)
 
     def test_astype_with_tz(self):
 
@@ -115,20 +117,20 @@ class TestDatetimeIndex(tm.TestCase):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
 
-        self.assertRaises(ValueError, idx.astype, float)
-        self.assertRaises(ValueError, idx.astype, 'timedelta64')
-        self.assertRaises(ValueError, idx.astype, 'timedelta64[ns]')
-        self.assertRaises(ValueError, idx.astype, 'datetime64')
-        self.assertRaises(ValueError, idx.astype, 'datetime64[D]')
+        pytest.raises(ValueError, idx.astype, float)
+        pytest.raises(ValueError, idx.astype, 'timedelta64')
+        pytest.raises(ValueError, idx.astype, 'timedelta64[ns]')
+        pytest.raises(ValueError, idx.astype, 'datetime64')
+        pytest.raises(ValueError, idx.astype, 'datetime64[D]')
 
     def test_index_convert_to_datetime_array(self):
         tm._skip_if_no_pytz()
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assertIsInstance(converted, np.ndarray)
+            assert isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assertIsInstance(x, datetime)
+                assert isinstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -146,9 +148,9 @@ class TestDatetimeIndex(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assertIsInstance(converted, np.ndarray)
+            assert isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assertIsInstance(x, datetime)
+                assert isinstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 
@@ -167,9 +169,9 @@ class TestDatetimeIndex(tm.TestCase):
 
         def _check_rng(rng):
             converted = rng.to_pydatetime()
-            tm.assertIsInstance(converted, np.ndarray)
+            assert isinstance(converted, np.ndarray)
             for x, stamp in zip(converted, rng):
-                tm.assertIsInstance(x, datetime)
+                assert isinstance(x, datetime)
                 self.assertEqual(x, stamp.to_pydatetime())
                 self.assertEqual(x.tzinfo, stamp.tzinfo)
 

@@ -4,7 +4,7 @@ import unittest
 from numpy import nan
 import numpy as np
 
-from pandas.sparse.api import SparseList, SparseArray
+from pandas.core.sparse.api import SparseList, SparseArray
 import pandas.util.testing as tm
 
 

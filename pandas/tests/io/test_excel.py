@@ -7,6 +7,7 @@ import os
 from distutils.version import LooseVersion
 
 import warnings
+from warnings import catch_warnings
 import operator
 import functools
 import pytest
@@ -16,6 +17,7 @@ import numpy as np
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex
+from pandas.io.formats.excel import ExcelFormatter
 from pandas.io.parsers import read_csv
 from pandas.io.excel import (
     ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _Openpyxl1Writer,
@@ -285,7 +287,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df3, df4)
 
         import xlrd
-        with tm.assertRaises(xlrd.XLRDError):
+        with pytest.raises(xlrd.XLRDError):
             read_excel(excel, 'asdf')
 
     def test_excel_table(self):
@@ -397,7 +399,7 @@ class ReadingTestsBase(SharedItems):
         expected['c'] = ['001', '002', '003', '004']
         tm.assert_frame_equal(actual, expected)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             actual = self.get_exceldf(basename, dtype={'d': 'int64'})
 
     def test_reading_all_sheets(self):
@@ -411,7 +413,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_contains_all(expected_keys, dfs.keys())
         # Issue 9930
         # Ensure sheet order is preserved
-        tm.assert_equal(expected_keys, list(dfs.keys()))
+        assert expected_keys == list(dfs.keys())
 
     def test_reading_multiple_specific_sheets(self):
         # Test reading specific sheetnames by specifying a mixed list
@@ -913,28 +915,43 @@ class XlrdTests(ReadingTestsBase):
     def test_read_excel_bool_header_arg(self):
         # GH 6114
         for arg in [True, False]:
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
                               header=arg)
 
     def test_read_excel_chunksize(self):
         # GH 8011
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
                           chunksize=100)
 
     def test_read_excel_parse_dates(self):
-        # GH 11544
-        with tm.assertRaises(NotImplementedError):
-            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
-                          parse_dates=True)
+        # GH 11544, 12051
 
-    def test_read_excel_date_parser(self):
-        # GH 11544
-        with tm.assertRaises(NotImplementedError):
-            dateparse = lambda x: pd.datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
-            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
-                          date_parser=dateparse)
+        df = DataFrame(
+            {'col': [1, 2, 3],
+             'date_strings': pd.date_range('2012-01-01', periods=3)})
+        df2 = df.copy()
+        df2['date_strings'] = df2['date_strings'].dt.strftime('%m/%d/%Y')
+
+        with ensure_clean(self.ext) as pth:
+            df2.to_excel(pth)
+
+            res = read_excel(pth)
+            tm.assert_frame_equal(df2, res)
+
+            # no index_col specified when parse_dates is True
+            with tm.assert_produces_warning():
+                res = read_excel(pth, parse_dates=True)
+                tm.assert_frame_equal(df2, res)
+
+            res = read_excel(pth, parse_dates=['date_strings'], index_col=0)
+            tm.assert_frame_equal(df, res)
+
+            dateparser = lambda x: pd.datetime.strptime(x, '%m/%d/%Y')
+            res = read_excel(pth, parse_dates=['date_strings'],
+                             date_parser=dateparser, index_col=0)
+            tm.assert_frame_equal(df, res)
 
     def test_read_excel_skiprows_list(self):
         # GH 4903
@@ -1023,7 +1040,7 @@ class ExcelWriterBase(SharedItems):
             df = read_excel(xl, 0)
             tm.assert_frame_equal(gt, df)
 
-            with tm.assertRaises(xlrd.XLRDError):
+            with pytest.raises(xlrd.XLRDError):
                 read_excel(xl, '0')
 
     def test_excelwriter_contextmanager(self):
@@ -1382,8 +1399,7 @@ class ExcelWriterBase(SharedItems):
             # round trip
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
-            df = read_excel(reader, 'test1', index_col=[0, 1],
-                            parse_dates=False)
+            df = read_excel(reader, 'test1', index_col=[0, 1])
             tm.assert_frame_equal(frame, df)
 
     # GH13511
@@ -1424,8 +1440,7 @@ class ExcelWriterBase(SharedItems):
             frame.to_excel(path, 'test1', merge_cells=self.merge_cells)
             reader = ExcelFile(path)
             df = read_excel(reader, 'test1', header=header,
-                            index_col=[0, 1],
-                            parse_dates=False)
+                            index_col=[0, 1])
             if not self.merge_cells:
                 fm = frame.columns.format(sparsify=False,
                                           adjoin=False, names=False)
@@ -1660,7 +1675,7 @@ class ExcelWriterBase(SharedItems):
                     # this if will be removed once multi column excel writing
                     # is implemented for now fixing #9794
                     if j > 1:
-                        with tm.assertRaises(NotImplementedError):
+                        with pytest.raises(NotImplementedError):
                             res = roundtrip(df, use_headers, index=False)
                     else:
                         res = roundtrip(df, use_headers)
@@ -1710,7 +1725,7 @@ class ExcelWriterBase(SharedItems):
         j = 2
         i = 1
         df = mkdf(nrows, ncols, r_idx_nlevels=i, c_idx_nlevels=j)
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             roundtrip2(df, header=False, index=False)
 
     def test_duplicated_columns(self):
@@ -1769,7 +1784,7 @@ class ExcelWriterBase(SharedItems):
             read_frame = read_excel(path, 'test1')
             tm.assert_frame_equal(expected, read_frame)
 
-            with tm.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 write_frame.to_excel(path, 'test1', columns=['C', 'D'])
 
     def test_datetimes(self):
@@ -1992,7 +2007,7 @@ class Openpyxl20Tests(ExcelWriterBase, tm.TestCase):
         self.assertEqual(kw['protection'], protection)
 
     def test_write_cells_merge_styled(self):
-        from pandas.formats.format import ExcelCell
+        from pandas.io.formats.excel import ExcelCell
         from openpyxl import styles
 
         sheet_name = 'merge_styled'
@@ -2105,7 +2120,7 @@ class Openpyxl22Tests(ExcelWriterBase, tm.TestCase):
         if not openpyxl_compat.is_compat(major_ver=2):
             pytest.skip('incompatible openpyxl version')
 
-        from pandas.formats.format import ExcelCell
+        from pandas.io.formats.excel import ExcelCell
 
         sheet_name = 'merge_styled'
 
@@ -2149,7 +2164,7 @@ class XlwtTests(ExcelWriterBase, tm.TestCase):
                                        ('2014', 'height'),
                                        ('2014', 'weight')])
         df = DataFrame(np.random.randn(10, 3), columns=cols)
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             with ensure_clean(self.ext) as path:
                 df.to_excel(path, index=False)
 
@@ -2291,12 +2306,12 @@ class ExcelWriterEngineTests(tm.TestCase):
 
         with ensure_clean('.xlsx') as path:
             writer = ExcelWriter(path)
-            tm.assertIsInstance(writer, writer_klass)
+            assert isinstance(writer, writer_klass)
 
         _skip_if_no_xlwt()
         with ensure_clean('.xls') as path:
             writer = ExcelWriter(path)
-            tm.assertIsInstance(writer, _XlwtWriter)
+            assert isinstance(writer, _XlwtWriter)
 
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
@@ -2325,11 +2340,153 @@ class ExcelWriterEngineTests(tm.TestCase):
         with pd.option_context('io.excel.xlsx.writer', 'dummy'):
             register_writer(DummyClass)
             writer = ExcelWriter('something.test')
-            tm.assertIsInstance(writer, DummyClass)
+            assert isinstance(writer, DummyClass)
             df = tm.makeCustomDataframe(1, 1)
-            panel = tm.makePanel()
-            func = lambda: df.to_excel('something.test')
-            check_called(func)
-            check_called(lambda: panel.to_excel('something.test'))
-            check_called(lambda: df.to_excel('something.xlsx'))
-            check_called(lambda: df.to_excel('something.xls', engine='dummy'))
+
+            with catch_warnings(record=True):
+                panel = tm.makePanel()
+                func = lambda: df.to_excel('something.test')
+                check_called(func)
+                check_called(lambda: panel.to_excel('something.test'))
+                check_called(lambda: df.to_excel('something.xlsx'))
+                check_called(
+                    lambda: df.to_excel(
+                        'something.xls', engine='dummy'))
+
+
+@pytest.mark.parametrize('engine', [
+    pytest.mark.xfail('xlwt', reason='xlwt does not support '
+                                     'openpyxl-compatible style dicts'),
+    'xlsxwriter',
+    'openpyxl',
+])
+def test_styler_to_excel(engine):
+    def style(df):
+        # XXX: RGB colors not supported in xlwt
+        return DataFrame([['font-weight: bold', '', ''],
+                          ['', 'color: blue', ''],
+                          ['', '', 'text-decoration: underline'],
+                          ['border-style: solid', '', ''],
+                          ['', 'font-style: italic', ''],
+                          ['', '', 'text-align: right'],
+                          ['background-color: red', '', ''],
+                          ['', '', ''],
+                          ['', '', ''],
+                          ['', '', '']],
+                         index=df.index, columns=df.columns)
+
+    def assert_equal_style(cell1, cell2):
+        # XXX: should find a better way to check equality
+        assert cell1.alignment.__dict__ == cell2.alignment.__dict__
+        assert cell1.border.__dict__ == cell2.border.__dict__
+        assert cell1.fill.__dict__ == cell2.fill.__dict__
+        assert cell1.font.__dict__ == cell2.font.__dict__
+        assert cell1.number_format == cell2.number_format
+        assert cell1.protection.__dict__ == cell2.protection.__dict__
+
+    def custom_converter(css):
+        # use bold iff there is custom style attached to the cell
+        if css.strip(' \n;'):
+            return {'font': {'bold': True}}
+        return {}
+
+    pytest.importorskip('jinja2')
+    pytest.importorskip(engine)
+
+    if engine == 'openpyxl' and openpyxl_compat.is_compat(major_ver=1):
+        pytest.xfail('openpyxl1 does not support some openpyxl2-compatible '
+                     'style dicts')
+
+    # Prepare spreadsheets
+
+    df = DataFrame(np.random.randn(10, 3))
+    with ensure_clean('.xlsx' if engine != 'xlwt' else '.xls') as path:
+        writer = ExcelWriter(path, engine=engine)
+        df.to_excel(writer, sheet_name='frame')
+        df.style.to_excel(writer, sheet_name='unstyled')
+        styled = df.style.apply(style, axis=None)
+        styled.to_excel(writer, sheet_name='styled')
+        ExcelFormatter(styled, style_converter=custom_converter).write(
+            writer, sheet_name='custom')
+
+    # For engines other than openpyxl 2, we only smoke test
+    if engine != 'openpyxl':
+        return
+    if not openpyxl_compat.is_compat(major_ver=2):
+        pytest.skip('incompatible openpyxl version')
+
+    # (1) compare DataFrame.to_excel and Styler.to_excel when unstyled
+    n_cells = 0
+    for col1, col2 in zip(writer.sheets['frame'].columns,
+                          writer.sheets['unstyled'].columns):
+        assert len(col1) == len(col2)
+        for cell1, cell2 in zip(col1, col2):
+            assert cell1.value == cell2.value
+            assert_equal_style(cell1, cell2)
+            n_cells += 1
+
+    # ensure iteration actually happened:
+    assert n_cells == (10 + 1) * (3 + 1)
+
+    # (2) check styling with default converter
+    n_cells = 0
+    for col1, col2 in zip(writer.sheets['frame'].columns,
+                          writer.sheets['styled'].columns):
+        assert len(col1) == len(col2)
+        for cell1, cell2 in zip(col1, col2):
+            ref = '%s%d' % (cell2.column, cell2.row)
+            # XXX: this isn't as strong a test as ideal; we should
+            #      differences are exclusive
+            if ref == 'B2':
+                assert not cell1.font.bold
+                assert cell2.font.bold
+            elif ref == 'C3':
+                assert cell1.font.color.rgb != cell2.font.color.rgb
+                assert cell2.font.color.rgb == '000000FF'
+            elif ref == 'D4':
+                assert cell1.font.underline != cell2.font.underline
+                assert cell2.font.underline == 'single'
+            elif ref == 'B5':
+                assert not cell1.border.left.style
+                assert (cell2.border.top.style ==
+                        cell2.border.right.style ==
+                        cell2.border.bottom.style ==
+                        cell2.border.left.style ==
+                        'medium')
+            elif ref == 'C6':
+                assert not cell1.font.italic
+                assert cell2.font.italic
+            elif ref == 'D7':
+                assert (cell1.alignment.horizontal !=
+                        cell2.alignment.horizontal)
+                assert cell2.alignment.horizontal == 'right'
+            elif ref == 'B8':
+                assert cell1.fill.fgColor.rgb != cell2.fill.fgColor.rgb
+                assert cell1.fill.patternType != cell2.fill.patternType
+                assert cell2.fill.fgColor.rgb == '00FF0000'
+                assert cell2.fill.patternType == 'solid'
+            else:
+                assert_equal_style(cell1, cell2)
+
+            assert cell1.value == cell2.value
+            n_cells += 1
+
+    assert n_cells == (10 + 1) * (3 + 1)
+
+    # (3) check styling with custom converter
+    n_cells = 0
+    for col1, col2 in zip(writer.sheets['frame'].columns,
+                          writer.sheets['custom'].columns):
+        assert len(col1) == len(col2)
+        for cell1, cell2 in zip(col1, col2):
+            ref = '%s%d' % (cell2.column, cell2.row)
+            if ref in ('B2', 'C3', 'D4', 'B5', 'C6', 'D7', 'B8'):
+                assert not cell1.font.bold
+                assert cell2.font.bold
+            else:
+                assert_equal_style(cell1, cell2)
+
+            assert cell1.value == cell2.value
+            n_cells += 1
+
+    assert n_cells == (10 + 1) * (3 + 1)

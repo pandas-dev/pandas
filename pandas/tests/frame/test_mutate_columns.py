@@ -7,9 +7,7 @@ import numpy as np
 
 from pandas import DataFrame, Series, Index, MultiIndex
 
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal,
-                                 assertRaisesRegexp)
+from pandas.util.testing import assert_frame_equal, assertRaisesRegexp
 
 import pandas.util.testing as tm
 
@@ -76,13 +74,13 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
     def test_assign_bad(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
         # non-keyword argument
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             df.assign(lambda x: x.A)
-        with tm.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             df.assign(C=df.A, D=df.A + df.C)
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.assign(C=lambda df: df.A, D=lambda df: df['A'] + df['C'])
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.assign(C=df.A, D=lambda x: x['A'] + x['C'])
 
     def test_insert_error_msmgs(self):
@@ -121,12 +119,12 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
                        columns=['c', 'b', 'a'])
 
         df.insert(0, 'foo', df['a'])
-        self.assert_index_equal(df.columns, Index(['foo', 'c', 'b', 'a']))
+        tm.assert_index_equal(df.columns, Index(['foo', 'c', 'b', 'a']))
         tm.assert_series_equal(df['a'], df['foo'], check_names=False)
 
         df.insert(2, 'bar', df['c'])
-        self.assert_index_equal(df.columns,
-                                Index(['foo', 'c', 'bar', 'b', 'a']))
+        tm.assert_index_equal(df.columns,
+                              Index(['foo', 'c', 'bar', 'b', 'a']))
         tm.assert_almost_equal(df['c'], df['bar'], check_names=False)
 
         # diff dtype
@@ -147,7 +145,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
 
         with assertRaisesRegexp(ValueError, 'already exists'):
             df.insert(1, 'a', df['b'])
-        self.assertRaises(ValueError, df.insert, 1, 'c', df['b'])
+        pytest.raises(ValueError, df.insert, 1, 'c', df['b'])
 
         df.columns.name = 'some_name'
         # preserve columns name field
@@ -163,7 +161,7 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
 
     def test_delitem(self):
         del self.frame['A']
-        self.assertNotIn('A', self.frame)
+        assert 'A' not in self.frame
 
     def test_delitem_multiindex(self):
         midx = MultiIndex.from_product([['A', 'B'], [1, 2]])
@@ -194,15 +192,14 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         self.frame.columns.name = 'baz'
 
         self.frame.pop('A')
-        self.assertNotIn('A', self.frame)
+        assert 'A' not in self.frame
 
         self.frame['foo'] = 'bar'
         self.frame.pop('foo')
-        self.assertNotIn('foo', self.frame)
+        assert 'foo' not in self.frame
         # TODO self.assertEqual(self.frame.columns.name, 'baz')
 
-        # 10912
-        # inplace ops cause caching issue
+        # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[
                       'A', 'B', 'C'], index=['X', 'Y'])
         b = a.pop('B')
@@ -211,11 +208,11 @@ class TestDataFrameMutateColumns(tm.TestCase, TestData):
         # original frame
         expected = DataFrame([[1, 3], [4, 6]], columns=[
                              'A', 'C'], index=['X', 'Y'])
-        assert_frame_equal(a, expected)
+        tm.assert_frame_equal(a, expected)
 
         # result
         expected = Series([2, 5], index=['X', 'Y'], name='B') + 1
-        assert_series_equal(b, expected)
+        tm.assert_series_equal(b, expected)
 
     def test_pop_non_unique_cols(self):
         df = DataFrame({0: [0, 1], 1: [0, 1], 2: [4, 5]})

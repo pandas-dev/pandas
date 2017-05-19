@@ -3,10 +3,12 @@ from __future__ import division, print_function
 
 from functools import partial
 
+import pytest
+
 import warnings
 import numpy as np
 from pandas import Series, isnull, _np_version_under1p9
-from pandas.types.common import is_integer_dtype
+from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 
@@ -389,9 +391,10 @@ class TestnanopsDataFrame(tm.TestCase):
     def test_nansem(self):
         tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import sem
-        self.check_funs_ddof(nanops.nansem, sem, allow_complex=False,
-                             allow_str=False, allow_date=False,
-                             allow_tdelta=True, allow_obj='convert')
+        with np.errstate(invalid='ignore'):
+            self.check_funs_ddof(nanops.nansem, sem, allow_complex=False,
+                                 allow_str=False, allow_date=False,
+                                 allow_tdelta=False, allow_obj='convert')
 
     def _minmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -449,16 +452,20 @@ class TestnanopsDataFrame(tm.TestCase):
         tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
-        self.check_funs(nanops.nanskew, func, allow_complex=False,
-                        allow_str=False, allow_date=False, allow_tdelta=False)
+        with np.errstate(invalid='ignore'):
+            self.check_funs(nanops.nanskew, func, allow_complex=False,
+                            allow_str=False, allow_date=False,
+                            allow_tdelta=False)
 
     def test_nankurt(self):
         tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
-        self.check_funs(nanops.nankurt, func, allow_complex=False,
-                        allow_str=False, allow_date=False, allow_tdelta=False)
+        with np.errstate(invalid='ignore'):
+            self.check_funs(nanops.nankurt, func, allow_complex=False,
+                            allow_str=False, allow_date=False,
+                            allow_tdelta=False)
 
     def test_nanprod(self):
         self.check_funs(nanops.nanprod, np.prod, allow_str=False,
@@ -769,7 +776,7 @@ class TestEnsureNumeric(tm.TestCase):
 
         # Test non-convertible string ndarray
         s_values = np.array(['foo', 'bar', 'baz'], dtype=object)
-        self.assertRaises(ValueError, lambda: nanops._ensure_numeric(s_values))
+        pytest.raises(ValueError, lambda: nanops._ensure_numeric(s_values))
 
     def test_convertable_values(self):
         self.assertTrue(np.allclose(nanops._ensure_numeric('1'), 1.0),
@@ -780,9 +787,9 @@ class TestEnsureNumeric(tm.TestCase):
                         'Failed for convertible complex string')
 
     def test_non_convertable_values(self):
-        self.assertRaises(TypeError, lambda: nanops._ensure_numeric('foo'))
-        self.assertRaises(TypeError, lambda: nanops._ensure_numeric({}))
-        self.assertRaises(TypeError, lambda: nanops._ensure_numeric([]))
+        pytest.raises(TypeError, lambda: nanops._ensure_numeric('foo'))
+        pytest.raises(TypeError, lambda: nanops._ensure_numeric({}))
+        pytest.raises(TypeError, lambda: nanops._ensure_numeric([]))
 
 
 class TestNanvarFixedValues(tm.TestCase):

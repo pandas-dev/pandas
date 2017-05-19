@@ -13,7 +13,7 @@ import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
 from pandas.compat import StringIO
-from pandas.io.common import ParserError
+from pandas.errors import ParserError
 from pandas.io.parsers import read_csv, read_table
 
 
@@ -28,15 +28,6 @@ class TestUnsupportedFeatures(tm.TestCase):
             with tm.assertRaisesRegexp(ValueError, msg):
                 read_csv(StringIO(data), engine=engine,
                          mangle_dupe_cols=False)
-
-    def test_nrows_and_chunksize(self):
-        data = 'a b c'
-        msg = "cannot be used together yet"
-
-        for engine in ('c', 'python'):
-            with tm.assertRaisesRegexp(NotImplementedError, msg):
-                read_csv(StringIO(data), engine=engine,
-                         nrows=10, chunksize=5)
 
     def test_c_engine(self):
         # see gh-6607
@@ -121,8 +112,8 @@ class TestDeprecatedFeatures(tm.TestCase):
             'as_recarray': True,
             'buffer_lines': True,
             'compact_ints': True,
-            'skip_footer': True,
             'use_unsigned': True,
+            'skip_footer': 1,
         }
 
         engines = 'c', 'python'

@@ -20,12 +20,12 @@ class FromDicts(object):
             self.data = self.frame.to_dict()
         except:
             self.data = self.frame.toDict()
-        self.some_dict = self.data.values()[0]
+        self.some_dict = list(self.data.values())[0]
         self.dict_list = [dict(zip(self.columns, row)) for row in self.frame.values]
 
         self.data2 = dict(
             ((i, dict(((j, float(j)) for j in range(100)))) for i in
-             xrange(2000)))
+             range(2000)))
 
     def time_frame_ctor_list_of_dict(self):
         DataFrame(self.dict_list)

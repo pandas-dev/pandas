@@ -3,6 +3,7 @@ cimport numpy as np
 cimport cython
 import numpy as np
 import sys
+
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
 from numpy cimport *
@@ -13,6 +14,7 @@ cdef extern from "numpy/arrayobject.h":
     cdef enum NPY_TYPES:
         NPY_intp "NPY_INTP"
 
+from libc.stdlib cimport malloc, free
 
 from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyDict_Contains, PyDict_Keys,
@@ -25,7 +27,8 @@ from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
                       PyObject_SetAttrString,
                       PyObject_RichCompareBool,
                       PyBytes_GET_SIZE,
-                      PyUnicode_GET_SIZE)
+                      PyUnicode_GET_SIZE,
+                      PyObject)
 
 try:
     from cpython cimport PyString_GET_SIZE
@@ -35,11 +38,10 @@ except ImportError:
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
-    ctypedef struct PySliceObject:
-        pass
+cdef extern from "compat_helper.h":
 
-    cdef int PySlice_GetIndicesEx(
-        PySliceObject* s, Py_ssize_t length,
+    cdef int slice_get_indices(
+        PyObject* s, Py_ssize_t length,
         Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
         Py_ssize_t *slicelength) except -1
 
@@ -59,6 +61,8 @@ from tslib cimport (convert_to_tsobject, convert_to_timedelta64,
                     _check_all_nulls)
 import tslib
 from tslib import NaT, Timestamp, Timedelta
+import interval
+from interval import Interval
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -109,77 +113,6 @@ cpdef map_indices_list(list index):
         result[index[i]] = i
 
     return result
-
-
-from libc.stdlib cimport malloc, free
-
-
-def ismember_nans(float64_t[:] arr, set values, bint hasnans):
-    cdef:
-        Py_ssize_t i, n
-        ndarray[uint8_t] result
-        float64_t val
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i in range(n):
-        val = arr[i]
-        result[i] = val in values or hasnans and isnan(val)
-
-    return result.view(np.bool_)
-
-
-def ismember(ndarray arr, set values):
-    """
-    Checks whether
-
-    Parameters
-    ----------
-    arr : ndarray
-    values : set
-
-    Returns
-    -------
-    ismember : ndarray (boolean dtype)
-    """
-    cdef:
-        Py_ssize_t i, n
-        ndarray[uint8_t] result
-        object val
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i in range(n):
-        val = util.get_value_at(arr, i)
-        result[i] = val in values
-
-    return result.view(np.bool_)
-
-
-def ismember_int64(ndarray[int64_t] arr, set values):
-    """
-    Checks whether
-
-    Parameters
-    ----------
-    arr : ndarray of int64
-    values : set
-
-    Returns
-    -------
-    ismember : ndarray (boolean dtype)
-    """
-    cdef:
-        Py_ssize_t i, n
-        ndarray[uint8_t] result
-        int64_t v
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i in range(n):
-        result[i] = arr[i] in values
-
-    return result.view(np.bool_)
 
 
 @cython.wraparound(False)
@@ -314,6 +247,7 @@ cpdef bint isscalar(object val):
     - instances of datetime.timedelta
     - Period
     - instances of decimal.Decimal
+    - Interval
 
     """
 
@@ -327,7 +261,8 @@ cpdef bint isscalar(object val):
             or PyDelta_Check(val)
             or PyTime_Check(val)
             or util.is_period_object(val)
-            or is_decimal(val))
+            or is_decimal(val)
+            or is_interval(val))
 
 
 def item_from_zerodim(object val):
@@ -1728,8 +1663,8 @@ cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     if slc is None:
         raise TypeError("slc should be a slice")
 
-    PySlice_GetIndicesEx(<PySliceObject *>slc, objlen,
-                         &start, &stop, &step, &length)
+    slice_get_indices(<PyObject *>slc, objlen,
+                      &start, &stop, &step, &length)
 
     return start, stop, step, length
 
@@ -1753,8 +1688,8 @@ cpdef Py_ssize_t slice_len(
     if slc is None:
         raise TypeError("slc must be slice")
 
-    PySlice_GetIndicesEx(<PySliceObject *>slc, objlen,
-                         &start, &stop, &step, &length)
+    slice_get_indices(<PyObject *>slc, objlen,
+                      &start, &stop, &step, &length)
 
     return length
 

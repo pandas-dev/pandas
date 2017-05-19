@@ -5,6 +5,22 @@
 API Reference
 *************
 
+This page gives an overview of all public pandas objects, functions and
+methods. In general, all classes and functions exposed in the top-level
+``pandas.*`` namespace are regarded as public.
+
+Further some of the subpackages are public, including ``pandas.errors``,
+``pandas.plotting``, and ``pandas.testing``. Certain functions in the the
+``pandas.io`` and ``pandas.tseries`` submodules are public as well (those
+mentioned in the documentation). Further, the ``pandas.api.types`` subpackage
+holds some public functions related to data types in pandas.
+
+
+.. warning::
+
+    The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are considered to be PRIVATE. Stability of functionality in those modules in not guaranteed.
+
+
 .. _api.functions:
 
 Input/Output
@@ -165,6 +181,7 @@ Data manipulations
    concat
    get_dummies
    factorize
+   unique
    wide_to_long
 
 Top-level missing data
@@ -313,6 +330,8 @@ Function application, GroupBy & Window
    :toctree: generated/
 
    Series.apply
+   Series.aggregate
+   Series.transform
    Series.map
    Series.groupby
    Series.rolling
@@ -652,7 +671,7 @@ adding ordering information or special categories is need at creation time of th
    Categorical.from_codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a numpy array, so levels and order information is not preserved!
+the Categorical back to a numpy array, so categories and order information is not preserved!
 
 .. autosummary::
    :toctree: generated/
@@ -830,6 +849,8 @@ Function application, GroupBy & Window
 
    DataFrame.apply
    DataFrame.applymap
+   DataFrame.aggregate
+   DataFrame.transform
    DataFrame.groupby
    DataFrame.rolling
    DataFrame.expanding
@@ -933,6 +954,7 @@ Reshaping, sorting, transposing
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack
+   DataFrame.melt
    DataFrame.T
    DataFrame.to_panel
    DataFrame.to_xarray
@@ -1277,6 +1299,7 @@ Attributes
    Index.nbytes
    Index.ndim
    Index.size
+   Index.empty
    Index.strides
    Index.itemsize
    Index.base
@@ -1402,6 +1425,27 @@ Categorical Components
    CategoricalIndex.as_ordered
    CategoricalIndex.as_unordered
 
+.. _api.intervalindex:
+
+IntervalIndex
+-------------
+
+.. autosummary::
+   :toctree: generated/
+
+   IntervalIndex
+
+IntervalIndex Components
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   IntervalIndex.from_arrays
+   IntervalIndex.from_tuples
+   IntervalIndex.from_breaks
+   IntervalIndex.from_intervals
+
 .. _api.multiindex:
 
 MultiIndex
@@ -1430,6 +1474,7 @@ MultiIndex Components
    MultiIndex.droplevel
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
+   MultiIndex.remove_unused_levels
 
 .. _api.datetimeindex:
 
@@ -1732,7 +1777,7 @@ The following methods are available only for ``DataFrameGroupBy`` objects.
 
 Resampling
 ----------
-.. currentmodule:: pandas.tseries.resample
+.. currentmodule:: pandas.core.resample
 
 Resampler objects are returned by resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
 
@@ -1792,7 +1837,7 @@ Computations / Descriptive Stats
 
 Style
 -----
-.. currentmodule:: pandas.formats.style
+.. currentmodule:: pandas.io.formats.style
 
 ``Styler`` objects are returned by :attr:`pandas.DataFrame.style`.
 
@@ -1857,3 +1902,40 @@ Working with options
    get_option
    set_option
    option_context
+
+Testing functions
+~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   testing.assert_frame_equal
+   testing.assert_series_equal
+   testing.assert_index_equal
+
+
+Exceptions and warnings
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   errors.DtypeWarning
+   errors.EmptyDataError
+   errors.OutOfBoundsDatetime
+   errors.ParserError
+   errors.ParserWarning
+   errors.PerformanceWarning
+   errors.UnsortedIndexError
+   errors.UnsupportedFunctionCall
+
+
+Data types related functionality
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   api.types.union_categoricals
+   api.types.infer_dtype
+   api.types.pandas_dtype

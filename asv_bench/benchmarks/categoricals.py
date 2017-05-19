@@ -1,8 +1,11 @@
 from .pandas_vb_common import *
 try:
-    from pandas.types.concat import union_categoricals
+    from pandas.api.types import union_categoricals
 except ImportError:
-    pass
+    try:
+        from pandas.types.concat import union_categoricals
+    except ImportError:
+        pass
 
 
 class Categoricals(object):

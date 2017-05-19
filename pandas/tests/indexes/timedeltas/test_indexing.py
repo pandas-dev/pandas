@@ -1,3 +1,5 @@
+import pytest
+
 from datetime import timedelta
 
 import pandas.util.testing as tm
@@ -13,15 +15,15 @@ class TestTimedeltaIndex(tm.TestCase):
 
         result = idx.insert(2, timedelta(days=5))
         exp = TimedeltaIndex(['4day', '1day', '5day', '2day'], name='idx')
-        self.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp)
 
         # insertion of non-datetime should coerce to object index
         result = idx.insert(1, 'inserted')
         expected = Index([Timedelta('4day'), 'inserted', Timedelta('1day'),
                           Timedelta('2day')], name='idx')
-        self.assertNotIsInstance(result, TimedeltaIndex)
+        assert not isinstance(result, TimedeltaIndex)
         tm.assert_index_equal(result, expected)
-        self.assertEqual(result.name, expected.name)
+        assert result.name == expected.name
 
         idx = timedelta_range('1day 00:00:01', periods=3, freq='s', name='idx')
 
@@ -49,9 +51,9 @@ class TestTimedeltaIndex(tm.TestCase):
 
         for n, d, expected in cases:
             result = idx.insert(n, d)
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            tm.assert_index_equal(result, expected)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
     def test_delete(self):
         idx = timedelta_range(start='1 Days', periods=5, freq='D', name='idx')
@@ -73,11 +75,11 @@ class TestTimedeltaIndex(tm.TestCase):
                  1: expected_1}
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
-        with tm.assertRaises((IndexError, ValueError)):
+        with pytest.raises((IndexError, ValueError)):
             # either depeidnig on numpy version
             result = idx.delete(5)
 
@@ -100,11 +102,11 @@ class TestTimedeltaIndex(tm.TestCase):
                  (3, 4, 5): expected_3_5}
         for n, expected in compat.iteritems(cases):
             result = idx.delete(n)
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)
 
             result = idx.delete(slice(n[0], n[-1] + 1))
-            self.assert_index_equal(result, expected)
+            tm.assert_index_equal(result, expected)
             self.assertEqual(result.name, expected.name)
             self.assertEqual(result.freq, expected.freq)

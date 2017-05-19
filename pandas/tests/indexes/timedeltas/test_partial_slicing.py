@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 import pandas.util.testing as tm
 
@@ -27,7 +29,7 @@ class TestSlicing(tm.TestCase):
         result = s['6 days, 23:11:12']
         self.assertEqual(result, s.iloc[133])
 
-        self.assertRaises(KeyError, s.__getitem__, '50 days')
+        pytest.raises(KeyError, s.__getitem__, '50 days')
 
     def test_partial_slice_high_reso(self):
 
@@ -73,9 +75,9 @@ class TestSlicing(tm.TestCase):
 
     def test_slice_with_zero_step_raises(self):
         ts = Series(np.arange(20), timedelta_range('0', periods=20, freq='H'))
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts[::0])
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.loc[::0])
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.loc[::0])
+        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                              lambda: ts[::0])
+        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                              lambda: ts.loc[::0])
+        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                              lambda: ts.loc[::0])

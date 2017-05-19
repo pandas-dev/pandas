@@ -13,12 +13,16 @@ from pandas._libs import lib, tslib
 from pandas import compat
 from pandas.compat import long, zip, iteritems
 from pandas.core.config import get_option
-from pandas.types.generic import ABCSeries
-from pandas.types.common import _NS_DTYPE
-from pandas.types.inference import _iterable_not_string
-from pandas.types.missing import isnull
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.common import _NS_DTYPE
+from pandas.core.dtypes.inference import _iterable_not_string
+from pandas.core.dtypes.missing import isnull
 from pandas.api import types
-from pandas.types import common
+from pandas.core.dtypes import common
+
+# compat
+from pandas.errors import (  # noqa
+    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError)
 
 # back-compat of public API
 # deprecate these functions
@@ -56,7 +60,7 @@ for t in ['is_datetime_arraylike',
             warnings.warn("pandas.core.common.{t} is deprecated. "
                           "These are not longer public API functions, "
                           "but can be imported from "
-                          "pandas.types.common.{t} instead".format(t=t),
+                          "pandas.api.types.{t} instead".format(t=t),
                           DeprecationWarning, stacklevel=3)
             return getattr(common, t)(*args, **kwargs)
         return wrapper
@@ -69,16 +73,8 @@ for t in ['is_datetime_arraylike',
 def array_equivalent(*args, **kwargs):
     warnings.warn("'pandas.core.common.array_equivalent' is deprecated and "
                   "is no longer public API", DeprecationWarning, stacklevel=2)
-    from pandas.types import missing
+    from pandas.core.dtypes import missing
     return missing.array_equivalent(*args, **kwargs)
-
-
-class PandasError(Exception):
-    pass
-
-
-class PerformanceWarning(Warning):
-    pass
 
 
 class SettingWithCopyError(ValueError):
@@ -86,24 +82,6 @@ class SettingWithCopyError(ValueError):
 
 
 class SettingWithCopyWarning(Warning):
-    pass
-
-
-class AmbiguousIndexError(PandasError, KeyError):
-    pass
-
-
-class UnsupportedFunctionCall(ValueError):
-    pass
-
-
-class UnsortedIndexError(KeyError):
-    """ Error raised when attempting to get a slice of a MultiIndex
-    and the index has not been lexsorted. Subclass of `KeyError`.
-
-    .. versionadded:: 0.20.0
-
-    """
     pass
 
 

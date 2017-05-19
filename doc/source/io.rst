@@ -29,36 +29,26 @@ IO Tools (Text, CSV, HDF5, ...)
 ===============================
 
 The pandas I/O API is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
-object.
+object. The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
 
-    * :ref:`read_csv<io.read_csv_table>`
-    * :ref:`read_excel<io.excel_reader>`
-    * :ref:`read_hdf<io.hdf5>`
-    * :ref:`read_feather<io.feather>`
-    * :ref:`read_sql<io.sql>`
-    * :ref:`read_json<io.json_reader>`
-    * :ref:`read_msgpack<io.msgpack>`
-    * :ref:`read_html<io.read_html>`
-    * :ref:`read_gbq<io.bigquery>`
-    * :ref:`read_stata<io.stata_reader>`
-    * :ref:`read_sas<io.sas_reader>`
-    * :ref:`read_clipboard<io.clipboard>`
-    * :ref:`read_pickle<io.pickle>`
+.. csv-table::
+    :header: "Format Type", "Data Description", "Reader", "Writer"
+    :widths: 30, 100, 60, 60
+    :delim: ;
 
-The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
-
-    * :ref:`to_csv<io.store_in_csv>`
-    * :ref:`to_excel<io.excel_writer>`
-    * :ref:`to_hdf<io.hdf5>`
-    * :ref:`to_feather<io.feather>`
-    * :ref:`to_sql<io.sql>`
-    * :ref:`to_json<io.json_writer>`
-    * :ref:`to_msgpack<io.msgpack>`
-    * :ref:`to_html<io.html>`
-    * :ref:`to_gbq<io.bigquery>`
-    * :ref:`to_stata<io.stata_writer>`
-    * :ref:`to_clipboard<io.clipboard>`
-    * :ref:`to_pickle<io.pickle>`
+    text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
+    text;`JSON <http://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
+    text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
+    text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
+    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
+    binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
+    binary;`Msgpack <http://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
+    binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
+    binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
+    binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
+    SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
+    SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -91,11 +81,12 @@ filepath_or_buffer : various
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
-  Delimiter to use. If sep is ``None``,
-  will try to automatically determine this. Separators longer than 1 character
-  and different from ``'\s+'`` will be interpreted as regular expressions, will
-  force use of the python parsing engine and will ignore quotes in the data.
-  Regex example: ``'\\r\\t'``.
+  Delimiter to use. If sep is ``None``, the C engine cannot automatically detect
+  the separator, but the Python parsing engine can, meaning the latter will be
+  used automatically. In addition, separators longer than 1 character and
+  different from ``'\s+'`` will be interpreted as regular expressions and
+  will also force the use of the Python parsing engine. Note that regex
+  delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
 delim_whitespace : boolean, default False
@@ -351,11 +342,11 @@ error_bad_lines : boolean, default ``True``
   Lines with too many fields (e.g. a csv line with too many commas) will by
   default cause an exception to be raised, and no DataFrame will be returned. If
   ``False``, then these "bad lines" will dropped from the DataFrame that is
-  returned (only valid with C parser). See :ref:`bad lines <io.bad_lines>`
+  returned. See :ref:`bad lines <io.bad_lines>`
   below.
 warn_bad_lines : boolean, default ``True``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
-  each "bad line" will be output (only valid with C parser).
+  each "bad line" will be output.
 
 .. _io.dtypes:
 
@@ -2231,9 +2222,10 @@ Read a URL and match a table that contains specific text
    match = 'Metcalf Bank'
    df_list = pd.read_html(url, match=match)
 
-Specify a header row (by default ``<th>`` elements are used to form the column
-index); if specified, the header row is taken from the data minus the parsed
-header elements (``<th>`` elements).
+Specify a header row (by default ``<th>`` or ``<td>`` elements located within a
+``<thead>`` are used to form the column index, if multiple rows are contained within
+``<thead>`` then a multiindex is created); if specified, the header row is taken
+from the data minus the parsed header elements (``<th>`` elements).
 
 .. code-block:: python
 
@@ -2765,6 +2757,20 @@ indices to be parsed.
 .. code-block:: python
 
    read_excel('path_to_file.xls', 'Sheet1', parse_cols=[0, 2, 3])
+
+
+Parsing Dates
++++++++++++++
+
+Datetime-like values are normally automatically converted to the appropriate
+dtype when reading the excel file. But if you have a column of strings that
+*look* like dates (but are not actually formatted as dates in excel), you can
+use the `parse_dates` keyword to parse those strings to datetimes:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
+
 
 Cell Converters
 +++++++++++++++
@@ -4481,6 +4487,7 @@ See the `Full Documentation <https://github.com/wesm/feather>`__
 Write to a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_feather('example.feather')
 

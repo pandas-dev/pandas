@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime
 import re
 
@@ -31,8 +33,8 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         tsframe.replace(nan, 0, inplace=True)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
-        self.assertRaises(TypeError, self.tsframe.replace, nan, inplace=True)
-        self.assertRaises(TypeError, self.tsframe.replace, nan)
+        pytest.raises(TypeError, self.tsframe.replace, nan, inplace=True)
+        pytest.raises(TypeError, self.tsframe.replace, nan)
 
         # mixed type
         mf = self.mixed_frame
@@ -718,7 +720,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         assert_frame_equal(expected, result)
 
     def test_replace_value_is_none(self):
-        self.assertRaises(TypeError, self.tsframe.replace, nan)
+        pytest.raises(TypeError, self.tsframe.replace, nan)
         orig_value = self.tsframe.iloc[0, 0]
         orig2 = self.tsframe.iloc[1, 0]
 
@@ -795,7 +797,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         expected = DataFrame({'datetime64': Index([now] * 3)})
         assert_frame_equal(result, expected)
 
-    def test_replace_input_formats(self):
+    def test_replace_input_formats_listlike(self):
         # both dicts
         to_rep = {'A': np.nan, 'B': 0, 'C': ''}
         values = {'A': 0, 'B': -1, 'C': 'missing'}
@@ -811,15 +813,6 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         expected = DataFrame({'A': [np.nan, 5, np.inf], 'B': [5, 2, 0],
                               'C': ['', 'asdf', 'fd']})
         assert_frame_equal(result, expected)
-
-        # dict to scalar
-        filled = df.replace(to_rep, 0)
-        expected = {}
-        for k, v in compat.iteritems(df):
-            expected[k] = v.replace(to_rep[k], 0)
-        assert_frame_equal(filled, DataFrame(expected))
-
-        self.assertRaises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
 
         # scalar to dict
         values = {'A': 0, 'B': -1, 'C': 'missing'}
@@ -840,7 +833,21 @@ class TestDataFrameReplace(tm.TestCase, TestData):
             expected.replace(to_rep[i], values[i], inplace=True)
         assert_frame_equal(result, expected)
 
-        self.assertRaises(ValueError, df.replace, to_rep, values[1:])
+        pytest.raises(ValueError, df.replace, to_rep, values[1:])
+
+    def test_replace_input_formats_scalar(self):
+        df = DataFrame({'A': [np.nan, 0, np.inf], 'B': [0, 2, 5],
+                        'C': ['', 'asdf', 'fd']})
+
+        # dict to scalar
+        to_rep = {'A': np.nan, 'B': 0, 'C': ''}
+        filled = df.replace(to_rep, 0)
+        expected = {}
+        for k, v in compat.iteritems(df):
+            expected[k] = v.replace(to_rep[k], 0)
+        assert_frame_equal(filled, DataFrame(expected))
+
+        pytest.raises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
 
         # list to scalar
         to_rep = [np.nan, 0, '']
@@ -969,7 +976,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
                            'out_augmented_MAY_2011.json',
                            'out_augmented_AUG_2011.json',
                            'out_augmented_JAN_2011.json'], columns=['fname'])
-        tm.assert_equal(set(df.fname.values), set(d['fname'].keys()))
+        assert set(df.fname.values) == set(d['fname'].keys())
         expected = DataFrame({'fname': [d['fname'][k]
                                         for k in df.fname.values]})
         result = df.replace(d)
@@ -992,7 +999,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
                            'out_augmented_MAY_2011.json',
                            'out_augmented_AUG_2011.json',
                            'out_augmented_JAN_2011.json'], columns=['fname'])
-        tm.assert_equal(set(df.fname.values), set(d['fname'].keys()))
+        assert set(df.fname.values) == set(d['fname'].keys())
         expected = DataFrame({'fname': [d['fname'][k]
                                         for k in df.fname.values]})
         result = df.replace(d)

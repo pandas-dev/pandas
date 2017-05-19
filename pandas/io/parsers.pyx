@@ -13,12 +13,12 @@ from cpython cimport (PyObject, PyBytes_FromString,
                       PyUnicode_Check, PyUnicode_AsUTF8String,
                       PyErr_Occurred, PyErr_Fetch)
 from cpython.ref cimport PyObject, Py_XDECREF
-from pandas.io.common import (ParserError, DtypeWarning,
-                              EmptyDataError, ParserWarning)
+from pandas.errors import (ParserError, DtypeWarning,
+                           EmptyDataError, ParserWarning)
 
 # Import CParserError as alias of ParserError for backwards compatibility.
 # Ultimately, we want to remove this import. See gh-12665 and gh-14479.
-from pandas.io.common import CParserError
+CParserError = ParserError
 
 cdef extern from "Python.h":
     object PyUnicode_FromString(char *v)
@@ -39,14 +39,15 @@ cimport util
 
 import pandas._libs.lib as lib
 import pandas.compat as compat
-from pandas.types.common import (is_categorical_dtype, CategoricalDtype,
-                                 is_integer_dtype, is_float_dtype,
-                                 is_bool_dtype, is_object_dtype,
-                                 is_string_dtype, is_datetime64_dtype,
-                                 pandas_dtype)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, CategoricalDtype,
+    is_integer_dtype, is_float_dtype,
+    is_bool_dtype, is_object_dtype,
+    is_string_dtype, is_datetime64_dtype,
+    pandas_dtype)
 from pandas.core.categorical import Categorical
 from pandas.core.algorithms import take_1d
-from pandas.types.concat import union_categoricals
+from pandas.core.dtypes.concat import union_categoricals
 from pandas import Index
 
 import time

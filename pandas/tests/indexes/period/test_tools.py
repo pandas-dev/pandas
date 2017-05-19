@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.tseries.period as period
+import pandas.core.indexes.period as period
 from pandas.compat import lrange
 from pandas.tseries.frequencies import get_freq, MONTHS
 from pandas._libs.period import period_ordinal, period_asfreq
@@ -19,8 +19,8 @@ class TestPeriodRepresentation(tm.TestCase):
     def _check_freq(self, freq, base_date):
         rng = PeriodIndex(start=base_date, periods=10, freq=freq)
         exp = np.arange(10, dtype=np.int64)
-        self.assert_numpy_array_equal(rng._values, exp)
-        self.assert_numpy_array_equal(rng.asi8, exp)
+        tm.assert_numpy_array_equal(rng._values, exp)
+        tm.assert_numpy_array_equal(rng.asi8, exp)
 
     def test_annual(self):
         self._check_freq('A', 1970)
@@ -176,7 +176,8 @@ class TestPeriodIndex(tm.TestCase):
     def test_tolist(self):
         index = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         rs = index.tolist()
-        [tm.assertIsInstance(x, Period) for x in rs]
+        for x in rs:
+            assert isinstance(x, Period)
 
         recon = PeriodIndex(rs)
         tm.assert_index_equal(index, recon)
@@ -265,7 +266,7 @@ class TestPeriodIndex(tm.TestCase):
 
         result3 = result.to_period(freq='3M')
         exp = PeriodIndex(['NaT', '2011-01', '2011-02'], freq='3M', name='idx')
-        self.assert_index_equal(result3, exp)
+        tm.assert_index_equal(result3, exp)
         self.assertEqual(result3.freqstr, '3M')
 
         msg = ('Frequency must be positive, because it'
@@ -278,26 +279,26 @@ class TestPeriodIndex(tm.TestCase):
         result = idx.to_timestamp()
         expected = DatetimeIndex(
             ['2011-01-01', 'NaT', '2011-02-01'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         result = idx.to_timestamp(how='E')
         expected = DatetimeIndex(
             ['2011-02-28', 'NaT', '2011-03-31'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_combined(self):
         idx = PeriodIndex(start='2011', periods=2, freq='1D1H', name='idx')
         result = idx.to_timestamp()
         expected = DatetimeIndex(
             ['2011-01-01 00:00', '2011-01-02 01:00'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         result = idx.to_timestamp(how='E')
         expected = DatetimeIndex(
             ['2011-01-02 00:59:59', '2011-01-03 01:59:59'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
         result = idx.to_timestamp(how='E', freq='H')
         expected = DatetimeIndex(
             ['2011-01-02 00:00', '2011-01-03 01:00'], name='idx')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_to_period_astype(self):
         idx = DatetimeIndex([pd.NaT, '2011-01-01', '2011-02-01'], name='idx')
@@ -308,7 +309,7 @@ class TestPeriodIndex(tm.TestCase):
 
         res = idx.astype('period[3M]')
         exp = PeriodIndex(['NaT', '2011-01', '2011-02'], freq='3M', name='idx')
-        self.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp)
 
     def test_dti_to_period(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
@@ -385,7 +386,7 @@ class TestPeriodIndex(tm.TestCase):
         self.assertEqual(prng.freq, 'M')
 
         msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
-        with self.assertRaisesRegexp(ValueError, msg):
+        with tm.assertRaisesRegexp(ValueError, msg):
             date_range('01-Jan-2012', periods=8, freq='EOM')
 
     def test_period_dt64_round_trip(self):
@@ -438,11 +439,11 @@ class TestPeriodIndex(tm.TestCase):
             self.assertEqual(pidx.searchsorted(p2), 3)
 
             msg = "Input has different freq=H from PeriodIndex"
-            with self.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='H'))
 
             msg = "Input has different freq=5D from PeriodIndex"
-            with self.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
                 pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
             with tm.assert_produces_warning(FutureWarning):

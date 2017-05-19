@@ -113,7 +113,7 @@ For example:
    pd.Period('2012-05', freq='D')
 
 ``Timestamp`` and ``Period`` can be the index. Lists of ``Timestamp`` and
-``Period`` are automatically coerce to ``DatetimeIndex`` and ``PeriodIndex``
+``Period`` are automatically coerced to ``DatetimeIndex`` and ``PeriodIndex``
 respectively.
 
 .. ipython:: python
@@ -247,12 +247,15 @@ Return NaT for input when unparseable
     Out[6]: DatetimeIndex(['2009-07-31', 'NaT'], dtype='datetime64[ns]', freq=None)
 
 
+.. _timeseries.converting.epoch:
+
 Epoch Timestamps
 ~~~~~~~~~~~~~~~~
 
 It's also possible to convert integer or float epoch times. The default unit
 for these is nanoseconds (since these are how ``Timestamp`` s are stored). However,
-often epochs are stored in another ``unit`` which can be specified:
+often epochs are stored in another ``unit`` which can be specified. These are computed
+from the starting point specified by the :ref:`Origin Parameter <timeseries.origin>`.
 
 Typical epoch stored units
 
@@ -264,17 +267,63 @@ Typical epoch stored units
    pd.to_datetime([1349720105100, 1349720105200, 1349720105300,
                    1349720105400, 1349720105500 ], unit='ms')
 
-These *work*, but the results may be unexpected.
-
-.. ipython:: python
-
-   pd.to_datetime([1])
-
-   pd.to_datetime([1, 3.14], unit='s')
-
 .. note::
 
    Epoch times will be rounded to the nearest nanosecond.
+
+.. warning::
+
+   Conversion of float epoch times can lead to inaccurate and unexpected results.
+   :ref:`Python floats <python:tut-fp-issues>` have about 15 digits precision in
+   decimal. Rounding during conversion from float to high precision ``Timestamp`` is
+   unavoidable. The only way to achieve exact precision is to use a fixed-width
+   types (e.g. an int64).
+
+   .. ipython:: python
+
+      pd.to_datetime([1490195805.433, 1490195805.433502912], unit='s')
+      pd.to_datetime(1490195805433502912, unit='ns')
+
+.. _timeseries.converting.epoch_inverse:
+
+From Timestamps to Epoch
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To invert the operation from above, namely, to convert from a ``Timestamp`` to a 'unix' epoch:
+
+.. ipython:: python
+
+   stamps = pd.date_range('2012-10-08 18:15:05', periods=4, freq='D')
+   stamps
+
+We convert the ``DatetimeIndex`` to an ``int64`` array, then divide by the conversion unit.
+
+.. ipython:: python
+
+   stamps.view('int64') // pd.Timedelta(1, unit='s')
+
+.. _timeseries.origin:
+
+Using the Origin Parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+Using the ``origin`` parameter, one can specify an alternative starting point for creation
+of a ``DatetimeIndex``.
+
+Start with 1960-01-01 as the starting date
+
+.. ipython:: python
+
+   pd.to_datetime([1, 2, 3], unit='D', origin=pd.Timestamp('1960-01-01'))
+
+The default is set at ``origin='unix'``, which defaults to ``1970-01-01 00:00:00``.
+Commonly called 'unix epoch' or POSIX time.
+
+.. ipython:: python
+
+   pd.to_datetime([1, 2, 3], unit='D')
 
 .. _timeseries.daterange:
 
@@ -1470,11 +1519,13 @@ We can instead only resample those groups where we have points as follows:
 
     ts.groupby(partial(round, freq='3T')).sum()
 
+.. _timeseries.aggregate:
+
 Aggregation
 ~~~~~~~~~~~
 
-Similar to :ref:`groupby aggregates <groupby.aggregate>` and the :ref:`window functions <stats.aggregate>`, a ``Resampler`` can be selectively
-resampled.
+Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and  the :ref:`window functions API <stats.aggregate>`,
+a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
 
@@ -1499,14 +1550,6 @@ You can pass a list or dict of functions to do aggregation with, outputting a Da
 .. ipython:: python
 
    r['A'].agg([np.sum, np.mean, np.std])
-
-If a dict is passed, the keys will be used to name the columns. Otherwise the
-function's name (stored in the function object) will be used.
-
-.. ipython:: python
-
-   r['A'].agg({'result1' : np.sum,
-               'result2' : np.mean})
 
 On a resampled DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:

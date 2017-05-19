@@ -6,6 +6,9 @@ generally in test_groupby.py
 """
 
 from __future__ import print_function
+
+import pytest
+
 from datetime import datetime, timedelta
 from functools import partial
 
@@ -14,11 +17,11 @@ from numpy import nan
 import pandas as pd
 
 from pandas import (date_range, MultiIndex, DataFrame,
-                    Series, Index, bdate_range)
+                    Series, Index, bdate_range, concat)
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.groupby import SpecificationError, DataError
 from pandas.compat import OrderedDict
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
 
@@ -117,7 +120,7 @@ class TestGroupByAggregate(tm.TestCase):
         prng = period_range('2012-1-1', freq='M', periods=3)
         df = DataFrame(np.random.randn(3, 2), index=prng)
         rs = df.groupby(level=0).sum()
-        tm.assertIsInstance(rs.index, PeriodIndex)
+        assert isinstance(rs.index, PeriodIndex)
 
         # GH 3579
         index = period_range(start='1999-01', periods=5, freq='M')
@@ -179,8 +182,8 @@ class TestGroupByAggregate(tm.TestCase):
 
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
-        self.assertRaises(Exception, grouped.agg, lambda x: x.describe())
-        self.assertRaises(Exception, grouped.agg, lambda x: x.index[:2])
+        pytest.raises(Exception, grouped.agg, lambda x: x.describe())
+        pytest.raises(Exception, grouped.agg, lambda x: x.index[:2])
 
     def test_agg_ser_multi_key(self):
         # TODO(wesm): unused
@@ -291,8 +294,10 @@ class TestGroupByAggregate(tm.TestCase):
         expected.columns = MultiIndex.from_product([['C', 'D'],
                                                     ['mean', 'sum']])
 
-        result = grouped[['D', 'C']].agg({'r': np.sum,
-                                          'r2': np.mean})
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = grouped[['D', 'C']].agg({'r': np.sum,
+                                              'r2': np.mean})
         expected = pd.concat([d_sum,
                               c_sum,
                               d_mean,
@@ -301,6 +306,27 @@ class TestGroupByAggregate(tm.TestCase):
         expected.columns = MultiIndex.from_product([['r', 'r2'],
                                                     ['D', 'C']])
         assert_frame_equal(result, expected, check_like=True)
+
+    def test_agg_dict_renaming_deprecation(self):
+        # 15931
+        df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+                           'B': range(5),
+                           'C': range(5)})
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w:
+            df.groupby('A').agg({'B': {'foo': ['sum', 'max']},
+                                 'C': {'bar': ['count', 'min']}})
+            assert "using a dict with renaming" in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.groupby('A').B.agg({'foo': 'count'})
+            assert "using a dict on a Series for aggregation" in str(
+                w[0].message)
 
     def test_agg_compat(self):
 
@@ -320,14 +346,19 @@ class TestGroupByAggregate(tm.TestCase):
                              axis=1)
         expected.columns = MultiIndex.from_tuples([('C', 'sum'),
                                                    ('C', 'std')])
-        result = g['D'].agg({'C': ['sum', 'std']})
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = g['D'].agg({'C': ['sum', 'std']})
         assert_frame_equal(result, expected, check_like=True)
 
         expected = pd.concat([g['D'].sum(),
                               g['D'].std()],
                              axis=1)
         expected.columns = ['C', 'D']
-        result = g['D'].agg({'C': 'sum', 'D': 'std'})
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = g['D'].agg({'C': 'sum', 'D': 'std'})
         assert_frame_equal(result, expected, check_like=True)
 
     def test_agg_nested_dicts(self):
@@ -346,10 +377,12 @@ class TestGroupByAggregate(tm.TestCase):
             g.aggregate({'r1': {'C': ['mean', 'sum']},
                          'r2': {'D': ['mean', 'sum']}})
 
-        self.assertRaises(SpecificationError, f)
+        pytest.raises(SpecificationError, f)
 
-        result = g.agg({'C': {'ra': ['mean', 'std']},
-                        'D': {'rb': ['mean', 'std']}})
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = g.agg({'C': {'ra': ['mean', 'std']},
+                            'D': {'rb': ['mean', 'std']}})
         expected = pd.concat([g['C'].mean(), g['C'].std(), g['D'].mean(),
                               g['D'].std()], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
@@ -358,9 +391,14 @@ class TestGroupByAggregate(tm.TestCase):
 
         # same name as the original column
         # GH9052
-        expected = g['D'].agg({'result1': np.sum, 'result2': np.mean})
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = g['D'].agg({'result1': np.sum, 'result2': np.mean})
         expected = expected.rename(columns={'result1': 'D'})
-        result = g['D'].agg({'D': np.sum, 'result2': np.mean})
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = g['D'].agg({'D': np.sum, 'result2': np.mean})
         assert_frame_equal(result, expected, check_like=True)
 
     def test_agg_python_multiindex(self):
@@ -429,7 +467,7 @@ class TestGroupByAggregate(tm.TestCase):
             return ser.size
 
         result = DataFrame().groupby(self.df.A).agg(aggfun)
-        tm.assertIsInstance(result, DataFrame)
+        assert isinstance(result, DataFrame)
         self.assertEqual(len(result), 0)
 
     def test_agg_item_by_item_raise_typeerror(self):
@@ -442,7 +480,7 @@ class TestGroupByAggregate(tm.TestCase):
             pprint_thing(df.to_string())
             raise TypeError
 
-        self.assertRaises(TypeError, df.groupby(0).agg, raiseException)
+        pytest.raises(TypeError, df.groupby(0).agg, raiseException)
 
     def test_series_agg_multikey(self):
         ts = tm.makeTimeSeries()
@@ -528,11 +566,11 @@ class TestGroupByAggregate(tm.TestCase):
     def test_cython_agg_nothing_to_agg(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': ['foo', 'bar'] * 25})
-        self.assertRaises(DataError, frame.groupby('a')['b'].mean)
+        pytest.raises(DataError, frame.groupby('a')['b'].mean)
 
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': ['foo', 'bar'] * 25})
-        self.assertRaises(DataError, frame[['b']].groupby(frame['a']).mean)
+        pytest.raises(DataError, frame[['b']].groupby(frame['a']).mean)
 
     def test_cython_agg_nothing_to_agg_with_dates(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
@@ -604,7 +642,7 @@ class TestGroupByAggregate(tm.TestCase):
         result = self.df.groupby('A')['C'].agg(funcs)
         exp_cols = Index(['mean', 'max', 'min'])
 
-        self.assert_index_equal(result.columns, exp_cols)
+        tm.assert_index_equal(result.columns, exp_cols)
 
     def test_multiple_functions_tuples_and_non_tuples(self):
         # #1359
@@ -624,10 +662,9 @@ class TestGroupByAggregate(tm.TestCase):
         grouped = self.df.groupby('A')
         funcs = ['mean', lambda x: x.mean(), lambda x: x.std()]
 
-        self.assertRaises(SpecificationError, grouped.agg, funcs)
+        pytest.raises(SpecificationError, grouped.agg, funcs)
 
     def test_more_flexible_frame_multi_function(self):
-        from pandas import concat
 
         grouped = self.df.groupby('A')
 
@@ -655,9 +692,12 @@ class TestGroupByAggregate(tm.TestCase):
         def bar(x):
             return np.std(x, ddof=1)
 
-        d = OrderedDict([['C', np.mean], ['D', OrderedDict(
-            [['foo', np.mean], ['bar', np.std]])]])
-        result = grouped.aggregate(d)
+        # this uses column selection & renaming
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            d = OrderedDict([['C', np.mean], ['D', OrderedDict(
+                [['foo', np.mean], ['bar', np.std]])]])
+            result = grouped.aggregate(d)
 
         d = OrderedDict([['C', [np.mean]], ['D', [foo, bar]]])
         expected = grouped.aggregate(d)
@@ -671,16 +711,29 @@ class TestGroupByAggregate(tm.TestCase):
         d = OrderedDict([['C', OrderedDict([['foo', 'mean'], [
             'bar', 'std'
         ]])], ['D', 'sum']])
-        result = grouped.aggregate(d)
+
+        # this uses column selection & renaming
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = grouped.aggregate(d)
+
         d2 = OrderedDict([['C', OrderedDict([['foo', 'mean'], [
             'bar', 'std'
         ]])], ['D', ['sum']]])
-        result2 = grouped.aggregate(d2)
+
+        # this uses column selection & renaming
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result2 = grouped.aggregate(d2)
 
         d3 = OrderedDict([['C', OrderedDict([['foo', 'mean'], [
             'bar', 'std'
         ]])], ['D', {'sum': 'sum'}]])
-        expected = grouped.aggregate(d3)
+
+        # this uses column selection & renaming
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = grouped.aggregate(d3)
 
         assert_frame_equal(result, expected)
         assert_frame_equal(result2, expected)

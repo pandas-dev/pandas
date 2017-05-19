@@ -3,11 +3,14 @@
 
 """ test fancy indexing & misc """
 
+import pytest
+
 from warnings import catch_warnings
 from datetime import datetime
 
-from pandas.types.common import (is_integer_dtype,
-                                 is_float_dtype)
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_float_dtype)
 from pandas.compat import range, lrange, lzip, StringIO
 import numpy as np
 
@@ -39,7 +42,7 @@ class TestFancy(Base, tm.TestCase):
             df.loc[df.index[2:5], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
                                                      2.2, 1.0])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # valid
         df.loc[df.index[2:6], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
@@ -58,7 +61,7 @@ class TestFancy(Base, tm.TestCase):
         def f():
             df[2:5] = np.arange(1, 4) * 1j
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_setitem_dtype_upcast(self):
 
@@ -107,7 +110,7 @@ class TestFancy(Base, tm.TestCase):
         df.columns = ['a', 'a', 'b']
         result = df[['b', 'a']].columns
         expected = Index(['b', 'a', 'a'])
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # across dtypes
         df = DataFrame([[1, 2, 1., 2., 3., 'foo', 'bar']],
@@ -239,7 +242,7 @@ class TestFancy(Base, tm.TestCase):
         df = pd.DataFrame(np.random.random((10, 5)),
                           columns=["a"] + [20, 21, 22, 23])
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df[[22, 26, -8]]
         self.assertEqual(df[21].shape[0], df.shape[0])
 
@@ -428,18 +431,18 @@ class TestFancy(Base, tm.TestCase):
         df = pd.DataFrame([1], pd.Index([pd.Timestamp('2011-01-01')],
                                         dtype=object))
         self.assertTrue(df.index.is_all_dates)
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df['2011']
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.loc['2011', 0]
 
         df = pd.DataFrame()
         self.assertFalse(df.index.is_all_dates)
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df['2011']
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.loc['2011', 0]
 
     def test_mi_access(self):
@@ -533,7 +536,7 @@ class TestFancy(Base, tm.TestCase):
         index = df.index.copy()
 
         df['A'] = df['A'].astype(np.float64)
-        self.assert_index_equal(df.index, index)
+        tm.assert_index_equal(df.index, index)
 
         # TODO(wesm): unused variables
         # result = df.get_dtype_counts().sort_index()
@@ -713,13 +716,13 @@ class TestMisc(Base, tm.TestCase):
 
     def test_slice_with_zero_step_raises(self):
         s = Series(np.arange(20), index=_mklbl('A', 20))
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: s[::0])
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: s.loc[::0])
+        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                              lambda: s[::0])
+        tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                              lambda: s.loc[::0])
         with catch_warnings(record=True):
-            self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                    lambda: s.ix[::0])
+            tm.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
+                                  lambda: s.ix[::0])
 
     def test_indexing_assignment_dict_already_exists(self):
         df = pd.DataFrame({'x': [1, 2, 6],

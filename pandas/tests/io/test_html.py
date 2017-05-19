@@ -158,12 +158,12 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     def test_spam_no_match(self):
         dfs = self.read_html(self.spam_data)
         for df in dfs:
-            tm.assertIsInstance(df, DataFrame)
+            assert isinstance(df, DataFrame)
 
     def test_banklist_no_match(self):
         dfs = self.read_html(self.banklist_data, attrs={'id': 'table'})
         for df in dfs:
-            tm.assertIsInstance(df, DataFrame)
+            assert isinstance(df, DataFrame)
 
     def test_spam_header(self):
         df = self.read_html(self.spam_data, '.*Water.*', header=1)[0]
@@ -278,13 +278,13 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
     @network
     def test_bad_url_protocol(self):
-        with tm.assertRaises(URLError):
+        with pytest.raises(URLError):
             self.read_html('git://github.com', match='.*Water.*')
 
     @network
     def test_invalid_url(self):
         try:
-            with tm.assertRaises(URLError):
+            with pytest.raises(URLError):
                 self.read_html('http://www.a23950sdfa908sd.com',
                                match='.*Water.*')
         except ValueError as e:
@@ -295,9 +295,9 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         url = self.banklist_data
         dfs = self.read_html(file_path_to_url(url), 'First',
                              attrs={'id': 'table'})
-        tm.assertIsInstance(dfs, list)
+        assert isinstance(dfs, list)
         for df in dfs:
-            tm.assertIsInstance(df, DataFrame)
+            assert isinstance(df, DataFrame)
 
     @tm.slow
     def test_invalid_table_attrs(self):
@@ -313,34 +313,34 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     @tm.slow
     def test_multiindex_header(self):
         df = self._bank_data(header=[0, 1])[0]
-        tm.assertIsInstance(df.columns, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
 
     @tm.slow
     def test_multiindex_index(self):
         df = self._bank_data(index_col=[0, 1])[0]
-        tm.assertIsInstance(df.index, MultiIndex)
+        assert isinstance(df.index, MultiIndex)
 
     @tm.slow
     def test_multiindex_header_index(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1])[0]
-        tm.assertIsInstance(df.columns, MultiIndex)
-        tm.assertIsInstance(df.index, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
+        assert isinstance(df.index, MultiIndex)
 
     @tm.slow
     def test_multiindex_header_skiprows_tuples(self):
         df = self._bank_data(header=[0, 1], skiprows=1, tupleize_cols=True)[0]
-        tm.assertIsInstance(df.columns, Index)
+        assert isinstance(df.columns, Index)
 
     @tm.slow
     def test_multiindex_header_skiprows(self):
         df = self._bank_data(header=[0, 1], skiprows=1)[0]
-        tm.assertIsInstance(df.columns, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
 
     @tm.slow
     def test_multiindex_header_index_skiprows(self):
         df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
-        tm.assertIsInstance(df.index, MultiIndex)
-        tm.assertIsInstance(df.columns, MultiIndex)
+        assert isinstance(df.index, MultiIndex)
+        assert isinstance(df.columns, MultiIndex)
 
     @tm.slow
     def test_regex_idempotency(self):
@@ -348,9 +348,9 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         dfs = self.read_html(file_path_to_url(url),
                              match=re.compile(re.compile('Florida')),
                              attrs={'id': 'table'})
-        tm.assertIsInstance(dfs, list)
+        assert isinstance(dfs, list)
         for df in dfs:
-            tm.assertIsInstance(df, DataFrame)
+            assert isinstance(df, DataFrame)
 
     def test_negative_skiprows(self):
         with tm.assertRaisesRegexp(ValueError,
@@ -519,7 +519,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
                          'Volume', 'Price', 'Chg', '% Chg'])
         nrows = 100
         self.assertEqual(df.shape[0], nrows)
-        self.assert_index_equal(df.columns, columns)
+        tm.assert_index_equal(df.columns, columns)
 
     @tm.slow
     def test_banklist_header(self):
@@ -566,10 +566,10 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
         with open(self.banklist_data, 'r') as f:
             raw_text = f.read()
 
-        self.assertIn(gc, raw_text)
+        assert gc in raw_text
         df = self.read_html(self.banklist_data, 'Gold Canyon',
                             attrs={'id': 'table'})[0]
-        self.assertIn(gc, df.to_string())
+        assert gc in df.to_string()
 
     def test_different_number_of_rows(self):
         expected = """<table border="1" class="dataframe">
@@ -691,7 +691,7 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
     def test_bool_header_arg(self):
         # GH 6114
         for arg in [True, False]:
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 read_html(self.spam_data, header=arg)
 
     def test_converters(self):
@@ -758,6 +758,18 @@ class TestReadHtml(tm.TestCase, ReadHtmlMixin):
 
         expected_df = DataFrame({'a': [np.nan, np.nan]})
         html_df = read_html(html_data, keep_default_na=True)[0]
+        tm.assert_frame_equal(expected_df, html_df)
+
+    def test_multiple_header_rows(self):
+        # Issue #13434
+        expected_df = DataFrame(data=[("Hillary", 68, "D"),
+                                      ("Bernie", 74, "D"),
+                                      ("Donald", 69, "R")])
+        expected_df.columns = [["Unnamed: 0_level_0", "Age", "Party"],
+                               ["Name", "Unnamed: 1_level_1",
+                                "Unnamed: 2_level_1"]]
+        html = expected_df.to_html(index=False)
+        html_df = read_html(html, )[0]
         tm.assert_frame_equal(expected_df, html_df)
 
 
@@ -830,17 +842,17 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
         spam_data = os.path.join(DATA_PATH, 'spam.html')
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
-        with tm.assertRaises(XMLSyntaxError):
+        with pytest.raises(XMLSyntaxError):
             self.read_html(spam_data)
 
-        with tm.assertRaises(XMLSyntaxError):
+        with pytest.raises(XMLSyntaxError):
             self.read_html(banklist_data)
 
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')
         dfs = self.read_html(filename, index_col=0)
-        tm.assertIsInstance(dfs, list)
-        tm.assertIsInstance(dfs[0], DataFrame)
+        assert isinstance(dfs, list)
+        assert isinstance(dfs[0], DataFrame)
 
     @tm.slow
     def test_fallback_success(self):
@@ -872,7 +884,7 @@ class TestReadHtmlLxml(tm.TestCase, ReadHtmlMixin):
 
 def test_invalid_flavor():
     url = 'google.com'
-    with tm.assertRaises(ValueError):
+    with pytest.raises(ValueError):
         read_html(url, 'google', flavor='not a* valid**++ flaver')
 
 

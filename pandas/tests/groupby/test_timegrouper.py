@@ -1,11 +1,14 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
+import pytest
+
 from datetime import datetime
 import numpy as np
 from numpy import nan
 
 import pandas as pd
-from pandas import DataFrame, date_range, Index, Series, MultiIndex, Timestamp
+from pandas import (DataFrame, date_range, Index,
+                    Series, MultiIndex, Timestamp, DatetimeIndex)
 from pandas.compat import StringIO
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -185,7 +188,7 @@ class TestGroupBy(tm.TestCase):
                                  ]).sum()
             assert_frame_equal(result, expected)
 
-            with self.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 df.groupby([pd.Grouper(freq='1M', key='foo'), 'Buyer']).sum()
 
             # passing the level
@@ -197,7 +200,7 @@ class TestGroupBy(tm.TestCase):
             )
             assert_frame_equal(result, expected)
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 df.groupby([pd.Grouper(freq='1M', level='foo'),
                             'Buyer']).sum()
 
@@ -218,7 +221,7 @@ class TestGroupBy(tm.TestCase):
             assert_frame_equal(result, expected)
 
             # error as we have both a level and a name!
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 df.groupby([pd.Grouper(freq='1M', key='Date',
                                        level='Date'), 'Buyer']).sum()
 
@@ -361,7 +364,6 @@ class TestGroupBy(tm.TestCase):
 
     def test_groupby_groups_datetimeindex(self):
         # #1430
-        from pandas.tseries.api import DatetimeIndex
         periods = 1000
         ind = DatetimeIndex(start='2012/1/1', freq='5min', periods=periods)
         df = DataFrame({'high': np.arange(periods),
@@ -370,7 +372,7 @@ class TestGroupBy(tm.TestCase):
 
         # it works!
         groups = grouped.groups
-        tm.assertIsInstance(list(groups.keys())[0], datetime)
+        assert isinstance(list(groups.keys())[0], datetime)
 
         # GH 11442
         index = pd.date_range('2015/01/01', periods=5, name='date')

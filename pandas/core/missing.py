@@ -8,12 +8,19 @@ from distutils.version import LooseVersion
 from pandas._libs import algos, lib
 
 from pandas.compat import range, string_types
-from pandas.types.common import (is_numeric_v_string_like,
-                                 is_float_dtype, is_datetime64_dtype,
-                                 is_datetime64tz_dtype, is_integer_dtype,
-                                 _ensure_float64, is_scalar,
-                                 needs_i8_conversion, is_integer)
-from pandas.types.missing import isnull
+from pandas.core.dtypes.common import (
+    is_numeric_v_string_like,
+    is_float_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_integer_dtype,
+    is_scalar,
+    is_integer,
+    needs_i8_conversion,
+    _ensure_float64)
+
+from pandas.core.dtypes.cast import infer_dtype_from_array
+from pandas.core.dtypes.missing import isnull
 
 
 def mask_missing(arr, values_to_mask):
@@ -21,11 +28,11 @@ def mask_missing(arr, values_to_mask):
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
     """
-    if not isinstance(values_to_mask, (list, np.ndarray)):
-        values_to_mask = [values_to_mask]
+    dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
 
     try:
-        values_to_mask = np.array(values_to_mask, dtype=arr.dtype)
+        values_to_mask = np.array(values_to_mask, dtype=dtype)
+
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
 
@@ -409,7 +416,7 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None,
         if axis != 0:  # pragma: no cover
             raise AssertionError("cannot interpolate on a ndim == 1 with "
                                  "axis != 0")
-        values = values.reshape(tuple((1, ) + values.shape))
+        values = values.reshape(tuple((1,) + values.shape))
 
     if fill_value is None:
         mask = None
@@ -447,7 +454,6 @@ _backfill_2d_datetime = _interp_wrapper(algos.backfill_2d_inplace_int64,
 
 
 def pad_1d(values, limit=None, mask=None, dtype=None):
-
     if dtype is None:
         dtype = values.dtype
     _method = None
@@ -472,7 +478,6 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
 
 
 def backfill_1d(values, limit=None, mask=None, dtype=None):
-
     if dtype is None:
         dtype = values.dtype
     _method = None
@@ -498,7 +503,6 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
 
 
 def pad_2d(values, limit=None, mask=None, dtype=None):
-
     if dtype is None:
         dtype = values.dtype
     _method = None
@@ -528,7 +532,6 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
 
 
 def backfill_2d(values, limit=None, mask=None, dtype=None):
-
     if dtype is None:
         dtype = values.dtype
     _method = None

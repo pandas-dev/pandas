@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import pytest
+
+from warnings import catch_warnings
 from pandas.core import panelnd
 from pandas.core.panel import Panel
 
@@ -13,7 +16,7 @@ class TestPanelnd(tm.TestCase):
 
     def test_4d_construction(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
 
             # create a 4D
             Panel4D = panelnd.create_nd_panel_factory(
@@ -29,7 +32,7 @@ class TestPanelnd(tm.TestCase):
 
     def test_4d_construction_alt(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
 
             # create a 4D
             Panel4D = panelnd.create_nd_panel_factory(
@@ -46,22 +49,22 @@ class TestPanelnd(tm.TestCase):
     def test_4d_construction_error(self):
 
         # create a 4D
-        self.assertRaises(Exception,
-                          panelnd.create_nd_panel_factory,
-                          klass_name='Panel4D',
-                          orders=['labels', 'items', 'major_axis',
-                                  'minor_axis'],
-                          slices={'items': 'items',
-                                  'major_axis': 'major_axis',
-                                  'minor_axis': 'minor_axis'},
-                          slicer='foo',
-                          aliases={'major': 'major_axis',
-                                   'minor': 'minor_axis'},
-                          stat_axis=2)
+        pytest.raises(Exception,
+                      panelnd.create_nd_panel_factory,
+                      klass_name='Panel4D',
+                      orders=['labels', 'items', 'major_axis',
+                              'minor_axis'],
+                      slices={'items': 'items',
+                              'major_axis': 'major_axis',
+                              'minor_axis': 'minor_axis'},
+                      slicer='foo',
+                      aliases={'major': 'major_axis',
+                               'minor': 'minor_axis'},
+                      stat_axis=2)
 
     def test_5d_construction(self):
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with catch_warnings(record=True):
 
             # create a 4D
             Panel4D = panelnd.create_nd_panel_factory(

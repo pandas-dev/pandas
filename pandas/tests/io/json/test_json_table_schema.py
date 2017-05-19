@@ -7,11 +7,14 @@ import pandas as pd
 import pytest
 
 from pandas import DataFrame
-from pandas.types.dtypes import PeriodDtype, CategoricalDtype, DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    PeriodDtype, CategoricalDtype, DatetimeTZDtype)
 import pandas.util.testing as tm
 from pandas.io.json.table_schema import (
-    as_json_table_type, build_table_schema, make_field, set_default_names
-)
+    as_json_table_type,
+    build_table_schema,
+    make_field,
+    set_default_names)
 
 
 class TestBuildSchema(tm.TestCase):
@@ -324,7 +327,7 @@ class TestTableOrient(tm.TestCase):
         self.assertEqual(result, expected)
 
     def test_date_format_raises(self):
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.df.to_json(orient='table', date_format='epoch')
 
         # others work

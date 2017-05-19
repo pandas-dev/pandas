@@ -1,7 +1,16 @@
+from importlib import import_module
+
 import numpy as np
+
 import pandas as pd
 from pandas.util import testing as tm
 
+for imp in ['pandas.util.hashing', 'pandas.tools.hashing']:
+    try:
+        hashing = import_module(imp)
+        break
+    except:
+        pass
 
 class Algorithms(object):
     goal_time = 0.2
@@ -103,13 +112,13 @@ class Hashing(object):
         self.df.iloc[10:20] = np.nan
 
     def time_frame(self):
-        self.df.hash()
+        hashing.hash_pandas_object(self.df)
 
     def time_series_int(self):
-        self.df.E.hash()
+        hashing.hash_pandas_object(self.df.E)
 
     def time_series_string(self):
-        self.df.B.hash()
+        hashing.hash_pandas_object(self.df.B)
 
     def time_series_categorical(self):
-        self.df.C.hash()
+        hashing.hash_pandas_object(self.df.C)

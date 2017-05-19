@@ -502,7 +502,7 @@ class Timestamp(_Timestamp):
         """
         Return an period of which this timestamp is an observation.
         """
-        from pandas.tseries.period import Period
+        from pandas import Period
 
         if freq is None:
             freq = self.freq
@@ -847,6 +847,30 @@ class NaTType(_NaT):
 
     @property
     def is_leap_year(self):
+        return False
+
+    @property
+    def is_month_start(self):
+        return False
+
+    @property
+    def is_quarter_start(self):
+        return False
+
+    @property
+    def is_year_start(self):
+        return False
+
+    @property
+    def is_month_end(self):
+        return False
+
+    @property
+    def is_quarter_end(self):
+        return False
+
+    @property
+    def is_year_end(self):
         return False
 
     def __rdiv__(self, other):
@@ -1233,7 +1257,10 @@ cdef class _Timestamp(datetime):
         return datetime.__sub__(self, other)
 
     cpdef _get_field(self, field):
-        out = get_date_field(np.array([self.value], dtype=np.int64), field)
+        val = self.value
+        if self.tz is not None and not _is_utc(self.tz):
+            val = tz_convert_single(self.value, 'UTC', self.tz)
+        out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
     cpdef _get_start_end_field(self, field):
@@ -1241,8 +1268,11 @@ cdef class _Timestamp(datetime):
             'startingMonth', self.freq.kwds.get(
                 'month', 12)) if self.freq else 12
         freqstr = self.freqstr if self.freq else None
+        val = self.value
+        if self.tz is not None and not _is_utc(self.tz):
+            val = tz_convert_single(self.value, 'UTC', self.tz)
         out = get_start_end_field(
-            np.array([self.value], dtype=np.int64), field, freqstr, month_kw)
+            np.array([val], dtype=np.int64), field, freqstr, month_kw)
         return out[0]
 
     property _repr_base:
@@ -1265,6 +1295,18 @@ cdef class _Timestamp(datetime):
                 result += '.%.6d' % self.microsecond
 
             return result
+
+    property _short_repr:
+        def __get__(self):
+            # format a Timestamp with only _date_repr if possible
+            # otherwise _repr_base
+            if (self.hour == 0 and
+                self.minute == 0 and
+                self.second == 0 and
+                self.microsecond == 0 and
+                self.nanosecond == 0):
+                return self._date_repr
+            return self._repr_base
 
     property asm8:
         def __get__(self):
@@ -1539,7 +1581,9 @@ cpdef convert_str_to_tsobject(object ts, object tz, object unit,
                 ts = obj.value
                 if tz is not None:
                     # shift for _localize_tso
-                    ts = tz_convert_single(ts, tz, 'UTC')
+                    ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
+                                            ambiguous='raise',
+                                            errors='raise')[0]
         except ValueError:
             try:
                 ts = parse_datetime_string(
@@ -3043,6 +3087,7 @@ class Timedelta(_Timedelta):
         return np.timedelta64(self.value, 'ns')
 
     def _validate_ops_compat(self, other):
+
         # return True if we are compat with operating
         if _checknull_with_nat(other):
             return True
@@ -3149,11 +3194,41 @@ class Timedelta(_Timedelta):
         __div__ = __truediv__
         __rdiv__ = __rtruediv__
 
-    def _not_implemented(self, *args, **kwargs):
-        return NotImplemented
+    def __floordiv__(self, other):
 
-    __floordiv__ = _not_implemented
-    __rfloordiv__ = _not_implemented
+        if hasattr(other, 'dtype'):
+
+            # work with i8
+            other = other.astype('m8[ns]').astype('i8')
+
+            return self.value // other
+
+        # integers only
+        if is_integer_object(other):
+            return Timedelta(self.value // other, unit='ns')
+
+        if not self._validate_ops_compat(other):
+            return NotImplemented
+
+        other = Timedelta(other)
+        if other is NaT:
+            return np.nan
+        return self.value // other.value
+
+    def __rfloordiv__(self, other):
+        if hasattr(other, 'dtype'):
+
+            # work with i8
+            other = other.astype('m8[ns]').astype('i8')
+            return other // self.value
+
+        if not self._validate_ops_compat(other):
+            return NotImplemented
+
+        other = Timedelta(other)
+        if other is NaT:
+            return NaT
+        return other.value // self.value
 
     def _op_unary_method(func, name):
 
@@ -3793,8 +3868,9 @@ def array_strptime(ndarray[object] values, object fmt,
 # these by definition return np.nan
 fields = ['year', 'quarter', 'month', 'day', 'hour',
           'minute', 'second', 'millisecond', 'microsecond', 'nanosecond',
-          'week', 'dayofyear', 'days_in_month', 'daysinmonth', 'dayofweek',
-          'weekday_name']
+          'week', 'dayofyear', 'weekofyear', 'days_in_month', 'daysinmonth',
+          'dayofweek', 'weekday_name', 'days', 'seconds', 'microseconds',
+          'nanoseconds', 'qyear', 'quarter']
 for field in fields:
     prop = property(fget=lambda self: np.nan)
     setattr(NaTType, field, prop)
@@ -3804,7 +3880,8 @@ for field in fields:
 # to the NaTType class; these can return NaT, np.nan
 # or raise respectively
 _nat_methods = ['date', 'now', 'replace', 'to_pydatetime',
-                'today', 'round', 'floor', 'ceil']
+                'today', 'round', 'floor', 'ceil', 'tz_convert',
+                'tz_localize']
 _nan_methods = ['weekday', 'isoweekday', 'total_seconds']
 _implemented_methods = ['to_datetime', 'to_datetime64', 'isoformat']
 _implemented_methods.extend(_nat_methods)
@@ -4010,7 +4087,23 @@ except:
     have_pytz = False
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
+    """
+    Convert the values (in i8) from timezone1 to timezone2
+
+    Parameters
+    ----------
+    vals : int64 ndarray
+    tz1 : string / timezone object
+    tz2 : string / timezone object
+
+    Returns
+    -------
+    int64 ndarray of converted
+    """
+
     cdef:
         ndarray[int64_t] utc_dates, tt, result, trans, deltas
         Py_ssize_t i, j, pos, n = len(vals)
@@ -4112,6 +4205,23 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
 
 
 def tz_convert_single(int64_t val, object tz1, object tz2):
+    """
+    Convert the val (in i8) from timezone1 to timezone2
+
+    This is a single timezone versoin of tz_convert
+
+    Parameters
+    ----------
+    val : int64
+    tz1 : string / timezone object
+    tz2 : string / timezone object
+
+    Returns
+    -------
+    int64 converted
+
+    """
+
     cdef:
         ndarray[int64_t] trans, deltas
         Py_ssize_t pos
@@ -4311,7 +4421,7 @@ cpdef ndarray _unbox_utcoffsets(object transinfo):
 def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                        object errors='raise'):
     """
-    Localize tzinfo-naive DateRange to given time zone (using pytz). If
+    Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
 
     Returns
@@ -4482,6 +4592,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 raise pytz.NonExistentTimeError(stamp)
 
     return result
+
 
 cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     cdef Py_ssize_t pivot, left = 0, right = n
@@ -4804,7 +4915,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     if field == 'is_month_start':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4817,7 +4928,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4830,7 +4941,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_month_end':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4848,7 +4959,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4865,7 +4976,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_quarter_start':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4879,7 +4990,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4892,7 +5003,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_quarter_end':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4911,7 +5022,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4928,7 +5039,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_year_start':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4942,7 +5053,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4955,7 +5066,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
     elif field == 'is_year_end':
         if is_business:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)
@@ -4974,7 +5085,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
             return out.view(bool)
         else:
             for i in range(count):
-                if dtindex[i] == NPY_NAT: out[i] = -1; continue
+                if dtindex[i] == NPY_NAT: out[i] = 0; continue
 
                 pandas_datetime_to_datetimestruct(
                     dtindex[i], PANDAS_FR_ns, &dts)

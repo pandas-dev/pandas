@@ -33,7 +33,7 @@ class CParserTests(object):
             try:
                 self.read_table(StringIO(malf))
             except Exception as err:
-                self.assertIn(cperr, str(err))
+                assert cperr in str(err)
 
     def test_buffer_rd_bytes(self):
         # see gh-12098: src->buffer in the C parser can be freed twice leading
@@ -108,22 +108,22 @@ nan 2
             df.to_csv(path)
 
             # valid but we don't support it (date)
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'datetime64', 'B': 'float64'},
-                              index_col=0)
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'datetime64', 'B': 'float64'},
-                              index_col=0, parse_dates=['B'])
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'datetime64', 'B': 'float64'},
+                          index_col=0)
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'datetime64', 'B': 'float64'},
+                          index_col=0, parse_dates=['B'])
 
             # valid but we don't support it
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'timedelta64', 'B': 'float64'},
-                              index_col=0)
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'timedelta64', 'B': 'float64'},
+                          index_col=0)
 
             # valid but unsupported - fixed width unicode string
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'U8'},
-                              index_col=0)
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'U8'},
+                          index_col=0)
 
     def test_precise_conversion(self):
         # see gh-8002
@@ -406,5 +406,14 @@ No,No,No"""
         result = self.read_csv(StringIO(test_input), header=None, usecols=[0])
         rows = test_input.split('\n')
         expected = DataFrame([row.split(',')[0] for row in rows])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_data_after_quote(self):
+        # see gh-15910
+
+        data = 'a\n1\n"b"a'
+        result = self.read_csv(StringIO(data))
+        expected = DataFrame({'a': ['1', 'ba']})
 
         tm.assert_frame_equal(result, expected)

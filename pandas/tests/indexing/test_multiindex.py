@@ -5,7 +5,7 @@ import pandas as pd
 from pandas import (Panel, Series, MultiIndex, DataFrame,
                     Timestamp, Index, date_range)
 from pandas.util import testing as tm
-from pandas.core.common import PerformanceWarning, UnsortedIndexError
+from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.tests.indexing.common import _mklbl
 
 
@@ -275,6 +275,30 @@ class TestMultiIndexBasic(tm.TestCase):
             xp = mi_int.ix[4]
         tm.assert_frame_equal(rs, xp)
 
+    def test_getitem_partial_int(self):
+        # GH 12416
+        # with single item
+        l1 = [10, 20]
+        l2 = ['a', 'b']
+        df = DataFrame(index=range(2),
+                       columns=pd.MultiIndex.from_product([l1, l2]))
+        expected = DataFrame(index=range(2),
+                             columns=l2)
+        result = df[20]
+        tm.assert_frame_equal(result, expected)
+
+        # with list
+        expected = DataFrame(index=range(2),
+                             columns=pd.MultiIndex.from_product([l1[1:], l2]))
+        result = df[[20]]
+        tm.assert_frame_equal(result, expected)
+
+        # missing item:
+        with tm.assertRaisesRegexp(KeyError, '1'):
+            df[1]
+        with tm.assertRaisesRegexp(KeyError, "'\[1\] not in index'"):
+            df[[1]]
+
     def test_loc_multiindex_indexer_none(self):
 
         # GH6788
@@ -422,7 +446,7 @@ class TestMultiIndexBasic(tm.TestCase):
         def f():
             df.loc['bar'] *= 2
 
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
         # from SO
         # http://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
@@ -468,12 +492,12 @@ class TestMultiIndexBasic(tm.TestCase):
         def f():
             df.val['A']
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         def f():
             df.val['X']
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         # A is treated as a special Timestamp
         index = MultiIndex(levels=[['A', 'B', 'C'],
@@ -490,7 +514,7 @@ class TestMultiIndexBasic(tm.TestCase):
         def f():
             df.val['X']
 
-        self.assertRaises(KeyError, f)
+        pytest.raises(KeyError, f)
 
         # GH 7866
         # multi-index slicing with missing indexers
@@ -510,7 +534,7 @@ class TestMultiIndexBasic(tm.TestCase):
         tm.assert_series_equal(result, expected)
 
         # not any values found
-        self.assertRaises(KeyError, lambda: s.loc[['D']])
+        pytest.raises(KeyError, lambda: s.loc[['D']])
 
         # empty ok
         result = s.loc[[]]
@@ -587,13 +611,13 @@ class TestMultiIndexBasic(tm.TestCase):
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0, 1, 2, 3]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             with catch_warnings(record=True):
                 df.ix[4, 'c'] = [0]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # groupby example
         NUM_ROWS = 100
@@ -762,12 +786,12 @@ class TestMultiIndexSlicers(tm.TestCase):
         def f():
             df.loc[(slice(None), np.array([True, False])), :]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # ambiguous cases
         # these can be multiply interpreted (e.g. in this case
         # as df.loc[slice(None),[1]] as well
-        self.assertRaises(KeyError, lambda: df.loc[slice(None), [1]])
+        pytest.raises(KeyError, lambda: df.loc[slice(None), [1]])
 
         result = df.loc[(slice(None), [1]), :]
         expected = df.iloc[[0, 3]]
@@ -965,7 +989,7 @@ class TestMultiIndexSlicers(tm.TestCase):
         def f():
             df.loc['A1', (slice(None), 'foo')]
 
-        self.assertRaises(UnsortedIndexError, f)
+        pytest.raises(UnsortedIndexError, f)
         df = df.sort_index(axis=1)
 
         # slicing
@@ -1014,17 +1038,17 @@ class TestMultiIndexSlicers(tm.TestCase):
         def f():
             df.loc(axis=-1)[:, :, ['C1', 'C3']]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             df.loc(axis=2)[:, :, ['C1', 'C3']]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             df.loc(axis='foo')[:, :, ['C1', 'C3']]
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_per_axis_per_level_setitem(self):
 
@@ -1129,13 +1153,13 @@ class TestMultiIndexSlicers(tm.TestCase):
             df.loc[(slice(None), 1), (slice(None), ['foo'])] = np.array(
                 [[100], [100, 100]], dtype='int64')
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         def f():
             df.loc[(slice(None), 1), (slice(None), ['foo'])] = np.array(
                 [100, 100, 100, 100], dtype='int64')
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # with an alignable rhs
         df = df_orig.copy()
@@ -1164,87 +1188,98 @@ class TestMultiIndexSlicers(tm.TestCase):
 class TestMultiIndexPanel(tm.TestCase):
 
     def test_iloc_getitem_panel_multiindex(self):
-        # GH 7199
-        # Panel with multi-index
-        multi_index = pd.MultiIndex.from_tuples([('ONE', 'one'),
-                                                 ('TWO', 'two'),
-                                                 ('THREE', 'three')],
-                                                names=['UPPER', 'lower'])
 
-        simple_index = [x[0] for x in multi_index]
-        wd1 = Panel(items=['First', 'Second'], major_axis=['a', 'b', 'c', 'd'],
-                    minor_axis=multi_index)
+        with catch_warnings(record=True):
 
-        wd2 = Panel(items=['First', 'Second'], major_axis=['a', 'b', 'c', 'd'],
-                    minor_axis=simple_index)
+            # GH 7199
+            # Panel with multi-index
+            multi_index = pd.MultiIndex.from_tuples([('ONE', 'one'),
+                                                     ('TWO', 'two'),
+                                                     ('THREE', 'three')],
+                                                    names=['UPPER', 'lower'])
 
-        expected1 = wd1['First'].iloc[[True, True, True, False], [0, 2]]
-        result1 = wd1.iloc[0, [True, True, True, False], [0, 2]]  # WRONG
-        tm.assert_frame_equal(result1, expected1)
+            simple_index = [x[0] for x in multi_index]
+            wd1 = Panel(items=['First', 'Second'],
+                        major_axis=['a', 'b', 'c', 'd'],
+                        minor_axis=multi_index)
 
-        expected2 = wd2['First'].iloc[[True, True, True, False], [0, 2]]
-        result2 = wd2.iloc[0, [True, True, True, False], [0, 2]]
-        tm.assert_frame_equal(result2, expected2)
+            wd2 = Panel(items=['First', 'Second'],
+                        major_axis=['a', 'b', 'c', 'd'],
+                        minor_axis=simple_index)
 
-        expected1 = DataFrame(index=['a'], columns=multi_index,
-                              dtype='float64')
-        result1 = wd1.iloc[0, [0], [0, 1, 2]]
-        tm.assert_frame_equal(result1, expected1)
+            expected1 = wd1['First'].iloc[[True, True, True, False], [0, 2]]
+            result1 = wd1.iloc[0, [True, True, True, False], [0, 2]]  # WRONG
+            tm.assert_frame_equal(result1, expected1)
 
-        expected2 = DataFrame(index=['a'], columns=simple_index,
-                              dtype='float64')
-        result2 = wd2.iloc[0, [0], [0, 1, 2]]
-        tm.assert_frame_equal(result2, expected2)
+            expected2 = wd2['First'].iloc[[True, True, True, False], [0, 2]]
+            result2 = wd2.iloc[0, [True, True, True, False], [0, 2]]
+            tm.assert_frame_equal(result2, expected2)
 
-        # GH 7516
-        mi = MultiIndex.from_tuples([(0, 'x'), (1, 'y'), (2, 'z')])
-        p = Panel(np.arange(3 * 3 * 3, dtype='int64').reshape(3, 3, 3),
-                  items=['a', 'b', 'c'], major_axis=mi,
-                  minor_axis=['u', 'v', 'w'])
-        result = p.iloc[:, 1, 0]
-        expected = Series([3, 12, 21], index=['a', 'b', 'c'], name='u')
-        tm.assert_series_equal(result, expected)
+            expected1 = DataFrame(index=['a'], columns=multi_index,
+                                  dtype='float64')
+            result1 = wd1.iloc[0, [0], [0, 1, 2]]
+            tm.assert_frame_equal(result1, expected1)
 
-        result = p.loc[:, (1, 'y'), 'u']
-        tm.assert_series_equal(result, expected)
+            expected2 = DataFrame(index=['a'], columns=simple_index,
+                                  dtype='float64')
+            result2 = wd2.iloc[0, [0], [0, 1, 2]]
+            tm.assert_frame_equal(result2, expected2)
+
+            # GH 7516
+            mi = MultiIndex.from_tuples([(0, 'x'), (1, 'y'), (2, 'z')])
+            p = Panel(np.arange(3 * 3 * 3, dtype='int64').reshape(3, 3, 3),
+                      items=['a', 'b', 'c'], major_axis=mi,
+                      minor_axis=['u', 'v', 'w'])
+            result = p.iloc[:, 1, 0]
+            expected = Series([3, 12, 21], index=['a', 'b', 'c'], name='u')
+            tm.assert_series_equal(result, expected)
+
+            result = p.loc[:, (1, 'y'), 'u']
+            tm.assert_series_equal(result, expected)
 
     def test_panel_setitem_with_multiindex(self):
 
-        # 10360
-        # failing with a multi-index
-        arr = np.array([[[1, 2, 3], [0, 0, 0]], [[0, 0, 0], [0, 0, 0]]],
-                       dtype=np.float64)
+        with catch_warnings(record=True):
+            # 10360
+            # failing with a multi-index
+            arr = np.array([[[1, 2, 3], [0, 0, 0]],
+                            [[0, 0, 0], [0, 0, 0]]],
+                           dtype=np.float64)
 
-        # reg index
-        axes = dict(items=['A', 'B'], major_axis=[0, 1],
-                    minor_axis=['X', 'Y', 'Z'])
-        p1 = Panel(0., **axes)
-        p1.iloc[0, 0, :] = [1, 2, 3]
-        expected = Panel(arr, **axes)
-        tm.assert_panel_equal(p1, expected)
+            # reg index
+            axes = dict(items=['A', 'B'], major_axis=[0, 1],
+                        minor_axis=['X', 'Y', 'Z'])
+            p1 = Panel(0., **axes)
+            p1.iloc[0, 0, :] = [1, 2, 3]
+            expected = Panel(arr, **axes)
+            tm.assert_panel_equal(p1, expected)
 
-        # multi-indexes
-        axes['items'] = pd.MultiIndex.from_tuples([('A', 'a'), ('B', 'b')])
-        p2 = Panel(0., **axes)
-        p2.iloc[0, 0, :] = [1, 2, 3]
-        expected = Panel(arr, **axes)
-        tm.assert_panel_equal(p2, expected)
+            # multi-indexes
+            axes['items'] = pd.MultiIndex.from_tuples(
+                [('A', 'a'), ('B', 'b')])
+            p2 = Panel(0., **axes)
+            p2.iloc[0, 0, :] = [1, 2, 3]
+            expected = Panel(arr, **axes)
+            tm.assert_panel_equal(p2, expected)
 
-        axes['major_axis'] = pd.MultiIndex.from_tuples([('A', 1), ('A', 2)])
-        p3 = Panel(0., **axes)
-        p3.iloc[0, 0, :] = [1, 2, 3]
-        expected = Panel(arr, **axes)
-        tm.assert_panel_equal(p3, expected)
+            axes['major_axis'] = pd.MultiIndex.from_tuples(
+                [('A', 1), ('A', 2)])
+            p3 = Panel(0., **axes)
+            p3.iloc[0, 0, :] = [1, 2, 3]
+            expected = Panel(arr, **axes)
+            tm.assert_panel_equal(p3, expected)
 
-        axes['minor_axis'] = pd.MultiIndex.from_product([['X'], range(3)])
-        p4 = Panel(0., **axes)
-        p4.iloc[0, 0, :] = [1, 2, 3]
-        expected = Panel(arr, **axes)
-        tm.assert_panel_equal(p4, expected)
+            axes['minor_axis'] = pd.MultiIndex.from_product(
+                [['X'], range(3)])
+            p4 = Panel(0., **axes)
+            p4.iloc[0, 0, :] = [1, 2, 3]
+            expected = Panel(arr, **axes)
+            tm.assert_panel_equal(p4, expected)
 
-        arr = np.array(
-            [[[1, 0, 0], [2, 0, 0]], [[0, 0, 0], [0, 0, 0]]], dtype=np.float64)
-        p5 = Panel(0., **axes)
-        p5.iloc[0, :, 0] = [1, 2]
-        expected = Panel(arr, **axes)
-        tm.assert_panel_equal(p5, expected)
+            arr = np.array(
+                [[[1, 0, 0], [2, 0, 0]], [[0, 0, 0], [0, 0, 0]]],
+                dtype=np.float64)
+            p5 = Panel(0., **axes)
+            p5.iloc[0, :, 0] = [1, 2]
+            expected = Panel(arr, **axes)
+            tm.assert_panel_equal(p5, expected)

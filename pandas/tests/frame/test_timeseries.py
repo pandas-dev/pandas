@@ -4,6 +4,8 @@ from __future__ import print_function
 
 from datetime import datetime, time
 
+import pytest
+
 from numpy import nan
 from numpy.random import randn
 import numpy as np
@@ -14,8 +16,7 @@ from pandas import (DataFrame, Series, Index,
 import pandas as pd
 import pandas.tseries.offsets as offsets
 
-from pandas.util.testing import (assert_almost_equal,
-                                 assert_series_equal,
+from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
                                  assertRaisesRegexp)
 
@@ -175,13 +176,13 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
     def test_shift(self):
         # naive shift
         shiftedFrame = self.tsframe.shift(5)
-        self.assert_index_equal(shiftedFrame.index, self.tsframe.index)
+        tm.assert_index_equal(shiftedFrame.index, self.tsframe.index)
 
         shiftedSeries = self.tsframe['A'].shift(5)
         assert_series_equal(shiftedFrame['A'], shiftedSeries)
 
         shiftedFrame = self.tsframe.shift(-5)
-        self.assert_index_equal(shiftedFrame.index, self.tsframe.index)
+        tm.assert_index_equal(shiftedFrame.index, self.tsframe.index)
 
         shiftedSeries = self.tsframe['A'].shift(-5)
         assert_series_equal(shiftedFrame['A'], shiftedSeries)
@@ -209,8 +210,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         ps = tm.makePeriodFrame()
         shifted = ps.shift(1)
         unshifted = shifted.shift(-1)
-        self.assert_index_equal(shifted.index, ps.index)
-        self.assert_index_equal(unshifted.index, ps.index)
+        tm.assert_index_equal(shifted.index, ps.index)
+        tm.assert_index_equal(unshifted.index, ps.index)
         tm.assert_numpy_array_equal(unshifted.iloc[:, 0].valid().values,
                                     ps.iloc[:-1, 0].values)
 
@@ -300,7 +301,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         assert_frame_equal(unshifted, inferred_ts)
 
         no_freq = self.tsframe.iloc[[0, 5, 7], :]
-        self.assertRaises(ValueError, no_freq.tshift)
+        pytest.raises(ValueError, no_freq.tshift)
 
     def test_truncate(self):
         ts = self.tsframe[::3]
@@ -341,9 +342,9 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         truncated = ts.truncate(after=end_missing)
         assert_frame_equal(truncated, expected)
 
-        self.assertRaises(ValueError, ts.truncate,
-                          before=ts.index[-1] - 1,
-                          after=ts.index[0] + 1)
+        pytest.raises(ValueError, ts.truncate,
+                      before=ts.index[-1] - 1,
+                      after=ts.index[0] + 1)
 
     def test_truncate_copy(self):
         index = self.tsframe.index
@@ -355,7 +356,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         offset_monthly = self.tsframe.asfreq(offsets.BMonthEnd())
         rule_monthly = self.tsframe.asfreq('BM')
 
-        assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
+        tm.assert_almost_equal(offset_monthly['A'], rule_monthly['A'])
 
         filled = rule_monthly.asfreq('B', method='pad')  # noqa
         # TODO: actually check that this worked.
@@ -366,17 +367,17 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         # test does not blow up on length-0 DataFrame
         zero_length = self.tsframe.reindex([])
         result = zero_length.asfreq('BM')
-        self.assertIsNot(result, zero_length)
+        assert result is not zero_length
 
     def test_asfreq_datetimeindex(self):
         df = DataFrame({'A': [1, 2, 3]},
                        index=[datetime(2011, 11, 1), datetime(2011, 11, 2),
                               datetime(2011, 11, 3)])
         df = df.asfreq('B')
-        tm.assertIsInstance(df.index, DatetimeIndex)
+        assert isinstance(df.index, DatetimeIndex)
 
         ts = df['A'].asfreq('B')
-        tm.assertIsInstance(ts.index, DatetimeIndex)
+        assert isinstance(ts.index, DatetimeIndex)
 
     def test_asfreq_fillvalue(self):
         # test for fill value during upsampling, related to issue 3715
@@ -414,8 +415,8 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
         # GH12800
         empty = DataFrame()
-        self.assertIsNone(empty.last_valid_index())
-        self.assertIsNone(empty.first_valid_index())
+        assert empty.last_valid_index() is None
+        assert empty.first_valid_index() is None
 
     def test_at_time_frame(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
@@ -548,7 +549,7 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
 
     def test_frame_to_period(self):
         K = 5
-        from pandas.tseries.period import period_range
+        from pandas.core.indexes.period import period_range
 
         dr = date_range('1/1/2000', '1/1/2001')
         pr = period_range('1/1/2000', '1/1/2001')
@@ -572,4 +573,4 @@ class TestDataFrameTimeSeriesMethods(tm.TestCase, TestData):
         pts = df.to_period('M', axis=1)
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
-        self.assertRaises(ValueError, df.to_period, axis=2)
+        pytest.raises(ValueError, df.to_period, axis=2)

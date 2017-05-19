@@ -1,12 +1,15 @@
 """ test with the .transform """
 
+import pytest
+
 import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 from pandas import Series, DataFrame, Timestamp, MultiIndex, concat, date_range
-from pandas.types.common import _ensure_platform_int, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    _ensure_platform_int, is_timedelta64_dtype)
 from pandas.compat import StringIO
-from pandas._libs import algos
+from pandas._libs import groupby
 from .common import MixIn, assert_fp_equal
 
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -110,13 +113,13 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = self.ts.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
 
-        self.assert_index_equal(result.index, self.ts.index)
+        tm.assert_index_equal(result.index, self.ts.index)
         for _, gp in grouped:
             assert_fp_equal(result.reindex(gp.index), gp.mean())
 
         grouped = self.tsframe.groupby(lambda x: x.month)
         result = grouped.transform(np.mean)
-        self.assert_index_equal(result.index, self.tsframe.index)
+        tm.assert_index_equal(result.index, self.tsframe.index)
         for _, gp in grouped:
             agged = gp.mean()
             res = result.reindex(gp.index)
@@ -127,8 +130,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         grouped = self.tsframe.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
                                        axis=1)
         result = grouped.transform(np.mean)
-        self.assert_index_equal(result.index, self.tsframe.index)
-        self.assert_index_equal(result.columns, self.tsframe.columns)
+        tm.assert_index_equal(result.index, self.tsframe.index)
+        tm.assert_index_equal(result.columns, self.tsframe.columns)
         for _, gp in grouped:
             agged = gp.mean(1)
             res = result.reindex(columns=gp.columns)
@@ -418,8 +421,8 @@ class TestGroupBy(MixIn, tm.TestCase):
         dtypes = [np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint32,
                   np.uint64, np.float32, np.float64]
 
-        ops = [(algos.group_cumprod_float64, np.cumproduct, [np.float64]),
-               (algos.group_cumsum, np.cumsum, dtypes)]
+        ops = [(groupby.group_cumprod_float64, np.cumproduct, [np.float64]),
+               (groupby.group_cumsum, np.cumsum, dtypes)]
 
         is_datetimelike = False
         for pd_op, np_op, dtypes in ops:
@@ -428,8 +431,8 @@ class TestGroupBy(MixIn, tm.TestCase):
                 ans = np.zeros_like(data)
                 labels = np.array([0, 0, 0, 0], dtype=np.int64)
                 pd_op(ans, data, labels, is_datetimelike)
-                self.assert_numpy_array_equal(np_op(data), ans[:, 0],
-                                              check_dtype=False)
+                tm.assert_numpy_array_equal(np_op(data), ans[:, 0],
+                                            check_dtype=False)
 
         # with nans
         labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)
@@ -437,26 +440,26 @@ class TestGroupBy(MixIn, tm.TestCase):
         data = np.array([[1], [2], [3], [np.nan], [4]], dtype='float64')
         actual = np.zeros_like(data)
         actual.fill(np.nan)
-        algos.group_cumprod_float64(actual, data, labels, is_datetimelike)
+        groupby.group_cumprod_float64(actual, data, labels, is_datetimelike)
         expected = np.array([1, 2, 6, np.nan, 24], dtype='float64')
-        self.assert_numpy_array_equal(actual[:, 0], expected)
+        tm.assert_numpy_array_equal(actual[:, 0], expected)
 
         actual = np.zeros_like(data)
         actual.fill(np.nan)
-        algos.group_cumsum(actual, data, labels, is_datetimelike)
+        groupby.group_cumsum(actual, data, labels, is_datetimelike)
         expected = np.array([1, 3, 6, np.nan, 10], dtype='float64')
-        self.assert_numpy_array_equal(actual[:, 0], expected)
+        tm.assert_numpy_array_equal(actual[:, 0], expected)
 
         # timedelta
         is_datetimelike = True
         data = np.array([np.timedelta64(1, 'ns')] * 5, dtype='m8[ns]')[:, None]
         actual = np.zeros_like(data, dtype='int64')
-        algos.group_cumsum(actual, data.view('int64'), labels,
-                           is_datetimelike)
+        groupby.group_cumsum(actual, data.view('int64'), labels,
+                             is_datetimelike)
         expected = np.array([np.timedelta64(1, 'ns'), np.timedelta64(
             2, 'ns'), np.timedelta64(3, 'ns'), np.timedelta64(4, 'ns'),
             np.timedelta64(5, 'ns')])
-        self.assert_numpy_array_equal(actual[:, 0].view('m8[ns]'), expected)
+        tm.assert_numpy_array_equal(actual[:, 0].view('m8[ns]'), expected)
 
     def test_cython_transform(self):
         # GH 4095
@@ -533,8 +536,8 @@ class TestGroupBy(MixIn, tm.TestCase):
                     for c in df:
                         if c not in ['float', 'int', 'float_missing'
                                      ] and op != 'shift':
-                            self.assertRaises(DataError, gb[c].transform, op)
-                            self.assertRaises(DataError, getattr(gb[c], op))
+                            pytest.raises(DataError, gb[c].transform, op)
+                            pytest.raises(DataError, getattr(gb[c], op))
                         else:
                             expected = gb[c].apply(targop)
                             expected.name = c
@@ -553,7 +556,7 @@ class TestGroupBy(MixIn, tm.TestCase):
         df = pd.DataFrame(np.random.randint(1, 10, (4, 12)),
                           columns=cols,
                           index=['A', 'C', 'G', 'T'])
-        self.assertRaisesRegexp(ValueError, 'transform must return a scalar '
-                                'value for each group.*', df.groupby
-                                (axis=1, level=1).transform,
-                                lambda z: z.div(z.sum(axis=1), axis=0))
+        tm.assertRaisesRegexp(ValueError, 'transform must return a scalar '
+                              'value for each group.*', df.groupby
+                              (axis=1, level=1).transform,
+                              lambda z: z.div(z.sum(axis=1), axis=0))

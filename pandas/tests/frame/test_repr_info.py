@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas import (DataFrame, compat, option_context)
 from pandas.compat import StringIO, lrange, u
-import pandas.formats.format as fmt
+import pandas.io.formats.format as fmt
 import pandas as pd
 
 import pandas.util.testing as tm
@@ -118,7 +118,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         fmt.set_option('display.max_rows', 1000, 'display.max_columns', 1000)
         repr(self.frame)
 
-        self.reset_display_options()
+        tm.reset_display_options()
 
         warnings.filters = warn_filters
 
@@ -171,7 +171,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                                       ' the File through the code..')})
 
         result = repr(df)
-        self.assertIn('StringCol', result)
+        assert 'StringCol' in result
 
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
@@ -189,8 +189,9 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
             self.assertEqual(result, df._repr_latex_())
 
         # GH 12182
-        self.assertIsNone(df._repr_latex_())
+        assert df._repr_latex_() is None
 
+    @tm.capture_stdout
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
@@ -198,11 +199,8 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
         frame = DataFrame(np.random.randn(5, 3))
 
-        import sys
-        sys.stdout = StringIO()
         frame.info()
         frame.info(verbose=False)
-        sys.stdout = sys.__stdout__
 
     def test_info_wide(self):
         from pandas import set_option, reset_option

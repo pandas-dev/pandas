@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# TODO(wesm): fix long line flake8 issues
-# flake8: noqa
+import pytest
 
 import pandas.util.testing as tm
-from pandas.indexes.api import Index, CategoricalIndex
+from pandas.core.indexes.api import Index, CategoricalIndex
 from .common import Base
 
 from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import Categorical, compat, notnull
+from pandas import Categorical, IntervalIndex, compat, notnull
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
 import pandas as pd
@@ -40,62 +39,66 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         result = Index(ci)
         tm.assert_index_equal(result, ci, exact=True)
-        self.assertFalse(result.ordered)
+        assert not result.ordered
 
         result = Index(ci.values)
         tm.assert_index_equal(result, ci, exact=True)
-        self.assertFalse(result.ordered)
+        assert not result.ordered
 
         # empty
         result = CategoricalIndex(categories=categories)
-        self.assert_index_equal(result.categories, Index(categories))
+        tm.assert_index_equal(result.categories, Index(categories))
         tm.assert_numpy_array_equal(result.codes, np.array([], dtype='int8'))
-        self.assertFalse(result.ordered)
+        assert not result.ordered
 
         # passing categories
         result = CategoricalIndex(list('aabbca'), categories=categories)
-        self.assert_index_equal(result.categories, Index(categories))
+        tm.assert_index_equal(result.categories, Index(categories))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, 2, 0], dtype='int8'))
+                                    np.array([0, 0, 1,
+                                              1, 2, 0], dtype='int8'))
 
         c = pd.Categorical(list('aabbca'))
         result = CategoricalIndex(c)
-        self.assert_index_equal(result.categories, Index(list('abc')))
+        tm.assert_index_equal(result.categories, Index(list('abc')))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, 2, 0], dtype='int8'))
-        self.assertFalse(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, 2, 0], dtype='int8'))
+        assert not result.ordered
 
         result = CategoricalIndex(c, categories=categories)
-        self.assert_index_equal(result.categories, Index(categories))
+        tm.assert_index_equal(result.categories, Index(categories))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, 2, 0], dtype='int8'))
-        self.assertFalse(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, 2, 0], dtype='int8'))
+        assert not result.ordered
 
         ci = CategoricalIndex(c, categories=list('abcd'))
         result = CategoricalIndex(ci)
-        self.assert_index_equal(result.categories, Index(categories))
+        tm.assert_index_equal(result.categories, Index(categories))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, 2, 0], dtype='int8'))
-        self.assertFalse(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, 2, 0], dtype='int8'))
+        assert not result.ordered
 
         result = CategoricalIndex(ci, categories=list('ab'))
-        self.assert_index_equal(result.categories, Index(list('ab')))
+        tm.assert_index_equal(result.categories, Index(list('ab')))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, -1, 0],
-                                             dtype='int8'))
-        self.assertFalse(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, -1, 0], dtype='int8'))
+        assert not result.ordered
 
         result = CategoricalIndex(ci, categories=list('ab'), ordered=True)
-        self.assert_index_equal(result.categories, Index(list('ab')))
+        tm.assert_index_equal(result.categories, Index(list('ab')))
         tm.assert_numpy_array_equal(result.codes,
-                                    np.array([0, 0, 1, 1, -1, 0],
-                                             dtype='int8'))
-        self.assertTrue(result.ordered)
+                                    np.array([0, 0, 1,
+                                              1, -1, 0], dtype='int8'))
+        assert result.ordered
 
         # turn me to an Index
         result = Index(np.array(ci))
-        self.assertIsInstance(result, Index)
-        self.assertNotIsInstance(result, CategoricalIndex)
+        assert isinstance(result, Index)
+        assert not isinstance(result, CategoricalIndex)
 
     def test_construction_with_dtype(self):
 
@@ -128,12 +131,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(['a', 'b']))
 
-        self.assertRaises(TypeError, lambda: idx - idx)
-        self.assertRaises(TypeError, lambda: idx + idx)
-        self.assertRaises(TypeError, lambda: idx - ['a', 'b'])
-        self.assertRaises(TypeError, lambda: idx + ['a', 'b'])
-        self.assertRaises(TypeError, lambda: ['a', 'b'] - idx)
-        self.assertRaises(TypeError, lambda: ['a', 'b'] + idx)
+        pytest.raises(TypeError, lambda: idx - idx)
+        pytest.raises(TypeError, lambda: idx + idx)
+        pytest.raises(TypeError, lambda: idx - ['a', 'b'])
+        pytest.raises(TypeError, lambda: idx + ['a', 'b'])
+        pytest.raises(TypeError, lambda: ['a', 'b'] - idx)
+        pytest.raises(TypeError, lambda: ['a', 'b'] + idx)
 
     def test_method_delegation(self):
 
@@ -167,7 +170,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
             list('aabbca'), categories=list('cabdef'), ordered=True))
 
         # invalid
-        self.assertRaises(ValueError, lambda: ci.set_categories(
+        pytest.raises(ValueError, lambda: ci.set_categories(
             list('cab'), inplace=True))
 
     def test_contains(self):
@@ -183,11 +186,6 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(0 in ci)
         self.assertFalse(1 in ci)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            ci = CategoricalIndex(
-                list('aabbca'), categories=list('cabdef') + [np.nan])
-        self.assertFalse(np.nan in ci)
-
         ci = CategoricalIndex(
             list('aabbca') + [np.nan], categories=list('cabdef'))
         self.assertTrue(np.nan in ci)
@@ -195,8 +193,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
     def test_min_max(self):
 
         ci = self.create_index(ordered=False)
-        self.assertRaises(TypeError, lambda: ci.min())
-        self.assertRaises(TypeError, lambda: ci.max())
+        pytest.raises(TypeError, lambda: ci.min())
+        pytest.raises(TypeError, lambda: ci.max())
 
         ci = self.create_index(ordered=True)
 
@@ -220,7 +218,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         # GH 12766: Return an index not an array
         tm.assert_index_equal(ci.map(lambda x: 1),
-                              Index(np.array([1] * 5, dtype=np.int64), name='XXX'))
+                              Index(np.array([1] * 5, dtype=np.int64),
+                                    name='XXX'))
 
         # change categories dtype
         ci = pd.CategoricalIndex(list('ABABC'), categories=list('BAC'),
@@ -230,7 +229,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
             return {'A': 10, 'B': 20, 'C': 30}.get(x)
 
         result = ci.map(f)
-        exp = pd.CategoricalIndex([10, 20, 10, 20, 30], categories=[20, 10, 30],
+        exp = pd.CategoricalIndex([10, 20, 10, 20, 30],
+                                  categories=[20, 10, 30],
                                   ordered=False)
         tm.assert_index_equal(result, exp)
 
@@ -275,10 +275,10 @@ class TestCategoricalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, ci, exact=True)
 
         # appending with different categories or reoreded is not ok
-        self.assertRaises(
+        pytest.raises(
             TypeError,
             lambda: ci.append(ci.values.set_categories(list('abcd'))))
-        self.assertRaises(
+        pytest.raises(
             TypeError,
             lambda: ci.append(ci.values.reorder_categories(list('abc'))))
 
@@ -288,7 +288,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid objects
-        self.assertRaises(TypeError, lambda: ci.append(Index(['a', 'd'])))
+        pytest.raises(TypeError, lambda: ci.append(Index(['a', 'd'])))
 
         # GH14298 - if base object is not categorical -> coerce to object
         result = Index(['c', 'a']).append(ci)
@@ -316,7 +316,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid
-        self.assertRaises(TypeError, lambda: ci.insert(0, 'd'))
+        pytest.raises(TypeError, lambda: ci.insert(0, 'd'))
 
     def test_delete(self):
 
@@ -331,9 +331,9 @@ class TestCategoricalIndex(Base, tm.TestCase):
         expected = CategoricalIndex(list('aabbc'), categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
-        with tm.assertRaises((IndexError, ValueError)):
-            # either depeidnig on numpy version
-            result = ci.delete(10)
+        with pytest.raises((IndexError, ValueError)):
+            # Either depending on NumPy version
+            ci.delete(10)
 
     def test_astype(self):
 
@@ -342,18 +342,33 @@ class TestCategoricalIndex(Base, tm.TestCase):
         tm.assert_index_equal(result, ci, exact=True)
 
         result = ci.astype(object)
-        self.assert_index_equal(result, Index(np.array(ci)))
+        tm.assert_index_equal(result, Index(np.array(ci)))
 
         # this IS equal, but not the same class
-        self.assertTrue(result.equals(ci))
-        self.assertIsInstance(result, Index)
-        self.assertNotIsInstance(result, CategoricalIndex)
+        assert result.equals(ci)
+        assert isinstance(result, Index)
+        assert not isinstance(result, CategoricalIndex)
+
+        # interval
+        ii = IntervalIndex.from_arrays(left=[-0.001, 2.0],
+                                       right=[2, 4],
+                                       closed='right')
+
+        ci = CategoricalIndex(Categorical.from_codes(
+            [0, 1, -1], categories=ii, ordered=True))
+
+        result = ci.astype('interval')
+        expected = ii.take([0, 1, -1])
+        tm.assert_index_equal(result, expected)
+
+        result = IntervalIndex.from_intervals(result.values)
+        tm.assert_index_equal(result, expected)
 
     def test_reindex_base(self):
 
         # determined by cat ordering
         idx = self.create_index()
-        expected = np.array([4, 0, 1, 5, 2, 3], dtype=np.intp)
+        expected = np.arange(len(idx), dtype=np.intp)
 
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
@@ -412,8 +427,8 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertTrue(idx.has_duplicates)
 
         expected = CategoricalIndex([0], name='foo')
-        self.assert_index_equal(idx.drop_duplicates(), expected)
-        self.assert_index_equal(idx.unique(), expected)
+        tm.assert_index_equal(idx.drop_duplicates(), expected)
+        tm.assert_index_equal(idx.unique(), expected)
 
     def test_get_indexer(self):
 
@@ -424,12 +439,12 @@ class TestCategoricalIndex(Base, tm.TestCase):
             r1 = idx1.get_indexer(idx2)
             assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
 
-        self.assertRaises(NotImplementedError,
-                          lambda: idx2.get_indexer(idx1, method='pad'))
-        self.assertRaises(NotImplementedError,
-                          lambda: idx2.get_indexer(idx1, method='backfill'))
-        self.assertRaises(NotImplementedError,
-                          lambda: idx2.get_indexer(idx1, method='nearest'))
+        pytest.raises(NotImplementedError,
+                      lambda: idx2.get_indexer(idx1, method='pad'))
+        pytest.raises(NotImplementedError,
+                      lambda: idx2.get_indexer(idx1, method='backfill'))
+        pytest.raises(NotImplementedError,
+                      lambda: idx2.get_indexer(idx1, method='nearest'))
 
     def test_get_loc(self):
         # GH 12531
@@ -439,7 +454,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertEqual(cidx1.get_loc('e'), idx1.get_loc('e'))
 
         for i in [cidx1, idx1]:
-            with tm.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 i.get_loc('NOT-EXIST')
 
         # non-unique
@@ -448,16 +463,16 @@ class TestCategoricalIndex(Base, tm.TestCase):
 
         # results in bool array
         res = cidx2.get_loc('d')
-        self.assert_numpy_array_equal(res, idx2.get_loc('d'))
-        self.assert_numpy_array_equal(res, np.array([False, False, False,
-                                                     True, False, True]))
+        tm.assert_numpy_array_equal(res, idx2.get_loc('d'))
+        tm.assert_numpy_array_equal(res, np.array([False, False, False,
+                                                   True, False, True]))
         # unique element results in scalar
         res = cidx2.get_loc('e')
         self.assertEqual(res, idx2.get_loc('e'))
         self.assertEqual(res, 4)
 
         for i in [cidx2, idx2]:
-            with tm.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 i.get_loc('NOT-EXIST')
 
         # non-unique, slicable
@@ -474,7 +489,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertEqual(res, slice(2, 5, None))
 
         for i in [cidx3, idx3]:
-            with tm.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 i.get_loc('c')
 
     def test_repr_roundtrip(self):
@@ -527,21 +542,22 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(ci1.identical(ci2))
 
     def test_ensure_copied_data(self):
-        # Check the "copy" argument of each Index.__new__ is honoured
-        # GH12309
+        # gh-12309: Check the "copy" argument of each
+        # Index.__new__ is honored.
+        #
         # Must be tested separately from other indexes because
-        # self.value is not an ndarray
+        # self.value is not an ndarray.
         _base = lambda ar: ar if ar.base is None else ar.base
+
         for index in self.indices.values():
             result = CategoricalIndex(index.values, copy=True)
             tm.assert_index_equal(index, result)
-            self.assertIsNot(_base(index.values), _base(result.values))
+            assert _base(index.values) is not _base(result.values)
 
             result = CategoricalIndex(index.values, copy=False)
-            self.assertIs(_base(index.values), _base(result.values))
+            assert _base(index.values) is _base(result.values)
 
     def test_equals_categorical(self):
-
         ci1 = CategoricalIndex(['a', 'b'], categories=['a', 'b'], ordered=True)
         ci2 = CategoricalIndex(['a', 'b'], categories=['a', 'b', 'c'],
                                ordered=True)
@@ -565,10 +581,10 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # invalid comparisons
         with tm.assertRaisesRegexp(ValueError, "Lengths must match"):
             ci1 == Index(['a', 'b', 'c'])
-        self.assertRaises(TypeError, lambda: ci1 == ci2)
-        self.assertRaises(
+        pytest.raises(TypeError, lambda: ci1 == ci2)
+        pytest.raises(
             TypeError, lambda: ci1 == Categorical(ci1.values, ordered=False))
-        self.assertRaises(
+        pytest.raises(
             TypeError,
             lambda: ci1 == Categorical(ci1.values, categories=list('abc')))
 
@@ -578,14 +594,6 @@ class TestCategoricalIndex(Base, tm.TestCase):
         self.assertFalse(ci.equals(list('aabca')))
         self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
         self.assertTrue(ci.equals(ci.copy()))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            ci = CategoricalIndex(list('aabca'),
-                                  categories=['c', 'a', 'b', np.nan])
-        self.assertFalse(ci.equals(list('aabca')))
-        self.assertFalse(ci.equals(CategoricalIndex(list('aabca'))))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.assertTrue(ci.equals(ci.copy()))
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])
@@ -603,10 +611,10 @@ class TestCategoricalIndex(Base, tm.TestCase):
         # short
         idx = pd.CategoricalIndex(['a', 'bb', 'ccc'])
         if PY3:
-            expected = u"""CategoricalIndex(['a', 'bb', 'ccc'], categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""
+            expected = u"""CategoricalIndex(['a', 'bb', 'ccc'], categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""  # noqa
             self.assertEqual(repr(idx), expected)
         else:
-            expected = u"""CategoricalIndex([u'a', u'bb', u'ccc'], categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category')"""
+            expected = u"""CategoricalIndex([u'a', u'bb', u'ccc'], categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category')"""  # noqa
             self.assertEqual(unicode(idx), expected)
 
         # multiple lines
@@ -615,7 +623,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
             expected = u"""CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
                   'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb',
                   'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
-                 categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""
+                 categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""  # noqa
 
             self.assertEqual(repr(idx), expected)
         else:
@@ -623,7 +631,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                   u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc',
                   u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
-                 categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category')"""
+                 categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category')"""  # noqa
 
             self.assertEqual(unicode(idx), expected)
 
@@ -633,7 +641,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
             expected = u"""CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
                   ...
                   'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
-                 categories=['a', 'bb', 'ccc'], ordered=False, dtype='category', length=300)"""
+                 categories=['a', 'bb', 'ccc'], ordered=False, dtype='category', length=300)"""  # noqa
 
             self.assertEqual(repr(idx), expected)
         else:
@@ -642,7 +650,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   ...
                   u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                   u'bb', u'ccc'],
-                 categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category', length=300)"""
+                 categories=[u'a', u'bb', u'ccc'], ordered=False, dtype='category', length=300)"""  # noqa
 
             self.assertEqual(unicode(idx), expected)
 
@@ -651,23 +659,23 @@ class TestCategoricalIndex(Base, tm.TestCase):
         if PY3:
             expected = u"""CategoricalIndex(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
                   'm', 'm', 'o'],
-                 categories=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', ...], ordered=False, dtype='category')"""
+                 categories=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', ...], ordered=False, dtype='category')"""  # noqa
 
             self.assertEqual(repr(idx), expected)
         else:
             expected = u"""CategoricalIndex([u'a', u'b', u'c', u'd', u'e', u'f', u'g', u'h', u'i', u'j',
                   u'k', u'l', u'm', u'm', u'o'],
-                 categories=[u'a', u'b', u'c', u'd', u'e', u'f', u'g', u'h', ...], ordered=False, dtype='category')"""
+                 categories=[u'a', u'b', u'c', u'd', u'e', u'f', u'g', u'h', ...], ordered=False, dtype='category')"""  # noqa
 
             self.assertEqual(unicode(idx), expected)
 
         # short
         idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'])
         if PY3:
-            expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
+            expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
             self.assertEqual(repr(idx), expected)
         else:
-            expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう'], categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""
+            expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう'], categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""  # noqa
             self.assertEqual(unicode(idx), expected)
 
         # multiple lines
@@ -676,7 +684,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
             expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
                   'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
-                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
 
             self.assertEqual(repr(idx), expected)
         else:
@@ -684,7 +692,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
                   u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう',
                   u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう'],
-                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""
+                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""  # noqa
 
             self.assertEqual(unicode(idx), expected)
 
@@ -694,7 +702,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
             expected = u"""CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
                   ...
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
-                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""  # noqa
 
             self.assertEqual(repr(idx), expected)
         else:
@@ -703,7 +711,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   ...
                   u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
                   u'いい', u'ううう'],
-                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""
+                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""  # noqa
 
             self.assertEqual(unicode(idx), expected)
 
@@ -712,13 +720,13 @@ class TestCategoricalIndex(Base, tm.TestCase):
         if PY3:
             expected = u"""CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ', 'さ', 'し',
                   'す', 'せ', 'そ'],
-                 categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""
+                 categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""  # noqa
 
             self.assertEqual(repr(idx), expected)
         else:
             expected = u"""CategoricalIndex([u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', u'け', u'こ',
                   u'さ', u'し', u'す', u'せ', u'そ'],
-                 categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""
+                 categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""  # noqa
 
             self.assertEqual(unicode(idx), expected)
 
@@ -728,10 +736,10 @@ class TestCategoricalIndex(Base, tm.TestCase):
             # short
             idx = pd.CategoricalIndex([u'あ', u'いい', u'ううう'])
             if PY3:
-                expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
+                expected = u"""CategoricalIndex(['あ', 'いい', 'ううう'], categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
                 self.assertEqual(repr(idx), expected)
             else:
-                expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう'], categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""
+                expected = u"""CategoricalIndex([u'あ', u'いい', u'ううう'], categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""  # noqa
                 self.assertEqual(unicode(idx), expected)
 
             # multiple lines
@@ -741,7 +749,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
                   'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
-                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
 
                 self.assertEqual(repr(idx), expected)
             else:
@@ -750,7 +758,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
                   u'いい', u'ううう', u'あ', u'いい', u'ううう', u'あ',
                   u'いい', u'ううう', u'あ', u'いい', u'ううう'],
-                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""
+                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category')"""  # noqa
 
                 self.assertEqual(unicode(idx), expected)
 
@@ -762,7 +770,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   ...
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
                   'あ', 'いい', 'ううう'],
-                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category', length=300)"""  # noqa
 
                 self.assertEqual(repr(idx), expected)
             else:
@@ -771,7 +779,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
                   ...
                   u'ううう', u'あ', u'いい', u'ううう', u'あ', u'いい',
                   u'ううう', u'あ', u'いい', u'ううう'],
-                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""
+                 categories=[u'あ', u'いい', u'ううう'], ordered=False, dtype='category', length=300)"""  # noqa
 
                 self.assertEqual(unicode(idx), expected)
 
@@ -780,13 +788,13 @@ class TestCategoricalIndex(Base, tm.TestCase):
             if PY3:
                 expected = u"""CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', 'け', 'こ',
                   'さ', 'し', 'す', 'せ', 'そ'],
-                 categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""
+                 categories=['あ', 'い', 'う', 'え', 'お', 'か', 'き', 'く', ...], ordered=False, dtype='category')"""  # noqa
 
                 self.assertEqual(repr(idx), expected)
             else:
                 expected = u"""CategoricalIndex([u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く',
                   u'け', u'こ', u'さ', u'し', u'す', u'せ', u'そ'],
-                 categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""
+                 categories=[u'あ', u'い', u'う', u'え', u'お', u'か', u'き', u'く', ...], ordered=False, dtype='category')"""  # noqa
 
                 self.assertEqual(unicode(idx), expected)
 
@@ -795,7 +803,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         idx = CategoricalIndex([1.0, np.nan, 3.0, 1.0], name='x')
         # fill by value in categories
         exp = CategoricalIndex([1.0, 1.0, 3.0, 1.0], name='x')
-        self.assert_index_equal(idx.fillna(1.0), exp)
+        tm.assert_index_equal(idx.fillna(1.0), exp)
 
         # fill by value not in categories raises ValueError
         with tm.assertRaisesRegexp(ValueError,
@@ -858,7 +866,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_take_fill_value_datetime(self):
@@ -896,7 +904,7 @@ class TestCategoricalIndex(Base, tm.TestCase):
         with tm.assertRaisesRegexp(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
 
     def test_take_invalid_kwargs(self):

@@ -14,6 +14,8 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 """
 
 import pytest
+from warnings import catch_warnings
+
 import os
 from distutils.version import LooseVersion
 import pandas as pd
@@ -48,8 +50,8 @@ def compare_element(result, expected, typ, version=None):
         if expected is pd.NaT:
             assert result is pd.NaT
         else:
-            tm.assert_equal(result, expected)
-            tm.assert_equal(result.freq, expected.freq)
+            assert result == expected
+            assert result.freq == expected.freq
     else:
         comparator = getattr(tm, "assert_%s_equal" %
                              typ, tm.assert_almost_equal)
@@ -100,21 +102,21 @@ def compare_sp_series_ts(res, exp, typ, version):
 def compare_series_ts(result, expected, typ, version):
     # GH 7748
     tm.assert_series_equal(result, expected)
-    tm.assert_equal(result.index.freq, expected.index.freq)
-    tm.assert_equal(result.index.freq.normalize, False)
+    assert result.index.freq == expected.index.freq
+    assert not result.index.freq.normalize
     tm.assert_series_equal(result > 0, expected > 0)
 
     # GH 9291
     freq = result.index.freq
-    tm.assert_equal(freq + Day(1), Day(2))
+    assert freq + Day(1) == Day(2)
 
     res = freq + pandas.Timedelta(hours=1)
-    tm.assert_equal(isinstance(res, pandas.Timedelta), True)
-    tm.assert_equal(res, pandas.Timedelta(days=1, hours=1))
+    assert isinstance(res, pandas.Timedelta)
+    assert res == pandas.Timedelta(days=1, hours=1)
 
     res = freq + pandas.Timedelta(nanoseconds=1)
-    tm.assert_equal(isinstance(res, pandas.Timedelta), True)
-    tm.assert_equal(res, pandas.Timedelta(days=1, nanoseconds=1))
+    assert isinstance(res, pandas.Timedelta)
+    assert res == pandas.Timedelta(days=1, nanoseconds=1)
 
 
 def compare_series_dt_tz(result, expected, typ, version):
@@ -167,9 +169,9 @@ def compare_frame_cat_and_float(result, expected, typ, version):
 
 def compare_index_period(result, expected, typ, version):
     tm.assert_index_equal(result, expected)
-    tm.assertIsInstance(result.freq, MonthEnd)
-    tm.assert_equal(result.freq, MonthEnd())
-    tm.assert_equal(result.freqstr, 'M')
+    assert isinstance(result.freq, MonthEnd)
+    assert result.freq == MonthEnd()
+    assert result.freqstr == 'M'
     tm.assert_index_equal(result.shift(2), expected.shift(2))
 
 
@@ -202,12 +204,14 @@ def test_pickles(current_pickle_data, version):
     n = 0
     for f in os.listdir(pth):
         vf = os.path.join(pth, f)
-        data = compare(current_pickle_data, vf, version)
+        with catch_warnings(record=True):
+            data = compare(current_pickle_data, vf, version)
 
         if data is None:
             continue
         n += 1
-    assert n > 0, 'Pickle files are not tested'
+    assert n > 0, ('Pickle files are not '
+                   'tested: {version}'.format(version=version))
 
 
 def test_round_trip_current(current_pickle_data):
@@ -338,7 +342,8 @@ class TestCompression(object):
             raise ValueError(msg)
 
         if compression != "zip":
-            f.write(open(src_path, "rb").read())
+            with open(src_path, "rb") as fh:
+                f.write(fh.read())
             f.close()
 
     def decompress_file(self, src_path, dest_path, compression):
@@ -368,7 +373,8 @@ class TestCompression(object):
             msg = 'Unrecognized compression type: {}'.format(compression)
             raise ValueError(msg)
 
-        open(dest_path, "wb").write(f.read())
+        with open(dest_path, "wb") as fh:
+            fh.write(f.read())
         f.close()
 
     @pytest.mark.parametrize('compression', [None, 'gzip', 'bz2', 'xz'])

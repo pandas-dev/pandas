@@ -10,40 +10,42 @@ import numpy as np
 import pandas as pd
 
 from pandas._libs import tslib, lib
-from pandas.types.common import (_coerce_to_dtype,
-                                 _ensure_int64,
-                                 needs_i8_conversion,
-                                 is_scalar,
-                                 is_integer, is_bool,
-                                 is_bool_dtype,
-                                 is_numeric_dtype,
-                                 is_datetime64_dtype,
-                                 is_timedelta64_dtype,
-                                 is_datetime64tz_dtype,
-                                 is_list_like,
-                                 is_dict_like,
-                                 is_re_compilable)
-from pandas.types.cast import _maybe_promote, _maybe_upcast_putmask
-from pandas.types.missing import isnull, notnull
-from pandas.types.generic import ABCSeries, ABCPanel
+from pandas.core.dtypes.common import (
+    _coerce_to_dtype,
+    _ensure_int64,
+    needs_i8_conversion,
+    is_scalar,
+    is_integer, is_bool,
+    is_bool_dtype,
+    is_numeric_dtype,
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
+    is_datetime64tz_dtype,
+    is_list_like,
+    is_dict_like,
+    is_re_compilable)
+from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.generic import ABCSeries, ABCPanel
 
 from pandas.core.common import (_values_from_object,
                                 _maybe_box_datetimelike,
                                 SettingWithCopyError, SettingWithCopyWarning,
                                 AbstractMethodError)
 
-from pandas.core.base import PandasObject
+from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                InvalidIndexError)
 import pandas.core.indexing as indexing
-from pandas.tseries.index import DatetimeIndex
-from pandas.tseries.period import PeriodIndex, Period
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import PeriodIndex, Period
 from pandas.core.internals import BlockManager
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.core.missing as missing
-from pandas.formats.printing import pprint_thing
-from pandas.formats.format import format_percentiles
+from pandas.errors import UnserializableWarning
+from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.format import format_percentiles
 from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
@@ -91,7 +93,7 @@ def _single_replace(self, to_replace, method, inplace, limit):
     return result
 
 
-class NDFrame(PandasObject):
+class NDFrame(PandasObject, SelectionMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
     size-mutable, labeled data structure
@@ -137,7 +139,12 @@ class NDFrame(PandasObject):
         # Series doesn't define _repr_html_ or _repr_latex_
         latex = self._repr_latex_() if hasattr(self, '_repr_latex_') else None
         html = self._repr_html_() if hasattr(self, '_repr_html_') else None
-        table_schema = self._repr_table_schema_()
+        try:
+            table_schema = self._repr_table_schema_()
+        except Exception as e:
+            warnings.warn("Cannot create table schema representation. "
+                          "{}".format(e), UnserializableWarning)
+            table_schema = None
         # We need the inital newline since we aren't going through the
         # usual __repr__. See
         # https://github.com/pandas-dev/pandas/pull/14904#issuecomment-277829277
@@ -459,6 +466,16 @@ class NDFrame(PandasObject):
         """number of elements in the NDFrame"""
         return np.prod(self.shape)
 
+    @property
+    def _selected_obj(self):
+        """ internal compat with SelectionMixin """
+        return self
+
+    @property
+    def _obj_with_exclusions(self):
+        """ internal compat with SelectionMixin """
+        return self
+
     def _expand_axes(self, key):
         new_axes = []
         for k, ax in zip(key, self.axes):
@@ -634,6 +651,9 @@ class NDFrame(PandasObject):
         inplace : boolean, default False
             Whether to return a new %(klass)s. If True then value of copy is
             ignored.
+        level : int or level name, default None
+            In case of a MultiIndex, only rename labels in the specified
+            level.
 
         Returns
         -------
@@ -690,6 +710,7 @@ class NDFrame(PandasObject):
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
+        level = kwargs.pop('level', None)
 
         if kwargs:
             raise TypeError('rename() got an unexpected keyword '
@@ -723,7 +744,10 @@ class NDFrame(PandasObject):
             f = _get_rename_function(v)
 
             baxis = self._get_block_manager_axis(axis)
-            result._data = result._data.rename_axis(f, axis=baxis, copy=copy)
+            if level is not None:
+                level = self.axes[axis]._get_level_number(level)
+            result._data = result._data.rename_axis(f, axis=baxis, copy=copy,
+                                                    level=level)
             result._clear_item_cache()
 
         if inplace:
@@ -2853,6 +2877,66 @@ class NDFrame(PandasObject):
         else:
             return func(self, *args, **kwargs)
 
+    _shared_docs['aggregate'] = ("""
+    Aggregate using input function or dict of {column ->
+    function}
+
+    .. versionadded:: 0.20.0
+
+    Parameters
+    ----------
+    func : callable, string, dictionary, or list of string/callables
+        Function to use for aggregating the data. If a function, must either
+        work when passed a DataFrame or when passed to DataFrame.apply. If
+        passed a dict, the keys must be DataFrame column names.
+
+        Accepted Combinations are:
+        - string function name
+        - function
+        - list of functions
+        - dict of column names -> functions (or list of functions)
+
+    Notes
+    -----
+    Numpy functions mean/median/prod/sum/std/var are special cased so the
+    default behavior is applying the function along axis=0
+    (e.g., np.mean(arr_2d, axis=0)) as opposed to
+    mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
+
+    Returns
+    -------
+    aggregated : %(klass)s
+
+    See also
+    --------
+    """)
+
+    _shared_docs['transform'] = ("""
+    Call function producing a like-indexed %(klass)s
+    and return a %(klass)s with the transformed values`
+
+    .. versionadded:: 0.20.0
+
+    Parameters
+    ----------
+    func : callable, string, dictionary, or list of string/callables
+        To apply to column
+
+        Accepted Combinations are:
+        - string function name
+        - function
+        - list of functions
+        - dict of column names -> functions (or list of functions)
+
+    Examples
+    --------
+    >>> df.transform(lambda x: (x - x.mean()) / x.std())
+
+    Returns
+    -------
+    transformed : %(klass)s
+    """)
+
     # ----------------------------------------------------------------------
     # Attribute access
 
@@ -3972,6 +4056,16 @@ class NDFrame(PandasObject):
             where = Index(where) if is_list else Index([where])
 
         nulls = self.isnull() if is_series else self[subset].isnull().any(1)
+        if nulls.all():
+            if is_series:
+                return self._constructor(np.nan, index=where, name=self.name)
+            elif is_list:
+                from pandas import DataFrame
+                return DataFrame(np.nan, index=where, columns=self.columns)
+            else:
+                from pandas import Series
+                return Series(np.nan, index=self.columns, name=where[0])
+
         locs = self.index.asof_locs(where, ~(nulls.values))
 
         # mask the missing
@@ -4129,11 +4223,14 @@ class NDFrame(PandasObject):
 
         Parameters
         ----------
-        by : mapping function / list of functions, dict, Series, or tuple /
-            list of column names or index level names.
-            Called on each element of the object index to determine the groups.
-            If a dict or Series is passed, the Series or dict VALUES will be
-            used to determine the groups
+        by : mapping, function, str, or iterable
+            Used to determine the groups for the groupby.
+            If ``by`` is a function, it's called on each value of the object's
+            index. If a dict or Series is passed, the Series or dict VALUES
+            will be used to determine the groups (the Series' values are first
+            aligned; see ``.align()`` method). If an ndarray is passed, the
+            values are used as-is determine the groups. A str or list of strs
+            may be passed to group by the columns in ``self``
         axis : int, default 0
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
@@ -4272,7 +4369,7 @@ class NDFrame(PandasObject):
         To learn more about the frequency strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
         """
-        from pandas.tseries.resample import asfreq
+        from pandas.core.resample import asfreq
         return asfreq(self, freq, method=method, how=how, normalize=normalize,
                       fill_value=fill_value)
 
@@ -4482,8 +4579,8 @@ class NDFrame(PandasObject):
         2000-01-01 00:00:00  0  6  12  18
         2000-01-01 00:03:00  0  4   8  12
         """
-        from pandas.tseries.resample import (resample,
-                                             _maybe_process_deprecations)
+        from pandas.core.resample import (resample,
+                                          _maybe_process_deprecations)
         axis = self._get_axis_number(axis)
         r = resample(self, freq=rule, label=label, closed=closed,
                      axis=axis, kind=kind, loffset=loffset,
@@ -4956,10 +5053,10 @@ class NDFrame(PandasObject):
                         # or not try_quick
                         if not try_quick:
 
-                            dtype, fill_value = _maybe_promote(other.dtype)
+                            dtype, fill_value = maybe_promote(other.dtype)
                             new_other = np.empty(len(icond), dtype=dtype)
                             new_other.fill(fill_value)
-                            _maybe_upcast_putmask(new_other, icond, other)
+                            maybe_upcast_putmask(new_other, icond, other)
                             other = new_other
 
                     else:
@@ -5270,7 +5367,7 @@ class NDFrame(PandasObject):
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
         if ax.is_all_dates:
-            from pandas.tseries.tools import to_datetime
+            from pandas.core.tools.datetimes import to_datetime
             before = to_datetime(before)
             after = to_datetime(after)
 
@@ -5949,12 +6046,12 @@ class NDFrame(PandasObject):
 
         @Appender(rwindow.rolling.__doc__)
         def rolling(self, window, min_periods=None, freq=None, center=False,
-                    win_type=None, on=None, axis=0):
+                    win_type=None, on=None, axis=0, closed=None):
             axis = self._get_axis_number(axis)
             return rwindow.rolling(self, window=window,
                                    min_periods=min_periods, freq=freq,
                                    center=center, win_type=win_type,
-                                   on=on, axis=axis)
+                                   on=on, axis=axis, closed=closed)
 
         cls.rolling = rolling
 
@@ -5976,6 +6073,17 @@ class NDFrame(PandasObject):
                                adjust=adjust, ignore_na=ignore_na, axis=axis)
 
         cls.ewm = ewm
+
+        @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+        def transform(self, func, *args, **kwargs):
+            result = self.agg(func, *args, **kwargs)
+            if is_scalar(result) or len(result) != len(self):
+                raise ValueError("transforms cannot produce "
+                                 "aggregated results")
+
+            return result
+
+        cls.transform = transform
 
 
 def _doc_parms(cls):

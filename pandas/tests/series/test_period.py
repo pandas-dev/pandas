@@ -2,7 +2,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.tseries.period as period
+import pandas.core.indexes.period as period
 from pandas import Series, period_range, DataFrame, Period
 
 
@@ -30,7 +30,7 @@ class TestSeriesPeriod(tm.TestCase):
         exp = pd.Series([pd.Period('2000-01-03', freq='D'),
                          pd.Period('2000-01-05', freq='D')],
                         index=[2, 4])
-        self.assert_series_equal(result, exp)
+        tm.assert_series_equal(result, exp)
         self.assertEqual(result.dtype, 'object')
 
     def test_isnull(self):
@@ -103,10 +103,10 @@ class TestSeriesPeriod(tm.TestCase):
     def test_set_none_nan(self):
         # currently Period is stored as object dtype, not as NaT
         self.series[3] = None
-        self.assertIs(self.series[3], None)
+        assert self.series[3] is None
 
         self.series[3:5] = None
-        self.assertIs(self.series[4], None)
+        assert self.series[4] is None
 
         self.series[5] = np.nan
         self.assertTrue(np.isnan(self.series[5]))

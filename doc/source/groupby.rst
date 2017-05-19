@@ -439,7 +439,9 @@ Aggregation
 -----------
 
 Once the GroupBy object has been created, several methods are available to
-perform a computation on the grouped data.
+perform a computation on the grouped data. These operations are similar to the
+:ref:`aggregating API <basics.aggregate>`, :ref:`window functions API <stats.aggregate>`,
+and :ref:`resample API <timeseries.aggregate>`.
 
 An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` method:
 
@@ -502,7 +504,7 @@ index are the group names and whose values are the sizes of each group.
 Applying multiple functions at once
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With grouped Series you can also pass a list or dict of functions to do
+With grouped ``Series`` you can also pass a list or dict of functions to do
 aggregation with, outputting a DataFrame:
 
 .. ipython:: python
@@ -510,23 +512,35 @@ aggregation with, outputting a DataFrame:
    grouped = df.groupby('A')
    grouped['C'].agg([np.sum, np.mean, np.std])
 
-If a dict is passed, the keys will be used to name the columns. Otherwise the
-function's name (stored in the function object) will be used.
-
-.. ipython:: python
-
-   grouped['D'].agg({'result1' : np.sum,
-                     'result2' : np.mean})
-
-On a grouped DataFrame, you can pass a list of functions to apply to each
+On a grouped ``DataFrame``, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
 
    grouped.agg([np.sum, np.mean, np.std])
 
-Passing a dict of functions has different behavior by default, see the next
-section.
+
+The resulting aggregations are named for the functions themselves. If you
+need to rename, then you can add in a chained operation for a ``Series`` like this:
+
+.. ipython:: python
+
+   (grouped['C'].agg([np.sum, np.mean, np.std])
+                .rename(columns={'sum': 'foo',
+                                 'mean': 'bar',
+                                 'std': 'baz'})
+   )
+
+For a grouped ``DataFrame``, you can rename in a similar manner:
+
+.. ipython:: python
+
+   (grouped.agg([np.sum, np.mean, np.std])
+           .rename(columns={'sum': 'foo',
+                            'mean': 'bar',
+                            'std': 'baz'})
+    )
+
 
 Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -580,9 +594,21 @@ Transformation
 --------------
 
 The ``transform`` method returns an object that is indexed the same (same size)
-as the one being grouped. Thus, the passed transform function should return a
-result that is the same size as the group chunk. For example, suppose we wished
-to standardize the data within each group:
+as the one being grouped. The transform function must:
+
+* Return a result that is either the same size as the group chunk or
+  broadcastable to the size of the group chunk (e.g., a scalar,
+  ``grouped.transform(lambda x: x.iloc[-1])``).
+* Operate column-by-column on the group chunk.  The transform is applied to
+  the first group chunk using chunk.apply.
+* Not perform in-place operations on the group chunk. Group chunks should
+  be treated as immutable, and changes to a group chunk may produce unexpected
+  results. For example, when using ``fillna``, ``inplace`` must be ``False``
+  (``grouped.transform(lambda x: x.fillna(inplace=False))``).
+* (Optionally) operates on the entire group chunk. If this is supported, a
+  fast path is used starting from the *second* chunk.
+
+For example, suppose we wished to standardize the data within each group:
 
 .. ipython:: python
 
@@ -619,6 +645,21 @@ We can also visually compare the original and transformed data sets.
 
    @savefig groupby_transform_plot.png
    compare.plot()
+
+Transformation functions that have lower dimension outputs are broadcast to
+match the shape of the input array.
+
+.. ipython:: python
+
+   data_range = lambda x: x.max() - x.min()
+   ts.groupby(key).transform(data_range)
+
+Alternatively the built-in methods can be could be used to produce the same
+outputs
+
+.. ipython:: python
+
+   ts.groupby(key).transform('max') - ts.groupby(key).transform('min')
 
 Another common data transform is to replace missing data with the group mean.
 
@@ -664,8 +705,9 @@ and that the transformed data contains no NAs.
 
 .. note::
 
-   Some functions when applied to a groupby object will automatically transform the input, returning
-   an object of the same shape as the original. Passing ``as_index=False`` will not affect these transformation methods.
+   Some functions when applied to a groupby object will automatically transform
+   the input, returning an object of the same shape as the original. Passing
+   ``as_index=False`` will not affect these transformation methods.
 
    For example: ``fillna, ffill, bfill, shift``.
 

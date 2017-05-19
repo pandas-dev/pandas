@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
-from collections import OrderedDict
+import os
+import locale
+import codecs
 import sys
-import unittest
 from uuid import uuid4
+from collections import OrderedDict
+
+import pytest
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util.decorators import deprecate_kwarg
 from pandas.util.validators import (validate_args, validate_kwargs,
@@ -10,6 +14,9 @@ from pandas.util.validators import (validate_args, validate_kwargs,
                                     validate_bool_kwarg)
 
 import pandas.util.testing as tm
+
+CURRENT_LOCALE = locale.getlocale()
+LOCALE_OVERRIDE = os.environ.get('LOCALE_OVERRIDE', None)
 
 
 class TestDecorators(tm.TestCase):
@@ -35,7 +42,7 @@ class TestDecorators(tm.TestCase):
         x = 78
         with tm.assert_produces_warning(FutureWarning):
             result = self.f1(old=x)
-        self.assertIs(result, x)
+        assert result is x
         with tm.assert_produces_warning(None):
             self.f1(new=x)
 
@@ -56,11 +63,11 @@ class TestDecorators(tm.TestCase):
         with tm.assert_produces_warning(FutureWarning):
             result = self.f3(old=x)
         self.assertEqual(result, x + 1)
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.f3(old='hello')
 
     def test_bad_deprecate_kwarg(self):
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             @deprecate_kwarg('old', 'new', 0)
             def f4(new=None):
                 pass
@@ -213,7 +220,7 @@ class TestValidateKwargs(tm.TestCase):
                     validate_bool_kwarg(value, name)
 
             for value in valid_values:
-                tm.assert_equal(validate_bool_kwarg(value, name), value)
+                assert validate_bool_kwarg(value, name) == value
 
 
 class TestValidateKwargsAndArgs(tm.TestCase):
@@ -329,9 +336,9 @@ class TestMove(tm.TestCase):
         """
         b = b'testing'
 
-        with tm.assertRaises(BadMove) as e:
+        with pytest.raises(BadMove) as e:
             def handle_success(type_, value, tb):
-                self.assertIs(value.args[0], b)
+                assert value.args[0] is b
                 return type(e).handle_success(e, type_, value, tb)  # super
 
             e.handle_success = handle_success
@@ -352,9 +359,9 @@ class TestMove(tm.TestCase):
         # materialize as bytearray to show that it is mutable
         self.assertEqual(bytearray(as_stolen_buf), b'test')
 
-    @unittest.skipIf(
+    @pytest.mark.skipif(
         sys.version_info[0] > 2,
-        'bytes objects cannot be interned in py3',
+        reason='bytes objects cannot be interned in py3',
     )
     def test_interned(self):
         salt = uuid4().hex
@@ -378,7 +385,7 @@ class TestMove(tm.TestCase):
             refcount[0] = sys.getrefcount(ob) - 2
             return ob
 
-        with tm.assertRaises(BadMove):
+        with pytest.raises(BadMove):
             # If we intern the string it will still have one reference but now
             # it is in the intern table so if other people intern the same
             # string while the mutable buffer holds the first string they will
@@ -400,4 +407,67 @@ def test_numpy_errstate_is_default():
     import numpy as np
     from pandas.compat import numpy  # noqa
     # The errstate should be unchanged after that import.
-    tm.assert_equal(np.geterr(), expected)
+    assert np.geterr() == expected
+
+
+class TestLocaleUtils(tm.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestLocaleUtils, cls).setUpClass()
+        cls.locales = tm.get_locales()
+
+        if not cls.locales:
+            pytest.skip("No locales found")
+
+        tm._skip_if_windows()
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestLocaleUtils, cls).tearDownClass()
+        del cls.locales
+
+    def test_get_locales(self):
+        # all systems should have at least a single locale
+        assert len(tm.get_locales()) > 0
+
+    def test_get_locales_prefix(self):
+        if len(self.locales) == 1:
+            pytest.skip("Only a single locale found, no point in "
+                        "trying to test filtering locale prefixes")
+        first_locale = self.locales[0]
+        assert len(tm.get_locales(prefix=first_locale[:2])) > 0
+
+    def test_set_locale(self):
+        if len(self.locales) == 1:
+            pytest.skip("Only a single locale found, no point in "
+                        "trying to test setting another locale")
+
+        if all(x is None for x in CURRENT_LOCALE):
+            # Not sure why, but on some travis runs with pytest,
+            # getlocale() returned (None, None).
+            pytest.skip("CURRENT_LOCALE is not set.")
+
+        if LOCALE_OVERRIDE is None:
+            lang, enc = 'it_CH', 'UTF-8'
+        elif LOCALE_OVERRIDE == 'C':
+            lang, enc = 'en_US', 'ascii'
+        else:
+            lang, enc = LOCALE_OVERRIDE.split('.')
+
+        enc = codecs.lookup(enc).name
+        new_locale = lang, enc
+
+        if not tm._can_set_locale(new_locale):
+            with pytest.raises(locale.Error):
+                with tm.set_locale(new_locale):
+                    pass
+        else:
+            with tm.set_locale(new_locale) as normalized_locale:
+                new_lang, new_enc = normalized_locale.split('.')
+                new_enc = codecs.lookup(enc).name
+                normalized_locale = new_lang, new_enc
+                self.assertEqual(normalized_locale, new_locale)
+
+        current_locale = locale.getlocale()
+        self.assertEqual(current_locale, CURRENT_LOCALE)

@@ -77,7 +77,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         # must raise
         def f():
             df.quantile(.5, axis=1, numeric_only=False)
-        self.assertRaises(TypeError, f)
+        pytest.raises(TypeError, f)
 
     def test_quantile_axis_parameter(self):
         # GH 9543/9544
@@ -100,8 +100,8 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         result = df.quantile(.5, axis="columns")
         assert_series_equal(result, expected)
 
-        self.assertRaises(ValueError, df.quantile, 0.1, axis=-1)
-        self.assertRaises(ValueError, df.quantile, 0.1, axis="column")
+        pytest.raises(ValueError, df.quantile, 0.1, axis=-1)
+        pytest.raises(ValueError, df.quantile, 0.1, axis="column")
 
     def test_quantile_interpolation(self):
         # GH #10174
@@ -431,7 +431,7 @@ class TestDataFrameQuantile(tm.TestCase, TestData):
         # res = df.quantile(0.5)
 
         # datetimes
-        df = DataFrame(columns=['a', 'b'], dtype='datetime64')
+        df = DataFrame(columns=['a', 'b'], dtype='datetime64[ns]')
 
         # FIXME (gives NaNs instead of NaT in 0.18.1 or 0.19.0)
         # res = df.quantile(0.5, numeric_only=False)
