@@ -2080,26 +2080,25 @@ class TestHDFStore(Base):
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes
-            with pytest.raises(OverflowError):
-                df1 = DataFrame(dict([(c, Series(np.random.randn(5), dtype=c))
-                                      for c in ['float32', 'float64', 'int32',
-                                                'int64', 'int16', 'int8']]))
-                df1['string'] = 'foo'
-                df1['float322'] = 1.
-                df1['float322'] = df1['float322'].astype('float32')
-                df1['bool'] = df1['float32'] > 0
-                df1['time1'] = Timestamp('20130101')
-                df1['time2'] = Timestamp('20130102')
+            df1 = DataFrame(dict([(c, Series(np.random.randn(5), dtype=c))
+                                  for c in ['float32', 'float64', 'int32',
+                                            'int64', 'int16', 'int8']]))
+            df1['string'] = 'foo'
+            df1['float322'] = 1.
+            df1['float322'] = df1['float322'].astype('float32')
+            df1['bool'] = df1['float32'] > 0
+            df1['time1'] = Timestamp('20130101')
+            df1['time2'] = Timestamp('20130102')
 
-                store.append('df_mixed_dtypes1', df1)
-                result = store.select('df_mixed_dtypes1').get_dtype_counts()
-                expected = Series({'float32': 2, 'float64': 1, 'int32': 1,
-                                   'bool': 1, 'int16': 1, 'int8': 1,
-                                   'int64': 1, 'object': 1,
-                                   'datetime64[ns]': 2})
-                result = result.sort_index()
-                result = expected.sort_index()
-                tm.assert_series_equal(result, expected)
+            store.append('df_mixed_dtypes1', df1)
+            result = store.select('df_mixed_dtypes1').get_dtype_counts()
+            expected = Series({'float32': 2, 'float64': 1, 'int32': 1,
+                               'bool': 1, 'int16': 1, 'int8': 1,
+                               'int64': 1, 'object': 1,
+                               'datetime64[ns]': 2})
+            result = result.sort_index()
+            result = expected.sort_index()
+            tm.assert_series_equal(result, expected)
 
     def test_table_mixed_dtypes(self):
 

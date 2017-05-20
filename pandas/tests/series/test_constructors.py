@@ -299,8 +299,19 @@ class TestSeriesConstructors(TestData):
     def test_constructor_cast(self):
         pytest.raises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
 
+        # GH 15832
+        for t in ['uint8', 'uint16', 'uint32', 'uint64']:
+            with pytest.raises(OverflowError):
+                Series([-1], dtype=t)
+
+        # GH 15832
+        for t in ['uint8', 'uint16', 'uint32', 'uint64']:
+            with pytest.raises(ValueError):
+                Series([1, 2, 3.5], dtype=t)
+
     def test_constructor_dtype_nocast(self):
         # 1572
+        s = Series([1, 2, 3])
         s = Series([1, 2, 3])
 
         s2 = Series(s, dtype=np.int64)
@@ -884,14 +895,3 @@ class TestSeriesConstructors(TestData):
         msg = "cannot convert datetimelike"
         with tm.assert_raises_regex(TypeError, msg):
             Series([], dtype='M8[ps]')
-
-    def test_constructor_overflow_coercion_signed_to_unsigned(self):
-        # GH 15832
-        for t in ['uint8', 'uint16', 'uint32', 'uint64']:
-            with pytest.raises(OverflowError):
-                Series([-1], dtype=t)
-
-    def test_constructor_overflow_coercion_float_to_int(self):
-        # GH 15832
-        with pytest.raises(OverflowError):
-            Series([1, 2, 3.5], dtype=int)

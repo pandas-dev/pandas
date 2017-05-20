@@ -304,6 +304,11 @@ class TestFloat64Index(Numeric):
             i = Float64Index([0, 1.1, np.NAN])
             pytest.raises(ValueError, lambda: i.astype(dtype))
 
+        # GH 15832
+        for t in ['uint8', 'uint16', 'uint32', 'uint64']:
+            with pytest.raises(ValueError):
+                Index([1, 2, 3.5], dtype=t)
+
     def test_equals_numeric(self):
 
         i = Float64Index([1.0, 2.0])
@@ -683,11 +688,6 @@ class TestInt64Index(NumericInt):
         for t in ['uint8', 'uint16', 'uint32', 'uint64']:
             with pytest.raises(OverflowError):
                 Index([-1], dtype=t)
-
-    def test_constructor_overflow_coercion_float_to_int(self):
-        # GH 15832
-        with pytest.raises(OverflowError):
-            Index([1, 2, 3.5], dtype=int)
 
     def test_coerce_list(self):
         # coerce things

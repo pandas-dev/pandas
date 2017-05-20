@@ -1031,24 +1031,33 @@ def find_common_type(types):
 
 def maybe_cast_to_integer(arr, dtype):
     """
-    Find a common data type among the given dtypes.
+    Takes an integer dtype and returns the casted version, raising for an
+    incompatible dtype.
 
     Parameters
     ----------
-    arr : array
-    dtype : dtype
+    arr : ndarray
+    dtype : np.dtype
 
     Returns
     -------
-    integer or unsigned integer array (or raise if the dtype is incompatible)
+    integer or unsigned integer array
+
+    Raises
+    ------
+    OverflowError
+        * If ``dtype`` is incompatible
+    ValueError
+        * If coercion from float to integer loses precision
 
     """
 
-    if is_unsigned_integer_dtype(dtype) and (np.asarray(arr) < 0).any():
+    if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to negative "
                             "integers")
-    elif is_integer_dtype(dtype) and is_float_dtype(np.asarray(arr)):
-        if ((np.asarray(arr) % np.asarray(arr).astype(int)) > 0).any():
-            raise OverflowError("Trying to coerce float values to integers")
-    else:
-        return arr
+    elif is_integer_dtype(dtype) and (is_float_dtype(arr) or
+                                      is_object_dtype(arr)):
+        if not (arr == arr.astype(dtype)).all():
+            raise ValueError("Trying to coerce float values to integers")
+
+    return arr.astype(dtype, copy=False)

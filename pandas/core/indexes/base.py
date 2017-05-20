@@ -15,6 +15,7 @@ from pandas import compat
 
 from pandas.core.dtypes.generic import ABCSeries, ABCMultiIndex, ABCPeriodIndex
 from pandas.core.dtypes.missing import isnull, array_equivalent
+from pandas.core.dtypes.cast import maybe_cast_to_integer
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
@@ -52,7 +53,6 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.strings import StringAccessorMixin
 from pandas.core.config import get_option
-from pandas.core.dtypes.cast import maybe_cast_to_integer
 
 
 # simplify
@@ -219,14 +219,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                             if isnull(data).any():
                                 raise ValueError('cannot convert float '
                                                  'NaN to integer')
-
-                            if is_integer_dtype(dtype) and not \
-                                    (np.asarray(data).astype(int) == 0).all():
-                                if ((np.asarray(data) % np.asarray(data).
-                                        astype(int)) > 0).any():
-                                    raise OverflowError("Trying to coerce "
-                                                        "float values to "
-                                                        "integers")
+                            if inferred == 'mixed-integer-float':
+                                maybe_cast_to_integer(data, dtype)
 
                             # If we are actually all equal to integers,
                             # then coerce to integer.
@@ -257,6 +251,8 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                 except (TypeError, ValueError) as e:
                     msg = str(e)
                     if 'cannot convert float' in msg:
+                        raise
+                    if 'Trying to coerce float values to integer' in msg:
                         raise
 
             # maybe coerce to a sub-class

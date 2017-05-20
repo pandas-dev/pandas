@@ -285,10 +285,8 @@ class TestSetitemCoercion(CoercionBase):
         self._assert_setitem_index_conversion(obj, 5, exp_index, np.int64)
 
         # int + float -> float
-        with pytest.raises(OverflowError):
-            exp_index = pd.Index([0, 1, 2, 3, 1.1])
-            self._assert_setitem_index_conversion(obj, 1.1, exp_index,
-                                                  np.float64)
+        exp_index = pd.Index([0, 1, 2, 3, 1.1])
+        self._assert_setitem_index_conversion(obj, 1.1, exp_index, np.float64)
 
         # int + object -> object
         exp_index = pd.Index([0, 1, 2, 3, 'x'])
@@ -375,9 +373,8 @@ class TestInsertIndexCoercion(CoercionBase):
         self._assert_insert_conversion(obj, 1, exp, np.int64)
 
         # int + float -> float
-        with pytest.raises(OverflowError):
-            exp = pd.Index([1, 1.1, 2, 3, 4])
-            self._assert_insert_conversion(obj, 1.1, exp, np.float64)
+        exp = pd.Index([1, 1.1, 2, 3, 4])
+        self._assert_insert_conversion(obj, 1.1, exp, np.float64)
 
         # int + bool -> int
         exp = pd.Index([1, 0, 2, 3, 4])
@@ -625,8 +622,7 @@ class TestWhereCoercion(CoercionBase):
         self._where_int64_common(pd.Series)
 
     def test_where_index_int64(self):
-        with pytest.raises(OverflowError):
-            self._where_int64_common(pd.Index)
+        self._where_int64_common(pd.Index)
 
     def _where_float64_common(self, klass):
         obj = klass([1.1, 2.2, 3.3, 4.4])
