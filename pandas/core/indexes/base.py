@@ -226,8 +226,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                 return cls._try_convert_to_int_index(
                                     data, copy, name)
                             except ValueError:
-                                raise OverflowError("Trying to coerce float "
-                                                    "values to integers")
+                                pass
 
                             # Return an actual float index.
                             from .numeric import Float64Index
