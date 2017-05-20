@@ -981,9 +981,9 @@ class TestWideToLong(object):
         # GH16382
         # Raise an error message if non unique id vars (i) are passed
         df = pd.DataFrame({
-            'A_A1' : [1, 2, 3, 4, 5],
-            'B_B1' : [1, 2, 3, 4, 5],
-            'x' : [1, 1, 1, 1, 1]
+            'A_A1': [1, 2, 3, 4, 5],
+            'B_B1': [1, 2, 3, 4, 5],
+            'x': [1, 1, 1, 1, 1]
         })
         with pytest.raises(ValueError):
             wide_to_long(df, ['A_A', 'B_B'], i='x', j='colname')
