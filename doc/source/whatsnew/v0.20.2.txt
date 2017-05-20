@@ -60,6 +60,7 @@ Plotting
 ^^^^^^^^
 
 - Bug in ``DataFrame.plot`` with a single column and a list-like ``color`` (:issue:`3486`)
+- Bug in ``plot`` where ``NaT`` in ``DatetimeIndex`` results in ``Timestamp.min`` (:issue: `12405`)
 
 
 

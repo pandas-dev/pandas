@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
+from pandas.core.dtypes.missing import notnull
 from pandas.core.dtypes.common import (
     is_list_like,
     is_integer,
@@ -538,6 +539,7 @@ class MPLPlot(object):
                 """
                 x = index._mpl_repr()
             elif is_datetype:
+                self.data = self.data[notnull(self.data.index)]
                 self.data = self.data.sort_index()
                 x = self.data.index._mpl_repr()
             else:
