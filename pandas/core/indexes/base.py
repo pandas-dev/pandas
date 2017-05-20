@@ -220,11 +220,13 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
                                 raise ValueError('cannot convert float '
                                                  'NaN to integer')
 
-                            if is_integer_dtype(dtype) and \
-                                    ((np.asarray(data) % np.asarray(data).
-                                            astype(int)) > 0).any():
-                                raise OverflowError("Trying to coerce float "
-                                                    "values to integers")
+                            if is_integer_dtype(dtype) and not \
+                                    (np.asarray(data).astype(int) == 0).all():
+                                if ((np.asarray(data) % np.asarray(data).
+                                        astype(int)) > 0).any():
+                                    raise OverflowError("Trying to coerce "
+                                                        "float values to "
+                                                        "integers")
 
                             # If we are actually all equal to integers,
                             # then coerce to integer.
