@@ -79,6 +79,7 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in ``DataFrame.stack`` with unsorted levels in MultiIndex columns (:issue:`16323`)
+- Bug in ``pd.wide_to_long()`` where no error was raised when ``i`` was not a unique identifier (:issue:`16382`)
 
 
 Numeric
