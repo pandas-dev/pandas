@@ -6,7 +6,7 @@ import pytest
 from pandas.compat import lrange, zip
 
 import numpy as np
-from pandas import Index, Series, DataFrame
+from pandas import Index, Series, DataFrame, NaT
 from pandas.compat import is_platform_mac
 from pandas.core.indexes.datetimes import date_range, bdate_range
 from pandas.core.indexes.timedeltas import timedelta_range
@@ -810,6 +810,20 @@ class TestTSPlot(TestPlotBase):
         # s1.plot(ax=ax2)
         # assert (ax1.lines[0].get_xydata()[0, 0] ==
         #         ax2.lines[0].get_xydata()[0, 0])
+
+    def test_nat_handling(self):
+
+        fig = self.plt.gcf()
+        # self.plt.clf()
+        ax = fig.add_subplot(111)
+
+        dti = DatetimeIndex(['2015-01-01', NaT, '2015-01-03'])
+        s = Series(range(len(dti)), dti)
+        s.plot(ax=ax)
+        xdata = ax.get_lines()[0].get_xdata()
+        # plot x data is bounded by index values
+        assert s.index.min() <= Series(xdata).min()
+        assert Series(xdata).max() <= s.index.max()
 
     @slow
     def test_to_weekly_resampling(self):
