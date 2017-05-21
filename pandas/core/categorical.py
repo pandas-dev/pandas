@@ -55,17 +55,31 @@ def _cat_compare_op(op):
                                 "equality or not")
         if isinstance(other, Categorical):
             # Two Categoricals can only be be compared if the categories are
-            # the same
-            if ((len(self.categories) != len(other.categories)) or
-                    not ((self.categories == other.categories).all())):
-                raise TypeError("Categoricals can only be compared if "
-                                "'categories' are the same")
+            # the same (maybe up to ordering, depending on ordered)
+
+            msg = ("Categoricals can only be compared if "
+                   "'categories' are the same.")
+            if len(self.categories) != len(other.categories):
+                raise TypeError(msg + " Categories are different lengths")
+            elif (self.ordered and not (self.categories ==
+                                        other.categories).all()):
+                raise TypeError(msg)
+            elif not set(self.categories) == set(other.categories):
+                raise TypeError(msg)
+
             if not (self.ordered == other.ordered):
                 raise TypeError("Categoricals can only be compared if "
                                 "'ordered' is the same")
-            na_mask = (self._codes == -1) | (other._codes == -1)
+            if not self.ordered and not self.categories.equals(
+                    other.categories):
+                # both unordered and different order
+                other_codes = _get_codes_for_values(other, self.categories)
+            else:
+                other_codes = other._codes
+
+            na_mask = (self._codes == -1) | (other_codes == -1)
             f = getattr(self._codes, op)
-            ret = f(other._codes)
+            ret = f(other_codes)
             if na_mask.any():
                 # In other series, the leads to False, so do that here too
                 ret[na_mask] = False
@@ -533,6 +547,9 @@ class Categorical(PandasObject):
         if not isinstance(categories, ABCIndexClass):
             dtype = None
             if not hasattr(categories, "dtype"):
+                if not is_list_like(categories):
+                    raise TypeError("`categories` must be list-like. "
+                                    "Got {} instead".format(repr(categories)))
                 categories = _convert_to_list_like(categories)
                 # On categories with NaNs, int values would be converted to
                 # float. Use "object" dtype to prevent this.

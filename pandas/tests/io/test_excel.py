@@ -1858,6 +1858,16 @@ class ExcelWriterBase(SharedItems):
             result = read_excel(path)
             tm.assert_frame_equal(expected, result)
 
+    def test_path_pathlib(self):
+        df = tm.makeDataFrame()
+        result = tm.round_trip_pathlib(df.to_excel, pd.read_excel)
+        tm.assert_frame_equal(df, result)
+
+    def test_path_localpath(self):
+        df = tm.makeDataFrame()
+        result = tm.round_trip_localpath(df.to_excel, pd.read_excel)
+        tm.assert_frame_equal(df, result)
+
 
 def raise_wrapper(major_ver):
     def versioned_raise_wrapper(orig_method):
@@ -2489,3 +2499,24 @@ def test_styler_to_excel(engine):
             n_cells += 1
 
     assert n_cells == (10 + 1) * (3 + 1)
+
+
+class TestFSPath(object):
+
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
+    def test_excelfile_fspath(self):
+        _skip_if_no_openpyxl()
+        with tm.ensure_clean('foo.xlsx') as path:
+            df = DataFrame({"A": [1, 2]})
+            df.to_excel(path)
+            xl = ExcelFile(path)
+            result = os.fspath(xl)
+            assert result == path
+
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
+    # @pytest.mark.xfail
+    def test_excelwriter_fspath(self):
+        _skip_if_no_openpyxl()
+        with tm.ensure_clean('foo.xlsx') as path:
+            writer = ExcelWriter(path)
+            assert os.fspath(writer) == str(path)

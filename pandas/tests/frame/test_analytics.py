@@ -1824,6 +1824,17 @@ class TestDataFrameAnalytics(TestData):
             assert (clipped_df.values[ub_mask] == ub).all()
             assert (clipped_df.values[mask] == df.values[mask]).all()
 
+    @pytest.mark.xfail(reason=("clip on mixed integer or floats "
+                               "with integer clippers coerces to float"))
+    def test_clip_mixed_numeric(self):
+
+        df = DataFrame({'A': [1, 2, 3],
+                        'B': [1., np.nan, 3.]})
+        result = df.clip(1, 2)
+        expected = DataFrame({'A': [1, 2, 2],
+                              'B': [1., np.nan, 2.]})
+        tm.assert_frame_equal(result, expected, check_like=True)
+
     def test_clip_against_series(self):
         # GH #6966
 
@@ -1862,6 +1873,23 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_frame_equal(clipped_df[lb_mask], lb[lb_mask])
         tm.assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
         tm.assert_frame_equal(clipped_df[mask], df[mask])
+
+    def test_clip_na(self):
+        msg = "Cannot use an NA"
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(lower=np.nan)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(lower=[np.nan])
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(upper=np.nan)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(upper=[np.nan])
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.clip(lower=np.nan, upper=np.nan)
 
     # Matrix-like
 

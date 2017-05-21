@@ -16,7 +16,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
                     date_range, timedelta_range, Index, DatetimeIndex,
                     isnull)
 
-from pandas.compat import is_platform_windows, PY3, PY35
+from pandas.compat import is_platform_windows, PY3, PY35, BytesIO
 from pandas.io.formats.printing import pprint_thing
 
 tables = pytest.importorskip('tables')
@@ -733,6 +733,39 @@ class TestHDFStore(Base):
 
             store.put('c', df, format='table', complib='blosc')
             tm.assert_frame_equal(store['c'], df)
+
+    def test_complibs(self):
+        # GH14478
+        df = tm.makeDataFrame()
+
+        # Building list of all complibs and complevels tuples
+        all_complibs = tables.filters.all_complibs
+        # Remove lzo if its not available on this platform
+        if not tables.which_lib_version('lzo'):
+            all_complibs.remove('lzo')
+        all_levels = range(0, 10)
+        all_tests = [(lib, lvl) for lib in all_complibs for lvl in all_levels]
+
+        for (lib, lvl) in all_tests:
+            with ensure_clean_path(self.path) as tmpfile:
+                gname = 'foo'
+
+                # Write and read file to see if data is consistent
+                df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl)
+                result = pd.read_hdf(tmpfile, gname)
+                tm.assert_frame_equal(result, df)
+
+                # Open file and check metadata
+                # for correct amount of compression
+                h5table = tables.open_file(tmpfile, mode='r')
+                for node in h5table.walk_nodes(where='/' + gname,
+                                               classname='Leaf'):
+                    assert node.filters.complevel == lvl
+                    if lvl == 0:
+                        assert node.filters.complib is None
+                    else:
+                        assert node.filters.complib == lib
+                h5table.close()
 
     def test_put_integer(self):
         # non-date, non-string index
@@ -4249,6 +4282,49 @@ class TestHDFStore(Base):
             result = store.select('frame', [crit])
             tm.assert_frame_equal(result, df.loc[:, df.columns[:75:2]])
 
+    def test_path_pathlib(self):
+        df = tm.makeDataFrame()
+
+        result = tm.round_trip_pathlib(
+            lambda p: df.to_hdf(p, 'df'),
+            lambda p: pd.read_hdf(p, 'df'))
+        tm.assert_frame_equal(df, result)
+
+    def test_path_pathlib_hdfstore(self):
+        df = tm.makeDataFrame()
+
+        def writer(path):
+            with pd.HDFStore(path) as store:
+                df.to_hdf(store, 'df')
+
+        def reader(path):
+            with pd.HDFStore(path) as store:
+                return pd.read_hdf(store, 'df')
+
+        result = tm.round_trip_pathlib(writer, reader)
+        tm.assert_frame_equal(df, result)
+
+    def test_pickle_path_localpath(self):
+        df = tm.makeDataFrame()
+        result = tm.round_trip_pathlib(
+            lambda p: df.to_hdf(p, 'df'),
+            lambda p: pd.read_hdf(p, 'df'))
+        tm.assert_frame_equal(df, result)
+
+    def test_path_localpath_hdfstore(self):
+        df = tm.makeDataFrame()
+
+        def writer(path):
+            with pd.HDFStore(path) as store:
+                df.to_hdf(store, 'df')
+
+        def reader(path):
+            with pd.HDFStore(path) as store:
+                return pd.read_hdf(store, 'df')
+
+        result = tm.round_trip_localpath(writer, reader)
+        tm.assert_frame_equal(df, result)
+
     def _check_roundtrip(self, obj, comparator, compression=False, **kwargs):
 
         options = {}
@@ -4377,7 +4453,7 @@ class TestHDFStore(Base):
             pytest.raises(ClosedFileError, lambda: 'df' in store)
             pytest.raises(ClosedFileError, lambda: len(store))
             pytest.raises(ClosedFileError, lambda: store['df'])
-            pytest.raises(ClosedFileError, lambda: store.df)
+            pytest.raises(AttributeError, lambda: store.df)
             pytest.raises(ClosedFileError, store.select, 'df')
             pytest.raises(ClosedFileError, store.get, 'df')
             pytest.raises(ClosedFileError, store.append, 'df2', df)
@@ -4931,16 +5007,17 @@ class TestHDFStore(Base):
             store = HDFStore(path, mode='r')
             store.close()
             pytest.raises(IOError, read_hdf, store, 'df')
-            with open(path, mode='r') as store:
-                pytest.raises(NotImplementedError, read_hdf, store, 'df')
+
+    def test_read_hdf_generic_buffer_errors(self):
+        pytest.raises(NotImplementedError, read_hdf, BytesIO(b''), 'df')
 
     def test_invalid_complib(self):
         df = DataFrame(np.random.rand(4, 5),
                        index=list('abcd'),
                        columns=list('ABCDE'))
         with ensure_clean_path(self.path) as path:
-            pytest.raises(ValueError, df.to_hdf, path,
-                          'df', complib='blosc:zlib')
+            with pytest.raises(ValueError):
+                df.to_hdf(path, 'df', complib='foolib')
     # GH10443
 
     def test_read_nokey(self):
@@ -5077,6 +5154,12 @@ class TestHDFStore(Base):
                     else:
                         expected = df.loc[[], :]
                     tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason="Need python 3.6")
+    def test_fspath(self):
+        with tm.ensure_clean('foo.h5') as path:
+            with pd.HDFStore(path) as store:
+                assert os.fspath(store) == str(path)
 
 
 class TestHDFComplexValues(Base):

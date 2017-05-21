@@ -1283,3 +1283,17 @@ class TestStata(object):
         with pytest.raises(ValueError):
             with tm.ensure_clean() as path:
                 original.to_stata(path, encoding='utf-8')
+
+    def test_path_pathlib(self):
+        df = tm.makeDataFrame()
+        df.index.name = 'index'
+        reader = lambda x: read_stata(x).set_index('index')
+        result = tm.round_trip_pathlib(df.to_stata, reader)
+        tm.assert_frame_equal(df, result)
+
+    def test_pickle_path_localpath(self):
+        df = tm.makeDataFrame()
+        df.index.name = 'index'
+        reader = lambda x: read_stata(x).set_index('index')
+        result = tm.round_trip_localpath(df.to_stata, reader)
+        tm.assert_frame_equal(df, result)

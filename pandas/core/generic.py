@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import (
     _ensure_int64,
     needs_i8_conversion,
     is_scalar,
+    is_number,
     is_integer, is_bool,
     is_bool_dtype,
     is_numeric_dtype,
@@ -49,7 +50,7 @@ from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types,
-                           isidentifier, set_function_name)
+                           isidentifier, set_function_name, cPickle as pkl)
 import pandas.core.nanops as nanops
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_bool_kwarg
@@ -1266,12 +1267,17 @@ class NDFrame(PandasObject, SelectionMixin):
             <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
 
             Applicable only to format='table'.
-        complevel : int, 1-9, default 0
-            If a complib is specified compression will be applied
-            where possible
-        complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
-            If complevel is > 0 apply compression to objects written
-            in the store wherever possible
+        complevel : int, 0-9, default 0
+            Specifies a compression level for data.
+            A value of 0 disables compression.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc', None}, default None
+            Specifies the compression library to be used.
+            As of v0.20.2 these additional compressors for Blosc are supported
+            (default if no compressor specified: 'blosc:blosclz'):
+            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
+             'blosc:zlib', 'blosc:zstd'}.
+            Specifying a compression library which is not available issues
+            a ValueError.
         fletcher32 : bool, default False
             If applying compression use the fletcher32 checksum
         dropna : boolean, default False.
@@ -1344,7 +1350,8 @@ class NDFrame(PandasObject, SelectionMixin):
                    if_exists=if_exists, index=index, index_label=index_label,
                    chunksize=chunksize, dtype=dtype)
 
-    def to_pickle(self, path, compression='infer'):
+    def to_pickle(self, path, compression='infer',
+                  protocol=pkl.HIGHEST_PROTOCOL):
         """
         Pickle (serialize) object to input file path.
 
@@ -1356,9 +1363,22 @@ class NDFrame(PandasObject, SelectionMixin):
             a string representing the compression to use in the output file
 
             .. versionadded:: 0.20.0
+        protocol : int
+            Int which indicates which protocol should be used by the pickler,
+            default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
+            values for this parameter depend on the version of Python. For
+            Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
+            valid value. For Python >= 3.4, 4 is a valid value.A negative value
+            for the protocol parameter is equivalent to setting its value to
+            HIGHEST_PROTOCOL.
+
+            .. [1] https://docs.python.org/3/library/pickle.html
+            .. versionadded:: 0.21.0
+
         """
         from pandas.io.pickle import to_pickle
-        return to_pickle(self, path, compression=compression)
+        return to_pickle(self, path, compression=compression,
+                         protocol=protocol)
 
     def to_clipboard(self, excel=None, sep=None, **kwargs):
         """
@@ -1382,8 +1402,8 @@ class NDFrame(PandasObject, SelectionMixin):
           - Windows: none
           - OS X: none
         """
-        from pandas.io.clipboard import clipboard
-        clipboard.to_clipboard(self, excel=excel, sep=sep, **kwargs)
+        from pandas.io import clipboards
+        clipboards.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
     def to_xarray(self):
         """
@@ -4099,6 +4119,26 @@ class NDFrame(PandasObject, SelectionMixin):
     def notnull(self):
         return notnull(self).__finalize__(self)
 
+    def _clip_with_scalar(self, lower, upper):
+
+        if ((lower is not None and np.any(isnull(lower))) or
+                (upper is not None and np.any(isnull(upper)))):
+            raise ValueError("Cannot use an NA value as a clip threshold")
+
+        result = self.values
+        mask = isnull(result)
+
+        with np.errstate(all='ignore'):
+            if upper is not None:
+                result = np.where(result >= upper, upper, result)
+            if lower is not None:
+                result = np.where(result <= lower, lower, result)
+        if np.any(mask):
+            result[mask] = np.nan
+
+        return self._constructor(
+            result, **self._construct_axes_dict()).__finalize__(self)
+
     def clip(self, lower=None, upper=None, axis=None, *args, **kwargs):
         """
         Trim values at input threshold(s).
@@ -4117,12 +4157,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df
-          0         1
+                  0         1
         0  0.335232 -1.256177
         1 -1.367855  0.746646
         2  0.027753 -1.176076
         3  0.230930 -0.679613
         4  1.261967  0.570967
+
         >>> df.clip(-1.0, 0.5)
                   0         1
         0  0.335232 -1.000000
@@ -4130,6 +4171,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2  0.027753 -1.000000
         3  0.230930 -0.679613
         4  0.500000  0.500000
+
         >>> t
         0   -0.3
         1   -0.2
@@ -4137,6 +4179,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    0.0
         4    0.1
         dtype: float64
+
         >>> df.clip(t, t + 1, axis=0)
                   0         1
         0  0.335232 -0.300000
@@ -4154,6 +4197,11 @@ class NDFrame(PandasObject, SelectionMixin):
         if lower is not None and upper is not None:
             if is_scalar(lower) and is_scalar(upper):
                 lower, upper = min(lower, upper), max(lower, upper)
+
+        # fast-path for scalars
+        if ((lower is None or (is_scalar(lower) and is_number(lower))) and
+                (upper is None or (is_scalar(upper) and is_number(upper)))):
+            return self._clip_with_scalar(lower, upper)
 
         result = self
         if lower is not None:
@@ -4184,6 +4232,9 @@ class NDFrame(PandasObject, SelectionMixin):
         if np.any(isnull(threshold)):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
+        if is_scalar(threshold) and is_number(threshold):
+            return self._clip_with_scalar(None, threshold)
+
         subset = self.le(threshold, axis=axis) | isnull(self)
         return self.where(subset, threshold, axis=axis)
 
@@ -4207,6 +4258,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         if np.any(isnull(threshold)):
             raise ValueError("Cannot use an NA value as a clip threshold")
+
+        if is_scalar(threshold) and is_number(threshold):
+            return self._clip_with_scalar(threshold, None)
 
         subset = self.ge(threshold, axis=axis) | isnull(self)
         return self.where(subset, threshold, axis=axis)

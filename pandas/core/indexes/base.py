@@ -3960,7 +3960,7 @@ def _ensure_index(index_like, copy=False):
     if isinstance(index_like, list):
         if type(index_like) != list:
             index_like = list(index_like)
-        # 2200 ?
+
         converted, all_arrays = lib.clean_index_list(index_like)
 
         if len(converted) > 0 and all_arrays:

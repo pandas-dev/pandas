@@ -3,6 +3,7 @@
 from distutils.version import LooseVersion
 from pandas import DataFrame, RangeIndex, Int64Index
 from pandas.compat import range
+from pandas.io.common import _stringify_path
 
 
 def _try_import():
@@ -43,6 +44,7 @@ def to_feather(df, path):
     path : string
         File path
     """
+    path = _stringify_path(path)
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
 
@@ -99,4 +101,5 @@ def read_feather(path):
     """
 
     feather = _try_import()
+    path = _stringify_path(path)
     return feather.read_dataframe(path)

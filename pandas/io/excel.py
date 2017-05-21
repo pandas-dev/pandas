@@ -18,7 +18,8 @@ from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
 from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              get_filepath_or_buffer, _NA_VALUES)
+                              get_filepath_or_buffer, _NA_VALUES,
+                              _stringify_path)
 from pandas.core.indexes.period import Period
 import pandas._libs.json as json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
@@ -233,7 +234,10 @@ class ExcelFile(object):
             raise ImportError("pandas requires xlrd >= 0.9.0 for excel "
                               "support, current version " + xlrd.__VERSION__)
 
+        # could be a str, ExcelFile, Book, etc.
         self.io = io
+        # Always a string
+        self._io = _stringify_path(io)
 
         engine = kwds.pop('engine', None)
 
@@ -242,10 +246,10 @@ class ExcelFile(object):
 
         # If io is a url, want to keep the data as bytes so can't pass
         # to get_filepath_or_buffer()
-        if _is_url(io):
-            io = _urlopen(io)
-        elif not isinstance(io, (ExcelFile, xlrd.Book)):
-            io, _, _ = get_filepath_or_buffer(io)
+        if _is_url(self._io):
+            io = _urlopen(self._io)
+        elif not isinstance(self.io, (ExcelFile, xlrd.Book)):
+            io, _, _ = get_filepath_or_buffer(self._io)
 
         if engine == 'xlrd' and isinstance(io, xlrd.Book):
             self.book = io
@@ -253,11 +257,14 @@ class ExcelFile(object):
             # N.B. xlrd.Book has a read attribute too
             data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
-        elif isinstance(io, compat.string_types):
-            self.book = xlrd.open_workbook(io)
+        elif isinstance(self._io, compat.string_types):
+            self.book = xlrd.open_workbook(self._io)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
+
+    def __fspath__(self):
+        return self._io
 
     def parse(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
               names=None, index_col=None, parse_cols=None, parse_dates=False,
@@ -753,6 +760,9 @@ class ExcelWriter(object):
             self.datetime_format = 'YYYY-MM-DD HH:MM:SS'
         else:
             self.datetime_format = datetime_format
+
+    def __fspath__(self):
+        return _stringify_path(self.path)
 
     def _get_sheet_name(self, sheet_name):
         if sheet_name is None:

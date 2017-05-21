@@ -9,6 +9,7 @@ from pandas.io.feather_format import to_feather, read_feather
 
 from feather import FeatherError
 from pandas.util.testing import assert_frame_equal, ensure_clean
+import pandas.util.testing as tm
 
 
 @pytest.mark.single
@@ -114,3 +115,13 @@ class TestFeather(object):
         df.index = [0, 1, 2]
         df.columns = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)]),
         self.check_error_on_write(df, ValueError)
+
+    def test_path_pathlib(self):
+        df = tm.makeDataFrame().reset_index()
+        result = tm.round_trip_pathlib(df.to_feather, pd.read_feather)
+        tm.assert_frame_equal(df, result)
+
+    def test_path_localpath(self):
+        df = tm.makeDataFrame().reset_index()
+        result = tm.round_trip_localpath(df.to_feather, pd.read_feather)
+        tm.assert_frame_equal(df, result)

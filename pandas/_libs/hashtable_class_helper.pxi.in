@@ -4,6 +4,9 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
+from lib cimport is_null_datetimelike
+
+
 #----------------------------------------------------------------------
 # VectorData
 #----------------------------------------------------------------------
@@ -71,6 +74,7 @@ cdef class {{name}}Vector:
 
     {{if dtype != 'int64'}}
     cdef:
+        bint external_view_exists
         {{name}}VectorData *data
         ndarray ao
     {{endif}}
@@ -80,6 +84,7 @@ cdef class {{name}}Vector:
             sizeof({{name}}VectorData))
         if not self.data:
             raise MemoryError()
+        self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.ao = np.empty(self.data.m, dtype={{idtype}})
@@ -87,7 +92,7 @@ cdef class {{name}}Vector:
 
     cdef resize(self):
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
-        self.ao.resize(self.data.m)
+        self.ao.resize(self.data.m, refcheck=False)
         self.data.data = <{{arg}}*> self.ao.data
 
     def __dealloc__(self):
@@ -99,13 +104,20 @@ cdef class {{name}}Vector:
         return self.data.n
 
     cpdef to_array(self):
-        self.ao.resize(self.data.n)
-        self.data.m = self.data.n
+        if self.data.m != self.data.n:
+            if self.external_view_exists:
+                # should never happen
+                raise ValueError("should have raised on append()")
+            self.ao.resize(self.data.n, refcheck=False)
+            self.data.m = self.data.n
+        self.external_view_exists = True
         return self.ao
 
     cdef inline void append(self, {{arg}} x):
 
         if needs_resize(self.data):
+            if self.external_view_exists:
+                raise ValueError("external reference but Vector.resize() needed")
             self.resize()
 
         append_data_{{dtype}}(self.data, x)
@@ -120,15 +132,19 @@ cdef class StringVector:
 
     cdef:
         StringVectorData *data
+        bint external_view_exists
 
     def __cinit__(self):
         self.data = <StringVectorData *>PyMem_Malloc(
             sizeof(StringVectorData))
         if not self.data:
             raise MemoryError()
+        self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        if not self.data.data:
+            raise MemoryError()
 
     cdef resize(self):
         cdef:
@@ -138,9 +154,10 @@ cdef class StringVector:
         m = self.data.m
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
 
-        # TODO: can resize?
         orig_data = self.data.data
         self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        if not self.data.data:
+            raise MemoryError()
         for i in range(m):
             self.data.data[i] = orig_data[i]
 
@@ -164,6 +181,7 @@ cdef class StringVector:
         for i in range(self.data.n):
             val = self.data.data[i]
             ao[i] = val
+        self.external_view_exists = True
         self.data.m = self.data.n
         return ao
 
@@ -174,6 +192,9 @@ cdef class StringVector:
 
         append_data_string(self.data, x)
 
+    cdef extend(self, ndarray[:] x):
+        for i in range(len(x)):
+            self.append(x[i])
 
 cdef class ObjectVector:
 
@@ -181,8 +202,10 @@ cdef class ObjectVector:
         PyObject **data
         size_t n, m
         ndarray ao
+        bint external_view_exists
 
     def __cinit__(self):
+        self.external_view_exists = False
         self.n = 0
         self.m = _INIT_VEC_CAP
         self.ao = np.empty(_INIT_VEC_CAP, dtype=object)
@@ -193,8 +216,10 @@ cdef class ObjectVector:
 
     cdef inline append(self, object o):
         if self.n == self.m:
+            if self.external_view_exists:
+                raise ValueError("external reference but Vector.resize() needed")
             self.m = max(self.m * 2, _INIT_VEC_CAP)
-            self.ao.resize(self.m)
+            self.ao.resize(self.m, refcheck=False)
             self.data = <PyObject**> self.ao.data
 
         Py_INCREF(o)
@@ -202,10 +227,17 @@ cdef class ObjectVector:
         self.n += 1
 
     def to_array(self):
-        self.ao.resize(self.n)
-        self.m = self.n
+        if self.m != self.n:
+            if self.external_view_exists:
+                raise ValueError("should have raised on append()")
+            self.ao.resize(self.n, refcheck=False)
+            self.m = self.n
+        self.external_view_exists = True
         return self.ao
 
+    cdef extend(self, ndarray[:] x):
+        for i in range(len(x)):
+            self.append(x[i])
 
 #----------------------------------------------------------------------
 # HashTable
@@ -362,6 +394,9 @@ cdef class {{name}}HashTable(HashTable):
 
                     if needs_resize(ud):
                         with gil:
+                            if uniques.external_view_exists:
+                                raise ValueError("external reference to uniques held, "
+                                        "but Vector.resize() needed")
                             uniques.resize()
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
@@ -889,6 +924,19 @@ cdef class MultiIndexHashTable(HashTable):
                     "hash collision\nlocs:\n{}\n"
                     "result:\n{}\nmi:\n{}".format(alocs, result, mi))
 
+    cdef inline void _check_for_collision(self, Py_ssize_t loc, object label):
+        # validate that the loc maps to the actual value
+        # version of _check_for_collisions above for single label (tuple)
+
+        result = self.mi[loc]
+
+        if not all(l == r or (is_null_datetimelike(l)
+                              and is_null_datetimelike(r))
+                   for l, r in zip(result, label)):
+            raise AssertionError(
+                "hash collision\nloc:\n{}\n"
+                "result:\n{}\nmi:\n{}".format(loc, result, label))
+
     def __contains__(self, object key):
         try:
             self.get_item(key)
@@ -907,8 +955,7 @@ cdef class MultiIndexHashTable(HashTable):
         k = kh_get_uint64(self.table, value)
         if k != self.table.n_buckets:
             loc = self.table.vals[k]
-            locs = np.array([loc], dtype=np.int64)
-            self._check_for_collisions(locs, key)
+            self._check_for_collision(loc, key)
             return loc
         else:
             raise KeyError(key)

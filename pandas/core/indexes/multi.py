@@ -75,7 +75,6 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _labels = FrozenList()
     _comparables = ['names']
-    _engine_type = libindex.MultiIndexEngine
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
@@ -629,7 +628,16 @@ class MultiIndex(Index):
 
     @cache_readonly
     def _engine(self):
-        return self._engine_type(lambda: self, len(self))
+
+        # choose our engine based on our size
+        # the hashing based MultiIndex for larger
+        # sizes, and the MultiIndexOjbect for smaller
+        # xref: https://github.com/pandas-dev/pandas/pull/16324
+        l = len(self)
+        if l > 10000:
+            return libindex.MultiIndexHashEngine(lambda: self, l)
+
+        return libindex.MultiIndexObjectEngine(lambda: self.values, l)
 
     @property
     def values(self):
@@ -740,7 +748,7 @@ class MultiIndex(Index):
         we need to stringify if we have mixed levels
 
         """
-        from pandas.core.util.hashing import hash_tuples
+        from pandas.core.util.hashing import hash_tuples, hash_tuple
 
         if not isinstance(key, tuple):
             return hash_tuples(key)
@@ -754,7 +762,7 @@ class MultiIndex(Index):
             return k
         key = tuple([f(k, stringify)
                      for k, stringify in zip(key, self._have_mixed_levels)])
-        return hash_tuples(key)
+        return hash_tuple(key)
 
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
