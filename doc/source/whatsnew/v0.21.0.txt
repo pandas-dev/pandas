@@ -21,7 +21,7 @@ New features
 ~~~~~~~~~~~~
 - DataFrame.interpolate() has a new setting: limit_direction='inside'.
     This will cause the interpolation to fill missing values only when
-    the missing value is surounded by valid values.  It is useful when 
+    the missing value is surrounded by valid values.  It is useful when 
     a series needs to be interpolated, but must not expand into NaN
     values that were outside the range of the original series. (GH16284)
 - Support for `PEP 519 -- Adding a file system path protocol
