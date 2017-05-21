@@ -44,7 +44,6 @@ from pandas.core.common import (is_bool_indexer,
                                 _maybe_match_name,
                                 SettingWithCopyError,
                                 _maybe_box_datetimelike,
-                                _dict_compat,
                                 standardize_mapping,
                                 _any_none)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
