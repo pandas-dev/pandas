@@ -839,6 +839,27 @@ class IndexOpsMixin(object):
         return func(**kwds)
 
     def _map_values(self, values, arg, na_action=None):
+        """An internal function that maps values using the input
+        correspondence (which can be a dict, Series, or function).
+
+        Parameters
+        ----------
+        values : np.ndarray
+            The values to be mapped
+        arg : function, dict, or Series
+            The input correspondence object
+        na_action : {None, 'ignore'}
+            If 'ignore', propagate NA values, without passing them to the
+            mapping function
+
+        Returns
+        -------
+        applied : {Index, MultiIndex}, inferred
+            The output of the mapping function applied to the index.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+
+        """
         if is_extension_type(self.dtype):
             if na_action is not None:
                 raise NotImplementedError

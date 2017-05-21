@@ -996,3 +996,29 @@ class Base(object):
             # non-monotonic should raise.
             with pytest.raises(ValueError):
                 indices._searchsorted_monotonic(value, side='left')
+
+    def test_map(self):
+        index = self.create_index()
+        # From output of UInt64Index mapping can't infer that we
+        #   shouldn't default to Int64
+        if isinstance(index, UInt64Index):
+            expected = Index(index.values.tolist())
+        else:
+            expected = index
+
+        tm.assert_index_equal(index.map(lambda x: x), expected)
+
+        identity_dict = {x: x for x in index}
+        tm.assert_index_equal(index.map(identity_dict), expected)
+
+        # Use values to work around MultiIndex instantiation of series
+        identity_series = Series(expected.values, index=index)
+        tm.assert_index_equal(index.map(identity_series), expected)
+
+        # empty mappable
+        nan_index = pd.Index([np.nan] * len(index))
+        series_map = pd.Series()
+        tm.assert_index_equal(index.map(series_map), nan_index)
+
+        dict_map = {}
+        tm.assert_index_equal(index.map(dict_map), nan_index)

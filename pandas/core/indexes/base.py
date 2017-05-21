@@ -2827,7 +2827,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        data : {dict, DictWithoutMissing}
+        data : dict
             The dictionary from which to extract the values
 
         Returns
@@ -2904,8 +2904,14 @@ class Index(IndexOpsMixin, PandasObject):
             self.values, arg, na_action=na_action)
         attributes = self._get_attributes_dict()
         if new_values.size and isinstance(new_values[0], tuple):
+            if isinstance(self, MultiIndex):
+                names = self.names
+            elif attributes.get('name'):
+                names = [attributes.get('name')] * len(new_values[0])
+            else:
+                names = None
             return MultiIndex.from_tuples(new_values,
-                                          names=attributes.get('name'))
+                                          names=names)
 
         attributes['copy'] = False
         return Index(new_values, **attributes)

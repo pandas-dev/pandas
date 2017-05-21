@@ -395,6 +395,10 @@ class TestIntervalIndex(Base):
     def test_repr_roundtrip(self):
         super(TestIntervalIndex, self).test_repr_roundtrip()
 
+    @pytest.mark.xfail(reason='get_indexer behavior does not currently work')
+    def test_map(self):
+        super(TestIntervalIndex, self).test_map()
+
     def test_get_item(self):
         i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan),
                                       closed='right')
