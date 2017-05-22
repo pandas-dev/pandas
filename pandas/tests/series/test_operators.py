@@ -324,6 +324,14 @@ class TestSeriesOperators(TestData):
         rs[2] += np.timedelta64(timedelta(minutes=5, seconds=1))
         assert rs[2] == value
 
+        # GH 14088
+        import pytz
+        s = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), pd.NaT])
+        dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
+        exp = Series([Timedelta('1 days'), pd.NaT])
+        self.assert_series_equal(s - dt, exp)
+        self.assert_series_equal(s - Timestamp(dt), exp)
+
     def test_operator_series_comparison_zerorank(self):
         # GH 13006
         result = np.float64(0) > pd.Series([1, 2, 3])
