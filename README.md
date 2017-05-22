@@ -204,7 +204,7 @@ python setup.py build --compiler=mingw32
 python setup.py install
 ```
 
-See http://pandas.pydata.org/ for more information.
+See **[the docs](http://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source)** for more information.
 
 ## License
 BSD
@@ -220,9 +220,19 @@ Work on ``pandas`` started at AQR (a quantitative hedge fund) in 2008 and
 has been under active development since then.
 
 ## Discussion and Development
-Since pandas development is related to a number of other scientific
-Python projects, questions are welcome on the scipy-user mailing
-list. Specialized discussions or design issues should take place on
-the PyData mailing list / Google group:
+General questions and discussions can take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
+Specialized discussions or design issues should take place on
+the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) / Google group:
 
-https://groups.google.com/forum/#!forum/pydata
+
+## Contributing to pandas
+
+All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
+
+A detailed overview on how to contribute can be found in the **[contributing guide.](http://pandas.pydata.org/pandas-docs/stable/contributing.html)**
+
+If you are simply looking to start working with the pandas codebase, navigate to the [GitHub “issues” tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [Difficulty Novice](https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22) where you could start out.
+
+Or maybe through using pandas you have an idea of your own or are looking for something in the documentation and thinking ‘this can be improved’...you can do something about it!
+
+Feel free to ask questions on the [mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata) or on [Gitter](https://gitter.im/pydata/pandas).
