@@ -552,7 +552,7 @@ standard database join operations between DataFrame objects:
 
   .. versionadded:: 0.17.0
 
-- ``validate`` : string, default None
+- ``validate`` : string, default None.
   If specified, checks if merge is of specified type.
 
   * "one_to_one" or "1:1": checks if merge keys are unique in both
@@ -561,8 +561,7 @@ standard database join operations between DataFrame objects:
     dataset.
   * "many_to_one" or "m:1": checks if merge keys are unique in right
     dataset.
-  * "many_to_many" or "m:m": allowed, but does not result in checks. 
-
+  * "many_to_many" or "m:m": allowed, but does not result in checks.
 
   .. versionadded:: 0.21.0
 
@@ -749,12 +748,10 @@ In the following example, there are duplicate values of ``B`` in the right DataF
   left = pd.DataFrame({'A' : [1,2], 'B' : [1, 2]})
   right = pd.DataFrame({'A' : [4,5,6], 'B': [2, 2, 2]})
 
-.. code-block:: python
+.. code-block:: ipython
 
-  In  [53]: result = pd.merge(left, right, on='B', how='outer', validate="one_to_one")  
-  Out [53]:
-  ---------------------------------------------------------------------------
-  
+  In [53]: result = pd.merge(left, right, on='B', how='outer', validate="one_to_one")
+  ...
   MergeError: Merge keys are not unique in right dataset; not a one-to-one merge    
 
 If the user is aware of the duplicates in the right `DataFrame` but wants to ensure there are no duplicates in the left DataFrame, one can use the `validate='one_to_many'` argument instead, which will not raise an exception. 
