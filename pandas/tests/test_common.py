@@ -16,6 +16,7 @@ def test_mut_exclusive():
         com._mut_exclusive(a=1, b=2)
     assert com._mut_exclusive(a=1, b=None) == 1
     assert com._mut_exclusive(major=None, major_axis=None) is None
+    assert com._mut_exclusive(a=None, b=2) == 2
 
 
 def test_get_callable_name():
