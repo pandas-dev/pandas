@@ -247,11 +247,13 @@ class DataFrame(NDFrame):
 
     Examples
     --------
+    >>> import numpy as np
+    >>> import pandas as pd
     >>> d = {'col1': ts1, 'col2': ts2}
-    >>> df = DataFrame(data=d, index=index)
-    >>> df2 = DataFrame(np.random.randn(10, 5))
-    >>> df3 = DataFrame(np.random.randn(10, 5),
-    ...                 columns=['a', 'b', 'c', 'd', 'e'])
+    >>> df = pd.DataFrame(data=d, index=index)
+    >>> df2 = pd.DataFrame(np.random.randn(10, 5))
+    >>> df3 = pd.DataFrame(np.random.randn(10, 5),
+    ...                    columns=['a', 'b', 'c', 'd', 'e'])
 
     See also
     --------
