@@ -243,6 +243,7 @@ def infer_dtype(object value):
     - integer
     - mixed-integer
     - mixed-integer-float
+    - decimal
     - complex
     - categorical
     - boolean
@@ -285,6 +286,9 @@ def infer_dtype(object value):
 
     >>> infer_dtype(['a', 1])
     'mixed-integer'
+
+    >>> infer_dtype([Decimal(1), Decimal(2.0)])
+    'decimal'
 
     >>> infer_dtype([True, False])
     'boolean'
