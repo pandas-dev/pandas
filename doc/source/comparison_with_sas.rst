@@ -592,7 +592,10 @@ the XPORT or SAS7BDAT binary format.
    df = pd.read_sas('transport-file.xpt')
    df = pd.read_sas('binary-file.sas7bdat')
 
-   # specify format directly (by default, format is inferred)
+You can also specify the file format directly. By default, pandas will try
+to infer the file format based on its extension.
+
+.. code-block:: python
 
    df = pd.read_sas('transport-file.xpt', format='xport')
    df = pd.read_sas('binary-file.sas7bdat', format='sas7bdat')
