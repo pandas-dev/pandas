@@ -50,21 +50,21 @@ class _Unstacker(object):
     ...                                    ('two', 'a'), ('two', 'b')])
     >>> s = pd.Series(np.arange(1.0, 5.0), index=index)
     >>> s
-    one  a   1
-         b   2
-    two  a   3
-         b   4
+    one  a    1.0
+         b    2.0
+    two  a    3.0
+         b    4.0
     dtype: float64
 
     >>> s.unstack(level=-1)
-         a   b
-    one  1  2
-    two  3  4
+           a    b
+    one  1.0  2.0
+    two  3.0  4.0
 
     >>> s.unstack(level=0)
        one  two
-    a  1   2
-    b  3   4
+    a  1.0  3.0
+    b  2.0  4.0
 
     Returns
     -------
@@ -689,7 +689,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         new_labels = [np.arange(N).repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
-    new_levels.append(level_vals)
+    new_levels.append(frame.columns.levels[level_num])
     new_labels.append(np.tile(level_labels, N))
     new_names.append(frame.columns.names[level_num])
 
@@ -789,18 +789,18 @@ def lreshape(data, groups, dropna=True, label=None):
     >>> import pandas as pd
     >>> data = pd.DataFrame({'hr1': [514, 573], 'hr2': [545, 526],
     ...                      'team': ['Red Sox', 'Yankees'],
-    ...                      'year1': [2007, 2008], 'year2': [2008, 2008]})
+    ...                      'year1': [2007, 2007], 'year2': [2008, 2008]})
     >>> data
        hr1  hr2     team  year1  year2
     0  514  545  Red Sox   2007   2008
     1  573  526  Yankees   2007   2008
 
     >>> pd.lreshape(data, {'year': ['year1', 'year2'], 'hr': ['hr1', 'hr2']})
-          team   hr  year
-    0  Red Sox  514  2007
-    1  Yankees  573  2007
-    2  Red Sox  545  2008
-    3  Yankees  526  2008
+          team  year   hr
+    0  Red Sox  2007  514
+    1  Yankees  2007  573
+    2  Red Sox  2008  545
+    3  Yankees  2008  526
 
     Returns
     -------
@@ -905,11 +905,12 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     ...                   })
     >>> df["id"] = df.index
     >>> df
-    A1970 A1980  B1970  B1980         X  id
+      A1970 A1980  B1970  B1980         X  id
     0     a     d    2.5    3.2 -1.085631   0
     1     b     e    1.2    1.3  0.997345   1
     2     c     f    0.7    0.1  0.282978   2
     >>> pd.wide_to_long(df, ["A", "B"], i="id", j="year")
+    ... # doctest: +NORMALIZE_WHITESPACE
                     X  A    B
     id year
     0  1970 -1.085631  a  2.5
@@ -940,6 +941,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     8      3      3  2.1  2.9
     >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age')
     >>> l
+    ... # doctest: +NORMALIZE_WHITESPACE
                       ht
     famid birth age
     1     1     1    2.8
@@ -979,6 +981,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
 
     Less wieldy column names are also handled
 
+    >>> np.random.seed(0)
     >>> df = pd.DataFrame({'A(quarterly)-2010': np.random.rand(3),
     ...                    'A(quarterly)-2011': np.random.rand(3),
     ...                    'B(quarterly)-2010': np.random.rand(3),
@@ -986,15 +989,17 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     ...                    'X' : np.random.randint(3, size=3)})
     >>> df['id'] = df.index
     >>> df
-      A(quarterly)-2010 A(quarterly)-2011 B(quarterly)-2010 B(quarterly)-2011
-    0          0.531828          0.724455          0.322959          0.293714
-    1          0.634401          0.611024          0.361789          0.630976
-    2          0.849432          0.722443          0.228263          0.092105
-    \
+    ... # doctest: +NORMALIZE_WHITESPACE
+       A(quarterly)-2010  A(quarterly)-2011  B(quarterly)-2010  B(quarterly)-2011  \
+    0           0.548814           0.544883           0.437587           0.383442
+    1           0.715189           0.423655           0.891773           0.791725
+    2           0.602763           0.645894           0.963663           0.528895
+    
        X  id
     0  0   0
     1  1   1
-    2  2   2
+    2  1   2
+    
     >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'],
                         i='id', j='year', sep='-')
              X     A(quarterly)  B(quarterly)
@@ -1132,8 +1137,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     1  0  1    0
     2  0  0    1
 
-    >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
-                        'C': [1, 2, 3]})
+    >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'], 'C': [1, 2, 3]})
 
     >>> pd.get_dummies(df, prefix=['col1', 'col2'])
        C  col1_a  col1_b  col2_a  col2_b  col2_c
@@ -1149,7 +1153,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     3  1  0  0
     4  1  0  0
 
-    >>> pd.get_dummies(pd.Series(list('abcaa')), drop_first=True))
+    >>> pd.get_dummies(pd.Series(list('abcaa')), drop_first=True)
        b  c
     0  0  0
     1  1  0
