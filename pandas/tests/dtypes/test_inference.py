@@ -9,6 +9,7 @@ from warnings import catch_warnings
 import collections
 import re
 from datetime import datetime, date, timedelta, time
+from decimal import Decimal
 import numpy as np
 import pytz
 import pytest
@@ -461,6 +462,11 @@ class TestTypeInference(object):
         arr = np.array([1, 2, 3, 4, 5], dtype='f8')
         result = lib.infer_dtype(arr)
         assert result == 'floating'
+
+    def test_decimals(self):
+        arr = np.array([Decimal(1), Decimal(2), Decimal(3)])
+        result = lib.infer_dtype(arr)
+        assert result == 'decimal'
 
     def test_string(self):
         pass
