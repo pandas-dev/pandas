@@ -135,6 +135,19 @@ def json_normalize(data, record_path=None, meta=None,
     Examples
     --------
 
+    >>> from pandas.io.json import json_normalize
+    >>> data = [
+    ... {'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
+    ... {'name': {'given': 'Mose', 'family': 'Regner'}},
+    ... {'id': 2, 'name': 'Faye Raker'}
+    ... ]
+    >>> json_normalize(data)
+        id        name name.family name.first name.given name.last
+    0  1.0         NaN         NaN     Coleen        NaN      Volk
+    1  NaN         NaN      Regner        NaN       Mose       NaN
+    2  2.0  Faye Raker         NaN        NaN        NaN       NaN
+
+    >>> from pandas.io.json import json_normalize
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
     ...          'info': {
@@ -150,7 +163,6 @@ def json_normalize(data, record_path=None, meta=None,
     ...          },
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
-    >>> from pandas.io.json import json_normalize
     >>> result = json_normalize(data, 'counties', ['state', 'shortname',
     ...                                           ['info', 'governor']])
     >>> result
