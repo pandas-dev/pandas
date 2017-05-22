@@ -246,11 +246,13 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Notes
     -----
 
-    To learn more about categories, see 'link
-    <http://pandas.pydata.org/pandas-docs/stable/categorical.html#unioning>__`
+    To learn more about categories, see `link
+    <http://pandas.pydata.org/pandas-docs/stable/categorical.html#unioning>`__
 
     Examples
     --------
+
+    >>> from pandas.api.types import union_categoricals
 
     If you want to combine categoricals that do not necessarily have
     the same categories, `union_categoricals` will combine a list-like
@@ -264,8 +266,8 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Categories (3, object): [b, c, a]
 
     By default, the resulting categories will be ordered as they appear
-    in the data. If you want the categories to be lexsorted, use
-    `sort_categories=True` argument.
+    in the `categories` of the data. If you want the categories to be
+    lexsorted, use `sort_categories=True` argument.
 
     >>> union_categoricals([a, b], sort_categories=True)
     [b, c, a, b]
