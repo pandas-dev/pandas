@@ -591,3 +591,8 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df.iloc[[]], df.iloc[:0, :],
                               check_index_type=True,
                               check_column_type=True)
+
+    def test_loc_identity_slice_returns_new_object(self):
+        # GH13873
+        df = DataFrame({'a': [1, 3, 5], 'b': [2, 4, 6]})
+        assert not df.iloc[:] is df
