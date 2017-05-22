@@ -48,23 +48,23 @@ class _Unstacker(object):
     >>> import pandas as pd
     >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
     ...                                    ('two', 'a'), ('two', 'b')])
-    >>> s = pd.Series(np.arange(1.0, 5.0), index=index)
+    >>> s = pd.Series(np.arange(1, 5), index=index)
     >>> s
-    one  a    1.0
-         b    2.0
-    two  a    3.0
-         b    4.0
-    dtype: float64
+    one  a    1
+         b    2
+    two  a    3
+         b    4
+    dtype: int32
 
     >>> s.unstack(level=-1)
-           a    b
-    one  1.0  2.0
-    two  3.0  4.0
+         a  b
+    one  1  2
+    two  3  4
 
     >>> s.unstack(level=0)
        one  two
-    a  1.0  3.0
-    b  2.0  4.0
+    a    1    3
+    b    2    4
 
     Returns
     -------
@@ -994,31 +994,28 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     0           0.548814           0.544883           0.437587           0.383442
     1           0.715189           0.423655           0.891773           0.791725
     2           0.602763           0.645894           0.963663           0.528895
-    
        X  id
     0  0   0
     1  1   1
     2  1   2
     
-    >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'],
-                        i='id', j='year', sep='-')
-             X     A(quarterly)  B(quarterly)
+    >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'], i='id', j='year', sep='-')
+    ... # doctest: +NORMALIZE_WHITESPACE
+             X  A(quarterly)  B(quarterly)
     id year
-    0  2010  0       0.531828       0.322959
-    1  2010  2       0.634401       0.361789
-    2  2010  2       0.849432       0.228263
-    0  2011  0       0.724455       0.293714
-    1  2011  2       0.611024       0.630976
-    2  2011  2       0.722443       0.092105
+    0  2010  0      0.548814     0.437587
+    1  2010  1      0.715189     0.891773
+    2  2010  1      0.602763     0.963663
+    0  2011  0      0.544883     0.383442
+    1  2011  1      0.423655     0.791725
+    2  2011  1      0.645894     0.528895
 
     If we have many columns, we could also use a regex to find our
     stubnames and pass that list on to wide_to_long
 
-    >>> stubnames = set([match[0] for match in
-                        df.columns.str.findall('[A-B]\(.*\)').values
-                        if match != [] ])
+    >>> stubnames = sorted(set([match[0] for match in df.columns.str.findall('[A-B]\(.*\)').values if match != [] ]))
     >>> list(stubnames)
-    ['B(quarterly)', 'A(quarterly)']
+    ['A(quarterly)', 'B(quarterly)']
 
     Notes
     -----
@@ -1137,7 +1134,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     1  0  1    0
     2  0  0    1
 
-    >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'], 'C': [1, 2, 3]})
+    >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'], 
+    ...                    'C': [1, 2, 3]})
 
     >>> pd.get_dummies(df, prefix=['col1', 'col2'])
        C  col1_a  col1_b  col2_a  col2_b  col2_c
