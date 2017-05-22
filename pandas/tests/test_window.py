@@ -441,6 +441,16 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    def test_empty_df_datetime_rolling_sum(self):
+        result = DataFrame().rolling('1s').sum()
+        expected = DataFrame()
+        tm.assert_frame_equal(result, expected)
+
+    def test_empty_df_integer_rolling_sum(self):
+        result = DataFrame().rolling(1).sum()
+        expected = DataFrame()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding(Base):
 
