@@ -178,6 +178,8 @@ def read_stata(filepath_or_buffer, convert_dates=True,
             data = reader.read()
         finally:
             reader.close()
+    if index is not None:
+        data.set_index(index)
     return data
 
 
