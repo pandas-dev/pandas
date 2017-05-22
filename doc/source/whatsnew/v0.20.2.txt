@@ -37,6 +37,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
+- Bug creating rolling datetime rolling window on empty DataFrame (:issue:`15819`)
 
 Conversion
 ^^^^^^^^^^
