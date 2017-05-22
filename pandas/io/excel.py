@@ -48,7 +48,7 @@ io : string, path object (pathlib.Path or py._path.local.LocalPath),
     The string could be a URL. Valid URL schemes include http, ftp, s3,
     and file. For file URLs, a host is expected. For instance, a local
     file could be file://localhost/path/to/workbook.xlsx
-sheetname : string, int, mixed list of strings/ints, or None, default 0
+sheet_name : string, int, mixed list of strings/ints, or None, default 0
 
     Strings are used for sheet names, Integers are used in zero-indexed
     sheet positions.
@@ -144,7 +144,7 @@ has_index_names : boolean, default None
 Returns
 -------
 parsed : DataFrame or Dict of DataFrames
-    DataFrame from the passed in Excel file.  See notes in sheetname
+    DataFrame from the passed in Excel file.  See notes in sheet_name
     argument for more information on when a Dict of Dataframes is returned.
 """
 
@@ -190,7 +190,7 @@ def get_writer(engine_name):
 
 
 @Appender(_read_excel_doc)
-def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
+def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, has_index_names=None, converters=None,
@@ -200,8 +200,12 @@ def read_excel(io, sheetname=0, header=0, skiprows=None, skip_footer=0,
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
+    # maintain backwards compatibility by converting sheetname to sheet_name
+    if 'sheetname' in kwds:
+         sheet_name = kwds.pop('sheetname')
+
     return io._parse_excel(
-        sheetname=sheetname, header=header, skiprows=skiprows, names=names,
+        sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
         index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
         convert_float=convert_float, has_index_names=has_index_names,
@@ -266,7 +270,7 @@ class ExcelFile(object):
     def __fspath__(self):
         return self._io
 
-    def parse(self, sheetname=0, header=0, skiprows=None, skip_footer=0,
+    def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
               names=None, index_col=None, parse_cols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
               convert_float=True, has_index_names=None,
@@ -279,7 +283,7 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheetname, header=header,
+        return self._parse_excel(sheetname=sheet_name, header=header,
                                  skiprows=skiprows, names=names,
                                  index_col=index_col,
                                  has_index_names=has_index_names,
