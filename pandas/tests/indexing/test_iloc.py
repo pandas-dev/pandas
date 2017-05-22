@@ -596,3 +596,5 @@ class TestiLoc(Base):
         # GH13873
         df = DataFrame({'a': [1, 3, 5], 'b': [2, 4, 6]})
         assert not df.iloc[:] is df
+        assert not df.iloc[:,:] is df
+        assert not df.iloc[pd.IndexSlice[:, :]] is df

@@ -845,7 +845,7 @@ class _NDFrameIndexer(object):
             return self._multi_take(tup)
 
         # no shortcut needed
-        retval = self.obj
+        retval = self.obj.copy()
         for i, key in enumerate(tup):
             if i >= self.obj.ndim:
                 raise IndexingError('Too many indexers')
@@ -854,7 +854,6 @@ class _NDFrameIndexer(object):
                 continue
 
             retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
-
         return retval
 
     def _multi_take_opportunity(self, tup):
@@ -1665,7 +1664,7 @@ class _iLocIndexer(_LocationIndexer):
         except:
             pass
 
-        retval = self.obj
+        retval = self.obj.copy()
         axis = 0
         for i, key in enumerate(tup):
             if i >= self.obj.ndim:
