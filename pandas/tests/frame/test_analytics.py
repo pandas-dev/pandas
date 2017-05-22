@@ -2073,3 +2073,16 @@ class TestNLargestNSmallest(object):
         result = df.nlargest(n, order)
         expected = df.sort_values(order, ascending=False).head(n)
         tm.assert_frame_equal(result, expected)
+
+    def test_series_broadcasting(self):
+        # smoke test for numpy warnings
+        # GH 16378, GH 16306
+        df = DataFrame([1.0, 1.0, 1.0])
+        df_nan = DataFrame({'A': [np.nan, 2.0, np.nan]})
+        s = Series([1, 1, 1])
+        s_nan = Series([np.nan, np.nan, 1])
+
+        with tm.assert_produces_warning(None):
+            df_nan.clip_lower(s, axis=0)
+            for op in ['lt', 'le', 'gt', 'ge', 'eq', 'ne']:
+                getattr(df, op)(s_nan, axis=0)

@@ -1250,7 +1250,8 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
                             masker=False):
     def na_op(x, y):
         try:
-            result = op(x, y)
+            with np.errstate(invalid='ignore'):
+                result = op(x, y)
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=bool)
