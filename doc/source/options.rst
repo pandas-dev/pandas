@@ -28,7 +28,7 @@ You can get/set options directly as attributes of the top-level ``options`` attr
    pd.options.display.max_rows = 999
    pd.options.display.max_rows
 
-There is also an API composed of 5 relevant functions, available directly from the ``pandas``
+The API is composed of 5 relevant functions, available directly from the ``pandas``
 namespace:
 
 - :func:`~pandas.get_option` / :func:`~pandas.set_option` - get/set the value of a single option.
@@ -40,7 +40,7 @@ namespace:
 **Note:** developers can check out pandas/core/config.py for more info.
 
 All of the functions above accept a regexp pattern (``re.search`` style) as an argument,
-and so passing in a substring will work - as long as it is unambiguous :
+and so passing in a substring will work - as long as it is unambiguous:
 
 .. ipython:: python
 
@@ -241,7 +241,7 @@ suggestion.
    df
 
 ``display.chop_threshold`` sets at what level pandas rounds to zero when
-it displays a Series of DataFrame.  Note, this does not effect the
+it displays a Series of DataFrame. Note, this does not effect the
 precision at which the number is stored.
 
 .. ipython:: python
@@ -420,15 +420,15 @@ mode.chained_assignment             warn         Raise an exception, warn, or no
                                                  action if trying to use chained
                                                  assignment, The default is warn
 mode.sim_interactive                False        Whether to simulate interactive mode
-                                                 for purposes of testing
+                                                 for purposes of testing.
 mode.use_inf_as_null                False        True means treat None, NaN, -INF,
                                                  INF as null (old way), False means
                                                  None and NaN are null, but INF, -INF
                                                  are not null (new way).
 compute.use_bottleneck              True         Use the bottleneck library to accelerate
-                                                 computation if it is installed
+                                                 computation if it is installed.
 compute.use_numexpr                 True         Use the numexpr library to accelerate
-                                                 computation if it is installed
+                                                 computation if it is installed.
 =================================== ============ ==================================
 
 
