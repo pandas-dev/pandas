@@ -51,6 +51,7 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- Moved definition of ``MergeError`` to ``pandas/errors/__init__.py``.
 
 
 .. _whatsnew_0210.deprecations:

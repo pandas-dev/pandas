@@ -57,3 +57,9 @@ class ParserWarning(Warning):
     """
 
 
+class MergeError(ValueError):
+    """
+    Error raised when problems arise during merging due to problems
+    with input data. Subclass of `ValueError`.
+
+    """

@@ -40,6 +40,7 @@ from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 from pandas._libs import hashtable as libhashtable, join as libjoin, lib
+from pandas.errors import MergeError
 
 
 @Substitution('\nleft : DataFrame')
@@ -58,10 +59,6 @@ def merge(left, right, how='inner', on=None, left_on=None, right_on=None,
 
 if __debug__:
     merge.__doc__ = _merge_doc % '\nleft : DataFrame'
-
-
-class MergeError(ValueError):
-    pass
 
 
 def _groupby_and_merge(by, on, left, right, _merge_pieces,
@@ -986,23 +983,23 @@ class _MergeOperation(object):
         # Check data integrity
         if validate in ["one_to_one", "1:1"]:
             if not left_unique and not right_unique:
-                raise ValueError("Merge keys are not unique in either left"
+                raise MergeError("Merge keys are not unique in either left"
                                  " or right dataset; not a one-to-one merge")
             elif not left_unique:
-                raise ValueError("Merge keys are not unique in left dataset;"
+                raise MergeError("Merge keys are not unique in left dataset;"
                                  " not a one-to-one merge")
             elif not right_unique:
-                raise ValueError("Merge keys are not unique in right dataset;"
+                raise MergeError("Merge keys are not unique in right dataset;"
                                  " not a one-to-one merge")
 
         elif validate in ["one_to_many", "1:m"]:
             if not left_unique:
-                raise ValueError("Merge keys are not unique in left dataset;"
+                raise MergeError("Merge keys are not unique in left dataset;"
                                  "not a one-to-many merge")
 
         elif validate in ["many_to_one", "m:1"]:
             if not right_unique:
-                raise ValueError("Merge keys are not unique in right dataset;"
+                raise MergeError("Merge keys are not unique in right dataset;"
                                  " not a many-to-one merge")
 
         elif validate in ['many_to_many', 'm:m']:
