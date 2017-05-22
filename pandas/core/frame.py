@@ -2948,13 +2948,7 @@ it is assumed to be aliases for the column names.')
 
         Only replace the first NaN element.
 
-        >>> values = {
-        ...     'A': 0,
-        ...     'B': 1,
-        ...     'C': 2,
-        ...     'D': 3,
-        ... }
-        ... df.fillna(value=values, limit=1)
+        >>> df.fillna(value=values, limit=1)
             A   B   C   D
         0   0.0 2.0 2.0 0
         1   3.0 4.0 NaN 1
