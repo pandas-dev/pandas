@@ -29,6 +29,7 @@ Performance Improvements
 - Performance regression fix when indexing with a list-like (:issue:`16285`)
 - Performance regression fix for MultiIndexes (:issue:`16319`, :issue:`16346`)
 - Improved performance of ``.clip()`` with scalar arguments (:issue:`15400`)
+- Improved performance of groupby with categorical groupers (:issue:`16413`)
 
 .. _whatsnew_0202.bug_fixes:
 
