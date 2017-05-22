@@ -988,8 +988,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     ...                    'B(quarterly)-2011': np.random.rand(3),
     ...                    'X' : np.random.randint(3, size=3)})
     >>> df['id'] = df.index
-    >>> df
-    ... # doctest: +NORMALIZE_WHITESPACE
+    >>> df # doctest: +NORMALIZE_WHITESPACE
        A(quarterly)-2010  A(quarterly)-2011  B(quarterly)-2010  B(quarterly)-2011  \
     0           0.548814           0.544883           0.437587           0.383442
     1           0.715189           0.423655           0.891773           0.791725
