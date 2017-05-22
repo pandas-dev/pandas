@@ -224,12 +224,22 @@ General questions and discussions can take place on the [pydata mailing list](ht
 Specialized discussions or design issues should take place on
 the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) / Google group:
 
+<<<<<<< HEAD
 
 ## Contributing to pandas
 
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
 A detailed overview on how to contribute can be found in the **[contributing guide.](http://pandas.pydata.org/pandas-docs/stable/contributing.html)**
+=======
+https://mail.python.org/mailman/listinfo/pandas-dev
+
+## Contributing to pandas
+
+**[How to contribute.](http://pandas.pydata.org/pandas-docs/stable/contributing.html)**
+
+All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
+>>>>>>> bcd922cd5200b61e590277f62804ebf307cc51c3
 
 If you are simply looking to start working with the pandas codebase, navigate to the [GitHub “issues” tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [Difficulty Novice](https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22) where you could start out.
 
