@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 import pytest
-from datetime import timedelta, datetime
-from distutils.version import LooseVersion
-from numpy import nan
 import numpy as np
-
-from pandas import Series, DataFrame
-
-import pytest
-
-from pandas.compat import product
-from pandas.util.testing import assert_frame_equal
 import pandas.util.testing as tm
+
+from distutils.version import LooseVersion
+from datetime import timedelta, datetime
+from numpy import nan
+
+from pandas.util.testing import assert_frame_equal
 from pandas.tests.frame.common import TestData
+from pandas import Series, DataFrame
+from pandas.compat import product
 
 
 class TestRank(TestData):
