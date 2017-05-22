@@ -220,7 +220,7 @@ Work on ``pandas`` started at AQR (a quantitative hedge fund) in 2008 and
 has been under active development since then.
 
 ## Discussion and Development
-General questions and discussions can take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
+General questions and discussions can take place on [StackOverflow](https://stackoverflow.com/questions/tagged/pandas) and the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
 Specialized discussions or design issues should take place on
 the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) / Google group:
 
