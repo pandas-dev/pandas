@@ -103,6 +103,12 @@ class TestStyler(object):
         s.render()
         # it worked?
 
+    def test_render_empty_df(self):
+        empty_df = DataFrame()
+        es = Styler(empty_df)
+        es.render()
+        # It didn't raise IndexError?
+
     def test_render_double(self):
         df = pd.DataFrame({"A": [0, 1]})
         style = lambda x: pd.Series(["color: red; border: 1px",

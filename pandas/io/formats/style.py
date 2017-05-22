@@ -238,24 +238,25 @@ class Styler(object):
                            "class": " ".join(cs),
                            "is_visible": True})
 
-            for c, value in enumerate(clabels[r]):
-                cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
-                cs.extend(cell_context.get(
-                    "col_headings", {}).get(r, {}).get(c, []))
-                es = {
-                    "type": "th",
-                    "value": value,
-                    "display_value": value,
-                    "class": " ".join(cs),
-                    "is_visible": _is_visible(c, r, col_lengths),
-                }
-                colspan = col_lengths.get((r, c), 0)
-                if colspan > 1:
-                    es["attributes"] = [
-                        format_attr({"key": "colspan", "value": colspan})
-                    ]
-                row_es.append(es)
-            head.append(row_es)
+            if clabels:
+                for c, value in enumerate(clabels[r]):
+                    cs = [COL_HEADING_CLASS, "level%s" % r, "col%s" % c]
+                    cs.extend(cell_context.get(
+                        "col_headings", {}).get(r, {}).get(c, []))
+                    es = {
+                        "type": "th",
+                        "value": value,
+                        "display_value": value,
+                        "class": " ".join(cs),
+                        "is_visible": _is_visible(c, r, col_lengths),
+                    }
+                    colspan = col_lengths.get((r, c), 0)
+                    if colspan > 1:
+                        es["attributes"] = [
+                            format_attr({"key": "colspan", "value": colspan})
+                        ]
+                    row_es.append(es)
+                head.append(row_es)
 
         if self.data.index.names and not all(x is None
                                              for x in self.data.index.names):
