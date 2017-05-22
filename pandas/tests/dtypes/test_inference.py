@@ -464,6 +464,7 @@ class TestTypeInference(object):
         assert result == 'floating'
 
     def test_decimals(self):
+        # GH15690
         arr = np.array([Decimal(1), Decimal(2), Decimal(3)])
         result = lib.infer_dtype(arr)
         assert result == 'decimal'
