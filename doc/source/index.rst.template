@@ -120,7 +120,6 @@ See the package overview for more detail about what's in the library.
     10min
     tutorials
     cookbook
-    performance
     dsintro
     basics
     text
@@ -147,6 +146,7 @@ See the package overview for more detail about what's in the library.
     comparison_with_r
     comparison_with_sql
     comparison_with_sas
+    performance
     {% endif -%}
     {% if api -%}
     api
