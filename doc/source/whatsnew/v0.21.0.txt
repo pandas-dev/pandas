@@ -106,6 +106,8 @@ Reshaping
 
 Numeric
 ^^^^^^^
+- DataFrame.interpolate was not respecting limit_direction when using the default limit=None (unlimited). Specifically, it would always use limit_direction='forward' even when limit_direction was set otherwise. Now default limit=None will work with other directions. :issue:`16282`
+
 
 
 
