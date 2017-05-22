@@ -305,9 +305,16 @@ class TestSeriesConstructors(TestData):
                 Series([-1], dtype=t)
 
         # GH 15832
-        for t in ['uint8', 'uint16', 'uint32', 'uint64']:
+        for t in ['uint8', 'uint16', 'uint32', 'uint64', 'int32', 'int64',
+                  'int16', 'int8']:
             with pytest.raises(ValueError):
                 Series([1, 2, 3.5], dtype=t)
+
+        try:
+            for t in ['float16', 'float32']:
+                Series([1, 2, 3.5], dtype=t)
+        except ValueError:
+            pytest.fail("GH 15832 should not raise for float type")
 
     def test_constructor_dtype_nocast(self):
         # 1572
