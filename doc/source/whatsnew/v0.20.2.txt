@@ -93,3 +93,5 @@ Categorical
 
 Other
 ^^^^^
+
+- Fix ``pd.drop([])`` for dataframes with non-unique indices (:issue:`16270`)
