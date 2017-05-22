@@ -469,6 +469,10 @@ class TestTypeInference(object):
         result = lib.infer_dtype(arr)
         assert result == 'decimal'
 
+        arr = np.array([1.0, 2.0, Decimal(3)])
+        result = lib.infer_dtype(arr)
+        assert result == 'mixed'
+
     def test_string(self):
         pass
 
