@@ -26,6 +26,14 @@ def full_like(array, value):
     return ret
 
 
+def full_like(array, value):
+    """Compatibility for numpy<1.8.0
+    """
+    ret = np.empty(array.shape, dtype=np.array(value).dtype)
+    ret.fill(value)
+    return ret
+
+
 class Numeric(Base):
 
     def test_numeric_compat(self):
