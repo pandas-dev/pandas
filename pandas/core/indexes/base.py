@@ -2388,7 +2388,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if tolerance is not None:
                 raise ValueError('tolerance argument only valid if using pad, '
                                  'backfill or nearest lookups')
-            key = _values_from_object(key)
             try:
                 return self._engine.get_loc(key)
             except KeyError:
