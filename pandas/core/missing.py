@@ -160,8 +160,9 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     start_nans = set(range(ys.first_valid_index()))
     end_nans = set(range(1 + ys.last_valid_index(), len(valid)))
 
-    # violate_limit is a list of the indexes in the series whose yvalue is currently
-    # NaN, and should still be NaN after the interpolation. Specifically:
+    # violate_limit is a list of the indexes in the series whose yvalue is
+    # currently NaN, and should still be NaN after the interpolation.
+    # Specifically:
     #
     # If limit_direction='forward' or None then the list will contain NaNs at
     # the beginning of the series, and NaNs that are more than 'limit' away
