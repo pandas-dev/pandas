@@ -15,7 +15,7 @@ Options and Settings
 
 Overview
 --------
-Pandas has an options system that lets you customize some aspects of its behaviour,
+pandas has an options system that lets you customize some aspects of its behaviour,
 display-related options being those the user is most likely to adjust.
 
 Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``).
