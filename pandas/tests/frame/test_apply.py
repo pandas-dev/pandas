@@ -635,3 +635,46 @@ class TestDataFrameAggregate(TestData):
         expected = DataFrame([[6, 6., 'foobarbaz']],
                              index=['sum'], columns=['A', 'B', 'C'])
         assert_frame_equal(result, expected)
+
+    def test_non_callable_aggregates(self):
+
+        # GH 16405
+        df = DataFrame({'A': [None, 2, 3],
+                        'B': [1.0, np.nan, 3.0],
+                        'C': ['foo', None, 'bar']})
+
+        # Function aggregate
+        result = df.agg({'A': 'count'})
+        expected = pd.Series({'A': 2})
+
+        assert_series_equal(result, expected)
+
+        # Non-function aggregate
+        result = df.agg({'A': 'size'})
+        expected = pd.Series({'A': 3})
+
+        assert_series_equal(result, expected)
+
+        # Mix function and non-function aggs
+        result1 = df.agg(['count', 'size'])
+        result2 = df.agg({'A': ['count', 'size'],
+                          'B': ['count', 'size'],
+                          'C': ['count', 'size']})
+        expected = pd.DataFrame({'A': {'count': 2, 'size': 3},
+                                 'B': {'count': 2, 'size': 3},
+                                 'C': {'count': 2, 'size': 3}})
+
+        assert_frame_equal(result1.reindex_like(expected),
+                           result2.reindex_like(expected))
+        assert_frame_equal(result2.reindex_like(expected), expected)
+
+        # Just functional string arg is same as calling df.arg()
+        result = df.agg('count')
+        expected = df.count()
+
+        assert_series_equal(result, expected)
+
+        # Trying to to the same w/ non-function tries to pass args
+        # which we explicitly forbid
+        with pytest.raises(AssertionError):
+            result = df.agg('size')
