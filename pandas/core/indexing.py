@@ -988,6 +988,10 @@ class _NDFrameIndexer(object):
                     if len(new_key) == 1:
                         new_key, = new_key
 
+                # Slices should return views, but calling iloc/loc with a null
+                # slice returns a new object.
+                if is_null_slice(new_key):
+                    return section
                 # This is an elided recursive call to iloc/loc/etc'
                 return getattr(section, self.name)[new_key]
 
