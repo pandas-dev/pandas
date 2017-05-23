@@ -635,5 +635,3 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # GH13873
         df = DataFrame({'a': [1, 3, 5], 'b': [2, 4, 6]})
         assert not df.loc[:] is df
-        assert not df.loc[:,:] is df
-        assert not df.loc[pd.IndexSlice[:, :]] is df
