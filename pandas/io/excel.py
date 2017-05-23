@@ -201,10 +201,6 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
-#     maintain backwards compatibility by converting sheetname to sheet_name
-#     if 'sheetname' in kwds:
-#         sheet_name = kwds.pop('sheetname')
-
     return io._parse_excel(
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
         index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
