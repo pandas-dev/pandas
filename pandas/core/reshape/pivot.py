@@ -438,27 +438,26 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
     Examples
     --------
-    >>> a
-    array([foo, foo, foo, foo, bar, bar,
-           bar, bar, foo, foo, foo], dtype=object)
-    >>> b
-    array([one, one, one, two, one, one,
-           one, two, two, two, one], dtype=object)
-    >>> c
-    array([dull, dull, shiny, dull, dull, shiny,
-           shiny, dull, shiny, shiny, shiny], dtype=object)
+    >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
+    ...               "bar", "bar", "foo", "foo", "foo"], dtype=object)
+    >>> b = np.array(["one", "one", "one", "two", "one", "one",
+    ...               "one", "two", "two", "two", "one"], dtype=object)
+    >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
+    ...               "shiny", "dull", "shiny", "shiny", "shiny"], 
+    ...               dtype=object)
 
     >>> crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
-    b    one          two
-    c    dull  shiny  dull  shiny
+    ... # doctest: +NORMALIZE_WHITESPACE
+    b   one        two
+    c   dull shiny dull shiny
     a
-    bar  1     2      1     0
-    foo  2     2      1     2
+    bar    1     2    1     0
+    foo    2     2    1     2
 
     >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     >>> crosstab(foo, bar)  # 'c' and 'f' are not represented in the data,
-                            # but they still will be counted in the output
+    ...                     # but they still will be counted in the output
     col_0  d  e  f
     row_0
     a      1  0  0
