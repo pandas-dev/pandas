@@ -172,17 +172,21 @@ class ReadingTestsBase(SharedItems):
         dfref = dfref.reindex(columns=['A', 'B', 'C'])
         df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, usecols=3)
         df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_cols=3)
-        # TODO add index to xls file)
+                               usecols=3)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1],
+                                   index_col=0, parse_cols=3)
+
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
+        tm.assert_frame_equal(df3, dfref, check_names=False)  # backward compat
 
     def test_usecols_list(self):
         # GH4988: inconsistent naming convention for read_excel column select
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['B', 'C'])
         df1 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               parse_cols=[0, 2, 3])
+                               usecols=[0, 2, 3])
         df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
                                usecols=[0, 2, 3])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -191,6 +195,31 @@ class ReadingTestsBase(SharedItems):
 
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
+        tm.assert_frame_equal(df3, dfref, check_names=False)  # backward compat
+
+        # check list of characters
+        dfref = self.get_csv_refdf('test1')
+        dfref = dfref.reindex(columns=['A', 'B', 'C'])
+        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0,
+                               usecols=['A', 'B', 'C', 'D'])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
+                                   parse_cols=3)
+
+        tm.assert_frame_equal(df1, dfref, check_names=False)
+        tm.assert_frame_equal(df2, dfref, check_names=False)  # backward compat
+
+        # check mixed list of int and characters
+        dfref = self.get_csv_refdf('test1')
+        dfref = dfref.reindex(columns=['A', 'B', 'C'])
+        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0,
+                               usecols=['A', 1, 2, 'D'])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
+                                   parse_cols=3)
+
+        tm.assert_frame_equal(df1, dfref, check_names=False)
+        tm.assert_frame_equal(df2, dfref, check_names=False)  # backward compat
 
     def test_usecols_str(self):
         # GH4988: inconsistent naming convention for read_excel column select
@@ -199,27 +228,38 @@ class ReadingTestsBase(SharedItems):
         df1 = dfref.reindex(columns=['A', 'B', 'C'])
         df2 = self.get_exceldf('test1', 'Sheet1', usecol=0, usecols='A:D')
         df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_cols='A:D')
-        # TODO add index to xls, read xls ignores index name ?
+                               usecols='A:D')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df4 = self.get_exceldf('test1', 'Sheet2', skiprows=[1],
+                                   index_col=0, parse_cols='A:D')
+
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
+        tm.assert_frame_equal(df4, df1, check_names=False)  # backward compat
 
         df1 = dfref.reindex(columns=['B', 'C'])
-        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               parse_cols='A,C,D')
+        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0, usecols='A,C,D')
         df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_cols='A,C,D')
-        # TODO add index to xls file
+                               usecols='A,C,D')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df4 = self.get_exceldf('test1', 'Sheet1', index_col=0,
+                                   parse_cols='A,C,D')
+
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
+        tm.assert_frame_equal(df4, df1, check_names=False)  # backward compat
 
         df1 = dfref.reindex(columns=['B', 'C'])
-        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               parse_cols='A,C:D')
+        df2 = self.get_exceldf('test1', 'Sheet1', index_col=0, usecols='A,C:D')
         df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_cols='A,C:D')
+                               usecols='A,C:D')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df4 = self.get_exceldf('test1', 'Sheet2', skiprows=[1],
+                                   index_col=0, parse_cols='A,C:D')
+
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
+        tm.assert_frame_equal(df4, df1, check_names=False)  # backward compat
 
     def test_excel_stop_iterator(self):
 
@@ -464,6 +504,7 @@ class ReadingTestsBase(SharedItems):
         )
         with ensure_clean(self.ext) as path:
             df.to_excel(path, 'no_header', index=False, header=False)
+<<<<<<< b0702cea41f2f526d21fd6b0231e2f3ec567d10e
             actual_header_none = read_excel(
                 path,
                 'no_header',
@@ -477,6 +518,23 @@ class ReadingTestsBase(SharedItems):
                 usecols=[0],
                 header=0
             )
+=======
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                actual_header_none = read_excel(
+                    path,
+                    'no_header',
+                    parse_cols=[0],
+                    header=None
+                )
+
+                actual_header_zero = read_excel(
+                    path,
+                    'no_header',
+                    parse_cols=[0],
+                    header=0
+                )
+>>>>>>> ENH: inconsistent naming convention for read_csv and read_excel column selection (#4988)
         expected = DataFrame()
         tm.assert_frame_equal(actual_header_none, expected)
         tm.assert_frame_equal(actual_header_zero, expected)
@@ -493,6 +551,7 @@ class ReadingTestsBase(SharedItems):
         )
         with ensure_clean(self.ext) as path:
             df.to_excel(path, 'with_header', index=False, header=True)
+<<<<<<< b0702cea41f2f526d21fd6b0231e2f3ec567d10e
             actual_header_none = read_excel(
                 path,
                 'with_header',
@@ -506,6 +565,23 @@ class ReadingTestsBase(SharedItems):
                 usecols=[0],
                 header=0
             )
+=======
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                actual_header_none = read_excel(
+                    path,
+                    'with_header',
+                    parse_cols=[0],
+                    header=None
+                )
+
+                actual_header_zero = read_excel(
+                    path,
+                    'with_header',
+                    parse_cols=[0],
+                    header=0
+                )
+>>>>>>> ENH: inconsistent naming convention for read_csv and read_excel column selection (#4988)
         expected_header_none = DataFrame(pd.Series([0], dtype='int64'))
         tm.assert_frame_equal(actual_header_none, expected_header_none)
         expected_header_zero = DataFrame(columns=[0], dtype='int64')
