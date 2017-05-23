@@ -197,14 +197,7 @@ mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs
 pip install -e .
 ```
 
-On Windows, you will need to install MinGW and execute:
-
-```sh
-python setup.py build --compiler=mingw32
-python setup.py install
-```
-
-See **[the docs](http://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source)** for more information.
+See the full instructions for [installing from source](http://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).
 
 ## License
 BSD
