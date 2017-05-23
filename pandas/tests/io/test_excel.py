@@ -545,16 +545,17 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(result, expected)
 
     def test_sheet_name_and_sheetname(self):
-        # GH10559: Minor improvement: Change to_excel "sheet_name" to "sheetname"
-        # GH10969: DOC: Consistent variable names (sheetname vs sheet_name, issue 10559)
-        # GH12604: CLN GH10559 Rename sheetname variable to sheet_name for consistency
+        # GH10559: Minor improvement: Change "sheet_name" to "sheetname"
+        # GH10969: DOC: Consistent var names (sheetname vs sheet_name)
+        # GH12604: CLN GH10559 Rename sheetname variable to sheet_name
         dfref = self.get_csv_refdf('test1')
         df1 = self.get_exceldf('test1', sheet_name='Sheet1')    # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2 = self.get_exceldf('test1', sheetname='Sheet2')     # bkwrds compat
+            df2 = self.get_exceldf('test1', sheetname='Sheet2')  # bkwrd compat
 
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
+
 
 class XlrdTests(ReadingTestsBase):
     """
