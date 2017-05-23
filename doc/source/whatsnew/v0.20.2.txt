@@ -80,7 +80,7 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in ``DataFrame.stack`` with unsorted levels in MultiIndex columns (:issue:`16323`)
-- Bug in ``Series.isin(..)`` in core/algorithms.py with a list of tuples (:issue:`16394`)
+- Bug in ``Series.isin(..)`` with a list of tuples (:issue:`16394`)
 
 Numeric
 ^^^^^^^
