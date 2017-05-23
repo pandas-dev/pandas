@@ -211,12 +211,19 @@ class TestCut(object):
 
         result = cut(arr, bins, labels=labels)
         exp = Categorical(['Medium'] + 4 * ['Small'] + ['Medium', 'Large'],
+                          categories=labels,
                           ordered=True)
         tm.assert_categorical_equal(result, exp)
 
         result = cut(arr, bins, labels=Categorical.from_codes([0, 1, 2],
                                                               labels))
         exp = Categorical.from_codes([1] + 4 * [0] + [1, 2], labels)
+        tm.assert_categorical_equal(result, exp)
+
+        labels = ['Good', 'Medium', 'Bad']
+        result = cut(arr, 3, labels=labels)
+        exp = cut(arr, 3, labels=Categorical(labels, categories=labels,
+                                             ordered=True))
         tm.assert_categorical_equal(result, exp)
 
     def test_qcut_include_lowest(self):
