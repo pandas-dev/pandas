@@ -29,7 +29,7 @@ Performance Improvements
 - Performance regression fix when indexing with a list-like (:issue:`16285`)
 - Performance regression fix for MultiIndexes (:issue:`16319`, :issue:`16346`)
 - Improved performance of ``.clip()`` with scalar arguments (:issue:`15400`)
-
+- Improved performance of groupby with categorical groupers (:issue:`16413`)
 
 .. _whatsnew_0202.bug_fixes:
 
@@ -60,6 +60,7 @@ Plotting
 ^^^^^^^^
 
 - Bug in ``DataFrame.plot`` with a single column and a list-like ``color`` (:issue:`3486`)
+- Bug in ``plot`` where ``NaT`` in ``DatetimeIndex`` results in ``Timestamp.min`` (:issue: `12405`)
 
 
 
@@ -80,11 +81,12 @@ Reshaping
 
 - Bug in ``DataFrame.stack`` with unsorted levels in MultiIndex columns (:issue:`16323`)
 - Bug in ``pd.wide_to_long()`` where no error was raised when ``i`` was not a unique identifier (:issue:`16382`)
+- Bug in ``Series.isin(..)`` with a list of tuples (:issue:`16394`)
 
 
 Numeric
 ^^^^^^^
-
+- Bug in .interpolate(), where limit_direction was not respected when limit=None (default) was passed (:issue:16282)
 
 Categorical
 ^^^^^^^^^^^
