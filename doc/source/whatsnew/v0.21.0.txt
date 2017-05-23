@@ -19,7 +19,11 @@ Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations
 
 New features
 ~~~~~~~~~~~~
-
+- DataFrame.interpolate() has a new setting: limit_direction='inside'.
+    This will cause the interpolation to fill missing values only when
+    the missing value is surrounded by valid values.  It is useful when 
+    a series needs to be interpolated, but must not expand into NaN
+    values that were outside the range of the original series. (GH16284)
 - Support for `PEP 519 -- Adding a file system path protocol
   <https://www.python.org/dev/peps/pep-0519/>`_ on most readers and writers (:issue:`13823`)
 - Added `__fspath__` method to :class`:pandas.HDFStore`, :class:`pandas.ExcelFile`,
@@ -116,6 +120,11 @@ Reshaping
 
 Numeric
 ^^^^^^^
+
+- DataFrame.interpolate was not respecting limit_direction when
+    limit=0 (unlimited).  Specifically, it would always use
+    limit_direction='forward' even when specified otherwise. Now
+    default limit=0 will work with other directions. (GH16282)
 
 
 Categorical

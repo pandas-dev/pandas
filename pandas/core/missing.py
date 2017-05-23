@@ -149,7 +149,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
             if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
                 yield x
 
-    valid_limit_directions = ['forward', 'backward', 'both']
+    valid_limit_directions = ['forward', 'backward', 'both', 'inside']
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
         raise ValueError('Invalid limit_direction: expecting one of %r, got '
@@ -172,23 +172,29 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     # c) Limit is nonzero and it is further than limit from the nearest non-NaN
     #    value (with respect to the limit_direction setting).
     #
-    # The default behavior is to fill forward with no limit, ignoring NaNs at
-    # the beginning (see issues #9218 and #10420)
-    violate_limit = sorted(start_nans)
+    # If Limit is not an integer greater than 0, then use default behavior
+    # of filling without limit in the direction specified by limit_direction
 
-    if limit is not None:
-        if not is_integer(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        if limit_direction == 'forward':
-            violate_limit = sorted(start_nans | set(_interp_limit(invalid,
-                                                                  limit, 0)))
-        if limit_direction == 'backward':
-            violate_limit = sorted(end_nans | set(_interp_limit(invalid, 0,
-                                                                limit)))
-        if limit_direction == 'both':
-            violate_limit = sorted(_interp_limit(invalid, limit, limit))
+    # default limit is unlimited GH Issue:16282
+    if limit is None:
+        limit = len(xvalues)
+    elif not is_integer(limit):
+        raise ValueError('Limit must be an integer')
+    elif limit < 1:
+        raise ValueError('Limit must be greater than 0')
+
+    # each possible limit_direction
+    if limit_direction == 'forward':
+        violate_limit = sorted(start_nans |
+                               set(_interp_limit(invalid, limit, 0)))
+    elif limit_direction == 'backward':
+        violate_limit = sorted(end_nans |
+                               set(_interp_limit(invalid, 0, limit)))
+    elif limit_direction == 'both':
+        violate_limit = sorted(_interp_limit(invalid, limit, limit))
+    elif limit_direction == 'inside':
+        violate_limit = sorted(start_nans | end_nans |
+                               set(_interp_limit(invalid, limit, limit)))
 
     xvalues = getattr(xvalues, 'values', xvalues)
     yvalues = getattr(yvalues, 'values', yvalues)
