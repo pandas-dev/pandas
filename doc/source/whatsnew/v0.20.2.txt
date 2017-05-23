@@ -80,11 +80,11 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in ``DataFrame.stack`` with unsorted levels in MultiIndex columns (:issue:`16323`)
-
+- Bug in ``Series.isin(..)`` with a list of tuples (:issue:`16394`)
 
 Numeric
 ^^^^^^^
-
+- Bug in .interpolate(), where limit_direction was not respected when limit=None (default) was passed (:issue:16282)
 
 Categorical
 ^^^^^^^^^^^
