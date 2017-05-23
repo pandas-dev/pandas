@@ -49,11 +49,8 @@ def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
 
-def _gca(figsize=None):
+def _gca(rc=None):
     import matplotlib.pyplot as plt
-    # No way of passing in figsize via gca() call so temporarily change the
-    # defaults so that when it calls figure() it uses our figsize.
-    rc = {'figure.figsize': figsize} if figsize is not None else {}
     with plt.rc_context(rc):
         return plt.gca()
 
@@ -2004,7 +2001,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
                              "'by' is None")
 
         if ax is None:
-            ax = _gca(figsize)
+            rc = {'figure.figsize': figsize} if figsize is not None else {}
+            ax = _gca(rc)
         data = data._get_numeric_data()
         if columns is None:
             columns = data.columns
