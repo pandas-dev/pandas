@@ -1201,6 +1201,14 @@ class TestDataFrameAnalytics(TestData):
         expected['B'] = False
         tm.assert_frame_equal(result, expected)
 
+    def test_isin_tuples(self):
+        # GH16394
+        df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        df['C'] = list(zip(df['A'], df['B']))
+        result = df['C'].isin([(1, 'a')])
+        tm.assert_series_equal(result,
+                               Series([True, False, False], name="C"))
+
     def test_isin_df_dupe_values(self):
         df1 = DataFrame({'A': [1, 2, 3, 4], 'B': [2, np.nan, 4, 4]})
         # just cols duped
