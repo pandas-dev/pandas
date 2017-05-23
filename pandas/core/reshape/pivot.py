@@ -58,16 +58,17 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     ...                          "small", "large", "small", "small",
     ...                          "large"],
     ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7]})
-       A   B   C      D
-    0  foo one small  1
-    1  foo one large  2
-    2  foo one large  2
-    3  foo two small  3
-    4  foo two small  3
-    5  bar one large  4
-    6  bar one small  5
-    7  bar two small  6
-    8  bar two large  7
+    >>> df
+         A    B      C  D
+    0  foo  one  small  1
+    1  foo  one  large  2
+    2  foo  one  large  2
+    3  foo  two  small  3
+    4  foo  two  small  3
+    5  bar  one  large  4
+    6  bar  one  small  5
+    7  bar  two  small  6
+    8  bar  two  large  7
 
     >>> table = pivot_table(df, values='D', index=['A', 'B'],
     ...                     columns=['C'], aggfunc=np.sum)
