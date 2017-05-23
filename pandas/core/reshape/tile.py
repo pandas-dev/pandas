@@ -181,8 +181,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     Examples
     --------
     >>> pd.qcut(range(5), 4)
-    [[0, 1], [0, 1], (1, 2], (2, 3], (3, 4]]
-    Categories (4, object): [[0, 1] < (1, 2] < (2, 3] < (3, 4]]
+    [(-0.001, 1.0], (-0.001, 1.0], (1.0, 2.0], (2.0, 3.0], (3.0, 4.0]]
+    Categories (4, interval[float64]): [(-0.001, 1.0] < (1.0, 2.0] < (2.0, 3.0] < (3.0, 4.0]]
 
     >>> pd.qcut(range(5), 3, labels=["good","medium","bad"])
     [good, good, medium, bad, bad]
