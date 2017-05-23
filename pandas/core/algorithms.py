@@ -388,7 +388,7 @@ def isin(comps, values):
                         "[{0}]".format(type(values).__name__))
 
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
-        values = np.array(list(values), dtype='object')
+        values = lib.list_to_object_array(list(values))
 
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
