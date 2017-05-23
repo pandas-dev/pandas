@@ -454,7 +454,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     ...               "shiny", "dull", "shiny", "shiny", "shiny"], 
     ...               dtype=object)
 
-    >>> crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
     ... # doctest: +NORMALIZE_WHITESPACE
     b   one        two
     c   dull shiny dull shiny
