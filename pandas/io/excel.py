@@ -69,6 +69,10 @@ sheet_name : string, int, mixed list of strings/ints, or None, default 0
     * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
     * None -> All sheets as a dictionary of DataFrames
 
+sheetname : string, int, mixed list of strings/ints, or None, default 0
+    .. deprecated:: 0.21.0
+       Use `sheet_name` instead
+
 header : int, list of ints, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
