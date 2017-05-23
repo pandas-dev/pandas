@@ -976,3 +976,14 @@ class TestWideToLong(object):
         exp_frame = exp_frame.set_index(['famid', 'birth', 'age'])[['ht']]
         long_frame = wide_to_long(df, 'ht', i=['famid', 'birth'], j='age')
         tm.assert_frame_equal(long_frame, exp_frame)
+
+    def test_non_unique_idvars(self):
+        # GH16382
+        # Raise an error message if non unique id vars (i) are passed
+        df = pd.DataFrame({
+            'A_A1': [1, 2, 3, 4, 5],
+            'B_B1': [1, 2, 3, 4, 5],
+            'x': [1, 1, 1, 1, 1]
+        })
+        with pytest.raises(ValueError):
+            wide_to_long(df, ['A_A', 'B_B'], i='x', j='colname')
