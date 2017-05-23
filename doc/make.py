@@ -34,44 +34,49 @@ os.environ['PYTHONPATH'] = '..'
 SPHINX_BUILD = 'sphinxbuild'
 
 
-def upload_dev(user='pandas'):
+def _process_user(user):
+    if user is None or user is False:
+        user = ''
+    else:
+        user = user + '@'
+    return user
+
+
+def upload_dev(user=None):
     'push a copy to the pydata dev directory'
-    if os.system('cd build/html; rsync -avz . {0}@pandas.pydata.org'
+    user = _process_user(user)
+    if os.system('cd build/html; rsync -avz . {0}pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/dev/ -essh'.format(user)):
         raise SystemExit('Upload to Pydata Dev failed')
 
 
-def upload_dev_pdf(user='pandas'):
+def upload_dev_pdf(user=None):
     'push a copy to the pydata dev directory'
-    if os.system('cd build/latex; scp pandas.pdf {0}@pandas.pydata.org'
+    user = _process_user(user)
+    if os.system('cd build/latex; scp pandas.pdf {0}pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/dev/'.format(user)):
         raise SystemExit('PDF upload to Pydata Dev failed')
 
 
 def upload_stable(user=None):
     'push a copy to the pydata stable directory'
-    if user is None or user is False:
-        user = ''
-    else:
-        user = user + '@'
+    user = _process_user(user)
     if os.system('cd build/html; rsync -avz . {0}pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/stable/ -essh'.format(user)):
         raise SystemExit('Upload to stable failed')
 
 
-def upload_stable_pdf(user='pandas'):
+def upload_stable_pdf(user=None):
     'push a copy to the pydata dev directory'
-    if os.system('cd build/latex; scp pandas.pdf {0}@pandas.pydata.org'
+    user = _process_user(user)
+    if os.system('cd build/latex; scp pandas.pdf {0}pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/stable/'.format(user)):
         raise SystemExit('PDF upload to stable failed')
 
 
 def upload_prev(ver, doc_root='./', user=None):
     'push a copy of older release to appropriate version directory'
-    if user is None or user is False:
-        user = ''
-    else:
-        user = user + '@'
+    user = _process_user(user)
     local_dir = doc_root + 'build/html'
     remote_dir = '/usr/share/nginx/pandas/pandas-docs/version/%s/' % ver
     cmd = 'cd %s; rsync -avz . %spandas.pydata.org:%s -essh'
