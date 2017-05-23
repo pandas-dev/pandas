@@ -1046,6 +1046,9 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     else:
         i = list(i)
 
+    if df[i].duplicated().any():
+        raise ValueError("the id variables need to uniquely identify each row")
+
     value_vars = list(map(lambda stub:
                           get_var_names(df, stub, sep, suffix), stubnames))
 
