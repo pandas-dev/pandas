@@ -434,22 +434,6 @@ class TestSeriesPlots(TestPlotBase):
         assert len(axes) == 2
 
     @slow
-    def test_overlapping_datetime(self):
-        # GB 6608
-        s1 = pd.Series([1, 2, 3], index=[datetime(1995, 12, 31),
-                                         datetime(2000, 12, 31),
-                                         datetime(2005, 12, 31)])
-        s2 = pd.Series([1, 2, 3], index=[datetime(1997, 12, 31),
-                                         datetime(2003, 12, 31),
-                                         datetime(2008, 12, 31)])
-
-        # plot first series, then add the second series to those axes,
-        # then try adding the first series again
-        ax = s1.plot()
-        s2.plot(ax=ax)
-        s1.plot(ax=ax)
-
-    @slow
     def test_hist_secondary_legend(self):
         # GH 9610
         df = DataFrame(np.random.randn(30, 4), columns=list('abcd'))
