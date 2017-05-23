@@ -594,5 +594,9 @@ class TestiLoc(Base):
 
     def test_loc_identity_slice_returns_new_object(self):
         # GH13873
-        df = DataFrame({'a': [1, 3, 5], 'b': [2, 4, 6]})
-        assert not df.iloc[:] is df
+        df = DataFrame({'a': [1, 2, 3]})
+        result = df.iloc[:]
+        assert not result is df
+        # should be a shallow copy
+        df['a'] = [4, 4, 4]
+        assert (result['a'] == 4).all()

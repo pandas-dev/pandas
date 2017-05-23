@@ -1250,7 +1250,7 @@ class _NDFrameIndexer(object):
         obj = self.obj
 
         if not need_slice(slice_obj):
-            return obj.copy()
+            return obj.copy(deep=False)
         indexer = self._convert_slice_indexer(slice_obj, axis)
 
         if isinstance(indexer, slice):
@@ -1349,7 +1349,7 @@ class _LocationIndexer(_NDFrameIndexer):
         """ this is pretty simple as we just have to deal with labels """
         obj = self.obj
         if not need_slice(slice_obj):
-            return obj.copy()
+            return obj.copy(deep=False)
 
         labels = obj._get_axis(axis)
         indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop,
@@ -1690,7 +1690,7 @@ class _iLocIndexer(_LocationIndexer):
         obj = self.obj
 
         if not need_slice(slice_obj):
-            return obj.copy()
+            return obj.copy(deep=False)
 
         slice_obj = self._convert_slice_indexer(slice_obj, axis)
         if isinstance(slice_obj, slice):
