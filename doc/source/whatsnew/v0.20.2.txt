@@ -94,4 +94,4 @@ Categorical
 Other
 ^^^^^
 
-- Fix ``pd.drop([])`` for dataframes with non-unique indices (:issue:`16270`)
+- Bug in ``pd.drop([])`` for DataFrame with non-unique indices (:issue:`16270`)
