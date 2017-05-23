@@ -455,14 +455,17 @@ class TestRolling(Base):
         result = DataFrame().rolling(1).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_empty_df_datetime_index_rolling_sum(self):
+    def test_empty_df_datetime_index_datetime_rolling_sum(self):
         # Verifies that integer and datetime rolling windows can be applied to empty DataFrame with datetime index
         # GH 15819
         expected = DataFrame(index=pd.DatetimeIndex([]))
-
         result = DataFrame(index=pd.DatetimeIndex([])).rolling('1s').sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_empty_df_datetime_index_integer_rolling_sum(self):
+        # Verifies that integer and datetime rolling windows can be applied to empty DataFrame with datetime index
+        # GH 15819
+        expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(1).sum()
         tm.assert_frame_equal(result, expected)
 
