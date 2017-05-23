@@ -816,6 +816,11 @@ class _TestSQLApi(PandasSQLTest):
         df = DataFrame([[1, 2], [3, 4]], columns=[u'\xe9', u'b'])
         df.to_sql('test_unicode', self.conn, index=False)
 
+    def test_escaped_table_name(self):
+        # GH 13206
+        df = DataFrame({'A': [0, 1, 2], 'B': [0.2, np.nan, 5.6]})
+        df.to_sql('d1187b08-4943-4c8d-a7f6-6c06b7cb9509', self.conn, index=False)
+
 
 @pytest.mark.single
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
