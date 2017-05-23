@@ -789,11 +789,11 @@ class TestMerge(object):
         merge(left, right_w_dups, left_index=True, right_index=True,
               validate='one_to_many')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(MergeError):
             merge(left, right_w_dups, left_index=True, right_index=True,
                   validate='one_to_one')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(MergeError):
             merge(left, right_w_dups, on='a', validate='one_to_one')
 
         # Dups on left
@@ -802,21 +802,21 @@ class TestMerge(object):
         merge(left_w_dups, right, left_index=True, right_index=True,
               validate='many_to_one')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(MergeError):
             merge(left_w_dups, right, left_index=True, right_index=True,
                   validate='one_to_one')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(MergeError):
             merge(left_w_dups, right, on='a', validate='one_to_one')
 
         # Dups on both
         merge(left_w_dups, right_w_dups, on='a', validate='many_to_many')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(MergeError):
             merge(left_w_dups, right_w_dups, left_index=True,
                   right_index=True, validate='many_to_one')
 
-        with pytest.raises(ValueError):
+        with pytest.raises(MergeError):
             merge(left_w_dups, right_w_dups, on='a',
                   validate='one_to_many')
 
@@ -842,7 +842,7 @@ class TestMerge(object):
                                           'um... weasel noise?']},
                                    index=range(3))
 
-        with pytest.raises(ValueError):
+        with pytest.raises(MergeError):
             merge(left, right, on='a', validate='1:1')
 
         result = merge(left, right, on=['a', 'b'], validate='1:1')
