@@ -112,12 +112,16 @@ false_values : list, default None
 
     .. versionadded:: 0.19.0
 
-parse_cols : int or list, default None
+usecols : int or list, default None
     * If None then parse all columns,
-    * If int then indicates last column to be parsed
-    * If list of ints then indicates list of column numbers to be parsed
+    * If int then indicates last column to be used
+    * If list of ints then indicates list of column numbers to be used
     * If string then indicates comma separated list of column names and
       column ranges (e.g. "A:E" or "A,C,E:F")
+parse_cols : int or list, default None
+    .. deprecated:: 0.21.0
+       Use `usecols` instead
+
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 na_values : scalar, str, list-like, or dict, default None
@@ -190,9 +194,10 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 
+@deprecate_kwarg(old_arg_name='parse_cols', new_arg_name='usecols')
 @Appender(_read_excel_doc)
 def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-               index_col=None, names=None, parse_cols=None, parse_dates=False,
+               index_col=None, names=None, usecols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
                convert_float=True, converters=None, dtype=None,
                true_values=None, false_values=None, engine=None,
@@ -212,7 +217,7 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
 
     return io._parse_excel(
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
-        index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
+        index_col=index_col, use_cols=usecols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
         convert_float=convert_float, skip_footer=skip_footer,
         converters=converters, dtype=dtype, true_values=true_values,
@@ -276,7 +281,7 @@ class ExcelFile(object):
         return self._io
 
     def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-              names=None, index_col=None, parse_cols=None, parse_dates=False,
+              names=None, index_col=None, usecols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
               convert_float=True, converters=None, true_values=None,
               false_values=None, squeeze=False, **kwds):
@@ -290,7 +295,7 @@ class ExcelFile(object):
         return self._parse_excel(sheetname=sheet_name, header=header,
                                  skiprows=skiprows, names=names,
                                  index_col=index_col,
-                                 parse_cols=parse_cols,
+                                 use_cols=usecols,
                                  parse_dates=parse_dates,
                                  date_parser=date_parser, na_values=na_values,
                                  thousands=thousands,
@@ -302,7 +307,17 @@ class ExcelFile(object):
                                  squeeze=squeeze,
                                  **kwds)
 
-    def _should_parse(self, i, parse_cols):
+    def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
+                     skip_footer=0, index_col=None, has_index_names=None,
+                     use_cols=None, parse_dates=False, date_parser=None,
+                     na_values=None, thousands=None, convert_float=True,
+                     true_values=None, false_values=None, verbose=False,
+                     dtype=None, squeeze=False, **kwds):
+
+        def _excel2num(x):
+            "Convert Excel column name like 'AB' to 0-based column index"
+            return reduce(lambda s, a: s * 26 + ord(a) - ord('A') + 1,
+                          x.upper().strip(), 0) - 1
 
         def _range2cols(areas):
             """
@@ -314,11 +329,6 @@ class ExcelFile(object):
             >>> _range2cols('A,C,Z:AB')
             [0, 2, 25, 26, 27]
             """
-            def _excel2num(x):
-                "Convert Excel column name like 'AB' to 0-based column index"
-                return reduce(lambda s, a: s * 26 + ord(a) - ord('A') + 1,
-                              x.upper().strip(), 0) - 1
-
             cols = []
             for rng in areas.split(','):
                 if ':' in rng:
@@ -327,20 +337,6 @@ class ExcelFile(object):
                 else:
                     cols.append(_excel2num(rng))
             return cols
-
-        if isinstance(parse_cols, int):
-            return i <= parse_cols
-        elif isinstance(parse_cols, compat.string_types):
-            return i in _range2cols(parse_cols)
-        else:
-            return i in parse_cols
-
-    def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
-                     skip_footer=0, index_col=None, parse_cols=None,
-                     parse_dates=False, date_parser=None, na_values=None,
-                     thousands=None, convert_float=True, true_values=None,
-                     false_values=None, verbose=False, dtype=None,
-                     squeeze=False, **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -445,16 +441,29 @@ class ExcelFile(object):
                 sheet = self.book.sheet_by_index(asheetname)
 
             data = []
-            should_parse = {}
+            should_use_column = {x: False for x in range(sheet.ncols)}
+
+            # determine if column should be used once per sheet.
+            if use_cols is None:
+                should_use_column = {x: True for x in range(sheet.ncols)}
+            elif isinstance(use_cols, int):
+                should_use_column.update({x: True for x in
+                                         range(sheet.ncols) if x <= use_cols})
+            elif isinstance(use_cols, compat.string_types):
+                should_use_column.update({x: True for x in
+                                         _range2cols(use_cols)})
+            elif isinstance(use_cols, list):
+                for list_item in use_cols:
+                    if is_integer(list_item):
+                        should_use_column[list_item] = True
+                    if isinstance(list_item, compat.string_types):
+                        should_use_column[_excel2num(list_item)] = True
 
             for i in range(sheet.nrows):
                 row = []
                 for j, (value, typ) in enumerate(zip(sheet.row_values(i),
                                                      sheet.row_types(i))):
-                    if parse_cols is not None and j not in should_parse:
-                        should_parse[j] = self._should_parse(j, parse_cols)
-
-                    if parse_cols is None or should_parse[j]:
+                    if should_use_column[j]:
                         row.append(_parse_cell(value, typ))
                 data.append(row)
 
