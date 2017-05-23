@@ -48,9 +48,13 @@ def upload_dev_pdf(user='pandas'):
         raise SystemExit('PDF upload to Pydata Dev failed')
 
 
-def upload_stable(user='pandas'):
+def upload_stable(user=None):
     'push a copy to the pydata stable directory'
-    if os.system('cd build/html; rsync -avz . {0}@pandas.pydata.org'
+    if user is None or user is False:
+        user = ''
+    else:
+        user = user + '@'
+    if os.system('cd build/html; rsync -avz . {0}pandas.pydata.org'
                  ':/usr/share/nginx/pandas/pandas-docs/stable/ -essh'.format(user)):
         raise SystemExit('Upload to stable failed')
 
@@ -62,11 +66,15 @@ def upload_stable_pdf(user='pandas'):
         raise SystemExit('PDF upload to stable failed')
 
 
-def upload_prev(ver, doc_root='./', user='pandas'):
+def upload_prev(ver, doc_root='./', user=None):
     'push a copy of older release to appropriate version directory'
+    if user is None or user is False:
+        user = ''
+    else:
+        user = user + '@'
     local_dir = doc_root + 'build/html'
     remote_dir = '/usr/share/nginx/pandas/pandas-docs/version/%s/' % ver
-    cmd = 'cd %s; rsync -avz . %s@pandas.pydata.org:%s -essh'
+    cmd = 'cd %s; rsync -avz . %spandas.pydata.org:%s -essh'
     cmd = cmd % (local_dir, user, remote_dir)
     print(cmd)
     if os.system(cmd):
@@ -74,7 +82,7 @@ def upload_prev(ver, doc_root='./', user='pandas'):
             'Upload to %s from %s failed' % (remote_dir, local_dir))
 
     local_dir = doc_root + 'build/latex'
-    pdf_cmd = 'cd %s; scp pandas.pdf %s@pandas.pydata.org:%s'
+    pdf_cmd = 'cd %s; scp pandas.pdf %spandas.pydata.org:%s'
     pdf_cmd = pdf_cmd % (local_dir, user, remote_dir)
     if os.system(pdf_cmd):
         raise SystemExit('Upload PDF to %s from %s failed' % (ver, doc_root))
