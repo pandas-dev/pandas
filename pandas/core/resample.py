@@ -13,7 +13,8 @@ from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
+from pandas.tseries.offsets import (DateOffset, Tick, Day,
+                                    _delta_to_nanoseconds, BusinessHourMixin)
 from pandas.core.indexes.period import PeriodIndex, period_range
 import pandas.core.common as com
 import pandas.core.algorithms as algos
@@ -1271,8 +1272,11 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
         if (is_day and day_nanos % offset.nanos == 0) or not is_day:
             return _adjust_dates_anchored(first, last, offset,
                                           closed=closed, base=base)
-
-    if not isinstance(offset, Tick):  # and first.time() != last.time():
+    # GH12351
+    elif issubclass(type(offset), BusinessHourMixin):
+        first = offset.rollback(first)
+        last = offset.rollforward(last + offset)
+    else:
         # hack!
         first = first.normalize()
         last = last.normalize()

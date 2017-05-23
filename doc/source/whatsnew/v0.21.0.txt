@@ -102,6 +102,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+- Bug in ``.resample(..)`` with a ``BusinessHour`` raises ``ValueError`` (:issue:`12351`)
 
 
 Sparse
