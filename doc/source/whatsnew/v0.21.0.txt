@@ -59,7 +59,7 @@ Other API Changes
 
 Deprecations
 ~~~~~~~~~~~~
-
+- :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with to_excel() (:issue:`10559`).
 
 
 .. _whatsnew_0210.prior_deprecations:
