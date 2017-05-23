@@ -97,6 +97,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
+- When called with a null slice (i.e. ``df.iloc[:]``), the``iloc`` and ``loc`` indexers return a shallow copy of the original object. Previously they returned the original object. (:issue:`13873`).
 
 
 I/O
