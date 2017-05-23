@@ -70,6 +70,7 @@ I/O
 - Bug that raised IndexError HTML-rendering an empty DataFrame (:issue:`15953`)
 - Bug in ``pd.read_csv()`` in which tarfile object inputs were raising an error in Python 2.x for the C engine (:issue:`16530`)
 - Bug where ``DataFrame.to_html()`` ignored the ``index_names`` parameter (:issue:`16493`)
+- Bug where ``pd.read_hdf()`` returns numpy strings for index names (:issue:`13492`)
 
 - Bug in ``HDFStore.select_as_multiple()`` where start/stop arguments were not respected (:issue:`16209`)
 

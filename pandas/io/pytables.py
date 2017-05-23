@@ -2568,6 +2568,8 @@ class GenericFixed(Fixed):
 
         if 'name' in node._v_attrs:
             name = node._v_attrs.name
+            if isinstance(name, compat.string_types):
+                name = compat.text_type(name)
 
         index_class = self._alias_to_class(getattr(node._v_attrs,
                                                    'index_class', ''))
