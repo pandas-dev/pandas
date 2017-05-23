@@ -2079,6 +2079,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3   NaN 3.0 NaN 4
 
         Drop columns
+
         >>> df.drop(['A', 'B'], axis=1)
             C   D
         0   NaN 0
@@ -2198,6 +2199,66 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         sorted_obj : %(klass)s
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...     'col1' : ['A', 'A', 'B', np.nan, 'D', 'C'],
+        ...     'col2' : [2, 1, 9, 8, 7, 4],
+        ...     'col3': [0, 1, 9, 4, 2, 3],
+        ... })
+        >>> df
+            col1 col2 col3
+        0   A    2    0
+        1   A    1    1
+        2   B    9    9
+        3   NaN  8    4
+        4   D    7    2
+        5   C    4    3
+
+        Sort by col1
+
+        >>> df.sort_values(by=['col1'])
+            col1 col2 col3
+        0   A    2    0
+        1   A    1    1
+        2   B    9    9
+        5   C    4    3
+        4   D    7    2
+        3   NaN  8    4
+
+        Sort by multiple columns
+
+        >>> df.sort_values(by=['col1', 'col2'])
+            col1 col2 col3
+        1   A    1    1
+        0   A    2    0
+        2   B    9    9
+        5   C    4    3
+        4   D    7    2
+        3   NaN  8    4
+
+        Sort Descending
+
+        >>> df.sort_values(by='col1', ascending=False)
+            col1 col2 col3
+        4   D    7    2
+        5   C    4    3
+        2   B    9    9
+        0   A    2    0
+        1   A    1    1
+        3   NaN  8    4
+
+        Putting NAs first
+
+        >>> df.sort_values(by='col1', ascending=False, na_position='first')
+            col1 col2 col3
+        3   NaN  8    4
+        4   D    7    2
+        5   C    4    3
+        2   B    9    9
+        0   A    2    0
+        1   A    1    1
         """
 
     def sort_values(self, by, axis=0, ascending=True, inplace=False,
