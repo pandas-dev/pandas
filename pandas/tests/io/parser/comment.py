@@ -5,6 +5,8 @@ Tests that comments are properly handled during parsing
 for all of the parsers defined in parsers.py
 """
 
+import sys
+
 import numpy as np
 import pandas.util.testing as tm
 
@@ -116,3 +118,29 @@ A,B,C
         expected = DataFrame({0: ['a', '1'], 1: ['b', '2'], 2: ['c', '3']})
         result = self.read_csv(StringIO(data), comment='#', header=None)
         tm.assert_frame_equal(result, expected)
+
+    def test_comment_whitespace_delimited(self):
+        test_input = """\
+1 2
+2 2 3
+3 2 3 # 3 fields
+4 2 3# 3 fields
+5 2 # 2 fields
+6 2# 2 fields
+7 # 1 field, NaN
+8# 1 field, NaN
+9 2 3 # skipped line
+# comment"""
+        captured_err = StringIO()
+        orig_stderr, sys.stderr = sys.stderr, captured_err
+        try:
+            df = self.read_csv(StringIO(test_input), comment='#', header=None,
+                               delimiter='\\s+', skiprows=0,
+                               error_bad_lines=False)
+        finally:
+            sys.stderr = orig_stderr
+        content = captured_err.getvalue()
+        # skipped lines 2, 3, 4, 9
+        assert content.count('Skipping line') == 4, content
+        expected = DataFrame([[1, 2], [5, 2], [6, 2], [7, np.nan], [8, np.nan]])
+        tm.assert_frame_equal(df, expected)
