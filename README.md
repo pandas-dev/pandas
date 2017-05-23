@@ -210,7 +210,7 @@ See **[the docs](http://pandas.pydata.org/pandas-docs/stable/install.html#instal
 BSD
 
 ## Documentation
-The official documentation is hosted on PyData.org: http://pandas.pydata.org/
+The official documentation is hosted on PyData.org: http://pandas.pydata.org/pandas-docs/stable/
 
 The Sphinx documentation should provide a good starting point for learning how
 to use the library. Expect the docs to continue to expand as time goes on.
@@ -219,10 +219,14 @@ to use the library. Expect the docs to continue to expand as time goes on.
 Work on ``pandas`` started at AQR (a quantitative hedge fund) in 2008 and
 has been under active development since then.
 
+## Getting Help
+
+For usage questions, the best place to go to is [StackOverflow](https://stackoverflow.com/questions/tagged/pandas).
+Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
+
 ## Discussion and Development
-General questions and discussions can take place on [StackOverflow](https://stackoverflow.com/questions/tagged/pandas) and the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
-Specialized discussions or design issues should take place on
-the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) / Google group:
+Most development discussion is taking place on github in this repo. Specialized discussions or design issues can also take place on
+the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev).
 
 ## Contributing to pandas
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
