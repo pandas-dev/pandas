@@ -243,6 +243,7 @@ def infer_dtype(object value):
     - integer
     - mixed-integer
     - mixed-integer-float
+    - decimal
     - complex
     - categorical
     - boolean
@@ -286,6 +287,9 @@ def infer_dtype(object value):
     >>> infer_dtype(['a', 1])
     'mixed-integer'
 
+    >>> infer_dtype([Decimal(1), Decimal(2.0)])
+    'decimal'
+
     >>> infer_dtype([True, False])
     'boolean'
 
@@ -308,7 +312,6 @@ def infer_dtype(object value):
     'categorical'
 
     """
-
     cdef:
         Py_ssize_t i, n
         object val
@@ -406,6 +409,9 @@ def infer_dtype(object value):
     elif is_time(val):
         if is_time_array(values):
             return 'time'
+
+    elif is_decimal(val):
+        return 'decimal'
 
     elif util.is_float_object(val):
         if is_float_array(values):
