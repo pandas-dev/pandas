@@ -30,7 +30,7 @@ import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
@@ -189,6 +189,7 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 
+@deprecate_kwarg('sheetname', 'sheet_name')
 @Appender(_read_excel_doc)
 def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
@@ -200,9 +201,9 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
-    # maintain backwards compatibility by converting sheetname to sheet_name
-    if 'sheetname' in kwds:
-         sheet_name = kwds.pop('sheetname')
+#     maintain backwards compatibility by converting sheetname to sheet_name
+#     if 'sheetname' in kwds:
+#         sheet_name = kwds.pop('sheetname')
 
     return io._parse_excel(
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
