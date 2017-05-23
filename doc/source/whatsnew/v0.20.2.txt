@@ -77,7 +77,7 @@ Reshaping
 
 Numeric
 ^^^^^^^
-
+- Bug in .interpolate(), where limit_direction was not respected when limit=None (default) was passed (:issue:16282)
 
 
 
