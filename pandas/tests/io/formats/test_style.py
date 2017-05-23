@@ -103,11 +103,15 @@ class TestStyler(object):
         s.render()
         # it worked?
 
-    def test_render_empty_df(self):
+    def test_render_empty_dfs(self):
         empty_df = DataFrame()
         es = Styler(empty_df)
         es.render()
-        # It didn't raise IndexError?
+        # An index but no columns
+        DataFrame(columns=['a']).style.render()
+        # A column but no index
+        DataFrame(index=['a']).style.render()
+        # No IndexError raised?
 
     def test_render_double(self):
         df = pd.DataFrame({"A": [0, 1]})

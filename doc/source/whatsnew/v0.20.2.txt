@@ -54,6 +54,7 @@ I/O
 ^^^
 
 - Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)
+- Bug that raised IndexError HTML-rendering an empty DataFrame (:issue:`15953`)
 
 
 Plotting
