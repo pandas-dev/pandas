@@ -931,6 +931,24 @@ class TestSeriesInterpolateData(TestData):
                                limit_direction='FORWARD')
         assert_series_equal(result, expected)
 
+    def test_interp_unlimited(self):
+        # these test are for issue #16282 default Limit=None is unlimited
+        s = Series([np.nan, 1., 3., np.nan, np.nan, np.nan, 11., np.nan])
+        expected = Series([1., 1., 3., 5., 7., 9., 11., 11.])
+        result = s.interpolate(method='linear',
+                               limit_direction='both')
+        assert_series_equal(result, expected)
+
+        expected = Series([np.nan, 1., 3., 5., 7., 9., 11., 11.])
+        result = s.interpolate(method='linear',
+                               limit_direction='forward')
+        assert_series_equal(result, expected)
+
+        expected = Series([1., 1., 3., 5., 7., 9., 11., np.nan])
+        result = s.interpolate(method='linear',
+                               limit_direction='backward')
+        assert_series_equal(result, expected)
+
     def test_interp_limit_bad_direction(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 
