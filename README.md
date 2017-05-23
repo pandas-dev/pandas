@@ -225,8 +225,7 @@ For usage questions, the best place to go to is [StackOverflow](https://stackove
 Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
 
 ## Discussion and Development
-Most development discussion is taking place on github in this repo. Specialized discussions or design issues can also take place on
-the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev).
+Most development discussion is taking place on github in this repo. Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) can also be used for specialized discussions or design issues, and a [Gitter channel](https://gitter.im/pydata/pandas) is available for quick development related questions.
 
 ## Contributing to pandas
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
