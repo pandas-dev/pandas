@@ -73,11 +73,13 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     >>> table = pivot_table(df, values='D', index=['A', 'B'],
     ...                     columns=['C'], aggfunc=np.sum)
     >>> table
-              small  large
-    foo  one  1      4
-         two  6      NaN
-    bar  one  5      4
-         two  6      7
+    ... # doctest: +NORMALIZE_WHITESPACE
+    C        large  small
+    A   B
+    bar one    4.0    5.0
+        two    7.0    6.0
+    foo one    4.0    1.0
+        two    NaN    6.0
 
     Returns
     -------
