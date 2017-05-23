@@ -51,16 +51,11 @@ def _get_standard_kind(kind):
 
 def _gca(figsize=None):
     import matplotlib.pyplot as plt
-    if figsize is not None:
-        # No way of passing in figsize via gca() call so temporarily change the
-        # defaults so that when it calls figure() it uses our figsize.
-        old_figsize = plt.rcParams.get('figure.figsize')
-        plt.rcParams['figure.figsize'] = figsize
-    try:
+    # No way of passing in figsize via gca() call so temporarily change the
+    # defaults so that when it calls figure() it uses our figsize.
+    rc = {'figure.figsize': figsize} if figsize is not None else {}
+    with plt.rc_context(rc):
         return plt.gca()
-    finally:
-        if figsize is not None:
-            plt.rcParams['figure.figsize'] = old_figsize
 
 
 def _gcf():
@@ -1881,7 +1876,7 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
 
     import matplotlib.pyplot as plt
     if ax is None and len(plt.get_fignums()) > 0:
-        ax = _gca(figsize)
+        ax = _gca()
         ax = MPLPlot._get_ax_layer(ax)
     return _plot(data, kind=kind, ax=ax,
                  figsize=figsize, use_index=use_index, title=title,

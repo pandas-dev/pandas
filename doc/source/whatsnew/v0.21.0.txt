@@ -34,6 +34,7 @@ Other Enhancements
 - ``Series.to_dict()`` and ``DataFrame.to_dict()`` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
 - ``RangeIndex.append`` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
 - :func:`to_pickle` has gained a protocol parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
+- ``DataFrame.boxplot`` now respects the ``figsize`` keyword for non-grouped boxplots (:issue:`11959`)
 
 .. _whatsnew_0210.api_breaking:
 
