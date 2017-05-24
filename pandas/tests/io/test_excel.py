@@ -407,7 +407,7 @@ class ReadingTestsBase(SharedItems):
         # Ensure a dict is returned.
         # See PR #9450
         basename = 'test_multisheet'
-        dfs = self.get_exceldf(basename, sheetname=None)
+        dfs = self.get_exceldf(basename, sheet_name=None)
         # ensure this is not alphabetical to test order preservation
         expected_keys = ['Charlie', 'Alpha', 'Beta']
         tm.assert_contains_all(expected_keys, dfs.keys())
@@ -424,7 +424,7 @@ class ReadingTestsBase(SharedItems):
         basename = 'test_multisheet'
         # Explicitly request duplicates. Only the set should be returned.
         expected_keys = [2, 'Charlie', 'Charlie']
-        dfs = self.get_exceldf(basename, sheetname=expected_keys)
+        dfs = self.get_exceldf(basename, sheet_name=expected_keys)
         expected_keys = list(set(expected_keys))
         tm.assert_contains_all(expected_keys, dfs.keys())
         assert len(expected_keys) == len(dfs.keys())
@@ -434,7 +434,7 @@ class ReadingTestsBase(SharedItems):
         # In the case where some sheets are blank.
         # Issue #11711
         basename = 'blank_with_header'
-        dfs = self.get_exceldf(basename, sheetname=None)
+        dfs = self.get_exceldf(basename, sheet_name=None)
         expected_keys = ['Sheet1', 'Sheet2', 'Sheet3']
         tm.assert_contains_all(expected_keys, dfs.keys())
 
@@ -556,6 +556,10 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
+    def test_sheet_name_both_raises(self):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both"):
+            self.get_exceldf('test1', sheetname='Sheet1', sheet_name='Sheet1')
+
 
 class XlrdTests(ReadingTestsBase):
     """
@@ -589,7 +593,7 @@ class XlrdTests(ReadingTestsBase):
                 result = read_excel(xl, "SheetA")
                 tm.assert_frame_equal(df, result)
 
-            result = read_excel(book, sheetname="SheetA", engine="xlrd")
+            result = read_excel(book, sheet_name="SheetA", engine="xlrd")
             tm.assert_frame_equal(df, result)
 
     @tm.network
@@ -691,7 +695,7 @@ class XlrdTests(ReadingTestsBase):
             with ExcelWriter(pth) as ew:
                 for sheetname, df in iteritems(dfs):
                     df.to_excel(ew, sheetname)
-            dfs_returned = read_excel(pth, sheetname=sheets)
+            dfs_returned = read_excel(pth, sheet_name=sheets)
             for s in sheets:
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
