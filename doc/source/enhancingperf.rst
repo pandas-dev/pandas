@@ -25,7 +25,6 @@ Enhancing Performance
 .. _enhancingperf.overview:
 
 
-
 Pandas, for most use cases, will be fast; however, there are a few
 anti-patterns to avoid. The following is a guide on achieving better
 performance with pandas. These are the low-hanging optimizations
@@ -104,7 +103,13 @@ In certain cases, some things will unavoidably be object type:
    s = pd.Series([1, 2, 3, np.nan, 5, 6, 7, 8, 9], dtype=object)
    type(s[0])
 
+3) Optimize loading dataframes
 
+4) Doing too much work with Pandas
+
+5) Reduce the amount of iteration required.
+
+ Using .apply (with axis=1) (Avoid Iteration)
 
 
 .. _enhancingperf.cython:
