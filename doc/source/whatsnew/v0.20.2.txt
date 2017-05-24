@@ -100,3 +100,5 @@ Categorical
 
 Other
 ^^^^^
+
+- Bug in ``pd.drop([])`` for DataFrame with non-unique indices (:issue:`16270`)
