@@ -441,32 +441,17 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
-    def test_empty_df_datetime_rolling_sum(self):
-        # Verifies that datetime rolling window can be applied to empty DataFrame
+    @pytest.mark.parametrize('roller', ['1s', 1])
+    def tests_empty_df_rolling(self, roller):
+        # Verifies that datetime and integer rolling windows can be applied to empty DataFrames
         # GH 15819
         expected = DataFrame()
-        result = DataFrame().rolling('1s').sum()
+        result = DataFrame().rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_empty_df_integer_rolling_sum(self):
-        # Verifies that integer rolling window can be applied to empty DataFrame
-        # GH 15819
-        expected = DataFrame()
-        result = DataFrame().rolling(1).sum()
-        tm.assert_frame_equal(result, expected)
-
-    def test_empty_df_datetime_index_datetime_rolling_sum(self):
-        # Verifies that integer and datetime rolling windows can be applied to empty DataFrame with datetime index
-        # GH 15819
+        # Verified that datetime and integer rolling windows can be applied to empty DataFrames with datetime index
         expected = DataFrame(index=pd.DatetimeIndex([]))
-        result = DataFrame(index=pd.DatetimeIndex([])).rolling('1s').sum()
-        tm.assert_frame_equal(result, expected)
-
-    def test_empty_df_datetime_index_integer_rolling_sum(self):
-        # Verifies that integer and datetime rolling windows can be applied to empty DataFrame with datetime index
-        # GH 15819
-        expected = DataFrame(index=pd.DatetimeIndex([]))
-        result = DataFrame(index=pd.DatetimeIndex([])).rolling(1).sum()
+        result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
 
 
@@ -511,36 +496,33 @@ class TestExpanding(Base):
             tm.assert_raises_regex(UnsupportedFunctionCall, msg,
                                    getattr(e, func), dtype=np.float64)
 
-    @pytest.mark.xfail(reason="Open issue GH 16425")
-    def test_empty_df_datetime_expanding_sum(self):
-        # Verifies that datetime expanding window can be applied to empty DataFrame
+    # TODO: GH 16425: Add '1s' datetime expander when GH 16425 is resolved
+    @pytest.mark.parametrize('roller', [1])
+    def tests_empty_df_expanding(self, expander):
+        # Verifies that datetime and integer expanding windows can be applied to empty DataFrames
         # GH 15819
-        # GH 16425
+        expected = DataFrame()
+        result = DataFrame().expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Verified that datetime and integer expanding windows can be applied to empty DataFrames with datetime index
+        expected = DataFrame(index=pd.DatetimeIndex([]))
+        result = DataFrame(index=pd.DatetimeIndex([])).expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
+
+    # TODO: GH 16425: Remove this test and add '1s' to roller parameter of test_empty_df_expanding() parameter
+    # when GH 16425 is resolved
+    @pytest.mark.xfail(reason="Open issue GH 16425")
+    def tests_empty_df_expanding_datetime(self):
+        # Verifies that datetime and integer expanding windows can be applied to empty DataFrames
+        # GH 15819
         expected = DataFrame()
         result = DataFrame().expanding('1s').sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_empty_df_integer_expanding_sum(self):
-        # Verifies that integer expanding window can be applied to empty DataFrame
-        # GH 15819
-        expected = DataFrame()
-        result = DataFrame().expanding(1).sum()
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.xfail(reason="Open issue GH 16425")
-    def test_empty_df_datetime_index_datetime_expanding_sum(self):
-        # Verifies that datetime expanding window can be applied to empty DataFrame with datetime index
-        # GH 15819
-        # GH 16425
+        # Verified that datetime and integer expanding windows can be applied to empty DataFrames with datetime index
         expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).expanding('1s').sum()
-        tm.assert_frame_equal(result, expected)
-
-    def test_empty_df_datetime_index_integer_expanding_sum(self):
-        # Verifies that integer expanding window can be applied to empty DataFrame with datetime index
-        # GH 15819
-        expected = DataFrame(index=pd.DatetimeIndex([]))
-        result = DataFrame(index=pd.DatetimeIndex([])).expanding(1).sum()
         tm.assert_frame_equal(result, expected)
 
 

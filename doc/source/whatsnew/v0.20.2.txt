@@ -69,7 +69,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug creating datetime rolling window on empty DataFrame (:issue:`15819`)
+- Bug creating datetime rolling window on an empty DataFrame (:issue:`15819`)
 
 
 Sparse
