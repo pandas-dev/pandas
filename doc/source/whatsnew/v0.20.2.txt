@@ -64,6 +64,8 @@ Plotting
 ^^^^^^^^
 
 - Bug in ``DataFrame.plot`` with a single column and a list-like ``color`` (:issue:`3486`)
+- Bug in ``plot`` where ``NaT`` in ``DatetimeIndex`` results in ``Timestamp.min`` (:issue: `12405`)
+- Bug in ``DataFrame.boxplot`` where ``figsize`` keyword was not respected for non-grouped boxplots (:issue:`11959`)
 
 
 
