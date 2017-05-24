@@ -37,6 +37,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
+- Bug in ``Index`` calling symmetric_difference() on two equal multiindices results in a TypeError (:issue `13490`)
 
 Conversion
 ^^^^^^^^^^
