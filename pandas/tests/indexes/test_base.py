@@ -188,7 +188,6 @@ class TestIndex(Base):
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
         class ArrayLike(object):
-
             def __init__(self, array):
                 self.array = array
 
@@ -246,7 +245,6 @@ class TestIndex(Base):
                      [np.timedelta64('nat'), np.nan],
                      [pd.NaT, np.timedelta64('nat')],
                      [np.timedelta64('nat'), pd.NaT]]:
-
             tm.assert_index_equal(Index(data), exp)
             tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
 
@@ -907,6 +905,13 @@ class TestIndex(Base):
         idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
         result = idx1.symmetric_difference(idx2)
         expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
+        assert tm.equalContents(result, expected)
+
+        # on equal multiIndexs
+        idx1 = MultiIndex.from_tuples(self.tuples)
+        idx2 = MultiIndex.from_tuples(self.tuples)
+        result = idx1.symmetric_difference(idx2)
+        expected = MultiIndex(levels=[[], []], labels=[[], []])
         assert tm.equalContents(result, expected)
 
         # nans:
