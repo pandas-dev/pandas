@@ -30,10 +30,11 @@ New features
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- The ``validate`` argument for :func:`merge` function now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
+- The ``validate`` argument for :func:`merge` function now checks whether a merge is one-to-one, one-to-many, many-to-one, or many-to-many. If a merge is found to not be an example of specified merge type, an exception of type ``MergeError`` will be raised. For more, see :ref:`here <merging.validation>` (:issue:`16270`)
 - ``Series.to_dict()`` and ``DataFrame.to_dict()`` now support an ``into`` keyword which allows you to specify the ``collections.Mapping`` subclass that you would like returned.  The default is ``dict``, which is backwards compatible. (:issue:`16122`)
 - ``RangeIndex.append`` now returns a ``RangeIndex`` object when possible (:issue:`16212`)
 - :func:`to_pickle` has gained a protocol parameter (:issue:`16252`). By default, this parameter is set to `HIGHEST_PROTOCOL <https://docs.python.org/3/library/pickle.html#data-stream-format>`__
+- :func:`api.types.infer_dtype` now infers decimals. (:issue: `15690`)
 
 .. _whatsnew_0210.api_breaking:
 
@@ -51,13 +52,14 @@ Backwards incompatible API changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- Moved definition of ``MergeError`` to the ``pandas.errors`` module.
 
 
 .. _whatsnew_0210.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
-
+- :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with to_excel() (:issue:`10559`).
 
 
 .. _whatsnew_0210.prior_deprecations:
@@ -92,6 +94,7 @@ Indexing
 I/O
 ^^^
 
+- Bug in ``pd.read_csv()`` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
 
 
 Plotting

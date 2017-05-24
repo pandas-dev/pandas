@@ -53,7 +53,9 @@ Indexing
 I/O
 ^^^
 
+- Bug in pd.read_csv() when comment is passed in space deliminted text files (:issue:`16472`)
 - Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)
+- Bug that raised IndexError HTML-rendering an empty DataFrame (:issue:`15953`)
 
 
 Plotting
@@ -61,6 +63,7 @@ Plotting
 
 - Bug in ``DataFrame.plot`` with a single column and a list-like ``color`` (:issue:`3486`)
 - Bug in ``plot`` where ``NaT`` in ``DatetimeIndex`` results in ``Timestamp.min`` (:issue: `12405`)
+- Bug in ``DataFrame.boxplot`` where ``figsize`` keyword was not respected for non-grouped boxplots (:issue:`11959`)
 
 
 
@@ -80,11 +83,13 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in ``DataFrame.stack`` with unsorted levels in MultiIndex columns (:issue:`16323`)
+- Bug in ``pd.wide_to_long()`` where no error was raised when ``i`` was not a unique identifier (:issue:`16382`)
+- Bug in ``Series.isin(..)`` with a list of tuples (:issue:`16394`)
 
 
 Numeric
 ^^^^^^^
-
+- Bug in .interpolate(), where limit_direction was not respected when limit=None (default) was passed (:issue:16282)
 
 Categorical
 ^^^^^^^^^^^
