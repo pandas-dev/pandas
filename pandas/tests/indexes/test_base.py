@@ -940,7 +940,7 @@ class TestIndex(Base):
         idx2 = MultiIndex.from_tuples(self.tuples)
         result = idx1.symmetric_difference(idx2)
         expected = MultiIndex(levels=[[], []], labels=[[], []])
-        assert tm.equalContents(result, expected)
+        assert tm.assert_index_equal(result, expected)
 
     def test_is_numeric(self):
         assert not self.dateIndex.is_numeric()

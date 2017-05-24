@@ -43,6 +43,7 @@ def to_feather(df, path):
     df : DataFrame
     path : string
         File path
+
     """
     path = _stringify_path(path)
     if not isinstance(df, DataFrame):
@@ -83,7 +84,7 @@ def to_feather(df, path):
     feather.write_dataframe(df, path)
 
 
-def read_feather(path):
+def read_feather(path, nthreads=1):
     """
     Load a feather-format object from the file path
 
@@ -93,6 +94,10 @@ def read_feather(path):
     ----------
     path : string
         File path
+    nthreads : int, default 1
+        Number of CPU threads to use when reading to pandas.DataFrame
+
+       .. versionadded 0.21.0
 
     Returns
     -------
@@ -102,4 +107,8 @@ def read_feather(path):
 
     feather = _try_import()
     path = _stringify_path(path)
-    return feather.read_dataframe(path)
+
+    if feather.__version__ < LooseVersion('0.4.0'):
+        return feather.read_dataframe(path)
+
+    return feather.read_dataframe(path, nthreads=nthreads)

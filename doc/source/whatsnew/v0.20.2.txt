@@ -38,6 +38,7 @@ Bug Fixes
 
 - Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
 - Bug in ``Index`` calling symmetric_difference() on two equal multiindices results in a TypeError (:issue `13490`)
+- Bug in ``DataFrame.update()`` with ``overwrite=False`` and ``NaN values`` (:issue:`15593`)
 
 Conversion
 ^^^^^^^^^^
@@ -86,6 +87,7 @@ Reshaping
 - Bug in ``DataFrame.stack`` with unsorted levels in MultiIndex columns (:issue:`16323`)
 - Bug in ``pd.wide_to_long()`` where no error was raised when ``i`` was not a unique identifier (:issue:`16382`)
 - Bug in ``Series.isin(..)`` with a list of tuples (:issue:`16394`)
+- Bug in construction of a ``DataFrame`` with mixed dtypes including an all-NaT column. (:issue:`16395`)
 
 
 Numeric
@@ -99,3 +101,5 @@ Categorical
 
 Other
 ^^^^^
+
+- Bug in ``pd.drop([])`` for DataFrame with non-unique indices (:issue:`16270`)

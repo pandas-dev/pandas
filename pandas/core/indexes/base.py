@@ -2324,7 +2324,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         # MultiIndex is returned GH13490
         if self.nlevels > 1 and len(the_diff) == 0:
             return type(self)([[] for _ in range(self.nlevels)],
-                              [[] for _ in range(self.nlevels)])
+                              [[] for _ in range(self.nlevels)])._shallow_copy()
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name
         if 'freq' in attribs:
