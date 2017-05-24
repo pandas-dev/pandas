@@ -809,6 +809,7 @@ class ScatterPlot(PlanePlot):
         ax = self.axes[0]
 
         c_is_column = is_hashable(c) and c in self.data.columns
+        print('c')
 
         # plot a colorbar only if a colormap is provided or necessary
         cb = self.kwds.pop('colorbar', self.colormap or c_is_column)
