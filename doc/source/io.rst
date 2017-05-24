@@ -2754,7 +2754,7 @@ to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', parse_cols=2)
 
-If `parse_cols` is a list of integers, then it is assumed to be the file column
+If `usecols` is a list of integers, characters, or both, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
