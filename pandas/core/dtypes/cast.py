@@ -837,7 +837,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         try:
             return to_timedelta(v)._values.reshape(shape)
         except:
-            return v
+            return v.reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
 
