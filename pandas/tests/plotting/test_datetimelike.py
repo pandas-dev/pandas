@@ -1349,6 +1349,22 @@ class TestTSPlot(TestPlotBase):
         w2 = np.arange(0, 1, .1)[::-1]
         self.plt.hist([x, x], weights=[w1, w2])
 
+    @slow
+    def test_overlapping_datetime(self):
+        # GB 6608
+        s1 = Series([1, 2, 3], index=[datetime(1995, 12, 31),
+                                      datetime(2000, 12, 31),
+                                      datetime(2005, 12, 31)])
+        s2 = Series([1, 2, 3], index=[datetime(1997, 12, 31),
+                                      datetime(2003, 12, 31),
+                                      datetime(2008, 12, 31)])
+
+        # plot first series, then add the second series to those axes,
+        # then try adding the first series again
+        ax = s1.plot()
+        s2.plot(ax=ax)
+        s1.plot(ax=ax)
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
