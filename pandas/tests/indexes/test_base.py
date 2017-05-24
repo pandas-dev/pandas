@@ -907,13 +907,6 @@ class TestIndex(Base):
         expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
         assert tm.equalContents(result, expected)
 
-        # on equal multiIndexs
-        idx1 = MultiIndex.from_tuples(self.tuples)
-        idx2 = MultiIndex.from_tuples(self.tuples)
-        result = idx1.symmetric_difference(idx2)
-        expected = MultiIndex(levels=[[], []], labels=[[], []])
-        assert tm.equalContents(result, expected)
-
         # nans:
         # GH 13514 change: {nan} - {nan} == {}
         # (GH 6444, sorting of nans, is no longer an issue)
@@ -940,6 +933,14 @@ class TestIndex(Base):
         result = idx1.symmetric_difference(idx2, result_name='new_name')
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
+
+    def test_symmetric_difference_on_equal_multiindex(self):
+        # GH13490
+        idx1 = MultiIndex.from_tuples(self.tuples)
+        idx2 = MultiIndex.from_tuples(self.tuples)
+        result = idx1.symmetric_difference(idx2)
+        expected = MultiIndex(levels=[[], []], labels=[[], []])
+        assert tm.equalContents(result, expected)
 
     def test_is_numeric(self):
         assert not self.dateIndex.is_numeric()
