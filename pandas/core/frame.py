@@ -259,7 +259,7 @@ class DataFrame(NDFrame):
     Same, but setting the column names:
     
     >>> df3 = DataFrame(np.random.randn(10, 5),
-    ...                    columns=['a', 'b', 'c', 'd', 'e'])
+    ...                 columns=['a', 'b', 'c', 'd', 'e'])
 
     See also
     --------
