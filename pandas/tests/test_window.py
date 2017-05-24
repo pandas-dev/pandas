@@ -449,7 +449,7 @@ class TestRolling(Base):
         result = DataFrame().rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
 
-        # Verified that datetime and integer rolling windows can be applied to empty DataFrames with datetime index
+        # Verifies that datetime and integer rolling windows can be applied to empty DataFrames with datetime index
         expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
@@ -497,7 +497,7 @@ class TestExpanding(Base):
                                    getattr(e, func), dtype=np.float64)
 
     # TODO: GH 16425: Add '1s' datetime expander when GH 16425 is resolved
-    @pytest.mark.parametrize('roller', [1])
+    @pytest.mark.parametrize('expander', [1])
     def tests_empty_df_expanding(self, expander):
         # Verifies that datetime and integer expanding windows can be applied to empty DataFrames
         # GH 15819
@@ -505,7 +505,7 @@ class TestExpanding(Base):
         result = DataFrame().expanding(expander).sum()
         tm.assert_frame_equal(result, expected)
 
-        # Verified that datetime and integer expanding windows can be applied to empty DataFrames with datetime index
+        # Verifies that datetime and integer expanding windows can be applied to empty DataFrames with datetime index
         expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).expanding(expander).sum()
         tm.assert_frame_equal(result, expected)
@@ -520,7 +520,7 @@ class TestExpanding(Base):
         result = DataFrame().expanding('1s').sum()
         tm.assert_frame_equal(result, expected)
 
-        # Verified that datetime and integer expanding windows can be applied to empty DataFrames with datetime index
+        # Verifies that datetime and integer expanding windows can be applied to empty DataFrames with datetime index
         expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).expanding('1s').sum()
         tm.assert_frame_equal(result, expected)
