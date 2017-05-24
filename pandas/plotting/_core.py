@@ -49,9 +49,10 @@ def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
 
-def _gca():
+def _gca(rc=None):
     import matplotlib.pyplot as plt
-    return plt.gca()
+    with plt.rc_context(rc):
+        return plt.gca()
 
 
 def _gcf():
@@ -1871,12 +1872,6 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
                 **kwds):
 
     import matplotlib.pyplot as plt
-    """
-    If no axes is specified, check whether there are existing figures
-    If there is no existing figures, _gca() will
-    create a figure with the default figsize, causing the figsize=parameter to
-    be ignored.
-    """
     if ax is None and len(plt.get_fignums()) > 0:
         ax = _gca()
         ax = MPLPlot._get_ax_layer(ax)
@@ -2006,7 +2001,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
                              "'by' is None")
 
         if ax is None:
-            ax = _gca()
+            rc = {'figure.figsize': figsize} if figsize is not None else {}
+            ax = _gca(rc)
         data = data._get_numeric_data()
         if columns is None:
             columns = data.columns
