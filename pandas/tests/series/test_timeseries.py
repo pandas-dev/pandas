@@ -916,7 +916,7 @@ class TestTimeSeries(TestData):
         assert df['Forecasting'][0] == dates[0][1]
 
         s = Series(arr['Date'])
-        assert s[0], Timestamp
+        assert isinstance(s[0], Timestamp)
         assert s[0] == dates[0][0]
 
         s = Series.from_array(arr['Date'], Index([0]))

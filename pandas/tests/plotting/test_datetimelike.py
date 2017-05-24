@@ -843,7 +843,7 @@ class TestTSPlot(TestPlotBase):
         tsplot(high, plt.Axes.plot)
         lines = tsplot(low, plt.Axes.plot)
         for l in lines:
-            assert PeriodIndex(data=l.get_xdata()).freq, idxh.freq
+            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
 
     @slow
     def test_from_weekly_resampling(self):
@@ -858,7 +858,7 @@ class TestTSPlot(TestPlotBase):
         expected_l = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544,
                                1549, 1553, 1558, 1562], dtype=np.float64)
         for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq, idxh.freq
+            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
             xdata = l.get_xdata(orig=False)
             if len(xdata) == 12:  # idxl lines
                 tm.assert_numpy_array_equal(xdata, expected_l)
@@ -873,7 +873,7 @@ class TestTSPlot(TestPlotBase):
         tsplot(low, plt.Axes.plot)
         lines = tsplot(high, plt.Axes.plot)
         for l in lines:
-            assert PeriodIndex(data=l.get_xdata()).freq, idxh.freq
+            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
             xdata = l.get_xdata(orig=False)
             if len(xdata) == 12:  # idxl lines
                 tm.assert_numpy_array_equal(xdata, expected_l)
