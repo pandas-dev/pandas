@@ -61,6 +61,11 @@ class TestDataFrameSelectReindex(TestData):
         expected = Index(['e', 'f'], name='second')
         tm.assert_index_equal(dropped.columns, expected)
 
+        # GH 16398
+        dropped = df.drop([], errors='ignore')
+        expected = Index(['a', 'b', 'c'], name='first')
+        tm.assert_index_equal(dropped.index, expected)
+
     def test_drop_col_still_multiindex(self):
         arrays = [['a', 'b', 'c', 'top'],
                   ['', '', '', 'OD'],
@@ -100,6 +105,7 @@ class TestDataFrameSelectReindex(TestData):
                           columns=['a', 'a', 'b'])
         assert_frame_equal(nu_df.drop('a', axis=1), nu_df[['b']])
         assert_frame_equal(nu_df.drop('b', axis='columns'), nu_df['a'])
+        assert_frame_equal(nu_df.drop([]), nu_df)  # GH 16398
 
         nu_df = nu_df.set_index(pd.Index(['X', 'Y', 'X']))
         nu_df.columns = list('abc')

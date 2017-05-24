@@ -12,6 +12,7 @@ import pandas as pd
 from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
     _ensure_int64,
+    _ensure_object,
     needs_i8_conversion,
     is_scalar,
     is_number,
@@ -2076,7 +2077,7 @@ class NDFrame(PandasObject, SelectionMixin):
             result = dropped
 
         else:
-            labels = com._index_labels_to_array(labels)
+            labels = _ensure_object(com._index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
