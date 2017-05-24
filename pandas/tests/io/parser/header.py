@@ -277,3 +277,12 @@ q,r,s,t,u,v
         tm.assert_index_equal(df.columns, Index(lrange(5)))
 
         tm.assert_index_equal(df2.columns, Index(names))
+
+    def test_non_int_header(self):
+        # GH 16338
+        msg = 'header must be integer or list of integers'
+        data = """1,2\n3,4"""
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(data), sep=',', header=['a', 'b'])
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(data), sep=',', header='string_header')
