@@ -119,6 +119,7 @@ A,B,C
         result = self.read_csv(StringIO(data), comment='#', header=None)
         tm.assert_frame_equal(result, expected)
 
+    @tm.capture_stderr
     def test_comment_whitespace_delimited(self):
         test_input = """\
 1 2
@@ -131,16 +132,12 @@ A,B,C
 8# 1 field, NaN
 9 2 3 # skipped line
 # comment"""
-        captured_err = StringIO()
-        orig_stderr, sys.stderr = sys.stderr, captured_err
-        try:
-            df = self.read_csv(StringIO(test_input), comment='#', header=None,
-                               delimiter='\\s+', skiprows=0,
-                               error_bad_lines=False)
-        finally:
-            sys.stderr = orig_stderr
-        content = captured_err.getvalue()
+        df = self.read_csv(StringIO(test_input), comment='#', header=None,
+                           delimiter='\\s+', skiprows=0,
+                           error_bad_lines=False)
+        error = sys.stderr.getvalue()
         # skipped lines 2, 3, 4, 9
-        assert content.count('Skipping line') == 4, content
+        for line_num in (2, 3, 4, 9):
+            assert 'Skipping line {}'.format(line_num) in error, error
         expected = DataFrame([[1, 2], [5, 2], [6, 2], [7, np.nan], [8, np.nan]])
         tm.assert_frame_equal(df, expected)
