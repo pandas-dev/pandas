@@ -241,17 +241,52 @@ class DataFrame(NDFrame):
         Column labels to use for resulting frame. Will default to
         np.arange(n) if no column labels are provided
     dtype : dtype, default None
-        Data type to force, otherwise infer
+        Data type to force. Only a single dtype is allowed. If None, infer
     copy : boolean, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
     Examples
     --------
-    >>> d = {'col1': ts1, 'col2': ts2}
-    >>> df = DataFrame(data=d, index=index)
-    >>> df2 = DataFrame(np.random.randn(10, 5))
-    >>> df3 = DataFrame(np.random.randn(10, 5),
+    Constructing DataFrame from a dictionary.
+
+    >>> d = {'col1': [1, 2], 'col2': [1, 2]}
+    >>> df = DataFrame(data=d)
+    >>> df
+        col1 col2
+    0   1    3
+    1   2    4
+
+    Notice that the inferred dtype is int64.
+
+    >>> df.dtypes
+    col1    int64
+    col2    int64
+    dtype: object
+
+    To enforce a single dtype:
+
+    >>> df = DataFrame(data=d, dtype=np.int8)
+    >>> df.dtypes
+    col1    int8
+    col2    int8
+    dtype: object
+
+    Constructing DataFrame from numpy ndarray:
+
+    >>> df2 = DataFrame(np.random.randn(10, 5),
     ...                 columns=['a', 'b', 'c', 'd', 'e'])
+    >>> df2
+        a           b           c           d           e
+    0   -0.783492   0.563675    -0.864924   0.391128    0.353971
+    1   1.254319    0.375264    0.592395    -0.573814   0.093112
+    2   -0.548918   0.334120    0.263741    0.007451    0.536851
+    3   -1.266109   0.472464    0.605991    0.183181    1.605140
+    4   -0.136033   -1.540123   -0.625398   -1.113922   -0.314596
+    5   0.497200    -0.793684   -1.077530   0.015950    1.194512
+    6   0.074891    -0.356493   1.094723    -0.695969   -0.318360
+    7   0.507182    -1.311427   -0.479544   -0.825982   -1.013853
+    8   -0.379124   -1.314563   -0.824940   0.587772    1.334155
+    9   0.389357    -1.399791   -1.498242   -0.312420   0.533206
 
     See also
     --------
