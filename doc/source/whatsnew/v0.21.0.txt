@@ -94,6 +94,7 @@ Indexing
 I/O
 ^^^
 
+- Bug in ``pd.read_csv()`` in which non integer values for the header argument generated an unhelpful / unrelated error message (:issue:`16338`)
 
 
 Plotting
