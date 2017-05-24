@@ -664,9 +664,8 @@ class TestDataFrameAggregate(TestData):
                                  'B': {'count': 2, 'size': 3},
                                  'C': {'count': 2, 'size': 3}})
 
-        assert_frame_equal(result1.reindex_like(expected),
-                           result2.reindex_like(expected))
-        assert_frame_equal(result2.reindex_like(expected), expected)
+        assert_frame_equal(result1, result2, check_like=True)
+        assert_frame_equal(result2, expected, check_like=True)
 
         # Just functional string arg is same as calling df.arg()
         result = df.agg('count')
@@ -674,7 +673,8 @@ class TestDataFrameAggregate(TestData):
 
         assert_series_equal(result, expected)
 
-        # Trying to to the same w/ non-function tries to pass args
-        # which we explicitly forbid
-        with pytest.raises(AssertionError):
-            result = df.agg('size')
+        # Just a string attribute arg same as calling df.arg
+        result = df.agg('size')
+        expected = df.size
+
+        assert result == expected
