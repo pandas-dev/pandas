@@ -5,6 +5,7 @@ from datetime import datetime, date, time
 import sys
 import os
 from distutils.version import LooseVersion
+from functools import partial
 
 import warnings
 from warnings import catch_warnings
@@ -551,7 +552,7 @@ class ReadingTestsBase(SharedItems):
         dfref = self.get_csv_refdf('test1')
         df1 = self.get_exceldf('test1', sheet_name='Sheet1')    # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2 = self.get_exceldf('test1', sheetname='Sheet2')  # bkwrd compat
+            df2 = self.get_exceldf('test1', sheetname='Sheet1')  # bkwrd compat
 
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
@@ -1876,12 +1877,18 @@ class ExcelWriterBase(SharedItems):
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
-        result = tm.round_trip_pathlib(df.to_excel, pd.read_excel)
+        writer = partial(df.to_excel, engine=self.engine_name)
+        reader = partial(pd.read_excel)
+        result = tm.round_trip_pathlib(writer, reader,
+                                       path="foo.{}".format(self.ext))
         tm.assert_frame_equal(df, result)
 
     def test_path_localpath(self):
         df = tm.makeDataFrame()
-        result = tm.round_trip_localpath(df.to_excel, pd.read_excel)
+        writer = partial(df.to_excel, engine=self.engine_name)
+        reader = partial(pd.read_excel)
+        result = tm.round_trip_pathlib(writer, reader,
+                                       path="foo.{}".format(self.ext))
         tm.assert_frame_equal(df, result)
 
 
