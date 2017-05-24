@@ -160,6 +160,14 @@ class TestDataFramePlots(TestPlotBase):
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type='axes')
 
+    @slow
+    def test_figsize(self):
+        df = DataFrame(np.random.rand(10, 5),
+                       columns=['A', 'B', 'C', 'D', 'E'])
+        result = df.boxplot(return_type='axes', figsize=(12, 8))
+        assert result.figure.bbox_inches.width == 12
+        assert result.figure.bbox_inches.height == 8
+
     def test_fontsize(self):
         df = DataFrame({"a": [1, 2, 3, 4, 5, 6]})
         self._check_ticks_props(df.boxplot("a", fontsize=16),
