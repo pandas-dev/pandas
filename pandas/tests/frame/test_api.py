@@ -99,6 +99,30 @@ class TestDataFrameMisc(SharedWithSparse, TestData):
         tm.assert_raises_regex(ValueError, 'No axis named',
                                f._get_axis_number, None)
 
+    def test_attribute_indexing(self):
+        df = pd.DataFrame(np.ones((4,3)),
+                          columns=['foo.bar', 'bar.foo.foo', 'bar.foo.bar'])
+
+        # Test access to df.foo -> DataFrame
+        df_foo = pd.DataFrame(np.ones((4,1)), columns=['bar'])
+        pd.util.testing.assert_frame_equal(df_foo, df.foo)
+
+        # Test access to df.bar -> Series
+        df_foo_bar = pd.Series(np.ones((4,)), name='bar')
+        pd.util.testing.assert_series_equal(df_foo_bar, df.foo.bar)
+
+        # Test access to df.bar -> DataFrame
+        df_bar = pd.DataFrame(np.ones((4,2)), columns=['foo.foo', 'foo.bar'])
+        pd.util.testing.assert_frame_equal(df_bar, df.bar)
+
+        # Test access to df.bar.foo -> DataFrame
+        df_bar_foo = pd.DataFrame(np.ones((4,2)), columns=['foo', 'bar'])
+        pd.util.testing.assert_frame_equal(df_bar_foo, df.bar.foo)
+
+        # Test access to df.bar.foo.foo -> Series
+        df_bar_foo_foo = pd.Series(np.ones((4,)), name='foo')
+        pd.util.testing.assert_series_equal(df_bar_foo_foo, df.bar.foo.foo)
+
     def test_keys(self):
         getkeys = self.frame.keys
         assert getkeys() is self.frame.columns

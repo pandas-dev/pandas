@@ -78,7 +78,8 @@ import pandas.core.computation.expressions as expressions
 import pandas.core.algorithms as algorithms
 from pandas.core.computation.eval import eval as _eval
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
-                           OrderedDict, raise_with_traceback)
+                           string_types, OrderedDict, raise_with_traceback,
+                           isidentifier)
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
@@ -643,6 +644,12 @@ class DataFrame(NDFrame):
             return self.to_latex()
         else:
             return None
+
+    def _dir_additions(self):
+        """ add the string-like attributes from the info_axis """
+        return set([c.split('.')[0] for c in self._info_axis
+                    if isinstance(c, string_types) and
+                    isidentifier(c.split('.')[0])])
 
     @property
     def style(self):
@@ -1958,6 +1965,20 @@ it is assumed to be aliases for the column names.')
             dm = dm.join(objects)
 
         self._data = dm._data
+
+    # ----------------------------------------------------------------------
+    # Attribute access
+
+    def __getattr__(self, key):
+        try:
+            return super(DataFrame, self).__getattr__(key)
+        except AttributeError:
+            cols = [x for x in self.columns if x.startswith(key + '.')]
+            if len(cols):
+                return self[cols].rename_axis(
+                    lambda x: x[len(key + '.'):], axis=1)
+            else:
+                raise
 
     # ----------------------------------------------------------------------
     # Getting and setting elements
