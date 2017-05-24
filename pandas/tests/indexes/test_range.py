@@ -172,16 +172,16 @@ class TestRangeIndex(Numeric):
         copy = RangeIndex(orig)
         copy.name = 'copy'
 
-        assert orig.name, 'original'
-        assert copy.name, 'copy'
+        assert orig.name == 'original'
+        assert copy.name == 'copy'
 
         new = Index(copy)
-        assert new.name, 'copy'
+        assert new.name == 'copy'
 
         new.name = 'new'
-        assert orig.name, 'original'
-        assert new.name, 'copy'
-        assert new.name, 'new'
+        assert orig.name == 'original'
+        assert copy.name == 'copy'
+        assert new.name == 'new'
 
     def test_numeric_compat2(self):
         # validate that we are handling the RangeIndex overrides to numeric ops
@@ -273,7 +273,7 @@ class TestRangeIndex(Numeric):
             expected = "RangeIndex(start=0, stop=5, step=1, name='Foo')"
         else:
             expected = "RangeIndex(start=0, stop=5, step=1, name=u'Foo')"
-        assert result, expected
+        assert result == expected
 
         result = eval(result)
         tm.assert_index_equal(result, i, exact=True)

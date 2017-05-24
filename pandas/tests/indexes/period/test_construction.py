@@ -135,15 +135,15 @@ class TestPeriodIndex(object):
 
         result = PeriodIndex(idx, freq=offsets.MonthEnd())
         tm.assert_index_equal(result, idx)
-        assert result.freq, 'M'
+        assert result.freq == 'M'
 
         result = PeriodIndex(idx, freq='2M')
         tm.assert_index_equal(result, idx.asfreq('2M'))
-        assert result.freq, '2M'
+        assert result.freq == '2M'
 
         result = PeriodIndex(idx, freq=offsets.MonthEnd(2))
         tm.assert_index_equal(result, idx.asfreq('2M'))
-        assert result.freq, '2M'
+        assert result.freq == '2M'
 
         result = PeriodIndex(idx, freq='D')
         exp = idx.asfreq('D', 'e')
