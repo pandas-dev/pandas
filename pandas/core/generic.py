@@ -4420,7 +4420,7 @@ it is assumed to be aliases for the column names.')
 
         # method is self.le for upper bound and self.ge for lower bound
         if is_scalar(threshold) and is_number(threshold):
-            if  method.__name__ == 'le':
+            if method.__name__ == 'le':
                 return self._clip_with_scalar(None, threshold, inplace=inplace)
             else:
                 return self._clip_with_scalar(threshold, None, inplace=inplace)
@@ -4444,7 +4444,6 @@ it is assumed to be aliases for the column names.')
                 threshold = pd.Series(threshold, index=subset.columns)
         finally:
             return self.where(subset, threshold, axis=axis, inplace=inplace)
-
 
     def clip(self, lower=None, upper=None, axis=None, inplace=False,
              *args, **kwargs):
@@ -4549,7 +4548,7 @@ it is assumed to be aliases for the column names.')
         clipped : same type as input
         """
         return self._clip_with_one_bound(threshold, method=self.le,
-                                        axis=axis, inplace=inplace)
+                                         axis=axis, inplace=inplace)
 
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
@@ -4573,7 +4572,7 @@ it is assumed to be aliases for the column names.')
         clipped : same type as input
         """
         return self._clip_with_one_bound(threshold, method=self.ge,
-                                        axis=axis, inplace=inplace)
+                                         axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True, squeeze=False, **kwargs):
