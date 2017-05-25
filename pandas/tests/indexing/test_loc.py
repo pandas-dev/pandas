@@ -635,7 +635,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # GH13873
         df = DataFrame({'a': [1, 2, 3]})
         result = df.loc[:]
-        assert not result is df
+        assert result is not df
+
         # should be a shallow copy
         df['a'] = [4, 4, 4]
         assert (result['a'] == 4).all()

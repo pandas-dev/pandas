@@ -596,7 +596,8 @@ class TestiLoc(Base):
         # GH13873
         df = DataFrame({'a': [1, 2, 3]})
         result = df.iloc[:]
-        assert not result is df
+        assert result is not df
+
         # should be a shallow copy
         df['a'] = [4, 4, 4]
         assert (result['a'] == 4).all()
