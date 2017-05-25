@@ -380,7 +380,7 @@ Python determines the length of a character string with the ``len`` function.
 ``len`` includes trailing blanks.  Use ``len`` and ``rstrip`` to exclude 
 trailing blanks.
 
-.. code-block:: none
+.. ipython:: python
 
    tips['time'].str.len()
    tips['time'].str.rstrip().str.len()
@@ -407,7 +407,7 @@ substring.  If the substring is found, the function returns its
 position.  Keep in mind that Python indexes are zero-based and 
 the function will return -1 if it fails to find the substring.
 
-.. code-block:: none
+.. ipython:: python
 
    tips['sex'].str.find("ALE")
 
@@ -429,7 +429,7 @@ In Python, you can use ``[]`` notation to extract a substring
 from a string by position locations.  Keep in mind that Python 
 indexes are zero-based.
 
-.. code-block:: none
+.. ipython:: python
 
    tips['sex'].str[0:1]
 
@@ -457,7 +457,7 @@ Python extracts a substring from a string based on its text
 by using regular expressions. There are much more powerful 
 approaches, but this just shows a simple approach.
 
-.. code-block:: none
+.. ipython:: python
 
    firstlast = pd.DataFrame({'String': ['John Smith', 'Jane Cook']})
    firstlast['First_Name'] = firstlast['String'].str.split(" ", expand=True)[0]
@@ -485,7 +485,7 @@ the case of the argument.
 
 The equivalent Python functions are ``upper``, ``lower``, and ``title``.
 
-.. code-block:: none
+.. ipython:: python
 
    firstlast = pd.DataFrame({'String': ['John Smith', 'Jane Cook']})
    firstlast['string_up'] = firstlast['String'].str.upper()
