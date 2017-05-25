@@ -753,7 +753,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        renamed : type of caller
+        renamed : type of caller or None if inplace=True
 
         See Also
         --------
@@ -784,16 +784,16 @@ class NDFrame(PandasObject, SelectionMixin):
         non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
                                            is_dict_like(mapper))
         if non_mapper:
-            return self._set_axis_name(mapper, axis=axis)
+            return self._set_axis_name(mapper, axis=axis, inplace=inplace)
         else:
             axis = self._get_axis_name(axis)
             d = {'copy': copy, 'inplace': inplace}
             d[axis] = mapper
             return self.rename(**d)
 
-    def _set_axis_name(self, name, axis=0):
+    def _set_axis_name(self, name, axis=0, inplace=False):
         """
-        Alter the name or names of the axis, returning self.
+        Alter the name or names of the axis.
 
         Parameters
         ----------
@@ -801,10 +801,14 @@ class NDFrame(PandasObject, SelectionMixin):
             Name for the Index, or list of names for the MultiIndex
         axis : int or str
            0 or 'index' for the index; 1 or 'columns' for the columns
+        inplace : bool
+            whether to modify `self` directly or return a copy
+
+            .. versionadded: 0.21.0
 
         Returns
         -------
-        renamed : type of caller
+        renamed : type of caller or None if inplace=True
 
         See Also
         --------
@@ -831,9 +835,11 @@ class NDFrame(PandasObject, SelectionMixin):
         axis = self._get_axis_number(axis)
         idx = self._get_axis(axis).set_names(name)
 
-        renamed = self.copy(deep=True)
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        renamed = self if inplace else self.copy()
         renamed.set_axis(axis, idx)
-        return renamed
+        if not inplace:
+            return renamed
 
     # ----------------------------------------------------------------------
     # Comparisons
