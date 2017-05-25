@@ -4413,6 +4413,39 @@ it is assumed to be aliases for the column names.')
         else:
             return result
 
+    def _clip_with_one_bound(self, threshold, method, axis, inplace):
+
+        if np.any(isnull(threshold)):
+            raise ValueError("Cannot use an NA value as a clip threshold")
+
+        # method is self.le for upper bound and self.ge for lower bound
+        if is_scalar(threshold) and is_number(threshold):
+            if  method.__name__ == 'le':
+                return self._clip_with_scalar(None, threshold, inplace=inplace)
+            else:
+                return self._clip_with_scalar(threshold, None, inplace=inplace)
+
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+
+        subset = method(threshold, axis=axis) | isnull(self)
+
+        # GH #15390
+        if is_scalar(threshold) or is_number(threshold):
+            return self.where(subset, threshold, axis=axis, inplace=inplace)
+
+        # For arry_like threshold, convet it to Series with corret index
+        # `where` only takes
+        try:
+            if isinstance(subset, ABCSeries):
+                threshold = pd.Series(threshold, index=subset.index)
+            elif axis == 0:
+                threshold = pd.Series(threshold, index=subset.index)
+            else:
+                threshold = pd.Series(threshold, index=subset.columns)
+        finally:
+            return self.where(subset, threshold, axis=axis, inplace=inplace)
+
+
     def clip(self, lower=None, upper=None, axis=None, inplace=False,
              *args, **kwargs):
         """
@@ -4515,16 +4548,8 @@ it is assumed to be aliases for the column names.')
         -------
         clipped : same type as input
         """
-        if np.any(isnull(threshold)):
-            raise ValueError("Cannot use an NA value as a clip threshold")
-
-        if is_scalar(threshold) and is_number(threshold):
-            return self._clip_with_scalar(None, threshold, inplace=inplace)
-
-        inplace = validate_bool_kwarg(inplace, 'inplace')
-
-        subset = self.le(threshold, axis=axis) | isnull(self)
-        return self.where(subset, threshold, axis=axis, inplace=inplace)
+        return self._clip_with_one_bound(threshold, method=self.le,
+                                        axis=axis, inplace=inplace)
 
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
@@ -4547,16 +4572,8 @@ it is assumed to be aliases for the column names.')
         -------
         clipped : same type as input
         """
-        if np.any(isnull(threshold)):
-            raise ValueError("Cannot use an NA value as a clip threshold")
-
-        if is_scalar(threshold) and is_number(threshold):
-            return self._clip_with_scalar(threshold, None, inplace=inplace)
-
-        inplace = validate_bool_kwarg(inplace, 'inplace')
-
-        subset = self.ge(threshold, axis=axis) | isnull(self)
-        return self.where(subset, threshold, axis=axis, inplace=inplace)
+        return self._clip_with_one_bound(threshold, method=self.ge,
+                                        axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True, squeeze=False, **kwargs):

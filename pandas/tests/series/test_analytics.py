@@ -1015,6 +1015,18 @@ class TestSeriesAnalytics(TestData):
         assert_series_equal(s.clip(lower, upper), Series([1.0, 2.0, 3.5]))
         assert_series_equal(s.clip(1.5, upper), Series([1.5, 1.5, 3.5]))
 
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_clip_against_list(self, inplace):
+        # GH #15390
+        original = pd.Series([5, 6, 7])
+        result = original.clip(upper=[1, 2, 3], inplace=inplace)
+        expected = pd.Series([1, 2, 3])
+        
+        if inplace:
+            tm.assert_series_equal(original, expected, check_exact=True)
+        else:
+            tm.assert_series_equal(result, expected, check_exact=True)
+
     def test_clip_with_datetimes(self):
 
         # GH 11838
