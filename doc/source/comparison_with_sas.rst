@@ -357,6 +357,142 @@ takes a list of columns to sort by.
    tips = tips.sort_values(['sex', 'total_bill'])
    tips.head()
 
+
+String Processing
+-----------------
+
+Length
+~~~~~~
+
+SAS determines the length of a character string with the ``LENGTHN`` 
+and ``LENGTHC`` functions. ``LENGTHN`` excludes trailing blanks and 
+``LENGTHC`` includes trailing blanks. 
+
+.. code-block:: none
+
+   data _null_;
+   set tips;
+   put(LENGTHN(time));
+   put(LENGTHC(time));
+   run;
+
+Python determines the length of a character string with the ``len`` function.
+``len`` includes trailing blanks.  Use ``len`` and ``rstrip`` to exclude 
+trailing blanks.
+
+.. code-block:: none
+
+   tips['time'].str.len()
+   tips['time'].str.rstrip().str.len()
+
+
+Find
+~~~~
+
+SAS determines the position of a character in a string with the 
+``FINDW`` function.  ``FINDW`` takes the string defined by 
+the first argument and searches for the first position of the substring
+you supply as the second argument.
+
+.. code-block:: none
+
+   data _null_;
+   set tips;
+   put(FINDW(sex,'ALE'));
+   run;
+
+Python determines the position of a character in a string with the 
+``find`` function.  ``find`` searches for the first position of the 
+substring.  If the substring is found, the function returns its 
+position.  Keep in mind that Python indexes are zero-based and 
+the function will return -1 if it fails to find the substring.
+
+.. code-block:: none
+
+   tips['sex'].str.find("ALE")
+
+
+Substring
+~~~~~~~~~
+
+SAS extracts a substring from a string based on its position 
+with the ``SUBSTR`` function. 
+
+.. code-block:: none
+
+   data _null_;
+   set tips;
+   put(substr(sex,1,1));
+   run;
+
+In Python, you can use ``[]`` notation to extract a substring 
+from a string by position locations.  Keep in mind that Python 
+indexes are zero-based.
+
+.. code-block:: none
+
+   tips['sex'].str[0:1]
+
+
+Scan
+~~~~
+
+The SAS ``SCAN`` function returns the nth word from a string. 
+The first argument is the string you want to parse and the 
+second argument specifies which word you want to extract.
+
+.. code-block:: none
+
+   data firstlast;
+   input String $60.;
+   First_Name = scan(string, 1);
+   Last_Name = scan(string, -1);
+   datalines2;
+   John Smith;
+   Jane Cook;
+   ;;;
+   run;
+
+Python extracts a substring from a string based on its text 
+by using regular expressions. There are much more powerful 
+approaches, but this just shows a simple approach.
+
+.. code-block:: none
+
+   firstlast = pd.DataFrame({'String': ['John Smith', 'Jane Cook']})
+   firstlast['First_Name'] = firstlast['String'].str.split(" ", expand=True)[0]
+   firstlast['Last_Name'] = firstlast['String'].str.rsplit(" ", expand=True)[0]
+
+
+Upcase, Lowcase, and Propcase
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The SAS ``UPCASE``, ``LOWCASE``, and ``PROPCASE`` functions change 
+the case of the argument.
+
+.. code-block:: none
+
+   data firstlast;
+   input String $60.;
+   string_up = UPCASE(string);
+   string_low = LOWCASE(string);
+   string_prop = PROPCASE(string);
+   datalines2;
+   John Smith;
+   Jane Cook;
+   ;;;
+   run;
+
+The equivalent Python functions are ``upper``, ``lower``, and ``title``.
+
+.. code-block:: none
+
+   firstlast = pd.DataFrame({'String': ['John Smith', 'Jane Cook']})
+   firstlast['string_up'] = firstlast['String'].str.upper()
+   firstlast['string_low'] = firstlast['String'].str.lower()
+   firstlast['string_prop'] = firstlast['String'].str.title()
+
+
 Merging
 -------
 
