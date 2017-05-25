@@ -441,6 +441,20 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize('roller', ['1s', 1])
+    def tests_empty_df_rolling(self, roller):
+        # GH 15819 Verifies that datetime and integer rolling windows can be
+        # applied to empty DataFrames
+        expected = DataFrame()
+        result = DataFrame().rolling(roller).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Verifies that datetime and integer rolling windows can be applied to
+        # empty DataFrames with datetime index
+        expected = DataFrame(index=pd.DatetimeIndex([]))
+        result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding(Base):
 
@@ -482,6 +496,24 @@ class TestExpanding(Base):
                                    getattr(e, func), 1, 2, 3)
             tm.assert_raises_regex(UnsupportedFunctionCall, msg,
                                    getattr(e, func), dtype=np.float64)
+
+    @pytest.mark.parametrize(
+        'expander',
+        [1, pytest.mark.xfail(
+            reason='GH 16425 expanding with offset not supported')('1s')])
+    def tests_empty_df_expanding(self, expander):
+        # GH 15819 Verifies that datetime and integer expanding windows can be
+        # applied to empty DataFrames
+        expected = DataFrame()
+        result = DataFrame().expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Verifies that datetime and integer expanding windows can be applied
+        # to empty DataFrames with datetime index
+        expected = DataFrame(index=pd.DatetimeIndex([]))
+        result = DataFrame(
+            index=pd.DatetimeIndex([])).expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
 
 
 class TestEWM(Base):

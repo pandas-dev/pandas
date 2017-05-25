@@ -38,10 +38,7 @@ Bug Fixes
 
 - Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
 - Bug in ``DataFrame.update()`` with ``overwrite=False`` and ``NaN values`` (:issue:`15593`)
-
-
 - Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on Categoricals (:issue:`16409`)
-
 
 Conversion
 ^^^^^^^^^^
@@ -72,7 +69,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-
+- Bug creating datetime rolling window on an empty DataFrame (:issue:`15819`)
 
 
 Sparse
