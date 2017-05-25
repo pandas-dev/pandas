@@ -4120,8 +4120,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def notnull(self):
         return notnull(self).__finalize__(self)
 
-    def _clip_with_scalar(self, lower, upper):
-
+    def _clip_with_scalar(self, lower, upper, inplace=False):
         if ((lower is not None and np.any(isnull(lower))) or
                 (upper is not None and np.any(isnull(upper)))):
             raise ValueError("Cannot use an NA value as a clip threshold")
@@ -4137,10 +4136,16 @@ class NDFrame(PandasObject, SelectionMixin):
         if np.any(mask):
             result[mask] = np.nan
 
-        return self._constructor(
-            result, **self._construct_axes_dict()).__finalize__(self)
+        axes_dict = self._construct_axes_dict()
+        result = self._constructor(result, **axes_dict).__finalize__(self)
 
-    def clip(self, lower=None, upper=None, axis=None, *args, **kwargs):
+        if inplace:
+            self._update_inplace(result)
+        else:
+            return result
+
+    def clip(self, lower=None, upper=None, axis=None, inplace=False,
+             *args, **kwargs):
         """
         Trim values at input threshold(s).
 
@@ -4150,6 +4155,9 @@ class NDFrame(PandasObject, SelectionMixin):
         upper : float or array_like, default None
         axis : int or string axis name, optional
             Align object with lower and upper along the given axis.
+        inplace : boolean, default False
+            Whether to perform the operation in place on the data
+                .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -4192,6 +4200,8 @@ class NDFrame(PandasObject, SelectionMixin):
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
 
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+
         axis = nv.validate_clip_with_axis(axis, args, kwargs)
 
         # GH 2747 (arguments were reversed)
@@ -4202,17 +4212,20 @@ class NDFrame(PandasObject, SelectionMixin):
         # fast-path for scalars
         if ((lower is None or (is_scalar(lower) and is_number(lower))) and
                 (upper is None or (is_scalar(upper) and is_number(upper)))):
-            return self._clip_with_scalar(lower, upper)
+            return self._clip_with_scalar(lower, upper, inplace=inplace)
 
         result = self
         if lower is not None:
-            result = result.clip_lower(lower, axis)
+            result = result.clip_lower(lower, axis, inplace=inplace)
         if upper is not None:
-            result = result.clip_upper(upper, axis)
+            if inplace:
+                result = self
+
+            result = result.clip_upper(upper, axis, inplace=inplace)
 
         return result
 
-    def clip_upper(self, threshold, axis=None):
+    def clip_upper(self, threshold, axis=None, inplace=False):
         """
         Return copy of input with values above given value(s) truncated.
 
@@ -4221,6 +4234,9 @@ class NDFrame(PandasObject, SelectionMixin):
         threshold : float or array_like
         axis : int or string axis name, optional
             Align object with threshold along the given axis.
+        inplace : boolean, default False
+            Whether to perform the operation in place on the data
+                .. versionadded:: 0.21.0
 
         See Also
         --------
@@ -4234,12 +4250,14 @@ class NDFrame(PandasObject, SelectionMixin):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         if is_scalar(threshold) and is_number(threshold):
-            return self._clip_with_scalar(None, threshold)
+            return self._clip_with_scalar(None, threshold, inplace=inplace)
+
+        inplace = validate_bool_kwarg(inplace, 'inplace')
 
         subset = self.le(threshold, axis=axis) | isnull(self)
-        return self.where(subset, threshold, axis=axis)
+        return self.where(subset, threshold, axis=axis, inplace=inplace)
 
-    def clip_lower(self, threshold, axis=None):
+    def clip_lower(self, threshold, axis=None, inplace=False):
         """
         Return copy of the input with values below given value(s) truncated.
 
@@ -4248,6 +4266,9 @@ class NDFrame(PandasObject, SelectionMixin):
         threshold : float or array_like
         axis : int or string axis name, optional
             Align object with threshold along the given axis.
+        inplace : boolean, default False
+            Whether to perform the operation in place on the data
+                .. versionadded:: 0.21.0
 
         See Also
         --------
@@ -4261,10 +4282,12 @@ class NDFrame(PandasObject, SelectionMixin):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
         if is_scalar(threshold) and is_number(threshold):
-            return self._clip_with_scalar(threshold, None)
+            return self._clip_with_scalar(threshold, None, inplace=inplace)
+
+        inplace = validate_bool_kwarg(inplace, 'inplace')
 
         subset = self.ge(threshold, axis=axis) | isnull(self)
-        return self.where(subset, threshold, axis=axis)
+        return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True, squeeze=False, **kwargs):
