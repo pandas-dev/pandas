@@ -37,7 +37,7 @@ Other Enhancements
 - :func:`api.types.infer_dtype` now infers decimals. (:issue: `15690`)
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
 - :func:`DataFrame.clip()` and :func: `Series.cip()` have gained an inplace argument. (:issue: `15388`)
-- ``Crosstab`` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when margins=True. (:issue:`15972`)
+- :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when margins=True. (:issue:`15972`)
 
 .. _whatsnew_0210.api_breaking:
 
