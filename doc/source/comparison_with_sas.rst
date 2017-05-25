@@ -382,8 +382,8 @@ trailing blanks.
 
 .. ipython:: python
 
-   tips['time'].str.len()
-   tips['time'].str.rstrip().str.len()
+   tips['time'].str.len().head()
+   tips['time'].str.rstrip().str.len().head()
 
 
 Find
@@ -398,7 +398,7 @@ you supply as the second argument.
 
    data _null_;
    set tips;
-   put(FINDW(sex,'ALE'));
+   put(FINDW(sex,'ale'));
    run;
 
 Python determines the position of a character in a string with the 
@@ -409,7 +409,7 @@ the function will return -1 if it fails to find the substring.
 
 .. ipython:: python
 
-   tips['sex'].str.find("ALE")
+   tips['sex'].str.find("ale").head()
 
 
 Substring
@@ -431,7 +431,7 @@ indexes are zero-based.
 
 .. ipython:: python
 
-   tips['sex'].str[0:1]
+   tips['sex'].str[0:1].head()
 
 
 Scan
@@ -451,7 +451,7 @@ second argument specifies which word you want to extract.
    John Smith;
    Jane Cook;
    ;;;
-   run;
+   run;   
 
 Python extracts a substring from a string based on its text 
 by using regular expressions. There are much more powerful 
