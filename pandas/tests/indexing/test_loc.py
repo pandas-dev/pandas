@@ -631,7 +631,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                               check_index_type=True,
                               check_column_type=True)
 
-    def test_loc_identity_slice_returns_new_object(self):
+    def test_identity_slice_returns_new_object(self):
         # GH13873
         df = DataFrame({'a': [1, 2, 3]})
         result = df.loc[:]

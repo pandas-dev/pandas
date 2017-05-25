@@ -592,7 +592,7 @@ class TestiLoc(Base):
                               check_index_type=True,
                               check_column_type=True)
 
-    def test_loc_identity_slice_returns_new_object(self):
+    def test_identity_slice_returns_new_object(self):
         # GH13873
         df = DataFrame({'a': [1, 2, 3]})
         result = df.iloc[:]
