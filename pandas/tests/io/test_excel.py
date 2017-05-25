@@ -197,30 +197,6 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2, dfref, check_names=False)
         tm.assert_frame_equal(df3, dfref, check_names=False)  # backward compat
 
-        # check list of characters
-        dfref = self.get_csv_refdf('test1')
-        dfref = dfref.reindex(columns=['A', 'B', 'C'])
-        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               usecols=['A', 'B', 'C', 'D'])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                                   parse_cols=3)
-
-        tm.assert_frame_equal(df1, dfref, check_names=False)
-        tm.assert_frame_equal(df2, dfref, check_names=False)  # backward compat
-
-        # check mixed list of int and characters
-        dfref = self.get_csv_refdf('test1')
-        dfref = dfref.reindex(columns=['A', 'B', 'C'])
-        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               usecols=['A', 1, 2, 'D'])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                                   parse_cols=3)
-
-        tm.assert_frame_equal(df1, dfref, check_names=False)
-        tm.assert_frame_equal(df2, dfref, check_names=False)  # backward compat
-
     def test_usecols_str(self):
         # GH4988: inconsistent naming convention for read_excel column select
         dfref = self.get_csv_refdf('test1')
