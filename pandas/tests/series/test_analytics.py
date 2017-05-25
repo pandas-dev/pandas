@@ -1021,7 +1021,7 @@ class TestSeriesAnalytics(TestData):
         original = pd.Series([5, 6, 7])
         result = original.clip(upper=[1, 2, 3], inplace=inplace)
         expected = pd.Series([1, 2, 3])
-        
+
         if inplace:
             tm.assert_series_equal(original, expected, check_exact=True)
         else:

@@ -4415,6 +4415,8 @@ it is assumed to be aliases for the column names.')
 
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
 
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+
         if np.any(isnull(threshold)):
             raise ValueError("Cannot use an NA value as a clip threshold")
 
@@ -4422,19 +4424,16 @@ it is assumed to be aliases for the column names.')
         if is_scalar(threshold) and is_number(threshold):
             if method.__name__ == 'le':
                 return self._clip_with_scalar(None, threshold, inplace=inplace)
-            else:
-                return self._clip_with_scalar(threshold, None, inplace=inplace)
-
-        inplace = validate_bool_kwarg(inplace, 'inplace')
+            return self._clip_with_scalar(threshold, None, inplace=inplace)
 
         subset = method(threshold, axis=axis) | isnull(self)
 
         # GH #15390
-        if is_scalar(threshold) or is_number(threshold):
+        if is_scalar(threshold):
             return self.where(subset, threshold, axis=axis, inplace=inplace)
 
         # For arry_like threshold, convet it to Series with corret index
-        # `where` only takes
+        # `where` takes scalar, NDFrame, or callable for argument "other"
         try:
             if isinstance(subset, ABCSeries):
                 threshold = pd.Series(threshold, index=subset.index)
