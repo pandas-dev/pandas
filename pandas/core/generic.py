@@ -2056,6 +2056,37 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         dropped : type of caller
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2, 3, 4],
+        ...                    [5, 6, 7, 8],
+        ...                    [9, 1, 2, 3],
+        ...                    [4, 5, 6, 7]
+        ...                   ],
+        ...                   columns=list('ABCD'))
+        >>> df
+            A   B   C   D
+        0   1   2   3   4
+        1   5   6   7   8
+        2   9   1   2   3
+        3   4   5   6   7
+
+        Drop a row by index
+
+        >>> df.drop([0, 1])
+            A   B   C   D
+        2   9   1   2   3
+        3   4   5   6   7
+
+        Drop columns
+
+        >>> df.drop(['A', 'B'], axis=1)
+            C   D
+        0   3   4
+        1   7   8
+        2   2   3
+        3   6   7
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
@@ -2169,6 +2200,66 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         sorted_obj : %(klass)s
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...     'col1' : ['A', 'A', 'B', np.nan, 'D', 'C'],
+        ...     'col2' : [2, 1, 9, 8, 7, 4],
+        ...     'col3': [0, 1, 9, 4, 2, 3],
+        ... })
+        >>> df
+            col1 col2 col3
+        0   A    2    0
+        1   A    1    1
+        2   B    9    9
+        3   NaN  8    4
+        4   D    7    2
+        5   C    4    3
+
+        Sort by col1
+
+        >>> df.sort_values(by=['col1'])
+            col1 col2 col3
+        0   A    2    0
+        1   A    1    1
+        2   B    9    9
+        5   C    4    3
+        4   D    7    2
+        3   NaN  8    4
+
+        Sort by multiple columns
+
+        >>> df.sort_values(by=['col1', 'col2'])
+            col1 col2 col3
+        1   A    1    1
+        0   A    2    0
+        2   B    9    9
+        5   C    4    3
+        4   D    7    2
+        3   NaN  8    4
+
+        Sort Descending
+
+        >>> df.sort_values(by='col1', ascending=False)
+            col1 col2 col3
+        4   D    7    2
+        5   C    4    3
+        2   B    9    9
+        0   A    2    0
+        1   A    1    1
+        3   NaN  8    4
+
+        Putting NAs first
+
+        >>> df.sort_values(by='col1', ascending=False, na_position='first')
+            col1 col2 col3
+        3   NaN  8    4
+        4   D    7    2
+        5   C    4    3
+        2   B    9    9
+        0   A    2    0
+        1   A    1    1
         """
 
     def sort_values(self, by, axis=0, ascending=True, inplace=False,
@@ -3469,6 +3560,58 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         filled : %(klass)s
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[np.nan, 2, np.nan, 0],
+        ...                    [3, 4, np.nan, 1],
+        ...                    [np.nan, np.nan, np.nan, 5],
+        ...                    [np.nan, 3, np.nan, 4]],
+        ...                    columns=list('ABCD'))
+        >>> df
+             A    B   C  D
+        0  NaN  2.0 NaN  0
+        1  3.0  4.0 NaN  1
+        2  NaN  NaN NaN  5
+        3  NaN  3.0 NaN  4
+
+        Replace all NaN elements with 0s.
+
+        >>> df.fillna(0)
+            A   B   C   D
+        0   0.0 2.0 0.0 0
+        1   3.0 4.0 0.0 1
+        2   0.0 0.0 0.0 5
+        3   0.0 3.0 0.0 4
+
+        We can also propagate non-null values forward or backward.
+
+        >>> df.fillna(method='ffill')
+            A   B   C   D
+        0   NaN 2.0 NaN 0
+        1   3.0 4.0 NaN 1
+        2   3.0 4.0 NaN 5
+        3   3.0 3.0 NaN 4
+
+        Replace all NaN elements in column 'A', 'B', 'C', and 'D', with 0, 1,
+        2, and 3 respectively.
+
+        >>> values = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+        >>> df.fillna(value=values)
+            A   B   C   D
+        0   0.0 2.0 2.0 0
+        1   3.0 4.0 2.0 1
+        2   0.0 1.0 2.0 5
+        3   0.0 3.0 2.0 4
+
+        Only replace the first NaN element.
+
+        >>> df.fillna(value=values, limit=1)
+            A   B   C   D
+        0   0.0 2.0 2.0 0
+        1   3.0 4.0 NaN 1
+        2   NaN 1.0 NaN 5
+        3   NaN 3.0 NaN 4
         """)
 
     @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
