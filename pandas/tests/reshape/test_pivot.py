@@ -1072,6 +1072,7 @@ class TestCrosstab(object):
         tm.assert_series_equal(all_rows, exp_rows)
 
     def test_crosstab_margins_set_margin_name(self):
+        # GH 15972
         a = np.random.randint(0, 7, size=100)
         b = np.random.randint(0, 3, size=100)
         c = np.random.randint(0, 5, size=100)

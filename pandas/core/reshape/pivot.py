@@ -416,7 +416,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
         Name of the row / column that will contain the totals
         when margins is True.
 
-        .. versionadded:: 0.20.0
+        .. versionadded:: 0.21.0
 
     dropna : boolean, default True
         Do not include columns whose entries are all NaN
@@ -573,8 +573,6 @@ def _normalize(table, normalize, margins, margins_name='All'):
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            print('index margin')
-            print(index_margin)
             table = table.append(index_margin)
 
             table = table.fillna(0)
