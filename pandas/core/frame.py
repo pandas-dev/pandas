@@ -2947,9 +2947,44 @@ it is assumed to be aliases for the column names.')
 
         Examples
         --------
-        >>> indexed_df = df.set_index(['A', 'B'])
-        >>> indexed_df2 = df.set_index(['A', [0, 1, 2, 0, 1, 2]])
-        >>> indexed_df3 = df.set_index([[0, 1, 2, 0, 1, 2]])
+        >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
+        ...                    'year': [2012, 2014, 2013, 2014],
+        ...                    'sale':[55, 40, 84, 31]})
+           month  sale  year
+        0  1      55    2012
+        1  4      40    2014
+        2  7      84    2013
+        3  10     31    2014
+
+        Set the index to become the 'month' column:
+
+        >>> df.set_index('month')
+               sale  year
+        month
+        1      55    2012
+        4      40    2014
+        7      84    2013
+        10     31    2014
+
+        Create a multi-index using columns 'year' and 'month':
+
+        >>> df.set_index(['year', 'month'])
+                    sale
+        year  month
+        2012  1     55
+        2014  4     40
+        2013  7     84
+        2014  10    31
+
+        Create a multi-index using a set of values and a column:
+
+        >>> df.set_index([[1, 2, 3, 4], 'year'])
+                 month  sale
+           year
+        1  2012  1      55
+        2  2014  4      40
+        3  2013  7      84
+        4  2014  10     31
 
         Returns
         -------
