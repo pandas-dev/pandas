@@ -2754,14 +2754,12 @@ to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', usecols=2)
 
-If `usecols` is a list of integers, characters, or both, then it is assumed to be the file column
+If `usecols` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
 
    read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
-   read_excel('path_to_file.xls', 'Sheet1', usecols=['A', 'C', 'D'])
-   read_excel('path_to_file.xls', 'Sheet1', usecols=['A', 2, 'D'])
 
 
 Parsing Dates

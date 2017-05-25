@@ -307,17 +307,7 @@ class ExcelFile(object):
                                  squeeze=squeeze,
                                  **kwds)
 
-    def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
-                     skip_footer=0, index_col=None, has_index_names=None,
-                     use_cols=None, parse_dates=False, date_parser=None,
-                     na_values=None, thousands=None, convert_float=True,
-                     true_values=None, false_values=None, verbose=False,
-                     dtype=None, squeeze=False, **kwds):
-
-        def _excel2num(x):
-            "Convert Excel column name like 'AB' to 0-based column index"
-            return reduce(lambda s, a: s * 26 + ord(a) - ord('A') + 1,
-                          x.upper().strip(), 0) - 1
+    def _should_usecols(self, i, use_cols):
 
         def _range2cols(areas):
             """
@@ -329,6 +319,11 @@ class ExcelFile(object):
             >>> _range2cols('A,C,Z:AB')
             [0, 2, 25, 26, 27]
             """
+            def _excel2num(x):
+                "Convert Excel column name like 'AB' to 0-based column index"
+                return reduce(lambda s, a: s * 26 + ord(a) - ord('A') + 1,
+                              x.upper().strip(), 0) - 1
+
             cols = []
             for rng in areas.split(','):
                 if ':' in rng:
@@ -337,6 +332,21 @@ class ExcelFile(object):
                 else:
                     cols.append(_excel2num(rng))
             return cols
+
+        if isinstance(use_cols, int):
+            return i <= use_cols
+        elif isinstance(use_cols, compat.string_types):
+            return i in _range2cols(use_cols)
+        else:
+            return i in use_cols
+
+
+    def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
+                     skip_footer=0, index_col=None, has_index_names=None,
+                     use_cols=None, parse_dates=False, date_parser=None,
+                     na_values=None, thousands=None, convert_float=True,
+                     true_values=None, false_values=None, verbose=False,
+                     dtype=None, squeeze=False, **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -441,29 +451,16 @@ class ExcelFile(object):
                 sheet = self.book.sheet_by_index(asheetname)
 
             data = []
-            should_use_column = {x: False for x in range(sheet.ncols)}
-
-            # determine if column should be used once per sheet.
-            if use_cols is None:
-                should_use_column = {x: True for x in range(sheet.ncols)}
-            elif isinstance(use_cols, int):
-                should_use_column.update({x: True for x in
-                                         range(sheet.ncols) if x <= use_cols})
-            elif isinstance(use_cols, compat.string_types):
-                should_use_column.update({x: True for x in
-                                         _range2cols(use_cols)})
-            elif isinstance(use_cols, list):
-                for list_item in use_cols:
-                    if is_integer(list_item):
-                        should_use_column[list_item] = True
-                    if isinstance(list_item, compat.string_types):
-                        should_use_column[_excel2num(list_item)] = True
+            should_usecol = {}
 
             for i in range(sheet.nrows):
                 row = []
                 for j, (value, typ) in enumerate(zip(sheet.row_values(i),
                                                      sheet.row_types(i))):
-                    if should_use_column[j]:
+                    if use_cols is not None and j not in should_usecol:
+                        should_usecol[j] = self._should_usecols(j, use_cols)
+
+                    if use_cols is None or should_usecol[j]:
                         row.append(_parse_cell(value, typ))
                 data.append(row)
 
