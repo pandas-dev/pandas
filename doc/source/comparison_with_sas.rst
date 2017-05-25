@@ -364,9 +364,10 @@ String Processing
 Length
 ~~~~~~
 
-SAS determines the length of a character string with the ``LENGTHN`` 
-and ``LENGTHC`` functions. ``LENGTHN`` excludes trailing blanks and 
-``LENGTHC`` includes trailing blanks. 
+SAS determines the length of a character string with the 
+`LENGTHN <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__  
+and `LENGTHC <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm>`__ 
+functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailing blanks.
 
 .. code-block:: none
 
@@ -390,8 +391,8 @@ Find
 ~~~~
 
 SAS determines the position of a character in a string with the 
-``FINDW`` function.  ``FINDW`` takes the string defined by 
-the first argument and searches for the first position of the substring
+`FINDW <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function. 
+``FINDW`` takes the string defined by the first argument and searches for the first position of the substring 
 you supply as the second argument.
 
 .. code-block:: none
@@ -415,8 +416,8 @@ the function will return -1 if it fails to find the substring.
 Substring
 ~~~~~~~~~
 
-SAS extracts a substring from a string based on its position 
-with the ``SUBSTR`` function. 
+SAS extracts a substring from a string based on its position with the 
+`SUBSTR <http://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function. 
 
 .. code-block:: none
 
@@ -437,8 +438,8 @@ indexes are zero-based.
 Scan
 ~~~~
 
-The SAS ``SCAN`` function returns the nth word from a string. 
-The first argument is the string you want to parse and the 
+The SAS `SCAN <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__ 
+function returns the nth word from a string. The first argument is the string you want to parse and the 
 second argument specifies which word you want to extract.
 
 .. code-block:: none
@@ -467,8 +468,10 @@ approaches, but this just shows a simple approach.
 Upcase, Lowcase, and Propcase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The SAS ``UPCASE``, ``LOWCASE``, and ``PROPCASE`` functions change 
-the case of the argument.
+The SAS `UPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm>`__ 
+`LOWCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm>`__ and 
+`PROPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/a002598106.htm>`__ 
+functions change the case of the argument.
 
 .. code-block:: none
 
