@@ -594,10 +594,18 @@ class TestiLoc(Base):
 
     def test_identity_slice_returns_new_object(self):
         # GH13873
-        df = DataFrame({'a': [1, 2, 3]})
-        result = df.iloc[:]
-        assert result is not df
+        original_df = DataFrame({'a': [1, 2, 3]})
+        sliced_df = original_df.iloc[:]
+        assert sliced_df is not original_df
 
         # should be a shallow copy
-        df['a'] = [4, 4, 4]
-        assert (result['a'] == 4).all()
+        original_df['a'] = [4, 4, 4]
+        assert (sliced_df['a'] == 4).all()
+
+        original_series = Series([1, 2, 3, 4, 5, 6])
+        sliced_series = original_series.iloc[:]
+        assert sliced_series is not original_series
+
+        # should also be a shallow copy
+        original_series[:3] = [7, 8, 9]
+        assert all(sliced_series[:3] == [7, 8, 9])
