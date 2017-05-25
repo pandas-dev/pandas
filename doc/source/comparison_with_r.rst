@@ -530,6 +530,103 @@ For more details and examples see :ref:`categorical introduction <categorical>` 
 :ref:`differences to R's factor <categorical.rfactor>`.
 
 
+String Processing
+-----------------
+
+Length
+~~~~~~
+
+R determines the length of a character string with the ``nchar`` function. 
+``nchar`` includes leading and trailing blanks.  Use ``nchar`` and ``trimws`` 
+to exclude leading and trailing blanks. 
+
+.. code-block:: none
+
+   df <- data.frame(color = c('red', ' blue', 'green ', ' yellow '))
+   nchar(as.character(df$color))
+   nchar(trimws(as.character(df$color)))
+
+Python determines the length of a character string with the ``len`` function.
+``len`` includes leading and trailing blanks.  Use ``len`` and ``strip`` 
+to exclude leading and trailing blanks.
+
+.. code-block:: none
+
+   df = pd.DataFrame({'color': ['red', ' blue', 'green ', ' yellow ']})
+   df['color'].str.len()
+   df['color'].str.strip().str.len()
+
+
+Find Position
+~~~~~~~~~~~~~
+
+R determines the position of a character in a string with the 
+``regexpr`` function.  ``regexpr`` takes the string defined by 
+the first argument and searches for the first position of the substring
+you supply as the second argument.
+
+.. code-block:: none
+
+   df <- data.frame(sex = c('MALE', 'FEMALE'))
+   pos = regexpr("ALE", df$sex)
+   pos[1:2]
+
+Python determines the position of a character in a string with the 
+``find`` function.  ``find`` searches for the first position of the 
+substring.  If the substring is found, the function returns its 
+position.  Keep in mind that Python indexes are zero based whereas 
+R indexes are 1 based.
+
+.. code-block:: none
+
+   df = pd.DataFrame({'sex': ['MALE', 'FEMALE']})
+   df['sex'].str.find("ALE")   
+
+Substring
+~~~~~~~~~
+
+R extracts a substring from a string based on its position 
+with the ``substr`` function. 
+
+.. code-block:: none
+
+   df <- data.frame(sex = c('MALE', 'FEMALE'))
+   substr(df$sex, 1, 1)
+
+In Python, you can use ``[]`` notation to extract a substring 
+from a string by position locations.  Keep in mind that Python 
+indexes are zero-based.
+
+.. code-block:: none
+
+   df = pd.DataFrame({'sex': ['MALE', 'FEMALE']})
+   df['sex'].str[0:1]
+
+
+Upcase and Lowcase
+~~~~~~~~~~~~~~~~~~
+
+The R ``toupper`` and ``tolower`` functions change the case of the 
+character string.
+
+.. code-block:: none
+
+   df <- data.frame(name = c('Johnny Bravo', 'Alex Mack'))
+   toupper(df$name)
+   tolower(df$name)
+
+The equivalent Python functions are ``upper`` and ``lower``.  
+In addition, Python's ``title`` function changes the string to 
+proper case.
+
+.. code-block:: none
+
+   df = pd.DataFrame({'name': ['Johnny Bravo', 'Alex Mack']})
+   df['name'].str.upper()
+   df['name'].str.lower()
+   df['name'].str.title()
+
+
 .. |c| replace:: ``c``
 .. _c: http://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html
 
