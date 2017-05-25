@@ -1869,3 +1869,8 @@ class TestToHTML(object):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html()
         assert "thead tr:only-child" not in result
+
+    def test_to_html_with_index_names_false(self):
+        df = pd.DataFrame({"A": [1, 2], index=pd.Index(['a', 'b'], name='myindexname'})
+        result = df.to_html(index_names=False)
+        assert 'myindexname' not in result

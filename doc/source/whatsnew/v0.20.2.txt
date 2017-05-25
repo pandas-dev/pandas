@@ -59,6 +59,7 @@ I/O
 - Bug in pd.read_csv() when comment is passed in space deliminted text files (:issue:`16472`)
 - Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)
 - Bug that raised IndexError HTML-rendering an empty DataFrame (:issue:`15953`)
+- Bug where to_html ignored the index_names parameter (:issue:`16493`)
 
 
 Plotting
