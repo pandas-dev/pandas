@@ -778,10 +778,11 @@ class TestDataFrameUpdate(TestData):
         tm.assert_frame_equal(df1, expected)
 
         # test 2
-        df1 = DataFrame({'A': [1.0, None, 3], 'B': date_range('2000', periods=3)})
+        df1 = DataFrame({'A': [1.0, None, 3],
+                         'B': date_range('2000', periods=3)})
         df2 = DataFrame({'A': [None, 2, 3]})
-        expected = DataFrame({'A': [1.0, 2, 3], 'B': date_range('2000', periods=3)})
+        expected = DataFrame({'A': [1.0, 2, 3],
+                              'B': date_range('2000', periods=3)})
         df1.update(df2, overwrite=False)
 
         tm.assert_frame_equal(df1, expected)
-
