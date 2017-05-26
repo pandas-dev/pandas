@@ -8,6 +8,7 @@ from datetime import datetime, date, time, MINYEAR
 
 import os
 import abc
+import warnings
 import numpy as np
 
 from pandas.core.dtypes.common import (
@@ -30,7 +31,7 @@ import pandas.compat as compat
 import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender
 from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
@@ -193,7 +194,6 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '%s'" % engine_name)
 
 
-@deprecate_kwarg('sheetname', 'sheet_name')
 @Appender(_read_excel_doc)
 def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, parse_cols=None, parse_dates=False,
@@ -201,6 +201,15 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                convert_float=True, has_index_names=None, converters=None,
                dtype=None, true_values=None, false_values=None, engine=None,
                squeeze=False, **kwds):
+
+    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+        warnings.warn("The `sheetname` keyword is deprecated, use "
+                      "`sheet_name` instead", FutureWarning, stacklevel=2)
+        sheet_name = kwds.pop("sheetname")
+    elif 'sheetname' in kwds:
+        raise TypeError("Cannot specify both `sheet_name` and `sheetname`. "
+                        "Use just `sheet_name`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
