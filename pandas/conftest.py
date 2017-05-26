@@ -45,3 +45,13 @@ def spmatrix(request):
     tm._skip_if_no_scipy()
     from scipy import sparse
     return getattr(sparse, request.param + '_matrix')
+
+
+@pytest.fixture
+def ip():
+    """An instance of IPython.InteractiveShell.
+    Will raise a skip if IPython is not installed.
+    """
+    pytest.importorskip('IPython', minversion="6.0.0")
+    from IPython.core.interactiveshell import InteractiveShell
+    return InteractiveShell()

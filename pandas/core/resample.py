@@ -184,6 +184,12 @@ class Resampler(_GroupBy):
         matches_pattern = any(attr.startswith(x) for x
                               in self._deprecated_valid_patterns)
         if not matches_pattern and attr not in self._deprecated_valids:
+            # avoid the warning, if it's just going to be an exception
+            # anyway.
+            if not hasattr(self.obj, attr):
+                raise AttributeError("'{}' has no attribute '{}'".format(
+                    type(self.obj).__name__, attr
+                ))
             self = self._deprecated(attr)
 
         return object.__getattribute__(self, attr)

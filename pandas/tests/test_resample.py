@@ -3,6 +3,7 @@
 from warnings import catch_warnings
 from datetime import datetime, timedelta
 from functools import partial
+from textwrap import dedent
 
 import pytz
 import pytest
@@ -284,8 +285,7 @@ class TestResampleAPI(object):
         tm.assert_series_equal(r.A.sum(), r['A'].sum())
 
         # getting
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            pytest.raises(AttributeError, lambda: r.F)
+        pytest.raises(AttributeError, lambda: r.F)
 
         # setting
         def f():
@@ -2815,6 +2815,19 @@ class TestResamplerGrouper(object):
                                               fill_method='ffill')
             expected = df.groupby('A').resample('4s').mean().ffill()
             assert_frame_equal(result, expected)
+
+    def test_tab_complete_ipython6_warning(self, ip):
+        from IPython.core.completer import provisionalcompleter
+        code = dedent("""\
+        import pandas.util.testing as tm
+        s = tm.makeTimeSeries()
+        rs = s.resample("D")
+        """)
+        ip.run_code(code)
+
+        with tm.assert_produces_warning(None):
+            with provisionalcompleter('ignore'):
+                list(ip.Completer.completions('rs.', 1))
 
     def test_deferred_with_groupby(self):
 
