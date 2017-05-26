@@ -1148,7 +1148,8 @@ cdef class _Timestamp(datetime):
 
     cpdef datetime to_datetime(_Timestamp self):
         """
-        DEPRECATED: use :meth:`to_pydatetime` instead.
+        .. deprecated:: 0.19.0
+           Use :meth:`to_pydatetime` instead.
 
         Convert a Timestamp object to a native Python datetime object.
         """

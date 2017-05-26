@@ -432,7 +432,8 @@ def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
         library.
         If a DBAPI2 object, only sqlite3 is supported.
     flavor : 'sqlite', default None
-        DEPRECATED: this parameter will be removed in a future version
+        .. deprecated:: 0.19.0
+           This parameter will be removed in a future version
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
@@ -484,7 +485,8 @@ def has_table(table_name, con, flavor=None, schema=None):
         library.
         If a DBAPI2 object, only sqlite3 is supported.
     flavor : 'sqlite', default None
-        DEPRECATED: this parameter will be removed in a future version
+        .. deprecated:: 0.19.0
+           This parameter will be removed in a future version
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor supports
         this). If None, use default schema (default).
@@ -1545,7 +1547,8 @@ def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None):
         library, default: None
         If a DBAPI2 object, only sqlite3 is supported.
     flavor : 'sqlite', default None
-        DEPRECATED: this parameter will be removed in a future version
+        .. deprecated:: 0.19.0
+           This parameter will be removed in a future version
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.

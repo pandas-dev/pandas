@@ -850,8 +850,9 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def reshape(self, *args, **kwargs):
         """
-        DEPRECATED: calling this method will raise an error in a
-        future release. Please call ``.values.reshape(...)`` instead.
+        .. deprecated:: 0.19.0
+           Calling this method will raise an error in a future release.
+           Please call ``.values.reshape(...)`` instead.
 
         return an ndarray with the values shape
         if the specified shape matches exactly the current shape, then
@@ -1940,7 +1941,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
-        DEPRECATED: use :meth:`Series.sort_index`
+        .. deprecated:: 0.20.0
+           Use :meth:`Series.sort_index`
 
         Sort Series with MultiIndex by chosen level. Data will be
         lexicographically sorted by the chosen level followed by the other

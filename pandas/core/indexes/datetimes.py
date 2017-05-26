@@ -197,8 +197,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
           times)
         - 'NaT' will return NaT where there are ambiguous times
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
-    infer_dst : boolean, default False (DEPRECATED)
-        Attempt to infer fall dst-transition hours based on order
+    infer_dst : boolean, default False
+        .. deprecated:: 0.15.0
+           Attempt to infer fall dst-transition hours based on order
     name : object
         Name to be stored in the index
 
@@ -1818,8 +1819,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
             .. versionadded:: 0.19.0
 
-        infer_dst : boolean, default False (DEPRECATED)
-            Attempt to infer fall dst-transition hours based on order
+        infer_dst : boolean, default False
+            .. deprecated:: 0.15.0
+               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------

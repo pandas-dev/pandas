@@ -141,9 +141,10 @@ convert_float : boolean, default True
     data will be read in as floats: Excel stores all numbers as floats
     internally
 has_index_names : boolean, default None
-    DEPRECATED: for version 0.17+ index names will be automatically
-    inferred based on index_col.  To read Excel output from 0.16.2 and
-    prior that had saved index names, use True.
+    .. deprecated:: 0.17.0
+       For version 0.17+ index names will be automatically
+       inferred based on index_col.  To read Excel output from 0.16.2 and
+       prior that had saved index names, use True.
 
 Returns
 -------

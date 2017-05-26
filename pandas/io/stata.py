@@ -110,9 +110,11 @@ Read a Stata dta file in 10,000 line chunks:
        _statafile_processing_params2, _chunksize_params,
        _iterator_params)
 
-_data_method_doc = """Reads observations from Stata file, converting them into a dataframe
+_data_method_doc = """\
+Reads observations from Stata file, converting them into a dataframe
 
-This is a legacy method.  Use `read` in new code.
+    .. deprecated::
+       This is a legacy method.  Use `read` in new code.
 
 Parameters
 ----------
@@ -1407,7 +1409,7 @@ class StataReader(StataParser, BaseIterator):
             self.GSO[str(v_o)] = va
 
     # legacy
-    @Appender('DEPRECATED: ' + _data_method_doc)
+    @Appender(_data_method_doc)
     def data(self, **kwargs):
 
         import warnings

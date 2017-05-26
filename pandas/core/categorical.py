@@ -391,8 +391,8 @@ class Categorical(PandasObject):
 
     def reshape(self, new_shape, *args, **kwargs):
         """
-        DEPRECATED: calling this method will raise an error in a
-        future release.
+        .. deprecated:: 0.19.0
+           Calling this method will raise an error in a future release.
 
         An ndarray-compatible method that returns `self` because
         `Categorical` instances cannot actually be reshaped.
@@ -423,7 +423,8 @@ class Categorical(PandasObject):
     @classmethod
     def from_array(cls, data, **kwargs):
         """
-        DEPRECATED: Use ``Categorical`` instead.
+        .. deprecated::
+           Use ``Categorical`` instead.
 
         Make a Categorical type from a single array-like object.
 
@@ -1442,8 +1443,9 @@ class Categorical(PandasObject):
 
     def order(self, inplace=False, ascending=True, na_position='last'):
         """
-        DEPRECATED: use :meth:`Categorical.sort_values`. That function
-        is entirely equivalent to this one.
+        .. deprecated:: 0.18.1
+           Use :meth:`Categorical.sort_values`. That function
+           is entirely equivalent to this one.
 
         See Also
         --------
@@ -1456,10 +1458,11 @@ class Categorical(PandasObject):
 
     def sort(self, inplace=True, ascending=True, na_position='last', **kwargs):
         """
-        DEPRECATED: use :meth:`Categorical.sort_values`. That function
-        is just like this one, except that a new Categorical is returned
-        by default, so make sure to pass in 'inplace=True' to get
-        inplace sorting.
+        .. deprecated:: 0.18.1
+           Use :meth:`Categorical.sort_values`. That function
+           is just like this one, except that a new Categorical is returned
+           by default, so make sure to pass in 'inplace=True' to get
+           inplace sorting.
 
         See Also
         --------

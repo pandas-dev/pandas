@@ -548,7 +548,8 @@ def in_qtconsole():
     """
     check if we're inside an IPython qtconsole
 
-    DEPRECATED: This is no longer needed, or working, in IPython 3 and above.
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
     """
     try:
         ip = get_ipython()  # noqa
@@ -566,8 +567,8 @@ def in_ipnb():
     """
     check if we're inside an IPython Notebook
 
-    DEPRECATED: This is no longer used in pandas, and won't work in IPython 3
-    and above.
+    .. deprecated:: 0.14.1
+       This is no longer used in pandas, and won't work in IPython 3 and above.
     """
     try:
         ip = get_ipython()  # noqa
