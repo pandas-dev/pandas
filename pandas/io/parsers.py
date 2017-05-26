@@ -969,6 +969,9 @@ class TextFileReader(BaseIterator):
                 klass = PythonParser
             elif engine == 'python-fwf':
                 klass = FixedWidthFieldParser
+            else:
+                raise ValueError('Unknown engine: %r (valid are "c", "python",'
+                                 ' or "python-fwf")' % engine)
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):

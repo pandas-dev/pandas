@@ -2,6 +2,8 @@
 
 import os
 
+import pytest
+
 import pandas.util.testing as tm
 
 from pandas import read_csv, read_table
@@ -99,3 +101,13 @@ class TestPythonParser(BaseParser, PythonParserTests):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         return read_table(*args, **kwds)
+
+
+class TestParameterValidation(object):
+    def test_unknown_engine(self):
+        with tm.ensure_clean() as path:
+            df = tm.makeDataFrame()
+            df.to_csv(path)
+            with pytest.raises(ValueError) as exc_info:
+                read_csv(path, engine='pyt')
+            exc_info.match('Unknown engine')
