@@ -347,7 +347,6 @@ class ExcelFile(object):
         else:
             return i in use_cols
 
-
     def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
                      skip_footer=0, index_col=None, has_index_names=None,
                      use_cols=None, parse_dates=False, date_parser=None,
