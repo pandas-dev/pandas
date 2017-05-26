@@ -566,7 +566,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def to_datetime(self, dayfirst=False):
         """
-        .. deprecated::
+        .. deprecated:: 0.19.0
            Use :meth:`to_timestamp` instead.
 
         Cast to DatetimeIndex.
