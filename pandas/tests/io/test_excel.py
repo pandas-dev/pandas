@@ -920,7 +920,7 @@ class XlrdTests(ReadingTestsBase):
             self.dirpath, 'test_index_name_pre17' + self.ext)
 
         expected = pd.DataFrame(data, index=si, columns=columns)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             actual = pd.read_excel(
                 in_file, 'single_names', has_index_names=True)
         tm.assert_frame_equal(actual, expected)
@@ -928,13 +928,13 @@ class XlrdTests(ReadingTestsBase):
         expected.index.name = None
         actual = pd.read_excel(in_file, 'single_no_names')
         tm.assert_frame_equal(actual, expected)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             actual = pd.read_excel(
                 in_file, 'single_no_names', has_index_names=False)
         tm.assert_frame_equal(actual, expected)
 
         expected.index = mi
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             actual = pd.read_excel(
                 in_file, 'multi_names', has_index_names=True)
         tm.assert_frame_equal(actual, expected)
@@ -942,7 +942,7 @@ class XlrdTests(ReadingTestsBase):
         expected.index.names = [None, None]
         actual = pd.read_excel(in_file, 'multi_no_names', index_col=[0, 1])
         tm.assert_frame_equal(actual, expected, check_names=False)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             actual = pd.read_excel(in_file, 'multi_no_names', index_col=[0, 1],
                                    has_index_names=False)
         tm.assert_frame_equal(actual, expected, check_names=False)
