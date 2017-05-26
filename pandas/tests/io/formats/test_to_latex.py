@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, compat
+from pandas import DataFrame, compat, Series
 from pandas.util import testing as tm
 from pandas.compat import u
 import codecs
@@ -490,4 +490,19 @@ AA &  BB \\
 \end{tabular}
 """
 
+        assert withindex_result == withindex_expected
+
+    def test_to_latex_series(self):
+        s = Series(['a', 'b', 'c'])
+        withindex_result = s.to_latex()
+        withindex_expected = r"""\begin{tabular}{ll}
+\toprule
+{} &  0 \\
+\midrule
+0 &  a \\
+1 &  b \\
+2 &  c \\
+\bottomrule
+\end{tabular}
+"""
         assert withindex_result == withindex_expected
