@@ -48,13 +48,13 @@ class _Unstacker(object):
     >>> import pandas as pd
     >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
     ...                                    ('two', 'a'), ('two', 'b')])
-    >>> s = pd.Series(np.arange(1, 5), index=index)
+    >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
     >>> s
     one  a    1
          b    2
     two  a    3
          b    4
-    dtype: int32
+    dtype: int64
 
     >>> s.unstack(level=-1)
          a  b
@@ -988,17 +988,18 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     ...                    'B(quarterly)-2011': np.random.rand(3),
     ...                    'X' : np.random.randint(3, size=3)})
     >>> df['id'] = df.index
-    >>> df # doctest: +NORMALIZE_WHITESPACE
-       A(quarterly)-2010  A(quarterly)-2011  B(quarterly)-2010  B(quarterly)-2011  \
-    0           0.548814           0.544883           0.437587           0.383442
-    1           0.715189           0.423655           0.891773           0.791725
-    2           0.602763           0.645894           0.963663           0.528895
+    >>> df # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
+       A(quarterly)-2010  A(quarterly)-2011  B(quarterly)-2010  ...
+    0           0.548814           0.544883           0.437587  ...
+    1           0.715189           0.423655           0.891773  ...
+    2           0.602763           0.645894           0.963663  ...
        X  id
     0  0   0
     1  1   1
     2  1   2
-    
-    >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'], i='id', j='year', sep='-')
+
+    >>> pd.wide_to_long(df, ['A(quarterly)', 'B(quarterly)'], i='id',
+    ...                 j='year', sep='-')
     ... # doctest: +NORMALIZE_WHITESPACE
              X  A(quarterly)  B(quarterly)
     id year
@@ -1012,7 +1013,10 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
     If we have many columns, we could also use a regex to find our
     stubnames and pass that list on to wide_to_long
 
-    >>> stubnames = sorted(set([match[0] for match in df.columns.str.findall('[A-B]\(.*\)').values if match != [] ]))
+    >>> stubnames = sorted(
+    ...     set([match[0] for match in df.columns.str.findall(
+    ...         r'[A-B]\(.*\)').values if match != [] ])
+    ... )
     >>> list(stubnames)
     ['A(quarterly)', 'B(quarterly)']
 
@@ -1133,7 +1137,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     1  0  1    0
     2  0  0    1
 
-    >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'], 
+    >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
     ...                    'C': [1, 2, 3]})
 
     >>> pd.get_dummies(df, prefix=['col1', 'col2'])

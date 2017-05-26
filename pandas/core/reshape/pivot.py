@@ -50,11 +50,11 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     Examples
     --------
-    >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo", 
-    ...                          "bar", "bar", "bar", "bar"], 
-    ...                    "B": ["one", "one", "one", "two", "two", 
+    >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
+    ...                          "bar", "bar", "bar", "bar"],
+    ...                    "B": ["one", "one", "one", "two", "two",
     ...                          "one", "one", "two", "two"],
-    ...                    "C": ["small", "large", "large", "small", 
+    ...                    "C": ["small", "large", "large", "small",
     ...                          "small", "large", "small", "small",
     ...                          "large"],
     ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7]})
@@ -453,7 +453,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     >>> b = np.array(["one", "one", "one", "two", "one", "one",
     ...               "one", "two", "two", "two", "one"], dtype=object)
     >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
-    ...               "shiny", "dull", "shiny", "shiny", "shiny"], 
+    ...               "shiny", "dull", "shiny", "shiny", "shiny"],
     ...               dtype=object)
 
     >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
