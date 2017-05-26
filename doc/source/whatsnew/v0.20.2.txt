@@ -38,6 +38,10 @@ Bug Fixes
 
 - Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
 
+
+- Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on Categoricals (:issue:`16409`)
+
+
 Conversion
 ^^^^^^^^^^
 
