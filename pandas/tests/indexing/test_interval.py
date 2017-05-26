@@ -269,12 +269,6 @@ class TestIntervalIndex(object):
         expected = s.iloc[0:1]
         tm.assert_series_equal(expected, result)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_non_unique_updated_behavior(self):
-
-        # Actually I think we should remove this test? Not sure what exactly it's meant to gauge...
-        pass
-
     def test_non_unique_moar(self):
 
         idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])

@@ -349,106 +349,112 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, idx.get_loc, 1.5)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_loc_value(self):
+    def test_get_loc_value_closed_right(self):
 
         right = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='right')
 
-        pytest.raises(KeyError, right.get_loc(-0.5) )
-        pytest.raises(KeyError, right.get_loc(0) )
-        assert                  right.get_loc(0.5) == 0
-        assert                  right.get_loc(1)   == 0
-        pytest.raises(KeyError, right.get_loc(1.5) )
-        pytest.raises(KeyError, right.get_loc(2) )
-        assert                  right.get_loc(2.5) == 1
-        assert                  right.get_loc(3)   == 1
-        pytest.raises(KeyError, right.get_loc(3.5) )
+        pytest.raises(KeyError, right.get_loc, -0.5)
+        pytest.raises(KeyError, right.get_loc, 0)
+        assert right.get_loc(0.5) == 0
+        assert right.get_loc(1)   == 0
+        pytest.raises(KeyError, right.get_loc, 1.5)
+        pytest.raises(KeyError, right.get_loc, 2)
+        assert right.get_loc(2.5) == 1
+        assert right.get_loc(3)   == 1
+        pytest.raises(KeyError, right.get_loc, 3.5)
 
-        assert                  right.get_loc(Interval(0, 1, closed='right')) == 0
-        pytest.raises(KeyError, right.get_loc(Interval(1, 2, closed='right')) )
-        assert                  right.get_loc(Interval(2, 3, closed='right')) == 1
-        pytest.raises(KeyError, right.get_loc(Interval(3, 4, closed='right')) )
-        pytest.raises(KeyError, right.get_loc(Interval(0, 2, closed='right')) )
-        pytest.raises(KeyError, right.get_loc(Interval(2.5, 3, closed='right')) )
+        assert right.get_loc(Interval(0, 1, closed='right')) == 0
+        pytest.raises(KeyError, right.get_loc, Interval(1, 2, closed='right'))
+        assert right.get_loc(Interval(2, 3, closed='right')) == 1
+        pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='right'))
+        pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='right'))
+        pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='right'))
 
-        pytest.raises(KeyError, right.get_loc(Interval(0, 1, closed='left')) )
-        pytest.raises(KeyError, right.get_loc(Interval(1, 2, closed='left')) )
-        pytest.raises(KeyError, right.get_loc(Interval(2, 3, closed='left')) )
-        pytest.raises(KeyError, right.get_loc(Interval(3, 4, closed='left')) )
-        pytest.raises(KeyError, right.get_loc(Interval(0, 2, closed='left')) )
-        pytest.raises(KeyError, right.get_loc(Interval(2.5, 3, closed='left')) )
+        pytest.raises(KeyError, right.get_loc, Interval(0, 1, closed='left'))
+        pytest.raises(KeyError, right.get_loc, Interval(1, 2, closed='left'))
+        pytest.raises(KeyError, right.get_loc, Interval(2, 3, closed='left'))
+        pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='left'))
+        pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='left'))
+        pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='left'))
 
-        pytest.raises(KeyError, right.get_loc(Interval(0, 1, closed='both')) )
-        pytest.raises(KeyError, right.get_loc(Interval(1, 2, closed='both')) )
-        pytest.raises(KeyError, right.get_loc(Interval(2, 3, closed='both')) )
-        pytest.raises(KeyError, right.get_loc(Interval(3, 4, closed='both')) )
-        pytest.raises(KeyError, right.get_loc(Interval(0, 2, closed='both')) )
-        pytest.raises(KeyError, right.get_loc(Interval(2.5, 3, closed='both')) )
+        pytest.raises(KeyError, right.get_loc, Interval(0, 1, closed='both'))
+        pytest.raises(KeyError, right.get_loc, Interval(1, 2, closed='both'))
+        pytest.raises(KeyError, right.get_loc, Interval(2, 3, closed='both'))
+        pytest.raises(KeyError, right.get_loc, Interval(3, 4, closed='both'))
+        pytest.raises(KeyError, right.get_loc, Interval(0, 2, closed='both'))
+        pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='both'))
+
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_get_loc_value_closed_left(self):
 
         left = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='left')
 
-        pytest.raises(KeyError,  left.get_loc(-0.5) )
-        assert                   left.get_loc(0)   == 0
-        assert                   left.get_loc(0.5) == 0
-        pytest.raises(KeyError,  left.get_loc(1) )
-        pytest.raises(KeyError,  left.get_loc(1.5) )
-        assert                   left.get_loc(2)   == 1
-        assert                   left.get_loc(2.5) == 1
-        pytest.raises(KeyError,  left.get_loc(3) )
-        pytest.raises(KeyError,  left.get_loc(3.5) )
+        pytest.raises(KeyError, left.get_loc, -0.5)
+        assert left.get_loc(0)   == 0
+        assert left.get_loc(0.5) == 0
+        pytest.raises(KeyError, left.get_loc, 1)
+        pytest.raises(KeyError, left.get_loc, 1.5)
+        assert left.get_loc(2)   == 1
+        assert left.get_loc(2.5) == 1
+        pytest.raises(KeyError, left.get_loc, 3)
+        pytest.raises(KeyError, left.get_loc, 3.5)
 
-        pytest.raises(KeyError,  left.get_loc(Interval(0, 1, closed='right')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(1, 2, closed='right')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(2, 3, closed='right')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(3, 4, closed='right')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(0, 2, closed='right')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(2.5, 3, closed='right')) )
+        pytest.raises(KeyError, left.get_loc, Interval(0, 1, closed='right'))
+        pytest.raises(KeyError, left.get_loc, Interval(1, 2, closed='right'))
+        pytest.raises(KeyError, left.get_loc, Interval(2, 3, closed='right'))
+        pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='right'))
+        pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='right'))
+        pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='right'))
 
-        assert                   left.get_loc(Interval(0, 1, closed='left')) == 0
-        pytest.raises(KeyError,  left.get_loc(Interval(1, 2, closed='left')) )
-        assert                   left.get_loc(Interval(2, 3, closed='left')) == 1
-        pytest.raises(KeyError,  left.get_loc(Interval(3, 4, closed='left')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(0, 2, closed='left')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(2.5, 3, closed='left')) )
+        assert left.get_loc(Interval(0, 1, closed='left')) == 0
+        pytest.raises(KeyError, left.get_loc, Interval(1, 2, closed='left'))
+        assert left.get_loc(Interval(2, 3, closed='left')) == 1
+        pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='left'))
+        pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='left'))
+        pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='left'))
 
-        pytest.raises(KeyError,  left.get_loc(Interval(0, 1, closed='both')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(1, 2, closed='both')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(2, 3, closed='both')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(3, 4, closed='both')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(0, 2, closed='both')) )
-        pytest.raises(KeyError,  left.get_loc(Interval(2.5, 3, closed='both')) )
+        pytest.raises(KeyError, left.get_loc, Interval(0, 1, closed='both'))
+        pytest.raises(KeyError, left.get_loc, Interval(1, 2, closed='both'))
+        pytest.raises(KeyError, left.get_loc, Interval(2, 3, closed='both'))
+        pytest.raises(KeyError, left.get_loc, Interval(3, 4, closed='both'))
+        pytest.raises(KeyError, left.get_loc, Interval(0, 2, closed='both'))
+        pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='both'))
+
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_get_loc_value_closed_both(self):
 
         both = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='both')
 
-        pytest.raises(KeyError,  both.get_loc(-0.5) )
-        assert                   both.get_loc(0)   == 0
-        assert                   both.get_loc(0.5) == 0
-        assert                   both.get_loc(1)   == 0
-        pytest.raises(KeyError,  both.get_loc(1.5) )
-        assert                   both.get_loc(2)   == 1
-        assert                   both.get_loc(2.5) == 1
-        assert                   both.get_loc(3)   == 1
-        pytest.raises(KeyError,  both.get_loc(3.5) )
+        pytest.raises(KeyError, both.get_loc, -0.5)
+        assert both.get_loc(0)   == 0
+        assert both.get_loc(0.5) == 0
+        assert both.get_loc(1)   == 0
+        pytest.raises(KeyError, both.get_loc, 1.5)
+        assert both.get_loc(2)   == 1
+        assert both.get_loc(2.5) == 1
+        assert both.get_loc(3)   == 1
+        pytest.raises(KeyError, both.get_loc, 3.5)
 
-        pytest.raises(KeyError,  both.get_loc(Interval(0, 1, closed='right')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(1, 2, closed='right')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(2, 3, closed='right')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(3, 4, closed='right')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(0, 2, closed='right')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(2.5, 3, closed='right')) )
+        pytest.raises(KeyError, both.get_loc, Interval(0, 1, closed='right'))
+        pytest.raises(KeyError, both.get_loc, Interval(1, 2, closed='right'))
+        pytest.raises(KeyError, both.get_loc, Interval(2, 3, closed='right'))
+        pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='right'))
+        pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='right'))
+        pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='right'))
 
-        pytest.raises(KeyError,  both.get_loc(Interval(0, 1, closed='left')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(1, 2, closed='left')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(2, 3, closed='left')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(3, 4, closed='left')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(0, 2, closed='left')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(2.5, 3, closed='left')) )
+        pytest.raises(KeyError, both.get_loc, Interval(0, 1, closed='left'))
+        pytest.raises(KeyError, both.get_loc, Interval(1, 2, closed='left'))
+        pytest.raises(KeyError, both.get_loc, Interval(2, 3, closed='left'))
+        pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='left'))
+        pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='left'))
+        pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='left'))
 
-        assert                   both.get_loc(Interval(0, 1, closed='both')) == 0
-        pytest.raises(KeyError,  both.get_loc(Interval(1, 2, closed='both')) )
-        assert                   both.get_loc(Interval(2, 3, closed='both')) == 1
-        pytest.raises(KeyError,  both.get_loc(Interval(3, 4, closed='both')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(0, 2, closed='both')) )
-        pytest.raises(KeyError,  both.get_loc(Interval(2.5, 3, closed='both')) )
+        assert both.get_loc(Interval(0, 1, closed='both')) == 0
+        pytest.raises(KeyError, both.get_loc, Interval(1, 2, closed='both'))
+        assert both.get_loc(Interval(2, 3, closed='both')) == 1
+        pytest.raises(KeyError, both.get_loc, Interval(3, 4, closed='both'))
+        pytest.raises(KeyError, both.get_loc, Interval(0, 2, closed='both'))
+        pytest.raises(KeyError, both.get_loc, Interval(2.5, 3, closed='both'))
 
 
     def slice_locs_cases(self, breaks):
@@ -596,11 +602,10 @@ class TestIntervalIndex(Base):
 
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_interval_covers(self):
+    def test_interval_covers_interval(self):
 
         # class Interval:
         #     def covers(self, other: Interval) -> bool
-        #     def covers(self, other: IntervalIndex) -> IntegerArray1D
 
         assert     Interval(1, 3).covers(Interval(1.5, 2.5))
         assert     Interval(1, 3).covers(Interval(1, 2))
@@ -620,29 +625,34 @@ class TestIntervalIndex(Base):
         assert     Interval(1, 3, closed='both').covers(Interval(1, 3, closed='left'))
         assert     Interval(1, 3, closed='both').covers(Interval(1, 3, closed='both'))
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)])
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_interval_covers_intervalIndex(self):
 
-        assert     Interval(1, 3, closed='right').covers(idx) == np.array([1, 2])
-        assert     Interval(0, 3, closed='right').covers(idx) == np.array([0, 1, 2])
-        assert     Interval(0, 2, closed='right').covers(idx) == np.array([0])
-        assert     Interval(2, 4, closed='right').covers(idx) == np.array([1])
+        # class Interval:
+        #     def covers(self, other: IntervalIndex) -> IntegerArray1D
 
-        assert     Interval(1, 3, closed='left').covers(idx) == np.array([])
-        assert     Interval(0, 3, closed='left').covers(idx) == np.array([0])
-        assert     Interval(0, 2, closed='left').covers(idx) == np.array([0])
-        assert     Interval(2, 4, closed='left').covers(idx) == np.array([1])
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='right')
 
-        assert     Interval(1, 3, closed='both').covers(idx) == np.array([1, 2])
-        assert     Interval(0, 5, closed='both').covers(idx) == np.array([0, 1, 2])
-        assert     Interval(0, 2, closed='both').covers(idx) == np.array([0])
-        assert     Interval(2, 4, closed='both').covers(idx) == np.array([1])
+        tm.assert_numpy_array_equal(Interval(1, 3, closed='right').covers(idx), np.array([1, 2]))
+        tm.assert_numpy_array_equal(Interval(0, 3, closed='right').covers(idx), np.array([0, 1, 2]))
+        tm.assert_numpy_array_equal(Interval(0, 2, closed='right').covers(idx), np.array([0]))
+        tm.assert_numpy_array_equal(Interval(2, 4, closed='right').covers(idx), np.array([1]))
+
+        tm.assert_numpy_array_equal(Interval(1, 3, closed='left').covers(idx), np.array([]))
+        tm.assert_numpy_array_equal(Interval(0, 3, closed='left').covers(idx), np.array([0]))
+        tm.assert_numpy_array_equal(Interval(0, 2, closed='left').covers(idx), np.array([0]))
+        tm.assert_numpy_array_equal(Interval(2, 4, closed='left').covers(idx), np.array([1]))
+
+        tm.assert_numpy_array_equal(Interval(1, 3, closed='both').covers(idx), np.array([1, 2]))
+        tm.assert_numpy_array_equal(Interval(0, 5, closed='both').covers(idx), np.array([0, 1, 2]))
+        tm.assert_numpy_array_equal(Interval(0, 2, closed='both').covers(idx), np.array([0]))
+        tm.assert_numpy_array_equal(Interval(2, 4, closed='both').covers(idx), np.array([1]))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_interval_overlaps(self):
+    def test_interval_overlaps_interval(self):
 
         # class Interval:
         #     def overlaps(self, other: Interval) -> bool
-        #     def overlaps(self, other: IntervalIndex) -> IntegerArray1D
 
         assert     Interval(1, 3).overlaps(Interval(1.5, 2.5))
         assert     Interval(1, 3).overlaps(Interval(1, 2))
@@ -692,89 +702,101 @@ class TestIntervalIndex(Base):
         assert     Interval(1, 3, closed='both').overlaps(Interval(3, 5, closed='left'))
         assert     Interval(1, 3, closed='both').overlaps(Interval(3, 5, closed='both'))
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)])
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_interval_overlaps_intervalIndex(self):
+        # class Interval:
+        #     def overlaps(self, other: IntervalIndex) -> IntegerArray1D
 
-        assert     Interval(1, 3, closed='right').overlaps(idx) == np.array([1, 2])
-        assert     Interval(1, 2, closed='right').overlaps(idx) == np.array([2])
-        assert     Interval(0, 2, closed='right').overlaps(idx) == np.array([0, 2])
-        assert     Interval(3, 4, closed='right').overlaps(idx) == np.array([])
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='right')
 
-        assert     Interval(1, 3, closed='left').overlaps(idx) == np.array([0, 1, 2])
-        assert     Interval(1, 2, closed='left').overlaps(idx) == np.array([0, 2])
-        assert     Interval(0, 2, closed='left').overlaps(idx) == np.array([0, 2])
-        assert     Interval(3, 4, closed='left').overlaps(idx) == np.array([3])
+        tm.assert_numpy_array_equal(Interval(1, 3, closed='right').overlaps(idx), np.array([1, 2]))
+        tm.assert_numpy_array_equal(Interval(1, 2, closed='right').overlaps(idx), np.array([2]))
+        tm.assert_numpy_array_equal(Interval(0, 2, closed='right').overlaps(idx), np.array([0, 2]))
+        tm.assert_numpy_array_equal(Interval(3, 4, closed='right').overlaps(idx), np.array([]))
 
-        assert     Interval(1, 3, closed='both').overlaps(idx) == np.array([0, 1, 2])
-        assert     Interval(1, 2, closed='both').overlaps(idx) == np.array([0, 2])
-        assert     Interval(0, 2, closed='both').overlaps(idx) == np.array([0, 2])
-        assert     Interval(3, 4, closed='both').overlaps(idx) == np.array([3])
+        tm.assert_numpy_array_equal(Interval(1, 3, closed='left').overlaps(idx), np.array([0, 1, 2]))
+        tm.assert_numpy_array_equal(Interval(1, 2, closed='left').overlaps(idx), np.array([0, 2]))
+        tm.assert_numpy_array_equal(Interval(0, 2, closed='left').overlaps(idx), np.array([0, 2]))
+        tm.assert_numpy_array_equal(Interval(3, 4, closed='left').overlaps(idx), np.array([3]))
+
+        tm.assert_numpy_array_equal(Interval(1, 3, closed='both').overlaps(idx), np.array([0, 1, 2]))
+        tm.assert_numpy_array_equal(Interval(1, 2, closed='both').overlaps(idx), np.array([0, 2]))
+        tm.assert_numpy_array_equal(Interval(0, 2, closed='both').overlaps(idx), np.array([0, 2]))
+        tm.assert_numpy_array_equal(Interval(3, 4, closed='both').overlaps(idx), np.array([3]))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_intervalIndex_covers(self):
+    def test_intervalIndex_covers_interval(self):
 
         # class IntervalIndex:
         #     def covers(self, other: Interval) -> IntegerArray1D
+
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='right')
+
+        tm.assert_numpy_array_equal(idx.covers(Interval(1, 3, closed='right')), np.array([1, 2]))
+        tm.assert_numpy_array_equal(idx.covers(Interval(0, 3, closed='right')), np.array([0, 1, 2]))
+        tm.assert_numpy_array_equal(idx.covers(Interval(0, 2, closed='right')), np.array([0]))
+        tm.assert_numpy_array_equal(idx.covers(Interval(2, 4, closed='right')), np.array([1]))
+
+        tm.assert_numpy_array_equal(idx.covers(Interval(1, 3, closed='left')), np.array([]))
+        tm.assert_numpy_array_equal(idx.covers(Interval(0, 3, closed='left')), np.array([0]))
+        tm.assert_numpy_array_equal(idx.covers(Interval(0, 2, closed='left')), np.array([0]))
+        tm.assert_numpy_array_equal(idx.covers(Interval(2, 4, closed='left')), np.array([1]))
+
+        tm.assert_numpy_array_equal(idx.covers(Interval(1, 3, closed='both')), np.array([1, 2]))
+        tm.assert_numpy_array_equal(idx.covers(Interval(0, 5, closed='both')), np.array([0, 1, 2]))
+        tm.assert_numpy_array_equal(idx.covers(Interval(0, 2, closed='both')), np.array([0]))
+        tm.assert_numpy_array_equal(idx.covers(Interval(2, 4, closed='both')), np.array([1]))
+
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_intervalIndex_covers_intervalIndex(self):
+
+        # class IntervalIndex:
         #     def covers(self, other: IntervalIndex) -> Tuple[IntegerArray1D, IntegerArray1D]
-
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)])
-
-        assert     idx.covers(Interval(1, 3, closed='right')) == np.array([1, 2])
-        assert     idx.covers(Interval(0, 3, closed='right')) == np.array([0, 1, 2])
-        assert     idx.covers(Interval(0, 2, closed='right')) == np.array([0])
-        assert     idx.covers(Interval(2, 4, closed='right')) == np.array([1])
-
-        assert     idx.covers(Interval(1, 3, closed='left')) == np.array([])
-        assert     idx.covers(Interval(0, 3, closed='left')) == np.array([0])
-        assert     idx.covers(Interval(0, 2, closed='left')) == np.array([0])
-        assert     idx.covers(Interval(2, 4, closed='left')) == np.array([1])
-
-        assert     idx.covers(Interval(1, 3, closed='both')) == np.array([1, 2])
-        assert     idx.covers(Interval(0, 5, closed='both')) == np.array([0, 1, 2])
-        assert     idx.covers(Interval(0, 2, closed='both')) == np.array([0])
-        assert     idx.covers(Interval(2, 4, closed='both')) == np.array([1])
 
         idx1 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='right')
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='left')
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='both')
 
-        assert     idx.covers(idx1) == (np.array([0,1,2,2]), np.array([0,1,1,2]))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-        assert     idx.covers(idx2) == (np.array([2]), np.array([1]))              # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-        assert     idx.covers(idx3) == (np.array([0,1,2,2]), np.array([0,1,1,2]))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-
+        tm.assert_numpy_array_equal(idx.covers(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
+        tm.assert_numpy_array_equal(idx.covers(idx2), (np.array([2]), np.array([1])))              # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
+        tm.assert_numpy_array_equal(idx.covers(idx3), (np.array([0,1,2,2]), np.array([0,1,1,2])))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_intervalIndex_overlaps(self):
+    def test_intervalIndex_overlaps_interval(self):
 
         # class IntervalIndex:
         #     def overlaps(self, other: Interval) -> IntegerArray1D
+
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='right')
+
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(1, 3, closed='right')), np.array([1, 2]))
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(1, 2, closed='right')), np.array([2]))
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(0, 2, closed='right')), np.array([0, 2]))
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(3, 4, closed='right')), np.array([]))
+
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(1, 3, closed='left')), np.array([0, 1, 2]))
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(1, 2, closed='left')), np.array([0, 2]))
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(0, 2, closed='left')), np.array([0, 2]))
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(3, 4, closed='left')), np.array([3]))
+
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(1, 3, closed='both')), np.array([0, 1, 2]))
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(1, 2, closed='both')), np.array([0, 2]))
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(0, 2, closed='both')), np.array([0, 2]))
+        tm.assert_numpy_array_equal(idx.overlaps(Interval(3, 4, closed='both')), np.array([3]))
+
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_intervalIndex_overlaps_intervalIndex(self):
+
+        # class IntervalIndex:
         #     def overlaps(self, other: IntervalIndex) -> Tuple[IntegerArray1D, IntegerArray1D]
-
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)])
-
-        assert     idx.overlaps(Interval(1, 3, closed='right')) == np.array([1, 2])
-        assert     idx.overlaps(Interval(1, 2, closed='right')) == np.array([2])
-        assert     idx.overlaps(Interval(0, 2, closed='right')) == np.array([0, 2])
-        assert     idx.overlaps(Interval(3, 4, closed='right')) == np.array([])
-
-        assert     idx.overlaps(Interval(1, 3, closed='left')) == np.array([0, 1, 2])
-        assert     idx.overlaps(Interval(1, 2, closed='left')) == np.array([0, 2])
-        assert     idx.overlaps(Interval(0, 2, closed='left')) == np.array([0, 2])
-        assert     idx.overlaps(Interval(3, 4, closed='left')) == np.array([3])
-
-        assert     idx.overlaps(Interval(1, 3, closed='both')) == np.array([0, 1, 2])
-        assert     idx.overlaps(Interval(1, 2, closed='both')) == np.array([0, 2])
-        assert     idx.overlaps(Interval(0, 2, closed='both')) == np.array([0, 2])
-        assert     idx.overlaps(Interval(3, 4, closed='both')) == np.array([3])
 
         idx1 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='right')
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='left')
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='both')
 
-        assert     idx.overlaps(idx1) == (np.array([0,1,2,2]), np.array([0,1,1,2]))          # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-        assert     idx.overlaps(idx2) == (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2]))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-        assert     idx.overlaps(idx3) == (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2]))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-
-
+        tm.assert_numpy_array_equal(idx.overlaps(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))          # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
+        tm.assert_numpy_array_equal(idx.overlaps(idx2), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
+        tm.assert_numpy_array_equal(idx.overlaps(idx3), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
 
     def test_dropna(self):
 
