@@ -20,6 +20,7 @@ Enhancements
 ~~~~~~~~~~~~
 
 - Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`)
+- ``Series`` provides a ``to_latex`` method (:issue:`16180`)
 
 .. _whatsnew_0202.performance:
 
