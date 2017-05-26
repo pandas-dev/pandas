@@ -1516,6 +1516,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Render an object to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage{booktabs}.
 
+        .. versionchanged:: 0.20.2
+           Added to Series
+
         `to_latex`-specific options:
 
         bold_rows : boolean, default True
