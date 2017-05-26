@@ -9,6 +9,7 @@
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    import pandas as pd
+   from pandas import Series, DataFrame
    pd.options.display.max_rows = 15
 
 *********
@@ -110,15 +111,15 @@ This section describes how to subclass ``pandas`` data structures to meet more s
 Override Constructor Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each data structure has constructor properties to specifying data constructors. By overriding these properties, you can retain defined-classes through ``pandas`` data manipulations.
+Each data structure has constructor properties to specifying data constructors. By overriding these properties, you can retain defined subclass families through ``pandas`` data manipulations.
 
 There are 3 constructors to be defined:
 
 - ``_constructor``: Used when a manipulation result has the same dimesions as the original.
 - ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
-- ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()`` and ``DataFrame.to_panel()``.
+- ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()``.
 
-Following table shows how ``pandas`` data structures define constructor properties by default.
+The following table shows how ``pandas`` data structures define constructor properties by default.
 
 ===========================  ======================= =================== =======================
 Property Attributes          ``Series``              ``DataFrame``       ``Panel``
@@ -128,67 +129,152 @@ Property Attributes          ``Series``              ``DataFrame``       ``Panel
 ``_constructor_expanddim``   ``DataFrame``           ``Panel``           ``NotImplementedError``
 ===========================  ======================= =================== =======================
 
-Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
+The below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` classes, overriding the default constructor properties.
 
-.. code-block:: python
+.. ipython:: python
 
-   class SubclassedSeries(Series):
+   In [1]: class SubclassedSeries(Series):
+      ...:
+      ...:    @property
+      ...:    def _constructor(self):
+      ...:        return SubclassedSeries
+      ...:
+      ...:    @property
+      ...:    def _constructor_expanddim(self):
+      ...:        return SubclassedDataFrame
+      ...:
 
-       @property
-       def _constructor(self):
-           return SubclassedSeries
+   In [1]: class SubclassedDataFrame(DataFrame):
+      ...:
+      ...:     @property
+      ...:     def _constructor(self):
+      ...:        return SubclassedDataFrame
+      ...:
+      ...:     @property
+      ...:     def _constructor_sliced(self):
+      ...:         return SubclassedSeries
+      ...:
 
-       @property
-       def _constructor_expanddim(self):
-           return SubclassedDataFrame
+Overriding constructor properties allows subclass families to be preserved across slice and reshape operations:
 
-   class SubclassedDataFrame(DataFrame):
+.. ipython:: python
 
-       @property
-       def _constructor(self):
-           return SubclassedDataFrame
-
-       @property
-       def _constructor_sliced(self):
-           return SubclassedSeries
-
-.. code-block:: python
-
-   >>> s = SubclassedSeries([1, 2, 3])
-   >>> type(s)
-   <class '__main__.SubclassedSeries'>
-
-   >>> to_framed = s.to_frame()
-   >>> type(to_framed)
-   <class '__main__.SubclassedDataFrame'>
-
-   >>> df = SubclassedDataFrame({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
-   >>> df
-      A  B  C
-   0  1  4  7
-   1  2  5  8
-   2  3  6  9
-
-   >>> type(df)
-   <class '__main__.SubclassedDataFrame'>
-
-   >>> sliced1 = df[['A', 'B']]
-   >>> sliced1
-      A  B
-   0  1  4
-   1  2  5
-   2  3  6
-   >>> type(sliced1)
-   <class '__main__.SubclassedDataFrame'>
-
-   >>> sliced2 = df['A']
-   >>> sliced2
+   In [1]: ser = SubclassedSeries([1, 2, 3])
+   In [1]: ser
+   Out[1]:
    0    1
    1    2
    2    3
-   Name: A, dtype: int64
-   >>> type(sliced2)
+   dtype: int64
+   In [1]: type(ser)
+   Out[1]:
    <class '__main__.SubclassedSeries'>
+
+   In [1]: to_framed = s.to_frame()
+   In [1]: type(to_framed)
+   Out[1]:
+   <class '__main__.SubclassedDataFrame'>
+
+   In [1]: df = SubclassedDataFrame({
+      ...:     'A': ['a', 'a', 'b', 'b'],
+      ...:     'B': ['x', 'y', 'x', 'y'],
+      ...:     'C': [1, 2, 3, 4]})
+   In [1]: df
+   Out[1]:
+      A  B  C
+   0  a  x  0
+   1  a  y  1
+   2  b  x  2
+   3  b  y  3
+
+   In [1]: type(df)
+   Out[1]:
+   <class '__main__.SubclassedDataFrame'>
+
+   In [1]: sliced1 = df[['A', 'B']]
+   In [1]: sliced1
+   Out[1]:
+      A  B
+   0  a  x
+   1  a  y
+   2  b  x
+   3  b  y
+   In [1]: type(sliced1)
+   Out[1]:
+   <class '__main__.SubclassedDataFrame'>
+
+   In [1]: sliced2 = df['C']
+   In [1]: sliced2
+   Out[1]:
+   0    0
+   1    1
+   2    2
+   3    3
+   Name: A, dtype: int64
+
+   In [1]: type(sliced2)
+   Out[1]:
+   <class '__main__.SubclassedSeries'>
+
+   In [1]: stacked = df.stack()
+   In [1]: stacked
+   Out[1]:
+   0  A    a
+      B    x
+      C    1
+   1  A    a
+      B    y
+      C    2
+   2  A    b
+      B    x
+      C    3
+   3  A    b
+      B    y
+      C    4
+   dtype: object
+   In [1]: type(stacked)
+   Out[1]:
+   <class '__main__.SubclassedSeries'>
+
+   In [1]: pivoted = pd.pivot(index='A', columns='B', values='C')
+   In [1]: pivoted
+   Out[1]:
+   B  x  y
+   A
+   a  1  2
+   b  3  4
+   In [1]: type(pivoted)
+   Out[1]:
+   <class '__main__.SubclassedDataFrame'>
+
+Most data operations also preserve the class:
+
+.. ipython:: python
+
+   In [1]: squared = pivoted**2
+   In [1]: squared
+   Out[1]:
+   B  x   y
+   A
+   a  1   4
+   b  9  16
+   In [1]: type(pivoted)
+   Out[1]:
+   <class '__main__.SubclassedDataFrame'>
+
+   In [1]: interped = ser.loc[[0, 0.5, 1, 1.5, 2]].interpolate()
+   In [1]: interped
+   Out[1]:
+   0.0    1.0
+   0.5    1.5
+   1.0    2.0
+   1.5    2.5
+   2.0    3.0
+   dtype: float64
+   In [1]: type(interped)
+   Out[1]:
+   <class '__main__.SubclassedSeries'>
+
 
 Define Original Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -200,42 +286,48 @@ To let original data structures have additional properties, you should let ``pan
 
 Below is an example to define 2 original properties, "internal_cache" as a temporary property and "added_property" as a normal property
 
-.. code-block:: python
+.. ipython:: python
 
-   class SubclassedDataFrame2(DataFrame):
+   In [1]: class SubclassedDataFrame2(DataFrame):
+      ...:
+      ...:     # temporary properties
+      ...:     _internal_names = DataFrame._internal_names + ['internal_cache']
+      ...:     _internal_names_set = set(_internal_names)
+      ...:
+      ...:     # normal properties
+      ...:     _metadata = ['added_property']
+      ...:
+      ...:     @property
+      ...:     def _constructor(self):
+      ...:         return SubclassedDataFrame2
 
-       # temporary properties
-       _internal_names = pd.DataFrame._internal_names + ['internal_cache']
-       _internal_names_set = set(_internal_names)
+.. ipython:: python
 
-       # normal properties
-       _metadata = ['added_property']
-
-       @property
-       def _constructor(self):
-           return SubclassedDataFrame2
-
-.. code-block:: python
-
-   >>> df = SubclassedDataFrame2({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
-   >>> df
+   In [1]: df = SubclassedDataFrame2({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   In [1]: df
+   Out[1]:
       A  B  C
    0  1  4  7
    1  2  5  8
    2  3  6  9
 
-   >>> df.internal_cache = 'cached'
-   >>> df.added_property = 'property'
+   In [1]: df.internal_cache = 'cached'
+   In [1]: df.added_property = 'property'
+   Out[1]:
 
-   >>> df.internal_cache
+   In [1]: df.internal_cache
+   Out[1]:
    cached
-   >>> df.added_property
+   In [1]: df.added_property
+   Out[1]:
    property
 
    # properties defined in _internal_names is reset after manipulation
-   >>> df[['A', 'B']].internal_cache
+   In [1]: df[['A', 'B']].internal_cache
+   Out[1]:
    AttributeError: 'SubclassedDataFrame2' object has no attribute 'internal_cache'
 
    # properties defined in _metadata are retained
-   >>> df[['A', 'B']].added_property
+   In [1]: df[['A', 'B']].added_property
+   Out[1]:
    property

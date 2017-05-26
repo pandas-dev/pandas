@@ -40,8 +40,37 @@ class _Unstacker(object):
 
     Parameters
     ----------
+    values : ndarray
+        Values of DataFrame to "Unstack"
+    index : object
+        Pandas ``Index``
     level : int or str, default last level
         Level to "unstack". Accepts a name for the level.
+    value_columns : Index, optional
+        Pandas ``Index`` or ``MultiIndex`` object if unstacking a DataFrame
+    fill_value : scalar, optional
+        Default value to fill in missing values if subgroups do not have the
+        same set of labels. By default, missing values will be replaced with
+        the default fill value for that data type, NaN for float, NaT for
+        datetimelike, etc. For integer types, by default data will converted to
+        float and missing values will be set to NaN.
+    constructor : object, default DataFrame
+        ``Series``, ``DataFrame``, or subclass used to create unstacked
+        response
+
+    value_columns : object, optional
+        Pandas ``Index`` or ``MultiIndex`` object if unstacking a DataFrame
+
+    fill_value : scalar, optional
+        Default value to fill in missing values if subgroups do not have the
+        same set of labels. By default, missing values will be replaced with
+        the default fill value for that data type, NaN for float, NaT for
+        datetimelike, etc. For integer types, by default data will converted to
+        float and missing values will be set to NaN.
+
+    constructor : object, default DataFrame
+        ``Series``, ``DataFrame``, or subclass used to create unstacked
+        response
 
     Examples
     --------
@@ -72,7 +101,8 @@ class _Unstacker(object):
     """
 
     def __init__(self, values, index, level=-1, value_columns=None,
-                 fill_value=None):
+                 fill_value=None,
+                 constructor=DataFrame):
 
         self.is_categorical = None
         if values.ndim == 1:
@@ -83,6 +113,7 @@ class _Unstacker(object):
         self.values = values
         self.value_columns = value_columns
         self.fill_value = fill_value
+        self.constructor = constructor
 
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError('must pass column labels for multi-column data')
@@ -177,7 +208,7 @@ class _Unstacker(object):
                                   ordered=ordered)
                       for i in range(values.shape[-1])]
 
-        return DataFrame(values, index=index, columns=columns)
+        return self.constructor(values, index=index, columns=columns)
 
     def get_new_values(self):
         values = self.values
@@ -373,8 +404,9 @@ def pivot(self, index=None, columns=None, values=None):
             index = self.index
         else:
             index = self[index]
-        indexed = Series(self[values].values,
-                         index=MultiIndex.from_arrays([index, self[columns]]))
+        indexed = self._constructor_sliced(
+            self[values].values,
+            index=MultiIndex.from_arrays([index, self[columns]]))
         return indexed.unstack(columns)
 
 
@@ -455,7 +487,8 @@ def unstack(obj, level, fill_value=None):
             return obj.T.stack(dropna=False)
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level,
-                               fill_value=fill_value)
+                               fill_value=fill_value,
+                               constructor=obj._constructor_expanddim)
         return unstacker.get_result()
 
 
@@ -487,13 +520,14 @@ def _unstack_frame(obj, level, fill_value=None):
             newb = make_block(new_values.T, placement=new_placement)
             new_blocks.append(newb)
 
-        result = DataFrame(BlockManager(new_blocks, new_axes))
-        mask_frame = DataFrame(BlockManager(mask_blocks, new_axes))
+        result = obj._constructor(BlockManager(new_blocks, new_axes))
+        mask_frame = obj._constructor(BlockManager(mask_blocks, new_axes))
         return result.loc[:, mask_frame.sum(0) > 0]
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                value_columns=obj.columns,
-                               fill_value=fill_value)
+                               fill_value=fill_value,
+                               constructor=obj._constructor)
         return unstacker.get_result()
 
 
@@ -550,7 +584,7 @@ def stack(frame, level=-1, dropna=True):
         mask = notnull(new_values)
         new_values = new_values[mask]
         new_index = new_index[mask]
-    return Series(new_values, index=new_index)
+    return frame._constructor_sliced(new_values, index=new_index)
 
 
 def stack_multiple(frame, level, dropna=True):
@@ -696,7 +730,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     new_index = MultiIndex(levels=new_levels, labels=new_labels,
                            names=new_names, verify_integrity=False)
 
-    result = DataFrame(new_data, index=new_index, columns=new_columns)
+    result = frame._constructor(new_data, index=new_index, columns=new_columns)
 
     # more efficient way to go about this? can do the whole masking biz but
     # will only save a small amount of time...
@@ -770,7 +804,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         mdata[col] = np.asanyarray(frame.columns
                                    ._get_level_values(i)).repeat(N)
 
-    return DataFrame(mdata, columns=mcolumns)
+    return frame._constructor(mdata, columns=mcolumns)
 
 
 def lreshape(data, groups, dropna=True, label=None):
@@ -839,7 +873,7 @@ def lreshape(data, groups, dropna=True, label=None):
         if not mask.all():
             mdata = dict((k, v[mask]) for k, v in compat.iteritems(mdata))
 
-    return DataFrame(mdata, columns=id_cols + pivot_cols)
+    return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
 def wide_to_long(df, stubnames, i, j, sep="", suffix='\d+'):
