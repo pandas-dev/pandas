@@ -59,34 +59,34 @@ Overview of Common Optimizations
    %timeit s2.sum()
 
 
-NumPy int64 datatype arrays are much faster than the python object version.
+  NumPy int64 datatype arrays are much faster than the python object version.
 
-For other datatypes:
+  For other datatypes:
 
-   * Strings - This is usually unavoidable. Pandas 2 will have a specialized
-     string type, but for now you're stuck with python objects.
-     If you have few distinct values (relative to the number of rows), you could
-     use a Categorical.
+     * Strings - This is usually unavoidable. Pandas 2 will have a specialized
+       string type, but for now you're stuck with python objects.
+       If you have few distinct values (relative to the number of rows), you could
+       use a Categorical.
 
-   * Dates, Times - Pandas has implemented a specialized version of `datetime.datetime`,
-     and `datetime.timedelta`, but not `datetime.date` or `datetime.time`. Depending on your
-     application, you might be able to treat dates as datetimes at midnight.
+     * Dates, Times - Pandas has implemented a specialized version of `datetime.datetime`,
+       and `datetime.timedelta`, but not `datetime.date` or `datetime.time`. Depending on your
+       application, you might be able to treat dates as datetimes at midnight.
 
-   * Decimal Types - Pandas uses floating-point arrays; there isn't a
-     native arbitrary-precision Decimal type.
+     * Decimal Types - Pandas uses floating-point arrays; there isn't a
+       native arbitrary-precision Decimal type.
 
 
-In certain cases, some things will unavoidably be object type:
+  In certain cases, some things will unavoidably be object type:
 
-   * Reading messy Excel files - read_excel will preserve the dtype
-     of each cell in the spreadsheet. If you have a single column with
-     an int, a float, and a datetime, pandas will have to store all of
-     those as objects. This dataset probably isn't tidy though.
+     * Reading messy Excel files - read_excel will preserve the dtype
+       of each cell in the spreadsheet. If you have a single column with
+       an int, a float, and a datetime, pandas will have to store all of
+       those as objects. This dataset probably isn't tidy though.
 
-   * Integer NA - Unfortunately, pandas doesn't have real nullable types.
-     To represent missingness, pandas uses NaN (not a number) which is a special
-     floating point value. If you have to represent nullable integers, you can
-     use object dtype.
+     * Integer NA - Unfortunately, pandas doesn't have real nullable types.
+       To represent missingness, pandas uses NaN (not a number) which is a special
+       floating point value. If you have to represent nullable integers, you can
+       use object dtype.
 
 .. ipython:: python
 
@@ -105,9 +105,49 @@ In certain cases, some things will unavoidably be object type:
 
 3) Optimize loading dataframes
 
+  There are two ways to get data in to a DataFrame: Make a single empty DataFrame
+  and append to that single DataFrame, or make a list of many DataFrames
+  and concatenate at the end.
+
+  The following code will make 100 sets of 50 records each. This could represent
+  any datasource, with any number of items in each. A DataFrame was built out of the
+  first list of records.
+
+.. ipython:: python
+
+    import string
+
+    records = [[(random.choice(string.ascii_letters),
+                 random.choice(string.ascii_letters),
+                 random.choice(range(10)))
+                for i in range(50)]
+               for j in range(100)]
+
+    pd.DataFrame(records[0], columns=['A', 'B', 'C'])
+
+  DataFrame.append is not efficient, as seen below.
+
+.. ipython:: python
+
+    %%timeit
+    # Make an empty dataframe with the correct columns
+    df = pd.DataFrame(columns=['A', 'B', 'C'])
+
+    for set_ in records:
+        subdf = pd.DataFrame(set_, columns=['A', 'B', 'C'])
+        # append to that original df
+        df = df.append(subdf, ignore_index=True)
+
+  A better solution is to use DataFrame.concat.
+
+.. ipython:: python
+
+    pd.concat([pd.DataFrame(set_, columns=['A', 'B', 'C']) for set_ in records],
+          ignore_index=True)
+
 4) Doing too much work with Pandas
 
-5) Reduce the amount of iteration required.
+5) Reduce the amount of iteration required
 
  Using .apply (with axis=1) (Avoid Iteration)
 
