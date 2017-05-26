@@ -391,16 +391,6 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
         """ same as values (but handles sparseness conversions); is a view """
         return self._data.get_values()
 
-    def _repr_latex_(self):
-        """
-        Returns a LaTeX representation for a particular Series.
-        Mainly for use with nbconvert (jupyter notebook conversion to pdf).
-        """
-        if get_option('display.latex.repr'):
-            return self.to_frame().to_latex()
-        else:
-            return None
-
     @property
     def asobject(self):
         """

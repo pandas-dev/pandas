@@ -1050,6 +1050,16 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # IO
 
+    def _repr_latex_(self):
+        """
+        Returns a LaTeX representation for a particular object.
+        Mainly for use with nbconvert (jupyter notebook conversion to pdf).
+        """
+        if config.get_option('display.latex.repr'):
+            return self.to_latex()
+        else:
+            return None
+
     # ----------------------------------------------------------------------
     # I/O Methods
 
@@ -1562,6 +1572,8 @@ it is assumed to be aliases for the column names.')
                  encoding=None, decimal='.', multicolumn=None,
                  multicolumn_format=None, multirow=None):
         # Get defaults from the pandas config
+        if self.ndim == 1:
+            self = self.to_frame()
         if longtable is None:
             longtable = config.get_option("display.latex.longtable")
         if escape is None:
