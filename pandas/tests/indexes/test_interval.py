@@ -757,9 +757,9 @@ class TestIntervalIndex(Base):
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='left')
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='both')
 
-        tm.assert_numpy_array_equal(idx.covers(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-        tm.assert_numpy_array_equal(idx.covers(idx2), (np.array([2]), np.array([1])))              # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-        tm.assert_numpy_array_equal(idx.covers(idx3), (np.array([0,1,2,2]), np.array([0,1,1,2])))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
+        tm.assert_numpy_array_equal(idx.covers(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))  # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
+        tm.assert_numpy_array_equal(idx.covers(idx2), (np.array([2]), np.array([1])))              # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
+        tm.assert_numpy_array_equal(idx.covers(idx3), (np.array([0,1,2,2]), np.array([0,1,1,2])))  # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_intervalIndex_overlaps_interval(self):
@@ -794,9 +794,9 @@ class TestIntervalIndex(Base):
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='left')
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='both')
 
-        tm.assert_numpy_array_equal(idx.overlaps(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))          # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-        tm.assert_numpy_array_equal(idx.overlaps(idx2), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
-        tm.assert_numpy_array_equal(idx.overlaps(idx3), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))  # note: I had to choose an arbitrary ordering. If this test fails, double check the test too...
+        tm.assert_numpy_array_equal(idx.overlaps(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))          # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
+        tm.assert_numpy_array_equal(idx.overlaps(idx2), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))  # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
+        tm.assert_numpy_array_equal(idx.overlaps(idx3), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))  # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
 
     def test_dropna(self):
 
