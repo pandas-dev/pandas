@@ -155,7 +155,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         raise ValueError('Invalid limit_direction: expecting one of %r, got '
                          '%r.' % (valid_limit_directions, limit_direction))
 
-    if not limit_area is None:
+    if limit_area is not None:
         valid_limit_areas = ['inside', 'outside']
         limit_area = limit_area.lower()
         if limit_area not in valid_limit_areas:
