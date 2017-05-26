@@ -111,7 +111,7 @@ def clean_interp_method(method, **kwargs):
 
 
 def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
-                   limit_direction='forward', fill_value=None,
+                   limit_direction='forward', limit_area=None, fill_value=None,
                    bounds_error=False, order=None, **kwargs):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
@@ -155,28 +155,12 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         raise ValueError('Invalid limit_direction: expecting one of %r, got '
                          '%r.' % (valid_limit_directions, limit_direction))
 
-    from pandas import Series
-    ys = Series(yvalues)
-    start_nans = set(range(ys.first_valid_index()))
-    end_nans = set(range(1 + ys.last_valid_index(), len(valid)))
-
-    # violate_limit is a list of the indexes in the series whose yvalue is
-    # currently NaN, and should still be NaN after the interpolation.
-    # Specifically:
-    #
-    # If limit_direction='forward' or None then the list will contain NaNs at
-    # the beginning of the series, and NaNs that are more than 'limit' away
-    # from the prior non-NaN.
-    #
-    # If limit_direction='backward' then the list will contain NaNs at
-    # the end of the series, and NaNs that are more than 'limit' away
-    # from the subsequent non-NaN.
-    #
-    # If limit_direction='both' then the list will contain NaNs that
-    # are more than 'limit' away from any non-NaN.
-    #
-    # If limit=None, then use default behavior of filling an unlimited number
-    # of NaNs in the direction specified by limit_direction
+    if not limit_area is None:
+        valid_limit_areas = ['inside', 'outside']
+        limit_area = limit_area.lower()
+        if limit_area not in valid_limit_areas:
+            raise ValueError('Invalid limit_area: expecting one of %r, got %r.'
+                             % (valid_limit_areas, limit_area))
 
     # default limit is unlimited GH #16282
     if limit is None:
@@ -186,15 +170,43 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     elif limit < 1:
         raise ValueError('Limit must be greater than 0')
 
-    # each possible limit_direction
+    from pandas import Series
+    ys = Series(yvalues)
+
+    # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
+    all_nans = set(np.flatnonzero(invalid))
+    start_nans = set(range(ys.first_valid_index()))
+    end_nans = set(range(1 + ys.last_valid_index(), len(valid)))
+    mid_nans = all_nans - start_nans - end_nans
+
+    # Like the sets above, preserve_nans contains indices of invalid values,
+    # but in this case, it is the final set of indices that need to be
+    # preserved as NaN after the interpolation.
+
+    # For example if limit_direction='forward' then preserve_nans will
+    # contain indices of NaNs at the beginning of the series, and NaNs that
+    # are more than'limit' away from the prior non-NaN.
+
+    # set preserve_nans based on direction using _interp_limit
     if limit_direction == 'forward':
-        violate_limit = sorted(start_nans |
-                               set(_interp_limit(invalid, limit, 0)))
+        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == 'backward':
-        violate_limit = sorted(end_nans |
-                               set(_interp_limit(invalid, 0, limit)))
-    elif limit_direction == 'both':
-        violate_limit = sorted(_interp_limit(invalid, limit, limit))
+        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
+    else:
+        # both directions... just use _interp_limit
+        preserve_nans = set(_interp_limit(invalid, limit, limit))
+
+    # if limit_area is set, add either mid or outside indices
+    # to preserve_nans GH #16284
+    if limit_area == 'inside':
+        # preserve NaNs on the outside
+        preserve_nans |= start_nans | end_nans
+    elif limit_area == 'outside':
+        # preserve NaNs on the inside
+        preserve_nans |= mid_nans
+
+    # sort preserve_nans and covert to list
+    preserve_nans = sorted(preserve_nans)
 
     xvalues = getattr(xvalues, 'values', xvalues)
     yvalues = getattr(yvalues, 'values', yvalues)
@@ -211,7 +223,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
         else:
             inds = xvalues
         result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])
-        result[violate_limit] = np.nan
+        result[preserve_nans] = np.nan
         return result
 
     sp_methods = ['nearest', 'zero', 'slinear', 'quadratic', 'cubic',
@@ -230,7 +242,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
                                                      fill_value=fill_value,
                                                      bounds_error=bounds_error,
                                                      order=order, **kwargs)
-        result[violate_limit] = np.nan
+        result[preserve_nans] = np.nan
         return result
 
 

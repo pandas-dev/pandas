@@ -330,6 +330,10 @@ Interpolation
 
   The ``limit_direction`` keyword argument was added.
 
+.. versionadded:: 0.21.0
+
+  The ``limit_area`` keyword argument was added.
+
 Both Series and Dataframe objects have an ``interpolate`` method that, by default,
 performs linear interpolation at missing datapoints.
 
@@ -458,28 +462,47 @@ Interpolation Limits
 ^^^^^^^^^^^^^^^^^^^^
 
 Like other pandas fill methods, ``interpolate`` accepts a ``limit`` keyword
-argument. Use this argument to limit the number of consecutive interpolations,
-keeping ``NaN`` values for interpolations that are too far from the last valid
-observation:
+argument. Use this argument to limit the number of consecutive ``NaN`` values
+filled since the last valid observation:
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
-   ser.interpolate(limit=2)
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
 
-By default, ``limit`` applies in a forward direction, so that only ``NaN``
-values after a non-``NaN`` value can be filled. If you provide ``'backward'`` or
-``'both'`` for the ``limit_direction`` keyword argument, you can fill ``NaN``
-values before non-``NaN`` values, or both before and after non-``NaN`` values,
-respectively:
+   # fill all consecutive values in a forward direction
+   ser.interpolate()
+
+   # fill one consecutive value in a forward direction
+   ser.interpolate(limit=1)
+
+By default, ``NaN`` values are filled in a ``forward`` direction. Use
+``limit_direction`` parameter to fill ``backward`` or from ``both`` directions.
 
 .. ipython:: python
 
-   ser.interpolate(limit=1)  # limit_direction == 'forward'
-
+   # fill one consecutive value backwards
    ser.interpolate(limit=1, limit_direction='backward')
 
+   # fill one consecutive value in both directions
    ser.interpolate(limit=1, limit_direction='both')
+
+   # fill all consecutive values in both directions
+   ser.interpolate(limit_direction='both')
+
+By default, ``NaN`` values are filled whether they are inside (surrounded by)
+existing valid values, or outside existing valid values. Introduced in v0.21
+the ``limit_area`` parameter restricts filling to either inside or outside values.
+
+.. ipython:: python
+
+   # fill one consecutive inside value in both directions
+   ser.interpolate(limit=1, limit_area='inside', limit_direction='both')
+
+   # fill all consecutive outside values backward
+   ser.interpolate(limit_direction='backward', limit_area='outside')
+
+   # fill all consecutive outside values in both directions
+   ser.interpolate(limit_direction='both', limit_area='outside')
 
 .. _missing_data.replace:
 
