@@ -821,8 +821,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1    2
         2    3
         >>> df.index = pd.MultiIndex.from_product([['A'], ['a', 'b', 'c']])
-        >>> df._set_axis_name(["bar", "baz"])
-                 A
+        >>> df._set_axis_name(["bar", "baz"]) A
         bar baz
         A   a    1
             b    2
@@ -841,6 +840,9 @@ class NDFrame(PandasObject, SelectionMixin):
     def _indexed_same(self, other):
         return all([self._get_axis(a).equals(other._get_axis(a))
                     for a in self._AXIS_ORDERS])
+
+    def __pos__(self):
+        return self.__array_wrap__(_values_from_object(self))
 
     def __neg__(self):
         values = _values_from_object(self)
