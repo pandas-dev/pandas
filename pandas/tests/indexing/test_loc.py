@@ -644,7 +644,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # These should not return copies
         assert original_df is original_df.loc[:, :]
         df = DataFrame(np.random.randn(10, 4))
-        assert df[0] is df.loc[:,0]
+        assert df[0] is df.loc[:, 0]
 
         # Same tests for Series
         original_series = Series([1, 2, 3, 4, 5, 6])
