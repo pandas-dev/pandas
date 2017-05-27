@@ -11,6 +11,7 @@ from datetime import datetime
 
 import pytest
 import numpy as np
+from pandas import read_csv
 from pandas._libs.lib import Timestamp
 
 import pandas as pd
@@ -1754,3 +1755,10 @@ j,-inF"""
         val = sys.stderr.getvalue()
         assert 'Skipping line 3' in val
         assert 'Skipping line 5' in val
+
+    def test_unknown_engine(self):
+        with tm.ensure_clean() as path:
+            df = tm.makeDataFrame()
+            df.to_csv(path)
+            with tm.assert_raises_regex(ValueError, 'Unknown engine'):
+                read_csv(path, engine='pyt')
