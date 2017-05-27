@@ -125,6 +125,26 @@ bar2,12,13,14,15
         tm.assert_frame_equal(first, expected.iloc[[0]])
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
 
+    @pytest.mark.parametrize('reader, module, error_class, fn_ext', [
+        (pd.read_csv, 'os', pd.compat.FileNotFoundError, 'csv'),
+        (pd.read_table, 'os', pd.compat.FileNotFoundError, 'csv'),
+        (pd.read_fwf, 'os', pd.compat.FileNotFoundError, 'txt'),
+        (pd.read_excel, 'xlrd', ValueError, 'xlsx'),
+        (pd.read_feather, 'feather', ValueError, 'feather'),
+        (pd.read_hdf, 'tables', ValueError, 'h5'),
+        (pd.read_stata, 'os', pd.compat.FileNotFoundError, 'dta'),
+        (pd.read_sas, 'os', pd.compat.FileNotFoundError, 'sas7bdat'),
+        (pd.read_json, 'os', ValueError, 'json'),
+        (pd.read_msgpack, 'os', ValueError, 'mp'),
+        (pd.read_pickle, 'os', pd.compat.FileNotFoundError, 'pickle'),
+    ])
+    def test_read_non_existant(self, reader, module, error_class, fn_ext):
+        pytest.importorskip(module)
+
+        path = os.path.join(HERE, 'data', 'does_not_exist.' + fn_ext)
+        with pytest.raises(error_class):
+            reader(path)
+
     @pytest.mark.parametrize('reader, module, path', [
         (pd.read_csv, 'os', os.path.join(HERE, 'data', 'iris.csv')),
         (pd.read_table, 'os', os.path.join(HERE, 'data', 'iris.csv')),
