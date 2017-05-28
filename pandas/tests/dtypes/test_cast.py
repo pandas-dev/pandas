@@ -9,7 +9,7 @@ import pytest
 from datetime import datetime, timedelta, date
 import numpy as np
 
-from pandas import Timedelta, Timestamp, DatetimeIndex
+from pandas import Timedelta, Timestamp, DatetimeIndex, DataFrame, NaT
 
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
@@ -212,6 +212,17 @@ class TestMaybe(object):
         assert result == Timestamp('20130101').value
         result = maybe_convert_scalar(Timedelta('1 day 1 min'))
         assert result == Timedelta('1 day 1 min').value
+
+    def test_maybe_infer_to_datetimelike(self):
+        # GH16362
+        # pandas=0.20.1 raises IndexError: tuple index out of range
+        result = DataFrame(np.array([[NaT, 'a', 'b', 0],
+                                     [NaT, 'b', 'c', 1]]))
+        assert result.size == 8
+        # this construction was fine
+        result = DataFrame(np.array([[NaT, 'a', 0],
+                                     [NaT, 'b', 1]]))
+        assert result.size == 6
 
 
 class TestConvert(object):

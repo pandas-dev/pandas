@@ -724,6 +724,7 @@ Serialization / IO / Conversion
    Series.to_dense
    Series.to_string
    Series.to_clipboard
+   Series.to_latex
 
 Sparse
 ~~~~~~
@@ -1738,6 +1739,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.diff
    DataFrameGroupBy.ffill
    DataFrameGroupBy.fillna
+   DataFrameGroupBy.filter
    DataFrameGroupBy.hist
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin

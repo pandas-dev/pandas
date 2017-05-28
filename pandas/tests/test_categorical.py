@@ -736,6 +736,17 @@ Categories (3, object): [ああああ, いいいいい, ううううううう]""
 
             assert _rep(c) == expected
 
+    def test_tab_complete_warning(self, ip):
+        # https://github.com/pandas-dev/pandas/issues/16409
+        pytest.importorskip('IPython', minversion="6.0.0")
+        from IPython.core.completer import provisionalcompleter
+
+        code = "import pandas as pd; c = pd.Categorical([])"
+        ip.run_code(code)
+        with tm.assert_produces_warning(None):
+            with provisionalcompleter('ignore'):
+                list(ip.Completer.completions('c.', 1))
+
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
                             '2014-03', '2014-03'], freq='M')
