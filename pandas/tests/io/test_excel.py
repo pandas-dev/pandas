@@ -5,6 +5,7 @@ from datetime import datetime, date, time
 import sys
 import os
 from distutils.version import LooseVersion
+from functools import partial
 
 import warnings
 from warnings import catch_warnings
@@ -407,7 +408,7 @@ class ReadingTestsBase(SharedItems):
         # Ensure a dict is returned.
         # See PR #9450
         basename = 'test_multisheet'
-        dfs = self.get_exceldf(basename, sheetname=None)
+        dfs = self.get_exceldf(basename, sheet_name=None)
         # ensure this is not alphabetical to test order preservation
         expected_keys = ['Charlie', 'Alpha', 'Beta']
         tm.assert_contains_all(expected_keys, dfs.keys())
@@ -424,7 +425,7 @@ class ReadingTestsBase(SharedItems):
         basename = 'test_multisheet'
         # Explicitly request duplicates. Only the set should be returned.
         expected_keys = [2, 'Charlie', 'Charlie']
-        dfs = self.get_exceldf(basename, sheetname=expected_keys)
+        dfs = self.get_exceldf(basename, sheet_name=expected_keys)
         expected_keys = list(set(expected_keys))
         tm.assert_contains_all(expected_keys, dfs.keys())
         assert len(expected_keys) == len(dfs.keys())
@@ -434,7 +435,7 @@ class ReadingTestsBase(SharedItems):
         # In the case where some sheets are blank.
         # Issue #11711
         basename = 'blank_with_header'
-        dfs = self.get_exceldf(basename, sheetname=None)
+        dfs = self.get_exceldf(basename, sheet_name=None)
         expected_keys = ['Sheet1', 'Sheet2', 'Sheet3']
         tm.assert_contains_all(expected_keys, dfs.keys())
 
@@ -544,6 +545,22 @@ class ReadingTestsBase(SharedItems):
         result = self.get_exceldf('testdateoverflow')
         tm.assert_frame_equal(result, expected)
 
+    def test_sheet_name_and_sheetname(self):
+        # GH10559: Minor improvement: Change "sheet_name" to "sheetname"
+        # GH10969: DOC: Consistent var names (sheetname vs sheet_name)
+        # GH12604: CLN GH10559 Rename sheetname variable to sheet_name
+        dfref = self.get_csv_refdf('test1')
+        df1 = self.get_exceldf('test1', sheet_name='Sheet1')    # doc
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df2 = self.get_exceldf('test1', sheetname='Sheet1')  # bkwrd compat
+
+        tm.assert_frame_equal(df1, dfref, check_names=False)
+        tm.assert_frame_equal(df2, dfref, check_names=False)
+
+    def test_sheet_name_both_raises(self):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both"):
+            self.get_exceldf('test1', sheetname='Sheet1', sheet_name='Sheet1')
+
 
 class XlrdTests(ReadingTestsBase):
     """
@@ -577,7 +594,7 @@ class XlrdTests(ReadingTestsBase):
                 result = read_excel(xl, "SheetA")
                 tm.assert_frame_equal(df, result)
 
-            result = read_excel(book, sheetname="SheetA", engine="xlrd")
+            result = read_excel(book, sheet_name="SheetA", engine="xlrd")
             tm.assert_frame_equal(df, result)
 
     @tm.network
@@ -679,7 +696,7 @@ class XlrdTests(ReadingTestsBase):
             with ExcelWriter(pth) as ew:
                 for sheetname, df in iteritems(dfs):
                     df.to_excel(ew, sheetname)
-            dfs_returned = read_excel(pth, sheetname=sheets)
+            dfs_returned = read_excel(pth, sheet_name=sheets)
             for s in sheets:
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
@@ -989,19 +1006,19 @@ class XlrdTests(ReadingTestsBase):
         tm.assert_series_equal(actual, expected)
 
 
-class XlsReaderTests(XlrdTests):
+class TestXlsReaderTests(XlrdTests):
     ext = '.xls'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
 
 
-class XlsxReaderTests(XlrdTests):
+class TestXlsxReaderTests(XlrdTests):
     ext = '.xlsx'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
 
 
-class XlsmReaderTests(XlrdTests):
+class TestXlsmReaderTests(XlrdTests):
     ext = '.xlsm'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
@@ -1860,12 +1877,18 @@ class ExcelWriterBase(SharedItems):
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
-        result = tm.round_trip_pathlib(df.to_excel, pd.read_excel)
+        writer = partial(df.to_excel, engine=self.engine_name)
+        reader = partial(pd.read_excel)
+        result = tm.round_trip_pathlib(writer, reader,
+                                       path="foo.{}".format(self.ext))
         tm.assert_frame_equal(df, result)
 
     def test_path_localpath(self):
         df = tm.makeDataFrame()
-        result = tm.round_trip_localpath(df.to_excel, pd.read_excel)
+        writer = partial(df.to_excel, engine=self.engine_name)
+        reader = partial(pd.read_excel)
+        result = tm.round_trip_pathlib(writer, reader,
+                                       path="foo.{}".format(self.ext))
         tm.assert_frame_equal(df, result)
 
 
@@ -1897,7 +1920,7 @@ def raise_on_incompat_version(major_ver):
 
 
 @raise_on_incompat_version(1)
-class OpenpyxlTests(ExcelWriterBase):
+class TestOpenpyxlTests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl1'
     check_skip = staticmethod(lambda *args, **kwargs: None)
@@ -1950,7 +1973,7 @@ def skip_openpyxl_gt21(cls):
 
 @raise_on_incompat_version(2)
 @skip_openpyxl_gt21
-class Openpyxl20Tests(ExcelWriterBase):
+class TestOpenpyxl20Tests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl20'
     check_skip = staticmethod(lambda *args, **kwargs: None)
@@ -2066,7 +2089,7 @@ def skip_openpyxl_lt22(cls):
 
 @raise_on_incompat_version(2)
 @skip_openpyxl_lt22
-class Openpyxl22Tests(ExcelWriterBase):
+class TestOpenpyxl22Tests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl22'
     check_skip = staticmethod(lambda *args, **kwargs: None)
@@ -2161,7 +2184,7 @@ class Openpyxl22Tests(ExcelWriterBase):
             assert xcell_a2.font == openpyxl_sty_merged
 
 
-class XlwtTests(ExcelWriterBase):
+class TestXlwtTests(ExcelWriterBase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -2218,7 +2241,7 @@ class XlwtTests(ExcelWriterBase):
         assert xlwt.Alignment.VERT_TOP == xls_style.alignment.vert
 
 
-class XlsxWriterTests(ExcelWriterBase):
+class TestXlsxWriterTests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
@@ -2271,7 +2294,7 @@ class XlsxWriterTests(ExcelWriterBase):
             assert read_num_format == num_format
 
 
-class OpenpyxlTests_NoMerge(ExcelWriterBase):
+class TestOpenpyxlTests_NoMerge(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl'
     check_skip = staticmethod(_skip_if_no_openpyxl)
@@ -2280,7 +2303,7 @@ class OpenpyxlTests_NoMerge(ExcelWriterBase):
     merge_cells = False
 
 
-class XlwtTests_NoMerge(ExcelWriterBase):
+class TestXlwtTests_NoMerge(ExcelWriterBase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -2289,7 +2312,7 @@ class XlwtTests_NoMerge(ExcelWriterBase):
     merge_cells = False
 
 
-class XlsxWriterTests_NoMerge(ExcelWriterBase):
+class TestXlsxWriterTests_NoMerge(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
@@ -2298,7 +2321,7 @@ class XlsxWriterTests_NoMerge(ExcelWriterBase):
     merge_cells = False
 
 
-class ExcelWriterEngineTests(object):
+class TestExcelWriterEngineTests(object):
 
     def test_ExcelWriter_dispatch(self):
         with tm.assert_raises_regex(ValueError, 'No engine'):
@@ -2499,3 +2522,24 @@ def test_styler_to_excel(engine):
             n_cells += 1
 
     assert n_cells == (10 + 1) * (3 + 1)
+
+
+class TestFSPath(object):
+
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
+    def test_excelfile_fspath(self):
+        _skip_if_no_openpyxl()
+        with tm.ensure_clean('foo.xlsx') as path:
+            df = DataFrame({"A": [1, 2]})
+            df.to_excel(path)
+            xl = ExcelFile(path)
+            result = os.fspath(xl)
+            assert result == path
+
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
+    # @pytest.mark.xfail
+    def test_excelwriter_fspath(self):
+        _skip_if_no_openpyxl()
+        with tm.ensure_clean('foo.xlsx') as path:
+            writer = ExcelWriter(path)
+            assert os.fspath(writer) == str(path)

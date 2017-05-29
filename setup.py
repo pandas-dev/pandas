@@ -709,6 +709,7 @@ setup(name=DISTNAME,
                                         'data/html_encoding/*.html',
                                         'json/data/*.json'],
                     'pandas.tests.io.formats': ['data/*.csv'],
+                    'pandas.tests.io.msgpack': ['data/*.mp'],
                     'pandas.tests.reshape': ['data/*.csv'],
                     'pandas.tests.tseries': ['data/*.pickle'],
                     'pandas.io.formats': ['templates/*.tpl']

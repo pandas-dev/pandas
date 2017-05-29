@@ -4,7 +4,7 @@ data hash pandas / numpy objects
 import itertools
 
 import numpy as np
-from pandas._libs import hashing
+from pandas._libs import hashing, tslib
 from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCIndexClass,
@@ -12,6 +12,9 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame)
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_list_like)
+from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
+
 
 # 16 byte long hashing key
 _default_hash_key = '0123456789123456'
@@ -164,6 +167,29 @@ def hash_tuples(vals, encoding='utf8', hash_key=None):
     return h
 
 
+def hash_tuple(val, encoding='utf8', hash_key=None):
+    """
+    Hash a single tuple efficiently
+
+    Parameters
+    ----------
+    val : single tuple
+    encoding : string, default 'utf8'
+    hash_key : string key to encode, default to _default_hash_key
+
+    Returns
+    -------
+    hash
+
+    """
+    hashes = (_hash_scalar(v, encoding=encoding, hash_key=hash_key)
+              for v in val)
+
+    h = _combine_hash_arrays(hashes, len(val))[0]
+
+    return h
+
+
 def _hash_categorical(c, encoding, hash_key):
     """
     Hash a Categorical by hashing its categories, and then mapping the codes
@@ -276,3 +302,31 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     vals *= np.uint64(0x94d049bb133111eb)
     vals ^= vals >> 31
     return vals
+
+
+def _hash_scalar(val, encoding='utf8', hash_key=None):
+    """
+    Hash scalar value
+
+    Returns
+    -------
+    1d uint64 numpy array of hash value, of length 1
+    """
+
+    if isnull(val):
+        # this is to be consistent with the _hash_categorical implementation
+        return np.array([np.iinfo(np.uint64).max], dtype='u8')
+
+    if getattr(val, 'tzinfo', None) is not None:
+        # for tz-aware datetimes, we need the underlying naive UTC value and
+        # not the tz aware object or pd extension type (as
+        # infer_dtype_from_scalar would do)
+        if not isinstance(val, tslib.Timestamp):
+            val = tslib.Timestamp(val)
+        val = val.tz_convert(None)
+
+    dtype, val = infer_dtype_from_scalar(val)
+    vals = np.array([val], dtype=dtype)
+
+    return hash_array(vals, hash_key=hash_key, encoding=encoding,
+                      categorize=False)

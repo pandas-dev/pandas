@@ -38,6 +38,8 @@ cdef class MultiIndexHashTable(HashTable):
 
     cpdef get_item(self, object val)
     cpdef set_item(self, object key, Py_ssize_t val)
+    cdef inline void _check_for_collision(self, Py_ssize_t loc, object label)
+
 
 cdef class StringHashTable(HashTable):
     cdef kh_str_t *table

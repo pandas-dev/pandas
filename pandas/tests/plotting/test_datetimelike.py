@@ -6,7 +6,7 @@ import pytest
 from pandas.compat import lrange, zip
 
 import numpy as np
-from pandas import Index, Series, DataFrame
+from pandas import Index, Series, DataFrame, NaT
 from pandas.compat import is_platform_mac
 from pandas.core.indexes.datetimes import date_range, bdate_range
 from pandas.core.indexes.timedeltas import timedelta_range
@@ -811,6 +811,20 @@ class TestTSPlot(TestPlotBase):
         # assert (ax1.lines[0].get_xydata()[0, 0] ==
         #         ax2.lines[0].get_xydata()[0, 0])
 
+    def test_nat_handling(self):
+
+        fig = self.plt.gcf()
+        # self.plt.clf()
+        ax = fig.add_subplot(111)
+
+        dti = DatetimeIndex(['2015-01-01', NaT, '2015-01-03'])
+        s = Series(range(len(dti)), dti)
+        s.plot(ax=ax)
+        xdata = ax.get_lines()[0].get_xdata()
+        # plot x data is bounded by index values
+        assert s.index.min() <= Series(xdata).min()
+        assert Series(xdata).max() <= s.index.max()
+
     @slow
     def test_to_weekly_resampling(self):
         idxh = date_range('1/1/1999', periods=52, freq='W')
@@ -829,7 +843,7 @@ class TestTSPlot(TestPlotBase):
         tsplot(high, plt.Axes.plot)
         lines = tsplot(low, plt.Axes.plot)
         for l in lines:
-            assert PeriodIndex(data=l.get_xdata()).freq, idxh.freq
+            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
 
     @slow
     def test_from_weekly_resampling(self):
@@ -844,7 +858,7 @@ class TestTSPlot(TestPlotBase):
         expected_l = np.array([1514, 1519, 1523, 1527, 1531, 1536, 1540, 1544,
                                1549, 1553, 1558, 1562], dtype=np.float64)
         for l in ax.get_lines():
-            assert PeriodIndex(data=l.get_xdata()).freq, idxh.freq
+            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
             xdata = l.get_xdata(orig=False)
             if len(xdata) == 12:  # idxl lines
                 tm.assert_numpy_array_equal(xdata, expected_l)
@@ -859,7 +873,7 @@ class TestTSPlot(TestPlotBase):
         tsplot(low, plt.Axes.plot)
         lines = tsplot(high, plt.Axes.plot)
         for l in lines:
-            assert PeriodIndex(data=l.get_xdata()).freq, idxh.freq
+            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
             xdata = l.get_xdata(orig=False)
             if len(xdata) == 12:  # idxl lines
                 tm.assert_numpy_array_equal(xdata, expected_l)
@@ -1334,6 +1348,22 @@ class TestTSPlot(TestPlotBase):
         w1 = np.arange(0, 1, .1)
         w2 = np.arange(0, 1, .1)[::-1]
         self.plt.hist([x, x], weights=[w1, w2])
+
+    @slow
+    def test_overlapping_datetime(self):
+        # GB 6608
+        s1 = Series([1, 2, 3], index=[datetime(1995, 12, 31),
+                                      datetime(2000, 12, 31),
+                                      datetime(2005, 12, 31)])
+        s2 = Series([1, 2, 3], index=[datetime(1997, 12, 31),
+                                      datetime(2003, 12, 31),
+                                      datetime(2008, 12, 31)])
+
+        # plot first series, then add the second series to those axes,
+        # then try adding the first series again
+        ax = s1.plot()
+        s2.plot(ax=ax)
+        s1.plot(ax=ax)
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

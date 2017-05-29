@@ -63,7 +63,8 @@ from pandas.core.common import (_try_sort,
                                 _default_index,
                                 _values_from_object,
                                 _maybe_box_datetimelike,
-                                _dict_compat)
+                                _dict_compat,
+                                standardize_mapping)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
@@ -173,6 +174,19 @@ indicator : boolean or string, default False
     DataFrame, and "both" if the observation's merge key is found in both.
 
     .. versionadded:: 0.17.0
+
+validate : string, default None
+    If specified, checks if merge is of specified type.
+
+    * "one_to_one" or "1:1": check if merge keys are unique in both
+      left and right datasets.
+    * "one_to_many" or "1:m": check if merge keys are unique in left
+      dataset.
+    * "many_to_one" or "m:1": check if merge keys are unique in right
+      dataset.
+    * "many_to_may" or "m:m": allowed, but does not result in checks.
+
+    .. versionadded:: 0.21.0
 
 Examples
 --------
@@ -620,16 +634,6 @@ class DataFrame(NDFrame):
         else:
             return None
 
-    def _repr_latex_(self):
-        """
-        Returns a LaTeX representation for a particular Dataframe.
-        Mainly for use with nbconvert (jupyter notebook conversion to pdf).
-        """
-        if get_option('display.latex.repr'):
-            return self.to_latex()
-        else:
-            return None
-
     @property
     def style(self):
         """
@@ -860,7 +864,7 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_dict(self, orient='dict'):
+    def to_dict(self, orient='dict', into=dict):
         """Convert DataFrame to dictionary.
 
         Parameters
@@ -882,32 +886,85 @@ class DataFrame(NDFrame):
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
 
+        into : class, default dict
+            The collections.Mapping subclass used for all Mappings
+            in the return value.  Can be the actual class or an empty
+            instance of the mapping type you want.  If you want a
+            collections.defaultdict, you must pass it initialized.
+
+            .. versionadded:: 0.21.0
+
         Returns
         -------
-        result : dict like {column -> {index -> value}}
+        result : collections.Mapping like {column -> {index -> value}}
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+                {'col1': [1, 2], 'col2': [0.5, 0.75]}, index=['a', 'b'])
+        >>> df
+           col1  col2
+        a     1   0.1
+        b     2   0.2
+        >>> df.to_dict()
+        {'col1': {'a': 1, 'b': 2}, 'col2': {'a': 0.5, 'b': 0.75}}
+
+        You can specify the return orientation.
+
+        >>> df.to_dict('series')
+        {'col1': a    1
+        b    2
+        Name: col1, dtype: int64, 'col2': a    0.50
+        b    0.75
+        Name: col2, dtype: float64}
+        >>> df.to_dict('split')
+        {'columns': ['col1', 'col2'],
+        'data': [[1.0, 0.5], [2.0, 0.75]],
+        'index': ['a', 'b']}
+        >>> df.to_dict('records')
+        [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
+        >>> df.to_dict('index')
+        {'a': {'col1': 1.0, 'col2': 0.5}, 'b': {'col1': 2.0, 'col2': 0.75}}
+
+        You can also specify the mapping type.
+
+        >>> from collections import OrderedDict, defaultdict
+        >>> df.to_dict(into=OrderedDict)
+        OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
+                   ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
+
+        If you want a `defaultdict`, you need to initialize it:
+
+        >>> dd = defaultdict(list)
+        >>> df.to_dict('records', into=dd)
+        [defaultdict(<type 'list'>, {'col2': 0.5, 'col1': 1.0}),
+        defaultdict(<type 'list'>, {'col2': 0.75, 'col1': 2.0})]
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
                           "columns will be omitted.", UserWarning)
+        # GH16122
+        into_c = standardize_mapping(into)
         if orient.lower().startswith('d'):
-            return dict((k, v.to_dict()) for k, v in compat.iteritems(self))
+            return into_c(
+                (k, v.to_dict(into)) for k, v in compat.iteritems(self))
         elif orient.lower().startswith('l'):
-            return dict((k, v.tolist()) for k, v in compat.iteritems(self))
+            return into_c((k, v.tolist()) for k, v in compat.iteritems(self))
         elif orient.lower().startswith('sp'):
-            return {'index': self.index.tolist(),
-                    'columns': self.columns.tolist(),
-                    'data': lib.map_infer(self.values.ravel(),
-                                          _maybe_box_datetimelike)
-                    .reshape(self.values.shape).tolist()}
+            return into_c((('index', self.index.tolist()),
+                           ('columns', self.columns.tolist()),
+                           ('data', lib.map_infer(self.values.ravel(),
+                                                  _maybe_box_datetimelike)
+                            .reshape(self.values.shape).tolist())))
         elif orient.lower().startswith('s'):
-            return dict((k, _maybe_box_datetimelike(v))
-                        for k, v in compat.iteritems(self))
+            return into_c((k, _maybe_box_datetimelike(v))
+                          for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [dict((k, _maybe_box_datetimelike(v))
-                         for k, v in zip(self.columns, row))
+            return [into_c((k, _maybe_box_datetimelike(v))
+                           for k, v in zip(self.columns, row))
                     for row in self.values]
         elif orient.lower().startswith('i'):
-            return dict((k, v.to_dict()) for k, v in self.iterrows())
+            return into_c((k, v.to_dict(into)) for k, v in self.iterrows())
         else:
             raise ValueError("orient '%s' not understood" % orient)
 
@@ -1592,94 +1649,6 @@ it is assumed to be aliases for the column names')
                                            decimal=decimal)
         # TODO: a generic formatter wld b in DataFrameFormatter
         formatter.to_html(classes=classes, notebook=notebook, border=border)
-
-        if buf is None:
-            return formatter.buf.getvalue()
-
-    @Substitution(header='Write out column names. If a list of string is given, \
-it is assumed to be aliases for the column names.')
-    @Appender(fmt.common_docstring + fmt.return_docstring, indents=1)
-    def to_latex(self, buf=None, columns=None, col_space=None, header=True,
-                 index=True, na_rep='NaN', formatters=None, float_format=None,
-                 sparsify=None, index_names=True, bold_rows=True,
-                 column_format=None, longtable=None, escape=None,
-                 encoding=None, decimal='.', multicolumn=None,
-                 multicolumn_format=None, multirow=None):
-        r"""
-        Render a DataFrame to a tabular environment table. You can splice
-        this into a LaTeX document. Requires \usepackage{booktabs}.
-
-        `to_latex`-specific options:
-
-        bold_rows : boolean, default True
-            Make the row labels bold in the output
-        column_format : str, default None
-            The columns format as specified in `LaTeX table format
-            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3
-            columns
-        longtable : boolean, default will be read from the pandas config module
-            Default: False.
-            Use a longtable environment instead of tabular. Requires adding
-            a \usepackage{longtable} to your LaTeX preamble.
-        escape : boolean, default will be read from the pandas config module
-            Default: True.
-            When set to False prevents from escaping latex special
-            characters in column names.
-        encoding : str, default None
-            A string representing the encoding to use in the output file,
-            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        decimal : string, default '.'
-            Character recognized as decimal separator, e.g. ',' in Europe.
-
-            .. versionadded:: 0.18.0
-
-        multicolumn : boolean, default True
-            Use \multicolumn to enhance MultiIndex columns.
-            The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
-
-        multicolumn_format : str, default 'l'
-            The alignment for multicolumns, similar to `column_format`
-            The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
-
-        multirow : boolean, default False
-            Use \multirow to enhance MultiIndex rows.
-            Requires adding a \usepackage{multirow} to your LaTeX preamble.
-            Will print centered labels (instead of top-aligned)
-            across the contained rows, separating groups via clines.
-            The default will be read from the pandas config module.
-
-            .. versionadded:: 0.20.0
-
-        """
-        # Get defaults from the pandas config
-        if longtable is None:
-            longtable = get_option("display.latex.longtable")
-        if escape is None:
-            escape = get_option("display.latex.escape")
-        if multicolumn is None:
-            multicolumn = get_option("display.latex.multicolumn")
-        if multicolumn_format is None:
-            multicolumn_format = get_option("display.latex.multicolumn_format")
-        if multirow is None:
-            multirow = get_option("display.latex.multirow")
-
-        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
-                                           col_space=col_space, na_rep=na_rep,
-                                           header=header, index=index,
-                                           formatters=formatters,
-                                           float_format=float_format,
-                                           bold_rows=bold_rows,
-                                           sparsify=sparsify,
-                                           index_names=index_names,
-                                           escape=escape, decimal=decimal)
-        formatter.to_latex(column_format=column_format, longtable=longtable,
-                           encoding=encoding, multicolumn=multicolumn,
-                           multicolumn_format=multicolumn_format,
-                           multirow=multirow)
 
         if buf is None:
             return formatter.buf.getvalue()
@@ -2505,15 +2474,17 @@ it is assumed to be aliases for the column names.')
         """
         Insert column into DataFrame at specified location.
 
-        If `allow_duplicates` is False, raises Exception if column
-        is already contained in the DataFrame.
+        Raises a ValueError if `column` is already contained in the DataFrame,
+        unless `allow_duplicates` is set to True.
 
         Parameters
         ----------
         loc : int
-            Must have 0 <= loc <= len(columns)
-        column : object
-        value : scalar, Series, or array-like
+            Insertion index. Must verify 0 <= loc <= len(columns)
+        column : string, number, or hashable object
+            label of the inserted column
+        value : int, Series, or array-like
+        allow_duplicates : bool, optional
         """
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
@@ -2878,9 +2849,44 @@ it is assumed to be aliases for the column names.')
 
         Examples
         --------
-        >>> indexed_df = df.set_index(['A', 'B'])
-        >>> indexed_df2 = df.set_index(['A', [0, 1, 2, 0, 1, 2]])
-        >>> indexed_df3 = df.set_index([[0, 1, 2, 0, 1, 2]])
+        >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
+        ...                    'year': [2012, 2014, 2013, 2014],
+        ...                    'sale':[55, 40, 84, 31]})
+           month  sale  year
+        0  1      55    2012
+        1  4      40    2014
+        2  7      84    2013
+        3  10     31    2014
+
+        Set the index to become the 'month' column:
+
+        >>> df.set_index('month')
+               sale  year
+        month
+        1      55    2012
+        4      40    2014
+        7      84    2013
+        10     31    2014
+
+        Create a multi-index using columns 'year' and 'month':
+
+        >>> df.set_index(['year', 'month'])
+                    sale
+        year  month
+        2012  1     55
+        2014  4     40
+        2013  7     84
+        2014  10    31
+
+        Create a multi-index using a set of values and a column:
+
+        >>> df.set_index([[1, 2, 3, 4], 'year'])
+                 month  sale
+           year
+        1  2012  1      55
+        2  2014  4      40
+        3  2013  7      84
+        4  2014  10     31
 
         Returns
         -------
@@ -3852,12 +3858,12 @@ it is assumed to be aliases for the column names.')
 
                 if overwrite:
                     mask = isnull(that)
-
-                    # don't overwrite columns unecessarily
-                    if mask.all():
-                        continue
                 else:
                     mask = notnull(this)
+
+            # don't overwrite columns unecessarily
+            if mask.all():
+                continue
 
             self[col] = expressions.where(mask, this, that,
                                           raise_on_error=True)
@@ -4812,12 +4818,13 @@ it is assumed to be aliases for the column names.')
     @Appender(_merge_doc, indents=2)
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=False,
-              suffixes=('_x', '_y'), copy=True, indicator=False):
+              suffixes=('_x', '_y'), copy=True, indicator=False,
+              validate=None):
         from pandas.core.reshape.merge import merge
         return merge(self, right, how=how, on=on, left_on=left_on,
                      right_on=right_on, left_index=left_index,
                      right_index=right_index, sort=sort, suffixes=suffixes,
-                     copy=copy, indicator=indicator)
+                     copy=copy, indicator=indicator, validate=validate)
 
     def round(self, decimals=0, *args, **kwargs):
         """

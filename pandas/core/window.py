@@ -1074,7 +1074,7 @@ class Rolling(_Rolling_and_Expanding):
         super(Rolling, self).validate()
 
         # we allow rolling on a datetimelike index
-        if (self.is_datetimelike and
+        if ((self.obj.empty or self.is_datetimelike) and
                 isinstance(self.window, (compat.string_types, DateOffset,
                                          timedelta))):
 

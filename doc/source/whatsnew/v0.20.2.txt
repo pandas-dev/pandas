@@ -20,6 +20,7 @@ Enhancements
 ~~~~~~~~~~~~
 
 - Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`)
+- ``Series`` provides a ``to_latex`` method (:issue:`16180`)
 
 .. _whatsnew_0202.performance:
 
@@ -27,8 +28,9 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Performance regression fix when indexing with a list-like (:issue:`16285`)
-- Performance regression fix for small MultiIndexes (:issuse:`16319`)
+- Performance regression fix for MultiIndexes (:issue:`16319`, :issue:`16346`)
 - Improved performance of ``.clip()`` with scalar arguments (:issue:`15400`)
+- Improved performance of groupby with categorical groupers (:issue:`16413`)
 
 .. _whatsnew_0202.bug_fixes:
 
@@ -36,11 +38,18 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
+- Bug in ``DataFrame.update()`` with ``overwrite=False`` and ``NaN values`` (:issue:`15593`)
+
+
+
+- Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on Categoricals (:issue:`16409`)
+
 
 Conversion
 ^^^^^^^^^^
 
 - Bug in ``pd.to_numeric()`` in which empty data inputs were causing Python to crash (:issue:`16302`)
+- Silence numpy warnings when broadcasting DataFrame to Series with comparison ops (:issue:`16378`, :issue:`16306`)
 
 
 Indexing
@@ -52,13 +61,17 @@ Indexing
 I/O
 ^^^
 
+- Bug in pd.read_csv() when comment is passed in space deliminted text files (:issue:`16472`)
 - Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)
+- Bug that raised IndexError HTML-rendering an empty DataFrame (:issue:`15953`)
 
 
 Plotting
 ^^^^^^^^
 
 - Bug in ``DataFrame.plot`` with a single column and a list-like ``color`` (:issue:`3486`)
+- Bug in ``plot`` where ``NaT`` in ``DatetimeIndex`` results in ``Timestamp.min`` (:issue: `12405`)
+- Bug in ``DataFrame.boxplot`` where ``figsize`` keyword was not respected for non-grouped boxplots (:issue:`11959`)
 
 
 
@@ -66,7 +79,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-
+- Bug creating datetime rolling window on an empty DataFrame (:issue:`15819`)
 
 
 Sparse
@@ -78,13 +91,21 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in ``DataFrame.stack`` with unsorted levels in MultiIndex columns (:issue:`16323`)
+- Bug in ``pd.wide_to_long()`` where no error was raised when ``i`` was not a unique identifier (:issue:`16382`)
+- Bug in ``Series.isin(..)`` with a list of tuples (:issue:`16394`)
+- Bug in construction of a ``DataFrame`` with mixed dtypes including an all-NaT column. (:issue:`16395`)
 
 
 Numeric
 ^^^^^^^
+- Bug in .interpolate(), where limit_direction was not respected when limit=None (default) was passed (:issue:16282)
 
+Categorical
+^^^^^^^^^^^
 
-
+- Fixed comparison operations considering the order of the categories when both categoricals are unordered (:issue:`16014`)
 
 Other
 ^^^^^
+
+- Bug in ``pd.drop([])`` for DataFrame with non-unique indices (:issue:`16270`)

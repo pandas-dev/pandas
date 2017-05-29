@@ -153,8 +153,8 @@ class TestNth(MixIn):
         expected = s.groupby(g).first()
         expected2 = s.groupby(g).apply(lambda x: x.iloc[0])
         assert_series_equal(expected2, expected, check_names=False)
-        assert expected.name, 0
         assert expected.name == 1
+        assert expected2.name == 1
 
         # validate first
         v = s[g == 1].iloc[0]
