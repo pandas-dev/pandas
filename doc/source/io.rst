@@ -3514,6 +3514,26 @@ everything in the sub-store and BELOW, so be *careful*.
 
 .. _io.hdf5-types:
 
+
+.. warning:: Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under root node.
+
+    .. ipython:: python
+    
+       store.foo.bar.bah
+       AttributeError: 'HDFStore' object has no attribute 'foo'
+
+       store.root.foo.bar.bah
+       /foo/bar/bah (Group) ''
+       children := ['block0_items' (Array), 'axis1' (Array), 'axis0' (Array), 'block0_values' (Array)]
+       
+    Use explicit string based keys
+    
+    .. ipython:: python
+    
+       bah = store['foo/bar/bah']
+       
+
+
 Storing Types
 '''''''''''''
 
