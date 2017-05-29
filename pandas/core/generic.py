@@ -2366,9 +2366,13 @@ it is assumed to be aliases for the column names.')
         1   A    1    1
         """
 
-    def sort_values(self, by, axis=0, ascending=True, inplace=False,
-                    kind='quicksort', na_position='last'):
-        raise AbstractMethodError(self)
+    def sort_values(self):
+        """
+        NOT IMPLEMENTED: do not call this method, as sorting values is not
+        supported for Panel objects and will raise an error.
+        """
+        raise NotImplementedError("sort_values has not been implemented "
+                                  "on Panel or Panel4D objects.")
 
     _shared_docs['sort_index'] = """
         Sort object by labels (along an axis)
