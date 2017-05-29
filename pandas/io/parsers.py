@@ -1164,6 +1164,8 @@ class ParserBase(object):
         # validate header options for mi
         self.header = kwds.get('header')
         if isinstance(self.header, (list, tuple, np.ndarray)):
+            if not all(map(is_integer, self.header)):
+                raise ValueError("header must be integer or list of integers")
             if kwds.get('as_recarray'):
                 raise ValueError("cannot specify as_recarray when "
                                  "specifying a multi-index header")
@@ -1183,6 +1185,10 @@ class ParserBase(object):
                         is_integer(self.index_col)):
                     raise ValueError("index_col must only contain row numbers "
                                      "when specifying a multi-index header")
+
+        # GH 16338
+        elif self.header is not None and not is_integer(self.header):
+            raise ValueError("header must be integer or list of integers")
 
         self._name_processed = False
 

@@ -1802,22 +1802,24 @@ def makePeriodFrame(nper=None):
 
 
 def makePanel(nper=None):
-    cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-    data = dict((c, makeTimeDataFrame(nper)) for c in cols)
-    return Panel.fromDict(data)
+    with warnings.catch_warnings(record=True):
+        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
+        data = dict((c, makeTimeDataFrame(nper)) for c in cols)
+        return Panel.fromDict(data)
 
 
 def makePeriodPanel(nper=None):
-    cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-    data = dict((c, makePeriodFrame(nper)) for c in cols)
-    return Panel.fromDict(data)
+    with warnings.catch_warnings(record=True):
+        cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
+        data = dict((c, makePeriodFrame(nper)) for c in cols)
+        return Panel.fromDict(data)
 
 
 def makePanel4D(nper=None):
     with warnings.catch_warnings(record=True):
         d = dict(l1=makePanel(nper), l2=makePanel(nper),
                  l3=makePanel(nper))
-    return Panel4D(d)
+        return Panel4D(d)
 
 
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
@@ -2422,15 +2424,8 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     Check that the specified Exception is raised and that the error message
     matches a given regular expression pattern. This may be a regular
     expression object or a string containing a regular expression suitable
-    for use by `re.search()`.
-
-    This is a port of the `assertRaisesRegexp` function from unittest in
-    Python 2.7. However, with our migration to `pytest`, please refrain
-    from using this. Instead, use the following paradigm:
-
-    with pytest.raises(_exception) as exc_info:
-       func(*args, **kwargs)
-    exc_info.matches(reg_exp)
+    for use by `re.search()`. This is a port of the `assertRaisesRegexp`
+    function from unittest in Python 2.7.
 
     Examples
     --------

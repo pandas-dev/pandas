@@ -256,12 +256,6 @@ class TestCategorical(object):
         assert len(cat.codes) == 1
         assert cat.codes[0] == 0
 
-        cat = pd.Categorical([1], categories=1)
-        assert len(cat.categories) == 1
-        assert cat.categories[0] == 1
-        assert len(cat.codes) == 1
-        assert cat.codes[0] == 0
-
         # Catch old style constructor useage: two arrays, codes + categories
         # We can only catch two cases:
         #  - when the first is an integer dtype and the second is not
@@ -284,6 +278,11 @@ class TestCategorical(object):
         with tm.assert_produces_warning(None):
             c = Categorical(np.array([], dtype='int64'),  # noqa
                             categories=[3, 2, 1], ordered=True)
+
+    def test_constructor_not_sequence(self):
+        # https://github.com/pandas-dev/pandas/issues/16022
+        with pytest.raises(TypeError):
+            Categorical(['a', 'b'], categories='a')
 
     def test_constructor_with_null(self):
 
@@ -736,6 +735,17 @@ Length: 60
 Categories (3, object): [ああああ, いいいいい, ううううううう]"""  # noqa
 
             assert _rep(c) == expected
+
+    def test_tab_complete_warning(self, ip):
+        # https://github.com/pandas-dev/pandas/issues/16409
+        pytest.importorskip('IPython', minversion="6.0.0")
+        from IPython.core.completer import provisionalcompleter
+
+        code = "import pandas as pd; c = pd.Categorical([])"
+        ip.run_code(code)
+        with tm.assert_produces_warning(None):
+            with provisionalcompleter('ignore'):
+                list(ip.Completer.completions('c.', 1))
 
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',
@@ -3821,6 +3831,43 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         pytest.raises(TypeError, lambda: b < a)
         pytest.raises(TypeError, lambda: a > b)
         pytest.raises(TypeError, lambda: b > a)
+
+    @pytest.mark.parametrize('ctor', [
+        lambda *args, **kwargs: Categorical(*args, **kwargs),
+        lambda *args, **kwargs: Series(Categorical(*args, **kwargs)),
+    ])
+    def test_unordered_different_order_equal(self, ctor):
+        # https://github.com/pandas-dev/pandas/issues/16014
+        c1 = ctor(['a', 'b'], categories=['a', 'b'], ordered=False)
+        c2 = ctor(['a', 'b'], categories=['b', 'a'], ordered=False)
+        assert (c1 == c2).all()
+
+        c1 = ctor(['a', 'b'], categories=['a', 'b'], ordered=False)
+        c2 = ctor(['b', 'a'], categories=['b', 'a'], ordered=False)
+        assert (c1 != c2).all()
+
+        c1 = ctor(['a', 'a'], categories=['a', 'b'], ordered=False)
+        c2 = ctor(['b', 'b'], categories=['b', 'a'], ordered=False)
+        assert (c1 != c2).all()
+
+        c1 = ctor(['a', 'a'], categories=['a', 'b'], ordered=False)
+        c2 = ctor(['a', 'b'], categories=['b', 'a'], ordered=False)
+        result = c1 == c2
+        tm.assert_numpy_array_equal(np.array(result), np.array([True, False]))
+
+    def test_unordered_different_categories_raises(self):
+        c1 = Categorical(['a', 'b'], categories=['a', 'b'], ordered=False)
+        c2 = Categorical(['a', 'c'], categories=['c', 'a'], ordered=False)
+        with tm.assert_raises_regex(TypeError,
+                                    "Categoricals can only be compared"):
+            c1 == c2
+
+    def test_compare_different_lengths(self):
+        c1 = Categorical([], categories=['a', 'b'])
+        c2 = Categorical([], categories=['a'])
+        msg = "Categories are different lengths"
+        with tm.assert_raises_regex(TypeError, msg):
+            c1 == c2
 
     def test_concat_append(self):
         cat = pd.Categorical(["a", "b"], categories=["a", "b"])

@@ -625,7 +625,7 @@ class ToDatetimeMisc(object):
     def test_to_datetime_default(self):
         rs = to_datetime('2001')
         xp = datetime(2001, 1, 1)
-        assert rs, xp
+        assert rs == xp
 
         # dayfirst is essentially broken
 

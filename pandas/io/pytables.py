@@ -309,9 +309,17 @@ def read_hdf(path_or_buf, key=None, **kwargs):
     if 'where' in kwargs:
         kwargs['where'] = _ensure_term(kwargs['where'], scope_level=1)
 
-    path_or_buf = _stringify_path(path_or_buf)
-    if isinstance(path_or_buf, string_types):
+    if isinstance(path_or_buf, HDFStore):
+        if not path_or_buf.is_open:
+            raise IOError('The HDFStore must be open for reading.')
 
+        store = path_or_buf
+        auto_close = False
+    else:
+        path_or_buf = _stringify_path(path_or_buf)
+        if not isinstance(path_or_buf, string_types):
+            raise NotImplementedError('Support for generic buffers has not '
+                                      'been implemented.')
         try:
             exists = os.path.exists(path_or_buf)
 
@@ -323,21 +331,10 @@ def read_hdf(path_or_buf, key=None, **kwargs):
             raise compat.FileNotFoundError(
                 'File %s does not exist' % path_or_buf)
 
+        store = HDFStore(path_or_buf, **kwargs)
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
-        store = HDFStore(path_or_buf, **kwargs)
         auto_close = True
-
-    elif isinstance(path_or_buf, HDFStore):
-        if not path_or_buf.is_open:
-            raise IOError('The HDFStore must be open for reading.')
-
-        store = path_or_buf
-        auto_close = False
-
-    else:
-        raise NotImplementedError('Support for generic buffers has not been '
-                                  'implemented.')
 
     try:
         if key is None:
@@ -440,7 +437,7 @@ class HDFStore(StringMixin):
                 "complib only supports {libs} compression.".format(
                     libs=tables.filters.all_complibs))
 
-        self._path = path
+        self._path = _stringify_path(path)
         if mode is None:
             mode = 'a'
         self._mode = mode
@@ -450,6 +447,9 @@ class HDFStore(StringMixin):
         self._fletcher32 = fletcher32
         self._filters = None
         self.open(mode=mode, **kwargs)
+
+    def __fspath__(self):
+        return self._path
 
     @property
     def root(self):
@@ -472,7 +472,6 @@ class HDFStore(StringMixin):
 
     def __getattr__(self, name):
         """ allow attribute access to get stores """
-        self._check_if_open()
         try:
             return self.get(name)
         except:
