@@ -569,6 +569,7 @@ Performance Improvements
 - Improved performance of ``to_numeric`` if input is numeric dtype (:issue:`12777`)
 - Improved performance of sparse arithmetic with ``IntIndex`` (:issue:`13036`)
 
+- Improved performance of ``DataFrame.to_sql`` when checking case sensitivity for tables. Now only checks if table has been created correctly when table name is not lower case. (:issue:`12876`)
 
 
 
