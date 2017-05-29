@@ -533,6 +533,10 @@ class TestIsin(object):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
+        result = algos.isin(pd.Series([1, 2]), set([1]))
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
         result = algos.isin(['a', 'b'], ['a'])
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -542,6 +546,10 @@ class TestIsin(object):
         tm.assert_numpy_array_equal(result, expected)
 
         result = algos.isin(Series(['a', 'b']), set(['a']))
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(pd.Series(['a', 'b']), set(['a']))
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
