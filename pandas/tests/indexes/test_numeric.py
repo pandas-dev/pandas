@@ -304,17 +304,17 @@ class TestFloat64Index(Numeric):
             i = Float64Index([0, 1.1, np.NAN])
             pytest.raises(ValueError, lambda: i.astype(dtype))
 
+    def test_type_coercion(self):
+
         # GH 15832
         for t in ['uint8', 'uint16', 'uint32', 'uint64', 'int32', 'int64',
                   'int16', 'int8']:
             with pytest.raises(ValueError):
                 Index([1, 2, 3.5], dtype=t)
 
-        try:
-            for t in ['float16', 'float32']:
-                Index([1, 2, 3.5], dtype=t)
-        except ValueError:
-            pytest.fail("GH 15832 should not raise for float type")
+        for t in ['float16', 'float32']:
+            i = Index([1, 2, 3.5], dtype=t)
+            assert i.equals(Index([1, 2, 3.5]))
 
     def test_equals_numeric(self):
 

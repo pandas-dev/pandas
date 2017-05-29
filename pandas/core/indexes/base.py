@@ -250,9 +250,9 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
 
                 except (TypeError, ValueError) as e:
                     msg = str(e)
-                    if 'cannot convert float' in msg:
-                        raise
-                    if 'Trying to coerce float values to integer' in msg:
+                    if 'cannot convert float' in msg or 'Trying to coerce ' \
+                                                        'float values to ' \
+                                                        'integer' in msg:
                         raise
 
             # maybe coerce to a sub-class

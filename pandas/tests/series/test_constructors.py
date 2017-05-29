@@ -297,30 +297,33 @@ class TestSeriesConstructors(TestData):
         tm.assert_series_equal(Series(np.array([np.nan, pd.NaT])), exp)
 
     def test_constructor_cast(self):
-        pytest.raises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
+        msg = "could not convert string to float"
+        with tm.assert_raises_regex(ValueError, msg):
+            Series(['a', 'b', 'c'], dtype=float)
 
+    @pytest.mark.parametrize("unsigned_integers", ['uint8', 'uint16', 'uint32',
+                                                   'uint64'])
+    def test_constructor_unsigned_dtype_overflow(self, unsigned_integers):
         # GH 15832
-        for t in ['uint8', 'uint16', 'uint32', 'uint64']:
-            with pytest.raises(OverflowError):
-                Series([-1], dtype=t)
+        with pytest.raises(OverflowError):
+            Series([-1], dtype=unsigned_integers)
 
+    @pytest.mark.parametrize("integers", ['uint8', 'uint16', 'uint32',
+                                          'uint64', 'int32', 'int64', 'int16',
+                                          'int8'])
+    @pytest.mark.parametrize("floats", ['float16', 'float32'])
+    def test_constructor_coerce_float_fail(self, integers, floats):
         # GH 15832
-        for t in ['uint8', 'uint16', 'uint32', 'uint64', 'int32', 'int64',
-                  'int16', 'int8']:
-            with pytest.raises(ValueError):
-                Series([1, 2, 3.5], dtype=t)
+        with pytest.raises(ValueError):
+            Series([1, 2, 3.5], dtype=integers)
 
-        try:
-            for t in ['float16', 'float32']:
-                Series([1, 2, 3.5], dtype=t)
-        except ValueError:
-            pytest.fail("GH 15832 should not raise for float type")
+        s = Series([1, 2, 3.5], dtype=floats)
+        expected = Series([1, 2, 3.5]).astype(floats)
+        assert_series_equal(s, expected)
 
     def test_constructor_dtype_nocast(self):
         # 1572
         s = Series([1, 2, 3])
-        s = Series([1, 2, 3])
-
         s2 = Series(s, dtype=np.int64)
 
         s2[1] = 5

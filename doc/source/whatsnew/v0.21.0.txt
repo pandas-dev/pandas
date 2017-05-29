@@ -41,7 +41,7 @@ Backwards incompatible API changes
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
-
+- Series and Index constructors now raises when data is incompatible with dtype (:issue:`15832`)
 
 
 .. _whatsnew_0210.deprecations:

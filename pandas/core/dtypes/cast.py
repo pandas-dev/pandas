@@ -1050,10 +1050,25 @@ def maybe_cast_to_integer(arr, dtype):
     ValueError
         * If coercion from float to integer loses precision
 
+    Examples
+    --------
+    If you try to coerce negative values to unsigned integers, it raises:
+
+    >>> Series([-1], dtype='uint64')
+    Traceback (most recent call last):
+        ...
+    OverflowError: Trying to coerce negative values to unsigned integers
+
+    Also, if you try to coerce float values to integers, it raises:
+    >>> Series([1, 2, 3.5], dtype='int64')
+    Traceback (most recent call last):
+        ...
+    ValueError: Trying to coerce float values to integers
+
     """
 
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
-        raise OverflowError("Trying to coerce negative values to negative "
+        raise OverflowError("Trying to coerce negative values to unsigned "
                             "integers")
     elif is_integer_dtype(dtype) and (is_float_dtype(arr) or
                                       is_object_dtype(arr)):
