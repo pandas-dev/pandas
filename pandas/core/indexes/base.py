@@ -1191,6 +1191,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         return if the index is monotonic increasing (only equal or
         increasing) values.
+
+        Examples
+        --------
+        >>> Index([1, 2, 3]).is_monotonic_increasing
+        True
+        >>> Index([1, 2, 2]).is_monotonic_increasing
+        True
+        >>> Index([1, 3, 2]).is_monotonic_increasing
+        False
         """
         return self._engine.is_monotonic_increasing
 
@@ -1199,8 +1208,49 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         return if the index is monotonic decreasing (only equal or
         decreasing) values.
+
+        Examples
+        --------
+        >>> Index([3, 2, 1]).is_monotonic_decreasing
+        True
+        >>> Index([3, 2, 2]).is_monotonic_decreasing
+        True
+        >>> Index([3, 1, 2]).is_monotonic_decreasing
+        False
         """
         return self._engine.is_monotonic_decreasing
+
+    @property
+    def is_strictly_monotonic_increasing(self):
+        """return if the index is strictly monotonic increasing
+        (only increasing) values
+
+        Examples
+        --------
+        >>> Index([1, 2, 3]).is_strictly_monotonic_increasing
+        True
+        >>> Index([1, 2, 2]).is_strictly_monotonic_increasing
+        False
+        >>> Index([1, 3, 2]).is_strictly_monotonic_increasing
+        False
+        """
+        return self.is_unique and self.is_monotonic_increasing
+
+    @property
+    def is_strictly_monotonic_decreasing(self):
+        """return if the index is strictly monotonic decreasing
+        (only decreasing) values
+
+        Examples
+        --------
+        >>> Index([3, 2, 1]).is_strictly_monotonic_decreasing
+        True
+        >>> Index([3, 2, 2]).is_strictly_monotonic_decreasing
+        False
+        >>> Index([3, 1, 2]).is_strictly_monotonic_decreasing
+        False
+        """
+        return self.is_unique and self.is_monotonic_decreasing
 
     def is_lexsorted_for_tuple(self, tup):
         return True
