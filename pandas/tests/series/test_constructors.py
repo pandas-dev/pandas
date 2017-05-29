@@ -305,7 +305,8 @@ class TestSeriesConstructors(TestData):
                                                    'uint64'])
     def test_constructor_unsigned_dtype_overflow(self, unsigned_integers):
         # GH 15832
-        with pytest.raises(OverflowError):
+        msg = 'Trying to coerce negative values to unsigned integers'
+        with tm.assert_raises_regex(OverflowError, msg):
             Series([-1], dtype=unsigned_integers)
 
     @pytest.mark.parametrize("integers", ['uint8', 'uint16', 'uint32',
@@ -314,7 +315,8 @@ class TestSeriesConstructors(TestData):
     @pytest.mark.parametrize("floats", ['float16', 'float32'])
     def test_constructor_coerce_float_fail(self, integers, floats):
         # GH 15832
-        with pytest.raises(ValueError):
+        msg = 'Trying to coerce float values to integers'
+        with tm.assert_raises_regex(ValueError, msg):
             Series([1, 2, 3.5], dtype=integers)
 
         s = Series([1, 2, 3.5], dtype=floats)
