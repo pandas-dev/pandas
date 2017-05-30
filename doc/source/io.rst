@@ -227,7 +227,7 @@ na_values : scalar, str, list-like, or dict, default ``None``
   Additional strings to recognize as NA/NaN. If dict passed, specific per-column
   NA values. By default the following values are interpreted as NaN:
   ``'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'NA',
-  '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''``.
+  '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', ''``.
 keep_default_na : boolean, default ``True``
   If na_values are specified and keep_default_na is ``False`` the default NaN
   values are overridden, otherwise they're appended to.
