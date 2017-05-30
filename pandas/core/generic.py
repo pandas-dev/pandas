@@ -2366,7 +2366,8 @@ it is assumed to be aliases for the column names.')
         1   A    1    1
         """
 
-    def sort_values(self):
+    def sort_values(self, by=None, axis=0, ascending=True, inplace=False,
+                    kind='quicksort', na_position='last'):
         """
         NOT IMPLEMENTED: do not call this method, as sorting values is not
         supported for Panel objects and will raise an error.
