@@ -81,6 +81,7 @@ class _Window(PandasObject, SelectionMixin):
         self.freq = freq
         self.center = center
         self.win_type = win_type
+        self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
 
@@ -996,7 +997,12 @@ class _Rolling_and_Expanding(_Rolling):
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
-        window = self._get_window(other)
+
+        # GH 16058: offset window
+        if self.is_freq_type:
+            window = self.win_freq
+        else:
+            window = self._get_window(other)
 
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
@@ -1088,6 +1094,7 @@ class Rolling(_Rolling_and_Expanding):
                                           "based windows")
 
             # this will raise ValueError on non-fixed freqs
+            self.win_freq = self.window
             self.window = freq.nanos
             self.win_type = 'freq'
 
