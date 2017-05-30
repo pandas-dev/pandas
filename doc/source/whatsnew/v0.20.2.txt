@@ -44,8 +44,7 @@ Bug Fixes
 - Bug in ``DataFrame.update()`` with ``overwrite=False`` and ``NaN values`` (:issue:`15593`)
 - Passing an invalid engine to :func:`read_csv` now raises an informative
   ``ValueError`` rather than ``UnboundLocalError``. (:issue:`16511`)
-
-
+- Bug in :func:`pd.unique` on an array of tuples (:issue:`16519`)
 
 
 - Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on Categoricals (:issue:`16409`)

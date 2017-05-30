@@ -163,7 +163,7 @@ def _ensure_arraylike(values):
                                ABCIndexClass, ABCSeries)):
         inferred = lib.infer_dtype(values)
         if inferred in ['mixed', 'string', 'unicode']:
-            values = np.asarray(values, dtype=object)
+            values = lib.list_to_object_array(values)
         else:
             values = np.asarray(values)
     return values
