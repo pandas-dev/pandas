@@ -940,7 +940,7 @@ class TestPanel4d(CheckIndexing, SafeForSparse,
     def test_get_attr(self):
         tm.assert_panel_equal(self.panel4d['l1'], self.panel4d.l1)
 
-
+    # GH issue 15960
     def test_sort_values(self):
         pytest.raises(NotImplementedError, self.panel4d.sort_values)
         pytest.raises(NotImplementedError, self.panel4d.sort_values, 'ItemA')

@@ -2429,6 +2429,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         pytest.raises(NotImplementedError, self.panel.all, bool_only=True)
         pytest.raises(NotImplementedError, self.panel.any, bool_only=True)
 
+    # GH issue 15960
     def test_sort_values(self):
         pytest.raises(NotImplementedError, self.panel.sort_values)
         pytest.raises(NotImplementedError, self.panel.sort_values, 'ItemA')
