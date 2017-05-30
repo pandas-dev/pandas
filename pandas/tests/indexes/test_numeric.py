@@ -304,19 +304,19 @@ class TestFloat64Index(Numeric):
             i = Float64Index([0, 1.1, np.NAN])
             pytest.raises(ValueError, lambda: i.astype(dtype))
 
-    @pytest.mark.parametrize("integers", ['uint8', 'uint16', 'uint32',
+    @pytest.mark.parametrize("int_dtype", ['uint8', 'uint16', 'uint32',
                                           'uint64', 'int32', 'int64', 'int16',
                                           'int8'])
-    @pytest.mark.parametrize("floats", ['float16', 'float32'])
-    def test_type_coercion(self, integers, floats):
+    @pytest.mark.parametrize("float_dtype", ['float16', 'float32'])
+    def test_type_coercion(self, int_dtype, float_dtype):
 
         # GH 15832
         msg = 'Trying to coerce float values to integers'
         with tm.assert_raises_regex(ValueError, msg):
-            Index([1, 2, 3.5], dtype=integers)
+            Index([1, 2, 3.5], dtype=int_dtype)
 
-        i = Index([1, 2, 3.5], dtype=floats)
-        assert i.equals(Index([1, 2, 3.5]))
+        i = Index([1, 2, 3.5], dtype=float_dtype)
+        tm.assert_index_equal(i, Index([1, 2, 3.5]))
 
     def test_equals_numeric(self):
 
