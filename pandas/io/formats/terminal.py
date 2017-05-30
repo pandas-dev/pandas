@@ -14,6 +14,8 @@ on linux, os x, windows and cygwin (windows).
 from __future__ import print_function
 
 import os
+import sys
+import shutil
 
 __all__ = ['get_terminal_size']
 
@@ -26,6 +28,10 @@ def get_terminal_size():
     IPython zmq frontends, or IDLE do not run in a terminal,
     """
     import platform
+
+    if sys.version_info[0] >= 3:
+        return shutil.get_terminal_size()
+
     current_os = platform.system()
     tuple_xy = None
     if current_os == 'Windows':
