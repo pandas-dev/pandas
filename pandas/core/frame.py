@@ -247,9 +247,17 @@ class DataFrame(NDFrame):
 
     Examples
     --------
+    From a dictionary of arrays:
+    
     >>> d = {'col1': ts1, 'col2': ts2}
-    >>> df = DataFrame(data=d, index=index)
+    >>> df = DataFrame(data=d)
+    
+    From a 2-D numpy array:
+    
     >>> df2 = DataFrame(np.random.randn(10, 5))
+    
+    Same, but setting the column names:
+    
     >>> df3 = DataFrame(np.random.randn(10, 5),
     ...                 columns=['a', 'b', 'c', 'd', 'e'])
 
