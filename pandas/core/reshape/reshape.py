@@ -1102,6 +1102,9 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         first level.
 
         .. versionadded:: 0.18.0
+    drop_idx : bool, int, default False
+        If `drop_idx` is bool, whether to get k-1 dummies out of k categorical levels by removing the
+        first level if boolean given. Instead, if `drop_idx` is an interger then remove the corresponding index.
     Returns
     -------
     dummies : DataFrame or SparseDataFrame
@@ -1242,7 +1245,7 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         levels = np.append(levels, np.nan)
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
-    if drop_first and len(levels) == 1:
+    if drop_first is not False and len(levels) == 1:
         return get_empty_Frame(data, sparse)
 
     number_of_cols = len(levels)
@@ -1267,11 +1270,14 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
                 continue
             sp_indices[code].append(ndx)
 
-        if drop_first:
+        if (drop_first==True) & (type(drop_first)!=int) :
             # remove first categorical level to avoid perfect collinearity
             # GH12042
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
+        elif (type(drop_first)==int) & (drop_first>0) & (drop_first<len(dummy_cols)) :
+            del sp_indices[drop_first]
+            del dummy_cols[drop_first]
         for col, ixs in zip(dummy_cols, sp_indices):
             sarr = SparseArray(np.ones(len(ixs), dtype=np.uint8),
                                sparse_index=IntIndex(N, ixs), fill_value=0,
@@ -1290,10 +1296,19 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
             # reset NaN GH4446
             dummy_mat[codes == -1] = 0
 
-        if drop_first:
-            # remove first GH12042
+        if (drop_first==True) & (type(drop_first)!=int) :
+            # remove first categorical level to avoid perfect collinearity
+            # GH12042
             dummy_mat = dummy_mat[:, 1:]
             dummy_cols = dummy_cols[1:]
+        elif type(drop_first)==int :
+            if drop_first>=dummy_mat.shape[1] :
+                raise ValueError('value must be smaller than number of rows')
+            elif drop_first<0 :
+                raise ValueError('value must be greater or equal to zero')
+            else :
+                dummy_mat = np.concatenate((dummy_mat[:,:drop_first], dummy_mat[:,(drop_first+1):]),axis=1)
+                dummy_cols = dummy_cols.delete([drop_first])
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
