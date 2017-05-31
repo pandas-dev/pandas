@@ -74,7 +74,7 @@ matrix:
     # In allow_failures
     - os: linux
       env:
-        - JOB="3.5_DOC" DOC=true
+        - JOB="3.6_DOC" DOC=true
     allow_failures:
       - os: linux
         env:
@@ -87,7 +87,7 @@ matrix:
           - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
       - os: linux
         env:
-          - JOB="3.5_DOC" DOC=true
+          - JOB="3.6_DOC" DOC=true
 
 before_install:
   - echo "before_install"
