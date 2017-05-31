@@ -831,8 +831,8 @@ class HDFStore(StringMixin):
 
             # retrieve the objs, _where is always passed as a set of
             # coordinates here
-            objs = [t.read(where=_where, columns=columns, **kwargs)
-                    for t in tbls]
+            objs = [t.read(where=_where, columns=columns, start=_start,
+                           stop=_stop, **kwargs) for t in tbls]
 
             # concat and return
             return concat(objs, axis=axis,
@@ -1425,7 +1425,8 @@ class TableIterator(object):
 
         # if specified read via coordinates (necessary for multiple selections
         if coordinates:
-            where = self.s.read_coordinates(where=self.where)
+            where = self.s.read_coordinates(where=self.where, start=self.start,
+                                            stop=self.stop)
         else:
             where = self.where
 
