@@ -75,18 +75,18 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Examples
     --------
     >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, retbins=True)
-    ([(0.191, 3.367], (0.191, 3.367], (0.191, 3.367], (3.367, 6.533],
-      (6.533, 9.7], (0.191, 3.367]]
-    Categories (3, object): [(0.191, 3.367] < (3.367, 6.533] < (6.533, 9.7]],
-    array([ 0.1905    ,  3.36666667,  6.53333333,  9.7       ]))
+    ... # doctest: +ELLIPSIS
+    ([(0.19, 3.367], (0.19, 3.367], (0.19, 3.367], (3.367, 6.533], ...
+    Categories (3, interval[float64]): [(0.19, 3.367] < (3.367, 6.533] ...
 
-    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3,
-               labels=["good","medium","bad"])
+    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]),
+    ...        3, labels=["good", "medium", "bad"])
+    ... # doctest: +SKIP
     [good, good, good, medium, bad, good]
     Categories (3, object): [good < medium < bad]
 
     >>> pd.cut(np.ones(5), 4, labels=False)
-    array([1, 1, 1, 1, 1], dtype=int64)
+    array([1, 1, 1, 1, 1])
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
@@ -182,15 +182,17 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     Examples
     --------
     >>> pd.qcut(range(5), 4)
-    [[0, 1], [0, 1], (1, 2], (2, 3], (3, 4]]
-    Categories (4, object): [[0, 1] < (1, 2] < (2, 3] < (3, 4]]
+    ... # doctest: +ELLIPSIS
+    [(-0.001, 1.0], (-0.001, 1.0], (1.0, 2.0], (2.0, 3.0], (3.0, 4.0]]
+    Categories (4, interval[float64]): [(-0.001, 1.0] < (1.0, 2.0] ...
 
-    >>> pd.qcut(range(5), 3, labels=["good","medium","bad"])
+    >>> pd.qcut(range(5), 3, labels=["good", "medium", "bad"])
+    ... # doctest: +SKIP
     [good, good, medium, bad, bad]
     Categories (3, object): [good < medium < bad]
 
     >>> pd.qcut(range(5), 4, labels=False)
-    array([0, 0, 1, 2, 3], dtype=int64)
+    array([0, 0, 1, 2, 3])
     """
     x_is_series, series_index, name, x = _preprocess_for_cut(x)
 
