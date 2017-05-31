@@ -458,6 +458,8 @@ at the new values.
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
 .. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
+.. _missing_data.interp_limits:
+
 Interpolation Limits
 ^^^^^^^^^^^^^^^^^^^^
 

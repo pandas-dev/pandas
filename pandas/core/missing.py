@@ -152,15 +152,15 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     valid_limit_directions = ['forward', 'backward', 'both']
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
-        raise ValueError('Invalid limit_direction: expecting one of %r, got '
-                         '%r.' % (valid_limit_directions, limit_direction))
+        raise ValueError('Invalid limit_direction: expecting one of {}, got '
+                         '{}.'.format(valid_limit_directions, limit_direction))
 
     if limit_area is not None:
         valid_limit_areas = ['inside', 'outside']
         limit_area = limit_area.lower()
         if limit_area not in valid_limit_areas:
-            raise ValueError('Invalid limit_area: expecting one of %r, got %r.'
-                             % (valid_limit_areas, limit_area))
+            raise ValueError('Invalid limit_area: expecting one of {}, got '
+                             '{}.'.format(valid_limit_areas, limit_area))
 
     # default limit is unlimited GH #16282
     if limit is None:
