@@ -891,9 +891,9 @@ class LatexFormatter(TableFormatter):
                     lev3 = [blank] * clevels
                 if name:
                     lev3.append(lev.name)
-                lev3.append(fmt_lev3[i])
+                
+                lev3.extend(fmt_lev3[i])
                 strcols.insert(i, lev3)
-
         column_format = self.column_format
         if column_format is None:
             dtypes = self.frame.dtypes._values

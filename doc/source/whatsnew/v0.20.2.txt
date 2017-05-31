@@ -44,7 +44,8 @@ Bug Fixes
 - Bug in ``DataFrame.update()`` with ``overwrite=False`` and ``NaN values`` (:issue:`15593`)
 - Passing an invalid engine to :func:`read_csv` now raises an informative
   ``ValueError`` rather than ``UnboundLocalError``. (:issue:`16511`)
-
+- Fixed `DataFrame.to_latex(sparsify=True)`. Latex conversion of a `MultiIndex` was 
+  "blanking" repeated values inapproriately. Output now matches string output.
 
 
 
