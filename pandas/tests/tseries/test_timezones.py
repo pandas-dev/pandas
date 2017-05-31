@@ -1740,3 +1740,22 @@ class TestTslib(object):
                                   tslib.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, np.array(
             [tslib.iNaT], dtype=np.int64))
+
+
+if sys.platform == 'win32':
+    try:
+        import win32timezone
+        import pywintypes
+
+        class TestWin32TimeZone(tm.TestCase):
+
+            def test_win32_tz(self):
+                tz = win32timezone.TimeZoneInfo('Eastern Standard Time')
+                wt = pywintypes.TimeType(2008, 5, 12, 9, 50, tzinfo=tz)
+                tt = Timestamp(wt)
+                ut = tt.tz_convert('UTC')
+                expected = to_datetime('2008-05-12 13:50:00').tz_localize('UTC')
+                self.assertEqual(ut, expected)
+
+    except ImportError:
+        pass
