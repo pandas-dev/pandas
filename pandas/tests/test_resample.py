@@ -1670,6 +1670,28 @@ class TestDatetimeIndex(Base):
         result = df.groupby('group').resample('1D').ffill()
         assert result.val.dtype == np.int32
 
+    def test_resample_dtype_coerceion(self):
+
+        pytest.importorskip('scipy')
+
+        # GH 16361
+        df = {"a": [1, 3, 1, 4]}
+        df = pd.DataFrame(
+            df, index=pd.date_range("2017-01-01", "2017-01-04"))
+
+        expected = (df.astype("float64")
+                    .resample("H")
+                    .mean()
+                    ["a"]
+                    .interpolate("cubic")
+                    )
+
+        result = df.resample("H")["a"].mean().interpolate("cubic")
+        tm.assert_series_equal(result, expected)
+
+        result = df.resample("H").mean()["a"].interpolate("cubic")
+        tm.assert_series_equal(result, expected)
+
     def test_weekly_resample_buglet(self):
         # #1327
         rng = date_range('1/1/2000', freq='B', periods=20)
