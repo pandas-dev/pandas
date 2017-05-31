@@ -40,6 +40,7 @@ Bug Fixes
 - Silenced a warning on some Windows environments about "tput: terminal attributes: No such device or address" when
   detecting the terminal size. This fix only applies to python 3 (:issue:`16496`)
 - Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
+- Bug in ``Index.symmetric_difference()`` on two equal MultiIndex's, results in a TypeError (:issue `13490`)
 - Bug in ``DataFrame.update()`` with ``overwrite=False`` and ``NaN values`` (:issue:`15593`)
 - Passing an invalid engine to :func:`read_csv` now raises an informative
   ``ValueError`` rather than ``UnboundLocalError``. (:issue:`16511`)
