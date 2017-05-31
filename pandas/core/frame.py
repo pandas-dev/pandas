@@ -249,12 +249,12 @@ class DataFrame(NDFrame):
     --------
     Constructing DataFrame from a dictionary.
 
-    >>> d = {'col1': [1, 2], 'col2': [1, 2]}
+    >>> d = {'col1': [1, 2], 'col2': [3, 4]}
     >>> df = pd.DataFrame(data=d)
     >>> df
        col1  col2
-    0     1     1
-    1     2     2
+    0     1     3
+    1     2     4
 
     Notice that the inferred dtype is int64.
 
