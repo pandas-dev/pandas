@@ -50,26 +50,36 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     Examples
     --------
+    >>> df = pd.DataFrame({"A": ["foo", "foo", "foo", "foo", "foo",
+    ...                          "bar", "bar", "bar", "bar"],
+    ...                    "B": ["one", "one", "one", "two", "two",
+    ...                          "one", "one", "two", "two"],
+    ...                    "C": ["small", "large", "large", "small",
+    ...                          "small", "large", "small", "small",
+    ...                          "large"],
+    ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7]})
     >>> df
-       A   B   C      D
-    0  foo one small  1
-    1  foo one large  2
-    2  foo one large  2
-    3  foo two small  3
-    4  foo two small  3
-    5  bar one large  4
-    6  bar one small  5
-    7  bar two small  6
-    8  bar two large  7
+         A    B      C  D
+    0  foo  one  small  1
+    1  foo  one  large  2
+    2  foo  one  large  2
+    3  foo  two  small  3
+    4  foo  two  small  3
+    5  bar  one  large  4
+    6  bar  one  small  5
+    7  bar  two  small  6
+    8  bar  two  large  7
 
     >>> table = pivot_table(df, values='D', index=['A', 'B'],
     ...                     columns=['C'], aggfunc=np.sum)
     >>> table
-              small  large
-    foo  one  1      4
-         two  6      NaN
-    bar  one  5      4
-         two  6      7
+    ... # doctest: +NORMALIZE_WHITESPACE
+    C        large  small
+    A   B
+    bar one    4.0    5.0
+        two    7.0    6.0
+    foo one    4.0    1.0
+        two    NaN    6.0
 
     Returns
     -------
@@ -445,27 +455,27 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
     Examples
     --------
-    >>> a
-    array([foo, foo, foo, foo, bar, bar,
-           bar, bar, foo, foo, foo], dtype=object)
-    >>> b
-    array([one, one, one, two, one, one,
-           one, two, two, two, one], dtype=object)
-    >>> c
-    array([dull, dull, shiny, dull, dull, shiny,
-           shiny, dull, shiny, shiny, shiny], dtype=object)
+    >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
+    ...               "bar", "bar", "foo", "foo", "foo"], dtype=object)
+    >>> b = np.array(["one", "one", "one", "two", "one", "one",
+    ...               "one", "two", "two", "two", "one"], dtype=object)
+    >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
+    ...               "shiny", "dull", "shiny", "shiny", "shiny"],
+    ...               dtype=object)
 
-    >>> crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
-    b    one          two
-    c    dull  shiny  dull  shiny
+    >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    ... # doctest: +NORMALIZE_WHITESPACE
+    b   one        two
+    c   dull shiny dull shiny
     a
-    bar  1     2      1     0
-    foo  2     2      1     2
+    bar    1     2    1     0
+    foo    2     2    1     2
 
     >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     >>> crosstab(foo, bar)  # 'c' and 'f' are not represented in the data,
-                            # but they still will be counted in the output
+    ...                     # but they still will be counted in the output
+    ... # doctest: +SKIP
     col_0  d  e  f
     row_0
     a      1  0  0
