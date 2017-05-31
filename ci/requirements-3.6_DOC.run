@@ -12,7 +12,7 @@ lxml
 beautifulsoup4
 html5lib
 pytables
-openpyxl=1.8.5
+openpyxl
 xlrd
 xlwt
 xlsxwriter
