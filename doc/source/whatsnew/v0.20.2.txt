@@ -51,6 +51,7 @@ I/O
 
 - Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)
 
+- Bug in ``HDFStore.select_as_multiple()`` where start/stop arguments were not respected (:issue:`16209`)
 
 Plotting
 ^^^^^^^^

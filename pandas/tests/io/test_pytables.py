@@ -4188,6 +4188,7 @@ class TestHDFStore(Base):
 
     def test_start_stop_multiple(self):
 
+        # GH 16209
         with ensure_clean_store(self.path) as store:
 
             df = DataFrame({"foo": [1, 2], "bar": [1, 2]})
@@ -4197,7 +4198,7 @@ class TestHDFStore(Base):
             result = store.select_as_multiple(['selector', 'data'],
                                               selector='selector', start=0,
                                               stop=1)
-            expected = df[['foo', 'bar']].iloc[[0]]
+            expected = df.loc[[0], ['foo', 'bar']]
             tm.assert_frame_equal(result, expected)
 
     def test_start_stop_fixed(self):
