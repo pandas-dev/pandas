@@ -2,6 +2,7 @@ import pytest
 
 import numpy
 import pandas
+import pandas.util.testing as tm
 
 
 def pytest_addoption(parser):
@@ -24,9 +25,33 @@ def pytest_runtest_setup(item):
         pytest.skip("skipping due to --skip-network")
 
 
+# Configurations for all tests and all test modules
+
+@pytest.fixture(autouse=True)
+def configure_tests():
+    pandas.set_option('chained_assignment', 'raise')
+
+
 # For running doctests: make np and pd names available
 
 @pytest.fixture(autouse=True)
 def add_imports(doctest_namespace):
     doctest_namespace['np'] = numpy
     doctest_namespace['pd'] = pandas
+
+
+@pytest.fixture(params=['bsr', 'coo', 'csc', 'csr', 'dia', 'dok', 'lil'])
+def spmatrix(request):
+    tm._skip_if_no_scipy()
+    from scipy import sparse
+    return getattr(sparse, request.param + '_matrix')
+
+
+@pytest.fixture
+def ip():
+    """An instance of IPython.InteractiveShell.
+    Will raise a skip if IPython is not installed.
+    """
+    pytest.importorskip('IPython', minversion="6.0.0")
+    from IPython.core.interactiveshell import InteractiveShell
+    return InteractiveShell()

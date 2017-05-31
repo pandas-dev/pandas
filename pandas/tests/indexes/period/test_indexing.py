@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import pytest
+
 import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
@@ -9,9 +11,9 @@ from pandas import (PeriodIndex, Series, DatetimeIndex,
                     period_range, Period, _np_version_under1p9)
 
 
-class TestGetItem(tm.TestCase):
+class TestGetItem(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_getitem(self):
@@ -20,43 +22,43 @@ class TestGetItem(tm.TestCase):
 
         for idx in [idx1]:
             result = idx[0]
-            self.assertEqual(result, pd.Period('2011-01-01', freq='D'))
+            assert result == pd.Period('2011-01-01', freq='D')
 
             result = idx[-1]
-            self.assertEqual(result, pd.Period('2011-01-31', freq='D'))
+            assert result == pd.Period('2011-01-31', freq='D')
 
             result = idx[0:5]
             expected = pd.period_range('2011-01-01', '2011-01-05', freq='D',
                                        name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
+            tm.assert_index_equal(result, expected)
+            assert result.freq == expected.freq
+            assert result.freq == 'D'
 
             result = idx[0:10:2]
             expected = pd.PeriodIndex(['2011-01-01', '2011-01-03',
                                        '2011-01-05',
                                        '2011-01-07', '2011-01-09'],
                                       freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
+            tm.assert_index_equal(result, expected)
+            assert result.freq == expected.freq
+            assert result.freq == 'D'
 
             result = idx[-20:-5:3]
             expected = pd.PeriodIndex(['2011-01-12', '2011-01-15',
                                        '2011-01-18',
                                        '2011-01-21', '2011-01-24'],
                                       freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
+            tm.assert_index_equal(result, expected)
+            assert result.freq == expected.freq
+            assert result.freq == 'D'
 
             result = idx[4::-1]
             expected = PeriodIndex(['2011-01-05', '2011-01-04', '2011-01-03',
                                     '2011-01-02', '2011-01-01'],
                                    freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
+            tm.assert_index_equal(result, expected)
+            assert result.freq == expected.freq
+            assert result.freq == 'D'
 
     def test_getitem_index(self):
         idx = period_range('2007-01', periods=10, freq='M', name='x')
@@ -76,35 +78,35 @@ class TestGetItem(tm.TestCase):
         rng = period_range('2007-01', periods=50, freq='M')
         ts = Series(np.random.randn(len(rng)), rng)
 
-        self.assertRaises(KeyError, ts.__getitem__, '2006')
+        pytest.raises(KeyError, ts.__getitem__, '2006')
 
         result = ts['2008']
-        self.assertTrue((result.index.year == 2008).all())
+        assert (result.index.year == 2008).all()
 
         result = ts['2008':'2009']
-        self.assertEqual(len(result), 24)
+        assert len(result) == 24
 
         result = ts['2008-1':'2009-12']
-        self.assertEqual(len(result), 24)
+        assert len(result) == 24
 
         result = ts['2008Q1':'2009Q4']
-        self.assertEqual(len(result), 24)
+        assert len(result) == 24
 
         result = ts[:'2009']
-        self.assertEqual(len(result), 36)
+        assert len(result) == 36
 
         result = ts['2009':]
-        self.assertEqual(len(result), 50 - 24)
+        assert len(result) == 50 - 24
 
         exp = result
         result = ts[24:]
         tm.assert_series_equal(exp, result)
 
         ts = ts[10:].append(ts[10:])
-        self.assertRaisesRegexp(KeyError,
-                                "left slice bound for non-unique "
-                                "label: '2008'",
-                                ts.__getitem__, slice('2008', '2009'))
+        tm.assert_raises_regex(KeyError,
+                               "left slice bound for non-unique "
+                               "label: '2008'",
+                               ts.__getitem__, slice('2008', '2009'))
 
     def test_getitem_datetime(self):
         rng = period_range(start='2012-01-01', periods=10, freq='W-MON')
@@ -118,16 +120,16 @@ class TestGetItem(tm.TestCase):
 
     def test_getitem_nat(self):
         idx = pd.PeriodIndex(['2011-01', 'NaT', '2011-02'], freq='M')
-        self.assertEqual(idx[0], pd.Period('2011-01', freq='M'))
-        self.assertIs(idx[1], tslib.NaT)
+        assert idx[0] == pd.Period('2011-01', freq='M')
+        assert idx[1] is tslib.NaT
 
         s = pd.Series([0, 1, 2], index=idx)
-        self.assertEqual(s[pd.NaT], 1)
+        assert s[pd.NaT] == 1
 
         s = pd.Series(idx, index=idx)
-        self.assertEqual(s[pd.Period('2011-01', freq='M')],
-                         pd.Period('2011-01', freq='M'))
-        self.assertIs(s[pd.NaT], tslib.NaT)
+        assert (s[pd.Period('2011-01', freq='M')] ==
+                pd.Period('2011-01', freq='M'))
+        assert s[pd.NaT] is tslib.NaT
 
     def test_getitem_list_periods(self):
         # GH 7710
@@ -148,13 +150,13 @@ class TestGetItem(tm.TestCase):
                       '2013/02/01 09:00']
             for v in values:
                 if _np_version_under1p9:
-                    with tm.assertRaises(ValueError):
+                    with pytest.raises(ValueError):
                         idx[v]
                 else:
                     # GH7116
                     # these show deprecations as we are trying
                     # to slice with non-integer indexers
-                    # with tm.assertRaises(IndexError):
+                    # with pytest.raises(IndexError):
                     #    idx[v]
                     continue
 
@@ -177,13 +179,13 @@ class TestGetItem(tm.TestCase):
             for v in values:
 
                 if _np_version_under1p9:
-                    with tm.assertRaises(ValueError):
+                    with pytest.raises(ValueError):
                         idx[v]
                 else:
                     # GH7116
                     # these show deprecations as we are trying
                     # to slice with non-integer indexers
-                    # with tm.assertRaises(IndexError):
+                    # with pytest.raises(IndexError):
                     #    idx[v]
                     continue
 
@@ -194,21 +196,21 @@ class TestGetItem(tm.TestCase):
 
             invalid = ['2013/02/01 9H', '2013/02/01 09:00']
             for v in invalid:
-                with tm.assertRaises(KeyError):
+                with pytest.raises(KeyError):
                     s[v]
 
 
-class TestIndexing(tm.TestCase):
+class TestIndexing(object):
 
     def test_get_loc_msg(self):
         idx = period_range('2000-1-1', freq='A', periods=10)
         bad_period = Period('2012', 'A')
-        self.assertRaises(KeyError, idx.get_loc, bad_period)
+        pytest.raises(KeyError, idx.get_loc, bad_period)
 
         try:
             idx.get_loc(bad_period)
         except KeyError as inst:
-            self.assertEqual(inst.args[0], bad_period)
+            assert inst.args[0] == bad_period
 
     def test_get_loc_nat(self):
         didx = DatetimeIndex(['2011-01-01', 'NaT', '2011-01-03'])
@@ -216,10 +218,10 @@ class TestIndexing(tm.TestCase):
 
         # check DatetimeIndex compat
         for idx in [didx, pidx]:
-            self.assertEqual(idx.get_loc(pd.NaT), 1)
-            self.assertEqual(idx.get_loc(None), 1)
-            self.assertEqual(idx.get_loc(float('nan')), 1)
-            self.assertEqual(idx.get_loc(np.nan), 1)
+            assert idx.get_loc(pd.NaT) == 1
+            assert idx.get_loc(None) == 1
+            assert idx.get_loc(float('nan')) == 1
+            assert idx.get_loc(np.nan) == 1
 
     def test_take(self):
         # GH 10295
@@ -228,46 +230,46 @@ class TestIndexing(tm.TestCase):
 
         for idx in [idx1]:
             result = idx.take([0])
-            self.assertEqual(result, pd.Period('2011-01-01', freq='D'))
+            assert result == pd.Period('2011-01-01', freq='D')
 
             result = idx.take([5])
-            self.assertEqual(result, pd.Period('2011-01-06', freq='D'))
+            assert result == pd.Period('2011-01-06', freq='D')
 
             result = idx.take([0, 1, 2])
             expected = pd.period_range('2011-01-01', '2011-01-03', freq='D',
                                        name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, 'D')
-            self.assertEqual(result.freq, expected.freq)
+            tm.assert_index_equal(result, expected)
+            assert result.freq == 'D'
+            assert result.freq == expected.freq
 
             result = idx.take([0, 2, 4])
             expected = pd.PeriodIndex(['2011-01-01', '2011-01-03',
                                        '2011-01-05'], freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
+            tm.assert_index_equal(result, expected)
+            assert result.freq == expected.freq
+            assert result.freq == 'D'
 
             result = idx.take([7, 4, 1])
             expected = pd.PeriodIndex(['2011-01-08', '2011-01-05',
                                        '2011-01-02'],
                                       freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
+            tm.assert_index_equal(result, expected)
+            assert result.freq == expected.freq
+            assert result.freq == 'D'
 
             result = idx.take([3, 2, 5])
             expected = PeriodIndex(['2011-01-04', '2011-01-03', '2011-01-06'],
                                    freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
+            tm.assert_index_equal(result, expected)
+            assert result.freq == expected.freq
+            assert result.freq == 'D'
 
             result = idx.take([-3, 2, 5])
             expected = PeriodIndex(['2011-01-29', '2011-01-03', '2011-01-06'],
                                    freq='D', name='idx')
-            self.assert_index_equal(result, expected)
-            self.assertEqual(result.freq, expected.freq)
-            self.assertEqual(result.freq, 'D')
+            tm.assert_index_equal(result, expected)
+            assert result.freq == expected.freq
+            assert result.freq == 'D'
 
     def test_take_misc(self):
         index = PeriodIndex(start='1/1/10', end='12/31/12', freq='D',
@@ -281,9 +283,9 @@ class TestIndexing(tm.TestCase):
 
         for taken in [taken1, taken2]:
             tm.assert_index_equal(taken, expected)
-            tm.assertIsInstance(taken, PeriodIndex)
-            self.assertEqual(taken.freq, index.freq)
-            self.assertEqual(taken.name, expected.name)
+            assert isinstance(taken, PeriodIndex)
+            assert taken.freq == index.freq
+            assert taken.name == expected.name
 
     def test_take_fill_value(self):
         # GH 12631
@@ -309,10 +311,10 @@ class TestIndexing(tm.TestCase):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))

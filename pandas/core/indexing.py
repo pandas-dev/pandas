@@ -4,17 +4,18 @@ import warnings
 import numpy as np
 from pandas.compat import range, zip
 import pandas.compat as compat
-from pandas.types.generic import ABCDataFrame, ABCPanel, ABCSeries
-from pandas.types.common import (is_integer_dtype,
-                                 is_integer, is_float,
-                                 is_list_like,
-                                 is_sequence,
-                                 is_iterator,
-                                 is_scalar,
-                                 is_sparse,
-                                 _is_unorderable_exception,
-                                 _ensure_platform_int)
-from pandas.types.missing import isnull, _infer_fill_value
+from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_integer, is_float,
+    is_list_like,
+    is_sequence,
+    is_iterator,
+    is_scalar,
+    is_sparse,
+    _is_unorderable_exception,
+    _ensure_platform_int)
+from pandas.core.dtypes.missing import isnull, _infer_fill_value
 
 from pandas.core.index import Index, MultiIndex
 
@@ -1087,10 +1088,10 @@ class _NDFrameIndexer(object):
             return self.obj.take(inds, axis=axis, convert=False)
         else:
             # Have the index compute an indexer or return None
-            # if it cannot handle
+            # if it cannot handle; we only act on all found values
             indexer, keyarr = labels._convert_listlike_indexer(
                 key, kind=self.name)
-            if indexer is not None:
+            if indexer is not None and (indexer != -1).all():
                 return self.obj.take(indexer, axis=axis)
 
             # existing labels are unique and indexer are unique
@@ -1140,7 +1141,7 @@ class _NDFrameIndexer(object):
         ix[['foo', 'bar', 'baz']] -> [i, j, k] (indices of foo, bar, baz)
 
         Going by Zen of Python?
-        "In the face of ambiguity, refuse the temptation to guess."
+        'In the face of ambiguity, refuse the temptation to guess.'
         raise AmbiguousIndexError with integer labels?
         - No, prefer label-based indexing
         """
@@ -1429,7 +1430,7 @@ class _LocIndexer(_LocationIndexer):
 
             try:
                 key = self._convert_scalar_indexer(key, axis)
-                if key not in ax:
+                if not ax.contains(key):
                     error()
             except TypeError as e:
 
@@ -1697,26 +1698,24 @@ class _iLocIndexer(_LocationIndexer):
         else:
             return self.obj.take(slice_obj, axis=axis, convert=False)
 
-    def _get_list_axis(self, key_list, axis=0):
+    def _get_list_axis(self, key, axis=0):
         """
         Return Series values by list or array of integers
 
         Parameters
         ----------
-        key_list : list-like positional indexer
+        key : list-like positional indexer
         axis : int (can only be zero)
 
         Returns
         -------
         Series object
         """
-
-        # validate list bounds
-        self._is_valid_list_like(key_list, axis)
-
-        # force an actual list
-        key_list = list(key_list)
-        return self.obj.take(key_list, axis=axis, convert=False)
+        try:
+            return self.obj.take(key, axis=axis, convert=False)
+        except IndexError:
+            # re-raise with different error message
+            raise IndexError("positional indexers are out-of-bounds")
 
     def _getitem_axis(self, key, axis=0):
 
@@ -1724,7 +1723,13 @@ class _iLocIndexer(_LocationIndexer):
             self._has_valid_type(key, axis)
             return self._get_slice_axis(key, axis=axis)
 
-        elif is_bool_indexer(key):
+        if isinstance(key, list):
+            try:
+                key = np.asarray(key)
+            except TypeError:  # pragma: no cover
+                pass
+
+        if is_bool_indexer(key):
             self._has_valid_type(key, axis)
             return self._getbool_axis(key, axis=axis)
 
@@ -1893,7 +1898,7 @@ def convert_to_index_sliceable(obj, key):
     elif isinstance(key, compat.string_types):
 
         # we are an actual column
-        if key in obj._data.items:
+        if obj._data.items.contains(key):
             return None
 
         # We might have a datetimelike string that we can translate to a

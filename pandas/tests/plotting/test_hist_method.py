@@ -2,6 +2,8 @@
 
 """ Test cases for .hist method """
 
+import pytest
+
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
 from pandas.util.testing import slow
@@ -9,15 +11,17 @@ from pandas.util.testing import slow
 import numpy as np
 from numpy.random import randn
 
-import pandas.tools.plotting as plotting
+from pandas.plotting._core import grouped_hist
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
-@tm.mplskip
+tm._skip_if_no_mpl()
+
+
 class TestSeriesPlots(TestPlotBase):
 
-    def setUp(self):
-        TestPlotBase.setUp(self)
+    def setup_method(self, method):
+        TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
         mpl.rcdefaults()
 
@@ -45,22 +49,22 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(self.ts.hist, figure=fig, ax=ax1)
         _check_plot_works(self.ts.hist, figure=fig, ax=ax2)
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.ts.hist(by=self.ts.index, figure=fig)
 
     @slow
     def test_hist_bins_legacy(self):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.hist(bins=2)[0][0]
-        self.assertEqual(len(ax.patches), 2)
+        assert len(ax.patches) == 2
 
     @slow
     def test_hist_layout(self):
         df = self.hist_df
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.height.hist(layout=(1, 1))
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.height.hist(layout=[1, 1])
 
     @slow
@@ -120,13 +124,13 @@ class TestSeriesPlots(TestPlotBase):
         y.hist()
         fig = gcf()
         axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
-        self.assertEqual(len(axes), 2)
+        assert len(axes) == 2
 
     @slow
     def test_hist_by_no_extra_plots(self):
         df = self.hist_df
         axes = df.height.hist(by=df.gender)  # noqa
-        self.assertEqual(len(self.plt.get_fignums()), 1)
+        assert len(self.plt.get_fignums()) == 1
 
     @slow
     def test_plot_fails_when_ax_differs_from_figure(self):
@@ -134,11 +138,10 @@ class TestSeriesPlots(TestPlotBase):
         fig1 = figure()
         fig2 = figure()
         ax1 = fig1.add_subplot(111)
-        with tm.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             self.ts.hist(ax=ax1, figure=fig2)
 
 
-@tm.mplskip
 class TestDataFramePlots(TestPlotBase):
 
     @slow
@@ -152,7 +155,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.hist, grid=False)
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
-        self.assertFalse(axes[1, 1].get_visible())
+        assert not axes[1, 1].get_visible()
 
         df = DataFrame(randn(100, 1))
         _check_plot_works(df.hist)
@@ -194,7 +197,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = ser.hist(normed=True, cumulative=True, bins=4)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
-        self.assertAlmostEqual(rects[-1].get_height(), 1.0)
+        tm.assert_almost_equal(rects[-1].get_height(), 1.0)
 
         tm.close()
         ax = ser.hist(log=True)
@@ -204,7 +207,7 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
 
         # propagate attr exception from matplotlib.Axes.hist
-        with tm.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             ser.hist(foo='bar')
 
     @slow
@@ -229,13 +232,13 @@ class TestDataFramePlots(TestPlotBase):
             self._check_axes_shape(axes, axes_num=3, layout=expected)
 
         # layout too small for all 4 plots
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.hist(layout=(1, 1))
 
         # invalid format for layout
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.hist(layout=(1,))
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.hist(layout=(-1, -1))
 
     @slow
@@ -249,7 +252,6 @@ class TestDataFramePlots(TestPlotBase):
             tm.close()
 
 
-@tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @slow
@@ -260,7 +262,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df['C'] = np.random.randint(0, 4, 500)
         df['D'] = ['X'] * 500
 
-        axes = plotting.grouped_hist(df.A, by=df.C)
+        axes = grouped_hist(df.A, by=df.C)
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
@@ -277,27 +279,26 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # make sure kwargs to hist are handled
         xf, yf = 20, 18
         xrot, yrot = 30, 40
-        axes = plotting.grouped_hist(df.A, by=df.C, normed=True,
-                                     cumulative=True, bins=4,
-                                     xlabelsize=xf, xrot=xrot,
-                                     ylabelsize=yf, yrot=yrot)
+        axes = grouped_hist(df.A, by=df.C, normed=True, cumulative=True,
+                            bins=4, xlabelsize=xf, xrot=xrot,
+                            ylabelsize=yf, yrot=yrot)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
             height = rects[-1].get_height()
-            self.assertAlmostEqual(height, 1.0)
+            tm.assert_almost_equal(height, 1.0)
         self._check_ticks_props(axes, xlabelsize=xf, xrot=xrot,
                                 ylabelsize=yf, yrot=yrot)
 
         tm.close()
-        axes = plotting.grouped_hist(df.A, by=df.C, log=True)
+        axes = grouped_hist(df.A, by=df.C, log=True)
         # scale of y must be 'log'
         self._check_ax_scales(axes, yaxis='log')
 
         tm.close()
         # propagate attr exception from matplotlib.Axes.hist
-        with tm.assertRaises(AttributeError):
-            plotting.grouped_hist(df.A, by=df.C, foo='bar')
+        with pytest.raises(AttributeError):
+            grouped_hist(df.A, by=df.C, foo='bar')
 
         with tm.assert_produces_warning(FutureWarning):
             df.hist(by='C', figsize='default')
@@ -313,19 +314,19 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                             'gender': gender_int})
         gb = df_int.groupby('gender')
         axes = gb.hist()
-        self.assertEqual(len(axes), 2)
-        self.assertEqual(len(self.plt.get_fignums()), 2)
+        assert len(axes) == 2
+        assert len(self.plt.get_fignums()) == 2
         tm.close()
 
     @slow
     def test_grouped_hist_layout(self):
         df = self.hist_df
-        self.assertRaises(ValueError, df.hist, column='weight', by=df.gender,
-                          layout=(1, 1))
-        self.assertRaises(ValueError, df.hist, column='height', by=df.category,
-                          layout=(1, 3))
-        self.assertRaises(ValueError, df.hist, column='height', by=df.category,
-                          layout=(-1, -1))
+        pytest.raises(ValueError, df.hist, column='weight', by=df.gender,
+                      layout=(1, 1))
+        pytest.raises(ValueError, df.hist, column='height', by=df.category,
+                      layout=(1, 3))
+        pytest.raises(ValueError, df.hist, column='height', by=df.category,
+                      layout=(-1, -1))
 
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.hist, column='height', by=df.gender,
@@ -374,14 +375,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         fig, axes = self.plt.subplots(2, 3)
         returned = df.hist(column=['height', 'weight', 'category'], ax=axes[0])
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[0])
-        self.assertIs(returned[0].figure, fig)
+        tm.assert_numpy_array_equal(returned, axes[0])
+        assert returned[0].figure is fig
         returned = df.hist(by='classroom', ax=axes[1])
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
-        self.assert_numpy_array_equal(returned, axes[1])
-        self.assertIs(returned[0].figure, fig)
+        tm.assert_numpy_array_equal(returned, axes[1])
+        assert returned[0].figure is fig
 
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             axes = df.hist(column='height', ax=axes)
@@ -393,12 +394,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         ax1, ax2 = df.hist(column='height', by=df.gender, sharex=True)
 
         # share x
-        self.assertTrue(ax1._shared_x_axes.joined(ax1, ax2))
-        self.assertTrue(ax2._shared_x_axes.joined(ax1, ax2))
+        assert ax1._shared_x_axes.joined(ax1, ax2)
+        assert ax2._shared_x_axes.joined(ax1, ax2)
 
         # don't share y
-        self.assertFalse(ax1._shared_y_axes.joined(ax1, ax2))
-        self.assertFalse(ax2._shared_y_axes.joined(ax1, ax2))
+        assert not ax1._shared_y_axes.joined(ax1, ax2)
+        assert not ax2._shared_y_axes.joined(ax1, ax2)
 
     @slow
     def test_axis_share_y(self):
@@ -406,12 +407,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         ax1, ax2 = df.hist(column='height', by=df.gender, sharey=True)
 
         # share y
-        self.assertTrue(ax1._shared_y_axes.joined(ax1, ax2))
-        self.assertTrue(ax2._shared_y_axes.joined(ax1, ax2))
+        assert ax1._shared_y_axes.joined(ax1, ax2)
+        assert ax2._shared_y_axes.joined(ax1, ax2)
 
         # don't share x
-        self.assertFalse(ax1._shared_x_axes.joined(ax1, ax2))
-        self.assertFalse(ax2._shared_x_axes.joined(ax1, ax2))
+        assert not ax1._shared_x_axes.joined(ax1, ax2)
+        assert not ax2._shared_x_axes.joined(ax1, ax2)
 
     @slow
     def test_axis_share_xy(self):
@@ -420,8 +421,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                            sharey=True)
 
         # share both x and y
-        self.assertTrue(ax1._shared_x_axes.joined(ax1, ax2))
-        self.assertTrue(ax2._shared_x_axes.joined(ax1, ax2))
+        assert ax1._shared_x_axes.joined(ax1, ax2)
+        assert ax2._shared_x_axes.joined(ax1, ax2)
 
-        self.assertTrue(ax1._shared_y_axes.joined(ax1, ax2))
-        self.assertTrue(ax2._shared_y_axes.joined(ax1, ax2))
+        assert ax1._shared_y_axes.joined(ax1, ax2)
+        assert ax2._shared_y_axes.joined(ax1, ax2)

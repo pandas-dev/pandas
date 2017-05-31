@@ -29,36 +29,26 @@ IO Tools (Text, CSV, HDF5, ...)
 ===============================
 
 The pandas I/O API is a set of top level ``reader`` functions accessed like ``pd.read_csv()`` that generally return a ``pandas``
-object.
+object. The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
 
-    * :ref:`read_csv<io.read_csv_table>`
-    * :ref:`read_excel<io.excel_reader>`
-    * :ref:`read_hdf<io.hdf5>`
-    * :ref:`read_feather<io.feather>`
-    * :ref:`read_sql<io.sql>`
-    * :ref:`read_json<io.json_reader>`
-    * :ref:`read_msgpack<io.msgpack>`
-    * :ref:`read_html<io.read_html>`
-    * :ref:`read_gbq<io.bigquery>`
-    * :ref:`read_stata<io.stata_reader>`
-    * :ref:`read_sas<io.sas_reader>`
-    * :ref:`read_clipboard<io.clipboard>`
-    * :ref:`read_pickle<io.pickle>`
+.. csv-table::
+    :header: "Format Type", "Data Description", "Reader", "Writer"
+    :widths: 30, 100, 60, 60
+    :delim: ;
 
-The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
-
-    * :ref:`to_csv<io.store_in_csv>`
-    * :ref:`to_excel<io.excel_writer>`
-    * :ref:`to_hdf<io.hdf5>`
-    * :ref:`to_feather<io.feather>`
-    * :ref:`to_sql<io.sql>`
-    * :ref:`to_json<io.json_writer>`
-    * :ref:`to_msgpack<io.msgpack>`
-    * :ref:`to_html<io.html>`
-    * :ref:`to_gbq<io.bigquery>`
-    * :ref:`to_stata<io.stata_writer>`
-    * :ref:`to_clipboard<io.clipboard>`
-    * :ref:`to_pickle<io.pickle>`
+    text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
+    text;`JSON <http://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
+    text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
+    text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
+    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
+    binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
+    binary;`Msgpack <http://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
+    binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
+    binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
+    binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
+    SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
+    SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
@@ -352,11 +342,11 @@ error_bad_lines : boolean, default ``True``
   Lines with too many fields (e.g. a csv line with too many commas) will by
   default cause an exception to be raised, and no DataFrame will be returned. If
   ``False``, then these "bad lines" will dropped from the DataFrame that is
-  returned (only valid with C parser). See :ref:`bad lines <io.bad_lines>`
+  returned. See :ref:`bad lines <io.bad_lines>`
   below.
 warn_bad_lines : boolean, default ``True``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
-  each "bad line" will be output (only valid with C parser).
+  each "bad line" will be output.
 
 .. _io.dtypes:
 
@@ -1449,6 +1439,14 @@ class of the csv module. For this, you have to specify ``sep=None``.
     print(open('tmp2.sv').read())
     pd.read_csv('tmp2.sv', sep=None, engine='python')
 
+.. _io.multiple_files:
+
+Reading multiple files to create a single DataFrame
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+
+It's best to use :func:`~pandas.concat` to combine multiple files.
+See the :ref:`cookbook<cookbook.csv.multiple_files>` for an example.
+
 .. _io.chunking:
 
 Iterating through files chunk by chunk
@@ -2232,9 +2230,10 @@ Read a URL and match a table that contains specific text
    match = 'Metcalf Bank'
    df_list = pd.read_html(url, match=match)
 
-Specify a header row (by default ``<th>`` elements are used to form the column
-index); if specified, the header row is taken from the data minus the parsed
-header elements (``<th>`` elements).
+Specify a header row (by default ``<th>`` or ``<td>`` elements located within a
+``<thead>`` are used to form the column index, if multiple rows are contained within
+``<thead>`` then a multiindex is created); if specified, the header row is taken
+from the data minus the parsed header elements (``<th>`` elements).
 
 .. code-block:: python
 
@@ -2562,12 +2561,12 @@ Reading Excel Files
 '''''''''''''''''''
 
 In the most basic use-case, ``read_excel`` takes a path to an Excel
-file, and the ``sheetname`` indicating which sheet to parse.
+file, and the ``sheet_name`` indicating which sheet to parse.
 
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', sheetname='Sheet1')
+   read_excel('path_to_file.xls', sheet_name='Sheet1')
 
 
 .. _io.excel.excelfile_class:
@@ -2635,12 +2634,12 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
 Specifying Sheets
 +++++++++++++++++
 
-.. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
+.. note :: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``
 
 .. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
 
-- The arguments ``sheetname`` allows specifying the sheet or sheets to read.
-- The default value for ``sheetname`` is 0, indicating to read the first sheet
+- The arguments ``sheet_name`` allows specifying the sheet or sheets to read.
+- The default value for ``sheet_name`` is 0, indicating to read the first sheet
 - Pass a string to refer to the name of a particular sheet in the workbook.
 - Pass an integer to refer to the index of a sheet. Indices follow Python
   convention, beginning at 0.
@@ -2671,18 +2670,18 @@ Using None to get all sheets:
 .. code-block:: python
 
    # Returns a dictionary of DataFrames
-   read_excel('path_to_file.xls',sheetname=None)
+   read_excel('path_to_file.xls',sheet_name=None)
 
 Using a list to get multiple sheets:
 
 .. code-block:: python
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-   read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+   read_excel('path_to_file.xls',sheet_name=['Sheet1',3])
 
 .. versionadded:: 0.16
 
-``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
+``read_excel`` can read more than one sheet, by setting ``sheet_name`` to either
 a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
 
 .. versionadded:: 0.13
@@ -4496,6 +4495,7 @@ See the `Full Documentation <https://github.com/wesm/feather>`__
 Write to a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_feather('example.feather')
 

@@ -41,7 +41,6 @@ cdef extern from "Python.h":
 
 cdef size_t _INIT_VEC_CAP = 128
 
-
 include "hashtable_class_helper.pxi"
 include "hashtable_func_helper.pxi"
 
@@ -65,6 +64,10 @@ cdef class Factorizer:
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """
+        if self.uniques.external_view_exists:
+            uniques = ObjectVector()
+            uniques.extend(self.uniques.to_array())
+            self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel, check_null)
         mask = (labels == na_sentinel)
@@ -100,6 +103,15 @@ cdef class Int64Factorizer:
 
     def factorize(self, int64_t[:] values, sort=False,
                   na_sentinel=-1, check_null=True):
+        """
+        Factorize values with nans replaced by na_sentinel
+        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
+        array([ 0,  1, 20])
+        """
+        if self.uniques.external_view_exists:
+            uniques = Int64Vector()
+            uniques.extend(self.uniques.to_array())
+            self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel,
                                        check_null)

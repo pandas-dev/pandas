@@ -48,19 +48,20 @@ import numpy as np
 from pandas import compat
 from pandas.compat import u, u_safe
 
-from pandas.types.common import (is_categorical_dtype, is_object_dtype,
-                                 needs_i8_conversion, pandas_dtype)
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_object_dtype,
+    needs_i8_conversion, pandas_dtype)
 
 from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
                     Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
                     Categorical, CategoricalIndex)
 from pandas._libs.tslib import NaTType
-from pandas.sparse.api import SparseSeries, SparseDataFrame
-from pandas.sparse.array import BlockIndex, IntIndex
+from pandas.core.sparse.api import SparseSeries, SparseDataFrame
+from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
-from pandas.core.common import PerformanceWarning
-from pandas.io.common import get_filepath_or_buffer
+from pandas.errors import PerformanceWarning
+from pandas.io.common import get_filepath_or_buffer, _stringify_path
 from pandas.core.internals import BlockManager, make_block, _safe_reshape
 import pandas.core.internals as internals
 
@@ -148,6 +149,7 @@ def to_msgpack(path_or_buf, *args, **kwargs):
         for a in args:
             fh.write(pack(a, **kwargs))
 
+    path_or_buf = _stringify_path(path_or_buf)
     if isinstance(path_or_buf, compat.string_types):
         with open(path_or_buf, mode) as fh:
             writer(fh)

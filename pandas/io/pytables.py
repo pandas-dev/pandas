@@ -12,15 +12,16 @@ import itertools
 import warnings
 import os
 
-from pandas.types.common import (is_list_like,
-                                 is_categorical_dtype,
-                                 is_timedelta64_dtype,
-                                 is_datetime64tz_dtype,
-                                 is_datetime64_dtype,
-                                 _ensure_object,
-                                 _ensure_int64,
-                                 _ensure_platform_int)
-from pandas.types.missing import array_equivalent
+from pandas.core.dtypes.common import (
+    is_list_like,
+    is_categorical_dtype,
+    is_timedelta64_dtype,
+    is_datetime64tz_dtype,
+    is_datetime64_dtype,
+    _ensure_object,
+    _ensure_int64,
+    _ensure_platform_int)
+from pandas.core.dtypes.missing import array_equivalent
 
 import numpy as np
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
@@ -29,10 +30,11 @@ from pandas import (Series, DataFrame, Panel, Panel4D, Index,
                     DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
 from pandas.io.common import _stringify_path
-from pandas.sparse.array import BlockIndex, IntIndex
+from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
-from pandas.formats.printing import adjoin, pprint_thing
-from pandas.core.common import _asarray_tuplesafe, PerformanceWarning
+from pandas.io.formats.printing import adjoin, pprint_thing
+from pandas.errors import PerformanceWarning
+from pandas.core.common import _asarray_tuplesafe
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical, _factorize_from_iterables
 from pandas.core.internals import (BlockManager, make_block,
@@ -42,7 +44,7 @@ from pandas.core.index import _ensure_index
 from pandas import compat
 from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option
-from pandas.computation.pytables import Expr, maybe_expression
+from pandas.core.computation.pytables import Expr, maybe_expression
 
 from pandas._libs import tslib, algos, lib
 
@@ -307,9 +309,17 @@ def read_hdf(path_or_buf, key=None, **kwargs):
     if 'where' in kwargs:
         kwargs['where'] = _ensure_term(kwargs['where'], scope_level=1)
 
-    path_or_buf = _stringify_path(path_or_buf)
-    if isinstance(path_or_buf, string_types):
+    if isinstance(path_or_buf, HDFStore):
+        if not path_or_buf.is_open:
+            raise IOError('The HDFStore must be open for reading.')
 
+        store = path_or_buf
+        auto_close = False
+    else:
+        path_or_buf = _stringify_path(path_or_buf)
+        if not isinstance(path_or_buf, string_types):
+            raise NotImplementedError('Support for generic buffers has not '
+                                      'been implemented.')
         try:
             exists = os.path.exists(path_or_buf)
 
@@ -321,21 +331,10 @@ def read_hdf(path_or_buf, key=None, **kwargs):
             raise compat.FileNotFoundError(
                 'File %s does not exist' % path_or_buf)
 
+        store = HDFStore(path_or_buf, **kwargs)
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
-        store = HDFStore(path_or_buf, **kwargs)
         auto_close = True
-
-    elif isinstance(path_or_buf, HDFStore):
-        if not path_or_buf.is_open:
-            raise IOError('The HDFStore must be open for reading.')
-
-        store = path_or_buf
-        auto_close = False
-
-    else:
-        raise NotImplementedError('Support for generic buffers has not been '
-                                  'implemented.')
 
     try:
         if key is None:
@@ -400,12 +399,17 @@ class HDFStore(StringMixin):
             and if the file does not exist it is created.
         ``'r+'``
             It is similar to ``'a'``, but the file must already exist.
-    complevel : int, 1-9, default 0
-            If a complib is specified compression will be applied
-            where possible
-    complib : {'zlib', 'bzip2', 'lzo', 'blosc', None}, default None
-            If complevel is > 0 apply compression to objects written
-            in the store wherever possible
+    complevel : int, 0-9, default 0
+            Specifies a compression level for data.
+            A value of 0 disables compression.
+    complib : {'zlib', 'lzo', 'bzip2', 'blosc', None}, default None
+            Specifies the compression library to be used.
+            As of v0.20.2 these additional compressors for Blosc are supported
+            (default if no compressor specified: 'blosc:blosclz'):
+            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
+             'blosc:zlib', 'blosc:zstd'}.
+            Specifying a compression library which is not available issues
+            a ValueError.
     fletcher32 : bool, default False
             If applying compression use the fletcher32 checksum
 
@@ -428,11 +432,12 @@ class HDFStore(StringMixin):
             raise ImportError('HDFStore requires PyTables, "{ex}" problem '
                               'importing'.format(ex=str(ex)))
 
-        if complib not in (None, 'blosc', 'bzip2', 'lzo', 'zlib'):
-            raise ValueError("complib only supports 'blosc', 'bzip2', lzo' "
-                             "or 'zlib' compression.")
+        if complib is not None and complib not in tables.filters.all_complibs:
+            raise ValueError(
+                "complib only supports {libs} compression.".format(
+                    libs=tables.filters.all_complibs))
 
-        self._path = path
+        self._path = _stringify_path(path)
         if mode is None:
             mode = 'a'
         self._mode = mode
@@ -442,6 +447,9 @@ class HDFStore(StringMixin):
         self._fletcher32 = fletcher32
         self._filters = None
         self.open(mode=mode, **kwargs)
+
+    def __fspath__(self):
+        return self._path
 
     @property
     def root(self):
@@ -464,7 +472,6 @@ class HDFStore(StringMixin):
 
     def __getattr__(self, name):
         """ allow attribute access to get stores """
-        self._check_if_open()
         try:
             return self.get(name)
         except:
@@ -824,8 +831,8 @@ class HDFStore(StringMixin):
 
             # retrieve the objs, _where is always passed as a set of
             # coordinates here
-            objs = [t.read(where=_where, columns=columns, **kwargs)
-                    for t in tbls]
+            objs = [t.read(where=_where, columns=columns, start=_start,
+                           stop=_stop, **kwargs) for t in tbls]
 
             # concat and return
             return concat(objs, axis=axis,
@@ -1322,6 +1329,13 @@ class HDFStore(StringMixin):
 def get_store(path, **kwargs):
     """ Backwards compatible alias for ``HDFStore``
     """
+    warnings.warn(
+        "get_store is deprecated and be "
+        "removed in a future version\n"
+        "HDFStore(path, **kwargs) is the replacement",
+        FutureWarning,
+        stacklevel=6)
+
     return HDFStore(path, **kwargs)
 
 
@@ -1411,7 +1425,8 @@ class TableIterator(object):
 
         # if specified read via coordinates (necessary for multiple selections
         if coordinates:
-            where = self.s.read_coordinates(where=self.where)
+            where = self.s.read_coordinates(where=self.where, start=self.start,
+                                            stop=self.stop)
         else:
             where = self.where
 
@@ -4321,7 +4336,7 @@ def _reindex_axis(obj, axis, labels, other=None):
 
     labels = _ensure_index(labels.unique())
     if other is not None:
-        labels = labels & _ensure_index(other.unique())
+        labels = _ensure_index(other.unique()) & labels
     if not labels.equals(ax):
         slicer = [slice(None, None)] * obj.ndim
         slicer[axis] = labels

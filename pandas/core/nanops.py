@@ -1,29 +1,42 @@
 import itertools
 import functools
-import numpy as np
 import operator
+
+import numpy as np
+from pandas import compat
+from pandas._libs import tslib, algos, lib
+from pandas.core.dtypes.common import (
+    _get_dtype,
+    is_float, is_scalar,
+    is_integer, is_complex, is_float_dtype,
+    is_complex_dtype, is_integer_dtype,
+    is_bool_dtype, is_object_dtype,
+    is_numeric_dtype,
+    is_datetime64_dtype, is_timedelta64_dtype,
+    is_datetime_or_timedelta_dtype,
+    is_int_or_datetime_dtype, is_any_int_dtype)
+from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
+from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.config import get_option
+from pandas.core.common import _values_from_object
 
 try:
     import bottleneck as bn
-    _USE_BOTTLENECK = True
+    _BOTTLENECK_INSTALLED = True
 except ImportError:  # pragma: no cover
-    _USE_BOTTLENECK = False
+    _BOTTLENECK_INSTALLED = False
 
-from pandas import compat
-from pandas._libs import tslib, algos, lib
-from pandas.types.common import (_get_dtype,
-                                 is_float, is_scalar,
-                                 is_integer, is_complex, is_float_dtype,
-                                 is_complex_dtype, is_integer_dtype,
-                                 is_bool_dtype, is_object_dtype,
-                                 is_numeric_dtype,
-                                 is_datetime64_dtype, is_timedelta64_dtype,
-                                 is_datetime_or_timedelta_dtype,
-                                 is_int_or_datetime_dtype, is_any_int_dtype)
-from pandas.types.cast import _int64_max, maybe_upcast_putmask
-from pandas.types.missing import isnull, notnull
+_USE_BOTTLENECK = False
 
-from pandas.core.common import _values_from_object
+
+def set_use_bottleneck(v=True):
+    # set/unset to use bottleneck
+    global _USE_BOTTLENECK
+    if _BOTTLENECK_INSTALLED:
+        _USE_BOTTLENECK = v
+
+
+set_use_bottleneck(get_option('compute.use_bottleneck'))
 
 
 class disallow(object):
@@ -380,6 +393,7 @@ def nanstd(values, axis=None, skipna=True, ddof=1):
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
 
+    values = _values_from_object(values)
     dtype = values.dtype
     mask = isnull(values)
     if is_any_int_dtype(values):
@@ -488,6 +502,7 @@ def nanskew(values, axis=None, skipna=True):
 
     """
 
+    values = _values_from_object(values)
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -542,6 +557,7 @@ def nankurt(values, axis=None, skipna=True):
     central moment.
 
     """
+    values = _values_from_object(values)
     mask = isnull(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')

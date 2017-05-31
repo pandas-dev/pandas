@@ -15,26 +15,27 @@ from pandas._libs import (lib, index as libindex,
                           tslib as libts, algos as libalgos, iNaT)
 
 from pandas import compat
-from pandas.util.decorators import Appender
-import pandas.computation.expressions as expressions
+from pandas.util._decorators import Appender
+import pandas.core.computation.expressions as expressions
 
 from pandas.compat import bind_method
 import pandas.core.missing as missing
 
-from pandas.core.common import (_values_from_object, _maybe_match_name,
-                                PerformanceWarning)
-from pandas.types.missing import notnull, isnull
-from pandas.types.common import (needs_i8_conversion,
-                                 is_datetimelike_v_numeric,
-                                 is_integer_dtype, is_categorical_dtype,
-                                 is_object_dtype, is_timedelta64_dtype,
-                                 is_datetime64_dtype, is_datetime64tz_dtype,
-                                 is_bool_dtype, is_datetimetz,
-                                 is_list_like,
-                                 is_scalar,
-                                 _ensure_object)
-from pandas.types.cast import maybe_upcast_putmask, find_common_type
-from pandas.types.generic import ABCSeries, ABCIndex, ABCPeriodIndex
+from pandas.errors import PerformanceWarning
+from pandas.core.common import _values_from_object, _maybe_match_name
+from pandas.core.dtypes.missing import notnull, isnull
+from pandas.core.dtypes.common import (
+    needs_i8_conversion,
+    is_datetimelike_v_numeric,
+    is_integer_dtype, is_categorical_dtype,
+    is_object_dtype, is_timedelta64_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype,
+    is_bool_dtype, is_datetimetz,
+    is_list_like,
+    is_scalar,
+    _ensure_object)
+from pandas.core.dtypes.cast import maybe_upcast_putmask, find_common_type
+from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCPeriodIndex
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -441,7 +442,7 @@ class _TimeOp(_Op):
 
     def _convert_to_array(self, values, name=None, other=None):
         """converts values to ndarray"""
-        from pandas.tseries.timedeltas import to_timedelta
+        from pandas.core.tools.timedeltas import to_timedelta
 
         ovalues = values
         supplied_dtype = None
@@ -507,7 +508,7 @@ class _TimeOp(_Op):
         return values
 
     def _convert_for_datetime(self, lvalues, rvalues):
-        from pandas.tseries.timedeltas import to_timedelta
+        from pandas.core.tools.timedeltas import to_timedelta
 
         mask = isnull(lvalues) | isnull(rvalues)
 
@@ -1249,7 +1250,8 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
                             masker=False):
     def na_op(x, y):
         try:
-            result = op(x, y)
+            with np.errstate(invalid='ignore'):
+                result = op(x, y)
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=bool)

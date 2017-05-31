@@ -1,5 +1,7 @@
 """ test positional based indexing with iloc """
 
+import pytest
+
 from warnings import catch_warnings
 import numpy as np
 
@@ -10,7 +12,7 @@ from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
 
-class TestiLoc(Base, tm.TestCase):
+class TestiLoc(Base):
 
     def test_iloc_exceeds_bounds(self):
 
@@ -20,29 +22,30 @@ class TestiLoc(Base, tm.TestCase):
         expected = df
 
         # lists of positions should raise IndexErrror!
-        with tm.assertRaisesRegexp(IndexError,
-                                   'positional indexers are out-of-bounds'):
+        with tm.assert_raises_regex(IndexError,
+                                    'positional indexers '
+                                    'are out-of-bounds'):
             df.iloc[:, [0, 1, 2, 3, 4, 5]]
-        self.assertRaises(IndexError, lambda: df.iloc[[1, 30]])
-        self.assertRaises(IndexError, lambda: df.iloc[[1, -30]])
-        self.assertRaises(IndexError, lambda: df.iloc[[100]])
+        pytest.raises(IndexError, lambda: df.iloc[[1, 30]])
+        pytest.raises(IndexError, lambda: df.iloc[[1, -30]])
+        pytest.raises(IndexError, lambda: df.iloc[[100]])
 
         s = df['A']
-        self.assertRaises(IndexError, lambda: s.iloc[[100]])
-        self.assertRaises(IndexError, lambda: s.iloc[[-100]])
+        pytest.raises(IndexError, lambda: s.iloc[[100]])
+        pytest.raises(IndexError, lambda: s.iloc[[-100]])
 
         # still raise on a single indexer
         msg = 'single positional indexer is out-of-bounds'
-        with tm.assertRaisesRegexp(IndexError, msg):
+        with tm.assert_raises_regex(IndexError, msg):
             df.iloc[30]
-        self.assertRaises(IndexError, lambda: df.iloc[-30])
+        pytest.raises(IndexError, lambda: df.iloc[-30])
 
         # GH10779
         # single positive/negative indexer exceeding Series bounds should raise
         # an IndexError
-        with tm.assertRaisesRegexp(IndexError, msg):
+        with tm.assert_raises_regex(IndexError, msg):
             s.iloc[30]
-        self.assertRaises(IndexError, lambda: s.iloc[-30])
+        pytest.raises(IndexError, lambda: s.iloc[-30])
 
         # slices are ok
         result = df.iloc[:, 4:10]  # 0 < start < len < stop
@@ -101,8 +104,8 @@ class TestiLoc(Base, tm.TestCase):
         check(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         check(dfl.iloc[4:6], dfl.iloc[[4]])
 
-        self.assertRaises(IndexError, lambda: dfl.iloc[[4, 5, 6]])
-        self.assertRaises(IndexError, lambda: dfl.iloc[:, 4])
+        pytest.raises(IndexError, lambda: dfl.iloc[[4, 5, 6]])
+        pytest.raises(IndexError, lambda: dfl.iloc[:, 4])
 
     def test_iloc_getitem_int(self):
 
@@ -163,7 +166,7 @@ class TestiLoc(Base, tm.TestCase):
 
         expected = s.iloc[0]
         result = s.iloc[-3]
-        self.assertEqual(result, expected)
+        assert result == expected
 
         expected = s.iloc[[0]]
         result = s.iloc[[-3]]
@@ -188,7 +191,7 @@ class TestiLoc(Base, tm.TestCase):
 
         # cross-sectional indexing
         result = df.iloc[0, 0]
-        self.assertTrue(isnull(result))
+        assert isnull(result)
 
         result = df.iloc[0, :]
         expected = Series([np.nan, 1, 3, 3], index=['A', 'B', 'A', 'B'],
@@ -253,7 +256,7 @@ class TestiLoc(Base, tm.TestCase):
 
         df.iloc[1, 1] = 1
         result = df.iloc[1, 1]
-        self.assertEqual(result, 1)
+        assert result == 1
 
         df.iloc[:, 2:3] = 0
         expected = df.iloc[:, 2:3]
@@ -323,7 +326,7 @@ class TestiLoc(Base, tm.TestCase):
         result = df.iloc[2, 2]
         with catch_warnings(record=True):
             exp = df.ix[4, 4]
-        self.assertEqual(result, exp)
+        assert result == exp
 
         # slice
         result = df.iloc[4:8]
@@ -373,7 +376,7 @@ class TestiLoc(Base, tm.TestCase):
 
         result = df.iloc[1, 1]
         exp = df.loc['b', 'B']
-        self.assertEqual(result, exp)
+        assert result == exp
 
         result = df.iloc[:, 2:3]
         expected = df.loc[:, ['C']]
@@ -382,13 +385,13 @@ class TestiLoc(Base, tm.TestCase):
         # negative indexing
         result = df.iloc[-1, -1]
         exp = df.loc['j', 'D']
-        self.assertEqual(result, exp)
+        assert result == exp
 
         # out-of-bounds exception
-        self.assertRaises(IndexError, df.iloc.__getitem__, tuple([10, 5]))
+        pytest.raises(IndexError, df.iloc.__getitem__, tuple([10, 5]))
 
         # trying to use a label
-        self.assertRaises(ValueError, df.iloc.__getitem__, tuple(['j', 'D']))
+        pytest.raises(ValueError, df.iloc.__getitem__, tuple(['j', 'D']))
 
     def test_iloc_getitem_doc_issue(self):
 
@@ -441,7 +444,7 @@ class TestiLoc(Base, tm.TestCase):
 
         df.iloc[1, 1] = 1
         result = df.iloc[1, 1]
-        self.assertEqual(result, 1)
+        assert result == 1
 
         df.iloc[:, 2:3] = 0
         expected = df.iloc[:, 2:3]
@@ -452,7 +455,7 @@ class TestiLoc(Base, tm.TestCase):
 
         s.iloc[1] = 1
         result = s.iloc[1]
-        self.assertEqual(result, 1)
+        assert result == 1
 
         s.iloc[:4] = 0
         expected = s.iloc[:4]
@@ -488,10 +491,10 @@ class TestiLoc(Base, tm.TestCase):
         # GH 3631, iloc with a mask (of a series) should raise
         df = DataFrame(lrange(5), list('ABCDE'), columns=['a'])
         mask = (df.a % 2 == 0)
-        self.assertRaises(ValueError, df.iloc.__getitem__, tuple([mask]))
+        pytest.raises(ValueError, df.iloc.__getitem__, tuple([mask]))
         mask.index = lrange(len(mask))
-        self.assertRaises(NotImplementedError, df.iloc.__getitem__,
-                          tuple([mask]))
+        pytest.raises(NotImplementedError, df.iloc.__getitem__,
+                      tuple([mask]))
 
         # ndarray ok
         result = df.iloc[np.array([True] * len(mask), dtype=bool)]

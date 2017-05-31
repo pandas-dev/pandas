@@ -14,6 +14,7 @@ import sys
 import os
 import re
 import inspect
+import importlib
 from pandas.compat import u, PY3
 
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
@@ -52,14 +53,16 @@ extensions = ['sphinx.ext.autodoc',
               'numpydoc', # used to parse numpy-style docstrings for autodoc
               'ipython_sphinxext.ipython_directive',
               'ipython_sphinxext.ipython_console_highlighting',
+              'IPython.sphinxext.ipython_console_highlighting',  # lowercase didn't work
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
+              'nbsphinx',
               ]
 
-
+exclude_patterns = ['**.ipynb_checkpoints']
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()
@@ -70,15 +73,16 @@ with open("index.rst") as f:
 # JP: added from sphinxdocs
 autosummary_generate = False
 
-if any([re.match("\s*api\s*",l) for l in index_rst_lines]):
+if any([re.match("\s*api\s*", l) for l in index_rst_lines]):
     autosummary_generate = True
 
 files_to_delete = []
 for f in os.listdir(os.path.dirname(__file__)):
-    if not f.endswith('.rst') or f.startswith('.') or os.path.basename(f) == 'index.rst':
+    if (not f.endswith(('.ipynb', '.rst')) or
+            f.startswith('.') or os.path.basename(f) == 'index.rst'):
         continue
 
-    _file_basename = f.split('.rst')[0]
+    _file_basename = os.path.splitext(f)[0]
     _regex_to_match = "\s*{}\s*$".format(_file_basename)
     if not any([re.match(_regex_to_match, line) for line in index_rst_lines]):
         files_to_delete.append(f)
@@ -223,20 +227,70 @@ html_static_path = ['_static']
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 
-# Add redirect for previously existing API pages (which are now included in
-# the API pages as top-level functions) based on a template (GH9911)
-moved_api_pages = [
-    'pandas.core.common.isnull', 'pandas.core.common.notnull', 'pandas.core.reshape.get_dummies',
-    'pandas.tools.merge.concat', 'pandas.tools.merge.merge', 'pandas.tools.pivot.pivot_table',
-    'pandas.tseries.tools.to_datetime', 'pandas.io.clipboard.read_clipboard', 'pandas.io.excel.ExcelFile.parse',
-    'pandas.io.excel.read_excel', 'pandas.io.html.read_html', 'pandas.io.json.read_json',
-    'pandas.io.parsers.read_csv', 'pandas.io.parsers.read_fwf', 'pandas.io.parsers.read_table',
-    'pandas.io.pickle.read_pickle', 'pandas.io.pytables.HDFStore.append', 'pandas.io.pytables.HDFStore.get',
-    'pandas.io.pytables.HDFStore.put', 'pandas.io.pytables.HDFStore.select', 'pandas.io.pytables.read_hdf',
-    'pandas.io.sql.read_sql', 'pandas.io.sql.read_frame', 'pandas.io.sql.write_frame',
-    'pandas.io.stata.read_stata']
+# Add redirect for previously existing API pages
+# each item is like `(from_old, to_new)`
+# To redirect a class and all its methods, see below
+# https://github.com/pandas-dev/pandas/issues/16186
 
-html_additional_pages = {'generated/' + page: 'api_redirect.html' for page in moved_api_pages}
+moved_api_pages = [
+    ('pandas.core.common.isnull', 'pandas.isnull'),
+    ('pandas.core.common.notnull', 'pandas.notnull'),
+    ('pandas.core.reshape.get_dummies', 'pandas.get_dummies'),
+    ('pandas.tools.merge.concat', 'pandas.concat'),
+    ('pandas.tools.merge.merge', 'pandas.merge'),
+    ('pandas.tools.pivot.pivot_table', 'pandas.pivot_table'),
+    ('pandas.tseries.tools.to_datetime', 'pandas.to_datetime'),
+    ('pandas.io.clipboard.read_clipboard', 'pandas.read_clipboard'),
+    ('pandas.io.excel.ExcelFile.parse', 'pandas.ExcelFile.parse'),
+    ('pandas.io.excel.read_excel', 'pandas.read_excel'),
+    ('pandas.io.gbq.read_gbq', 'pandas.read_gbq'),
+    ('pandas.io.html.read_html', 'pandas.read_html'),
+    ('pandas.io.json.read_json', 'pandas.read_json'),
+    ('pandas.io.parsers.read_csv', 'pandas.read_csv'),
+    ('pandas.io.parsers.read_fwf', 'pandas.read_fwf'),
+    ('pandas.io.parsers.read_table', 'pandas.read_table'),
+    ('pandas.io.pickle.read_pickle', 'pandas.read_pickle'),
+    ('pandas.io.pytables.HDFStore.append', 'pandas.HDFStore.append'),
+    ('pandas.io.pytables.HDFStore.get', 'pandas.HDFStore.get'),
+    ('pandas.io.pytables.HDFStore.put', 'pandas.HDFStore.put'),
+    ('pandas.io.pytables.HDFStore.select', 'pandas.HDFStore.select'),
+    ('pandas.io.pytables.read_hdf', 'pandas.read_hdf'),
+    ('pandas.io.sql.read_sql', 'pandas.read_sql'),
+    ('pandas.io.sql.read_frame', 'pandas.read_frame'),
+    ('pandas.io.sql.write_frame', 'pandas.write_frame'),
+    ('pandas.io.stata.read_stata', 'pandas.read_stata'),
+]
+
+# Again, tuples of (from_old, to_new)
+moved_classes = [
+    ('pandas.tseries.resample.Resampler', 'pandas.core.resample.Resampler'),
+    ('pandas.formats.style.Styler', 'pandas.io.formats.style.Styler'),
+]
+
+for old, new in moved_classes:
+    # the class itself...
+    moved_api_pages.append((old, new))
+
+    mod, classname = new.rsplit('.', 1)
+    klass = getattr(importlib.import_module(mod), classname)
+    methods = [x for x in dir(klass)
+               if not x.startswith('_') or x in ('__iter__', '__array__')]
+
+    for method in methods:
+        # ... and each of its public methods
+        moved_api_pages.append(
+            ("{old}.{method}".format(old=old, method=method),
+             "{new}.{method}".format(new=new, method=method))
+        )
+
+html_additional_pages = {
+    'generated/' + page[0]: 'api_redirect.html'
+    for page in moved_api_pages
+}
+
+html_context = {
+    'redirects': {old: new for old, new in moved_api_pages}
+}
 
 # If false, no module index is generated.
 html_use_modindex = True
@@ -261,6 +315,9 @@ html_use_modindex = True
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'pandas'
 
+# -- Options for nbsphinx ------------------------------------------------
+
+nbsphinx_allow_errors = True
 
 # -- Options for LaTeX output --------------------------------------------
 

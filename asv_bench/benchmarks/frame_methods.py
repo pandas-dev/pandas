@@ -56,7 +56,7 @@ class Reindex(object):
         self.df.ix[(self.idx, self.idx)]
 
     def time_reindex_upcast(self):
-        self.df2.reindex(permutation(range(1200)))
+        self.df2.reindex(np.random.permutation(range(1200)))
 
 
 #----------------------------------------------------------------------
@@ -583,7 +583,7 @@ class frame_assign_timeseries_index(object):
     goal_time = 0.2
 
     def setup(self):
-        self.idx = date_range('1/1/2000', periods=100000, freq='D')
+        self.idx = date_range('1/1/2000', periods=100000, freq='H')
         self.df = DataFrame(randn(100000, 1), columns=['A'], index=self.idx)
 
     def time_frame_assign_timeseries_index(self):

@@ -15,7 +15,7 @@ import pandas.util.testing as tm
 from pandas.tests.series.common import TestData
 
 
-class TestSeriesRank(tm.TestCase, TestData):
+class TestSeriesRank(TestData):
     s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
 
     results = {
@@ -213,7 +213,7 @@ class TestSeriesRank(tm.TestCase, TestData):
     def test_rank_signature(self):
         s = Series([0, 1])
         s.rank(method='average')
-        self.assertRaises(ValueError, s.rank, 'average')
+        pytest.raises(ValueError, s.rank, 'average')
 
     def test_rank_inf(self):
         pytest.skip('DataFrame.rank does not currently rank '

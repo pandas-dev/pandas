@@ -33,6 +33,10 @@ cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
 
 
+cpdef bint is_interval(object obj):
+    return isinstance(obj, Interval)
+
+
 cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
@@ -92,7 +96,7 @@ cdef class Seen(object):
     encountered when trying to perform type conversions.
     """
 
-    cdef public:
+    cdef:
         bint int_             # seen_int
         bint bool_            # seen_bool
         bint null_            # seen_null
@@ -181,7 +185,7 @@ cdef class Seen(object):
         self.null_ = 1
         self.float_ = 1
 
-    def saw_int(self, val):
+    cdef saw_int(self, object val):
         """
         Set flags indicating that an integer value was encountered.
 
@@ -192,7 +196,7 @@ cdef class Seen(object):
         """
         self.int_ = 1
         self.sint_ = self.sint_ or (val < 0)
-        self.uint_ = self.uint_ or (val > iINT64_MAX)
+        self.uint_ = self.uint_ or (val > oINT64_MAX)
 
     @property
     def numeric_(self):
@@ -218,38 +222,123 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(object _values):
+def infer_dtype(object value):
     """
-    we are coercing to an ndarray here
-    """
+    Effeciently infer the type of a passed val, or list-like
+    array of values. Return a string describing the type.
 
+    Parameters
+    ----------
+    value : scalar, list, ndarray, or pandas type
+
+    Returns
+    -------
+    string describing the common type of the input data.
+    Results can include:
+
+    - string
+    - unicode
+    - bytes
+    - floating
+    - integer
+    - mixed-integer
+    - mixed-integer-float
+    - decimal
+    - complex
+    - categorical
+    - boolean
+    - datetime64
+    - datetime
+    - date
+    - timedelta64
+    - timedelta
+    - time
+    - period
+    - mixed
+
+    Raises
+    ------
+    TypeError if ndarray-like but cannot infer the dtype
+
+    Notes
+    -----
+    - 'mixed' is the catchall for anything that is not otherwise
+      specialized
+    - 'mixed-integer-float' are floats and integers
+    - 'mixed-integer' are integers mixed with non-integers
+
+    Examples
+    --------
+    >>> infer_dtype(['foo', 'bar'])
+    'string'
+
+    >>> infer_dtype([b'foo', b'bar'])
+    'bytes'
+
+    >>> infer_dtype([1, 2, 3])
+    'integer'
+
+    >>> infer_dtype([1, 2, 3.5])
+    'mixed-integer-float'
+
+    >>> infer_dtype([1.0, 2.0, 3.5])
+    'floating'
+
+    >>> infer_dtype(['a', 1])
+    'mixed-integer'
+
+    >>> infer_dtype([Decimal(1), Decimal(2.0)])
+    'decimal'
+
+    >>> infer_dtype([True, False])
+    'boolean'
+
+    >>> infer_dtype([True, False, np.nan])
+    'mixed'
+
+    >>> infer_dtype([pd.Timestamp('20130101')])
+    'datetime'
+
+    >>> infer_dtype([datetime.date(2013, 1, 1)])
+    'date'
+
+    >>> infer_dtype([np.datetime64('2013-01-01')])
+    'datetime64'
+
+    >>> infer_dtype([datetime.timedelta(0, 1, 1)])
+    'timedelta'
+
+    >>> infer_dtype(pd.Series(list('aabc')).astype('category'))
+    'categorical'
+
+    """
     cdef:
         Py_ssize_t i, n
         object val
         ndarray values
         bint seen_pdnat = False, seen_val = False
 
-    if isinstance(_values, np.ndarray):
-        values = _values
-    elif hasattr(_values, 'dtype'):
+    if isinstance(value, np.ndarray):
+        values = value
+    elif hasattr(value, 'dtype'):
 
         # this will handle ndarray-like
         # e.g. categoricals
         try:
-            values = getattr(_values, '_values', getattr(
-                _values, 'values', _values))
+            values = getattr(value, '_values', getattr(
+                value, 'values', value))
         except:
-            val = _try_infer_map(_values)
-            if val is not None:
-                return val
+            value = _try_infer_map(value)
+            if value is not None:
+                return value
 
             # its ndarray like but we can't handle
-            raise ValueError("cannot infer type for {0}".format(type(_values)))
+            raise ValueError("cannot infer type for {0}".format(type(value)))
 
     else:
-        if not isinstance(_values, list):
-            _values = list(_values)
-        values = list_to_object_array(_values)
+        if not isinstance(value, list):
+            value = list(value)
+        values = list_to_object_array(value)
 
     values = getattr(values, 'values', values)
     val = _try_infer_map(values)
@@ -321,6 +410,9 @@ def infer_dtype(object _values):
         if is_time_array(values):
             return 'time'
 
+    elif is_decimal(val):
+        return 'decimal'
+
     elif util.is_float_object(val):
         if is_float_array(values):
             return 'floating'
@@ -347,6 +439,10 @@ def infer_dtype(object _values):
         if is_period_array(values):
             return 'period'
 
+    elif is_interval(val):
+        if is_interval_array(values):
+            return 'interval'
+
     for i in range(n):
         val = util.get_value_1d(values, i)
         if (util.is_integer_object(val) and
@@ -357,31 +453,86 @@ def infer_dtype(object _values):
     return 'mixed'
 
 
-cpdef bint is_possible_datetimelike_array(object arr):
-    # determine if we have a possible datetimelike (or null-like) array
+cpdef object infer_datetimelike_array(object arr):
+    """
+    infer if we have a datetime or timedelta array
+    - date: we have *only* date and maybe strings, nulls
+    - datetime: we have *only* datetimes and maybe strings, nulls
+    - timedelta: we have *only* timedeltas and maybe strings, nulls
+    - nat: we do not have *any* date, datetimes or timedeltas, but do have
+      at least a NaT
+    - mixed: other objects (strings or actual objects)
+
+    Parameters
+    ----------
+    arr : object array
+
+    Returns
+    -------
+    string: {datetime, timedelta, date, nat, mixed}
+
+    """
+
     cdef:
         Py_ssize_t i, n = len(arr)
-        bint seen_timedelta = 0, seen_datetime = 0
+        bint seen_timedelta = 0, seen_date = 0, seen_datetime = 0
+        bint seen_nat = 0
+        list objs = []
         object v
 
     for i in range(n):
         v = arr[i]
         if util.is_string_object(v):
-            continue
+            objs.append(v)
+
+            if len(objs) == 3:
+                break
+
         elif util._checknull(v):
-            continue
-        elif is_datetime(v):
-            seen_datetime=1
-        elif is_timedelta(v):
-            seen_timedelta=1
+            # nan or None
+            pass
+        elif v is NaT:
+            seen_nat = 1
+        elif is_datetime(v) or util.is_datetime64_object(v):
+            # datetime, or np.datetime64
+            seen_datetime = 1
+        elif is_date(v):
+            seen_date = 1
+        elif is_timedelta(v) or util.is_timedelta64_object(v):
+            # timedelta, or timedelta64
+            seen_timedelta = 1
         else:
-            return False
-    return seen_datetime or seen_timedelta
+            return 'mixed'
+
+    if seen_date and not (seen_datetime or seen_timedelta):
+        return 'date'
+    elif seen_datetime and not seen_timedelta:
+        return 'datetime'
+    elif seen_timedelta and not seen_datetime:
+        return 'timedelta'
+    elif seen_nat:
+        return 'nat'
+
+    # short-circuit by trying to
+    # actually convert these strings
+    # this is for performance as we don't need to try
+    # convert *every* string array
+    if len(objs):
+        try:
+            tslib.array_to_datetime(objs, errors='raise')
+            return 'datetime'
+        except:
+            pass
+
+        # we are *not* going to infer from strings
+        # for timedelta as too much ambiguity
+
+    return 'mixed'
 
 
 cdef inline bint is_null_datetimelike(v):
     # determine if we have a null for a timedelta/datetime (or integer
-    # versions)x
+    # versions)
     if util._checknull(v):
         return True
     elif v is NaT:
@@ -743,14 +894,35 @@ cpdef bint is_period_array(ndarray[object] values):
     return null_count != n
 
 
+cpdef bint is_interval_array(ndarray[object] values):
+    cdef:
+        Py_ssize_t i, n = len(values), null_count = 0
+        object v
+
+    if n == 0:
+        return False
+    for i in range(n):
+        v = values[i]
+        if util._checknull(v):
+            null_count += 1
+            continue
+        if not is_interval(v):
+            return False
+    return null_count != n
+
+
 cdef extern from "parse_helper.h":
     inline int floatify(object, double *result, int *maybe_int) except -1
 
-cdef int64_t iINT64_MAX = <int64_t> INT64_MAX
-cdef int64_t iINT64_MIN = <int64_t> INT64_MIN
-cdef uint64_t iUINT64_MAX = <uint64_t> UINT64_MAX
+# constants that will be compared to potentially arbitrarily large
+# python int
+cdef object oINT64_MAX = <int64_t> INT64_MAX
+cdef object oINT64_MIN = <int64_t> INT64_MIN
+cdef object oUINT64_MAX = <uint64_t> UINT64_MAX
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def maybe_convert_numeric(ndarray[object] values, set na_values,
                           bint convert_empty=True, bint coerce_numeric=False):
     """
@@ -781,6 +953,22 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     -------
     numeric_array : array of converted object values to numerical ones
     """
+
+    if len(values) == 0:
+        return np.array([], dtype='i8')
+
+    # fastpath for ints - try to convert all based on first value
+    cdef object val = values[0]
+
+    if util.is_integer_object(val):
+        try:
+            maybe_ints = values.astype('i8')
+            if (maybe_ints == values).all():
+                return maybe_ints
+        except (ValueError, OverflowError, TypeError):
+            pass
+
+    # otherwise, iterate and do full infererence
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
@@ -790,7 +978,6 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         ndarray[int64_t] ints = np.empty(n, dtype='i8')
         ndarray[uint64_t] uints = np.empty(n, dtype='u8')
         ndarray[uint8_t] bools = np.empty(n, dtype='u1')
-        object val
         float64_t fval
 
     for i in range(n):
@@ -800,21 +987,23 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             seen.saw_null()
             floats[i] = complexes[i] = nan
         elif util.is_float_object(val):
-            if val != val:
+            fval = val
+            if fval != fval:
                 seen.null_ = True
 
-            floats[i] = complexes[i] = val
+            floats[i] = complexes[i] = fval
             seen.float_ = True
         elif util.is_integer_object(val):
             floats[i] = complexes[i] = val
 
-            as_int = int(val)
-            seen.saw_int(as_int)
+            val = int(val)
+            seen.saw_int(val)
 
-            if as_int >= 0:
-                uints[i] = as_int
-            if as_int <= iINT64_MAX:
-                ints[i] = as_int
+            if val >= 0:
+                uints[i] = val
+
+            if val <= oINT64_MAX:
+                ints[i] = val
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
@@ -855,12 +1044,12 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                         seen.saw_int(as_int)
 
                     if not (seen.float_ or as_int in na_values):
-                        if as_int < iINT64_MIN or as_int > iUINT64_MAX:
+                        if as_int < oINT64_MIN or as_int > oUINT64_MAX:
                             raise ValueError('Integer out of range.')
 
                         if as_int >= 0:
                             uints[i] = as_int
-                        if as_int <= iINT64_MAX:
+                        if as_int <= oINT64_MAX:
                             ints[i] = as_int
                 else:
                     seen.float_ = True
@@ -891,6 +1080,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     return ints
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                           bint safe=0, bint convert_datetime=0,
                           bint convert_timedelta=0):

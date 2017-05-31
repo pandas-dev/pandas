@@ -2,20 +2,21 @@
 import os
 import numpy as np
 
-from pandas.io.json import libjson
+import pandas._libs.json as json
 from pandas._libs.tslib import iNaT
 from pandas.compat import StringIO, long, u
 from pandas import compat, isnull
-from pandas import Series, DataFrame, to_datetime
-from pandas.io.common import get_filepath_or_buffer, _get_handle
+from pandas import Series, DataFrame, to_datetime, MultiIndex
+from pandas.io.common import (get_filepath_or_buffer, _get_handle,
+                              _stringify_path)
 from pandas.core.common import AbstractMethodError
-from pandas.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema
-from pandas.types.common import is_period_dtype
+from pandas.core.dtypes.common import is_period_dtype
 
-loads = libjson.loads
-dumps = libjson.dumps
+loads = json.loads
+dumps = json.dumps
 
 TABLE_SCHEMA_VERSION = '0.20.0'
 
@@ -25,6 +26,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
             default_handler=None, lines=False):
 
+    path_or_buf = _stringify_path(path_or_buf)
     if lines and orient != 'records':
         raise ValueError(
             "'lines' keyword only valid when 'orient' is records")
@@ -137,6 +139,11 @@ class JSONTableWriter(FrameWriter):
             raise ValueError(msg)
 
         self.schema = build_table_schema(obj)
+
+        # NotImplementd on a column MultiIndex
+        if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
+            raise NotImplementedError(
+                "orient='table' is not supported for MultiIndex")
 
         # TODO: Do this timedelta properly in objToJSON.c See GH #15137
         if ((obj.ndim == 1) and (obj.name in set(obj.index.names)) or

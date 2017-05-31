@@ -3,13 +3,16 @@ test date_range, bdate_range, cdate_range
 construction from the convenience range functions
 """
 
+import pytest
+
 import numpy as np
+from pytz import timezone
 from datetime import datetime, timedelta, time
 
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import compat
-from pandas.tseries.index import bdate_range, cdate_range
+from pandas.core.indexes.datetimes import bdate_range, cdate_range
 from pandas import date_range, offsets, DatetimeIndex, Timestamp
 from pandas.tseries.offsets import (generate_range, CDay, BDay,
                                     DateOffset, MonthEnd)
@@ -24,11 +27,11 @@ def eq_gen_range(kwargs, expected):
     assert (np.array_equal(list(rng), expected))
 
 
-class TestDateRanges(TestData, tm.TestCase):
+class TestDateRanges(TestData):
 
     def test_date_range_gen_error(self):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')
-        self.assertEqual(len(rng), 4)
+        assert len(rng) == 4
 
     def test_date_range_negative_freq(self):
         # GH 11018
@@ -36,20 +39,20 @@ class TestDateRanges(TestData, tm.TestCase):
         exp = pd.DatetimeIndex(['2011-12-31', '2009-12-31',
                                 '2007-12-31'], freq='-2A')
         tm.assert_index_equal(rng, exp)
-        self.assertEqual(rng.freq, '-2A')
+        assert rng.freq == '-2A'
 
         rng = date_range('2011-01-31', freq='-2M', periods=3)
         exp = pd.DatetimeIndex(['2011-01-31', '2010-11-30',
                                 '2010-09-30'], freq='-2M')
         tm.assert_index_equal(rng, exp)
-        self.assertEqual(rng.freq, '-2M')
+        assert rng.freq == '-2M'
 
     def test_date_range_bms_bug(self):
         # #1645
         rng = date_range('1/1/2000', periods=10, freq='BMS')
 
         ex_first = Timestamp('2000-01-03')
-        self.assertEqual(rng[0], ex_first)
+        assert rng[0] == ex_first
 
     def test_date_range_normalize(self):
         snap = datetime.today()
@@ -66,21 +69,21 @@ class TestDateRanges(TestData, tm.TestCase):
                          freq='B')
         the_time = time(8, 15)
         for val in rng:
-            self.assertEqual(val.time(), the_time)
+            assert val.time() == the_time
 
     def test_date_range_fy5252(self):
         dr = date_range(start="2013-01-01", periods=2, freq=offsets.FY5253(
             startingMonth=1, weekday=3, variation="nearest"))
-        self.assertEqual(dr[0], Timestamp('2013-01-31'))
-        self.assertEqual(dr[1], Timestamp('2014-01-30'))
+        assert dr[0] == Timestamp('2013-01-31')
+        assert dr[1] == Timestamp('2014-01-30')
 
     def test_date_range_ambiguous_arguments(self):
         # #2538
         start = datetime(2011, 1, 1, 5, 3, 40)
         end = datetime(2011, 1, 1, 8, 9, 40)
 
-        self.assertRaises(ValueError, date_range, start, end, freq='s',
-                          periods=10)
+        pytest.raises(ValueError, date_range, start, end, freq='s',
+                      periods=10)
 
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
@@ -119,13 +122,13 @@ class TestDateRanges(TestData, tm.TestCase):
     def test_range_misspecified(self):
         # GH #1095
 
-        self.assertRaises(ValueError, date_range, '1/1/2000')
-        self.assertRaises(ValueError, date_range, end='1/1/2000')
-        self.assertRaises(ValueError, date_range, periods=10)
+        pytest.raises(ValueError, date_range, '1/1/2000')
+        pytest.raises(ValueError, date_range, end='1/1/2000')
+        pytest.raises(ValueError, date_range, periods=10)
 
-        self.assertRaises(ValueError, date_range, '1/1/2000', freq='H')
-        self.assertRaises(ValueError, date_range, end='1/1/2000', freq='H')
-        self.assertRaises(ValueError, date_range, periods=10, freq='H')
+        pytest.raises(ValueError, date_range, '1/1/2000', freq='H')
+        pytest.raises(ValueError, date_range, end='1/1/2000', freq='H')
+        pytest.raises(ValueError, date_range, periods=10, freq='H')
 
     def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349
@@ -136,26 +139,26 @@ class TestDateRanges(TestData, tm.TestCase):
                                           freq='QS-JAN'),
                                 periods=f(76),
                                 freq='QS-JAN')
-            self.assertEqual(len(result), 76)
+            assert len(result) == 76
 
     def test_catch_infinite_loop(self):
         offset = offsets.DateOffset(minute=5)
         # blow up, don't loop forever
-        self.assertRaises(Exception, date_range, datetime(2011, 11, 11),
-                          datetime(2011, 11, 12), freq=offset)
+        pytest.raises(Exception, date_range, datetime(2011, 11, 11),
+                      datetime(2011, 11, 12), freq=offset)
 
 
-class TestGenRangeGeneration(tm.TestCase):
+class TestGenRangeGeneration(object):
 
     def test_generate(self):
         rng1 = list(generate_range(START, END, offset=BDay()))
         rng2 = list(generate_range(START, END, time_rule='B'))
-        self.assertEqual(rng1, rng2)
+        assert rng1 == rng2
 
     def test_generate_cday(self):
         rng1 = list(generate_range(START, END, offset=CDay()))
         rng2 = list(generate_range(START, END, time_rule='C'))
-        self.assertEqual(rng1, rng2)
+        assert rng1 == rng2
 
     def test_1(self):
         eq_gen_range(dict(start=datetime(2009, 3, 25), periods=2),
@@ -190,68 +193,68 @@ class TestGenRangeGeneration(tm.TestCase):
                                   freq='Q-DEC', tz=None)
         expected2 = DatetimeIndex(expected2_list, dtype='datetime64[ns]',
                                   freq='W-SUN', tz=None)
-        self.assert_index_equal(result1, expected1)
-        self.assert_index_equal(result2, expected2)
+        tm.assert_index_equal(result1, expected1)
+        tm.assert_index_equal(result2, expected2)
 
 
-class TestBusinessDateRange(tm.TestCase):
+class TestBusinessDateRange(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rng = bdate_range(START, END)
 
     def test_constructor(self):
         bdate_range(START, END, freq=BDay())
         bdate_range(START, periods=20, freq=BDay())
         bdate_range(end=START, periods=20, freq=BDay())
-        self.assertRaises(ValueError, date_range, '2011-1-1', '2012-1-1', 'B')
-        self.assertRaises(ValueError, bdate_range, '2011-1-1', '2012-1-1', 'B')
+        pytest.raises(ValueError, date_range, '2011-1-1', '2012-1-1', 'B')
+        pytest.raises(ValueError, bdate_range, '2011-1-1', '2012-1-1', 'B')
 
     def test_naive_aware_conflicts(self):
         naive = bdate_range(START, END, freq=BDay(), tz=None)
         aware = bdate_range(START, END, freq=BDay(),
                             tz="Asia/Hong_Kong")
-        self.assertRaisesRegexp(TypeError, "tz-naive.*tz-aware",
-                                naive.join, aware)
-        self.assertRaisesRegexp(TypeError, "tz-naive.*tz-aware",
-                                aware.join, naive)
+        tm.assert_raises_regex(TypeError, "tz-naive.*tz-aware",
+                               naive.join, aware)
+        tm.assert_raises_regex(TypeError, "tz-naive.*tz-aware",
+                               aware.join, naive)
 
     def test_cached_range(self):
         DatetimeIndex._cached_range(START, END, offset=BDay())
         DatetimeIndex._cached_range(START, periods=20, offset=BDay())
         DatetimeIndex._cached_range(end=START, periods=20, offset=BDay())
 
-        self.assertRaisesRegexp(TypeError, "offset",
-                                DatetimeIndex._cached_range,
-                                START, END)
+        tm.assert_raises_regex(TypeError, "offset",
+                               DatetimeIndex._cached_range,
+                               START, END)
 
-        self.assertRaisesRegexp(TypeError, "specify period",
-                                DatetimeIndex._cached_range, START,
-                                offset=BDay())
+        tm.assert_raises_regex(TypeError, "specify period",
+                               DatetimeIndex._cached_range, START,
+                               offset=BDay())
 
-        self.assertRaisesRegexp(TypeError, "specify period",
-                                DatetimeIndex._cached_range, end=END,
-                                offset=BDay())
+        tm.assert_raises_regex(TypeError, "specify period",
+                               DatetimeIndex._cached_range, end=END,
+                               offset=BDay())
 
-        self.assertRaisesRegexp(TypeError, "start or end",
-                                DatetimeIndex._cached_range, periods=20,
-                                offset=BDay())
+        tm.assert_raises_regex(TypeError, "start or end",
+                               DatetimeIndex._cached_range, periods=20,
+                               offset=BDay())
 
     def test_cached_range_bug(self):
         rng = date_range('2010-09-01 05:00:00', periods=50,
                          freq=DateOffset(hours=6))
-        self.assertEqual(len(rng), 50)
-        self.assertEqual(rng[0], datetime(2010, 9, 1, 5))
+        assert len(rng) == 50
+        assert rng[0] == datetime(2010, 9, 1, 5)
 
     def test_timezone_comparaison_bug(self):
         # smoke test
         start = Timestamp('20130220 10:00', tz='US/Eastern')
         result = date_range(start, periods=2, tz='US/Eastern')
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
 
     def test_timezone_comparaison_assert(self):
         start = Timestamp('20130220 10:00', tz='US/Eastern')
-        self.assertRaises(AssertionError, date_range, start, periods=2,
-                          tz='Europe/Berlin')
+        pytest.raises(AssertionError, date_range, start, periods=2,
+                      tz='Europe/Berlin')
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
@@ -265,14 +268,14 @@ class TestBusinessDateRange(tm.TestCase):
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'
 
-        self.assertRaises(ValueError, Timestamp, badly_formed_date)
+        pytest.raises(ValueError, Timestamp, badly_formed_date)
 
-        self.assertRaises(ValueError, bdate_range, start=badly_formed_date,
-                          periods=10)
-        self.assertRaises(ValueError, bdate_range, end=badly_formed_date,
-                          periods=10)
-        self.assertRaises(ValueError, bdate_range, badly_formed_date,
-                          badly_formed_date)
+        pytest.raises(ValueError, bdate_range, start=badly_formed_date,
+                      periods=10)
+        pytest.raises(ValueError, bdate_range, end=badly_formed_date,
+                      periods=10)
+        pytest.raises(ValueError, bdate_range, badly_formed_date,
+                      badly_formed_date)
 
     def test_daterange_bug_456(self):
         # GH #456
@@ -281,11 +284,11 @@ class TestBusinessDateRange(tm.TestCase):
         rng2.offset = BDay()
 
         result = rng1.union(rng2)
-        tm.assertIsInstance(result, DatetimeIndex)
+        assert isinstance(result, DatetimeIndex)
 
     def test_error_with_zero_monthends(self):
-        self.assertRaises(ValueError, date_range, '1/1/2000', '1/1/2001',
-                          freq=MonthEnd(0))
+        pytest.raises(ValueError, date_range, '1/1/2000', '1/1/2001',
+                      freq=MonthEnd(0))
 
     def test_range_bug(self):
         # GH #770
@@ -297,33 +300,27 @@ class TestBusinessDateRange(tm.TestCase):
         tm.assert_index_equal(result, DatetimeIndex(exp_values))
 
     def test_range_tz_pytz(self):
-        # GH 2906
-        tm._skip_if_no_pytz()
-        from pytz import timezone
-
+        # see gh-2906
         tz = timezone('US/Eastern')
         start = tz.localize(datetime(2011, 1, 1))
         end = tz.localize(datetime(2011, 1, 3))
 
         dr = date_range(start=start, periods=3)
-        self.assertEqual(dr.tz.zone, tz.zone)
-        self.assertEqual(dr[0], start)
-        self.assertEqual(dr[2], end)
+        assert dr.tz.zone == tz.zone
+        assert dr[0] == start
+        assert dr[2] == end
 
         dr = date_range(end=end, periods=3)
-        self.assertEqual(dr.tz.zone, tz.zone)
-        self.assertEqual(dr[0], start)
-        self.assertEqual(dr[2], end)
+        assert dr.tz.zone == tz.zone
+        assert dr[0] == start
+        assert dr[2] == end
 
         dr = date_range(start=start, end=end)
-        self.assertEqual(dr.tz.zone, tz.zone)
-        self.assertEqual(dr[0], start)
-        self.assertEqual(dr[2], end)
+        assert dr.tz.zone == tz.zone
+        assert dr[0] == start
+        assert dr[2] == end
 
     def test_range_tz_dst_straddle_pytz(self):
-
-        tm._skip_if_no_pytz()
-        from pytz import timezone
         tz = timezone('US/Eastern')
         dates = [(tz.localize(datetime(2014, 3, 6)),
                   tz.localize(datetime(2014, 3, 12))),
@@ -331,24 +328,24 @@ class TestBusinessDateRange(tm.TestCase):
                   tz.localize(datetime(2013, 11, 6)))]
         for (start, end) in dates:
             dr = date_range(start, end, freq='D')
-            self.assertEqual(dr[0], start)
-            self.assertEqual(dr[-1], end)
-            self.assertEqual(np.all(dr.hour == 0), True)
+            assert dr[0] == start
+            assert dr[-1] == end
+            assert np.all(dr.hour == 0)
 
             dr = date_range(start, end, freq='D', tz='US/Eastern')
-            self.assertEqual(dr[0], start)
-            self.assertEqual(dr[-1], end)
-            self.assertEqual(np.all(dr.hour == 0), True)
+            assert dr[0] == start
+            assert dr[-1] == end
+            assert np.all(dr.hour == 0)
 
             dr = date_range(start.replace(tzinfo=None), end.replace(
                 tzinfo=None), freq='D', tz='US/Eastern')
-            self.assertEqual(dr[0], start)
-            self.assertEqual(dr[-1], end)
-            self.assertEqual(np.all(dr.hour == 0), True)
+            assert dr[0] == start
+            assert dr[-1] == end
+            assert np.all(dr.hour == 0)
 
     def test_range_tz_dateutil(self):
-        # GH 2906
-        tm._skip_if_no_dateutil()
+        # see gh-2906
+
         # Use maybe_get_tz to fix filename in tz under dateutil.
         from pandas._libs.tslib import maybe_get_tz
         tz = lambda x: maybe_get_tz('dateutil/' + x)
@@ -357,19 +354,19 @@ class TestBusinessDateRange(tm.TestCase):
         end = datetime(2011, 1, 3, tzinfo=tz('US/Eastern'))
 
         dr = date_range(start=start, periods=3)
-        self.assertTrue(dr.tz == tz('US/Eastern'))
-        self.assertTrue(dr[0] == start)
-        self.assertTrue(dr[2] == end)
+        assert dr.tz == tz('US/Eastern')
+        assert dr[0] == start
+        assert dr[2] == end
 
         dr = date_range(end=end, periods=3)
-        self.assertTrue(dr.tz == tz('US/Eastern'))
-        self.assertTrue(dr[0] == start)
-        self.assertTrue(dr[2] == end)
+        assert dr.tz == tz('US/Eastern')
+        assert dr[0] == start
+        assert dr[2] == end
 
         dr = date_range(start=start, end=end)
-        self.assertTrue(dr.tz == tz('US/Eastern'))
-        self.assertTrue(dr[0] == start)
-        self.assertTrue(dr[2] == end)
+        assert dr.tz == tz('US/Eastern')
+        assert dr[0] == start
+        assert dr[2] == end
 
     def test_range_closed(self):
         begin = datetime(2011, 1, 1)
@@ -387,8 +384,8 @@ class TestBusinessDateRange(tm.TestCase):
             if begin == closed[0]:
                 expected_right = closed[1:]
 
-            self.assert_index_equal(expected_left, left)
-            self.assert_index_equal(expected_right, right)
+            tm.assert_index_equal(expected_left, left)
+            tm.assert_index_equal(expected_right, right)
 
     def test_range_closed_with_tz_aware_start_end(self):
         # GH12409, GH12684
@@ -407,8 +404,8 @@ class TestBusinessDateRange(tm.TestCase):
             if begin == closed[0]:
                 expected_right = closed[1:]
 
-            self.assert_index_equal(expected_left, left)
-            self.assert_index_equal(expected_right, right)
+            tm.assert_index_equal(expected_left, left)
+            tm.assert_index_equal(expected_right, right)
 
         begin = Timestamp('2011/1/1')
         end = Timestamp('2014/1/1')
@@ -430,8 +427,8 @@ class TestBusinessDateRange(tm.TestCase):
             if begintz == closed[0]:
                 expected_right = closed[1:]
 
-            self.assert_index_equal(expected_left, left)
-            self.assert_index_equal(expected_right, right)
+            tm.assert_index_equal(expected_left, left)
+            tm.assert_index_equal(expected_right, right)
 
     def test_range_closed_boundary(self):
         # GH 11804
@@ -452,15 +449,15 @@ class TestBusinessDateRange(tm.TestCase):
                 expected_right = both_boundary[1:]
                 expected_left = both_boundary[:-1]
 
-            self.assert_index_equal(right_boundary, expected_right)
-            self.assert_index_equal(left_boundary, expected_left)
-            self.assert_index_equal(both_boundary, expected_both)
+            tm.assert_index_equal(right_boundary, expected_right)
+            tm.assert_index_equal(left_boundary, expected_left)
+            tm.assert_index_equal(both_boundary, expected_both)
 
     def test_years_only(self):
         # GH 6961
         dr = date_range('2014', '2015', freq='M')
-        self.assertEqual(dr[0], datetime(2014, 1, 31))
-        self.assertEqual(dr[-1], datetime(2014, 12, 31))
+        assert dr[0] == datetime(2014, 1, 31)
+        assert dr[-1] == datetime(2014, 12, 31)
 
     def test_freq_divides_end_in_nanos(self):
         # GH 10885
@@ -476,20 +473,20 @@ class TestBusinessDateRange(tm.TestCase):
                                     '2005-01-13 15:45:00'],
                                    dtype='datetime64[ns]', freq='345T',
                                    tz=None)
-        self.assert_index_equal(result_1, expected_1)
-        self.assert_index_equal(result_2, expected_2)
+        tm.assert_index_equal(result_1, expected_1)
+        tm.assert_index_equal(result_2, expected_2)
 
 
-class TestCustomDateRange(tm.TestCase):
-    def setUp(self):
+class TestCustomDateRange(object):
+    def setup_method(self, method):
         self.rng = cdate_range(START, END)
 
     def test_constructor(self):
         cdate_range(START, END, freq=CDay())
         cdate_range(START, periods=20, freq=CDay())
         cdate_range(end=START, periods=20, freq=CDay())
-        self.assertRaises(ValueError, date_range, '2011-1-1', '2012-1-1', 'C')
-        self.assertRaises(ValueError, cdate_range, '2011-1-1', '2012-1-1', 'C')
+        pytest.raises(ValueError, date_range, '2011-1-1', '2012-1-1', 'C')
+        pytest.raises(ValueError, cdate_range, '2011-1-1', '2012-1-1', 'C')
 
     def test_cached_range(self):
         DatetimeIndex._cached_range(START, END, offset=CDay())
@@ -498,16 +495,16 @@ class TestCustomDateRange(tm.TestCase):
         DatetimeIndex._cached_range(end=START, periods=20,
                                     offset=CDay())
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, START, END)
+        pytest.raises(Exception, DatetimeIndex._cached_range, START, END)
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, START,
-                          freq=CDay())
+        pytest.raises(Exception, DatetimeIndex._cached_range, START,
+                      freq=CDay())
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, end=END,
-                          freq=CDay())
+        pytest.raises(Exception, DatetimeIndex._cached_range, end=END,
+                      freq=CDay())
 
-        self.assertRaises(Exception, DatetimeIndex._cached_range, periods=20,
-                          freq=CDay())
+        pytest.raises(Exception, DatetimeIndex._cached_range, periods=20,
+                      freq=CDay())
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
@@ -521,14 +518,14 @@ class TestCustomDateRange(tm.TestCase):
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'
 
-        self.assertRaises(ValueError, Timestamp, badly_formed_date)
+        pytest.raises(ValueError, Timestamp, badly_formed_date)
 
-        self.assertRaises(ValueError, cdate_range, start=badly_formed_date,
-                          periods=10)
-        self.assertRaises(ValueError, cdate_range, end=badly_formed_date,
-                          periods=10)
-        self.assertRaises(ValueError, cdate_range, badly_formed_date,
-                          badly_formed_date)
+        pytest.raises(ValueError, cdate_range, start=badly_formed_date,
+                      periods=10)
+        pytest.raises(ValueError, cdate_range, end=badly_formed_date,
+                      periods=10)
+        pytest.raises(ValueError, cdate_range, badly_formed_date,
+                      badly_formed_date)
 
     def test_daterange_bug_456(self):
         # GH #456
@@ -537,27 +534,27 @@ class TestCustomDateRange(tm.TestCase):
         rng2.offset = CDay()
 
         result = rng1.union(rng2)
-        tm.assertIsInstance(result, DatetimeIndex)
+        assert isinstance(result, DatetimeIndex)
 
     def test_cdaterange(self):
         rng = cdate_range('2013-05-01', periods=3)
         xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-03'])
-        self.assert_index_equal(xp, rng)
+        tm.assert_index_equal(xp, rng)
 
     def test_cdaterange_weekmask(self):
         rng = cdate_range('2013-05-01', periods=3,
                           weekmask='Sun Mon Tue Wed Thu')
         xp = DatetimeIndex(['2013-05-01', '2013-05-02', '2013-05-05'])
-        self.assert_index_equal(xp, rng)
+        tm.assert_index_equal(xp, rng)
 
     def test_cdaterange_holidays(self):
         rng = cdate_range('2013-05-01', periods=3, holidays=['2013-05-01'])
         xp = DatetimeIndex(['2013-05-02', '2013-05-03', '2013-05-06'])
-        self.assert_index_equal(xp, rng)
+        tm.assert_index_equal(xp, rng)
 
     def test_cdaterange_weekmask_and_holidays(self):
         rng = cdate_range('2013-05-01', periods=3,
                           weekmask='Sun Mon Tue Wed Thu',
                           holidays=['2013-05-01'])
         xp = DatetimeIndex(['2013-05-02', '2013-05-05', '2013-05-06'])
-        self.assert_index_equal(xp, rng)
+        tm.assert_index_equal(xp, rng)

@@ -6,9 +6,9 @@ from __future__ import division
 
 import warnings
 import numpy as np
-from pandas.types.common import is_scalar
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.api import DataFrame, Series
-from pandas.util.decorators import Substitution, Appender
+from pandas.util._decorators import Substitution, Appender
 
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',

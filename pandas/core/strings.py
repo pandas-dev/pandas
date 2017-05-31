@@ -1,22 +1,23 @@
 import numpy as np
 
 from pandas.compat import zip
-from pandas.types.generic import ABCSeries, ABCIndex
-from pandas.types.missing import isnull, notnull
-from pandas.types.common import (is_bool_dtype,
-                                 is_categorical_dtype,
-                                 is_object_dtype,
-                                 is_string_like,
-                                 is_list_like,
-                                 is_scalar,
-                                 is_integer,
-                                 is_re)
+from pandas.core.dtypes.generic import ABCSeries, ABCIndex
+from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_categorical_dtype,
+    is_object_dtype,
+    is_string_like,
+    is_list_like,
+    is_scalar,
+    is_integer,
+    is_re)
 from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import AccessorProperty, NoNewAttributesMixin
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
 import warnings

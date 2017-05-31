@@ -51,14 +51,9 @@ Bug reports must:
       ...
       ```
 
-#. Include the full version string of *pandas* and its dependencies. In versions
-   of *pandas* after 0.12 you can use a built in function::
+#. Include the full version string of *pandas* and its dependencies. You can use the built in function::
 
-      >>> from pandas.util.print_versions import show_versions
-      >>> show_versions()
-
-   and in *pandas* 0.13.1 onwards::
-
+      >>> import pandas as pd
       >>> pd.show_versions()
 
 #. Explain why the current behavior is wrong/not desired and what you expect instead.
@@ -112,13 +107,6 @@ want to clone your fork to your machine::
 
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
-
-The testing suite will run automatically on Travis-CI and Appveyor once your
-pull request is submitted.  However, if you wish to run the test suite on a
-branch prior to submitting the pull request, then Travis-CI and/or AppVeyor
-need to be hooked up to your GitHub repository.  Instructions for doing so
-are `here <http://about.travis-ci.org/docs/user/getting-started/>`__ for
-Travis-CI and `here <https://www.appveyor.com/docs/>`__ for AppVeyor.
 
 Creating a branch
 -----------------
@@ -216,7 +204,7 @@ At this point you can easily do an *in-place* install, as detailed in the next s
 Creating a Windows development environment
 ------------------------------------------
 
-To build on Windows, you need to have compilers installed to build the extensions. You will need to install the appropriate Visual Studio compilers, VS 2008 for Python 2.7, VS 2010 for 3.4, and VS 2015 for Python 3.5.
+To build on Windows, you need to have compilers installed to build the extensions. You will need to install the appropriate Visual Studio compilers, VS 2008 for Python 2.7, VS 2010 for 3.4, and VS 2015 for Python 3.5 and 3.6.
 
 For Python 2.7, you can install the ``mingw`` compiler which will work equivalently to VS 2008::
 
@@ -226,7 +214,7 @@ or use the `Microsoft Visual Studio VC++ compiler for Python <https://www.micros
 
 For Python 3.4, you can download and install the `Windows 7.1 SDK <https://www.microsoft.com/en-us/download/details.aspx?id=8279>`__. Read the references below as there may be various gotchas during the installation.
 
-For Python 3.5, you can download and install the `Visual Studio 2015 Community Edition <https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx>`__.
+For Python 3.5 and 3.6, you can download and install the `Visual Studio 2015 Community Edition <https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx>`__.
 
 Here are some references and blogs:
 
@@ -359,15 +347,14 @@ have ``sphinx`` and ``ipython`` installed. `numpydoc
 <https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
 follow the Numpy Docstring Standard (see above), but you don't need to install
 this because a local copy of numpydoc is included in the *pandas* source
-code.
-`nbconvert <https://nbconvert.readthedocs.io/en/latest/>`_ and
-`nbformat <https://nbformat.readthedocs.io/en/latest/>`_ are required to build
+code. `nbsphinx <https://nbsphinx.readthedocs.io/>`_ is required to build
 the Jupyter notebooks included in the documentation.
 
 If you have a conda environment named ``pandas_dev``, you can install the extra
 requirements with::
 
       conda install -n pandas_dev sphinx ipython nbconvert nbformat
+      conda install -n pandas_dev -c conda-forge nbsphinx
 
 Furthermore, it is recommended to have all :ref:`optional dependencies <install.optional_dependencies>`.
 installed. This is not strictly necessary, but be aware that you will see some error
@@ -432,7 +419,8 @@ Building master branch documentation
 
 When pull requests are merged into the *pandas* ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
-<http://pandas-docs.github.io/pandas-docs-travis>`__.
+<http://pandas-docs.github.io/pandas-docs-travis>`__, see also
+the :ref:`Continuous Integration <contributing.ci>` section.
 
 Contributing to the code base
 =============================
@@ -444,8 +432,9 @@ Code standards
 --------------
 
 Writing good code is not just about what you write. It is also about *how* you
-write it. During testing on Travis-CI, several tools will be run to check your
-code for stylistic errors. Generating any warnings will cause the test to fail.
+write it. During :ref:`Continuous Integration <contributing.ci>` testing, several
+tools will be run to check your code for stylistic errors.
+Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to *pandas*.
 
 In addition, because a lot of people use our library, it is important that we
@@ -467,7 +456,8 @@ Here are *some* of the more common ``cpplint`` issues:
   - we restrict line-length to 80 characters to promote readability
   - every header file must include a header guard to avoid name collisions if re-included
 
-Travis-CI will run the `cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
+:ref:`Continuous Integration <contributing.ci>`. will run the
+`cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
 
@@ -514,7 +504,8 @@ the more common ``PEP8`` issues:
   - we restrict line-length to 79 characters to promote readability
   - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
 
-Travis-CI will run the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
+:ref:`Continuous Integration <contributing.ci>` will run
+the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
@@ -541,6 +532,35 @@ Please try to maintain backward compatibility. *pandas* has lots of users with l
 existing code, so don't break it if at all possible.  If you think breakage is required,
 clearly state why as part of the pull request.  Also, be careful when changing method
 signatures and add deprecation warnings where needed.
+
+.. _contributing.ci:
+
+Testing With Continuous Integration
+-----------------------------------
+
+The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__,
+`Appveyor <https://www.appveyor.com/>`__, and `Circle CI <https://circleci.com/>`__ continuous integration
+services, once your pull request is submitted.
+However, if you wish to run the test suite on a branch prior to submitting the pull request,
+then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
+for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__,
+`Appveyor <https://www.appveyor.com/docs/>`__ , and `CircleCI <https://circleci.com/>`__.
+
+A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
+then you will get a red 'X', where you can click through to see the individual failed tests.
+This is an example of a green build.
+
+.. image:: _static/ci.png
+
+.. note::
+
+   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI. Appveyor will auto-cancel
+   any non-currently-running tests for that same pull-request. You can enable the auto-cancel feature for
+   `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
+   for `CircleCI here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
+
+.. _contributing.tdd:
+
 
 Test-driven development/code writing
 ------------------------------------
@@ -594,8 +614,99 @@ the expected correct result::
 
         assert_frame_equal(pivoted, expected)
 
+Transitioning to ``pytest``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class.
+
+.. code-block:: python
+
+    class TestReallyCoolFeature(object):
+        ....
+
+Going forward, we are moving to a more *functional* style using the `pytest <http://doc.pytest.org/en/latest/>`__ framework, which offers a richer testing
+framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
+
+.. code-block:: python
+
+    def test_really_cool_feature():
+        ....
+
+Using ``pytest``
+~~~~~~~~~~~~~~~~
+
+Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
+
+- functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
+- using ``parametrize``: allow testing of multiple cases
+- ``fixture``, code for object construction, on a per-test basis
+- using bare ``assert`` for scalars and truth-testing
+- ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
+- the typical pattern of constructing an ``expected`` and comparing versus the ``result``
+
+We would name this file ``test_cool_feature.py`` and put in an appropriate place in the ``pandas/tests/`` structure.
+
+.. code-block:: python
+
+   import pytest
+   import numpy as np
+   import pandas as pd
+   from pandas.util import testing as tm
+
+   @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
+   def test_dtypes(dtype):
+       assert str(np.dtype(dtype)) == dtype
+
+   @pytest.fixture
+   def series():
+       return pd.Series([1, 2, 3])
+
+   @pytest.fixture(params=['int8', 'int16', 'int32', 'int64'])
+   def dtype(request):
+       return request.param
+
+   def test_series(series, dtype):
+       result = series.astype(dtype)
+       assert result.dtype == dtype
+
+       expected = pd.Series([1, 2, 3], dtype=dtype)
+       tm.assert_series_equal(result, expected)
+
+
+A test run of this yields
+
+.. code-block:: shell
+
+   ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v
+   =========================== test session starts ===========================
+   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
+   collected 8 items
+
+   tester.py::test_dtypes[int8] PASSED
+   tester.py::test_dtypes[int16] PASSED
+   tester.py::test_dtypes[int32] PASSED
+   tester.py::test_dtypes[int64] PASSED
+   tester.py::test_series[int8] PASSED
+   tester.py::test_series[int16] PASSED
+   tester.py::test_series[int32] PASSED
+   tester.py::test_series[int64] PASSED
+
+Tests that we have ``parametrized`` are now accessible via the test name, for example we could run these with ``-k int8`` to sub-select *only* those tests which match ``int8``.
+
+
+.. code-block:: shell
+
+   ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v -k int8
+   =========================== test session starts ===========================
+   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
+   collected 8 items
+
+   test_cool_feature.py::test_dtypes[int8] PASSED
+   test_cool_feature.py::test_series[int8] PASSED
+
+
 Running the test suite
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 The tests can then be run directly inside your Git clone (without having to
 install *pandas*) by typing::
@@ -616,23 +727,23 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can 
+Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can
 speed up local testing on multicore machines. To use this feature, you will
 need to install `pytest-xdist` via::
 
     pip install pytest-xdist
-    
-Two scripts are provided to assist with this.  These scripts distribute 
+
+Two scripts are provided to assist with this.  These scripts distribute
 testing across 4 threads.
 
 On Unix variants, one can type::
 
     test_fast.sh
-    
+
 On Windows, one can type::
 
     test_fast.bat
-    
+
 This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.
 
@@ -649,19 +760,14 @@ Furthermore one can run
 with an imported pandas to run tests similarly.
 
 Running the performance test suite
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------
+
 Performance matters and it is worth considering whether your code has introduced
 performance regressions.  *pandas* is in the process of migrating to
 `asv benchmarks <https://github.com/spacetelescope/asv>`__
 to enable easy monitoring of the performance of critical *pandas* operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory.  asv
 supports both python2 and python3.
-
-.. note::
-
-    The asv benchmark suite was translated from the previous framework, vbench,
-    so many stylistic issues are likely a result of automated transformation of the
-    code.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
@@ -721,73 +827,6 @@ This will display stderr from the benchmarks, and use your local
 
 Information on how to write a benchmark and how to use asv can be found in the
 `asv documentation <https://asv.readthedocs.io/en/latest/writing_benchmarks.html>`_.
-
-.. _contributing.gbq_integration_tests:
-
-Running Google BigQuery Integration Tests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You will need to create a Google BigQuery private key in JSON format in
-order to run Google BigQuery integration tests on your local machine and
-on Travis-CI. The first step is to create a `service account
-<https://console.developers.google.com/iam-admin/serviceaccounts/>`__.
-
-Integration tests for ``pandas.io.gbq`` are skipped in pull requests because
-the credentials that are required for running Google BigQuery integration
-tests are `encrypted <https://docs.travis-ci.com/user/encrypting-files/>`__
-on Travis-CI and are only accessible from the pandas-dev/pandas repository. The
-credentials won't be available on forks of pandas. Here are the steps to run
-gbq integration tests on a forked repository:
-
-#. Go to `Travis CI <https://travis-ci.org/>`__ and sign in with your GitHub
-   account.
-#. Click on the ``+`` icon next to the ``My Repositories`` list and enable
-   Travis builds for your fork.
-#. Click on the gear icon to edit your travis build, and add two environment
-   variables:
-
-   - ``GBQ_PROJECT_ID`` with the value being the ID of your BigQuery project.
-
-   - ``SERVICE_ACCOUNT_KEY`` with the value being the contents of the JSON key
-     that you downloaded for your service account. Use single quotes around
-     your JSON key to ensure that it is treated as a string.
-
-   For both environment variables, keep the "Display value in build log" option
-   DISABLED. These variables contain sensitive data and you do not want their
-   contents being exposed in build logs.
-#. Your branch should be tested automatically once it is pushed. You can check
-   the status by visiting your Travis branches page which exists at the
-   following location: https://travis-ci.org/your-user-name/pandas/branches .
-   Click on a build job for your branch. Expand the following line in the
-   build log: ``ci/print_skipped.py /tmp/pytest.xml`` . Search for the
-   term ``test_gbq`` and confirm that gbq integration tests are not skipped.
-
-Running the vbench performance test suite (phasing out)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Historically, *pandas* used `vbench library <https://github.com/pydata/vbench>`_
-to enable easy monitoring of the performance of critical *pandas* operations.
-These benchmarks are all found in the ``pandas/vb_suite`` directory.  vbench
-currently only works on python2.
-
-To install vbench::
-
-    pip install git+https://github.com/pydata/vbench
-
-Vbench also requires ``sqlalchemy``, ``gitpython``, and ``psutil``, which can all be installed
-using pip.  If you need to run a benchmark, change your directory to the *pandas* root and run::
-
-    ./test_perf.sh -b master -t HEAD
-
-This will check out the master revision and run the suite on both master and
-your commit.  Running the full test suite can take up to one hour and use up
-to 3GB of RAM.  Usually it is sufficient to paste a subset of the results into the Pull Request to show that the committed changes do not cause unexpected
-performance regressions.
-
-You can run specific benchmarks using the ``-r`` flag, which takes a regular expression.
-
-See the `performance testing wiki <https://github.com/pandas-dev/pandas/wiki/Performance-Testing>`_ for information
-on how to write a benchmark.
 
 Documenting your code
 ---------------------
@@ -948,12 +987,8 @@ updated.  Pushing them to GitHub again is done by::
     git push -f origin shiny-new-feature
 
 This will automatically update your pull request with the latest code and restart the
-Travis-CI tests.
+:ref:`Continuous Integration <contributing.ci>` tests.
 
-If your pull request is related to the ``pandas.io.gbq`` module, please see
-the section on :ref:`Running Google BigQuery Integration Tests
-<contributing.gbq_integration_tests>` to configure a Google BigQuery service
-account for your pull request on Travis-CI.
 
 Delete your merged branch (optional)
 ------------------------------------

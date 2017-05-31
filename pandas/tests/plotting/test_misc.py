@@ -2,6 +2,8 @@
 
 """ Test cases for misc plot functions """
 
+import pytest
+
 from pandas import Series, DataFrame
 from pandas.compat import lmap
 import pandas.util.testing as tm
@@ -11,16 +13,17 @@ import numpy as np
 from numpy import random
 from numpy.random import randn
 
-import pandas.tools.plotting as plotting
+import pandas.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _ok_for_gaussian_kde)
 
+tm._skip_if_no_mpl()
 
-@tm.mplskip
+
 class TestSeriesPlots(TestPlotBase):
 
-    def setUp(self):
-        TestPlotBase.setUp(self)
+    def setup_method(self, method):
+        TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
         mpl.rcdefaults()
 
@@ -29,7 +32,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @slow
     def test_autocorrelation_plot(self):
-        from pandas.tools.plotting import autocorrelation_plot
+        from pandas.plotting import autocorrelation_plot
         _check_plot_works(autocorrelation_plot, series=self.ts)
         _check_plot_works(autocorrelation_plot, series=self.ts.values)
 
@@ -38,17 +41,16 @@ class TestSeriesPlots(TestPlotBase):
 
     @slow
     def test_lag_plot(self):
-        from pandas.tools.plotting import lag_plot
+        from pandas.plotting import lag_plot
         _check_plot_works(lag_plot, series=self.ts)
         _check_plot_works(lag_plot, series=self.ts, lag=5)
 
     @slow
     def test_bootstrap_plot(self):
-        from pandas.tools.plotting import bootstrap_plot
+        from pandas.plotting import bootstrap_plot
         _check_plot_works(bootstrap_plot, series=self.ts, size=10)
 
 
-@tm.mplskip
 class TestDataFramePlots(TestPlotBase):
 
     @slow
@@ -76,9 +78,15 @@ class TestDataFramePlots(TestPlotBase):
             _check_plot_works(scat, diagonal='hist')
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(scat, range_padding=.1)
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, color='rgb')
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, c='rgb')
+        with tm.assert_produces_warning(UserWarning):
+            _check_plot_works(scat, facecolor='rgb')
 
         def scat2(x, y, by=None, ax=None, figsize=None):
-            return plotting.scatter_plot(df, x, y, by, ax, figsize=None)
+            return plotting._core.scatter_plot(df, x, y, by, ax, figsize=None)
 
         _check_plot_works(scat2, x=0, y=1)
         grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
@@ -124,7 +132,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_andrews_curves(self):
-        from pandas.tools.plotting import andrews_curves
+        from pandas.plotting import andrews_curves
         from matplotlib import cm
 
         df = self.iris
@@ -189,7 +197,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @slow
     def test_parallel_coordinates(self):
-        from pandas.tools.plotting import parallel_coordinates
+        from pandas.plotting import parallel_coordinates
         from matplotlib import cm
 
         df = self.iris
@@ -235,9 +243,29 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(df, 'Name', colors=colors)
 
+    def test_parallel_coordinates_with_sorted_labels(self):
+        """ For #15908 """
+        from pandas.plotting import parallel_coordinates
+
+        df = DataFrame({"feat": [i for i in range(30)],
+                        "class": [2 for _ in range(10)] +
+                        [3 for _ in range(10)] +
+                        [1 for _ in range(10)]})
+        ax = parallel_coordinates(df, 'class', sort_labels=True)
+        polylines, labels = ax.get_legend_handles_labels()
+        color_label_tuples = \
+            zip([polyline.get_color() for polyline in polylines], labels)
+        ordered_color_label_tuples = sorted(color_label_tuples,
+                                            key=lambda x: x[1])
+        prev_next_tupels = zip([i for i in ordered_color_label_tuples[0:-1]],
+                               [i for i in ordered_color_label_tuples[1:]])
+        for prev, nxt in prev_next_tupels:
+            # lables and colors are ordered strictly increasing
+            assert prev[1] < nxt[1] and prev[0] < nxt[0]
+
     @slow
     def test_radviz(self):
-        from pandas.tools.plotting import radviz
+        from pandas.plotting import radviz
         from matplotlib import cm
 
         df = self.iris
@@ -281,20 +309,20 @@ class TestDataFramePlots(TestPlotBase):
 
         # Case len(title) == len(df)
         plot = df.plot(subplots=True, title=title)
-        self.assertEqual([p.get_title() for p in plot], title)
+        assert [p.get_title() for p in plot] == title
 
         # Case len(title) > len(df)
-        self.assertRaises(ValueError, df.plot, subplots=True,
-                          title=title + ["kittens > puppies"])
+        pytest.raises(ValueError, df.plot, subplots=True,
+                      title=title + ["kittens > puppies"])
 
         # Case len(title) < len(df)
-        self.assertRaises(ValueError, df.plot, subplots=True, title=title[:2])
+        pytest.raises(ValueError, df.plot, subplots=True, title=title[:2])
 
         # Case subplots=False and title is of type list
-        self.assertRaises(ValueError, df.plot, subplots=False, title=title)
+        pytest.raises(ValueError, df.plot, subplots=False, title=title)
 
         # Case df with 3 numeric columns but layout of (2,2)
         plot = df.drop('SepalWidth', axis=1).plot(subplots=True, layout=(2, 2),
                                                   title=title[:-1])
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
-        self.assertEqual(title_list, title[:3] + [''])
+        assert title_list == title[:3] + ['']

@@ -314,12 +314,12 @@ class MergeAsof(object):
 
         self.df1 = pd.DataFrame(
             {'time': np.random.randint(0, one_count / 20, one_count),
-             'key': np.random.choice(list(string.uppercase), one_count),
+             'key': np.random.choice(list(string.ascii_uppercase), one_count),
              'key2': np.random.randint(0, 25, one_count),
              'value1': np.random.randn(one_count)})
         self.df2 = pd.DataFrame(
             {'time': np.random.randint(0, two_count / 20, two_count),
-             'key': np.random.choice(list(string.uppercase), two_count),
+             'key': np.random.choice(list(string.ascii_uppercase), two_count),
              'key2': np.random.randint(0, 25, two_count),
              'value2': np.random.randn(two_count)})
 

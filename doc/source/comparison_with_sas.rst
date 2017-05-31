@@ -577,9 +577,8 @@ Data Interop
 ~~~~~~~~~~~~
 
 pandas provides a :func:`read_sas` method that can read SAS data saved in
-the XPORT format.  The ability to read SAS's binary format is planned for a
-future release.
-
+the XPORT or SAS7BDAT binary format.
+ 
 .. code-block:: none
 
    libname xportout xport 'transport-file.xpt';
@@ -591,6 +590,15 @@ future release.
 .. code-block:: python
 
    df = pd.read_sas('transport-file.xpt')
+   df = pd.read_sas('binary-file.sas7bdat')
+
+You can also specify the file format directly. By default, pandas will try
+to infer the file format based on its extension.
+
+.. code-block:: python
+
+   df = pd.read_sas('transport-file.xpt', format='xport')
+   df = pd.read_sas('binary-file.sas7bdat', format='sas7bdat')
 
 XPORT is a relatively limited format and the parsing of it is not as
 optimized as some of the other pandas readers. An alternative way
@@ -605,3 +613,4 @@ to interop data between SAS and pandas is to serialize to csv.
 
    In [9]: %time df = pd.read_csv('big.csv')
    Wall time: 4.86 s
+ 

@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+
+import pytest
+
 from datetime import timedelta
 
 import numpy as np
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     compat, concat, option_context)
 from pandas.compat import u
-from pandas.types.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
@@ -16,7 +19,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-class TestDataFrameDataTypes(tm.TestCase, TestData):
+class TestDataFrameDataTypes(TestData):
 
     def test_concat_empty_dataframe_dtypes(self):
         df = DataFrame(columns=list("abc"))
@@ -25,14 +28,14 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df['c'] = df['c'].astype(np.float64)
 
         result = pd.concat([df, df])
-        self.assertEqual(result['a'].dtype, np.bool_)
-        self.assertEqual(result['b'].dtype, np.int32)
-        self.assertEqual(result['c'].dtype, np.float64)
+        assert result['a'].dtype == np.bool_
+        assert result['b'].dtype == np.int32
+        assert result['c'].dtype == np.float64
 
         result = pd.concat([df, df.astype(np.float64)])
-        self.assertEqual(result['a'].dtype, np.object_)
-        self.assertEqual(result['b'].dtype, np.float64)
-        self.assertEqual(result['c'].dtype, np.float64)
+        assert result['a'].dtype == np.object_
+        assert result['b'].dtype == np.float64
+        assert result['c'].dtype == np.float64
 
     def test_empty_frame_dtypes_ftypes(self):
         empty_df = pd.DataFrame()
@@ -146,8 +149,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         ei = df[['k']]
         assert_frame_equal(ri, ei)
 
-        self.assertRaises(NotImplementedError,
-                          lambda: df.select_dtypes(include=['period']))
+        pytest.raises(NotImplementedError,
+                      lambda: df.select_dtypes(include=['period']))
 
     def test_select_dtypes_exclude(self):
         df = DataFrame({'a': list('abc'),
@@ -197,17 +200,21 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
     def test_select_dtypes_empty(self):
         df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
-        with tm.assertRaisesRegexp(ValueError, 'at least one of include or '
-                                   'exclude must be nonempty'):
+        with tm.assert_raises_regex(ValueError, 'at least one of '
+                                    'include or exclude '
+                                    'must be nonempty'):
             df.select_dtypes()
 
     def test_select_dtypes_raises_on_string(self):
         df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
-        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
+        with tm.assert_raises_regex(TypeError, 'include and exclude '
+                                    '.+ non-'):
             df.select_dtypes(include='object')
-        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
+        with tm.assert_raises_regex(TypeError, 'include and exclude '
+                                    '.+ non-'):
             df.select_dtypes(exclude='object')
-        with tm.assertRaisesRegexp(TypeError, 'include and exclude .+ non-'):
+        with tm.assert_raises_regex(TypeError, 'include and exclude '
+                                    '.+ non-'):
             df.select_dtypes(include=int, exclude='object')
 
     def test_select_dtypes_bad_datetime64(self):
@@ -217,10 +224,10 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
-        with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
+        with tm.assert_raises_regex(ValueError, '.+ is too specific'):
             df.select_dtypes(include=['datetime64[D]'])
 
-        with tm.assertRaisesRegexp(ValueError, '.+ is too specific'):
+        with tm.assert_raises_regex(ValueError, '.+ is too specific'):
             df.select_dtypes(exclude=['datetime64[as]'])
 
     def test_select_dtypes_datetime_with_tz(self):
@@ -248,11 +255,11 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         except NameError:
             pass
         for dt in string_dtypes:
-            with tm.assertRaisesRegexp(TypeError,
-                                       'string dtypes are not allowed'):
+            with tm.assert_raises_regex(TypeError,
+                                        'string dtypes are not allowed'):
                 df.select_dtypes(include=[dt])
-            with tm.assertRaisesRegexp(TypeError,
-                                       'string dtypes are not allowed'):
+            with tm.assert_raises_regex(TypeError,
+                                        'string dtypes are not allowed'):
                 df.select_dtypes(exclude=[dt])
 
     def test_select_dtypes_bad_arg_raises(self):
@@ -263,7 +270,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
-        with tm.assertRaisesRegexp(TypeError, 'data type.*not understood'):
+        with tm.assert_raises_regex(TypeError, 'data type.'
+                                    '*not understood'):
             df.select_dtypes(['blargy, blarg, blarg'])
 
     def test_select_dtypes_typecodes(self):
@@ -318,9 +326,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
         # mixed casting
         def _check_cast(df, v):
-            self.assertEqual(
-                list(set([s.dtype.name
-                          for _, s in compat.iteritems(df)]))[0], v)
+            assert (list(set([s.dtype.name for
+                              _, s in compat.iteritems(df)]))[0] == v)
 
         mn = self.all_mixed._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')
@@ -393,7 +400,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         for this_type in types:
             for this_val in values:
                 df = DataFrame([this_val])
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     df.astype(this_type)
 
     def test_astype_str(self):
@@ -470,8 +477,8 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
         # error should be raised when using something other than column labels
         # in the keys of the dtype dict
-        self.assertRaises(KeyError, df.astype, {'b': str, 2: str})
-        self.assertRaises(KeyError, df.astype, {'e': str})
+        pytest.raises(KeyError, df.astype, {'b': str, 2: str})
+        pytest.raises(KeyError, df.astype, {'e': str})
         assert_frame_equal(df, original)
 
         # if the dtypes provided are the same as the original dtypes, the
@@ -526,7 +533,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
 
         df = DataFrame([1, 2, 3])
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             df.astype(np.float64, errors=True)
 
         with tm.assert_produces_warning(FutureWarning):
@@ -535,7 +542,7 @@ class TestDataFrameDataTypes(tm.TestCase, TestData):
         df.astype(np.int8, errors='ignore')
 
 
-class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
+class TestDataFrameDatetimeWithTZ(TestData):
 
     def test_interleave(self):
 
@@ -553,7 +560,7 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                               pd.NaT,
                               Timestamp('2013-01-03 00:00:00+0100', tz='CET')],
                              ['foo', 'foo', 'foo']], dtype=object).T
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         # interleave with only datetime64[ns]
         result = self.tzframe.values
@@ -569,7 +576,7 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                               pd.NaT,
                               Timestamp('2013-01-03 00:00:00+0100',
                                         tz='CET')]], dtype=object).T
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_astype(self):
         # astype
@@ -613,12 +620,12 @@ class TestDataFrameDatetimeWithTZ(tm.TestCase, TestData):
                               ['2013-01-03', '2013-01-03 00:00:00-05:00',
                                '2013-01-03 00:00:00+01:00']],
                              columns=self.tzframe.columns)
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = str(self.tzframe)
-        self.assertTrue('0 2013-01-01 2013-01-01 00:00:00-05:00 '
-                        '2013-01-01 00:00:00+01:00' in result)
-        self.assertTrue('1 2013-01-02                       '
-                        'NaT                       NaT' in result)
-        self.assertTrue('2 2013-01-03 2013-01-03 00:00:00-05:00 '
-                        '2013-01-03 00:00:00+01:00' in result)
+        assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
+                '2013-01-01 00:00:00+01:00') in result
+        assert ('1 2013-01-02                       '
+                'NaT                       NaT') in result
+        assert ('2 2013-01-03 2013-01-03 00:00:00-05:00 '
+                '2013-01-03 00:00:00+01:00') in result

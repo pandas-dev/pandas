@@ -12,7 +12,7 @@ import itertools
 from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
                     Series, Categorical)
 from pandas.compat import OrderedDict, lrange
-from pandas.sparse.array import SparseArray
+from pandas.core.sparse.array import SparseArray
 from pandas.core.internals import (BlockPlacement, SingleBlockManager,
                                    make_block, BlockManager)
 import pandas.core.algorithms as algos
@@ -192,9 +192,9 @@ def create_mgr(descr, item_shape=None):
                         [mgr_items] + [np.arange(n) for n in item_shape])
 
 
-class TestBlock(tm.TestCase):
+class TestBlock(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         # self.fblock = get_float_ex()  # a,c,e
         # self.cblock = get_complex_ex() #
         # self.oblock = get_obj_ex()
@@ -248,7 +248,7 @@ class TestBlock(tm.TestCase):
 
     def test_copy(self):
         cop = self.fblock.copy()
-        self.assertIsNot(cop, self.fblock)
+        assert cop is not self.fblock
         assert_block_equal(self.fblock, cop)
 
     def test_reindex_index(self):
@@ -309,7 +309,7 @@ class TestBlock(tm.TestCase):
         # assert len(bs), 0)
 
 
-class TestDatetimeBlock(tm.TestCase):
+class TestDatetimeBlock(object):
 
     def test_try_coerce_arg(self):
         block = create_block('datetime', [0])
@@ -382,7 +382,7 @@ class TestBlockManager(object):
         assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
         # share ref_items
-        # self.assertIs(mgr2.blocks[0].ref_items, mgr2.blocks[1].ref_items)
+        # assert mgr2.blocks[0].ref_items is mgr2.blocks[1].ref_items
 
         # GH2431
         assert hasattr(mgr2, "_is_consolidated")
@@ -1072,7 +1072,7 @@ class TestIndexing(object):
     # reindex_indexer(new_labels, indexer, axis)
 
 
-class TestBlockPlacement(tm.TestCase):
+class TestBlockPlacement(object):
 
     def test_slice_len(self):
         assert len(BlockPlacement(slice(0, 4))) == 4
@@ -1090,8 +1090,8 @@ class TestBlockPlacement(tm.TestCase):
 
     def test_unbounded_slice_raises(self):
         def assert_unbounded_slice_error(slc):
-            tm.assertRaisesRegexp(ValueError, "unbounded slice",
-                                  lambda: BlockPlacement(slc))
+            tm.assert_raises_regex(ValueError, "unbounded slice",
+                                   lambda: BlockPlacement(slc))
 
         assert_unbounded_slice_error(slice(None, None))
         assert_unbounded_slice_error(slice(10, None))

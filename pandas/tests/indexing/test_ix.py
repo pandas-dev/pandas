@@ -1,18 +1,20 @@
 """ test indexing with ix """
 
+import pytest
+
 from warnings import catch_warnings
 
 import numpy as np
 import pandas as pd
 
-from pandas.types.common import is_scalar
+from pandas.core.dtypes.common import is_scalar
 from pandas.compat import lrange
 from pandas import Series, DataFrame, option_context, MultiIndex
 from pandas.util import testing as tm
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 
 
-class TestIX(tm.TestCase):
+class TestIX(object):
 
     def test_ix_deprecation(self):
         # GH 15114
@@ -80,9 +82,9 @@ class TestIX(tm.TestCase):
 
         def compare(result, expected):
             if is_scalar(expected):
-                self.assertEqual(result, expected)
+                assert result == expected
             else:
-                self.assertTrue(expected.equals(result))
+                assert expected.equals(result)
 
         # failure cases for .loc, but these work for .ix
         df = pd.DataFrame(np.random.randn(5, 4), columns=list('ABCD'))
@@ -96,7 +98,7 @@ class TestIX(tm.TestCase):
                 with catch_warnings(record=True):
                     df.ix[key]
 
-                self.assertRaises(TypeError, lambda: df.loc[key])
+                pytest.raises(TypeError, lambda: df.loc[key])
 
         df = pd.DataFrame(np.random.randn(5, 4), columns=list('ABCD'),
                           index=pd.date_range('2012-01-01', periods=5))
@@ -116,7 +118,7 @@ class TestIX(tm.TestCase):
                 with catch_warnings(record=True):
                     expected = df.ix[key]
             except KeyError:
-                self.assertRaises(KeyError, lambda: df.loc[key])
+                pytest.raises(KeyError, lambda: df.loc[key])
                 continue
 
             result = df.loc[key]
@@ -184,7 +186,7 @@ class TestIX(tm.TestCase):
         key = 4.0, 2012
 
         # emits a PerformanceWarning, ok
-        with self.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning):
             tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
@@ -214,7 +216,7 @@ class TestIX(tm.TestCase):
             indexer = i * 2
             v = 1000 + i * 200
             expected.loc[indexer, 'y'] = v
-            self.assertEqual(expected.loc[indexer, 'y'], v)
+            assert expected.loc[indexer, 'y'] == v
 
         df.loc[df.x % 2 == 0, 'y'] = df.loc[df.x % 2 == 0, 'y'] * 100
         tm.assert_frame_equal(df, expected)
@@ -250,21 +252,21 @@ class TestIX(tm.TestCase):
                        index=['e', 7, 'f', 'g'])
 
         with catch_warnings(record=True):
-            self.assertEqual(df.ix['e', 8], 2)
-        self.assertEqual(df.loc['e', 8], 2)
+            assert df.ix['e', 8] == 2
+        assert df.loc['e', 8] == 2
 
         with catch_warnings(record=True):
             df.ix['e', 8] = 42
-            self.assertEqual(df.ix['e', 8], 42)
-        self.assertEqual(df.loc['e', 8], 42)
+            assert df.ix['e', 8] == 42
+        assert df.loc['e', 8] == 42
 
         df.loc['e', 8] = 45
         with catch_warnings(record=True):
-            self.assertEqual(df.ix['e', 8], 45)
-        self.assertEqual(df.loc['e', 8], 45)
+            assert df.ix['e', 8] == 45
+        assert df.loc['e', 8] == 45
 
     def test_ix_slicing_strings(self):
-        # GH3836
+        # see gh-3836
         data = {'Classification':
                 ['SA EQUITY CFD', 'bbb', 'SA EQUITY', 'SA SSF', 'aaa'],
                 'Random': [1, 2, 3, 4, 5],
@@ -298,14 +300,14 @@ class TestIX(tm.TestCase):
             np.random.randn(2, 5), index=["row%s" % i for i in range(2)],
             columns=["col%s" % i for i in range(5)])
         with catch_warnings(record=True):
-            self.assertRaises(ValueError, df.ix.__setitem__, (2, 0), 100)
+            pytest.raises(ValueError, df.ix.__setitem__, (2, 0), 100)
 
     def test_ix_setitem_out_of_bounds_axis_1(self):
         df = pd.DataFrame(
             np.random.randn(5, 2), index=["row%s" % i for i in range(5)],
             columns=["col%s" % i for i in range(2)])
         with catch_warnings(record=True):
-            self.assertRaises(ValueError, df.ix.__setitem__, (0, 2), 100)
+            pytest.raises(ValueError, df.ix.__setitem__, (0, 2), 100)
 
     def test_ix_empty_list_indexer_is_ok(self):
         with catch_warnings(record=True):

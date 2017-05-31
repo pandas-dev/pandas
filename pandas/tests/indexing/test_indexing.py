@@ -3,11 +3,14 @@
 
 """ test fancy indexing & misc """
 
+import pytest
+
 from warnings import catch_warnings
 from datetime import datetime
 
-from pandas.types.common import (is_integer_dtype,
-                                 is_float_dtype)
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_float_dtype)
 from pandas.compat import range, lrange, lzip, StringIO
 import numpy as np
 
@@ -23,7 +26,7 @@ from pandas.tests.indexing.common import Base, _mklbl
 # Indexing test cases
 
 
-class TestFancy(Base, tm.TestCase):
+class TestFancy(Base):
     """ pure get/set item & fancy indexing """
 
     def test_setitem_ndarray_1d(self):
@@ -39,7 +42,7 @@ class TestFancy(Base, tm.TestCase):
             df.loc[df.index[2:5], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
                                                      2.2, 1.0])
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
         # valid
         df.loc[df.index[2:6], 'bar'] = np.array([2.33j, 1.23 + 0.1j,
@@ -58,14 +61,14 @@ class TestFancy(Base, tm.TestCase):
         def f():
             df[2:5] = np.arange(1, 4) * 1j
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_setitem_dtype_upcast(self):
 
         # GH3216
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df['c'] = np.nan
-        self.assertEqual(df['c'].dtype, np.float64)
+        assert df['c'].dtype == np.float64
 
         df.loc[0, 'c'] = 'foo'
         expected = DataFrame([{"a": 1, "c": 'foo'},
@@ -84,8 +87,8 @@ class TestFancy(Base, tm.TestCase):
                               columns=['foo', 'bar', 'baz'])
 
             tm.assert_frame_equal(left, right)
-            self.assertTrue(is_integer_dtype(left['foo']))
-            self.assertTrue(is_integer_dtype(left['baz']))
+            assert is_integer_dtype(left['foo'])
+            assert is_integer_dtype(left['baz'])
 
         left = DataFrame(np.arange(6, dtype='int64').reshape(2, 3) / 10.0,
                          index=list('ab'),
@@ -96,8 +99,8 @@ class TestFancy(Base, tm.TestCase):
                           columns=['foo', 'bar', 'baz'])
 
         tm.assert_frame_equal(left, right)
-        self.assertTrue(is_float_dtype(left['foo']))
-        self.assertTrue(is_float_dtype(left['baz']))
+        assert is_float_dtype(left['foo'])
+        assert is_float_dtype(left['baz'])
 
     def test_dups_fancy_indexing(self):
 
@@ -107,7 +110,7 @@ class TestFancy(Base, tm.TestCase):
         df.columns = ['a', 'a', 'b']
         result = df[['b', 'a']].columns
         expected = Index(['b', 'a', 'a'])
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # across dtypes
         df = DataFrame([[1, 2, 1., 2., 3., 'foo', 'bar']],
@@ -228,7 +231,7 @@ class TestFancy(Base, tm.TestCase):
         idx = df['test'] == '_'
         temp = df.loc[idx, 'a'].apply(lambda x: '-----' if x == 'aaa' else x)
         df.loc[idx, 'test'] = temp
-        self.assertEqual(df.iloc[0, 2], '-----')
+        assert df.iloc[0, 2] == '-----'
 
         # if I look at df, then element [0,2] equals '_'. If instead I type
         # df.ix[idx,'test'], I get '-----', finally by typing df.iloc[0,2] I
@@ -239,9 +242,9 @@ class TestFancy(Base, tm.TestCase):
         df = pd.DataFrame(np.random.random((10, 5)),
                           columns=["a"] + [20, 21, 22, 23])
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df[[22, 26, -8]]
-        self.assertEqual(df[21].shape[0], df.shape[0])
+        assert df[21].shape[0] == df.shape[0]
 
     def test_set_index_nan(self):
 
@@ -427,19 +430,19 @@ class TestFancy(Base, tm.TestCase):
         # dtype should properly raises KeyError
         df = pd.DataFrame([1], pd.Index([pd.Timestamp('2011-01-01')],
                                         dtype=object))
-        self.assertTrue(df.index.is_all_dates)
-        with tm.assertRaises(KeyError):
+        assert df.index.is_all_dates
+        with pytest.raises(KeyError):
             df['2011']
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.loc['2011', 0]
 
         df = pd.DataFrame()
-        self.assertFalse(df.index.is_all_dates)
-        with tm.assertRaises(KeyError):
+        assert not df.index.is_all_dates
+        with pytest.raises(KeyError):
             df['2011']
 
-        with tm.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             df.loc['2011', 0]
 
     def test_mi_access(self):
@@ -533,7 +536,7 @@ class TestFancy(Base, tm.TestCase):
         index = df.index.copy()
 
         df['A'] = df['A'].astype(np.float64)
-        self.assert_index_equal(df.index, index)
+        tm.assert_index_equal(df.index, index)
 
         # TODO(wesm): unused variables
         # result = df.get_dtype_counts().sort_index()
@@ -553,15 +556,15 @@ class TestFancy(Base, tm.TestCase):
             for s in [Series(range(5)),
                       Series(range(5), index=range(1, 6))]:
 
-                self.assertTrue(s.index.is_integer())
+                assert s.index.is_integer()
 
                 for indexer in [lambda x: x.ix,
                                 lambda x: x.loc,
                                 lambda x: x]:
                     s2 = s.copy()
                     indexer(s2)[0.1] = 0
-                    self.assertTrue(s2.index.is_floating())
-                    self.assertTrue(indexer(s2)[0.1] == 0)
+                    assert s2.index.is_floating()
+                    assert indexer(s2)[0.1] == 0
 
                     s2 = s.copy()
                     indexer(s2)[0.0] = 0
@@ -572,11 +575,11 @@ class TestFancy(Base, tm.TestCase):
 
                     s2 = s.copy()
                     indexer(s2)['0'] = 0
-                    self.assertTrue(s2.index.is_object())
+                    assert s2.index.is_object()
 
             for s in [Series(range(5), index=np.arange(5.))]:
 
-                self.assertTrue(s.index.is_floating())
+                assert s.index.is_floating()
 
                 for idxr in [lambda x: x.ix,
                              lambda x: x.loc,
@@ -584,8 +587,8 @@ class TestFancy(Base, tm.TestCase):
 
                     s2 = s.copy()
                     idxr(s2)[0.1] = 0
-                    self.assertTrue(s2.index.is_floating())
-                    self.assertTrue(idxr(s2)[0.1] == 0)
+                    assert s2.index.is_floating()
+                    assert idxr(s2)[0.1] == 0
 
                     s2 = s.copy()
                     idxr(s2)[0.0] = 0
@@ -593,10 +596,10 @@ class TestFancy(Base, tm.TestCase):
 
                     s2 = s.copy()
                     idxr(s2)['0'] = 0
-                    self.assertTrue(s2.index.is_object())
+                    assert s2.index.is_object()
 
 
-class TestMisc(Base, tm.TestCase):
+class TestMisc(Base):
 
     def test_indexer_caching(self):
         # GH5727
@@ -635,9 +638,9 @@ class TestMisc(Base, tm.TestCase):
     def test_float_index_at_iat(self):
         s = pd.Series([1, 2, 3], index=[0.1, 0.2, 0.3])
         for el, item in s.iteritems():
-            self.assertEqual(s.at[el], item)
+            assert s.at[el] == item
         for i in range(len(s)):
-            self.assertEqual(s.iat[i], i + 1)
+            assert s.iat[i] == i + 1
 
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
@@ -713,13 +716,14 @@ class TestMisc(Base, tm.TestCase):
 
     def test_slice_with_zero_step_raises(self):
         s = Series(np.arange(20), index=_mklbl('A', 20))
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: s[::0])
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: s.loc[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: s[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: s.loc[::0])
         with catch_warnings(record=True):
-            self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                    lambda: s.ix[::0])
+            tm.assert_raises_regex(ValueError,
+                                   'slice step cannot be zero',
+                                   lambda: s.ix[::0])
 
     def test_indexing_assignment_dict_already_exists(self):
         df = pd.DataFrame({'x': [1, 2, 6],
@@ -737,7 +741,7 @@ class TestMisc(Base, tm.TestCase):
         with catch_warnings(record=True):
             df2 = df.ix[[], :]
 
-        self.assertEqual(df2.loc[:, 'a'].dtype, np.int64)
+        assert df2.loc[:, 'a'].dtype == np.int64
         tm.assert_series_equal(df2.loc[:, 'a'], df2.iloc[:, 0])
         with catch_warnings(record=True):
             tm.assert_series_equal(df2.loc[:, 'a'], df2.ix[:, 0])
@@ -772,7 +776,7 @@ class TestMisc(Base, tm.TestCase):
         ]
         for slice_ in slices:
             tslice_ = _non_reducing_slice(slice_)
-            self.assertTrue(isinstance(df.loc[tslice_], DataFrame))
+            assert isinstance(df.loc[tslice_], DataFrame)
 
     def test_list_slice(self):
         # like dataframe getitem
@@ -787,16 +791,16 @@ class TestMisc(Base, tm.TestCase):
         df = pd.DataFrame({'A': [1, 2], 'B': ['c', 'd'], 'C': [True, False]})
         result = _maybe_numeric_slice(df, slice_=None)
         expected = pd.IndexSlice[:, ['A']]
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = _maybe_numeric_slice(df, None, include_bool=True)
         expected = pd.IndexSlice[:, ['A', 'C']]
         result = _maybe_numeric_slice(df, [1])
         expected = [1]
-        self.assertEqual(result, expected)
+        assert result == expected
 
 
-class TestSeriesNoneCoercion(tm.TestCase):
+class TestSeriesNoneCoercion(object):
     EXPECTED_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),
@@ -843,7 +847,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             tm.assert_series_equal(start_series, expected_series)
 
 
-class TestDataframeNoneCoercion(tm.TestCase):
+class TestDataframeNoneCoercion(object):
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),

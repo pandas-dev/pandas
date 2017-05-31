@@ -19,10 +19,10 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 """
 
 from numpy import ndarray
-from pandas.util.validators import (validate_args, validate_kwargs,
-                                    validate_args_and_kwargs)
-from pandas.core.common import UnsupportedFunctionCall
-from pandas.types.common import is_integer, is_bool
+from pandas.util._validators import (validate_args, validate_kwargs,
+                                     validate_args_and_kwargs)
+from pandas.errors import UnsupportedFunctionCall
+from pandas.core.dtypes.common import is_integer, is_bool
 from pandas.compat import OrderedDict
 
 
@@ -37,23 +37,24 @@ class CompatValidator(object):
 
     def __call__(self, args, kwargs, fname=None,
                  max_fname_arg_count=None, method=None):
-        fname = self.fname if fname is None else fname
-        max_fname_arg_count = (self.max_fname_arg_count if
-                               max_fname_arg_count is None
-                               else max_fname_arg_count)
-        method = self.method if method is None else method
+        if args or kwargs:
+            fname = self.fname if fname is None else fname
+            max_fname_arg_count = (self.max_fname_arg_count if
+                                   max_fname_arg_count is None
+                                   else max_fname_arg_count)
+            method = self.method if method is None else method
 
-        if method == 'args':
-            validate_args(fname, args, max_fname_arg_count, self.defaults)
-        elif method == 'kwargs':
-            validate_kwargs(fname, kwargs, self.defaults)
-        elif method == 'both':
-            validate_args_and_kwargs(fname, args, kwargs,
-                                     max_fname_arg_count,
-                                     self.defaults)
-        else:
-            raise ValueError("invalid validation method "
-                             "'{method}'".format(method=method))
+            if method == 'args':
+                validate_args(fname, args, max_fname_arg_count, self.defaults)
+            elif method == 'kwargs':
+                validate_kwargs(fname, kwargs, self.defaults)
+            elif method == 'both':
+                validate_args_and_kwargs(fname, args, kwargs,
+                                         max_fname_arg_count,
+                                         self.defaults)
+            else:
+                raise ValueError("invalid validation method "
+                                 "'{method}'".format(method=method))
 
 
 ARGMINMAX_DEFAULTS = dict(out=None)

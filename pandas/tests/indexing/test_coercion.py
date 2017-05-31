@@ -31,8 +31,8 @@ class CoercionBase(object):
             tm.assert_index_equal(left, right)
         else:
             raise NotImplementedError
-        self.assertEqual(left.dtype, dtype)
-        self.assertEqual(right.dtype, dtype)
+        assert left.dtype == dtype
+        assert right.dtype == dtype
 
     def test_has_comprehensive_tests(self):
         for klass in self.klasses:
@@ -44,7 +44,7 @@ class CoercionBase(object):
                     raise AssertionError(msg.format(type(self), method_name))
 
 
-class TestSetitemCoercion(CoercionBase, tm.TestCase):
+class TestSetitemCoercion(CoercionBase):
 
     method = 'setitem'
 
@@ -55,7 +55,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
         temp[1] = loc_value
         tm.assert_series_equal(temp, expected_series)
         # check dtype explicitly for sure
-        self.assertEqual(temp.dtype, expected_dtype)
+        assert temp.dtype == expected_dtype
 
         # .loc works different rule, temporary disable
         # temp = original_series.copy()
@@ -64,7 +64,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
 
     def test_setitem_series_object(self):
         obj = pd.Series(list('abcd'))
-        self.assertEqual(obj.dtype, np.object)
+        assert obj.dtype == np.object
 
         # object + int -> object
         exp = pd.Series(['a', 1, 'c', 'd'])
@@ -84,7 +84,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
 
     def test_setitem_series_int64(self):
         obj = pd.Series([1, 2, 3, 4])
-        self.assertEqual(obj.dtype, np.int64)
+        assert obj.dtype == np.int64
 
         # int + int -> int
         exp = pd.Series([1, 1, 3, 4])
@@ -93,7 +93,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
         # int + float -> float
         # TODO_GH12747 The result must be float
         # tm.assert_series_equal(temp, pd.Series([1, 1.1, 3, 4]))
-        # self.assertEqual(temp.dtype, np.float64)
+        # assert temp.dtype == np.float64
         exp = pd.Series([1, 1, 3, 4])
         self._assert_setitem_series_conversion(obj, 1.1, exp, np.int64)
 
@@ -107,7 +107,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
 
     def test_setitem_series_float64(self):
         obj = pd.Series([1.1, 2.2, 3.3, 4.4])
-        self.assertEqual(obj.dtype, np.float64)
+        assert obj.dtype == np.float64
 
         # float + int -> float
         exp = pd.Series([1.1, 1.0, 3.3, 4.4])
@@ -128,7 +128,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
 
     def test_setitem_series_complex128(self):
         obj = pd.Series([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j])
-        self.assertEqual(obj.dtype, np.complex128)
+        assert obj.dtype == np.complex128
 
         # complex + int -> complex
         exp = pd.Series([1 + 1j, 1, 3 + 3j, 4 + 4j])
@@ -148,33 +148,33 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
 
     def test_setitem_series_bool(self):
         obj = pd.Series([True, False, True, False])
-        self.assertEqual(obj.dtype, np.bool)
+        assert obj.dtype == np.bool
 
         # bool + int -> int
         # TODO_GH12747 The result must be int
         # tm.assert_series_equal(temp, pd.Series([1, 1, 1, 0]))
-        # self.assertEqual(temp.dtype, np.int64)
+        # assert temp.dtype == np.int64
         exp = pd.Series([True, True, True, False])
         self._assert_setitem_series_conversion(obj, 1, exp, np.bool)
 
         # TODO_GH12747 The result must be int
         # assigning int greater than bool
         # tm.assert_series_equal(temp, pd.Series([1, 3, 1, 0]))
-        # self.assertEqual(temp.dtype, np.int64)
+        # assert temp.dtype == np.int64
         exp = pd.Series([True, True, True, False])
         self._assert_setitem_series_conversion(obj, 3, exp, np.bool)
 
         # bool + float -> float
         # TODO_GH12747 The result must be float
         # tm.assert_series_equal(temp, pd.Series([1., 1.1, 1., 0.]))
-        # self.assertEqual(temp.dtype, np.float64)
+        # assert temp.dtype == np.float64
         exp = pd.Series([True, True, True, False])
         self._assert_setitem_series_conversion(obj, 1.1, exp, np.bool)
 
         # bool + complex -> complex (buggy, results in bool)
         # TODO_GH12747 The result must be complex
         # tm.assert_series_equal(temp, pd.Series([1, 1 + 1j, 1, 0]))
-        # self.assertEqual(temp.dtype, np.complex128)
+        # assert temp.dtype == np.complex128
         exp = pd.Series([True, True, True, False])
         self._assert_setitem_series_conversion(obj, 1 + 1j, exp, np.bool)
 
@@ -187,7 +187,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
                          pd.Timestamp('2011-01-02'),
                          pd.Timestamp('2011-01-03'),
                          pd.Timestamp('2011-01-04')])
-        self.assertEqual(obj.dtype, 'datetime64[ns]')
+        assert obj.dtype == 'datetime64[ns]'
 
         # datetime64 + datetime64 -> datetime64
         exp = pd.Series([pd.Timestamp('2011-01-01'),
@@ -213,7 +213,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
                          pd.Timestamp('2011-01-02', tz=tz),
                          pd.Timestamp('2011-01-03', tz=tz),
                          pd.Timestamp('2011-01-04', tz=tz)])
-        self.assertEqual(obj.dtype, 'datetime64[ns, US/Eastern]')
+        assert obj.dtype == 'datetime64[ns, US/Eastern]'
 
         # datetime64tz + datetime64tz -> datetime64tz
         exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
@@ -249,18 +249,18 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
         tm.assert_series_equal(temp, exp)
         # check dtype explicitly for sure
-        self.assertEqual(temp.index.dtype, expected_dtype)
+        assert temp.index.dtype == expected_dtype
 
         temp = original_series.copy()
         temp.loc[loc_key] = 5
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
         tm.assert_series_equal(temp, exp)
         # check dtype explicitly for sure
-        self.assertEqual(temp.index.dtype, expected_dtype)
+        assert temp.index.dtype == expected_dtype
 
     def test_setitem_index_object(self):
         obj = pd.Series([1, 2, 3, 4], index=list('abcd'))
-        self.assertEqual(obj.index.dtype, np.object)
+        assert obj.index.dtype == np.object
 
         # object + object -> object
         exp_index = pd.Index(list('abcdx'))
@@ -268,7 +268,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
 
         # object + int -> IndexError, regarded as location
         temp = obj.copy()
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             temp[5] = 5
 
         # object + float -> object
@@ -278,7 +278,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
     def test_setitem_index_int64(self):
         # tests setitem with non-existing numeric key
         obj = pd.Series([1, 2, 3, 4])
-        self.assertEqual(obj.index.dtype, np.int64)
+        assert obj.index.dtype == np.int64
 
         # int + int -> int
         exp_index = pd.Index([0, 1, 2, 3, 5])
@@ -295,12 +295,12 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
     def test_setitem_index_float64(self):
         # tests setitem with non-existing numeric key
         obj = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.1, 4.1])
-        self.assertEqual(obj.index.dtype, np.float64)
+        assert obj.index.dtype == np.float64
 
         # float + int -> int
         temp = obj.copy()
         # TODO_GH12747 The result must be float
-        with tm.assertRaises(IndexError):
+        with pytest.raises(IndexError):
             temp[5] = 5
 
         # float + float -> float
@@ -330,7 +330,7 @@ class TestSetitemCoercion(CoercionBase, tm.TestCase):
         pass
 
 
-class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
+class TestInsertIndexCoercion(CoercionBase):
 
     klasses = ['index']
     method = 'insert'
@@ -341,11 +341,11 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         target = original.copy()
         res = target.insert(1, value)
         tm.assert_index_equal(res, expected)
-        self.assertEqual(res.dtype, expected_dtype)
+        assert res.dtype == expected_dtype
 
     def test_insert_index_object(self):
         obj = pd.Index(list('abcd'))
-        self.assertEqual(obj.dtype, np.object)
+        assert obj.dtype == np.object
 
         # object + int -> object
         exp = pd.Index(['a', 1, 'b', 'c', 'd'])
@@ -358,7 +358,7 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         # object + bool -> object
         res = obj.insert(1, False)
         tm.assert_index_equal(res, pd.Index(['a', False, 'b', 'c', 'd']))
-        self.assertEqual(res.dtype, np.object)
+        assert res.dtype == np.object
 
         # object + object -> object
         exp = pd.Index(['a', 'x', 'b', 'c', 'd'])
@@ -366,7 +366,7 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
 
     def test_insert_index_int64(self):
         obj = pd.Int64Index([1, 2, 3, 4])
-        self.assertEqual(obj.dtype, np.int64)
+        assert obj.dtype == np.int64
 
         # int + int -> int
         exp = pd.Index([1, 1, 2, 3, 4])
@@ -386,7 +386,7 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
 
     def test_insert_index_float64(self):
         obj = pd.Float64Index([1., 2., 3., 4.])
-        self.assertEqual(obj.dtype, np.float64)
+        assert obj.dtype == np.float64
 
         # float + int -> int
         exp = pd.Index([1., 1., 2., 3., 4.])
@@ -413,7 +413,7 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
     def test_insert_index_datetime64(self):
         obj = pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03',
                                 '2011-01-04'])
-        self.assertEqual(obj.dtype, 'datetime64[ns]')
+        assert obj.dtype == 'datetime64[ns]'
 
         # datetime64 + datetime64 => datetime64
         exp = pd.DatetimeIndex(['2011-01-01', '2012-01-01', '2011-01-02',
@@ -423,18 +423,18 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
 
         # ToDo: must coerce to object
         msg = "Passed item and index have different timezone"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             obj.insert(1, pd.Timestamp('2012-01-01', tz='US/Eastern'))
 
         # ToDo: must coerce to object
         msg = "cannot insert DatetimeIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, 1)
 
     def test_insert_index_datetime64tz(self):
         obj = pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03',
                                 '2011-01-04'], tz='US/Eastern')
-        self.assertEqual(obj.dtype, 'datetime64[ns, US/Eastern]')
+        assert obj.dtype == 'datetime64[ns, US/Eastern]'
 
         # datetime64tz + datetime64tz => datetime64
         exp = pd.DatetimeIndex(['2011-01-01', '2012-01-01', '2011-01-02',
@@ -445,22 +445,22 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
 
         # ToDo: must coerce to object
         msg = "Passed item and index have different timezone"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             obj.insert(1, pd.Timestamp('2012-01-01'))
 
         # ToDo: must coerce to object
         msg = "Passed item and index have different timezone"
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             obj.insert(1, pd.Timestamp('2012-01-01', tz='Asia/Tokyo'))
 
         # ToDo: must coerce to object
         msg = "cannot insert DatetimeIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, 1)
 
     def test_insert_index_timedelta64(self):
         obj = pd.TimedeltaIndex(['1 day', '2 day', '3 day', '4 day'])
-        self.assertEqual(obj.dtype, 'timedelta64[ns]')
+        assert obj.dtype == 'timedelta64[ns]'
 
         # timedelta64 + timedelta64 => timedelta64
         exp = pd.TimedeltaIndex(['1 day', '10 day', '2 day', '3 day', '4 day'])
@@ -469,18 +469,18 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
 
         # ToDo: must coerce to object
         msg = "cannot insert TimedeltaIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, pd.Timestamp('2012-01-01'))
 
         # ToDo: must coerce to object
         msg = "cannot insert TimedeltaIndex with incompatible label"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, 1)
 
     def test_insert_index_period(self):
         obj = pd.PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                              freq='M')
-        self.assertEqual(obj.dtype, 'period[M]')
+        assert obj.dtype == 'period[M]'
 
         # period + period => period
         exp = pd.PeriodIndex(['2011-01', '2012-01', '2011-02',
@@ -514,7 +514,7 @@ class TestInsertIndexCoercion(CoercionBase, tm.TestCase):
         self._assert_insert_conversion(obj, 'x', exp, np.object)
 
 
-class TestWhereCoercion(CoercionBase, tm.TestCase):
+class TestWhereCoercion(CoercionBase):
 
     method = 'where'
 
@@ -527,7 +527,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
 
     def _where_object_common(self, klass):
         obj = klass(list('abcd'))
-        self.assertEqual(obj.dtype, np.object)
+        assert obj.dtype == np.object
         cond = klass([True, False, True, False])
 
         # object + int -> object
@@ -580,7 +580,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
 
     def _where_int64_common(self, klass):
         obj = klass([1, 2, 3, 4])
-        self.assertEqual(obj.dtype, np.int64)
+        assert obj.dtype == np.int64
         cond = klass([True, False, True, False])
 
         # int + int -> int
@@ -626,7 +626,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
 
     def _where_float64_common(self, klass):
         obj = klass([1.1, 2.2, 3.3, 4.4])
-        self.assertEqual(obj.dtype, np.float64)
+        assert obj.dtype == np.float64
         cond = klass([True, False, True, False])
 
         # float + int -> float
@@ -672,7 +672,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
 
     def test_where_series_complex128(self):
         obj = pd.Series([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j])
-        self.assertEqual(obj.dtype, np.complex128)
+        assert obj.dtype == np.complex128
         cond = pd.Series([True, False, True, False])
 
         # complex + int -> complex
@@ -712,7 +712,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
 
     def test_where_series_bool(self):
         obj = pd.Series([True, False, True, False])
-        self.assertEqual(obj.dtype, np.bool)
+        assert obj.dtype == np.bool
         cond = pd.Series([True, False, True, False])
 
         # bool + int -> int
@@ -755,7 +755,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
                          pd.Timestamp('2011-01-02'),
                          pd.Timestamp('2011-01-03'),
                          pd.Timestamp('2011-01-04')])
-        self.assertEqual(obj.dtype, 'datetime64[ns]')
+        assert obj.dtype == 'datetime64[ns]'
         cond = pd.Series([True, False, True, False])
 
         # datetime64 + datetime64 -> datetime64
@@ -778,7 +778,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
 
         # ToDo: coerce to object
         msg = "cannot coerce a Timestamp with a tz on a naive Block"
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.where(cond, pd.Timestamp('2012-01-01', tz='US/Eastern'))
 
         # ToDo: do not coerce to UTC, must be object
@@ -797,13 +797,13 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
                         pd.Timestamp('2011-01-02'),
                         pd.Timestamp('2011-01-03'),
                         pd.Timestamp('2011-01-04')])
-        self.assertEqual(obj.dtype, 'datetime64[ns]')
+        assert obj.dtype == 'datetime64[ns]'
         cond = pd.Index([True, False, True, False])
 
         # datetime64 + datetime64 -> datetime64
         # must support scalar
         msg = "cannot coerce a Timestamp with a tz on a naive Block"
-        with tm.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             obj.where(cond, pd.Timestamp('2012-01-01'))
 
         values = pd.Index([pd.Timestamp('2012-01-01'),
@@ -819,7 +819,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
         # ToDo: coerce to object
         msg = ("Index\\(\\.\\.\\.\\) must be called with a collection "
                "of some kind")
-        with tm.assertRaisesRegexp(TypeError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             obj.where(cond, pd.Timestamp('2012-01-01', tz='US/Eastern'))
 
         # ToDo: do not ignore timezone, must be object
@@ -852,7 +852,7 @@ class TestWhereCoercion(CoercionBase, tm.TestCase):
         pass
 
 
-class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
+class TestFillnaSeriesCoercion(CoercionBase):
 
     # not indexing, but place here for consisntency
 
@@ -867,7 +867,7 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
 
     def _fillna_object_common(self, klass):
         obj = klass(['a', np.nan, 'c', 'd'])
-        self.assertEqual(obj.dtype, np.object)
+        assert obj.dtype == np.object
 
         # object + int -> object
         exp = klass(['a', 1, 'c', 'd'])
@@ -900,7 +900,7 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
 
     def _fillna_float64_common(self, klass):
         obj = klass([1.1, np.nan, 3.3, 4.4])
-        self.assertEqual(obj.dtype, np.float64)
+        assert obj.dtype == np.float64
 
         # float + int -> float
         exp = klass([1.1, 1.0, 3.3, 4.4])
@@ -933,7 +933,7 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
 
     def test_fillna_series_complex128(self):
         obj = pd.Series([1 + 1j, np.nan, 3 + 3j, 4 + 4j])
-        self.assertEqual(obj.dtype, np.complex128)
+        assert obj.dtype == np.complex128
 
         # complex + int -> complex
         exp = pd.Series([1 + 1j, 1, 3 + 3j, 4 + 4j])
@@ -966,7 +966,7 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
                          pd.NaT,
                          pd.Timestamp('2011-01-03'),
                          pd.Timestamp('2011-01-04')])
-        self.assertEqual(obj.dtype, 'datetime64[ns]')
+        assert obj.dtype == 'datetime64[ns]'
 
         # datetime64 + datetime64 => datetime64
         exp = pd.Series([pd.Timestamp('2011-01-01'),
@@ -1006,7 +1006,7 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
                          pd.NaT,
                          pd.Timestamp('2011-01-03', tz=tz),
                          pd.Timestamp('2011-01-04', tz=tz)])
-        self.assertEqual(obj.dtype, 'datetime64[ns, US/Eastern]')
+        assert obj.dtype == 'datetime64[ns, US/Eastern]'
 
         # datetime64tz + datetime64tz => datetime64tz
         exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
@@ -1058,7 +1058,7 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
     def test_fillna_index_datetime64(self):
         obj = pd.DatetimeIndex(['2011-01-01', 'NaT', '2011-01-03',
                                 '2011-01-04'])
-        self.assertEqual(obj.dtype, 'datetime64[ns]')
+        assert obj.dtype == 'datetime64[ns]'
 
         # datetime64 + datetime64 => datetime64
         exp = pd.DatetimeIndex(['2011-01-01', '2012-01-01',
@@ -1093,7 +1093,7 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
 
         obj = pd.DatetimeIndex(['2011-01-01', 'NaT', '2011-01-03',
                                 '2011-01-04'], tz=tz)
-        self.assertEqual(obj.dtype, 'datetime64[ns, US/Eastern]')
+        assert obj.dtype == 'datetime64[ns, US/Eastern]'
 
         # datetime64tz + datetime64tz => datetime64tz
         exp = pd.DatetimeIndex(['2011-01-01', '2012-01-01',
@@ -1139,14 +1139,14 @@ class TestFillnaSeriesCoercion(CoercionBase, tm.TestCase):
         pass
 
 
-class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
+class TestReplaceSeriesCoercion(CoercionBase):
 
     # not indexing, but place here for consisntency
 
     klasses = ['series']
     method = 'replace'
 
-    def setUp(self):
+    def setup_method(self, method):
         self.rep = {}
         self.rep['object'] = ['a', 'b']
         self.rep['int64'] = [4, 5]
@@ -1168,7 +1168,7 @@ class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
     def _assert_replace_conversion(self, from_key, to_key, how):
         index = pd.Index([3, 4], name='xxx')
         obj = pd.Series(self.rep[from_key], index=index, name='yyy')
-        self.assertEqual(obj.dtype, from_key)
+        assert obj.dtype == from_key
 
         if (from_key.startswith('datetime') and to_key.startswith('datetime')):
             # different tz, currently mask_missing raises SystemError
@@ -1198,7 +1198,7 @@ class TestReplaceSeriesCoercion(CoercionBase, tm.TestCase):
 
         else:
             exp = pd.Series(self.rep[to_key], index=index, name='yyy')
-            self.assertEqual(exp.dtype, to_key)
+            assert exp.dtype == to_key
 
         tm.assert_series_equal(result, exp)
 

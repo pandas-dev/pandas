@@ -12,16 +12,17 @@ import re
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.types.missing import isnull
-from pandas.types.dtypes import DatetimeTZDtype
-from pandas.types.common import (is_list_like, is_dict_like,
-                                 is_datetime64tz_dtype)
+from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.common import (
+    is_list_like, is_dict_like,
+    is_datetime64tz_dtype)
 
 from pandas.compat import (map, zip, raise_with_traceback,
                            string_types, text_type)
 from pandas.core.api import DataFrame, Series
 from pandas.core.base import PandasObject
-from pandas.tseries.tools import to_datetime
+from pandas.core.tools.datetimes import to_datetime
 
 from contextlib import contextmanager
 

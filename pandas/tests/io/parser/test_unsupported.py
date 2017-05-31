@@ -13,11 +13,11 @@ import pandas.io.parsers as parsers
 import pandas.util.testing as tm
 
 from pandas.compat import StringIO
-from pandas.io.common import ParserError
+from pandas.errors import ParserError
 from pandas.io.parsers import read_csv, read_table
 
 
-class TestUnsupportedFeatures(tm.TestCase):
+class TestUnsupportedFeatures(object):
 
     def test_mangle_dupe_cols_false(self):
         # see gh-12935
@@ -25,7 +25,7 @@ class TestUnsupportedFeatures(tm.TestCase):
         msg = 'is not supported'
 
         for engine in ('c', 'python'):
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 read_csv(StringIO(data), engine=engine,
                          mangle_dupe_cols=False)
 
@@ -35,14 +35,14 @@ class TestUnsupportedFeatures(tm.TestCase):
         msg = 'does not support'
 
         # specify C engine with unsupported options (raise)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             read_table(StringIO(data), engine='c',
                        sep=None, delim_whitespace=False)
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             read_table(StringIO(data), engine='c', sep=r'\s')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             read_table(StringIO(data), engine='c', quotechar=chr(128))
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             read_table(StringIO(data), engine='c', skipfooter=1)
 
         # specify C-unsupported options without python-unsupported options
@@ -62,9 +62,9 @@ a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         msg = 'Error tokenizing data'
 
-        with tm.assertRaisesRegexp(ParserError, msg):
+        with tm.assert_raises_regex(ParserError, msg):
             read_table(StringIO(text), sep='\\s+')
-        with tm.assertRaisesRegexp(ParserError, msg):
+        with tm.assert_raises_regex(ParserError, msg):
             read_table(StringIO(text), engine='c', sep='\\s+')
 
         msg = "Only length-1 thousands markers supported"
@@ -72,14 +72,14 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 1|2,334|5
 10|13|10.
 """
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             read_csv(StringIO(data), thousands=',,')
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             read_csv(StringIO(data), thousands='')
 
         msg = "Only length-1 line terminators supported"
         data = 'a,b,c~~1,2,3~~4,5,6'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             read_csv(StringIO(data), lineterminator='~~')
 
     def test_python_engine(self):
@@ -98,11 +98,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                        'with the %r engine' % (default, engine))
 
                 kwargs = {default: object()}
-                with tm.assertRaisesRegexp(ValueError, msg):
+                with tm.assert_raises_regex(ValueError, msg):
                     read_csv(StringIO(data), engine=engine, **kwargs)
 
 
-class TestDeprecatedFeatures(tm.TestCase):
+class TestDeprecatedFeatures(object):
 
     def test_deprecated_args(self):
         data = '1,2,3'
@@ -112,8 +112,8 @@ class TestDeprecatedFeatures(tm.TestCase):
             'as_recarray': True,
             'buffer_lines': True,
             'compact_ints': True,
-            'skip_footer': True,
             'use_unsigned': True,
+            'skip_footer': 1,
         }
 
         engines = 'c', 'python'

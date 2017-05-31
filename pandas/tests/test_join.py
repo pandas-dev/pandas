@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 
-class TestIndexer(tm.TestCase):
+class TestIndexer(object):
 
     def test_outer_join_indexer(self):
         typemap = [('int32', _join.outer_join_indexer_int32),
@@ -23,9 +23,9 @@ class TestIndexer(tm.TestCase):
             empty = np.array([], dtype=dtype)
 
             result, lindexer, rindexer = indexer(left, right)
-            tm.assertIsInstance(result, np.ndarray)
-            tm.assertIsInstance(lindexer, np.ndarray)
-            tm.assertIsInstance(rindexer, np.ndarray)
+            assert isinstance(result, np.ndarray)
+            assert isinstance(lindexer, np.ndarray)
+            assert isinstance(rindexer, np.ndarray)
             tm.assert_numpy_array_equal(result, np.arange(5, dtype=dtype))
             exp = np.array([0, 1, 2, -1, -1], dtype=np.int64)
             tm.assert_numpy_array_equal(lindexer, exp)
