@@ -328,6 +328,11 @@ def unique(values):
     [b, a, c]
     Categories (3, object): [a < b < c]
 
+    An array of tuples
+
+    >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
+    array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
+
     See Also
     --------
     pandas.Index.unique
