@@ -10,7 +10,6 @@ def create_nd_panel_factory(klass_name, orders, slices, slicer, aliases=None,
     """ manufacture a n-d class:
 
     .. deprecated:: 0.19.0
-       Panelnd is deprecated and will be removed in a future version.
        The recommended way to represent these types of n-dimensional data
        are with the `xarray package <http://xarray.pydata.org/en/stable/>`__.
        Pandas provides a `.to_xarray()` method to automate this conversion.

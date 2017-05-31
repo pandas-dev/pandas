@@ -1323,8 +1323,7 @@ class NDFrame(PandasObject, SelectionMixin):
             library. If a DBAPI2 object, only sqlite3 is supported.
         flavor : 'sqlite', default None
             .. deprecated:: 0.19.0
-               This parameter will be removed in a future version,
-               as 'sqlite' is the only supported option if SQLAlchemy is not
+               'sqlite' is the only supported option if SQLAlchemy is not
                installed.
         schema : string, default None
             Specify the schema (if database flavor supports this). If None, use

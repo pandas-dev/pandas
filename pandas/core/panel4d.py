@@ -20,7 +20,6 @@ Panel4D = create_nd_panel_factory(klass_name='Panel4D',
     N-Dimensional named containers.
 
     .. deprecated:: 0.19.0
-       Panel4D is deprecated and will be removed in a future version.
        The recommended way to represent these types of n-dimensional data
        are with the `xarray package <http://xarray.pydata.org/en/stable/>`__.
        Pandas provides a `.to_xarray()` method to automate this conversion.

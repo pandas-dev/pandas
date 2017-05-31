@@ -423,7 +423,7 @@ class Categorical(PandasObject):
     @classmethod
     def from_array(cls, data, **kwargs):
         """
-        .. deprecated::
+        .. deprecated:: 0.19.0
            Use ``Categorical`` instead.
 
         Make a Categorical type from a single array-like object.

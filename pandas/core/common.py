@@ -568,7 +568,7 @@ def in_ipnb():
     check if we're inside an IPython Notebook
 
     .. deprecated:: 0.14.1
-       This is no longer used in pandas, and won't work in IPython 3 and above.
+       This is no longer needed, or working, in IPython 3 and above.
     """
     try:
         ip = get_ipython()  # noqa

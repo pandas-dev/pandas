@@ -106,8 +106,7 @@ usecols : array-like or callable, default None
     parsing time and lower memory usage.
 as_recarray : boolean, default False
     .. deprecated:: 0.19.0
-       This argument will be removed in a future version. Please call
-       `pd.read_csv(...).to_records()` instead.
+       Please call `pd.read_csv(...).to_records()` instead.
 
     Return a NumPy recarray instead of a DataFrame after parsing the data.
     If set to True, this option takes precedence over the `squeeze` parameter.
@@ -279,11 +278,10 @@ low_memory : boolean, default True
     (Only valid with C parser)
 buffer_lines : int, default None
     .. deprecated:: 0.19.0
-       This argument will be removed in a future version because its
-       value is not respected by the parser
+       This argument is not respected by the parser
 compact_ints : boolean, default False
     .. deprecated:: 0.19.0
-       This argument will be removed in a future version
+       Argument moved to ``pd.to_numeric``
 
     If compact_ints is True, then for any column that is of integer dtype,
     the parser will attempt to cast it as the smallest integer dtype possible,
@@ -291,7 +289,7 @@ compact_ints : boolean, default False
     `use_unsigned` parameter.
 use_unsigned : boolean, default False
     .. deprecated:: 0.19.0
-       This argument will be removed in a future version
+       Argument moved to ``pd.to_numeric``
 
     If integer columns are being compacted (i.e. `compact_ints=True`), specify
     whether the column should be compacted to the smallest signed or unsigned

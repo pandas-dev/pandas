@@ -392,8 +392,7 @@ class SparseArray(PandasObject, np.ndarray):
         ----------
         fill: float, default None
             .. deprecated:: 0.20.0
-               This argument will be removed in a future version
-               because it is not respected by this function.
+               This argument is not respected by this function.
 
         Returns
         -------

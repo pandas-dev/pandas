@@ -851,8 +851,8 @@ class Series(base.IndexOpsMixin, strings.StringAccessorMixin,
     def reshape(self, *args, **kwargs):
         """
         .. deprecated:: 0.19.0
-           Calling this method will raise an error in a future release.
-           Please call ``.values.reshape(...)`` instead.
+           Calling this method will raise an error. Please call
+           ``.values.reshape(...)`` instead.
 
         return an ndarray with the values shape
         if the specified shape matches exactly the current shape, then
