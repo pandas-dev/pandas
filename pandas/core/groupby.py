@@ -3337,13 +3337,15 @@ class NDFrameGroupBy(GroupBy):
                 obj = self.obj[data.items[locs]]
                 s = groupby(obj, self.grouper)
                 result = s.aggregate(lambda x: alt(x, axis=self.axis))
-                result = result._data.blocks[0]
+                newb = result._data.blocks[0]
 
-            # see if we can cast the block back to the original dtype
-            result = block._try_coerce_and_cast_result(result)
+            finally:
+
+                # see if we can cast the block back to the original dtype
+                result = block._try_coerce_and_cast_result(result)
+                newb = block.make_block(result)
 
             new_items.append(locs)
-            newb = block.make_block_same_class(result)
             new_blocks.append(newb)
 
         if len(new_blocks) == 0:
