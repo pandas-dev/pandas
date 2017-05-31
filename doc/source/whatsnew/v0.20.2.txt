@@ -83,6 +83,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug creating datetime rolling window on an empty DataFrame (:issue:`15819`)
+- Bug in ``rolling.cov()`` with offset window (:issue:`16058`)
 
 
 Sparse

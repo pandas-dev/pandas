@@ -3833,3 +3833,26 @@ class TestRollingTS(object):
         df2 = df.sort_values('B')
         result = df2.groupby('A').rolling('4s', on='B').C.mean()
         tm.assert_series_equal(result, expected)
+
+    def test_rolling_cov_offset(self):
+        # GH16058
+
+        idx = pd.date_range('2017-01-01', periods=24, freq='1h')
+        ss = pd.Series(np.arange(len(idx)), index=idx)
+
+        result = ss.rolling('2h').cov()
+        expected = pd.Series([np.nan] + [0.5 for _ in range(len(idx) - 1)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(2, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)
+
+        result = ss.rolling('3h').cov()
+        expected = pd.Series([np.nan, 0.5] +
+                             [1.0 for _ in range(len(idx) - 2)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(3, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)
