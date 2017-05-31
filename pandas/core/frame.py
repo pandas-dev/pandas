@@ -250,11 +250,11 @@ class DataFrame(NDFrame):
     Constructing DataFrame from a dictionary.
 
     >>> d = {'col1': [1, 2], 'col2': [1, 2]}
-    >>> df = DataFrame(data=d)
+    >>> df = pd.DataFrame(data=d)
     >>> df
-        col1 col2
-    0   1    3
-    1   2    4
+       col1  col2
+    0     1     1
+    1     2     2
 
     Notice that the inferred dtype is int64.
 
@@ -265,7 +265,7 @@ class DataFrame(NDFrame):
 
     To enforce a single dtype:
 
-    >>> df = DataFrame(data=d, dtype=np.int8)
+    >>> df = pd.DataFrame(data=d, dtype=np.int8)
     >>> df.dtypes
     col1    int8
     col2    int8
