@@ -63,7 +63,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in ``DataFrame.reset_index(level=)`` with single level index (:issue:`16263`)
-
+- Bug in partial string indexing with a monotonic, but not strictly-monotonic, index incorrectly reversing the slice bounds (:issue:`16515`)
 
 I/O
 ^^^
