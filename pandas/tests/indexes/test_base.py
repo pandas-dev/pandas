@@ -188,7 +188,6 @@ class TestIndex(Base):
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
         class ArrayLike(object):
-
             def __init__(self, array):
                 self.array = array
 
@@ -246,7 +245,6 @@ class TestIndex(Base):
                      [np.timedelta64('nat'), np.nan],
                      [pd.NaT, np.timedelta64('nat')],
                      [np.timedelta64('nat'), pd.NaT]]:
-
             tm.assert_index_equal(Index(data), exp)
             tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
 
