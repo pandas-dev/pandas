@@ -418,7 +418,8 @@ class MultiIndex(Index):
         # Therefore, an empty MultiIndex is returned GH13490
         if len(values) == 0:
             return MultiIndex(levels=[[] for _ in range(self.nlevels)],
-                              labels=[[] for _ in range(self.nlevels)], **kwargs)
+                              labels=[[] for _ in range(self.nlevels)],
+                              **kwargs)
         return self._shallow_copy(values, **kwargs)
 
     @Appender(_index_shared_docs['_shallow_copy'])
