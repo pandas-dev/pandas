@@ -506,3 +506,30 @@ AA &  BB \\
 \end{tabular}
 """
         assert withindex_result == withindex_expected
+
+    def test_to_latex_sparsify(self, frame):
+        # GH 12031
+        frame.to_latex()
+
+        df = DataFrame({'a':[1,2,1,2,3,2,1,1,1,3,2,4,2,1],
+                        'b':[1,2,1,2,2,2,1,1,2,1,2,1,2,1],
+                        'c':[5,6,5,5,5,5,5,6,5,5,5,6,5,6]})
+        df = df.groupby(['a', 'b']).agg(sum)
+        withindex_result = df.to_latex(sparsify=True)
+
+        withindex_expected = r"""\begin{tabular}{llr}
+\toprule
+  &   &   c \\
+a & b &     \\
+\midrule
+1 & 1 &  27 \\
+{} & 2 &   5 \\
+2 & 2 &  26 \\
+3 & 1 &   5 \\
+{} & 2 &   5 \\
+4 & 1 &   6 \\
+\bottomrule
+\end{tabular}
+"""
+
+        assert withindex_result == withindex_expected
