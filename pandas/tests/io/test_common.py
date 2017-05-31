@@ -141,3 +141,10 @@ class TestMMapWrapper(object):
             assert next_line.strip() == line.strip()
 
         pytest.raises(StopIteration, next, wrapper)
+
+    def test_unknown_engine(self):
+        with tm.ensure_clean() as path:
+            df = tm.makeDataFrame()
+            df.to_csv(path)
+            with tm.assert_raises_regex(ValueError, 'Unknown engine'):
+                read_csv(path, engine='pyt')
