@@ -774,3 +774,10 @@ class TestDatetimeIndex(object):
         left = empty_idx._maybe_cast_slice_bound('2015-01-02', 'left', 'loc')
         exp = Timestamp('2015-01-02 00:00:00')
         assert left == exp
+
+    def test_slice_duplicate_monotonic(self):
+        # https://github.com/pandas-dev/pandas/issues/16515
+        idx = pd.DatetimeIndex(['2017', '2017'])
+        result = idx._maybe_cast_slice_bound('2017-01-01', 'left', 'loc')
+        expected = Timestamp('2017-01-01')
+        assert result == expected

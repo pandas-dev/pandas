@@ -21,6 +21,7 @@ Enhancements
 
 - Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`)
 - ``Series`` provides a ``to_latex`` method (:issue:`16180`)
+- Added :attr:`Index.is_strictly_monotonic_increasing` and :attr:`Index.is_strictly_monotonic_decreasing` properties (:issue:`16515`)
 
 .. _whatsnew_0202.performance:
 
@@ -56,7 +57,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in ``DataFrame.reset_index(level=)`` with single level index (:issue:`16263`)
-
+- Bug in partial string indexing with a monotonic, but not strictly-monotonic, index incorrectly reversing the slice bounds (:issue:`16515`)
 
 I/O
 ^^^
