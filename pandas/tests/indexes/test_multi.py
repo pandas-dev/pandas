@@ -2436,7 +2436,6 @@ class TestMultiIndex(Base):
         assert idx.is_monotonic_increasing
         assert not idx.is_strictly_monotonic_increasing
 
-    @pytest.mark.xfail(reason="buggy MultiIndex.is_monotonic_decresaing.")
     def test_is_strictly_monotonic_decreasing(self):
         idx = pd.MultiIndex(levels=[['baz', 'bar'], ['next', 'mom']],
                             labels=[[0, 0, 1, 1], [0, 0, 0, 1]])

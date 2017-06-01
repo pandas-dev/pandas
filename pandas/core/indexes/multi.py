@@ -713,7 +713,7 @@ class MultiIndex(Index):
         return if the index is monotonic decreasing (only equal or
         decreasing) values.
         """
-        return False
+        return not self.is_strictly_monotonic_increasing or self.nunique() == 1
 
     @cache_readonly
     def is_unique(self):
