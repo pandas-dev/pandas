@@ -7,7 +7,9 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
+import os
 import sys
+import tarfile
 
 import pytest
 import numpy as np
@@ -446,3 +448,37 @@ No,No,No"""
                               [7, np.nan],
                               [8, np.nan]])
         tm.assert_frame_equal(df, expected)
+
+    def test_file_like_no_next(self):
+        # gh-16530: the file-like need not have a "next" or "__next__"
+        # attribute despite having an "__iter__" attribute.
+        #
+        # NOTE: This is only true for the C engine, not Python engine.
+        class NoNextBuffer(StringIO):
+            def __next__(self):
+                raise AttributeError("No next method")
+
+            next = __next__
+
+        data = "a\n1"
+
+        expected = pd.DataFrame({"a": [1]})
+        result = self.read_csv(NoNextBuffer(data))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
+    def test_read_tarfile(self, tar_suffix):
+        # see gh-16530
+        #
+        # Unfortunately, Python's CSV library can't handle
+        # tarfile objects (expects string, not bytes when
+        # iterating through a file-like).
+        tar_path = os.path.join(self.dirpath, "tar_csv" + tar_suffix)
+
+        tar = tarfile.open(tar_path, "r")
+        data_file = tar.extractfile("tar_data.csv")
+
+        out = self.read_csv(data_file)
+        expected = pd.DataFrame({"a": [1]})
+        tm.assert_frame_equal(out, expected)
