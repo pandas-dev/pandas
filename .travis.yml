@@ -75,6 +75,10 @@ matrix:
     - os: linux
       env:
         - JOB="3.6_DOC" DOC=true
+      addons:
+        apt:
+          packages:
+          - xsel
     allow_failures:
       - os: linux
         env:
