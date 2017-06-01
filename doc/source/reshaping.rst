@@ -636,7 +636,7 @@ When a column contains only one level, it will be omitted in the result.
 
     pd.get_dummies(df, drop_first=True)
 
-
+.. _reshaping.factorize:
 
 Factorizing values
 ------------------
