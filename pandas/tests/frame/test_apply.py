@@ -639,6 +639,8 @@ class TestDataFrameAggregate(TestData):
     def test_non_callable_aggregates(self):
 
         # GH 16405
+        # 'size' is a property of frame/series
+        # validate that this is working
         df = DataFrame({'A': [None, 2, 3],
                         'B': [1.0, np.nan, 3.0],
                         'C': ['foo', None, 'bar']})

@@ -89,7 +89,7 @@ Reshaping
 - Bug in ``pd.wide_to_long()`` where no error was raised when ``i`` was not a unique identifier (:issue:`16382`)
 - Bug in ``Series.isin(..)`` with a list of tuples (:issue:`16394`)
 - Bug in construction of a ``DataFrame`` with mixed dtypes including an all-NaT column. (:issue:`16395`)
-- Bug in ``DataFrame.agg`` and ``Series.agg`` with aggregating on non-callable attributes (:issue:`16405`)
+- Bug in ``DataFrame.agg()`` and ``Series.agg()`` with aggregating on non-callable attributes (:issue:`16405`)
 
 
 Numeric
