@@ -465,16 +465,36 @@ class NumericInt(Numeric):
     def test_is_monotonic(self):
         assert self.index.is_monotonic
         assert self.index.is_monotonic_increasing
+        assert self.index.is_strictly_monotonic_increasing
         assert not self.index.is_monotonic_decreasing
+        assert not self.index.is_strictly_monotonic_decreasing
 
         index = self._holder([4, 3, 2, 1])
         assert not index.is_monotonic
-        assert index.is_monotonic_decreasing
+        assert not index.is_strictly_monotonic_increasing
+        assert index.is_strictly_monotonic_decreasing
 
         index = self._holder([1])
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index.is_strictly_monotonic_increasing
+        assert index.is_strictly_monotonic_decreasing
+
+    def test_is_strictly_monotonic(self):
+        index = self._holder([1, 1, 2, 3])
+        assert index.is_monotonic_increasing
+        assert not index.is_strictly_monotonic_increasing
+
+        index = self._holder([3, 2, 1, 1])
+        assert index.is_monotonic_decreasing
+        assert not index.is_strictly_monotonic_decreasing
+
+        index = self._holder([1, 1])
+        assert index.is_monotonic_increasing
+        assert index.is_monotonic_decreasing
+        assert not index.is_strictly_monotonic_increasing
+        assert not index.is_strictly_monotonic_decreasing
 
     def test_logical_compat(self):
         idx = self.create_index()
