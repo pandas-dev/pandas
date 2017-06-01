@@ -9,6 +9,7 @@ from warnings import catch_warnings
 import collections
 import re
 from datetime import datetime, date, timedelta, time
+from decimal import Decimal
 import numpy as np
 import pytz
 import pytest
@@ -119,9 +120,9 @@ def test_is_file_like():
     m = MockFile()
     assert not is_file(m)
 
+    # gh-16530: Valid iterator just means we have the
+    # __iter__ attribute for our purposes.
     MockFile.__iter__ = lambda self: self
-    MockFile.__next__ = lambda self: 0
-    MockFile.next = MockFile.__next__
 
     # Valid write-only file
     m = MockFile()
@@ -461,6 +462,16 @@ class TestTypeInference(object):
         arr = np.array([1, 2, 3, 4, 5], dtype='f8')
         result = lib.infer_dtype(arr)
         assert result == 'floating'
+
+    def test_decimals(self):
+        # GH15690
+        arr = np.array([Decimal(1), Decimal(2), Decimal(3)])
+        result = lib.infer_dtype(arr)
+        assert result == 'decimal'
+
+        arr = np.array([1.0, 2.0, Decimal(3)])
+        result = lib.infer_dtype(arr)
+        assert result == 'mixed'
 
     def test_string(self):
         pass

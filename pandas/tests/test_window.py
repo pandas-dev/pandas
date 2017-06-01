@@ -441,6 +441,20 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize('roller', ['1s', 1])
+    def tests_empty_df_rolling(self, roller):
+        # GH 15819 Verifies that datetime and integer rolling windows can be
+        # applied to empty DataFrames
+        expected = DataFrame()
+        result = DataFrame().rolling(roller).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Verifies that datetime and integer rolling windows can be applied to
+        # empty DataFrames with datetime index
+        expected = DataFrame(index=pd.DatetimeIndex([]))
+        result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding(Base):
 
@@ -482,6 +496,24 @@ class TestExpanding(Base):
                                    getattr(e, func), 1, 2, 3)
             tm.assert_raises_regex(UnsupportedFunctionCall, msg,
                                    getattr(e, func), dtype=np.float64)
+
+    @pytest.mark.parametrize(
+        'expander',
+        [1, pytest.mark.xfail(
+            reason='GH 16425 expanding with offset not supported')('1s')])
+    def tests_empty_df_expanding(self, expander):
+        # GH 15819 Verifies that datetime and integer expanding windows can be
+        # applied to empty DataFrames
+        expected = DataFrame()
+        result = DataFrame().expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Verifies that datetime and integer expanding windows can be applied
+        # to empty DataFrames with datetime index
+        expected = DataFrame(index=pd.DatetimeIndex([]))
+        result = DataFrame(
+            index=pd.DatetimeIndex([])).expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
 
 
 class TestEWM(Base):
@@ -3801,3 +3833,26 @@ class TestRollingTS(object):
         df2 = df.sort_values('B')
         result = df2.groupby('A').rolling('4s', on='B').C.mean()
         tm.assert_series_equal(result, expected)
+
+    def test_rolling_cov_offset(self):
+        # GH16058
+
+        idx = pd.date_range('2017-01-01', periods=24, freq='1h')
+        ss = pd.Series(np.arange(len(idx)), index=idx)
+
+        result = ss.rolling('2h').cov()
+        expected = pd.Series([np.nan] + [0.5 for _ in range(len(idx) - 1)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(2, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)
+
+        result = ss.rolling('3h').cov()
+        expected = pd.Series([np.nan, 0.5] +
+                             [1.0 for _ in range(len(idx) - 2)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(3, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)

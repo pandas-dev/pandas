@@ -143,7 +143,6 @@ bar2,12,13,14,15
         ('to_csv', {}, 'os'),
         ('to_excel', {'engine': 'xlwt'}, 'xlwt'),
         ('to_feather', {}, 'feather'),
-        ('to_hdf', {'key': 'bar', 'mode': 'w'}, 'tables'),
         ('to_html', {}, 'os'),
         ('to_json', {}, 'os'),
         ('to_latex', {}, 'os'),
@@ -170,6 +169,26 @@ bar2,12,13,14,15
                 result = f.read()
 
             assert result == expected
+
+    def test_write_fspath_hdf5(self):
+        # Same test as write_fspath_all, except HDF5 files aren't
+        # necessarily byte-for-byte identical for a given dataframe, so we'll
+        # have to read and compare equality
+        pytest.importorskip('tables')
+
+        df = pd.DataFrame({"A": [1, 2]})
+        p1 = tm.ensure_clean('string')
+        p2 = tm.ensure_clean('fspath')
+
+        with p1 as string, p2 as fspath:
+            mypath = CustomFSPath(fspath)
+            df.to_hdf(mypath, key='bar')
+            df.to_hdf(string, key='bar')
+
+            result = pd.read_hdf(fspath, key='bar')
+            expected = pd.read_hdf(string, key='bar')
+
+        tm.assert_frame_equal(result, expected)
 
 
 class TestMMapWrapper(object):
@@ -223,3 +242,10 @@ class TestMMapWrapper(object):
             assert next_line.strip() == line.strip()
 
         pytest.raises(StopIteration, next, wrapper)
+
+    def test_unknown_engine(self):
+        with tm.ensure_clean() as path:
+            df = tm.makeDataFrame()
+            df.to_csv(path)
+            with tm.assert_raises_regex(ValueError, 'Unknown engine'):
+                read_csv(path, engine='pyt')

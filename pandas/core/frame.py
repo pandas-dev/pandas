@@ -175,6 +175,19 @@ indicator : boolean or string, default False
 
     .. versionadded:: 0.17.0
 
+validate : string, default None
+    If specified, checks if merge is of specified type.
+
+    * "one_to_one" or "1:1": check if merge keys are unique in both
+      left and right datasets.
+    * "one_to_many" or "1:m": check if merge keys are unique in left
+      dataset.
+    * "many_to_one" or "m:1": check if merge keys are unique in right
+      dataset.
+    * "many_to_may" or "m:m": allowed, but does not result in checks.
+
+    .. versionadded:: 0.21.0
+
 Examples
 --------
 
@@ -228,17 +241,47 @@ class DataFrame(NDFrame):
         Column labels to use for resulting frame. Will default to
         np.arange(n) if no column labels are provided
     dtype : dtype, default None
-        Data type to force, otherwise infer
+        Data type to force. Only a single dtype is allowed. If None, infer
     copy : boolean, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input
 
     Examples
     --------
-    >>> d = {'col1': ts1, 'col2': ts2}
-    >>> df = DataFrame(data=d, index=index)
-    >>> df2 = DataFrame(np.random.randn(10, 5))
-    >>> df3 = DataFrame(np.random.randn(10, 5),
-    ...                 columns=['a', 'b', 'c', 'd', 'e'])
+    Constructing DataFrame from a dictionary.
+
+    >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+    >>> df = pd.DataFrame(data=d)
+    >>> df
+       col1  col2
+    0     1     3
+    1     2     4
+
+    Notice that the inferred dtype is int64.
+
+    >>> df.dtypes
+    col1    int64
+    col2    int64
+    dtype: object
+
+    To enforce a single dtype:
+
+    >>> df = pd.DataFrame(data=d, dtype=np.int8)
+    >>> df.dtypes
+    col1    int8
+    col2    int8
+    dtype: object
+
+    Constructing DataFrame from numpy ndarray:
+
+    >>> df2 = pd.DataFrame(np.random.randint(low=0, high=10, size=(5, 5)),
+    ...                    columns=['a', 'b', 'c', 'd', 'e'])
+    >>> df2
+        a   b   c   d   e
+    0   2   8   8   3   4
+    1   4   2   9   0   9
+    2   1   0   7   8   0
+    3   5   1   7   1   3
+    4   6   0   2   4   2
 
     See also
     --------
@@ -618,16 +661,6 @@ class DataFrame(NDFrame):
 
             return self.to_html(max_rows=max_rows, max_cols=max_cols,
                                 show_dimensions=show_dimensions, notebook=True)
-        else:
-            return None
-
-    def _repr_latex_(self):
-        """
-        Returns a LaTeX representation for a particular Dataframe.
-        Mainly for use with nbconvert (jupyter notebook conversion to pdf).
-        """
-        if get_option('display.latex.repr'):
-            return self.to_latex()
         else:
             return None
 
@@ -1650,94 +1683,6 @@ it is assumed to be aliases for the column names')
         if buf is None:
             return formatter.buf.getvalue()
 
-    @Substitution(header='Write out column names. If a list of string is given, \
-it is assumed to be aliases for the column names.')
-    @Appender(fmt.common_docstring + fmt.return_docstring, indents=1)
-    def to_latex(self, buf=None, columns=None, col_space=None, header=True,
-                 index=True, na_rep='NaN', formatters=None, float_format=None,
-                 sparsify=None, index_names=True, bold_rows=True,
-                 column_format=None, longtable=None, escape=None,
-                 encoding=None, decimal='.', multicolumn=None,
-                 multicolumn_format=None, multirow=None):
-        r"""
-        Render a DataFrame to a tabular environment table. You can splice
-        this into a LaTeX document. Requires \usepackage{booktabs}.
-
-        `to_latex`-specific options:
-
-        bold_rows : boolean, default True
-            Make the row labels bold in the output
-        column_format : str, default None
-            The columns format as specified in `LaTeX table format
-            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3
-            columns
-        longtable : boolean, default will be read from the pandas config module
-            Default: False.
-            Use a longtable environment instead of tabular. Requires adding
-            a \usepackage{longtable} to your LaTeX preamble.
-        escape : boolean, default will be read from the pandas config module
-            Default: True.
-            When set to False prevents from escaping latex special
-            characters in column names.
-        encoding : str, default None
-            A string representing the encoding to use in the output file,
-            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        decimal : string, default '.'
-            Character recognized as decimal separator, e.g. ',' in Europe.
-
-            .. versionadded:: 0.18.0
-
-        multicolumn : boolean, default True
-            Use \multicolumn to enhance MultiIndex columns.
-            The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
-
-        multicolumn_format : str, default 'l'
-            The alignment for multicolumns, similar to `column_format`
-            The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
-
-        multirow : boolean, default False
-            Use \multirow to enhance MultiIndex rows.
-            Requires adding a \usepackage{multirow} to your LaTeX preamble.
-            Will print centered labels (instead of top-aligned)
-            across the contained rows, separating groups via clines.
-            The default will be read from the pandas config module.
-
-            .. versionadded:: 0.20.0
-
-        """
-        # Get defaults from the pandas config
-        if longtable is None:
-            longtable = get_option("display.latex.longtable")
-        if escape is None:
-            escape = get_option("display.latex.escape")
-        if multicolumn is None:
-            multicolumn = get_option("display.latex.multicolumn")
-        if multicolumn_format is None:
-            multicolumn_format = get_option("display.latex.multicolumn_format")
-        if multirow is None:
-            multirow = get_option("display.latex.multirow")
-
-        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
-                                           col_space=col_space, na_rep=na_rep,
-                                           header=header, index=index,
-                                           formatters=formatters,
-                                           float_format=float_format,
-                                           bold_rows=bold_rows,
-                                           sparsify=sparsify,
-                                           index_names=index_names,
-                                           escape=escape, decimal=decimal)
-        formatter.to_latex(column_format=column_format, longtable=longtable,
-                           encoding=encoding, multicolumn=multicolumn,
-                           multicolumn_format=multicolumn_format,
-                           multirow=multirow)
-
-        if buf is None:
-            return formatter.buf.getvalue()
-
     def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None,
              null_counts=None):
         """
@@ -1973,7 +1918,7 @@ it is assumed to be aliases for the column names.')
 
         try:
             return engine.get_value(series._values, index)
-        except TypeError:
+        except (TypeError, ValueError):
 
             # we cannot handle direct indexing
             # use positional
@@ -2934,9 +2879,44 @@ it is assumed to be aliases for the column names.')
 
         Examples
         --------
-        >>> indexed_df = df.set_index(['A', 'B'])
-        >>> indexed_df2 = df.set_index(['A', [0, 1, 2, 0, 1, 2]])
-        >>> indexed_df3 = df.set_index([[0, 1, 2, 0, 1, 2]])
+        >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
+        ...                    'year': [2012, 2014, 2013, 2014],
+        ...                    'sale':[55, 40, 84, 31]})
+           month  sale  year
+        0  1      55    2012
+        1  4      40    2014
+        2  7      84    2013
+        3  10     31    2014
+
+        Set the index to become the 'month' column:
+
+        >>> df.set_index('month')
+               sale  year
+        month
+        1      55    2012
+        4      40    2014
+        7      84    2013
+        10     31    2014
+
+        Create a multi-index using columns 'year' and 'month':
+
+        >>> df.set_index(['year', 'month'])
+                    sale
+        year  month
+        2012  1     55
+        2014  4     40
+        2013  7     84
+        2014  10    31
+
+        Create a multi-index using a set of values and a column:
+
+        >>> df.set_index([[1, 2, 3, 4], 'year'])
+                 month  sale
+           year
+        1  2012  1      55
+        2  2014  4      40
+        3  2013  7      84
+        4  2014  10     31
 
         Returns
         -------
@@ -3908,12 +3888,12 @@ it is assumed to be aliases for the column names.')
 
                 if overwrite:
                     mask = isnull(that)
-
-                    # don't overwrite columns unecessarily
-                    if mask.all():
-                        continue
                 else:
                     mask = notnull(this)
+
+            # don't overwrite columns unecessarily
+            if mask.all():
+                continue
 
             self[col] = expressions.where(mask, this, that,
                                           raise_on_error=True)
@@ -4868,12 +4848,13 @@ it is assumed to be aliases for the column names.')
     @Appender(_merge_doc, indents=2)
     def merge(self, right, how='inner', on=None, left_on=None, right_on=None,
               left_index=False, right_index=False, sort=False,
-              suffixes=('_x', '_y'), copy=True, indicator=False):
+              suffixes=('_x', '_y'), copy=True, indicator=False,
+              validate=None):
         from pandas.core.reshape.merge import merge
         return merge(self, right, how=how, on=on, left_on=left_on,
                      right_on=right_on, left_index=left_index,
                      right_index=right_index, sort=sort, suffixes=suffixes,
-                     copy=copy, indicator=indicator)
+                     copy=copy, indicator=indicator, validate=validate)
 
     def round(self, decimals=0, *args, **kwargs):
         """

@@ -1201,6 +1201,14 @@ class TestDataFrameAnalytics(TestData):
         expected['B'] = False
         tm.assert_frame_equal(result, expected)
 
+    def test_isin_tuples(self):
+        # GH16394
+        df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        df['C'] = list(zip(df['A'], df['B']))
+        result = df['C'].isin([(1, 'a')])
+        tm.assert_series_equal(result,
+                               Series([True, False, False], name="C"))
+
     def test_isin_df_dupe_values(self):
         df1 = DataFrame({'A': [1, 2, 3, 4], 'B': [2, np.nan, 4, 4]})
         # just cols duped
@@ -1799,6 +1807,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_clip(self):
         median = self.frame.median().median()
+        original = self.frame.copy()
 
         capped = self.frame.clip_upper(median)
         assert not (capped.values > median).any()
@@ -1808,6 +1817,25 @@ class TestDataFrameAnalytics(TestData):
 
         double = self.frame.clip(upper=median, lower=median)
         assert not (double.values != median).any()
+
+        # Verify that self.frame was not changed inplace
+        assert (self.frame.values == original.values).all()
+
+    def test_inplace_clip(self):
+        # GH #15388
+        median = self.frame.median().median()
+        frame_copy = self.frame.copy()
+
+        frame_copy.clip_upper(median, inplace=True)
+        assert not (frame_copy.values > median).any()
+        frame_copy = self.frame.copy()
+
+        frame_copy.clip_lower(median, inplace=True)
+        assert not (frame_copy.values < median).any()
+        frame_copy = self.frame.copy()
+
+        frame_copy.clip(upper=median, lower=median, inplace=True)
+        assert not (frame_copy.values != median).any()
 
     def test_dataframe_clip(self):
         # GH #2747
@@ -1835,18 +1863,23 @@ class TestDataFrameAnalytics(TestData):
                               'B': [1., np.nan, 2.]})
         tm.assert_frame_equal(result, expected, check_like=True)
 
-    def test_clip_against_series(self):
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_clip_against_series(self, inplace):
         # GH #6966
 
         df = DataFrame(np.random.randn(1000, 2))
         lb = Series(np.random.randn(1000))
         ub = lb + 1
 
-        clipped_df = df.clip(lb, ub, axis=0)
+        original = df.copy()
+        clipped_df = df.clip(lb, ub, axis=0, inplace=inplace)
+
+        if inplace:
+            clipped_df = df
 
         for i in range(2):
-            lb_mask = df.iloc[:, i] <= lb
-            ub_mask = df.iloc[:, i] >= ub
+            lb_mask = original.iloc[:, i] <= lb
+            ub_mask = original.iloc[:, i] >= ub
             mask = ~lb_mask & ~ub_mask
 
             result = clipped_df.loc[lb_mask, i]
@@ -2073,3 +2106,16 @@ class TestNLargestNSmallest(object):
         result = df.nlargest(n, order)
         expected = df.sort_values(order, ascending=False).head(n)
         tm.assert_frame_equal(result, expected)
+
+    def test_series_broadcasting(self):
+        # smoke test for numpy warnings
+        # GH 16378, GH 16306
+        df = DataFrame([1.0, 1.0, 1.0])
+        df_nan = DataFrame({'A': [np.nan, 2.0, np.nan]})
+        s = Series([1, 1, 1])
+        s_nan = Series([np.nan, np.nan, 1])
+
+        with tm.assert_produces_warning(None):
+            df_nan.clip_lower(s, axis=0)
+            for op in ['lt', 'le', 'gt', 'ge', 'eq', 'ne']:
+                getattr(df, op)(s_nan, axis=0)

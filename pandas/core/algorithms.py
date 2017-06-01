@@ -163,7 +163,7 @@ def _ensure_arraylike(values):
                                ABCIndexClass, ABCSeries)):
         inferred = lib.infer_dtype(values)
         if inferred in ['mixed', 'string', 'unicode']:
-            values = np.asarray(values, dtype=object)
+            values = lib.list_to_object_array(values)
         else:
             values = np.asarray(values)
     return values
@@ -328,6 +328,11 @@ def unique(values):
     [b, a, c]
     Categories (3, object): [a < b < c]
 
+    An array of tuples
+
+    >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
+    array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
+
     See Also
     --------
     pandas.Index.unique
@@ -388,7 +393,7 @@ def isin(comps, values):
                         "[{0}]".format(type(values).__name__))
 
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
-        values = np.array(list(values), dtype='object')
+        values = lib.list_to_object_array(list(values))
 
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)

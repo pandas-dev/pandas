@@ -3,6 +3,7 @@
 from warnings import catch_warnings
 from datetime import datetime, timedelta
 from functools import partial
+from textwrap import dedent
 
 import pytz
 import pytest
@@ -284,8 +285,7 @@ class TestResampleAPI(object):
         tm.assert_series_equal(r.A.sum(), r['A'].sum())
 
         # getting
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            pytest.raises(AttributeError, lambda: r.F)
+        pytest.raises(AttributeError, lambda: r.F)
 
         # setting
         def f():
@@ -1672,6 +1672,28 @@ class TestDatetimeIndex(Base):
         result = df.groupby('group').resample('1D').ffill()
         assert result.val.dtype == np.int32
 
+    def test_resample_dtype_coerceion(self):
+
+        pytest.importorskip('scipy')
+
+        # GH 16361
+        df = {"a": [1, 3, 1, 4]}
+        df = pd.DataFrame(
+            df, index=pd.date_range("2017-01-01", "2017-01-04"))
+
+        expected = (df.astype("float64")
+                    .resample("H")
+                    .mean()
+                    ["a"]
+                    .interpolate("cubic")
+                    )
+
+        result = df.resample("H")["a"].mean().interpolate("cubic")
+        tm.assert_series_equal(result, expected)
+
+        result = df.resample("H").mean()["a"].interpolate("cubic")
+        tm.assert_series_equal(result, expected)
+
     def test_weekly_resample_buglet(self):
         # #1327
         rng = date_range('1/1/2000', freq='B', periods=20)
@@ -2815,6 +2837,19 @@ class TestResamplerGrouper(object):
                                               fill_method='ffill')
             expected = df.groupby('A').resample('4s').mean().ffill()
             assert_frame_equal(result, expected)
+
+    def test_tab_complete_ipython6_warning(self, ip):
+        from IPython.core.completer import provisionalcompleter
+        code = dedent("""\
+        import pandas.util.testing as tm
+        s = tm.makeTimeSeries()
+        rs = s.resample("D")
+        """)
+        ip.run_code(code)
+
+        with tm.assert_produces_warning(None):
+            with provisionalcompleter('ignore'):
+                list(ip.Completer.completions('rs.', 1))
 
     def test_deferred_with_groupby(self):
 

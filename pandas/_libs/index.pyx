@@ -152,7 +152,7 @@ cdef class IndexEngine:
 
         try:
             return self.mapping.get_item(val)
-        except TypeError:
+        except (TypeError, ValueError):
             raise KeyError(val)
 
     cdef inline _get_loc_duplicates(self, object val):
@@ -470,7 +470,7 @@ cdef class DatetimeEngine(Int64Engine):
         try:
             val = _to_i8(val)
             return self.mapping.get_item(val)
-        except TypeError:
+        except (TypeError, ValueError):
             self._date_check_type(val)
             raise KeyError(val)
 

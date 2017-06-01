@@ -724,6 +724,7 @@ Serialization / IO / Conversion
    Series.to_dense
    Series.to_string
    Series.to_clipboard
+   Series.to_latex
 
 Sparse
 ~~~~~~
@@ -1285,6 +1286,8 @@ Attributes
    Index.is_monotonic
    Index.is_monotonic_increasing
    Index.is_monotonic_decreasing
+   Index.is_strictly_monotonic_increasing
+   Index.is_strictly_monotonic_decreasing
    Index.is_unique
    Index.has_duplicates
    Index.dtype
@@ -1704,6 +1707,7 @@ Computations / Descriptive Stats
    GroupBy.mean
    GroupBy.median
    GroupBy.min
+   GroupBy.ngroup
    GroupBy.nth
    GroupBy.ohlc
    GroupBy.prod
@@ -1738,6 +1742,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.diff
    DataFrameGroupBy.ffill
    DataFrameGroupBy.fillna
+   DataFrameGroupBy.filter
    DataFrameGroupBy.hist
    DataFrameGroupBy.idxmax
    DataFrameGroupBy.idxmin
