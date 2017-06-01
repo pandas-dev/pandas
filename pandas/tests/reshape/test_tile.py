@@ -220,6 +220,7 @@ class TestCut(object):
         exp = Categorical.from_codes([1] + 4 * [0] + [1, 2], labels)
         tm.assert_categorical_equal(result, exp)
 
+	# issue 16459
         labels = ['Good', 'Medium', 'Bad']
         result = cut(arr, 3, labels=labels)
         exp = cut(arr, 3, labels=Categorical(labels, categories=labels,
