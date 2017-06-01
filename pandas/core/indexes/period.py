@@ -125,7 +125,7 @@ def _new_PeriodIndex(cls, **d):
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
-    time such as particular years, quarters, months, etc. 
+    time such as particular years, quarters, months, etc.
 
     Index keys are boxed to Period objects which carries the metadata (eg,
     frequency information).
