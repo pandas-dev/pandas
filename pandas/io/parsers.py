@@ -13,7 +13,7 @@ from textwrap import fill
 import numpy as np
 
 from pandas import compat
-from pandas.compat import (range, lrange, StringIO, lzip,
+from pandas.compat import (range, lrange, PY3, StringIO, lzip,
                            zip, string_types, map, u)
 from pandas.core.dtypes.common import (
     is_integer, _ensure_object,
@@ -31,10 +31,10 @@ from pandas.core import algorithms
 from pandas.core.common import AbstractMethodError
 from pandas.io.date_converters import generic_parser
 from pandas.errors import ParserWarning, ParserError, EmptyDataError
-from pandas.io.common import (get_filepath_or_buffer, _validate_header_arg,
-                              _get_handle, UnicodeReader, UTF8Recoder,
-                              BaseIterator,
-                              _NA_VALUES, _infer_compression)
+from pandas.io.common import (get_filepath_or_buffer, is_file_like,
+                              _validate_header_arg, _get_handle,
+                              UnicodeReader, UTF8Recoder, _NA_VALUES,
+                              BaseIterator, _infer_compression)
 from pandas.core.tools import datetimes as tools
 
 from pandas.util._decorators import Appender
@@ -755,7 +755,9 @@ class TextFileReader(BaseIterator):
         self.squeeze = options.pop('squeeze', False)
 
         # might mutate self.engine
+        self.engine = self._check_file_or_buffer(f, engine)
         self.options, self.engine = self._clean_options(options, engine)
+
         if 'has_index_names' in kwds:
             self.options['has_index_names'] = kwds['has_index_names']
 
@@ -800,6 +802,23 @@ class TextFileReader(BaseIterator):
                 options[argname] = kwds.get(argname, default)
 
         return options
+
+    def _check_file_or_buffer(self, f, engine):
+        # see gh-16530
+        if is_file_like(f):
+            next_attr = "__next__" if PY3 else "next"
+
+            # The C engine doesn't need the file-like to have the "next" or
+            # "__next__" attribute. However, the Python engine explicitly calls
+            # "next(...)" when iterating through such an object, meaning it
+            # needs to have that attribute ("next" for Python 2.x, "__next__"
+            # for Python 3.x)
+            if engine != "c" and not hasattr(f, next_attr):
+                msg = ("The 'python' engine cannot iterate "
+                       "through this file buffer.")
+                raise ValueError(msg)
+
+        return engine
 
     def _clean_options(self, options, engine):
         result = options.copy()
