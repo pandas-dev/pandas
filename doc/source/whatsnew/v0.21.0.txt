@@ -70,6 +70,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- ``pd.read_excel()`` has dropped the ``has_index_names`` parameter (:issue:`10967`)
 
 
 .. _whatsnew_0210.performance:

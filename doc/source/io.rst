@@ -2739,11 +2739,6 @@ should be passed to ``index_col`` and ``header``
    import os
    os.remove('path_to_file.xlsx')
 
-.. warning::
-
-   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
-   but the ``has_index_names`` argument must specified to ``True``.
-
 
 Parsing Specific Columns
 ++++++++++++++++++++++++
