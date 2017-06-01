@@ -1,0 +1,1 @@
+Please see [Developers](http://pandas.pydata.org/developers.html) page on the project website.
