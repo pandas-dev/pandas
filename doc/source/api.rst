@@ -1286,8 +1286,6 @@ Attributes
    Index.is_monotonic
    Index.is_monotonic_increasing
    Index.is_monotonic_decreasing
-   Index.is_strictly_monotonic_increasing
-   Index.is_strictly_monotonic_decreasing
    Index.is_unique
    Index.has_duplicates
    Index.dtype
