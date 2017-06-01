@@ -46,10 +46,8 @@ Bug Fixes
 - Passing an invalid engine to :func:`read_csv` now raises an informative
   ``ValueError`` rather than ``UnboundLocalError``. (:issue:`16511`)
 - Bug in :func:`unique` on an array of tuples (:issue:`16519`)
-
-
+- Bug in :func:`cut`` when ``labels`` are set, resulting in incorrect label ordering (:issue:`16459`)
 - Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on Categoricals (:issue:`16409`)
-
 
 Conversion
 ^^^^^^^^^^
