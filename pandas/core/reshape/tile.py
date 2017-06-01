@@ -252,7 +252,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
                 raise ValueError('Bin labels must be one fewer than '
                                  'the number of bin edges')
         if not is_categorical_dtype(labels):
-            labels = Categorical(labels, ordered=True)
+            labels = Categorical(labels, categories=labels, ordered=True)
 
         np.putmask(ids, na_mask, 0)
         result = algos.take_nd(labels, ids - 1)
