@@ -306,6 +306,22 @@ class TestSeriesAggregate(TestData):
                           name=self.series.name)
         assert_series_equal(result, expected)
 
+    def test_non_callable_aggregates(self):
+        # test agg using non-callable series attributes
+        s = Series([1, 2, None])
+
+        # Calling agg w/ just a string arg same as calling s.arg
+        result = s.agg('size')
+        expected = s.size
+        assert result == expected
+
+        # test when mixed w/ callable reducers
+        result = s.agg(['size', 'count', 'mean'])
+        expected = Series(OrderedDict({'size': 3.0,
+                                       'count': 2.0,
+                                       'mean': 1.5}))
+        assert_series_equal(result[expected.index], expected)
+
 
 class TestSeriesMap(TestData):
 
