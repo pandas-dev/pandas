@@ -1330,8 +1330,10 @@ class TestIndex(Base):
 
     def test_is_monotonic_incomparable(self):
         index = Index([5, datetime.now(), 7])
-        assert not index.is_monotonic
+        assert not index.is_monotonic_increasing
         assert not index.is_monotonic_decreasing
+        assert not index.is_strictly_monotonic_increasing
+        assert not index.is_strictly_monotonic_decreasing
 
     def test_get_set_value(self):
         values = np.random.randn(100)
@@ -2030,6 +2032,8 @@ class TestMixedIntIndex(Base):
         for index in examples:
             assert not index.is_monotonic_increasing
             assert not index.is_monotonic_decreasing
+            assert not index.is_strictly_monotonic_increasing
+            assert not index.is_strictly_monotonic_decreasing
 
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):

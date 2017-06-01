@@ -2373,22 +2373,30 @@ class TestMultiIndex(Base):
         i = MultiIndex.from_product([np.arange(10),
                                      np.arange(10)], names=['one', 'two'])
         assert i.is_monotonic
+        assert i.is_strictly_monotonic_increasing
         assert Index(i.values).is_monotonic
+        assert i.is_strictly_monotonic_increasing
 
         i = MultiIndex.from_product([np.arange(10, 0, -1),
                                      np.arange(10)], names=['one', 'two'])
         assert not i.is_monotonic
+        assert not i.is_strictly_monotonic_increasing
         assert not Index(i.values).is_monotonic
+        assert not Index(i.values).is_strictly_monotonic_increasing
 
         i = MultiIndex.from_product([np.arange(10),
                                      np.arange(10, 0, -1)],
                                     names=['one', 'two'])
         assert not i.is_monotonic
+        assert not i.is_strictly_monotonic_increasing
         assert not Index(i.values).is_monotonic
+        assert not Index(i.values).is_strictly_monotonic_increasing
 
         i = MultiIndex.from_product([[1.0, np.nan, 2.0], ['a', 'b', 'c']])
         assert not i.is_monotonic
+        assert not i.is_strictly_monotonic_increasing
         assert not Index(i.values).is_monotonic
+        assert not Index(i.values).is_strictly_monotonic_increasing
 
         # string ordering
         i = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
@@ -2398,6 +2406,8 @@ class TestMultiIndex(Base):
                        names=['first', 'second'])
         assert not i.is_monotonic
         assert not Index(i.values).is_monotonic
+        assert not i.is_strictly_monotonic_increasing
+        assert not Index(i.values).is_strictly_monotonic_increasing
 
         i = MultiIndex(levels=[['bar', 'baz', 'foo', 'qux'],
                                ['mom', 'next', 'zenith']],
@@ -2406,6 +2416,8 @@ class TestMultiIndex(Base):
                        names=['first', 'second'])
         assert i.is_monotonic
         assert Index(i.values).is_monotonic
+        assert i.is_strictly_monotonic_increasing
+        assert Index(i.values).is_strictly_monotonic_increasing
 
         # mixed levels, hits the TypeError
         i = MultiIndex(
@@ -2416,6 +2428,20 @@ class TestMultiIndex(Base):
             names=['household_id', 'asset_id'])
 
         assert not i.is_monotonic
+        assert not i.is_strictly_monotonic_increasing
+
+    def test_is_strictly_monotonic(self):
+        idx = pd.MultiIndex(levels=[['bar', 'baz'], ['mom', 'next']],
+                            labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
+        assert idx.is_monotonic_increasing
+        assert not idx.is_strictly_monotonic_increasing
+
+    @pytest.mark.xfail(reason="buggy MultiIndex.is_monotonic_decresaing.")
+    def test_is_strictly_monotonic_decreasing(self):
+        idx = pd.MultiIndex(levels=[['baz', 'bar'], ['next', 'mom']],
+                            labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
+        assert idx.is_monotonic_decreasing
+        assert not idx.is_strictly_monotonic_decreasing
 
     def test_reconstruct_sort(self):
 
