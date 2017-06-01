@@ -948,6 +948,13 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
         # using driver that will not be installed on Travis to trigger error
         # in sqlalchemy.create_engine -> test passing of this error to user
+        try:
+            # the rest of this test depends on pg8000's being absent
+            import pg8000  # noqa
+            pytest.skip("pg8000 is installed")
+        except ImportError:
+            pass
+
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
         with tm.assert_raises_regex(ImportError, "pg8000"):
             sql.read_sql("select * from table", db_uri)
