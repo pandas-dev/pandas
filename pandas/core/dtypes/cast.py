@@ -1026,3 +1026,24 @@ def find_common_type(types):
             return np.object
 
     return np.find_common_type(types, [])
+
+
+def _maybe_convert_indexer(indexer, until):
+    """
+    Convert slice, tuple, list or scalar "indexer" to 1-d array of indices,
+    using "until" as maximum for upwards open slices.
+    """
+
+    if is_scalar(indexer):
+        return np.array([indexer], dtype=int)
+
+    if isinstance(indexer, np.ndarray):
+        if indexer.dtype == bool:
+            return np.where(indexer)[0]
+        return indexer
+
+    if isinstance(indexer, slice):
+        stop = until if indexer.stop is None else indexer.stop
+        return np.arange(stop, dtype=int)[indexer]
+
+    return np.array(indexer, dtype=int)

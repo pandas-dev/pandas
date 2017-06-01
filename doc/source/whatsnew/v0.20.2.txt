@@ -62,7 +62,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in ``DataFrame.reset_index(level=)`` with single level index (:issue:`16263`)
-
+- Bug in ``DataFrame.iloc`` with duplicate labels (:issue:`15686`)
 
 I/O
 ^^^
