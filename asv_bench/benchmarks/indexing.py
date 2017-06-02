@@ -204,6 +204,12 @@ class MultiIndexing(object):
             [np.arange(100), list('A'), list('A')],
             names=['one', 'two', 'three'])
 
+        rng = np.random.RandomState(4)
+        size = 1 << 16
+        self.mi_unused_levels = pd.MultiIndex.from_arrays([
+            rng.randint(0, 1 << 13, size),
+            rng.randint(0, 1 << 10, size)])[rng.rand(size) < 0.1]
+
     def time_series_xs_mi_ix(self):
         self.s.ix[999]
 
@@ -247,6 +253,9 @@ class MultiIndexing(object):
 
     def time_is_monotonic(self):
         self.miint.is_monotonic
+
+    def time_remove_unused_levels(self):
+        self.mi_unused_levels.remove_unused_levels()
 
 
 class IntervalIndexing(object):

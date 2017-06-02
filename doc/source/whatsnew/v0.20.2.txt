@@ -37,6 +37,7 @@ Performance Improvements
 - Performance regression fix for MultiIndexes (:issue:`16319`, :issue:`16346`)
 - Improved performance of ``.clip()`` with scalar arguments (:issue:`15400`)
 - Improved performance of groupby with categorical groupers (:issue:`16413`)
+- Improved performance of ``MultiIndex.remove_unused_levels()`` (:issue:`16556`)
 
 .. _whatsnew_0202.bug_fixes:
 
@@ -66,6 +67,7 @@ Indexing
 
 - Bug in ``DataFrame.reset_index(level=)`` with single level index (:issue:`16263`)
 - Bug in partial string indexing with a monotonic, but not strictly-monotonic, index incorrectly reversing the slice bounds (:issue:`16515`)
+- Bug in ``MultiIndex.remove_unused_levels()`` (:issue:`16556`)
 
 I/O
 ^^^
