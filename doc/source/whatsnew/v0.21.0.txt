@@ -25,7 +25,7 @@ New features
 - Added `__fspath__` method to :class`:pandas.HDFStore`, :class:`pandas.ExcelFile`,
   and :class:`pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 - Added `limit_area` parameter to `DataFrame.interpolate()` method allowing further control of which NaNs are replaced.
-  Use `limit-area='inside'` to fill only NaNs surrounded by valid values or use `limit-area='outside'` to fill only NaNs outside the existing valid values while preserving those inside.  (:issue:`16284`)
+  Use `limit_area='inside'` to fill only NaNs surrounded by valid values or use `limit_area='outside'` to fill only NaNs outside the existing valid values while preserving those inside.  (:issue:`16284`)
   Full documentation and examples are :ref:`here <missing_data.interp_limits>`.
 
 .. _whatsnew_0210.enhancements.other:

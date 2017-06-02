@@ -3884,7 +3884,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Maximum number of consecutive NaNs to fill. Must be greater than 0.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
             Consecutive NaNs will be filled in this direction.
-            
+
             .. versionadded:: 0.17.0
 
         limit_area : {'inside', 'outside'}, default None
