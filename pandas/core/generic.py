@@ -4429,20 +4429,9 @@ it is assumed to be aliases for the column names.')
         subset = method(threshold, axis=axis) | isnull(self)
 
         # GH #15390
-        if is_scalar(threshold):
-            return self.where(subset, threshold, axis=axis, inplace=inplace)
-
-        # For arry_like threshold, convet it to Series with corret index
-        # `where` takes scalar, NDFrame, or callable for argument "other"
-        try:
-            if isinstance(subset, ABCSeries):
-                threshold = pd.Series(threshold, index=subset.index)
-            elif axis == 0:
-                threshold = pd.Series(threshold, index=subset.index)
-            else:
-                threshold = pd.Series(threshold, index=subset.columns)
-        finally:
-            return self.where(subset, threshold, axis=axis, inplace=inplace)
+        if (not isinstance(threshold, ABCSeries)) and is_list_like(threshold):
+            threshold = np.asarray(threshold)
+        return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     def clip(self, lower=None, upper=None, axis=None, inplace=False,
              *args, **kwargs):
