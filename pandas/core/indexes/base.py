@@ -1221,33 +1221,33 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         return self._engine.is_monotonic_decreasing
 
     @property
-    def is_strictly_monotonic_increasing(self):
+    def _is_strictly_monotonic_increasing(self):
         """return if the index is strictly monotonic increasing
         (only increasing) values
 
         Examples
         --------
-        >>> Index([1, 2, 3]).is_strictly_monotonic_increasing
+        >>> Index([1, 2, 3])._is_strictly_monotonic_increasing
         True
-        >>> Index([1, 2, 2]).is_strictly_monotonic_increasing
+        >>> Index([1, 2, 2])._is_strictly_monotonic_increasing
         False
-        >>> Index([1, 3, 2]).is_strictly_monotonic_increasing
+        >>> Index([1, 3, 2])._is_strictly_monotonic_increasing
         False
         """
         return self.is_unique and self.is_monotonic_increasing
 
     @property
-    def is_strictly_monotonic_decreasing(self):
+    def _is_strictly_monotonic_decreasing(self):
         """return if the index is strictly monotonic decreasing
         (only decreasing) values
 
         Examples
         --------
-        >>> Index([3, 2, 1]).is_strictly_monotonic_decreasing
+        >>> Index([3, 2, 1])._is_strictly_monotonic_decreasing
         True
-        >>> Index([3, 2, 2]).is_strictly_monotonic_decreasing
+        >>> Index([3, 2, 2])._is_strictly_monotonic_decreasing
         False
-        >>> Index([3, 1, 2]).is_strictly_monotonic_decreasing
+        >>> Index([3, 1, 2])._is_strictly_monotonic_decreasing
         False
         """
         return self.is_unique and self.is_monotonic_decreasing
