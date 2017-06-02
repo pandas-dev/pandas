@@ -38,7 +38,7 @@ Other Enhancements
 - :func:`read_feather` has gained the ``nthreads`` parameter for multi-threaded operations (:issue:`16359`)
 - :func:`DataFrame.clip()` and :func: `Series.cip()` have gained an inplace argument. (:issue: `15388`)
 - :func:`crosstab` has gained a ``margins_name`` parameter to define the name of the row / column that will contain the totals when margins=True. (:issue:`15972`)
-- :func:`read_csv` has gained 'null' as an additional default missing value.(:issue:`16471`)
+
 .. _whatsnew_0210.api_breaking:
 
 Backwards incompatible API changes
@@ -49,6 +49,8 @@ Backwards incompatible API changes
 
 - Accessing a non-existent attribute on a closed :class:`HDFStore` will now
   raise an ``AttributeError`` rather than a ``ClosedFileError`` (:issue:`16301`)
+- :func:`read_csv` now treats ``'null'`` strings as missing values by default (:issue:`16471`)
+- :func:`read_csv` now treats ``'n/a'`` strings as missing values by default (:issue:`16078`)
 
 .. _whatsnew_0210.api:
 
