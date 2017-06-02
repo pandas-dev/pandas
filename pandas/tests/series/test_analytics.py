@@ -1023,9 +1023,8 @@ class TestSeriesAnalytics(TestData):
         expected = pd.Series([1, 2, 3])
 
         if inplace:
-            tm.assert_series_equal(original, expected, check_exact=True)
-        else:
-            tm.assert_series_equal(result, expected, check_exact=True)
+            result = original
+        tm.assert_series_equal(result, expected, check_exact=True)
 
     def test_clip_with_datetimes(self):
 

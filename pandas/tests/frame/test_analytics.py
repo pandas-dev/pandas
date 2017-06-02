@@ -1895,7 +1895,7 @@ class TestDataFrameAnalytics(TestData):
     @pytest.mark.parametrize("inplace", [True, False])
     def test_clip_against_list(self, inplace):
         # GH #15390
-        original = self.simple
+        original = self.simple.copy(deep=True)
 
         result = original.clip(lower=[2, 3, 4], upper=[5, 6, 7],
                                axis=1, inplace=inplace)
@@ -1907,9 +1907,8 @@ class TestDataFrameAnalytics(TestData):
                                 columns=original.columns,
                                 index=original.index)
         if inplace:
-            tm.assert_frame_equal(original, expected, check_exact=True)
-        else:
-            tm.assert_frame_equal(result, expected, check_exact=True)
+            result = original
+        tm.assert_frame_equal(result, expected, check_exact=True)
 
     def test_clip_against_frame(self):
         df = DataFrame(np.random.randn(1000, 2))
