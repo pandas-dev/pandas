@@ -21,7 +21,6 @@ Enhancements
 
 - Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`)
 - ``Series`` provides a ``to_latex`` method (:issue:`16180`)
-- Added :attr:`Index.is_strictly_monotonic_increasing` and :attr:`Index.is_strictly_monotonic_decreasing` properties (:issue:`16515`)
 
 - A new groupby method :meth:`~pandas.core.groupby.GroupBy.ngroup`,
   parallel to the existing :meth:`~pandas.core.groupby.GroupBy.cumcount`,
