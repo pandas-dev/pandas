@@ -1290,8 +1290,8 @@ class MultiIndex(Index):
         new_levels = []
         new_labels = []
 
-        changed = np.ones(self.nlevels, dtype=bool)
-        for i, (lev, lab) in enumerate(zip(self.levels, self.labels)):
+        changed = False
+        for lev, lab in zip(self.levels, self.labels):
 
             uniques = algos.unique(lab)
 
@@ -1299,33 +1299,29 @@ class MultiIndex(Index):
             if len(uniques) == len(lev):
                 new_levels.append(lev)
                 new_labels.append(lab)
-                changed[i] = False
                 continue
 
-            # set difference, then reverse sort
-            diff = Index(np.arange(len(lev))).difference(uniques)
-            unused = diff.sort_values(ascending=False)
+            changed = True
+
+            # labels get mapped from uniques to 0:len(uniques)
+            label_mapping = np.zeros(len(lev))
+            label_mapping[uniques] = np.arange(len(uniques))
+            lab = label_mapping[lab]
 
             # new levels are simple
             lev = lev.take(uniques)
 
-            # new labels, we remove the unsued
-            # by decrementing the labels for that value
-            # prob a better way
-            for u in unused:
-
-                lab = np.where(lab > u, lab - 1, lab)
-
             new_levels.append(lev)
             new_labels.append(lab)
 
-        # nothing changed
-        if not changed.any():
-            return self
+        result = self._shallow_copy()
 
-        return MultiIndex(new_levels, new_labels,
-                          names=self.names, sortorder=self.sortorder,
-                          verify_integrity=False)
+        if changed:
+            result._reset_identity()
+            result._set_levels(new_levels, validate=False)
+            result._set_labels(new_labels, validate=False)
+
+        return result
 
     @property
     def nlevels(self):
