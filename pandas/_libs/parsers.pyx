@@ -281,7 +281,9 @@ DEFAULT_CHUNKSIZE = 256 * 1024
 def c_type_conv(st):
     cdef bytes py_bytes = st.encode()
     return py_bytes
+
 _NA_VALUES = [c_type_conv(x) for x in parsers._NA_VALUES]
+
 
 cdef class TextReader:
     """
