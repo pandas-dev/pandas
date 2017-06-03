@@ -280,6 +280,7 @@ def c_type_conv(st):
     cdef bytes py_bytes = st.encode()
     return py_bytes
 
+
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
