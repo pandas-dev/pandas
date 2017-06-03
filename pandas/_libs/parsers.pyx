@@ -50,6 +50,8 @@ from pandas.core.algorithms import take_1d
 from pandas.core.dtypes.concat import union_categoricals
 from pandas import Index
 
+import pandas.io.parsers as parsers
+
 import time
 import os
 
@@ -276,10 +278,10 @@ DEFAULT_CHUNKSIZE = 256 * 1024
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = [b'-1.#IND', b'1.#QNAN', b'1.#IND', b'-1.#QNAN',
-              b'#N/A N/A', b'n/a', b'NA', b'#NA', b'NULL', b'null', b'NaN',
-              b'nan', b'']
-
+def c_type_conv(st):
+    cdef bytes py_bytes = st.encode()
+    return py_bytes
+_NA_VALUES = [c_type_conv(x) for x in parsers._NA_VALUES]
 
 cdef class TextReader:
     """
