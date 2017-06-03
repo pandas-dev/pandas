@@ -275,13 +275,14 @@ cdef extern from "parser/io.h":
 
 DEFAULT_CHUNKSIZE = 256 * 1024
 
-# common NA values
-# no longer excluding inf representations
-# '1.#INF','-1.#INF', '1.#INF000000',
+
 def c_type_conv(st):
     cdef bytes py_bytes = st.encode()
     return py_bytes
 
+# common NA values
+# no longer excluding inf representations
+# '1.#INF','-1.#INF', '1.#INF000000',
 _NA_VALUES = [c_type_conv(x) for x in parsers._NA_VALUES]
 
 
