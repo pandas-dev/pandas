@@ -554,57 +554,27 @@ def _normalize(table, normalize, margins, margins_name='All'):
             'columns': lambda x: x / x.sum(),
             'index': lambda x: x.div(x.sum(axis=1), axis=0)
         }
-
-        normalizers[True] = normalizers['all']
-
-        try:
-            f = normalizers[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
-
-        table = f(table)
-        table = table.fillna(0)
-
+    
     elif margins is True:
 
-        column_margin = table.loc[:, margins_name].drop(margins_name)
-        index_margin = table.loc[margins_name, :].drop(margins_name)
-        table = table.drop(margins_name, axis=1).drop(margins_name)
-        # to keep index and columns names
-        table_index_names = table.index.names
-        table_columns_names = table.columns.names
-
-        # Normalize core
-        table = _normalize(table, normalize=normalize, margins=False)
-
-        # Fix Margins
-        if normalize == 'columns':
-            column_margin = column_margin / column_margin.sum()
-            table = concat([table, column_margin], axis=1)
-            table = table.fillna(0)
-
-        elif normalize == 'index':
-            index_margin = index_margin / index_margin.sum()
-            table = table.append(index_margin)
-            table = table.fillna(0)
-
-        elif normalize == "all" or normalize is True:
-            column_margin = column_margin / column_margin.sum()
-            index_margin = index_margin / index_margin.sum()
-            index_margin.loc[margins_name] = 1
-            table = concat([table, column_margin], axis=1)
-            table = table.append(index_margin)
-
-            table = table.fillna(0)
-
-        else:
-            raise ValueError("Not a valid normalize argument")
-
-        table.index.names = table_index_names
-        table.columns.names = table_columns_names
+        normalizers = {
+            'all': lambda x: x / x.iloc[:-1,:-1].sum(axis=1).sum(axis=0),
+            'columns': lambda x: x.div(x.iloc[:-1,:].sum()).iloc[:-1,:],
+            'index': lambda x: (x.div(x.iloc[:,:-1].sum(axis=1), axis=0)).iloc[:,:-1]
+        }
 
     else:
-        raise ValueError("Not a valid margins argument")
+        raise ValueError("Not a valid margins argument")    
+
+    normalizers[True] = normalizers['all']
+
+    try:
+        f = normalizers[normalize]
+    except KeyError:
+        raise ValueError("Not a valid normalize argument")
+      
+    table=f(table)
+    table = table.fillna(0)       
 
     return table
 
