@@ -57,6 +57,7 @@ Conversion
 
 - Bug in :func:`to_numeric` in which empty data inputs were causing a segfault of the interpreter (:issue:`16302`)
 - Silence numpy warnings when broadcasting ``DataFrame`` to ``Series`` with comparison ops (:issue:`16378`, :issue:`16306`)
+- Bug in ``Series`` with ``dtype='category'`` (:issue:`16524`)
 
 
 Indexing
