@@ -37,6 +37,56 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.20.2
+-------------
+
+**Release date:** June 4, 2017
+
+This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes,
+bug fixes and performance improvements.
+We recommend that all users upgrade to this version.
+
+See the :ref:`v0.20.2 Whatsnew <whatsnew_0202>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.20.2.
+
+Thanks
+~~~~~~
+
+- Aaron Barber
+- Andrew 亮
+- Becky Sweger
+- Christian Prinoth
+- Christian Stade-Schuldt
+- DSM
+- Erik Fredriksen
+- Hugues Valois
+- Jeff Reback
+- Jeff Tratner
+- JimStearns206
+- John W. O'Brien
+- Joris Van den Bossche
+- JosephWagner
+- Keith Webber
+- Mehmet Ali "Mali" Akmanalp
+- Pankaj Pandey
+- Patrick Luo
+- Patrick O'Melveny
+- Pietro Battiston
+- RobinFiveWords
+- Ryan Hendrickson
+- SimonBaron
+- Tom Augspurger
+- WBare
+- bpraggastis
+- chernrick
+- chris-b1
+- economy
+- gfyoung
+- jaredsnyder
+- keitakurita
+- linebp
+- lloydkirk
+
 pandas 0.20.0 / 0.20.1
 ----------------------
 
