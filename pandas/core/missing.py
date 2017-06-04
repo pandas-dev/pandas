@@ -652,7 +652,7 @@ def _interp_limit(invalid, fw_limit, bw_limit):
 
     def inner(invalid, limit):
         limit = min(limit, N)
-        windowed = rolling_window(invalid, limit + 1).all(1)
+        windowed = _rolling_window(invalid, limit + 1).all(1)
         idx = (set(np.where(windowed)[0] + limit) |
                set(np.where((~invalid[:limit + 1]).cumsum() == 0)[0]))
         return idx
@@ -672,7 +672,7 @@ def _interp_limit(invalid, fw_limit, bw_limit):
     return f_idx & b_idx
 
 
-def rolling_window(a, window):
+def _rolling_window(a, window):
     """
     [True, True, False, True, False], 2 ->
 
