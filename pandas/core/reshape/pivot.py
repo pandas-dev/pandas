@@ -556,7 +556,7 @@ def _normalize(table, normalize, margins, margins_name='All'):
         }
     
     elif margins is True:
-
+        #skip margin rows and/or cols for normalization
         normalizers = {
             'all': lambda x: x / x.iloc[:-1,:-1].sum(axis=1).sum(axis=0),
             'columns': lambda x: x.div(x.iloc[:-1,:].sum()).iloc[:-1,:],
@@ -573,7 +573,7 @@ def _normalize(table, normalize, margins, margins_name='All'):
     except KeyError:
         raise ValueError("Not a valid normalize argument")
       
-    table=f(table)
+    table = f(table)
     table = table.fillna(0)       
 
     return table
