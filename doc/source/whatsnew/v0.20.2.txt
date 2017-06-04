@@ -72,6 +72,7 @@ I/O
 ^^^
 
 - Bug in :func:`read_csv` when ``comment`` is passed in a space delimited text file (:issue:`16472`)
+- Bug in :func:`read_csv` not raising an exception with nonexistent columns in ``usecols`` when it had the correct length (:issue:`14671`)
 - Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)
 - Bug that raised ``IndexError`` when HTML-rendering an empty ``DataFrame`` (:issue:`15953`)
 - Bug in :func:`read_csv` in which tarfile object inputs were raising an error in Python 2.x for the C engine (:issue:`16530`)
