@@ -73,6 +73,18 @@ def _ensure_encoding(encoding):
     return encoding
 
 
+def _ensure_str(name):
+    """Ensure that an index / column name is a str (python 3) or
+    unicode (python 2); otherwise they may be np.string dtype.
+    Non-string dtypes are passed through unchanged.
+
+    https://github.com/pandas-dev/pandas/issues/13492
+    """
+    if isinstance(name, compat.string_types):
+        name = compat.text_type(name)
+    return name
+
+
 Term = Expr
 
 
@@ -2567,7 +2579,7 @@ class GenericFixed(Fixed):
         name = None
 
         if 'name' in node._v_attrs:
-            name = node._v_attrs.name
+            name = _ensure_str(node._v_attrs.name)
 
         index_class = self._alias_to_class(getattr(node._v_attrs,
                                                    'index_class', ''))
