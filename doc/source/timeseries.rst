@@ -1922,7 +1922,7 @@ then you can use a ``PeriodIndex`` and/or ``Series`` of ``Periods`` to do comput
    span = pd.period_range('1215-01-01', '1381-01-01', freq='D')
    span
 
-To convert from a ``int64`` based YYYYMMDD representation.
+To convert from an ``int64`` based YYYYMMDD representation.
 
 .. ipython:: python
 
