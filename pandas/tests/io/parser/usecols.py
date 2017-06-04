@@ -9,7 +9,6 @@ import pytest
 
 import numpy as np
 import pandas.util.testing as tm
-import re
 
 from pandas import DataFrame, Index
 from pandas._libs.lib import Timestamp
@@ -478,44 +477,52 @@ a,b,c
         tm.assert_frame_equal(df, expected)
 
     def test_raise_on_usecols_names_mismatch(self):
-        ## see gh-14671
+        # GH 14671
         data = 'a,b,c,d\n1,2,3,4\n5,6,7,8'
-        msg = 'Usecols do not match names'  ## from parsers.py CParserWrapper()
-        msg2 = 'is not in list' ## from parser.py _handle_usecols()
 
-        usecols = ['a','b','c','d']
+        if self.engine == 'c':
+            msg = 'Usecols do not match names'
+        else:
+            msg = 'is not in list'
+
+        usecols = ['a', 'b', 'c', 'd']
         df = self.read_csv(StringIO(data), usecols=usecols)
-        expected = DataFrame({'a': [1,5], 'b': [2,6], 'c': [3,7], 'd': [4,8]})
+        expected = DataFrame({'a': [1, 5], 'b': [2, 6], 'c': [3, 7],
+                              'd': [4, 8]})
         tm.assert_frame_equal(df, expected)
 
-        usecols = ['a','b','c','f']
-        with tm.assert_raises_regex(ValueError, re.compile("'" + msg + '||' + msg2 + "'")):
+        usecols = ['a', 'b', 'c', 'f']
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(data), usecols=usecols)
 
-        usecols = ['a','b','f']
-        with tm.assert_raises_regex(ValueError, re.compile("'" + msg + '||' + msg2 + "'")):
+        usecols = ['a', 'b', 'f']
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(data), usecols=usecols)
 
         names = ['A', 'B', 'C', 'D']
 
         df = self.read_csv(StringIO(data), header=0, names=names)
-        expected = DataFrame({'A': [1,5], 'B': [2,6], 'C': [3,7], 'D': [4,8]})
+        expected = DataFrame({'A': [1, 5], 'B': [2, 6], 'C': [3, 7],
+                              'D': [4, 8]})
         tm.assert_frame_equal(df, expected)
 
+        # TODO: https://github.com/pandas-dev/pandas/issues/16469
         # usecols = ['A','C']
-        # df = self.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
+        # df = self.read_csv(StringIO(data), header=0, names=names,
+        #                    usecols=usecols)
         # expected = DataFrame({'A': [1,5], 'C': [3,7]})
         # tm.assert_frame_equal(df, expected)
         #
         # usecols = [0,2]
-        # df = self.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
+        # df = self.read_csv(StringIO(data), header=0, names=names,
+        #                    usecols=usecols)
         # expected = DataFrame({'A': [1,5], 'C': [3,7]})
         # tm.assert_frame_equal(df, expected)
 
-
-        usecols = ['A','B','C','f']
-        with tm.assert_raises_regex(ValueError, re.compile("'" + msg + '||' + msg2 + "'")):
-            self.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
-        usecols = ['A','B','f']
-        with tm.assert_raises_regex(ValueError, re.compile("'" + msg + '||' + msg2 + "'")):
+        usecols = ['A', 'B', 'C', 'f']
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(data), header=0, names=names,
+                          usecols=usecols)
+        usecols = ['A', 'B', 'f']
+        with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(data), names=names, usecols=usecols)

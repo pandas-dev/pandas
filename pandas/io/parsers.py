@@ -1650,10 +1650,10 @@ class CParserWrapper(ParserBase):
         if self.usecols:
             usecols = _evaluate_usecols(self.usecols, self.orig_names)
 
-            #gh-14671
-            if  (self.usecols_dtype == 'string') and \
-                (not set(usecols).issubset(self.orig_names)):
-               raise ValueError("Usecols do not match names.")
+            # GH 14671
+            if (self.usecols_dtype == 'string' and
+                    not set(usecols).issubset(self.orig_names)):
+                raise ValueError("Usecols do not match names.")
 
             if len(self.names) > len(usecols):
                 self.names = [n for i, n in enumerate(self.names)
