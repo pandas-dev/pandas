@@ -184,7 +184,7 @@ validate : string, default None
       dataset.
     * "many_to_one" or "m:1": check if merge keys are unique in right
       dataset.
-    * "many_to_may" or "m:m": allowed, but does not result in checks.
+    * "many_to_many" or "m:m": allowed, but does not result in checks.
 
     .. versionadded:: 0.21.0
 
