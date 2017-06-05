@@ -1634,7 +1634,7 @@ class ComplexBlock(FloatOrComplexBlock):
 
     def _can_hold_element(self, element):
         if is_list_like(element):
-            element = np.array(element)
+            element = np.asanyarray(element)
             return issubclass(element.dtype.type,
                               (np.floating, np.integer, np.complexfloating))
         return (isinstance(element,
@@ -1658,7 +1658,7 @@ class IntBlock(NumericBlock):
 
     def _can_hold_element(self, element):
         if is_list_like(element):
-            element = np.array(element)
+            element = np.asanyarray(element)
             tipo = element.dtype.type
             return (issubclass(tipo, np.integer) and
                     not issubclass(tipo, (np.datetime64, np.timedelta64)))
@@ -1805,7 +1805,7 @@ class BoolBlock(NumericBlock):
 
     def _can_hold_element(self, element):
         if is_list_like(element):
-            element = np.array(element)
+            element = np.asanyarray(element)
             return issubclass(element.dtype.type, np.integer)
         return isinstance(element, (int, bool))
 

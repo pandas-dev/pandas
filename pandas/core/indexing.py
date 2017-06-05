@@ -554,7 +554,7 @@ class _NDFrameIndexer(object):
                         setter(item, v)
 
                 # we have an equal len ndarray/convertible to our labels
-                elif np.array(value).ndim == 2:
+                elif np.asanyarray(value).ndim == 2:
 
                     # note that this coerces the dtype if we are mixed
                     # GH 7551
