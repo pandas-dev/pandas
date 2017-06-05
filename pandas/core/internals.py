@@ -2571,6 +2571,16 @@ class SparseBlock(NonConsolidatableMixIn, Block):
         return self.make_block_same_class(values=values,
                                           placement=self.mgr_locs)
 
+    def _can_hold_element(self, element):
+        element = np.asanyarray(element)
+        return np.issubdtype(element.dtype, self.sp_values.dtype)
+
+    def _try_cast(self, element):
+        try:
+            return np.asarray(element, dtype=self.sp_values.dtype)
+        except ValueError:
+            return element
+
     def __len__(self):
         try:
             return self.sp_index.length

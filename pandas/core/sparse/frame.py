@@ -433,6 +433,15 @@ class SparseDataFrame(DataFrame):
         else:
             return self._get_item_cache(key)
 
+    def __setitem__(self, key, value):
+        if is_scipy_sparse(value):
+            if any(ax == 1 for ax in value.shape):  # 1d spmatrix
+                value = SparseArray(value, fill_value=self._default_fill_value)
+            else:
+                # 2d; make it iterable
+                value = list(value.tocsc().T)
+        super().__setitem__(key, value)
+
     @Appender(DataFrame.get_value.__doc__, indents=0)
     def get_value(self, index, col, takeable=False):
         if takeable is True:
