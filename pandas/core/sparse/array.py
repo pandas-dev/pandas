@@ -23,7 +23,8 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_string_dtype,
-    is_scalar, is_dtype_equal)
+    is_scalar, is_dtype_equal,
+    is_scipy_sparse)
 from pandas.core.dtypes.cast import (
     maybe_convert_platform, maybe_promote,
     astype_nansafe, find_common_type)
@@ -164,11 +165,13 @@ class SparseArray(PandasObject, np.ndarray):
 
     Parameters
     ----------
-    data : {array-like (1-D), Series, SparseSeries, dict}
+    data : {array-like (1-D), Series, SparseSeries, dict, \
+            scipy.sparse.spmatrix}
     kind : {'block', 'integer'}
     fill_value : float
         Code for missing value. Defaults depends on dtype.
-        0 for int dtype, False for bool dtype, and NaN for other dtypes
+        0 for int dtype or scipy sparse matrix, False for bool dtype, and NaN
+        for other dtypes
     sparse_index : {BlockIndex, IntIndex}, optional
         Only if you have one. Mainly used internally
 
@@ -197,17 +200,27 @@ class SparseArray(PandasObject, np.ndarray):
             values.fill(data)
             data = values
 
-        if isinstance(data, ABCSparseSeries):
-            data = data.values
-        is_sparse_array = isinstance(data, SparseArray)
-
         if dtype is not None:
             dtype = np.dtype(dtype)
 
-        if is_sparse_array:
+        if isinstance(data, ABCSparseSeries):
+            data = data.values
+
+        if isinstance(data, SparseArray):
             sparse_index = data.sp_index
             values = data.sp_values
             fill_value = data.fill_value
+        elif is_scipy_sparse(data):
+            if not any(ax == 1 for ax in data.shape):
+                raise ValueError('Need 1D sparse matrix shaped '
+                                 '(n, 1) or (1, n)')
+            coo = data.tocoo()
+            values = coo.data
+            indices = coo.row if coo.shape[0] != 1 else coo.col
+            sparse_index = _make_index(max(coo.shape), indices, kind)
+            # SciPy Sparse matrices imply missing value = 0
+            if fill_value is None:
+                fill_value = 0
         else:
             # array-like
             if sparse_index is None:
