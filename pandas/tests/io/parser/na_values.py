@@ -69,7 +69,10 @@ NaN,nan
                 tm.assert_frame_equal(out, expected)
 
     def test_default_na_values(self):
-        _NA_VALUES = parsers._NA_VALUES
+        _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
+                          '#N/A', 'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null',
+                          'NaN', 'nan', '-NaN', '-nan', '#N/A N/A', ''])
+        assert _NA_VALUES == parsers._NA_VALUES
         nv = len(_NA_VALUES)
 
         def f(i, v):
