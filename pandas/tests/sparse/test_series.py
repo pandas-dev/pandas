@@ -142,6 +142,24 @@ class TestSparseSeries(SharedWithSparse):
         assert s.dtype == np.int64
         assert s.fill_value == 0
 
+    def test_constructor_spmatrix(self):
+        # GH-15634
+        tm.skip_if_no_package('scipy')
+        from scipy.sparse import csr_matrix
+
+        spm = csr_matrix(np.eye(5)[:, 2])
+
+        arr = SparseSeries(spm)
+        assert arr.dtype == spm.dtype
+        assert arr.fill_value == 0
+
+        arr = SparseSeries(spm, kind='block', dtype=float, fill_value=np.nan)
+        assert arr.dtype == float
+        assert np.isnan(arr.fill_value)
+
+        tm.assert_raises_regex(ValueError, '1D',
+                               lambda: SparseSeries(csr_matrix(np.eye(3))))
+
     def test_series_density(self):
         # GH2803
         ts = Series(np.random.randn(10))

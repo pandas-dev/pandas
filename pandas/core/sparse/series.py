@@ -9,7 +9,7 @@ import numpy as np
 import warnings
 
 from pandas.core.dtypes.missing import isnull, notnull
-from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import is_scalar, is_scipy_sparse
 from pandas.core.common import _values_from_object, _maybe_match_name
 
 from pandas.compat.numpy import function as nv
@@ -90,7 +90,7 @@ class SparseSeries(Series):
 
     Parameters
     ----------
-    data : {array-like, Series, SparseSeries, dict}
+    data : {array-like, Series, SparseSeries, dict, scipy.sparse.spmatrix}
     kind : {'block', 'integer'}
     fill_value : float
         Code for missing value. Defaults depends on dtype.
@@ -127,6 +127,10 @@ class SparseSeries(Series):
 
             if isinstance(data, Series) and name is None:
                 name = data.name
+
+            if is_scipy_sparse(data):
+                data = SparseArray(data, dtype=dtype, kind=kind,
+                                   fill_value=fill_value)
 
             if isinstance(data, SparseArray):
                 if index is not None:
