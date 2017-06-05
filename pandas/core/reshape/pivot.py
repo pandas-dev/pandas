@@ -547,24 +547,24 @@ def _normalize(table, normalize, margins, margins_name='All'):
             raise ValueError("Not a valid normalize argument")
 
     if margins is False:
-
         # Actual Normalizations
         normalizers = {
             'all': lambda x: x / x.sum(axis=1).sum(axis=0),
             'columns': lambda x: x / x.sum(),
             'index': lambda x: x.div(x.sum(axis=1), axis=0)
         }
-    
+
     elif margins is True:
-        #skip margin rows and/or cols for normalization
+        # skip margin rows and/or cols for normalization
         normalizers = {
-            'all': lambda x: x / x.iloc[:-1,:-1].sum(axis=1).sum(axis=0),
-            'columns': lambda x: x.div(x.iloc[:-1,:].sum()).iloc[:-1,:],
-            'index': lambda x: (x.div(x.iloc[:,:-1].sum(axis=1), axis=0)).iloc[:,:-1]
+            'all': lambda x: x / x.iloc[:-1, :-1].sum(axis=1).sum(axis=0),
+            'columns': lambda x: x.div(x.iloc[:-1, :].sum()).iloc[:-1, :],
+            'index': lambda x: (x.div(x.iloc[:, :-1].sum(axis=1),
+                                axis=0)).iloc[:, :-1]
         }
 
     else:
-        raise ValueError("Not a valid margins argument")    
+        raise ValueError("Not a valid margins argument")
 
     normalizers[True] = normalizers['all']
 
@@ -572,10 +572,21 @@ def _normalize(table, normalize, margins, margins_name='All'):
         f = normalizers[normalize]
     except KeyError:
         raise ValueError("Not a valid normalize argument")
-      
+
     table = f(table)
     table = table.fillna(0)
-    
+
+    if margins is True:
+        # reset index to ensure default index dtype
+        if normalize == 'index':
+            colnames = table.columns.names
+            table.columns = Index(table.columns.tolist())
+            table.columns.names = colnames
+        if normalize == 'columns':
+            rownames = table.index.names
+            table.index = Index(table.index.tolist())
+            table.index.names = rownames
+
     return table
 
 

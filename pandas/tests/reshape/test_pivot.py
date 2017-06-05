@@ -1300,12 +1300,10 @@ class TestCrosstab(object):
                                            [0.25, 0.75],
                                            [0.4, 0.6]],
                                           index=pd.Index([1, 2, 'All'],
-                                                         name='a',
-                                                         dtype='object'),
+                                                         name='a'),
                                           columns=pd.Index([3, 4], name='b'))
         col_normal_margins = pd.DataFrame([[0.5, 0, 0.2], [0.5, 1.0, 0.8]],
-                                          index=pd.Index([1, 2], name='a',
-                                                         dtype='object'),
+                                          index=pd.Index([1, 2], name='a'),
                                           columns=pd.Index([3, 4, 'All'],
                                                            name='b'))
 
@@ -1313,8 +1311,7 @@ class TestCrosstab(object):
                                            [0.2, 0.6, 0.8],
                                            [0.4, 0.6, 1]],
                                           index=pd.Index([1, 2, 'All'],
-                                                         name='a',
-                                                         dtype='object'),
+                                                         name='a'),
                                           columns=pd.Index([3, 4, 'All'],
                                                            name='b'))
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index',
@@ -1361,10 +1358,10 @@ class TestCrosstab(object):
 
     def test_crosstab_norm_margins_with_multiindex(self):
         # GH 15150
-        a = np.array(['foo', 'bar', 'foo', 'bar','bar', 'foo'])
-        b = np.array(['one', 'one', 'two', 'one','two', 'two'])
-        c = np.array(['dull', 'shiny', 'dull', 'dull','dull', 'shiny'])
-        d = np.array(['a', 'a', 'b', 'a','b', 'b'])
+        a = np.array(['foo', 'bar', 'foo', 'bar', 'bar', 'foo'])
+        b = np.array(['one', 'one', 'two', 'one', 'two', 'two'])
+        c = np.array(['dull', 'shiny', 'dull', 'dull', 'dull', 'shiny'])
+        d = np.array(['a', 'a', 'b', 'a', 'b', 'b'])
         expected_col_colnorm = MultiIndex(levels=[['All', 'dull', 'shiny'],
                                                   ['', 'a', 'b']],
                                           labels=[[1, 1, 2, 2, 0],
@@ -1399,11 +1396,11 @@ class TestCrosstab(object):
                                             [.33333333, .33333333,
                                              .16666667, .16666667]])
         expected_indexnorm = pd.DataFrame(expected_data_indexnorm,
-                                 index=expected_index_indexnorm,
-                                 columns=expected_col_indexnorm)
+                                          index=expected_index_indexnorm,
+                                          columns=expected_col_indexnorm)
         expected_data_allnorm = np.array([[0.16666667, 0., .16666667,
                                            0., .33333333],
-                                          [0. ,.16666667, 0.,
+                                          [0., .16666667, 0.,
                                            0., .16666667],
                                           [.16666667, 0., 0.,
                                            0., .16666667],
@@ -1412,15 +1409,15 @@ class TestCrosstab(object):
                                           [0.33333333, .33333333, .16666667,
                                            .16666667, 1.]])
         expected_allnorm = pd.DataFrame(expected_data_allnorm,
-                                 index=expected_index_indexnorm,
-                                 columns=expected_col_colnorm)
+                                        index=expected_index_indexnorm,
+                                        columns=expected_col_colnorm)
 
-        result_colnorm = pd.crosstab([a, b], [c,d], normalize='columns',
+        result_colnorm = pd.crosstab([a, b], [c, d], normalize='columns',
                                      margins=True)
-        result_indexnorm = pd.crosstab([a, b], [c,d], normalize='index',
+        result_indexnorm = pd.crosstab([a, b], [c, d], normalize='index',
                                        margins=True)
-        result_allnorm = pd.crosstab([a, b], [c,d], normalize='all',
-                                       margins=True)
+        result_allnorm = pd.crosstab([a, b], [c, d], normalize='all',
+                                     margins=True)
 
         tm.assert_frame_equal(result_colnorm, expected_colnorm)
         tm.assert_frame_equal(result_indexnorm, expected_indexnorm)
