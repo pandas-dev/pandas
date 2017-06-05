@@ -574,8 +574,8 @@ def _normalize(table, normalize, margins, margins_name='All'):
         raise ValueError("Not a valid normalize argument")
       
     table = f(table)
-    table = table.fillna(0)       
-
+    table = table.fillna(0)
+    
     return table
 
 
