@@ -275,11 +275,6 @@ cdef extern from "parser/io.h":
 
 DEFAULT_CHUNKSIZE = 256 * 1024
 
-# common NA values
-# no longer excluding inf representations
-# '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = _ensure_encoded(list(parsers._NA_VALUES))
-
 
 cdef class TextReader:
     """
@@ -1378,6 +1373,12 @@ cdef asbytes(object o):
         return str(o).encode('utf-8')
     else:
         return str(o)
+
+
+# common NA values
+# no longer excluding inf representations
+# '1.#INF','-1.#INF', '1.#INF000000',
+_NA_VALUES = _ensure_encoded(list(parsers._NA_VALUES))
 
 
 def _is_file_like(obj):
