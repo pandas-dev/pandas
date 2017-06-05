@@ -278,7 +278,7 @@ DEFAULT_CHUNKSIZE = 256 * 1024
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES =_ensure_encoded(parsers._NA_VALUES)
+_NA_VALUES = _ensure_encoded(list(parsers._NA_VALUES))
 
 
 cdef class TextReader:
