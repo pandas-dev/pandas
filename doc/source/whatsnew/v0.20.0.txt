@@ -1723,4 +1723,5 @@ Other
 - Compat with SciPy 0.19.0 for testing on ``.interpolate()`` (:issue:`15662`)
 - Compat for 32-bit platforms for ``.qcut/cut``; bins will now be ``int64`` dtype (:issue:`14866`)
 - Bug in interactions with ``Qt`` when a ``QtApplication`` already exists (:issue:`14372`)
+- Bug in DataFrame constructor failing to handle dtypes with passed a Series with a falsey name (:issue:`16114`)
 - Avoid use of ``np.finfo()`` during ``import pandas`` removed to mitigate deadlock on Python GIL misuse (:issue:`14641`)
