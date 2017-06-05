@@ -50,7 +50,7 @@ from pandas.core.algorithms import take_1d
 from pandas.core.dtypes.concat import union_categoricals
 from pandas import Index
 
-import pandas.io.parsers as parsers
+import pandas.io.common as common
 
 import time
 import os
@@ -1378,7 +1378,7 @@ cdef asbytes(object o):
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = _ensure_encoded(list(parsers._NA_VALUES))
+_NA_VALUES = _ensure_encoded(list(common._NA_VALUES))
 
 
 def _is_file_like(obj):
