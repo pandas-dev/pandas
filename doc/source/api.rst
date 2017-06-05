@@ -617,6 +617,7 @@ strings and apply several methods to it. These can be accessed like
        MultiIndex.str
        DatetimeIndex.str
        TimedeltaIndex.str
+       IntervalIndex.str
 
 
 .. _api.categorical:
