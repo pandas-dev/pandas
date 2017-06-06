@@ -5154,8 +5154,6 @@ class JoinUnit(object):
             return _get_dtype(maybe_promote(self.block.dtype,
                                             self.block.fill_value)[0])
 
-        return self._dtype
-
     @cache_readonly
     def is_null(self):
         if self.block is None:
