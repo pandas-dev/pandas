@@ -1,3 +1,5 @@
+#!/usr/env/bin python
+
 """ self-contained to write legacy storage (pickle/msgpack) files """
 from __future__ import print_function
 from warnings import catch_warnings
@@ -125,7 +127,11 @@ def create_data():
                  mixed_dup=mixed_dup_df,
                  dt_mixed_tzs=DataFrame({
                      u'A': Timestamp('20130102', tz='US/Eastern'),
-                     u'B': Timestamp('20130603', tz='CET')}, index=range(5))
+                     u'B': Timestamp('20130603', tz='CET')}, index=range(5)),
+                 dt_mixed2_tzs=DataFrame({
+                     u'A': Timestamp('20130102', tz='US/Eastern'),
+                     u'B': Timestamp('20130603', tz='CET'),
+                     u'C': Timestamp('20130603', tz='UTC')}, index=range(5))
                  )
 
     with catch_warnings(record=True):
