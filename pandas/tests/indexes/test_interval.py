@@ -349,7 +349,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, idx.get_loc, 1.5)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_loc_value_closed_right(self):
+    def test_get_loc_value_closed_right_updated_behavior(self):
 
         right = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='right')
 
@@ -385,7 +385,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, right.get_loc, Interval(2.5, 3, closed='both'))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_loc_value_closed_left(self):
+    def test_get_loc_value_closed_left_updated_behavior(self):
 
         left = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='left')
 
@@ -421,7 +421,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, left.get_loc, Interval(2.5, 3, closed='both'))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_loc_value_closed_both(self):
+    def test_get_loc_value_closed_both_updated_behavior(self):
 
         both = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed='both')
 
@@ -459,7 +459,7 @@ class TestIntervalIndex(Base):
 
     def slice_locs_cases(self, breaks):
         # TODO: same tests for more index types
-        index = IntervalIndex.from_breaks([0, 1, 2], closed='right')
+        index = IntervalIndex.from_breaks(breaks, closed='right')
         assert index.slice_locs() == (0, 2)
         assert index.slice_locs(0, 1) == (0, 1)
         assert index.slice_locs(1, 1) == (0, 1)
@@ -473,14 +473,14 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(end=1.0) == (0, 1)
         assert index.slice_locs(-1, -1) == (0, 0)
 
-        index = IntervalIndex.from_breaks([0, 1, 2], closed='neither')
+        index = IntervalIndex.from_breaks(breaks, closed='neither')
         assert index.slice_locs(0, 1) == (0, 1)
         assert index.slice_locs(0, 2) == (0, 2)
         assert index.slice_locs(0.5, 1.5) == (0, 2)
         assert index.slice_locs(1, 1) == (1, 1)
         assert index.slice_locs(1, 2) == (1, 2)
 
-        index = IntervalIndex.from_breaks([0, 1, 2], closed='both')
+        index = IntervalIndex.from_breaks(breaks, closed='both')
         assert index.slice_locs(1, 1) == (0, 2)
         assert index.slice_locs(1, 2) == (0, 2)
 
@@ -514,14 +514,6 @@ class TestIntervalIndex(Base):
         with pytest.raises(KeyError):
             index.slice_locs(1, 2)
 
-    def test_get_loc_interval(self):
-        assert self.index.get_loc(Interval(0, 1)) == 0
-        assert self.index.get_loc(Interval(0, 0.5)) == 0
-        assert self.index.get_loc(Interval(0, 1, 'left')) == 0
-        pytest.raises(KeyError, self.index.get_loc, Interval(2, 3))
-        pytest.raises(KeyError, self.index.get_loc,
-                      Interval(-1, 0, 'left'))
-
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
         expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
@@ -532,6 +524,7 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(actual, expected)
 
         index = IntervalIndex.from_breaks([0, 1, 2], closed='left')
+
         actual = index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
         expected = np.array([-1, 0, 0, 1, 1, -1, -1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
@@ -544,10 +537,35 @@ class TestIntervalIndex(Base):
         expected = np.array([-1, 1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_get_indexer_updated_behavior(self):
+        actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
+        expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
+        tm.assert_numpy_array_equal(actual, expected)
+
+        actual = self.index.get_indexer(self.index)
+        expected = np.array([0, 1], dtype='intp')
+        tm.assert_numpy_array_equal(actual, expected)
+
+        index = IntervalIndex.from_breaks([0, 1, 2], closed='left')
+
+        actual = index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
+        expected = np.array([-1, 0, 0, 1, 1, -1, -1], dtype='intp')
+        tm.assert_numpy_array_equal(actual, expected)
+
+        # actual = self.index.get_indexer(index[:1])
+        # expected = np.array([0], dtype='intp')
+        # tm.assert_numpy_array_equal(actual, expected)
+
+        # actual = self.index.get_indexer(index)
+        # expected = np.array([-1, 1], dtype='intp')
+        # tm.assert_numpy_array_equal(actual, expected)   # these two cases need fixing.
+
     def test_get_indexer_subintervals(self):
 
         # TODO: is this right?
         # return indexers for wholly contained subintervals
+        # When does this method even get called?
         target = IntervalIndex.from_breaks(np.linspace(0, 2, 5))
         actual = self.index.get_indexer(target)
         expected = np.array([0, 0, 1, 1], dtype='p')
@@ -566,6 +584,30 @@ class TestIntervalIndex(Base):
         actual = self.index.get_indexer(target)
         expected = np.array([0, 0, 0], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
+
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    def test_get_indexer_subintervals_updated_behavior(self):
+
+        # target = IntervalIndex.from_breaks(np.linspace(0, 2, 5))
+        # actual = self.index.get_indexer(target)
+        # expected = np.array([0, 0, 1, 1], dtype='p')
+        # tm.assert_numpy_array_equal(actual, expected)
+
+        # target = IntervalIndex.from_breaks([0, 0.67, 1.33, 2])
+        # actual = self.index.get_indexer(target)
+        # expected = np.array([0, 0, 1, 1], dtype='intp')
+        # tm.assert_numpy_array_equal(actual, expected)
+
+        # actual = self.index.get_indexer(target[[0, -1]])
+        # expected = np.array([0, 1], dtype='intp')
+        # tm.assert_numpy_array_equal(actual, expected)
+
+        # target = IntervalIndex.from_breaks([0, 0.33, 0.67, 1], closed='left')
+        # actual = self.index.get_indexer(target)
+        # expected = np.array([0, 0, 0], dtype='intp')
+        # tm.assert_numpy_array_equal(actual, expected)
+
+        # a good chance this whole method needs reworking.
 
     def test_contains(self):
         # Only endpoints are valid.
@@ -600,9 +642,10 @@ class TestIntervalIndex(Base):
         assert not i.contains(20)
         assert not i.contains(-20)
 
+        # Why are there two tests called test contains? this should be cleared up a little, no?
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_interval_covers_interval(self):
+    def test_interval_covers_interval_updated_behavior(self):
 
         # class Interval:
         #     def covers(self, other: Interval) -> bool
@@ -626,7 +669,7 @@ class TestIntervalIndex(Base):
         assert     Interval(1, 3, closed='both').covers(Interval(1, 3, closed='both'))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_interval_covers_intervalIndex(self):
+    def test_interval_covers_intervalIndex_updated_behavior(self):
 
         # class Interval:
         #     def covers(self, other: IntervalIndex) -> IntegerArray1D
@@ -649,7 +692,7 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(Interval(2, 4, closed='both').covers(idx), np.array([1]))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_interval_overlaps_interval(self):
+    def test_interval_overlaps_interval_updated_behavior(self):
 
         # class Interval:
         #     def overlaps(self, other: Interval) -> bool
@@ -703,7 +746,7 @@ class TestIntervalIndex(Base):
         assert     Interval(1, 3, closed='both').overlaps(Interval(3, 5, closed='both'))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_interval_overlaps_intervalIndex(self):
+    def test_interval_overlaps_intervalIndex_updated_behavior(self):
         # class Interval:
         #     def overlaps(self, other: IntervalIndex) -> IntegerArray1D
 
@@ -725,7 +768,7 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(Interval(3, 4, closed='both').overlaps(idx), np.array([3]))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_intervalIndex_covers_interval(self):
+    def test_intervalIndex_covers_interval_updated_behavior(self):
 
         # class IntervalIndex:
         #     def covers(self, other: Interval) -> IntegerArray1D
@@ -762,7 +805,7 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(idx.covers(idx3), (np.array([0,1,2,2]), np.array([0,1,1,2])))  # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_intervalIndex_overlaps_interval(self):
+    def test_intervalIndex_overlaps_interval_updated_behavior(self):
 
         # class IntervalIndex:
         #     def overlaps(self, other: Interval) -> IntegerArray1D
@@ -785,7 +828,7 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(idx.overlaps(Interval(3, 4, closed='both')), np.array([3]))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_intervalIndex_overlaps_intervalIndex(self):
+    def test_intervalIndex_overlaps_intervalIndex_updated_behavior(self):
 
         # class IntervalIndex:
         #     def overlaps(self, other: IntervalIndex) -> Tuple[IntegerArray1D, IntegerArray1D]
