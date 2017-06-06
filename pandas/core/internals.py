@@ -4645,7 +4645,6 @@ def _block2d_to_blocknd(values, placement, shape, labels, ref_items):
         pvalues = np.empty(panel_shape, dtype=dtype)
         pvalues.fill(fill_value)
 
-    values = values
     for i in range(len(placement)):
         pvalues[i].flat[mask] = values[:, i]
 
