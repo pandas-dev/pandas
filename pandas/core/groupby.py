@@ -3945,7 +3945,8 @@ class NDFrameGroupBy(GroupBy):
             res = func(group, *args, **kwargs)
 
             try:
-                res = res.squeeze()
+                if not is_scalar(res):
+                    res = res.squeeze()
             except AttributeError:  # allow e.g., scalars and frames to pass
                 pass
 
