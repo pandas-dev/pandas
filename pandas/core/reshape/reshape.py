@@ -475,7 +475,7 @@ def unstack(obj, level, fill_value=None):
 
 
 def _unstack_frame(obj, level, fill_value=None):
-    from pandas.core.internals import BlockManager, make_block
+    from pandas.core.internals import BlockManager, make_block as _make_block
 
     if obj._is_mixed_type:
         unstacker = _Unstacker(np.empty((0, 0)),  # dummy
@@ -503,12 +503,14 @@ def _unstack_frame(obj, level, fill_value=None):
             if is_sparse(blk.values):
                 new_placement = [[i] for i in new_placement]
                 new_values = new_values.T
+                make_block = blk.make_block_same_class
             else:
                 new_placement = [new_placement]
                 new_values = [new_values.T]
+                make_block = _make_block
 
             for cols, placement in zip(new_values, new_placement):
-                newb = blk.make_block_same_class(cols, placement=placement)
+                newb = make_block(cols, placement=placement)
                 new_blocks.append(newb)
 
         klass = type(obj)
