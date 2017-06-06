@@ -15,7 +15,7 @@ def load_reduce(self):
     args = stack.pop()
     func = stack[-1]
 
-    if type(args[0]) is type:
+    if len(args) and type(args[0]) is type:
         n = args[0].__name__  # noqa
 
     try:
