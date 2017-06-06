@@ -218,7 +218,7 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 SparseSeries
 ~~~~~~~~~~~~
 
-.. versionadded:: 0.20.2
+.. versionadded:: 0.21.0
 
 ``SparseSeries``, ``SparseArray`` can be constructed from ``scipy.sparse.spmatrix`` objects of shape ``(1, n)`` or ``(n, 1)``.
 SciPy sparse matrices can also be assigned directly to a ``SparseDataFrame`` with an index.

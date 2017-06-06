@@ -25,6 +25,10 @@ New features
 - Added `__fspath__` method to :class`:pandas.HDFStore`, :class:`pandas.ExcelFile`,
   and :class:`pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
 
+- ``SparseSeries`` and ``SparseArray`` now support 1d ``scipy.sparse.spmatrix`` in constructor.
+  Additionally, ``SparseDataFrame`` can be assigned columns of ``scipy.sparse.spmatrix``;
+  see :ref:`here <sparse.scipysparse_series>`. (:issue:`15634`)
+
 .. _whatsnew_0210.enhancements.other:
 
 Other Enhancements

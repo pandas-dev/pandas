@@ -726,8 +726,9 @@ class SparseSeries(Series):
 
     def to_coo(self, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
         """
-        DEPRECATED; instead, make a SparseSeries with a two-level index,
-        unstack it, then use .to_coo() on the resulting SparseDataFrame.
+        .. deprecated:: 0.21.0
+            Instead, make a SparseSeries with a two-level index,
+            unstack it, then use .to_coo() on the resulting SparseDataFrame.
 
         Create a scipy.sparse.coo_matrix from a SparseSeries with MultiIndex.
 
@@ -786,8 +787,9 @@ class SparseSeries(Series):
     @classmethod
     def from_coo(cls, A, dense_index=False):
         """
-        DEPRECATED; instead, pass 1d scipy.sparse matrices directly into
-        SparseSeries constructor, and 2d into SparseDataFrame constructor.
+        .. deprecated:: 0.21.0
+            Instead, pass 1d scipy.sparse matrices directly into SparseSeries
+            constructor, and 2d into SparseDataFrame constructor.
 
         Create a SparseSeries from a scipy.sparse.coo_matrix.
 
