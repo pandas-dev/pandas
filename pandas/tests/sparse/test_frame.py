@@ -557,8 +557,9 @@ class TestSparseDataFrame(SharedWithSparse):
         assert (sdf[['X']].to_coo() != spm.tocoo()).nnz == 0
 
         # 1d row -- changing series contents not yet supported
-        spm = csr_matrix(np.arange(sdf.shape[1])).astype(float)
-        idx = np.r_[[False, True], np.full(sdf.shape[0] - 2, False)]
+        spm = csr_matrix(np.arange(sdf.shape[1], dtype=float))
+        idx = np.zeros(sdf.shape[0], dtype=bool)
+        idx[1] = True
         tm.assert_raises_regex(TypeError, 'assignment',
                                lambda: sdf.__setitem__(idx, spm))
 
