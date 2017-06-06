@@ -25,6 +25,9 @@ Enhancements
   has been added to return the group order (:issue:`11642`); see
   :ref:`here <groupby.ngroup>`.
 
+
+- ``SparseSeries`` and ``SparseArray`` now support 1d ``scipy.sparse.spmatrix`` in constructor. Additionally, ``SparseDataFrame`` can be assigned columns of ``scipy.sparse.spmatrix``; see :ref:`here <sparse.scipysparse_series>`. (:issue:`15634`)
+
 .. _whatsnew_0202.performance:
 
 Performance Improvements
