@@ -5303,8 +5303,8 @@ it is assumed to be aliases for the column names.')
 
             # slice me out of the other
             else:
-                raise NotImplementedError("cannot align with a higher dimensional "
-                                     "NDFrame")
+                raise NotImplementedError("cannot align with a higher "
+                                          "dimensional NDFrame")
 
         elif is_list_like(other):
 
