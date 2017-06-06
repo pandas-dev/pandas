@@ -644,6 +644,7 @@ class TestIntervalIndex(Base):
 
         # Why are there two tests called test contains? this should be cleared up a little, no?
 
+
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_interval_covers_interval_updated_behavior(self):
 
