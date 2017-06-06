@@ -2388,6 +2388,29 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, expected)
 
 
+class TestSparse(object):
+    def setup_method(self, method):
+        self.sdf = pd.SparseDataFrame({0: {0: 1}, 1: {1: 1}, 2: {2: 1}})  # eye
+        self.mi = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 2)])
+
+    def test_sparse_frame_stack(self):
+        ss = self.sdf.stack()
+        expected = pd.SparseSeries(np.ones(3), index=self.mi)
+        tm.assert_sp_series_equal(ss, expected)
+
+    def test_sparse_frame_unstack(self):
+        mi = pd.MultiIndex.from_tuples([(0, 0), (1, 0), (1, 2)])
+        sdf = self.sdf
+        sdf.index = mi
+        df = pd.DataFrame(np.eye(3), index=mi).replace(0, np.nan)
+
+        tm.assert_numpy_array_equal(df.unstack().values, sdf.unstack().values)
+
+    def test_sparse_series_unstack(self):
+        frame = pd.SparseSeries(np.ones(3), index=self.mi).unstack()
+        tm.assert_sp_frame_equal(frame, self.sdf)
+
+
 class TestSorted(Base):
     """ everthing you wanted to test about sorting """
 
