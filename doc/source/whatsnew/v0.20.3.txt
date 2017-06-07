@@ -48,7 +48,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
-
+- Bug in ``Float64Index`` causing an empty array instead of None to be returned from ``.get(np.nan)`` on a Series whose index did not contain any NaNs (:issue:`8569`)
 
 I/O
 ^^^
