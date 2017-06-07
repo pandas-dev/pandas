@@ -1596,7 +1596,6 @@ class Week(DateOffset):
             if otherDay != self.weekday:
                 other = other + timedelta((self.weekday - otherDay) % 7)
                 k = k - 1
-            other = other
             for i in range(k):
                 other = other + self._inc
         else:

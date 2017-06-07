@@ -4285,7 +4285,7 @@ it is assumed to be aliases for the column names.')
                 raise ValueError("subset is not valid for Series")
         elif self.ndim > 2:
             raise NotImplementedError("asof is not implemented "
-                                      "for {type}".format(type(self)))
+                                      "for {type}".format(type=type(self)))
         else:
             if subset is None:
                 subset = self.columns
@@ -4980,7 +4980,7 @@ it is assumed to be aliases for the column names.')
 
         offset = to_offset(offset)
 
-        start_date = start = self.index[-1] - offset
+        start_date = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side='right')
         return self.iloc[start:]
 
@@ -5303,8 +5303,8 @@ it is assumed to be aliases for the column names.')
 
             # slice me out of the other
             else:
-                raise NotImplemented("cannot align with a higher dimensional "
-                                     "NDFrame")
+                raise NotImplementedError("cannot align with a higher "
+                                          "dimensional NDFrame")
 
         elif is_list_like(other):
 

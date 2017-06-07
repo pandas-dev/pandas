@@ -668,7 +668,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
 
         if convert_timedeltas == 'coerce':
             from pandas.core.tools.timedeltas import to_timedelta
-            new_values = to_timedelta(values, coerce=True)
+            new_values = to_timedelta(values, errors='coerce')
 
             # if we are all nans then leave me alone
             if not isnull(new_values).all():

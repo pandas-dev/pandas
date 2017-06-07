@@ -1053,11 +1053,11 @@ def interval_range(start=None, end=None, freq=None, periods=None,
         if periods is None or end is None:
             raise ValueError("must specify 2 of start, end, periods")
         start = end - periods * freq
-    elif end is None:
+    if end is None:
         if periods is None or start is None:
             raise ValueError("must specify 2 of start, end, periods")
         end = start + periods * freq
-    elif periods is None:
+    if periods is None:
         if start is None or end is None:
             raise ValueError("must specify 2 of start, end, periods")
         pass
