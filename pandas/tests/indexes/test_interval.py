@@ -15,6 +15,13 @@ import pandas as pd
 class TestIntervalIndex(Base):
     _holder = IntervalIndex
 
+    def _compare_tuple_of_numpy_array(self, result, expected):
+        lidx, ridx = result
+        lidx_expected, ridx_expected = expected
+
+        tm.assert_numpy_array_equal(lidx, lidx_expected)
+        tm.assert_numpy_array_equal(ridx, ridx_expected)
+
     def setup_method(self, method):
         self.index = IntervalIndex.from_arrays([0, 1], [1, 2])
         self.index_with_nan = IntervalIndex.from_tuples(
@@ -588,6 +595,8 @@ class TestIntervalIndex(Base):
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_get_indexer_subintervals_updated_behavior(self):
 
+        # a good chance this whole method needs reworking.
+
         # target = IntervalIndex.from_breaks(np.linspace(0, 2, 5))
         # actual = self.index.get_indexer(target)
         # expected = np.array([0, 0, 1, 1], dtype='p')
@@ -606,8 +615,6 @@ class TestIntervalIndex(Base):
         # actual = self.index.get_indexer(target)
         # expected = np.array([0, 0, 0], dtype='intp')
         # tm.assert_numpy_array_equal(actual, expected)
-
-        # a good chance this whole method needs reworking.
 
     def test_contains(self):
         # Only endpoints are valid.
@@ -748,6 +755,7 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_interval_overlaps_intervalIndex_updated_behavior(self):
+
         # class Interval:
         #     def overlaps(self, other: IntervalIndex) -> IntegerArray1D
 
@@ -801,9 +809,9 @@ class TestIntervalIndex(Base):
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='left')
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='both')
 
-        tm.assert_numpy_array_equal(idx.covers(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))  # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
-        tm.assert_numpy_array_equal(idx.covers(idx2), (np.array([2]), np.array([1])))              # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
-        tm.assert_numpy_array_equal(idx.covers(idx3), (np.array([0,1,2,2]), np.array([0,1,1,2])))  # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
+        self._compare_tuple_of_numpy_array(idx.covers(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))
+        self._compare_tuple_of_numpy_array(idx.covers(idx2), (np.array([2]), np.array([1])))
+        self._compare_tuple_of_numpy_array(idx.covers(idx3), (np.array([0,1,2,2]), np.array([0,1,1,2])))
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_intervalIndex_overlaps_interval_updated_behavior(self):
@@ -838,9 +846,9 @@ class TestIntervalIndex(Base):
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='left')
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='both')
 
-        tm.assert_numpy_array_equal(idx.overlaps(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))          # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
-        tm.assert_numpy_array_equal(idx.overlaps(idx2), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))  # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
-        tm.assert_numpy_array_equal(idx.overlaps(idx3), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))  # note: assert_numpy_array_equal is the wrong thing to call here, since we're testing for equality with a tuple of np arrays
+        self._compare_tuple_of_numpy_array(idx.overlaps(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))
+        self._compare_tuple_of_numpy_array(idx.overlaps(idx2), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))
+        self._compare_tuple_of_numpy_array(idx.overlaps(idx3), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))
 
     def test_dropna(self):
 
