@@ -2211,7 +2211,7 @@ class PythonParser(ParserBase):
     def get_chunk(self, size=None):
         if size is None:
             size = self.chunksize
-        return self.read(nrows=size)
+        return self.read(rows=size)
 
     def _convert_data(self, data):
         # apply converters
