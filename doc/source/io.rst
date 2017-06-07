@@ -225,9 +225,8 @@ NA and Missing Data Handling
 
 na_values : scalar, str, list-like, or dict, default ``None``
   Additional strings to recognize as NA/NaN. If dict passed, specific per-column
-  NA values. By default the following values are interpreted as NaN:
-  ``'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'n/a', 'NA',
-  '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', ''``.
+  NA values. By default the following values are interpreted as NaN: See :ref:`na values const
+  <io.navaluesconst>` below.
 keep_default_na : boolean, default ``True``
   If na_values are specified and keep_default_na is ``False`` the default NaN
   values are overridden, otherwise they're appended to.
@@ -1030,8 +1029,11 @@ the corresponding equivalent values will also imply a missing value (in this cas
 ``[5.0,5]`` are recognized as ``NaN``.
 
 To completely override the default values that are recognized as missing, specify ``keep_default_na=False``.
-The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A','N/A', 'NA',
-'#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan']``. Although a 0-length string
+
+.. _io.navaluesconst:
+
+The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A',
+'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``. Although a 0-length string
 ``''`` is not included in the default ``NaN`` values list, it is still treated
 as a missing value.
 
