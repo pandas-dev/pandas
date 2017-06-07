@@ -775,7 +775,7 @@ class Block(PandasObject):
             return block
         except ValueError:
             raise
-        except TypeError:
+        except TypeError as e:
 
             # cast to the passed dtype if possible
             # otherwise raise the original error
@@ -788,7 +788,7 @@ class Block(PandasObject):
             except:
                 pass
 
-            raise
+            raise e
 
         except Exception:
             pass
