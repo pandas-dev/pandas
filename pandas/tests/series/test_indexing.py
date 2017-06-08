@@ -70,6 +70,21 @@ class TestSeriesIndexing(TestData):
         result = vc.get(True, default='Missing')
         assert result == 'Missing'
 
+    def test_get_nan(self):
+        # GH 8569
+        s = pd.Float64Index(range(10)).to_series()
+        assert s.get(np.nan) is None
+        assert s.get(np.nan, default='Missing') == 'Missing'
+
+        # ensure that fixing the above hasn't broken get
+        # with multiple elements
+        idx = [20, 30]
+        assert_series_equal(s.get(idx),
+                            Series([np.nan] * 2, index=idx))
+        idx = [np.nan, np.nan]
+        assert_series_equal(s.get(idx),
+                            Series([np.nan] * 2, index=idx))
+
     def test_delitem(self):
 
         # GH 5542
