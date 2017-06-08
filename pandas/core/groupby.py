@@ -362,7 +362,21 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
-                 sort=True, group_keys=True, squeeze=False, **kwargs):
+                 sort=True, group_keys=True, squeeze=False, reverse=False, **kwargs):
+
+        if reverse:
+            if not (isinstance(obj, DataFrame) or isinstance(obj, Series)):
+                raise NotImplementedError(
+                        "reverse not implemented for type: {}".format(type(obj)))
+            if axis != 0 or as_index == False or any(v is not None for v in
+                    (grouper, exclusions, selection)):
+                raise NotImplementedError("reverse not implemented for provided args")
+            if level is not None and keys is None:
+                level = [l for l in obj.index.names if l not in level]
+            elif keys is not None and level is None:
+                keys = [k for k in obj.columns if k not in keys]
+            else:
+                raise NotImplementedError("Unknown behavior when keys and level are provided with 'reverse' set")
 
         self._selection = selection
 

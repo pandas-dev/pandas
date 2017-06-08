@@ -4542,7 +4542,7 @@ it is assumed to be aliases for the column names.')
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
-                group_keys=True, squeeze=False, **kwargs):
+                group_keys=True, squeeze=False, reverse=False, **kwargs):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns.
@@ -4574,6 +4574,8 @@ it is assumed to be aliases for the column names.')
         squeeze : boolean, default False
             reduce the dimensionality of the return type if possible,
             otherwise return a consistent type
+        reverse : boolean, default False
+            invert the selection criteria
 
         Examples
         --------
@@ -4598,6 +4600,7 @@ it is assumed to be aliases for the column names.')
         axis = self._get_axis_number(axis)
         return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys, squeeze=squeeze,
+                       reverse=reverse,
                        **kwargs)
 
     def asfreq(self, freq, method=None, how=None, normalize=False,
@@ -6209,8 +6212,8 @@ it is assumed to be aliases for the column names.')
             np.putmask(rs.values, mask, np.nan)
         return rs
 
-    def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
-        grouped = self.groupby(level=level, axis=axis)
+    def _agg_by_level(self, name, axis=0, level=0, skipna=True, reverse=False, **kwargs):
+        grouped = self.groupby(level=level, axis=axis, reverse=reverse)
         if hasattr(grouped, name) and skipna:
             return getattr(grouped, name)(**kwargs)
         axis = self._get_axis_number(axis)
@@ -6514,6 +6517,7 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
                   axis_descr=axis_descr)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
+            reverse_level=False,
                   **kwargs):
         nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:
@@ -6522,6 +6526,7 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
             axis = self._stat_axis_number
         if level is not None:
             return self._agg_by_level(name, axis=axis, level=level,
+                    reverse=reverse_level,
                                       skipna=skipna)
         return self._reduce(f, name, axis=axis, skipna=skipna,
                             numeric_only=numeric_only)
