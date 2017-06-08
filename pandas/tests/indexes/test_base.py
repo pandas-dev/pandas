@@ -1800,6 +1800,25 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
 
                 assert coerce(idx) == expected
 
+    @pytest.mark.parametrize('dtype', [np.int64, np.float64])
+    @pytest.mark.parametrize('delta', [1, 0, -1])
+    def test_addsub_arithmetic(self, dtype, delta):
+        # GH 8142
+        delta = dtype(delta)
+        idx = pd.Index([10, 11, 12], dtype=dtype)
+        result = idx + delta
+        expected = pd.Index(idx.values + delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        # this subtraction used to fail
+        result = idx - delta
+        expected = pd.Index(idx.values - delta, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        tm.assert_index_equal(idx + idx, 2 * idx)
+        tm.assert_index_equal(idx - idx, 0 * idx)
+        assert not (idx - idx).empty
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
