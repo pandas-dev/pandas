@@ -3502,10 +3502,11 @@ it is assumed to be aliases for the column names.')
                     'invoked on Series and DataFrames. A single dtype must be '
                     'specified when invoked on a Panel.'
                 )
-            for col_name in dtype.keys():
-                if col_name not in self:
-                    raise KeyError('Only a column name can be used for the '
-                                   'key in a dtype mappings argument.')
+            if raise_on_error:
+                for col_name in dtype.keys():
+                    if col_name not in self:
+                        raise KeyError('Only a column name can be used for the '
+                                       'key in a dtype mappings argument.')
             from pandas import concat
             results = []
             for col_name, col in self.iteritems():
