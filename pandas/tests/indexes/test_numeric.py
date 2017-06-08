@@ -371,6 +371,14 @@ class TestFloat64Index(Numeric):
         assert idx.get_loc(1) == 1
         pytest.raises(KeyError, idx.slice_locs, np.nan)
 
+    def test_get_loc_missing_nan(self):
+        # GH 8569
+        idx = Float64Index([1, 2])
+        assert idx.get_loc(1) == 0
+        pytest.raises(KeyError, idx.get_loc, 3)
+        pytest.raises(KeyError, idx.get_loc, np.nan)
+        pytest.raises(KeyError, idx.get_loc, [np.nan])
+
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
         assert np.nan in i
