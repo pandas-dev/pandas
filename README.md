@@ -78,49 +78,24 @@
 
 [![https://gitter.im/pydata/pandas](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-## What is it
+## Pandas란?
 
-**pandas** is a Python package providing fast, flexible, and expressive data
-structures designed to make working with "relational" or "labeled" data both
-easy and intuitive. It aims to be the fundamental high-level building block for
-doing practical, **real world** data analysis in Python. Additionally, it has
-the broader goal of becoming **the most powerful and flexible open source data
-analysis / manipulation tool available in any language**. It is already well on
-its way toward this goal.
+**pandas**는 "관계형"또는 "레이블이 있는" 데이터 작업을 쉽고 직관적으로 처리하기 위해 설계된, 빠르고 유연하며 표현이 풍부한 데이터 구조를 제공하는 Python 패키지입니다. Pandas는 Python에서 **실제** 데이터 분석을 실용적으로 수행하기 위한 기초적인 high-level 구조 블록을 목표로 합니다. 또한 **어떤 언어로도 사용할 수 있고, 가장 강력하고 유연한 오픈 소스 데이터 분석 및 조작 도구** 라는 더 넓은 목표를 가지고 있으며, 이미 이 목표를 향해 나아가고 있습니다.
 
-## Main Features
-Here are just a few of the things that pandas does well:
+## 주요 특징
+다음은 Pandas의 장점들 입니다:
 
-  - Easy handling of [**missing data**][missing-data] (represented as
-    `NaN`) in floating point as well as non-floating point data
-  - Size mutability: columns can be [**inserted and
-    deleted**][insertion-deletion] from DataFrame and higher dimensional
-    objects
-  - Automatic and explicit [**data alignment**][alignment]: objects can
-    be explicitly aligned to a set of labels, or the user can simply
-    ignore the labels and let `Series`, `DataFrame`, etc. automatically
-    align the data for you in computations
-  - Powerful, flexible [**group by**][groupby] functionality to perform
-    split-apply-combine operations on data sets, for both aggregating
-    and transforming data
-  - Make it [**easy to convert**][conversion] ragged,
-    differently-indexed data in other Python and NumPy data structures
-    into DataFrame objects
-  - Intelligent label-based [**slicing**][slicing], [**fancy
-    indexing**][fancy-indexing], and [**subsetting**][subsetting] of
-    large data sets
-  - Intuitive [**merging**][merging] and [**joining**][joining] data
-    sets
-  - Flexible [**reshaping**][reshape] and [**pivoting**][pivot-table] of
-    data sets
-  - [**Hierarchical**][mi] labeling of axes (possible to have multiple
-    labels per tick)
-  - Robust IO tools for loading data from [**flat files**][flat-files]
-    (CSV and delimited), [**Excel files**][excel], [**databases**][db],
-    and saving/loading data from the ultrafast [**HDF5 format**][hdfstore]
-  - [**Time series**][timeseries]-specific functionality: date range
-    generation and frequency conversion, moving window statistics,
-    moving window linear regressions, date shifting and lagging, etc.
+  - 부동 소수점 데이터뿐만 아니라 부동 소수점 데이터에서 [**누락된 데이터**][missing-data]('NaN')에 대한 처리가 쉽습니다.
+  - 크기 가변성 : DataFrame 및 상위 차원 개체에서 열을 [**삽입 및 삭제**][insertion-deletion]할 수 있습니다.
+  - 자동 및 명시적인 [**데이터 정렬**][alignment] : 개체를 레이블 집합에 명시적으로 정렬되거나, 사용자가 레이블을 무시하고 계산을 위해'Series', 'DataFrame' 등의 형태로 데이터를 자동 정렬할 수 있습니다.
+  - 강력하고 유연한 [**그룹화**][groupby] 기능으로, 데이터의 집계 및 변환을 위해 데이터 세트에 분할-적용-결합 작업을 수행 할 수 있습니다.
+  - 다른 Python 및 NumPy의 데이터 구조로 되어있는 비정형 및 다르게 색인된(differently-indexed) 데이터를 DataFrame 개체로 [**쉽게 변환**][conversion]할 수 있습니다.
+  - 지능적인 레이블 기반 [**슬라이싱**][slicing], [**고급 인덱싱**][fancy-indexing] 및 대용량 데이터 세트의 [**부분집합화**][subsetting](subsetting).
+  - 직관적인 데이터 [**병합**][merging] 및 [**결합**][joining].
+  - 데이터 세트에 대해 유연한 [**재형성**][reshape](reshaping) 및 [**고정**][pivot-table](pivoting).
+  - 축의 [**계층적**][mi] 레이블링. (틱당 다중 레이블을 가질 수 있습니다.)
+  - [**플랫 파일**][flat-files](CSV 및 delimited), [**엑셀 파일**][excel], [**데이터베이스**][db]에서 데이터 로딩 혹은 초고속 [**HDF5 형식**][hdfstore]에서 데이터 로딩 및 저장을 위한 견고한 IO 도구.
+  - [**시계열**][timeseries] 관련 기능 : 날짜 범위 생성 및 빈도 변환, moving window 통계, moving window 선형 회귀, 날짜 이동 및 지연 등.
 
 
    [missing-data]: http://pandas.pydata.org/pandas-docs/stable/missing_data.html#working-with-missing-data
@@ -142,12 +117,11 @@ Here are just a few of the things that pandas does well:
    [hdfstore]: http://pandas.pydata.org/pandas-docs/stable/io.html#hdf5-pytables
    [timeseries]: http://pandas.pydata.org/pandas-docs/stable/timeseries.html#time-series-date-functionality
 
-## Where to get it
-The source code is currently hosted on GitHub at:
+## Pandas 얻기
+소스 코드는 현재 다음 GitHub 사이트에서 호스팅됩니다 :
 http://github.com/pandas-dev/pandas
 
-Binary installers for the latest released version are available at the [Python
-package index](http://pypi.python.org/pypi/pandas/) and on conda.
+최신 버전의 이진 설치 프로그램은 [Python 패키지 Index](http://pypi.python.org/pypi/pandas/) 및 conda에서 구할 수 있습니다.
 
 ```sh
 # conda
