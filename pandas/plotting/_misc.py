@@ -15,8 +15,8 @@ from pandas.plotting._tools import _subplots, _set_ticks_props
 
 
 def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
-                   diagonal='hist', marker='.', density_kwds=None,
-                   hist_kwds=None, range_padding=0.05, **kwds):
+                   diagonal='hist', marker='.', density_kwds={},
+                   hist_kwds={}, range_padding=0.05, **kwds):
     """
     Draw a matrix of scatter plots.
 
@@ -65,9 +65,6 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     mask = notnull(df)
 
     marker = _get_marker_compat(marker)
-
-    hist_kwds = hist_kwds or {}
-    density_kwds = density_kwds or {}
 
     # GH 14855
     kwds.setdefault('edgecolors', 'none')
