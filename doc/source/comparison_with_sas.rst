@@ -123,7 +123,8 @@ SAS provides ``PROC IMPORT`` to read csv data into a data set.
 
 .. code-block:: none
 
-   proc import datafile='tips.csv' dbms=csv out=tips replace;
+   filename tips url  "https://raw.githubusercontent.com/pydata/pandas/master/pandas/tests/data/tips.csv";
+   proc import datafile=tips dbms=csv out=tips replace;
        getnames=yes;
    run;
 
@@ -266,7 +267,7 @@ date/datetime columns.
 
    data tips;
        set tips;
-       format date1 date2 date1_plusmonth mmddyy10.;
+       format date1 date2 date1_next mmddyy10.;
        date1 = mdy(1, 15, 2013);
        date2 = mdy(2, 15, 2015);
        date1_year = year(date1);
