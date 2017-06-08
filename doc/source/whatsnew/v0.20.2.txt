@@ -51,6 +51,7 @@ Bug Fixes
 - Bug in :func:`unique` on an array of tuples (:issue:`16519`)
 - Bug in :func:`cut` when ``labels`` are set, resulting in incorrect label ordering (:issue:`16459`)
 - Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on ``Categoricals`` (:issue:`16409`)
+- Bug in ``TimedeltaIndex`` raising a ``ValueError`` when slice indexing with ``loc`` (:issue:`16637`)
 
 Conversion
 ^^^^^^^^^^
