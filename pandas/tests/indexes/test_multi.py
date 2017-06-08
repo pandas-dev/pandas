@@ -2866,3 +2866,24 @@ class TestMultiIndex(Base):
             pd.Index(li, name='abc')
         with pytest.raises(ValueError):
             pd.Index(li, name='a')
+
+    def test_nan_stays_float(self):
+
+        # GH 7031
+        idx0 = pd.MultiIndex(levels=[["A", "B"], []],
+                             labels=[[1, 0], [-1, -1]],
+                             names=[0, 1])
+        idx1 = pd.MultiIndex(levels=[["C"], ["D"]],
+                             labels=[[0], [0]],
+                             names=[0, 1])
+        idxm = idx0.join(idx1, how='outer')
+        assert pd.isnull(idx0.get_level_values(1)).all()
+        # the following failed in 0.14.1
+        assert pd.isnull(idxm.get_level_values(1)[:-1]).all()
+
+        df0 = pd.DataFrame([[1, 2]], index=idx0)
+        df1 = pd.DataFrame([[3, 4]], index=idx1)
+        dfm = df0 - df1
+        assert pd.isnull(df0.index.get_level_values(1)).all()
+        # the following failed in 0.14.1
+        assert pd.isnull(dfm.index.get_level_values(1)[:-1]).all()
