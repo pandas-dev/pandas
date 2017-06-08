@@ -1,11 +1,11 @@
 .. _contributing.docs:
 
-Contributing to the documentation
+문서작업에 기여하세요!
 =================================
 
-If you're not the developer type, contributing to the documentation is still
-of huge value. You don't even have to be an expert on
-*pandas* to do so! Something as simple as rewriting small passages for clarity
+만약 당신이 개발자가 아니라면, 문서작업에 기여하는 것만으로도 굉장히 가치있는 일입니다.
+“pandas”의 전문가가 되지 않더라도 할 수 있는 일입니다!
+Something as simple as rewriting small passages for clarity
 as you reference the docs is a simple but effective way to contribute. The
 next person to read that passage will be in your debt!
 
