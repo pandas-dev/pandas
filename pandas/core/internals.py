@@ -4276,8 +4276,9 @@ def construction_error(tot_items, block_shape, axes, e=None):
         raise e
     if block_shape[0] == 0:
         raise ValueError("Empty data passed with indices specified.")
-    raise ValueError("Shape of passed values is {0}, indices imply {1}".format(
-        passed, implied))
+    raise ValueError("Shape of passed values is {0}, indices imply {1}.\n\
+        This means that at least one of the dataframes contains duplicate \
+        index values.".format(passed, implied))
 
 
 def create_block_manager_from_blocks(blocks, axes):
