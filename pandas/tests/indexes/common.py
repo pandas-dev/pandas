@@ -905,7 +905,7 @@ class Base(object):
 
     def test_nulls(self):
         # this is really a smoke test for the methods
-        # as these are adequantely tested for function elsewhere
+        # as these are adequately tested for function elsewhere
 
         for name, index in self.indices.items():
             if len(index) == 0:
@@ -933,3 +933,14 @@ class Base(object):
         index = self.create_index()
         assert not index.empty
         assert index[:0].empty
+
+    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
+    def test_join_self(self, how):
+        index = self.create_index()
+        joined = index.join(index, how=how)
+
+        if index.is_unique:
+            assert index is joined
+
+        else:
+            assert isinstance(joined, type(index))
