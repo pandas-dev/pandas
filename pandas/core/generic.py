@@ -6088,10 +6088,13 @@ it is assumed to be aliases for the column names.')
         formatted_percentiles = format_percentiles(percentiles)
 
         def describe_numeric_1d(series):
-            stat_index = (['count', 'mean', 'std', 'min'] +
-                          formatted_percentiles + ['max'])
-            d = ([series.count(), series.mean(), series.std(), series.min()] +
-                 [series.quantile(x) for x in percentiles] + [series.max()])
+            modes = series.mode()
+            formatted_modes = ['mode ' + str(x + 1) for x in range(len(modes))]
+
+            stat_index = (['count', 'mean', 'disp', 'sd', 'se', 'min', 'max', 'range'] + formatted_modes + formatted_percentiles)
+            d = ([series.count(), series.mean(), (series.std() ** 2), series.std(), series.sem(), series.min(), series.max(),
+                (series.max() - series.min())] + [x for x in modes] + [series.quantile(x) for x in percentiles])
+            
             return pd.Series(d, index=stat_index, name=series.name)
 
         def describe_categorical_1d(data):
