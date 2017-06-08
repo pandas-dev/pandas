@@ -369,6 +369,8 @@ class Float64Index(NumericIndex):
                 except (ValueError, IndexError):
                     # should only need to catch ValueError here but on numpy
                     # 1.7 .item() can raise IndexError when NaNs are present
+                    if not len(nan_idxs):
+                        raise KeyError(key)
                     return nan_idxs
         except (TypeError, NotImplementedError):
             pass
