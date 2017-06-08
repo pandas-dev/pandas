@@ -131,7 +131,7 @@ For example, a bar plot can be created the following way:
 
 .. ipython:: python
 
-   plt.figure();
+   plt.figure()
 
    @savefig bar_plot_ex.png
    df.iloc[5].plot(kind='bar'); plt.axhline(0, color='k')
@@ -176,7 +176,7 @@ For labeled, non-time series data, you may wish to produce a bar plot:
 
 .. ipython:: python
 
-   plt.figure();
+   plt.figure()
 
    @savefig bar_plot_ex.png
    df.iloc[5].plot.bar(); plt.axhline(0, color='k')
@@ -196,7 +196,7 @@ bar plot:
    df2 = pd.DataFrame(np.random.rand(10, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig bar_plot_multi_ex.png
-   df2.plot.bar();
+   df2.plot.bar()
 
 To produce a stacked bar plot, pass ``stacked=True``:
 
@@ -209,7 +209,7 @@ To produce a stacked bar plot, pass ``stacked=True``:
 .. ipython:: python
 
    @savefig bar_plot_stacked_ex.png
-   df2.plot.bar(stacked=True);
+   df2.plot.bar(stacked=True)
 
 To get horizontal bar plots, use the ``barh`` method:
 
@@ -222,7 +222,7 @@ To get horizontal bar plots, use the ``barh`` method:
 .. ipython:: python
 
    @savefig barh_plot_stacked_ex.png
-   df2.plot.barh(stacked=True);
+   df2.plot.barh(stacked=True)
 
 .. _visualization.hist:
 
@@ -238,7 +238,7 @@ Histogram can be drawn by using the :meth:`DataFrame.plot.hist` and :meth:`Serie
    df4 = pd.DataFrame({'a': np.random.randn(1000) + 1, 'b': np.random.randn(1000),
                        'c': np.random.randn(1000) - 1}, columns=['a', 'b', 'c'])
 
-   plt.figure();
+   plt.figure()
 
    @savefig hist_new.png
    df4.plot.hist(alpha=0.5)
@@ -253,7 +253,7 @@ Histogram can be stacked by ``stacked=True``. Bin size can be changed by ``bins`
 
 .. ipython:: python
 
-   plt.figure();
+   plt.figure()
 
    @savefig hist_new_stacked.png
    df4.plot.hist(stacked=True, bins=20)
@@ -267,7 +267,7 @@ You can pass other keywords supported by matplotlib ``hist``. For example, horiz
 
 .. ipython:: python
 
-   plt.figure();
+   plt.figure()
 
    @savefig hist_new_kwargs.png
    df4['a'].plot.hist(orientation='horizontal', cumulative=True)
@@ -285,7 +285,7 @@ The existing interface ``DataFrame.hist`` to plot histogram still can be used.
 
 .. ipython:: python
 
-   plt.figure();
+   plt.figure()
 
    @savefig hist_plot_ex.png
    df['A'].diff().hist()
@@ -403,7 +403,7 @@ The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
    :okwarning:
 
    df = pd.DataFrame(np.random.rand(10,5))
-   plt.figure();
+   plt.figure()
 
    @savefig box_plot_ex.png
    bp = df.boxplot()
@@ -423,7 +423,7 @@ groupings.  For instance,
    df = pd.DataFrame(np.random.rand(10,2), columns=['Col1', 'Col2'] )
    df['X'] = pd.Series(['A','A','A','A','A','B','B','B','B','B'])
 
-   plt.figure();
+   plt.figure()
 
    @savefig box_plot_ex2.png
    bp = df.boxplot(by='X')
@@ -444,7 +444,7 @@ columns:
    df['X'] = pd.Series(['A','A','A','A','A','B','B','B','B','B'])
    df['Y'] = pd.Series(['A','B','A','B','A','B','A','B','A','B'])
 
-   plt.figure();
+   plt.figure()
 
    @savefig box_plot_ex3.png
    bp = df.boxplot(column=['Col1','Col2'], by=['X','Y'])
@@ -532,7 +532,7 @@ When input data contains `NaN`, it will be automatically filled by 0. If you wan
    df = pd.DataFrame(np.random.rand(10, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig area_plot_stacked.png
-   df.plot.area();
+   df.plot.area()
 
 To produce an unstacked plot, pass ``stacked=False``. Alpha value is set to 0.5 unless otherwise specified:
 
@@ -545,7 +545,7 @@ To produce an unstacked plot, pass ``stacked=False``. Alpha value is set to 0.5 
 .. ipython:: python
 
    @savefig area_plot_unstacked.png
-   df.plot.area(stacked=False);
+   df.plot.area(stacked=False)
 
 .. _visualization.scatter:
 
@@ -570,16 +570,16 @@ These can be specified by ``x`` and ``y`` keywords each.
    df = pd.DataFrame(np.random.rand(50, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig scatter_plot.png
-   df.plot.scatter(x='a', y='b');
+   df.plot.scatter(x='a', y='b')
 
 To plot multiple column groups in a single axes, repeat ``plot`` method specifying target ``ax``.
 It is recommended to specify ``color`` and ``label`` keywords to distinguish each groups.
 
 .. ipython:: python
 
-   ax = df.plot.scatter(x='a', y='b', color='DarkBlue', label='Group 1');
+   ax = df.plot.scatter(x='a', y='b', color='DarkBlue', label='Group 1')
    @savefig scatter_plot_repeated.png
-   df.plot.scatter(x='c', y='d', color='DarkGreen', label='Group 2', ax=ax);
+   df.plot.scatter(x='c', y='d', color='DarkGreen', label='Group 2', ax=ax)
 
 .. ipython:: python
    :suppress:
@@ -592,7 +592,7 @@ each point:
 .. ipython:: python
 
    @savefig scatter_plot_colored.png
-   df.plot.scatter(x='a', y='b', c='c', s=50);
+   df.plot.scatter(x='a', y='b', c='c', s=50)
 
 
 .. ipython:: python
@@ -606,7 +606,7 @@ Below example shows a bubble chart using a dataframe column values as bubble siz
 .. ipython:: python
 
    @savefig scatter_plot_bubble.png
-   df.plot.scatter(x='a', y='b', s=df['c']*200);
+   df.plot.scatter(x='a', y='b', s=df['c']*200)
 
 .. ipython:: python
    :suppress:
@@ -1073,7 +1073,7 @@ layout and formatting of the returned plot:
 .. ipython:: python
 
    @savefig series_plot_basic2.png
-   plt.figure(); ts.plot(style='k--', label='Series');
+   plt.figure(); ts.plot(style='k--', label='Series')
 
 .. ipython:: python
    :suppress:
@@ -1266,7 +1266,7 @@ with the ``subplots`` keyword:
 .. ipython:: python
 
    @savefig frame_plot_subplots.png
-   df.plot(subplots=True, figsize=(6, 6));
+   df.plot(subplots=True, figsize=(6, 6))
 
 .. ipython:: python
    :suppress:
@@ -1289,7 +1289,7 @@ or columns needed, given the other.
 .. ipython:: python
 
    @savefig frame_plot_subplots_layout.png
-   df.plot(subplots=True, layout=(2, 3), figsize=(6, 6), sharex=False);
+   df.plot(subplots=True, layout=(2, 3), figsize=(6, 6), sharex=False)
 
 .. ipython:: python
    :suppress:
@@ -1300,7 +1300,7 @@ The above example is identical to using
 
 .. ipython:: python
 
-   df.plot(subplots=True, layout=(2, -1), figsize=(6, 6), sharex=False);
+   df.plot(subplots=True, layout=(2, -1), figsize=(6, 6), sharex=False)
 
 .. ipython:: python
    :suppress:
@@ -1320,14 +1320,14 @@ otherwise you will see a warning.
 
 .. ipython:: python
 
-   fig, axes = plt.subplots(4, 4, figsize=(6, 6));
-   plt.subplots_adjust(wspace=0.5, hspace=0.5);
+   fig, axes = plt.subplots(4, 4, figsize=(6, 6))
+   plt.subplots_adjust(wspace=0.5, hspace=0.5)
    target1 = [axes[0][0], axes[1][1], axes[2][2], axes[3][3]]
    target2 = [axes[3][0], axes[2][1], axes[1][2], axes[0][3]]
 
-   df.plot(subplots=True, ax=target1, legend=False, sharex=False, sharey=False);
+   df.plot(subplots=True, ax=target1, legend=False, sharex=False, sharey=False)
    @savefig frame_plot_subplots_multi_ax.png
-   (-df).plot(subplots=True, ax=target2, legend=False, sharex=False, sharey=False);
+   (-df).plot(subplots=True, ax=target2, legend=False, sharex=False, sharey=False)
 
 .. ipython:: python
    :suppress:
@@ -1354,12 +1354,12 @@ Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a
 .. ipython:: python
 
    fig, axes = plt.subplots(nrows=2, ncols=2)
-   df['A'].plot(ax=axes[0,0]); axes[0,0].set_title('A');
-   df['B'].plot(ax=axes[0,1]); axes[0,1].set_title('B');
-   df['C'].plot(ax=axes[1,0]); axes[1,0].set_title('C');
+   df['A'].plot(ax=axes[0,0]); axes[0,0].set_title('A')
+   df['B'].plot(ax=axes[0,1]); axes[0,1].set_title('B')
+   df['C'].plot(ax=axes[1,0]); axes[1,0].set_title('C')
 
    @savefig series_plot_multi.png
-   df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D');
+   df['D'].plot(ax=axes[1,1]); axes[1,1].set_title('D')
 
 .. ipython:: python
    :suppress:
