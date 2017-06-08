@@ -547,14 +547,17 @@ class TestSparseDataFrame(SharedWithSparse):
 
         sdf = self.frame.copy(False)
 
+        def _equal(spm1, spm2):
+            return np.all(spm1.toarray() == spm2.toarray())
+
         # 1d -- column
         spm = csr_matrix(np.arange(len(sdf))).T
         sdf['X'] = spm
-        assert (sdf[['X']].to_coo() != spm.tocoo()).nnz == 0
+        assert _equal(sdf[['X']].to_coo(), spm)
 
         # 1d -- existing column
         sdf['A'] = spm.T
-        assert (sdf[['X']].to_coo() != spm.tocoo()).nnz == 0
+        assert _equal(sdf[['X']].to_coo(), spm)
 
         # 1d row -- changing series contents not yet supported
         spm = csr_matrix(np.arange(sdf.shape[1], dtype=float))
@@ -566,7 +569,7 @@ class TestSparseDataFrame(SharedWithSparse):
         # 2d -- 2 columns
         spm = csr_matrix(np.eye(len(sdf))[:, :2])
         sdf[['X', 'A']] = spm
-        assert (sdf[['X', 'A']].to_coo() != spm.tocoo()).nnz == 0
+        assert _equal(sdf[['X', 'A']].to_coo(), spm)
 
     def test_delitem(self):
         A = self.frame['A']
