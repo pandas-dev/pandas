@@ -285,7 +285,7 @@ Selecting values from a DataFrame where a boolean condition is met.
 
 .. ipython:: python
 
-   df[df > 0]
+   df.where(df > 0)
 
 Using the :func:`~Series.isin` method for filtering:
 
