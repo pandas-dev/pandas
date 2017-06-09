@@ -248,3 +248,12 @@ class TestSeriesDtypes(TestData):
 
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
+
+    def test_series_to_categorical(self):
+        # see gh-16524: test conversion of Series to Categorical
+        series = Series(['a', 'b', 'c'])
+
+        result = Series(series, dtype='category')
+        expected = Series(['a', 'b', 'c'], dtype='category')
+
+        tm.assert_series_equal(result, expected)
