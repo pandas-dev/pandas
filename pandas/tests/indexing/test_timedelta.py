@@ -13,13 +13,14 @@ class TestTimedeltaIndexing(object):
                          [0, 1, 2, 10, 4, 5, 6, 7, 8, 9],
                          [10, 10, 10, 3, 4, 5, 6, 7, 8, 9]]
         for cond, data in zip(conditions, expected_data):
-            result = df.assign(x=df.mask(cond, 10).astype(df['x'].dtype))
+            result = df.assign(x=df.mask(cond, 10).astype('int64'))
             expected = pd.DataFrame(data,
                                     index=pd.to_timedelta(range(10), unit='s'),
-                                    columns=['x'])
+                                    columns=['x'],
+                                    dtype='int64')
             tm.assert_frame_equal(expected, result)
 
-    def test_slice_indexing(self):
+    def test_list_like_indexing(self):
         # GH 16637
         df = pd.DataFrame({'x': range(10)})
         df.index = pd.to_timedelta(range(10), unit='s')
