@@ -4,26 +4,26 @@
 
 -----------------
 
-# pandas: powerful Python data analysis toolkit
+# pandas : 강력한 파이썬 데이터 분석 툴킷
 
 <table>
 <tr>
-  <td>Latest Release</td>
+  <td>최신 버전</td>
   <td><img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" /></td>
 </tr>
   <td></td>
   <td><img src="https://anaconda.org/conda-forge/pandas/badges/version.svg" alt="latest release" /></td>
 </tr>
 <tr>
-  <td>Package Status</td>
+  <td>패키지 상태</td>
   <td><img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
 </tr>
 <tr>
-  <td>License</td>
+  <td>라이센스</td>
   <td><img src="https://img.shields.io/pypi/l/pandas.svg" alt="license" /></td>
 </tr>
 <tr>
-  <td>Build Status</td>
+  <td>빌드 상태</td>
   <td>
     <a href="https://travis-ci.org/pandas-dev/pandas">
     <img src="https://travis-ci.org/pandas-dev/pandas.svg?branch=master" alt="travis build status" />
@@ -47,7 +47,7 @@
   </td>
 </tr>
 <tr>
-  <td>Coverage</td>
+  <td>적용 범위</td>
   <td><img src="https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=master" alt="coverage" /></td>
 </tr>
 <tr>
@@ -87,7 +87,7 @@
 
   - 부동 소수점 데이터뿐만 아니라 부동 소수점 데이터에서 [**누락된 데이터**][missing-data]('NaN')에 대한 처리가 쉽습니다.
   - 크기 가변성 : DataFrame 및 상위 차원 개체에서 열을 [**삽입 및 삭제**][insertion-deletion]할 수 있습니다.
-  - 자동 및 명시적인 [**데이터 정렬**][alignment] : 개체를 레이블 집합에 명시적으로 정렬되거나, 사용자가 레이블을 무시하고 계산을 위해'Series', 'DataFrame' 등의 형태로 데이터를 자동 정렬할 수 있습니다.
+  - 자동 및 명시적인 [**데이터 정렬**][alignment] : 개체를 레이블 집합에 명시적으로 정렬되거나, 사용자가 레이블을 무시하고 계산을 위해 'Series', 'DataFrame' 등의 형태로 데이터를 자동 정렬할 수 있습니다.
   - 강력하고 유연한 [**그룹화**][groupby] 기능으로, 데이터의 집계 및 변환을 위해 데이터 세트에 분할-적용-결합 작업을 수행 할 수 있습니다.
   - 다른 Python 및 NumPy의 데이터 구조로 되어있는 비정형 및 다르게 색인된(differently-indexed) 데이터를 DataFrame 개체로 [**쉽게 변환**][conversion]할 수 있습니다.
   - 지능적인 레이블 기반 [**슬라이싱**][slicing], [**고급 인덱싱**][fancy-indexing] 및 대용량 데이터 세트의 [**부분집합화**][subsetting](subsetting).
@@ -118,7 +118,7 @@
    [timeseries]: http://pandas.pydata.org/pandas-docs/stable/timeseries.html#time-series-date-functionality
 
 ## Pandas 얻기
-소스 코드는 현재 다음 GitHub 사이트에서 호스팅됩니다 :
+소스 코드는 현재 다음 GitHub 사이트에 호스팅됩니다 :
 http://github.com/pandas-dev/pandas
 
 최신 버전의 이진 설치 프로그램은 [Python 패키지 Index](http://pypi.python.org/pypi/pandas/) 및 conda에서 구할 수 있습니다.
@@ -133,70 +133,61 @@ conda install pandas
 pip install pandas
 ```
 
-## Dependencies
-- [NumPy](http://www.numpy.org): 1.7.0 or higher
-- [python-dateutil](http://labix.org/python-dateutil): 1.5 or higher
+## 종속 프로그램
+- [NumPy](http://www.numpy.org): 1.7.0 또는 상위 버전
+- [python-dateutil](http://labix.org/python-dateutil): 1.5 또는 상위 버전
 - [pytz](http://pytz.sourceforge.net)
-    - Needed for time zone support with ``pandas.date_range``
+    - ``pandas.date_range``를 지원하는 시간대(time zone)가 필요합니다.
 
-See the [full installation instructions](http://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
-for recommended and optional dependencies.
+권장 혹은 선택적 종속 프로그램은 [전체설치지침](http://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)을 참조하십시오.
 
-## Installation from sources
-To install pandas from source you need Cython in addition to the normal
-dependencies above. Cython can be installed from pypi:
+
+## 소스에서 설치
+소스로 Pandas를 설치하려면 위의 일반적인 종속 프로그램 외에도 Cython이 필요합니다. Cython은 pypi에서 다음과 같이 설치할 수 있습니다 :
 
 ```sh
 pip install cython
 ```
 
-In the `pandas` directory (same one where you found this file after
-cloning the git repo), execute:
+`pandas` 디렉토리(git repo를 복제 한 후, 이 파일을 찾은 디렉토리)에서 다음을 실행하십시오 :
 
 ```sh
 python setup.py install
 ```
 
-or for installing in [development mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs):
+또는 [개발 모드](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs)로 설치할 수 있습니다 :
 
 ```sh
 python setup.py develop
 ```
 
-Alternatively, you can use `pip` if you want all the dependencies pulled
-in automatically (the `-e` option is for installing it in [development
-mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs)):
+또는, 모든 종속 프로그램을 자동적으로 설치하고 싶다면 `pip`을 사용할 수 있습니다 (`-e` 옵션은 [개발 모드](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs)로 설치하기 위함입니다):
 
 ```sh
 pip install -e .
 ```
 
-On Windows, you will need to install MinGW and execute:
+Windows에서는 MinGW를 설치하고, 이를 실행해야합니다 :
 
 ```sh
 python setup.py build --compiler=mingw32
 python setup.py install
 ```
 
-See http://pandas.pydata.org/ for more information.
+http://pandas.pydata.org/ 에서 더 많은 정보를 확인하십시오.
 
-## License
+## 라이센스
 BSD
 
-## Documentation
-The official documentation is hosted on PyData.org: http://pandas.pydata.org/
+## 문서
+공식 문서는 PyData.org에 호스팅됩니다 : http://pandas.pydata.org/
 
-The Sphinx documentation should provide a good starting point for learning how
-to use the library. Expect the docs to continue to expand as time goes on.
+Sphinx 문서는 라이브러리 사용법을 배우기 위한 좋은 출발점을 제공해야 합니다. 시간이 지남에 따라 문서가 계속 확장 될 것으로 기대합니다.
 
-## Background
-Work on ``pandas`` started at AQR (a quantitative hedge fund) in 2008 and
-has been under active development since then.
+## 배경
+2008년 AQR(A Quantitative Hedge Fund)에서 시작된 ''Pandas''에 대한 작업은 그 후에도 적극적으로 발전해 왔습니다.
 
-## Discussion and Development
-Since pandas development is related to a number of other scientific
-Python projects, questions are welcome on the scipy-user mailing
-list. Specialized discussions or design issues should take place on
-the PyData mailing list / Google group:
+## 토론 및 개발
+Pandas 개발은 여러 과학관련 파이썬 프로젝트와 관련이 있기 때문에 질의는 SciPy-user 메일링 리스트에서 환영합니다. 특별한 토론 또는 디자인 문제는 PyData 메일링 리스트 / Google 그룹에서 발생되길 권장합니다 :
 
 https://groups.google.com/forum/#!forum/pydata
