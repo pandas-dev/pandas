@@ -22,7 +22,7 @@ class TestTimedeltaIndexing(object):
 
     def test_list_like_indexing(self):
         # GH 16637
-        df = pd.DataFrame({'x': range(10)})
+        df = pd.DataFrame({'x': range(10)}, dtype="int64")
         df.index = pd.to_timedelta(range(10), unit='s')
 
         conditions = [df.index[0], df.index[4:8], df.index[[3, 5]]]
@@ -34,5 +34,6 @@ class TestTimedeltaIndexing(object):
             result.loc[cond, 'x'] = 20
             expected = pd.DataFrame(data,
                                     index=pd.to_timedelta(range(10), unit='s'),
-                                    columns=['x'])
+                                    columns=['x'],
+                                    dtype="int64")
             tm.assert_frame_equal(expected, result)
