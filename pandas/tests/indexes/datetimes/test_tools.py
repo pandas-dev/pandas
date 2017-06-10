@@ -175,6 +175,14 @@ class TimeConversionFormats(object):
 
 class TestToDatetime(object):
 
+    def test_to_datetime_iso_week_year_format(self):
+        data = [
+            ['2015-53-1', '%G-%V-%u',
+            datetime(2015, 12, 28, 0, 0)]
+            ]
+        for s, format, dt in data:
+            assert to_datetime(s, format=format) == dt
+
     def test_to_datetime_dt64s(self):
         in_bound_dts = [
             np.datetime64('2000-01-01'),

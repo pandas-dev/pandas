@@ -3658,7 +3658,10 @@ def array_strptime(ndarray[object] values, object fmt,
         'U': 15,
         'W': 16,
         'Z': 17,
-        'p': 18   # just an additional key, works only with I
+        'p': 18,  # just an additional key, works only with I
+        'G': 19,
+        'V': 20,
+        'u': 21
     }
     cdef int parse_code
 
@@ -3678,6 +3681,7 @@ def array_strptime(ndarray[object] values, object fmt,
         # exact matching
         if exact:
             found = format_regex.match(val)
+            print found
             if not found:
                 if is_coerce:
                     iresult[i] = NPY_NAT
@@ -3701,13 +3705,14 @@ def array_strptime(ndarray[object] values, object fmt,
                 raise ValueError("time data %r does not match format "
                                  "%r (search)" % (values[i], fmt))
 
+        iso_year = -1
         year = 1900
         month = day = 1
         hour = minute = second = ns = us = 0
         tz = -1
         # Default to -1 to signify that values not known; not critical to have,
         # though
-        week_of_year = -1
+        iso_week = week_of_year = -1
         week_of_year_start = -1
         # weekday and julian defaulted to -1 so as to signal need to calculate
         # values
@@ -3809,12 +3814,40 @@ def array_strptime(ndarray[object] values, object fmt,
                         else:
                             tz = value
                             break
+            elif parse_code == 19:
+                iso_year = int(found_dict['G'])
+            elif parse_code == 20:
+                iso_week = int(found_dict['V'])
+            elif parse_code == 21:
+                weekday = int(found_dict['u'])
+                weekday -= 1
+
+
+        # don't assume default values for ISO week/year
+        if iso_year != -1:
+            if iso_week == -1 or weekday == -1:
+                raise ValueError("ISO year directive '%G' must be used with "
+                                 "the ISO week directive '%V' and a weekday "
+                                 "directive ('%w', or '%u').")
+            if julian != -1:
+                raise ValueError("Day of the year directive '%j' is not "
+                                 "compatible with ISO year directive '%G'. "
+                                 "Use '%Y' instead.")
+        elif week_of_year == -1 and iso_week != -1:
+            if weekday == -1:
+                raise ValueError("ISO week directive '%V' must be used with "
+                                 "the ISO year directive '%G' and a weekday "
+                                 "directive ('%w', or '%u').")
+
         # If we know the wk of the year and what day of that wk, we can figure
         # out the Julian day of the year.
         if julian == -1 and week_of_year != -1 and weekday != -1:
             week_starts_Mon = True if week_of_year_start == 0 else False
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
                                                 week_starts_Mon)
+        elif iso_year != -1 and iso_week != -1 and weekday != -1:
+            year, julian = _calc_julian_from_V(iso_year, iso_week, weekday + 1)
+
         # Cannot pre-calculate datetime_date() since can change in Julian
         # calculation and thus could have different value for the day of the wk
         # calculation.
@@ -5630,6 +5663,7 @@ class TimeRE(dict):
             'f': r"(?P<f>[0-9]{1,9})",
             'H': r"(?P<H>2[0-3]|[0-1]\d|\d)",
             'I': r"(?P<I>1[0-2]|0[1-9]|[1-9])",
+            'G': r"(?P<G>\d\d\d\d)",
             'j': (r"(?P<j>36[0-6]|3[0-5]\d|[1-2]\d\d|0[1-9]\d|00[1-9]|"
                   r"[1-9]\d|0[1-9]|[1-9])"),
             'm': r"(?P<m>1[0-2]|0[1-9]|[1-9])",
@@ -5637,6 +5671,8 @@ class TimeRE(dict):
             'S': r"(?P<S>6[0-1]|[0-5]\d|\d)",
             'U': r"(?P<U>5[0-3]|[0-4]\d|\d)",
             'w': r"(?P<w>[0-6])",
+            'u': r"(?P<u>[1-7])",
+            'V': r"(?P<V>5[0-3]|0[1-9]|[1-4]\d|\d)",
             # W is set below by using 'U'
             'y': r"(?P<y>\d\d)",
             #XXX: Does 'Y' need to worry about having less or more than
@@ -5736,3 +5772,22 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
 
 # def _strptime_time(data_string, format="%a %b %d %H:%M:%S %Y"):
 #     return _strptime(data_string, format)[0]
+
+cdef _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday):
+    """Calculate the Julian day based on the ISO 8601 year, week, and weekday.
+    ISO weeks start on Mondays, with week 01 being the week containing 4 Jan.
+    ISO week days range from 1 (Monday) to 7 (Sunday)."""
+
+    cdef:
+        int correction, ordinal
+
+    correction = datetime_date(iso_year, 1, 4).isoweekday() + 3
+    ordinal = (iso_week * 7) + iso_weekday - correction
+    # ordinal may be negative or 0 now, which means the date is in the previous
+    # calendar year
+    if ordinal < 1:
+        ordinal += datetime_date(iso_year, 1, 1).toordinal()
+        iso_year -= 1
+        ordinal -= datetime_date(iso_year, 1, 1).toordinal()
+    return iso_year, ordinal
+
