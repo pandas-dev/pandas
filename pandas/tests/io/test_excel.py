@@ -951,29 +951,13 @@ class XlrdTests(ReadingTestsBase):
                     'R_l0_g3', 'R_l0_g4'], name=None)
 
         expected = pd.DataFrame(data, index=si, columns=columns)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            actual = pd.read_excel(
-                in_file, 'single_names', has_index_names=True)
-        tm.assert_frame_equal(actual, expected)
 
         actual = pd.read_excel(in_file, 'single_no_names')
         tm.assert_frame_equal(actual, expected)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            actual = pd.read_excel(
-                in_file, 'single_no_names', has_index_names=False)
-        tm.assert_frame_equal(actual, expected)
 
         expected.index = mi
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            actual = pd.read_excel(
-                in_file, 'multi_names', has_index_names=True)
-        tm.assert_frame_equal(actual, expected)
 
         actual = pd.read_excel(in_file, 'multi_no_names', index_col=[0, 1])
-        tm.assert_frame_equal(actual, expected, check_names=False)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            actual = pd.read_excel(in_file, 'multi_no_names', index_col=[0, 1],
-                                   has_index_names=False)
         tm.assert_frame_equal(actual, expected, check_names=False)
 
     def test_read_excel_bool_header_arg(self):
