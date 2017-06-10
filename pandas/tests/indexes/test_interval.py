@@ -380,8 +380,25 @@ class TestIntervalIndex(Base):
         index = IntervalIndex.from_tuples(
             [(0, 1), (2, 3), (4, 5)], closed='both')
         assert index.is_non_overlapping_monotonic == True
-
         index = IntervalIndex.from_breaks(range(4), closed='both')
+        assert index.is_non_overlapping_monotonic == False
+
+        index = IntervalIndex.from_breaks([0, 1, 2], closed='neither')
+        assert index.is_non_overlapping_monotonic == True
+        index = IntervalIndex.from_tuples(
+            [(0, 2), (1, 3), (3, 4)], closed='neither')
+        assert index.is_non_overlapping_monotonic == False
+
+        index = IntervalIndex.from_breaks(range(4), closed='left')
+        assert index.is_non_overlapping_monotonic == True
+        index = IntervalIndex.from_tuples(
+            [(0, 1), (1, 2), (1.5, 3)], closed='left')
+        assert index.is_non_overlapping_monotonic == False
+
+        index = IntervalIndex.from_breaks(range(4), closed='right')
+        assert index.is_non_overlapping_monotonic == True
+        index = IntervalIndex.from_tuples(
+            [(0, 1), (1, 2), (1.5, 3)], closed='right')
         assert index.is_non_overlapping_monotonic == False
 
     def test_slice_locs_int64(self):

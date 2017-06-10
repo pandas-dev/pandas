@@ -559,9 +559,10 @@ class IntervalIndex(IntervalMixin, Index):
         if self.closed == 'both':
             return ((self.right[:-1] < self.left[1:]).all() or
                     (self.left[:-1] > self.right[1:]).all())
-        else:
-            return ((self.right[:-1] <= self.left[1:]).all() or
-                    (self.left[:-1] >= self.right[1:]).all())
+        
+        # self.closed == 'left' or 'right' or 'neither'
+        return ((self.right[:-1] <= self.left[1:]).all() or
+                (self.left[:-1] >= self.right[1:]).all())
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
