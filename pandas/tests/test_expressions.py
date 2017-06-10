@@ -13,7 +13,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Panel
 from pandas.core.computation import expressions as expr
-from pandas import compat, _np_version_under1p11
+from pandas import compat, _np_version_under1p11, _np_version_under1p13
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_panel4d_equal, slow)
@@ -419,6 +419,10 @@ class TestExpressions(object):
         for op, name in zip(ops, names):
             f = getattr(operator, name)
             fe = getattr(operator, sub_funcs[subs[op]])
+
+            # >= 1.13.0 these are now TypeErrors
+            if op == '-' and not _np_version_under1p13:
+                continue
 
             with tm.use_numexpr(True, min_elements=5):
                 with tm.assert_produces_warning(check_stacklevel=False):
