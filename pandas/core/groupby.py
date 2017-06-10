@@ -3481,9 +3481,9 @@ class NDFrameGroupBy(GroupBy):
                     assert not args and not kwargs
                     result = self._aggregate_multiple_funcs(
                         [arg], _level=_level, _axis=self.axis)
-                    result.columns = Index(
-                        result.columns.levels[0],
-                        name=self._selected_obj.columns.name)
+                    result.columns = result.columns.droplevel(-1)
+                    if result.columns.nlevels == 1:
+                        result.columns.name = self._selected_obj.columns.name
                 except:
                     result = self._aggregate_generic(arg, *args, **kwargs)
 

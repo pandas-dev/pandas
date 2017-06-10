@@ -658,6 +658,7 @@ class SelectionMixin(object):
 
         # degenerate case
         if obj.ndim == 1:
+            names = obj.index.names
             for a in arg:
                 try:
                     colg = self._gotitem(obj.name, ndim=1, subset=obj)
@@ -673,6 +674,7 @@ class SelectionMixin(object):
 
         # multiples
         else:
+            names = obj.columns.names
             for col in obj:
                 try:
                     colg = self._gotitem(col, ndim=1, subset=obj[col])
@@ -691,7 +693,7 @@ class SelectionMixin(object):
             raise ValueError("no results")
 
         try:
-            return concat(results, keys=keys, axis=1)
+            return concat(results, keys=keys, axis=1, names=names)
         except TypeError:
 
             # we are concatting non-NDFrame objects,
