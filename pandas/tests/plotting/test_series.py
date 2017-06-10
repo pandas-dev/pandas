@@ -102,23 +102,23 @@ class TestSeriesPlots(TestPlotBase):
         ax = self.ts.plot(ax=ax)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        assert xmin == lines[0].get_data(orig=False)[0][0]
-        assert xmax == lines[0].get_data(orig=False)[0][-1]
+        assert xmin <= lines[0].get_data(orig=False)[0][0]
+        assert xmax >= lines[0].get_data(orig=False)[0][-1]
         tm.close()
 
         ax = self.ts.plot(secondary_y=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        assert xmin == lines[0].get_data(orig=False)[0][0]
-        assert xmax == lines[0].get_data(orig=False)[0][-1]
+        assert xmin <= lines[0].get_data(orig=False)[0][0]
+        assert xmax >= lines[0].get_data(orig=False)[0][-1]
 
     def test_ts_area_lim(self):
         _, ax = self.plt.subplots()
         ax = self.ts.plot.area(stacked=False, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        assert xmin == line[0]
-        assert xmax == line[-1]
+        assert xmin <= line[0]
+        assert xmax >= line[-1]
         tm.close()
 
         # GH 7471
@@ -126,8 +126,8 @@ class TestSeriesPlots(TestPlotBase):
         ax = self.ts.plot.area(stacked=False, x_compat=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        assert xmin == line[0]
-        assert xmax == line[-1]
+        assert xmin <= line[0]
+        assert xmax >= line[-1]
         tm.close()
 
         tz_ts = self.ts.copy()
@@ -136,16 +136,16 @@ class TestSeriesPlots(TestPlotBase):
         ax = tz_ts.plot.area(stacked=False, x_compat=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        assert xmin == line[0]
-        assert xmax == line[-1]
+        assert xmin <= line[0]
+        assert xmax >= line[-1]
         tm.close()
 
         _, ax = self.plt.subplots()
         ax = tz_ts.plot.area(stacked=False, secondary_y=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        assert xmin == line[0]
-        assert xmax == line[-1]
+        assert xmin <= line[0]
+        assert xmax >= line[-1]
 
     def test_label(self):
         s = Series([1, 2])

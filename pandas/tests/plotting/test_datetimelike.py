@@ -699,8 +699,8 @@ class TestTSPlot(TestPlotBase):
         assert idx2.equals(s2.index.to_period('B'))
         left, right = ax2.get_xlim()
         pidx = s1.index.to_period()
-        assert left == pidx[0].ordinal
-        assert right == pidx[-1].ordinal
+        assert left <= pidx[0].ordinal
+        assert right >= pidx[-1].ordinal
 
     @pytest.mark.slow
     def test_mixed_freq_irregular_first(self):
@@ -730,8 +730,8 @@ class TestTSPlot(TestPlotBase):
         assert idx2.equals(s2.index.to_period('B'))
         left, right = ax2.get_xlim()
         pidx = s1.index.to_period()
-        assert left == pidx[0].ordinal
-        assert right == pidx[-1].ordinal
+        assert left <= pidx[0].ordinal
+        assert right >= pidx[-1].ordinal
 
     @pytest.mark.slow
     def test_mixed_freq_irregular_first_df(self):
@@ -1245,8 +1245,8 @@ class TestTSPlot(TestPlotBase):
 
         # check that axis limits are correct
         left, right = ax.get_xlim()
-        assert left == ts_irregular.index.min().toordinal()
-        assert right == ts_irregular.index.max().toordinal()
+        assert left <= ts_irregular.index.min().toordinal()
+        assert right >= ts_irregular.index.max().toordinal()
 
     @pytest.mark.slow
     def test_secondary_y_non_ts_xlim(self):
@@ -1262,7 +1262,7 @@ class TestTSPlot(TestPlotBase):
         s2.plot(secondary_y=True, ax=ax)
         left_after, right_after = ax.get_xlim()
 
-        assert left_before == left_after
+        assert left_before >= left_after
         assert right_before < right_after
 
     @pytest.mark.slow
@@ -1279,7 +1279,7 @@ class TestTSPlot(TestPlotBase):
         s2.plot(secondary_y=True, ax=ax)
         left_after, right_after = ax.get_xlim()
 
-        assert left_before == left_after
+        assert left_before >= left_after
         assert right_before < right_after
 
     @pytest.mark.slow
@@ -1312,8 +1312,8 @@ class TestTSPlot(TestPlotBase):
         ts_irregular[:5].plot(ax=ax)
 
         left, right = ax.get_xlim()
-        assert left == ts_irregular.index.min().toordinal()
-        assert right == ts_irregular.index.max().toordinal()
+        assert left <= ts_irregular.index.min().toordinal()
+        assert right >= ts_irregular.index.max().toordinal()
 
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
