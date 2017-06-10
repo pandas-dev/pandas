@@ -304,6 +304,29 @@ class TestDataFramePlots(TestPlotBase):
         rs = Series(rs[:, 1], rs[:, 0], dtype=np.int64, name='y')
         tm.assert_series_equal(rs, df.y)
 
+    def test_unsorted_index_lims(self):
+        df = DataFrame({'y': [0., 1., 2., 3.]}, index=[1., 0., 3., 2.])
+        ax = df.plot()
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data()[0])
+        assert xmax >= np.nanmax(lines[0].get_data()[0])
+
+        df = DataFrame({'y': [0., 1., np.nan, 3., 4., 5., 6.]},
+                       index=[1., 0., 3., 2., np.nan, 3., 2.])
+        ax = df.plot()
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data()[0])
+        assert xmax >= np.nanmax(lines[0].get_data()[0])
+
+        df = DataFrame({'y': [0., 1., 2., 3.], 'z': [91., 90., 93., 92.]})
+        ax = df.plot(x='z', y='y')
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data()[0])
+        assert xmax >= np.nanmax(lines[0].get_data()[0])
+
     @pytest.mark.slow
     def test_subplots(self):
         df = DataFrame(np.random.rand(10, 3),

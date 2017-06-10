@@ -279,6 +279,16 @@ class TestSeriesPlots(TestPlotBase):
         ax.set_xlim('1/1/1999', '1/1/2001')
         assert xp == ax.get_xlim()[0]
 
+    def test_unsorted_index_xlim(self):
+        ser = Series([0., 1., np.nan, 3., 4., 5., 6.],
+                     index=[1., 0., 3., 2., np.nan, 3., 2.])
+        _, ax = self.plt.subplots()
+        ax = ser.plot(ax=ax)
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data(orig=False)[0])
+        assert xmax >= np.nanmax(lines[0].get_data(orig=False)[0])
+
     @pytest.mark.slow
     def test_pie_series(self):
         # if sum of values is less than 1.0, pie handle them as rate and draw
