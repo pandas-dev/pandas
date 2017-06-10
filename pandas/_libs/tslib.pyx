@@ -3681,7 +3681,6 @@ def array_strptime(ndarray[object] values, object fmt,
         # exact matching
         if exact:
             found = format_regex.match(val)
-            print found
             if not found:
                 if is_coerce:
                     iresult[i] = NPY_NAT
