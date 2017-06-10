@@ -145,6 +145,10 @@ convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
+has_index_names : boolean, default None
+    DEPRECATED: for version 0.17+ index names will be automatically
+    inferred based on index_col.  To read Excel output from 0.16.2 and
+    prior that had saved index names, use True.
 
 Returns
 -------
@@ -199,8 +203,8 @@ def get_writer(engine_name):
 def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                index_col=None, names=None, usecols=None, parse_dates=False,
                date_parser=None, na_values=None, thousands=None,
-               convert_float=True, converters=None, dtype=None,
-               true_values=None, false_values=None, engine=None,
+               convert_float=True, has_index_names=None, converters=None,
+               dtype=None, true_values=None, false_values=None, engine=None,
                squeeze=False, **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
@@ -219,9 +223,10 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
         index_col=index_col, use_cols=usecols, parse_dates=parse_dates,
         date_parser=date_parser, na_values=na_values, thousands=thousands,
-        convert_float=convert_float, skip_footer=skip_footer,
-        converters=converters, dtype=dtype, true_values=true_values,
-        false_values=false_values, squeeze=squeeze, **kwds)
+        convert_float=convert_float, has_index_names=has_index_names,
+        skip_footer=skip_footer, converters=converters, dtype=dtype,
+        true_values=true_values, false_values=false_values, squeeze=squeeze,
+        **kwds)
 
 
 class ExcelFile(object):
@@ -283,8 +288,9 @@ class ExcelFile(object):
     def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
               names=None, index_col=None, usecols=None, parse_dates=False,
               date_parser=None, na_values=None, thousands=None,
-              convert_float=True, converters=None, true_values=None,
-              false_values=None, squeeze=False, **kwds):
+              convert_float=True, has_index_names=None,
+              converters=None, true_values=None, false_values=None,
+              squeeze=False, **kwds):
         """
         Parse specified sheet(s) into a DataFrame
 
@@ -295,6 +301,7 @@ class ExcelFile(object):
         return self._parse_excel(sheetname=sheet_name, header=header,
                                  skiprows=skiprows, names=names,
                                  index_col=index_col,
+                                 has_index_names=has_index_names,
                                  use_cols=usecols,
                                  parse_dates=parse_dates,
                                  date_parser=date_parser, na_values=na_values,
@@ -352,6 +359,12 @@ class ExcelFile(object):
             skip_footer = skipfooter
 
         _validate_header_arg(header)
+        if has_index_names is not None:
+            warn("\nThe has_index_names argument is deprecated; index names "
+                 "will be automatically inferred based on index_col.\n"
+                 "This argmument is still necessary if reading Excel output "
+                 "from 0.16.2 or prior with index names.", FutureWarning,
+                 stacklevel=3)
 
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
@@ -503,7 +516,8 @@ class ExcelFile(object):
                         else:
                             last = data[row][col]
 
-            has_index_names = is_list_like(header) and len(header) > 1
+            if is_list_like(header) and len(header) > 1:
+                has_index_names = True
 
             # GH 12292 : error when read one empty column from excel file
             try:
