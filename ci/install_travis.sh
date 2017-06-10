@@ -107,7 +107,7 @@ if [ -e ${REQ} ]; then
 fi
 
 time conda install -n pandas pytest
-time pip install pytest-xdist
+time pip install pytest-xdist==1.16.0
 
 if [ "$LINT" ]; then
    conda install flake8
