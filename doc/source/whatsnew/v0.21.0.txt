@@ -65,6 +65,7 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with to_excel() (:issue:`10559`).
+- :func:`read_excel()` has deprecated ``parse_cols`` in favor of ``usecols`` for consistency with other read_* functions (:issue:`4988`).
 
 
 .. _whatsnew_0210.prior_deprecations:
