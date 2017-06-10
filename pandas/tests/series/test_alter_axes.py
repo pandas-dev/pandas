@@ -224,3 +224,13 @@ class TestSeriesAlterAxes(TestData):
 
         result = s.reorder_levels(['L0', 'L0', 'L0'])
         assert_series_equal(result, expected)
+
+    def test_rename_axis_inplace(self):
+        # GH 15704
+        series = self.ts.copy()
+        expected = series.rename_axis('foo')
+        result = series.copy()
+        no_return = result.rename_axis('foo', inplace=True)
+
+        assert no_return is None
+        assert_series_equal(result, expected)

@@ -420,10 +420,19 @@ class TestDataFrameAlterAxes(TestData):
 
     def test_rename_axis_inplace(self):
         # GH 15704
-        expected = self.frame.rename_axis('foo')
-        no_return = self.frame.rename_axis('foo', inplace=True)
+        frame = self.frame.copy()
+        expected = frame.rename_axis('foo')
+        result = frame.copy()
+        no_return = result.rename_axis('foo', inplace=True)
+
         assert no_return is None
-        result = self.frame
+        assert_frame_equal(result, expected)
+
+        expected = frame.rename_axis('bar', axis=1)
+        result = frame.copy()
+        no_return = result.rename_axis('bar', axis=1, inplace=True)
+
+        assert no_return is None
         assert_frame_equal(result, expected)
 
     def test_rename_multiindex(self):
