@@ -8,20 +8,20 @@ import pandas._libs.lib as lib
 import pandas.util.testing as tm
 
 
-class TestMisc(tm.TestCase):
+class TestMisc(object):
 
     def test_max_len_string_array(self):
 
         arr = a = np.array(['foo', 'b', np.nan], dtype='object')
-        assert lib.max_len_string_array(arr), 3
+        assert lib.max_len_string_array(arr) == 3
 
         # unicode
         arr = a.astype('U').astype(object)
-        assert lib.max_len_string_array(arr), 3
+        assert lib.max_len_string_array(arr) == 3
 
         # bytes for python3
         arr = a.astype('S').astype(object)
-        assert lib.max_len_string_array(arr), 3
+        assert lib.max_len_string_array(arr) == 3
 
         # raises
         pytest.raises(TypeError,
@@ -41,7 +41,7 @@ class TestMisc(tm.TestCase):
         tm.assert_numpy_array_equal(np.array(out), expected)
 
 
-class TestIndexing(tm.TestCase):
+class TestIndexing(object):
 
     def test_maybe_indices_to_slice_left_edge(self):
         target = np.arange(100)
@@ -201,7 +201,7 @@ class TestIndexing(tm.TestCase):
         assert np.array_equal(result, expected)
 
 
-class TestNullObj(tm.TestCase):
+class TestNullObj(object):
 
     _1d_methods = ['isnullobj', 'isnullobj_old']
     _2d_methods = ['isnullobj2d', 'isnullobj2d_old']

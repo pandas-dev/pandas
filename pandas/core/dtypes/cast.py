@@ -668,7 +668,7 @@ def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
 
         if convert_timedeltas == 'coerce':
             from pandas.core.tools.timedeltas import to_timedelta
-            new_values = to_timedelta(values, coerce=True)
+            new_values = to_timedelta(values, errors='coerce')
 
             # if we are all nans then leave me alone
             if not isnull(new_values).all():
@@ -837,7 +837,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         try:
             return to_timedelta(v)._values.reshape(shape)
         except:
-            return v
+            return v.reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
 

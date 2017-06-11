@@ -46,7 +46,7 @@ def test_notnull():
             assert (isinstance(isnull(s), Series))
 
 
-class TestIsNull(tm.TestCase):
+class TestIsNull(object):
 
     def test_0d_array(self):
         assert isnull(np.array(np.nan))

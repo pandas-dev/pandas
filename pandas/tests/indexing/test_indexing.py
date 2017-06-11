@@ -26,7 +26,7 @@ from pandas.tests.indexing.common import Base, _mklbl
 # Indexing test cases
 
 
-class TestFancy(Base, tm.TestCase):
+class TestFancy(Base):
     """ pure get/set item & fancy indexing """
 
     def test_setitem_ndarray_1d(self):
@@ -68,7 +68,7 @@ class TestFancy(Base, tm.TestCase):
         # GH3216
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df['c'] = np.nan
-        self.assertEqual(df['c'].dtype, np.float64)
+        assert df['c'].dtype == np.float64
 
         df.loc[0, 'c'] = 'foo'
         expected = DataFrame([{"a": 1, "c": 'foo'},
@@ -231,7 +231,7 @@ class TestFancy(Base, tm.TestCase):
         idx = df['test'] == '_'
         temp = df.loc[idx, 'a'].apply(lambda x: '-----' if x == 'aaa' else x)
         df.loc[idx, 'test'] = temp
-        self.assertEqual(df.iloc[0, 2], '-----')
+        assert df.iloc[0, 2] == '-----'
 
         # if I look at df, then element [0,2] equals '_'. If instead I type
         # df.ix[idx,'test'], I get '-----', finally by typing df.iloc[0,2] I
@@ -244,7 +244,7 @@ class TestFancy(Base, tm.TestCase):
 
         with pytest.raises(KeyError):
             df[[22, 26, -8]]
-        self.assertEqual(df[21].shape[0], df.shape[0])
+        assert df[21].shape[0] == df.shape[0]
 
     def test_set_index_nan(self):
 
@@ -599,7 +599,7 @@ class TestFancy(Base, tm.TestCase):
                     assert s2.index.is_object()
 
 
-class TestMisc(Base, tm.TestCase):
+class TestMisc(Base):
 
     def test_indexer_caching(self):
         # GH5727
@@ -638,9 +638,9 @@ class TestMisc(Base, tm.TestCase):
     def test_float_index_at_iat(self):
         s = pd.Series([1, 2, 3], index=[0.1, 0.2, 0.3])
         for el, item in s.iteritems():
-            self.assertEqual(s.at[el], item)
+            assert s.at[el] == item
         for i in range(len(s)):
-            self.assertEqual(s.iat[i], i + 1)
+            assert s.iat[i] == i + 1
 
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
@@ -741,7 +741,7 @@ class TestMisc(Base, tm.TestCase):
         with catch_warnings(record=True):
             df2 = df.ix[[], :]
 
-        self.assertEqual(df2.loc[:, 'a'].dtype, np.int64)
+        assert df2.loc[:, 'a'].dtype == np.int64
         tm.assert_series_equal(df2.loc[:, 'a'], df2.iloc[:, 0])
         with catch_warnings(record=True):
             tm.assert_series_equal(df2.loc[:, 'a'], df2.ix[:, 0])
@@ -791,16 +791,16 @@ class TestMisc(Base, tm.TestCase):
         df = pd.DataFrame({'A': [1, 2], 'B': ['c', 'd'], 'C': [True, False]})
         result = _maybe_numeric_slice(df, slice_=None)
         expected = pd.IndexSlice[:, ['A']]
-        self.assertEqual(result, expected)
+        assert result == expected
 
         result = _maybe_numeric_slice(df, None, include_bool=True)
         expected = pd.IndexSlice[:, ['A', 'C']]
         result = _maybe_numeric_slice(df, [1])
         expected = [1]
-        self.assertEqual(result, expected)
+        assert result == expected
 
 
-class TestSeriesNoneCoercion(tm.TestCase):
+class TestSeriesNoneCoercion(object):
     EXPECTED_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),
@@ -847,7 +847,7 @@ class TestSeriesNoneCoercion(tm.TestCase):
             tm.assert_series_equal(start_series, expected_series)
 
 
-class TestDataframeNoneCoercion(tm.TestCase):
+class TestDataframeNoneCoercion(object):
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.
         ([1, 2, 3], [np.nan, 2, 3]),

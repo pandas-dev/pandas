@@ -23,7 +23,7 @@ from pandas.tests.frame.common import TestData
 # structure
 
 
-class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
+class TestDataFrameReprInfoEtc(TestData):
 
     def test_repr_empty(self):
         # empty
@@ -132,11 +132,11 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
         result = repr(df)
         ex_top = '      A'
-        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+        assert result.split('\n')[0].rstrip() == ex_top
 
         df = DataFrame({'A': [uval, uval]})
         result = repr(df)
-        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+        assert result.split('\n')[0].rstrip() == ex_top
 
     def test_unicode_string_with_unicode(self):
         df = DataFrame({'A': [u("\u05d0")]})
@@ -186,7 +186,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         with option_context("display.latex.escape", False,
                             'display.latex.repr', True):
             df = DataFrame([[r'$\alpha$', 'b', 'c'], [1, 2, 3]])
-            self.assertEqual(result, df._repr_latex_())
+            assert result == df._repr_latex_()
 
         # GH 12182
         assert df._repr_latex_() is None
@@ -217,7 +217,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         set_option('display.max_info_columns', 101)
         io = StringIO()
         df.info(buf=io)
-        self.assertEqual(rs, xp)
+        assert rs == xp
         reset_option('display.max_info_columns')
 
     def test_info_duplicate_columns(self):
@@ -237,8 +237,8 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         frame.info(buf=io)
         io.seek(0)
         lines = io.readlines()
-        self.assertEqual('a    1 non-null int64\n', lines[3])
-        self.assertEqual('a    1 non-null float64\n', lines[4])
+        assert 'a    1 non-null int64\n' == lines[3]
+        assert 'a    1 non-null float64\n' == lines[4]
 
     def test_info_shows_column_dtypes(self):
         dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
@@ -263,7 +263,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
-                self.assertEqual(len(res.strip().split('\n')), len_)
+                assert len(res.strip().split('\n')) == len_
 
         for len_, verbose in [(10, None), (5, False), (10, True)]:
 
@@ -272,7 +272,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
-                self.assertEqual(len(res.strip().split('\n')), len_)
+                assert len(res.strip().split('\n')) == len_
 
         for len_, max_cols in [(10, 5), (5, 4)]:
             # setting truncates
@@ -280,14 +280,14 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
-                self.assertEqual(len(res.strip().split('\n')), len_)
+                assert len(res.strip().split('\n')) == len_
 
             # setting wouldn't truncate
             with option_context('max_info_columns', 5):
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
-                self.assertEqual(len(res.strip().split('\n')), len_)
+                assert len(res.strip().split('\n')) == len_
 
     def test_info_memory_usage(self):
         # Ensure memory usage is displayed, when asserted, on the last line
@@ -331,13 +331,13 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         res = buf.getvalue().splitlines()
         assert re.match(r"memory usage: [^+]+$", res[-1])
 
-        self.assertGreater(df_with_object_index.memory_usage(index=True,
-                                                             deep=True).sum(),
-                           df_with_object_index.memory_usage(index=True).sum())
+        assert (df_with_object_index.memory_usage(
+            index=True, deep=True).sum() > df_with_object_index.memory_usage(
+            index=True).sum())
 
         df_object = pd.DataFrame({'a': ['a']})
-        self.assertGreater(df_object.memory_usage(deep=True).sum(),
-                           df_object.memory_usage().sum())
+        assert (df_object.memory_usage(deep=True).sum() >
+                df_object.memory_usage().sum())
 
         # Test a DataFrame with duplicate columns
         dtypes = ['int64', 'int64', 'int64', 'float64']
@@ -352,15 +352,14 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         # (cols * rows * bytes) + index size
         df_size = df.memory_usage().sum()
         exp_size = len(dtypes) * n * 8 + df.index.nbytes
-        self.assertEqual(df_size, exp_size)
+        assert df_size == exp_size
 
         # Ensure number of cols in memory_usage is the same as df
         size_df = np.size(df.columns.values) + 1  # index=True; default
-        self.assertEqual(size_df, np.size(df.memory_usage()))
+        assert size_df == np.size(df.memory_usage())
 
         # assert deep works only on object
-        self.assertEqual(df.memory_usage().sum(),
-                         df.memory_usage(deep=True).sum())
+        assert df.memory_usage().sum() == df.memory_usage(deep=True).sum()
 
         # test for validity
         DataFrame(1, index=['a'], columns=['A']
@@ -428,7 +427,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         df = DataFrame({'value': np.random.randn(N * M)}, index=index)
 
         unstacked = df.unstack('id')
-        self.assertEqual(df.values.nbytes, unstacked.values.nbytes)
+        assert df.values.nbytes == unstacked.values.nbytes
         assert memory_usage(df) > memory_usage(unstacked)
 
         # high upper bound

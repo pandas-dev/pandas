@@ -9,7 +9,22 @@ from pandas.util import testing as tm
 from numpy import iinfo
 
 
-class TestToNumeric(tm.TestCase):
+class TestToNumeric(object):
+
+    def test_empty(self):
+        # see gh-16302
+        s = pd.Series([], dtype=object)
+
+        res = to_numeric(s)
+        expected = pd.Series([], dtype=np.int64)
+
+        tm.assert_series_equal(res, expected)
+
+        # Original issue example
+        res = to_numeric(s, errors='coerce', downcast='integer')
+        expected = pd.Series([], dtype=np.int8)
+
+        tm.assert_series_equal(res, expected)
 
     def test_series(self):
         s = pd.Series(['1', '-3.14', '7'])
@@ -156,16 +171,16 @@ class TestToNumeric(tm.TestCase):
                 to_numeric(df, errors=errors)
 
     def test_scalar(self):
-        self.assertEqual(pd.to_numeric(1), 1)
-        self.assertEqual(pd.to_numeric(1.1), 1.1)
+        assert pd.to_numeric(1) == 1
+        assert pd.to_numeric(1.1) == 1.1
 
-        self.assertEqual(pd.to_numeric('1'), 1)
-        self.assertEqual(pd.to_numeric('1.1'), 1.1)
+        assert pd.to_numeric('1') == 1
+        assert pd.to_numeric('1.1') == 1.1
 
         with pytest.raises(ValueError):
             to_numeric('XX', errors='raise')
 
-        self.assertEqual(to_numeric('XX', errors='ignore'), 'XX')
+        assert to_numeric('XX', errors='ignore') == 'XX'
         assert np.isnan(to_numeric('XX', errors='coerce'))
 
     def test_numeric_dtypes(self):

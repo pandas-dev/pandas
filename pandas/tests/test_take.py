@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 from pandas._libs.tslib import iNaT
 
 
-class TestTake(tm.TestCase):
+class TestTake(object):
     # standard incompatible fill error
     fill_error = re.compile("Incompatible type for fill_value")
 
@@ -353,7 +353,7 @@ class TestTake(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
         result = algos.take_1d(arr, [0, 2, -1])
-        self.assertEqual(result.dtype, np.object_)
+        assert result.dtype == np.object_
 
     def test_2d_bool(self):
         arr = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 1]], dtype=bool)
@@ -367,7 +367,7 @@ class TestTake(tm.TestCase):
         tm.assert_numpy_array_equal(result, expected)
 
         result = algos.take_nd(arr, [0, 2, -1])
-        self.assertEqual(result.dtype, np.object_)
+        assert result.dtype == np.object_
 
     def test_2d_float32(self):
         arr = np.random.randn(4, 3).astype(np.float32)

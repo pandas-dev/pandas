@@ -28,7 +28,7 @@ from pandas._libs.interval import (
 from pandas.core.indexes.multi import MultiIndex
 from pandas.compat.numpy import function as nv
 from pandas.core import common as com
-from pandas.util.decorators import cache_readonly, Appender
+from pandas.util._decorators import cache_readonly, Appender
 from pandas.core.config import get_option
 
 import pandas.core.indexes.base as ibase
@@ -99,7 +99,10 @@ class IntervalIndex(IntervalMixin, Index):
 
     .. versionadded:: 0.20.0
 
-    Properties
+    Warning: the indexing behaviors are provisional and may change in
+    a future version of pandas.
+
+    Attributes
     ----------
     left, right : array-like (1-dimensional)
         Left and right bounds for each interval.
@@ -110,6 +113,10 @@ class IntervalIndex(IntervalMixin, Index):
         Name to be stored in the index.
     copy : boolean, default False
         Copy the meta-data
+
+    See Also
+    --------
+    Index
     """
     _typ = 'intervalindex'
     _comparables = ['name']
@@ -1046,11 +1053,11 @@ def interval_range(start=None, end=None, freq=None, periods=None,
         if periods is None or end is None:
             raise ValueError("must specify 2 of start, end, periods")
         start = end - periods * freq
-    elif end is None:
+    if end is None:
         if periods is None or start is None:
             raise ValueError("must specify 2 of start, end, periods")
         end = start + periods * freq
-    elif periods is None:
+    if periods is None:
         if start is None or end is None:
             raise ValueError("must specify 2 of start, end, periods")
         pass

@@ -2,6 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 import pytest
+import pytz
 
 from collections import Iterable
 from datetime import datetime, timedelta
@@ -28,7 +29,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesOperators(TestData, tm.TestCase):
+class TestSeriesOperators(TestData):
 
     def test_series_comparison_scalars(self):
         series = Series(date_range('1/1/2000', periods=10))
@@ -232,7 +233,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
                 # check the values, name, and index separatly
                 assert_almost_equal(np.asarray(result), expected)
 
-                self.assertEqual(result.name, series.name)
+                assert result.name == series.name
                 assert_index_equal(result.index, series.index)
 
         check(self.ts, self.ts * 2)
@@ -262,25 +263,25 @@ class TestSeriesOperators(TestData, tm.TestCase):
         xp = Series(1e9 * 3600 * 24,
                     rs.index).astype('int64').astype('timedelta64[ns]')
         assert_series_equal(rs, xp)
-        self.assertEqual(rs.dtype, 'timedelta64[ns]')
+        assert rs.dtype == 'timedelta64[ns]'
 
         df = DataFrame(dict(A=v1))
         td = Series([timedelta(days=i) for i in range(3)])
-        self.assertEqual(td.dtype, 'timedelta64[ns]')
+        assert td.dtype == 'timedelta64[ns]'
 
         # series on the rhs
         result = df['A'] - df['A'].shift()
-        self.assertEqual(result.dtype, 'timedelta64[ns]')
+        assert result.dtype == 'timedelta64[ns]'
 
         result = df['A'] + td
-        self.assertEqual(result.dtype, 'M8[ns]')
+        assert result.dtype == 'M8[ns]'
 
         # scalar Timestamp on rhs
         maxa = df['A'].max()
         assert isinstance(maxa, Timestamp)
 
         resultb = df['A'] - df['A'].max()
-        self.assertEqual(resultb.dtype, 'timedelta64[ns]')
+        assert resultb.dtype == 'timedelta64[ns]'
 
         # timestamp on lhs
         result = resultb + df['A']
@@ -294,11 +295,11 @@ class TestSeriesOperators(TestData, tm.TestCase):
         expected = Series(
             [timedelta(days=4017 + i) for i in range(3)], name='A')
         assert_series_equal(result, expected)
-        self.assertEqual(result.dtype, 'm8[ns]')
+        assert result.dtype == 'm8[ns]'
 
         d = datetime(2001, 1, 1, 3, 4)
         resulta = df['A'] - d
-        self.assertEqual(resulta.dtype, 'm8[ns]')
+        assert resulta.dtype == 'm8[ns]'
 
         # roundtrip
         resultb = resulta + d
@@ -309,19 +310,19 @@ class TestSeriesOperators(TestData, tm.TestCase):
         resulta = df['A'] + td
         resultb = resulta - td
         assert_series_equal(resultb, df['A'])
-        self.assertEqual(resultb.dtype, 'M8[ns]')
+        assert resultb.dtype == 'M8[ns]'
 
         # roundtrip
         td = timedelta(minutes=5, seconds=3)
         resulta = df['A'] + td
         resultb = resulta - td
         assert_series_equal(df['A'], resultb)
-        self.assertEqual(resultb.dtype, 'M8[ns]')
+        assert resultb.dtype == 'M8[ns]'
 
         # inplace
         value = rs[2] + np.timedelta64(timedelta(minutes=5, seconds=1))
         rs[2] += np.timedelta64(timedelta(minutes=5, seconds=1))
-        self.assertEqual(rs[2], value)
+        assert rs[2] == value
 
     def test_operator_series_comparison_zerorank(self):
         # GH 13006
@@ -440,7 +441,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         result = td1 - td2
         expected = Series([timedelta(seconds=0)] * 3) - Series([timedelta(
             seconds=1)] * 3)
-        self.assertEqual(result.dtype, 'm8[ns]')
+        assert result.dtype == 'm8[ns]'
         assert_series_equal(result, expected)
 
         result2 = td2 - td1
@@ -458,7 +459,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         result = td1 - td2
         expected = Series([timedelta(seconds=0)] * 3) - Series([timedelta(
             seconds=1)] * 3)
-        self.assertEqual(result.dtype, 'm8[ns]')
+        assert result.dtype == 'm8[ns]'
         assert_series_equal(result, expected)
 
         result2 = td2 - td1
@@ -725,9 +726,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         pytest.raises(TypeError, lambda: td2 - dt2)
 
     def test_sub_datetime_compat(self):
-        # GH 14088
-        tm._skip_if_no_pytz()
-        import pytz
+        # see gh-14088
         s = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), pd.NaT])
         dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
         exp = Series([Timedelta('1 days'), pd.NaT])
@@ -1469,7 +1468,7 @@ class TestSeriesOperators(TestData, tm.TestCase):
         assert np.isnan(result).all()
 
         result = empty + Series([], index=Index([]))
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
         # TODO: this returned NotImplemented earlier, what to do?
         # deltas = Series([timedelta(1)] * 5, index=np.arange(5))

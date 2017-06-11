@@ -41,8 +41,8 @@ from pandas.core.common import (is_bool_indexer,
 
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.base as base
-from pandas.util.decorators import (Appender, Substitution, cache_readonly,
-                                    deprecate, deprecate_kwarg)
+from pandas.util._decorators import (Appender, Substitution, cache_readonly,
+                                     deprecate, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
@@ -1191,6 +1191,15 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         return if the index is monotonic increasing (only equal or
         increasing) values.
+
+        Examples
+        --------
+        >>> Index([1, 2, 3]).is_monotonic_increasing
+        True
+        >>> Index([1, 2, 2]).is_monotonic_increasing
+        True
+        >>> Index([1, 3, 2]).is_monotonic_increasing
+        False
         """
         return self._engine.is_monotonic_increasing
 
@@ -1199,8 +1208,49 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         """
         return if the index is monotonic decreasing (only equal or
         decreasing) values.
+
+        Examples
+        --------
+        >>> Index([3, 2, 1]).is_monotonic_decreasing
+        True
+        >>> Index([3, 2, 2]).is_monotonic_decreasing
+        True
+        >>> Index([3, 1, 2]).is_monotonic_decreasing
+        False
         """
         return self._engine.is_monotonic_decreasing
+
+    @property
+    def _is_strictly_monotonic_increasing(self):
+        """return if the index is strictly monotonic increasing
+        (only increasing) values
+
+        Examples
+        --------
+        >>> Index([1, 2, 3])._is_strictly_monotonic_increasing
+        True
+        >>> Index([1, 2, 2])._is_strictly_monotonic_increasing
+        False
+        >>> Index([1, 3, 2])._is_strictly_monotonic_increasing
+        False
+        """
+        return self.is_unique and self.is_monotonic_increasing
+
+    @property
+    def _is_strictly_monotonic_decreasing(self):
+        """return if the index is strictly monotonic decreasing
+        (only decreasing) values
+
+        Examples
+        --------
+        >>> Index([3, 2, 1])._is_strictly_monotonic_decreasing
+        True
+        >>> Index([3, 2, 2])._is_strictly_monotonic_decreasing
+        False
+        >>> Index([3, 1, 2])._is_strictly_monotonic_decreasing
+        False
+        """
+        return self.is_unique and self.is_monotonic_decreasing
 
     def is_lexsorted_for_tuple(self, tup):
         return True
@@ -1590,7 +1640,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         hash(key)
         try:
             return key in self._engine
-        except TypeError:
+        except (TypeError, ValueError):
             return False
 
     _index_shared_docs['contains'] = """
@@ -1610,7 +1660,7 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
         hash(key)
         try:
             return key in self._engine
-        except TypeError:
+        except (TypeError, ValueError):
             return False
 
     def __hash__(self):
@@ -2388,7 +2438,6 @@ class Index(IndexOpsMixin, StringAccessorMixin, PandasObject):
             if tolerance is not None:
                 raise ValueError('tolerance argument only valid if using pad, '
                                  'backfill or nearest lookups')
-            key = _values_from_object(key)
             try:
                 return self._engine.get_loc(key)
             except KeyError:
@@ -3960,7 +4009,7 @@ def _ensure_index(index_like, copy=False):
     if isinstance(index_like, list):
         if type(index_like) != list:
             index_like = list(index_like)
-        # 2200 ?
+
         converted, all_arrays = lib.clean_index_list(index_like)
 
         if len(converted) > 0 and all_arrays:

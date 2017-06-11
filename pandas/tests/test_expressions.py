@@ -13,7 +13,7 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Panel
 from pandas.core.computation import expressions as expr
-from pandas import compat, _np_version_under1p11
+from pandas import compat, _np_version_under1p11, _np_version_under1p13
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_panel4d_equal, slow)
@@ -56,9 +56,9 @@ with catch_warnings(record=True):
 
 
 @pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
-class TestExpressions(tm.TestCase):
+class TestExpressions(object):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -67,7 +67,7 @@ class TestExpressions(tm.TestCase):
         self.integer = _integer.copy()
         self._MIN_ELEMENTS = expr._MIN_ELEMENTS
 
-    def tearDown(self):
+    def teardown_method(self, method):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
     def run_arithmetic(self, df, other, assert_func, check_dtype=False,
@@ -293,7 +293,7 @@ class TestExpressions(tm.TestCase):
                     if op is not None:
                         result = expr._can_use_numexpr(op, op_str, f, f,
                                                        'evaluate')
-                        self.assertNotEqual(result, f._is_mixed_type)
+                        assert result != f._is_mixed_type
 
                         result = expr.evaluate(op, op_str, f, f,
                                                use_numexpr=True)
@@ -336,7 +336,7 @@ class TestExpressions(tm.TestCase):
 
                     result = expr._can_use_numexpr(op, op_str, f11, f12,
                                                    'evaluate')
-                    self.assertNotEqual(result, f11._is_mixed_type)
+                    assert result != f11._is_mixed_type
 
                     result = expr.evaluate(op, op_str, f11, f12,
                                            use_numexpr=True)
@@ -419,6 +419,10 @@ class TestExpressions(tm.TestCase):
         for op, name in zip(ops, names):
             f = getattr(operator, name)
             fe = getattr(operator, sub_funcs[subs[op]])
+
+            # >= 1.13.0 these are now TypeErrors
+            if op == '-' and not _np_version_under1p13:
+                continue
 
             with tm.use_numexpr(True, min_elements=5):
                 with tm.assert_produces_warning(check_stacklevel=False):

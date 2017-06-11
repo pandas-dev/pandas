@@ -26,8 +26,8 @@ from pandas.core.common import (_values_from_object,
                                 is_null_slice)
 
 import pandas.core.base as base
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate, deprecate_kwarg)
+from pandas.util._decorators import (Appender, cache_readonly,
+                                     deprecate, deprecate_kwarg)
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -75,7 +75,6 @@ class MultiIndex(Index):
     _levels = FrozenList()
     _labels = FrozenList()
     _comparables = ['names']
-    _engine_type = libindex.MultiIndexEngine
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
@@ -415,6 +414,12 @@ class MultiIndex(Index):
         return result
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
+        # On equal MultiIndexes the difference is empty.
+        # Therefore, an empty MultiIndex is returned GH13490
+        if len(values) == 0:
+            return MultiIndex(levels=[[] for _ in range(self.nlevels)],
+                              labels=[[] for _ in range(self.nlevels)],
+                              **kwargs)
         return self._shallow_copy(values, **kwargs)
 
     @Appender(_index_shared_docs['_shallow_copy'])
@@ -629,7 +634,16 @@ class MultiIndex(Index):
 
     @cache_readonly
     def _engine(self):
-        return self._engine_type(lambda: self, len(self))
+
+        # choose our engine based on our size
+        # the hashing based MultiIndex for larger
+        # sizes, and the MultiIndexOjbect for smaller
+        # xref: https://github.com/pandas-dev/pandas/pull/16324
+        l = len(self)
+        if l > 10000:
+            return libindex.MultiIndexHashEngine(lambda: self, l)
+
+        return libindex.MultiIndexObjectEngine(lambda: self.values, l)
 
     @property
     def values(self):
@@ -718,7 +732,7 @@ class MultiIndex(Index):
     @cache_readonly
     def _hashed_values(self):
         """ return a uint64 ndarray of my hashed values """
-        from pandas.util.hashing import hash_tuples
+        from pandas.core.util.hashing import hash_tuples
         return hash_tuples(self)
 
     def _hashed_indexing_key(self, key):
@@ -740,7 +754,7 @@ class MultiIndex(Index):
         we need to stringify if we have mixed levels
 
         """
-        from pandas.util.hashing import hash_tuples
+        from pandas.core.util.hashing import hash_tuples, hash_tuple
 
         if not isinstance(key, tuple):
             return hash_tuples(key)
@@ -754,7 +768,7 @@ class MultiIndex(Index):
             return k
         key = tuple([f(k, stringify)
                      for k, stringify in zip(key, self._have_mixed_levels)])
-        return hash_tuples(key)
+        return hash_tuple(key)
 
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
@@ -1276,8 +1290,8 @@ class MultiIndex(Index):
         new_levels = []
         new_labels = []
 
-        changed = np.ones(self.nlevels, dtype=bool)
-        for i, (lev, lab) in enumerate(zip(self.levels, self.labels)):
+        changed = False
+        for lev, lab in zip(self.levels, self.labels):
 
             uniques = algos.unique(lab)
 
@@ -1285,33 +1299,29 @@ class MultiIndex(Index):
             if len(uniques) == len(lev):
                 new_levels.append(lev)
                 new_labels.append(lab)
-                changed[i] = False
                 continue
 
-            # set difference, then reverse sort
-            diff = Index(np.arange(len(lev))).difference(uniques)
-            unused = diff.sort_values(ascending=False)
+            changed = True
+
+            # labels get mapped from uniques to 0:len(uniques)
+            label_mapping = np.zeros(len(lev))
+            label_mapping[uniques] = np.arange(len(uniques))
+            lab = label_mapping[lab]
 
             # new levels are simple
             lev = lev.take(uniques)
 
-            # new labels, we remove the unsued
-            # by decrementing the labels for that value
-            # prob a better way
-            for u in unused:
-
-                lab = np.where(lab > u, lab - 1, lab)
-
             new_levels.append(lev)
             new_labels.append(lab)
 
-        # nothing changed
-        if not changed.any():
-            return self
+        result = self._shallow_copy()
 
-        return MultiIndex(new_levels, new_labels,
-                          names=self.names, sortorder=self.sortorder,
-                          verify_integrity=False)
+        if changed:
+            result._reset_identity()
+            result._set_levels(new_levels, validate=False)
+            result._set_labels(new_labels, validate=False)
+
+        return result
 
     @property
     def nlevels(self):

@@ -10,11 +10,11 @@ from pandas import (TimedeltaIndex, timedelta_range, Int64Index, Float64Index,
 from ..datetimelike import DatetimeLike
 
 
-class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
+class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
     _multiprocess_can_split_ = True
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=tm.makeTimedeltaIndex(10))
         self.setup_indices()
 

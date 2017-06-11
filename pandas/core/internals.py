@@ -64,8 +64,8 @@ from pandas._libs.tslib import Timedelta
 from pandas._libs.lib import BlockPlacement
 
 import pandas.core.computation.expressions as expressions
-from pandas.util.decorators import cache_readonly
-from pandas.util.validators import validate_bool_kwarg
+from pandas.util._decorators import cache_readonly
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas import compat, _np_version_under1p9
 from pandas.compat import range, map, zip, u
@@ -478,7 +478,7 @@ class Block(PandasObject):
                             **kwargs)
 
     def _astype(self, dtype, copy=False, errors='raise', values=None,
-                klass=None, mgr=None, **kwargs):
+                klass=None, mgr=None, raise_on_error=False, **kwargs):
         """
         Coerce to the new type (if copy=True, return a new copy)
         raise on an except if raise == True
@@ -4657,7 +4657,6 @@ def _block2d_to_blocknd(values, placement, shape, labels, ref_items):
         pvalues = np.empty(panel_shape, dtype=dtype)
         pvalues.fill(fill_value)
 
-    values = values
     for i in range(len(placement)):
         pvalues[i].flat[mask] = values[:, i]
 
@@ -5165,8 +5164,6 @@ class JoinUnit(object):
         else:
             return _get_dtype(maybe_promote(self.block.dtype,
                                             self.block.fill_value)[0])
-
-        return self._dtype
 
     @cache_readonly
     def is_null(self):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import collections
 import numpy as np
 
 from pandas import compat
@@ -11,51 +12,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameConvertTo(tm.TestCase, TestData):
-
-    def test_to_dict(self):
-        test_data = {
-            'A': {'1': 1, '2': 2},
-            'B': {'1': '1', '2': '2', '3': '3'},
-        }
-        recons_data = DataFrame(test_data).to_dict()
-
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
-                self.assertEqual(v2, recons_data[k][k2])
-
-        recons_data = DataFrame(test_data).to_dict("l")
-
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
-                self.assertEqual(v2, recons_data[k][int(k2) - 1])
-
-        recons_data = DataFrame(test_data).to_dict("s")
-
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
-                self.assertEqual(v2, recons_data[k][k2])
-
-        recons_data = DataFrame(test_data).to_dict("sp")
-        expected_split = {'columns': ['A', 'B'], 'index': ['1', '2', '3'],
-                          'data': [[1.0, '1'], [2.0, '2'], [np.nan, '3']]}
-        tm.assert_dict_equal(recons_data, expected_split)
-
-        recons_data = DataFrame(test_data).to_dict("r")
-        expected_records = [{'A': 1.0, 'B': '1'},
-                            {'A': 2.0, 'B': '2'},
-                            {'A': np.nan, 'B': '3'}]
-        assert isinstance(recons_data, list)
-        self.assertEqual(len(recons_data), 3)
-        for l, r in zip(recons_data, expected_records):
-            tm.assert_dict_equal(l, r)
-
-        # GH10844
-        recons_data = DataFrame(test_data).to_dict("i")
-
-        for k, v in compat.iteritems(test_data):
-            for k2, v2 in compat.iteritems(v):
-                self.assertEqual(v2, recons_data[k2][k])
+class TestDataFrameConvertTo(TestData):
 
     def test_to_dict_timestamp(self):
 
@@ -72,10 +29,10 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         expected_records_mixed = [{'A': tsmp, 'B': 1},
                                   {'A': tsmp, 'B': 2}]
 
-        self.assertEqual(test_data.to_dict(orient='records'),
-                         expected_records)
-        self.assertEqual(test_data_mixed.to_dict(orient='records'),
-                         expected_records_mixed)
+        assert (test_data.to_dict(orient='records') ==
+                expected_records)
+        assert (test_data_mixed.to_dict(orient='records') ==
+                expected_records_mixed)
 
         expected_series = {
             'A': Series([tsmp, tsmp], name='A'),
@@ -117,10 +74,10 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         df = DataFrame([["one", "two", "three"],
                         ["four", "five", "six"]],
                        index=date_range("2012-01-01", "2012-01-02"))
-        self.assertEqual(df.to_records()['index'][0], df.index[0])
+        assert df.to_records()['index'][0] == df.index[0]
 
         rs = df.to_records(convert_datetime64=False)
-        self.assertEqual(rs['index'][0], df.index.values[0])
+        assert rs['index'][0] == df.index.values[0]
 
     def test_to_records_with_multindex(self):
         # GH3189
@@ -190,17 +147,85 @@ class TestDataFrameConvertTo(tm.TestCase, TestData):
         )
         tm.assert_almost_equal(result, expected)
 
+    @pytest.mark.parametrize('mapping', [
+        dict,
+        collections.defaultdict(list),
+        collections.OrderedDict])
+    def test_to_dict(self, mapping):
+        test_data = {
+            'A': {'1': 1, '2': 2},
+            'B': {'1': '1', '2': '2', '3': '3'},
+        }
 
-@pytest.mark.parametrize('tz', ['UTC', 'GMT', 'US/Eastern'])
-def test_to_records_datetimeindex_with_tz(tz):
-    # GH13937
-    dr = date_range('2016-01-01', periods=10,
-                    freq='S', tz=tz)
+        # GH16122
+        recons_data = DataFrame(test_data).to_dict(into=mapping)
 
-    df = DataFrame({'datetime': dr}, index=dr)
+        for k, v in compat.iteritems(test_data):
+            for k2, v2 in compat.iteritems(v):
+                assert (v2 == recons_data[k][k2])
 
-    expected = df.to_records()
-    result = df.tz_convert("UTC").to_records()
+        recons_data = DataFrame(test_data).to_dict("l", mapping)
 
-    # both converted to UTC, so they are equal
-    tm.assert_numpy_array_equal(result, expected)
+        for k, v in compat.iteritems(test_data):
+            for k2, v2 in compat.iteritems(v):
+                assert (v2 == recons_data[k][int(k2) - 1])
+
+        recons_data = DataFrame(test_data).to_dict("s", mapping)
+
+        for k, v in compat.iteritems(test_data):
+            for k2, v2 in compat.iteritems(v):
+                assert (v2 == recons_data[k][k2])
+
+        recons_data = DataFrame(test_data).to_dict("sp", mapping)
+        expected_split = {'columns': ['A', 'B'], 'index': ['1', '2', '3'],
+                          'data': [[1.0, '1'], [2.0, '2'], [np.nan, '3']]}
+        tm.assert_dict_equal(recons_data, expected_split)
+
+        recons_data = DataFrame(test_data).to_dict("r", mapping)
+        expected_records = [{'A': 1.0, 'B': '1'},
+                            {'A': 2.0, 'B': '2'},
+                            {'A': np.nan, 'B': '3'}]
+        assert isinstance(recons_data, list)
+        assert (len(recons_data) == 3)
+        for l, r in zip(recons_data, expected_records):
+            tm.assert_dict_equal(l, r)
+
+        # GH10844
+        recons_data = DataFrame(test_data).to_dict("i")
+
+        for k, v in compat.iteritems(test_data):
+            for k2, v2 in compat.iteritems(v):
+                assert (v2 == recons_data[k2][k])
+
+        df = DataFrame(test_data)
+        df['duped'] = df[df.columns[0]]
+        recons_data = df.to_dict("i")
+        comp_data = test_data.copy()
+        comp_data['duped'] = comp_data[df.columns[0]]
+        for k, v in compat.iteritems(comp_data):
+            for k2, v2 in compat.iteritems(v):
+                assert (v2 == recons_data[k2][k])
+
+    @pytest.mark.parametrize('mapping', [
+        list,
+        collections.defaultdict,
+        []])
+    def test_to_dict_errors(self, mapping):
+        # GH16122
+        df = DataFrame(np.random.randn(3, 3))
+        with pytest.raises(TypeError):
+            df.to_dict(into=mapping)
+
+    @pytest.mark.parametrize('tz', ['UTC', 'GMT', 'US/Eastern'])
+    def test_to_records_datetimeindex_with_tz(self, tz):
+        # GH13937
+        dr = date_range('2016-01-01', periods=10,
+                        freq='S', tz=tz)
+
+        df = DataFrame({'datetime': dr}, index=dr)
+
+        expected = df.to_records()
+        result = df.tz_convert("UTC").to_records()
+
+        # both converted to UTC, so they are equal
+        tm.assert_numpy_array_equal(result, expected)

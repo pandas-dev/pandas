@@ -8,7 +8,7 @@ import pytest
 from numpy.random import randn, rand, randint
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 import pandas as pd
 from pandas.core import common as com
 from pandas.errors import PerformanceWarning
@@ -95,11 +95,10 @@ def _is_py3_complex_incompat(result, expected):
 _good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
 
 
-class TestEvalNumexprPandas(tm.TestCase):
+class TestEvalNumexprPandas(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestEvalNumexprPandas, cls).setUpClass()
+    def setup_class(cls):
         tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
@@ -107,8 +106,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         cls.parser = 'pandas'
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestEvalNumexprPandas, cls).tearDownClass()
+    def teardown_class(cls):
         del cls.engine, cls.parser
         if hasattr(cls, 'ne'):
             del cls.ne
@@ -137,12 +135,12 @@ class TestEvalNumexprPandas(tm.TestCase):
         self.arith_ops = _good_arith_ops
         self.unary_ops = '-', '~', 'not '
 
-    def setUp(self):
+    def setup_method(self, method):
         self.setup_ops()
         self.setup_data()
         self.current_engines = filter(lambda x: x != self.engine, _engines)
 
-    def tearDown(self):
+    def teardown_method(self, method):
         del self.lhses, self.rhses, self.scalar_rhses, self.scalar_lhses
         del self.pandas_rhses, self.pandas_lhses, self.current_engines
 
@@ -209,7 +207,7 @@ class TestEvalNumexprPandas(tm.TestCase):
         elif isinstance(result, np.ndarray):
             tm.assert_numpy_array_equal(result, expected)
         else:
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def check_complex_cmp_op(self, lhs, cmp1, rhs, binop, cmp2):
         skip_these = _scalar_skip
@@ -610,30 +608,28 @@ class TestEvalNumexprPandas(tm.TestCase):
         with pytest.raises(TypeError):
             pd.eval('~1.0', engine=self.engine, parser=self.parser)
 
-        self.assertEqual(
-            pd.eval('-1.0', parser=self.parser, engine=self.engine), -1.0)
-        self.assertEqual(
-            pd.eval('+1.0', parser=self.parser, engine=self.engine), +1.0)
-
-        self.assertEqual(
-            pd.eval('~1', parser=self.parser, engine=self.engine), ~1)
-        self.assertEqual(
-            pd.eval('-1', parser=self.parser, engine=self.engine), -1)
-        self.assertEqual(
-            pd.eval('+1', parser=self.parser, engine=self.engine), +1)
-
-        self.assertEqual(
-            pd.eval('~True', parser=self.parser, engine=self.engine), ~True)
-        self.assertEqual(
-            pd.eval('~False', parser=self.parser, engine=self.engine), ~False)
-        self.assertEqual(
-            pd.eval('-True', parser=self.parser, engine=self.engine), -True)
-        self.assertEqual(
-            pd.eval('-False', parser=self.parser, engine=self.engine), -False)
-        self.assertEqual(
-            pd.eval('+True', parser=self.parser, engine=self.engine), +True)
-        self.assertEqual(
-            pd.eval('+False', parser=self.parser, engine=self.engine), +False)
+        assert pd.eval('-1.0', parser=self.parser,
+                       engine=self.engine) == -1.0
+        assert pd.eval('+1.0', parser=self.parser,
+                       engine=self.engine) == +1.0
+        assert pd.eval('~1', parser=self.parser,
+                       engine=self.engine) == ~1
+        assert pd.eval('-1', parser=self.parser,
+                       engine=self.engine) == -1
+        assert pd.eval('+1', parser=self.parser,
+                       engine=self.engine) == +1
+        assert pd.eval('~True', parser=self.parser,
+                       engine=self.engine) == ~True
+        assert pd.eval('~False', parser=self.parser,
+                       engine=self.engine) == ~False
+        assert pd.eval('-True', parser=self.parser,
+                       engine=self.engine) == -True
+        assert pd.eval('-False', parser=self.parser,
+                       engine=self.engine) == -False
+        assert pd.eval('+True', parser=self.parser,
+                       engine=self.engine) == +True
+        assert pd.eval('+False', parser=self.parser,
+                       engine=self.engine) == +False
 
     def test_unary_in_array(self):
         # GH 11235
@@ -658,50 +654,51 @@ class TestEvalNumexprPandas(tm.TestCase):
                 pd.eval(ex, engine=self.engine, parser=self.parser)
 
     def test_identical(self):
-        # GH 10546
+        # see gh-10546
         x = 1
         result = pd.eval('x', engine=self.engine, parser=self.parser)
-        self.assertEqual(result, 1)
+        assert result == 1
         assert is_scalar(result)
 
         x = 1.5
         result = pd.eval('x', engine=self.engine, parser=self.parser)
-        self.assertEqual(result, 1.5)
+        assert result == 1.5
         assert is_scalar(result)
 
         x = False
         result = pd.eval('x', engine=self.engine, parser=self.parser)
-        self.assertEqual(result, False)
+        assert not result
+        assert is_bool(result)
         assert is_scalar(result)
 
         x = np.array([1])
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         tm.assert_numpy_array_equal(result, np.array([1]))
-        self.assertEqual(result.shape, (1, ))
+        assert result.shape == (1, )
 
         x = np.array([1.5])
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         tm.assert_numpy_array_equal(result, np.array([1.5]))
-        self.assertEqual(result.shape, (1, ))
+        assert result.shape == (1, )
 
         x = np.array([False])  # noqa
         result = pd.eval('x', engine=self.engine, parser=self.parser)
         tm.assert_numpy_array_equal(result, np.array([False]))
-        self.assertEqual(result.shape, (1, ))
+        assert result.shape == (1, )
 
     def test_line_continuation(self):
         # GH 11149
         exp = """1 + 2 * \
         5 - 1 + 2 """
         result = pd.eval(exp, engine=self.engine, parser=self.parser)
-        self.assertEqual(result, 12)
+        assert result == 12
 
     def test_float_truncation(self):
         # GH 14241
         exp = '1000000000.006'
         result = pd.eval(exp, engine=self.engine, parser=self.parser)
         expected = np.float64(exp)
-        self.assertEqual(result, expected)
+        assert result == expected
 
         df = pd.DataFrame({'A': [1000000000.0009,
                                  1000000000.0011,
@@ -724,8 +721,8 @@ class TestEvalNumexprPandas(tm.TestCase):
 class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestEvalNumexprPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestEvalNumexprPython, cls).setup_class()
         tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
@@ -751,8 +748,8 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
 class TestEvalPythonPython(TestEvalNumexprPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestEvalPythonPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestEvalPythonPython, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'python'
 
@@ -781,8 +778,8 @@ class TestEvalPythonPython(TestEvalNumexprPython):
 class TestEvalPythonPandas(TestEvalPythonPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestEvalPythonPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestEvalPythonPandas, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -1068,19 +1065,17 @@ class TestAlignment(object):
 # ------------------------------------
 # Slightly more complex ops
 
-class TestOperationsNumExprPandas(tm.TestCase):
+class TestOperationsNumExprPandas(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestOperationsNumExprPandas, cls).setUpClass()
+    def setup_class(cls):
         tm.skip_if_no_ne()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestOperationsNumExprPandas, cls).tearDownClass()
+    def teardown_class(cls):
         del cls.engine, cls.parser
 
     def eval(self, *args, **kwargs):
@@ -1121,7 +1116,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
             ex = '{0} {1} {2}'.format(lhs, op, rhs)
             res = self.eval(ex)
             exp = eval(ex)
-            self.assertEqual(res, exp)
+            assert res == exp
 
     def test_bool_ops_with_constants(self):
         for op, lhs, rhs in product(expr._bool_ops_syms, ('True', 'False'),
@@ -1129,7 +1124,7 @@ class TestOperationsNumExprPandas(tm.TestCase):
             ex = '{0} {1} {2}'.format(lhs, op, rhs)
             res = self.eval(ex)
             exp = eval(ex)
-            self.assertEqual(res, exp)
+            assert res == exp
 
     def test_panel_fails(self):
         with catch_warnings(record=True):
@@ -1169,19 +1164,19 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
             res = self.eval('1 / 2', truediv=True)
             expec = 0.5
-            self.assertEqual(res, expec)
+            assert res == expec
 
             res = self.eval('1 / 2', truediv=False)
             expec = 0.5
-            self.assertEqual(res, expec)
+            assert res == expec
 
             res = self.eval('s / 2', truediv=False)
             expec = 0.5
-            self.assertEqual(res, expec)
+            assert res == expec
 
             res = self.eval('s / 2', truediv=True)
             expec = 0.5
-            self.assertEqual(res, expec)
+            assert res == expec
         else:
             res = self.eval(ex, truediv=False)
             tm.assert_numpy_array_equal(res, np.array([1]))
@@ -1191,19 +1186,19 @@ class TestOperationsNumExprPandas(tm.TestCase):
 
             res = self.eval('1 / 2', truediv=True)
             expec = 0.5
-            self.assertEqual(res, expec)
+            assert res == expec
 
             res = self.eval('1 / 2', truediv=False)
             expec = 0
-            self.assertEqual(res, expec)
+            assert res == expec
 
             res = self.eval('s / 2', truediv=False)
             expec = 0
-            self.assertEqual(res, expec)
+            assert res == expec
 
             res = self.eval('s / 2', truediv=True)
             expec = 0.5
-            self.assertEqual(res, expec)
+            assert res == expec
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
@@ -1493,8 +1488,8 @@ class TestOperationsNumExprPandas(tm.TestCase):
 class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestOperationsNumExprPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestOperationsNumExprPython, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
         tm.skip_if_no_ne(cls.engine)
@@ -1549,7 +1544,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
             else:
                 res = self.eval(ex)
                 exp = eval(ex)
-                self.assertEqual(res, exp)
+                assert res == exp
 
     def test_simple_bool_ops(self):
         for op, lhs, rhs in product(expr._bool_ops_syms, (True, False),
@@ -1561,14 +1556,14 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
             else:
                 res = pd.eval(ex, engine=self.engine, parser=self.parser)
                 exp = eval(ex)
-                self.assertEqual(res, exp)
+                assert res == exp
 
 
 class TestOperationsPythonPython(TestOperationsNumExprPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestOperationsPythonPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestOperationsPythonPython, cls).setup_class()
         cls.engine = cls.parser = 'python'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
@@ -1578,18 +1573,17 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
 class TestOperationsPythonPandas(TestOperationsNumExprPandas):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestOperationsPythonPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestOperationsPythonPandas, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
 
-class TestMathPythonPython(tm.TestCase):
+class TestMathPythonPython(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestMathPythonPython, cls).setUpClass()
+    def setup_class(cls):
         tm.skip_if_no_ne()
         cls.engine = 'python'
         cls.parser = 'pandas'
@@ -1597,7 +1591,7 @@ class TestMathPythonPython(tm.TestCase):
         cls.binary_fns = _binary_math_ops
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         del cls.engine, cls.parser
 
     def eval(self, *args, **kwargs):
@@ -1650,14 +1644,14 @@ class TestMathPythonPython(tm.TestCase):
 
     def check_result_type(self, dtype, expect_dtype):
         df = DataFrame({'a': np.random.randn(10).astype(dtype)})
-        self.assertEqual(df.a.dtype, dtype)
+        assert df.a.dtype == dtype
         df.eval("b = sin(a)",
                 engine=self.engine,
                 parser=self.parser, inplace=True)
         got = df.b
         expect = np.sin(df.a)
-        self.assertEqual(expect.dtype, got.dtype)
-        self.assertEqual(expect_dtype, got.dtype)
+        assert expect.dtype == got.dtype
+        assert expect_dtype == got.dtype
         tm.assert_series_equal(got, expect, check_names=False)
 
     def test_result_types(self):
@@ -1695,8 +1689,8 @@ class TestMathPythonPython(tm.TestCase):
 class TestMathPythonPandas(TestMathPythonPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestMathPythonPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestMathPythonPandas, cls).setup_class()
         cls.engine = 'python'
         cls.parser = 'pandas'
 
@@ -1704,8 +1698,8 @@ class TestMathPythonPandas(TestMathPythonPython):
 class TestMathNumExprPandas(TestMathPythonPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestMathNumExprPandas, cls).setUpClass()
+    def setup_class(cls):
+        super(TestMathNumExprPandas, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
 
@@ -1713,8 +1707,8 @@ class TestMathNumExprPandas(TestMathPythonPython):
 class TestMathNumExprPython(TestMathPythonPython):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestMathNumExprPython, cls).setUpClass()
+    def setup_class(cls):
+        super(TestMathNumExprPython, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
 
@@ -1874,7 +1868,7 @@ def test_negate_lt_eq_le(engine, parser):
         tm.assert_frame_equal(result, expected)
 
 
-class TestValidate(tm.TestCase):
+class TestValidate(object):
 
     def test_validate_bool_args(self):
         invalid_values = [1, "True", [1, 2, 3], 5.0]

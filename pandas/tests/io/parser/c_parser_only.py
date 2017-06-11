@@ -7,6 +7,10 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
+import os
+import sys
+import tarfile
+
 import pytest
 import numpy as np
 
@@ -152,7 +156,7 @@ nan 2
             precise_errors.append(error(precise_val))
 
             # round-trip should match float()
-            self.assertEqual(roundtrip_val, float(text[2:]))
+            assert roundtrip_val == float(text[2:])
 
         assert sum(precise_errors) <= sum(normal_errors)
         assert max(precise_errors) <= max(normal_errors)
@@ -173,8 +177,8 @@ one,two
                 FutureWarning, check_stacklevel=False):
             result = self.read_csv(StringIO(data), dtype={
                 'one': 'u1', 1: 'S1'}, as_recarray=True)
-            self.assertEqual(result['one'].dtype, 'u1')
-            self.assertEqual(result['two'].dtype, 'S1')
+            assert result['one'].dtype == 'u1'
+            assert result['two'].dtype == 'S1'
 
     def test_usecols_dtypes(self):
         data = """\
@@ -211,7 +215,7 @@ No,No,No"""
         assert (result.dtypes == object).all()
 
         result = self.read_csv(StringIO(data), dtype=object, na_filter=False)
-        self.assertEqual(result['B'][2], '')
+        assert result['B'][2] == ''
 
     def test_custom_lineterminator(self):
         data = 'a,b,c~1,2,3~4,5,6'
@@ -417,3 +421,64 @@ No,No,No"""
         expected = DataFrame({'a': ['1', 'ba']})
 
         tm.assert_frame_equal(result, expected)
+
+    @tm.capture_stderr
+    def test_comment_whitespace_delimited(self):
+        test_input = """\
+1 2
+2 2 3
+3 2 3 # 3 fields
+4 2 3# 3 fields
+5 2 # 2 fields
+6 2# 2 fields
+7 # 1 field, NaN
+8# 1 field, NaN
+9 2 3 # skipped line
+# comment"""
+        df = self.read_csv(StringIO(test_input), comment='#', header=None,
+                           delimiter='\\s+', skiprows=0,
+                           error_bad_lines=False)
+        error = sys.stderr.getvalue()
+        # skipped lines 2, 3, 4, 9
+        for line_num in (2, 3, 4, 9):
+            assert 'Skipping line {}'.format(line_num) in error, error
+        expected = DataFrame([[1, 2],
+                              [5, 2],
+                              [6, 2],
+                              [7, np.nan],
+                              [8, np.nan]])
+        tm.assert_frame_equal(df, expected)
+
+    def test_file_like_no_next(self):
+        # gh-16530: the file-like need not have a "next" or "__next__"
+        # attribute despite having an "__iter__" attribute.
+        #
+        # NOTE: This is only true for the C engine, not Python engine.
+        class NoNextBuffer(StringIO):
+            def __next__(self):
+                raise AttributeError("No next method")
+
+            next = __next__
+
+        data = "a\n1"
+
+        expected = pd.DataFrame({"a": [1]})
+        result = self.read_csv(NoNextBuffer(data))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
+    def test_read_tarfile(self, tar_suffix):
+        # see gh-16530
+        #
+        # Unfortunately, Python's CSV library can't handle
+        # tarfile objects (expects string, not bytes when
+        # iterating through a file-like).
+        tar_path = os.path.join(self.dirpath, "tar_csv" + tar_suffix)
+
+        tar = tarfile.open(tar_path, "r")
+        data_file = tar.extractfile("tar_data.csv")
+
+        out = self.read_csv(data_file)
+        expected = pd.DataFrame({"a": [1]})
+        tm.assert_frame_equal(out, expected)

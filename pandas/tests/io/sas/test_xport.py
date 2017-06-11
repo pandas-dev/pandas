@@ -16,9 +16,9 @@ def numeric_as_float(data):
             data[v] = data[v].astype(np.float64)
 
 
-class TestXport(tm.TestCase):
+class TestXport(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dirpath = tm.get_data_path()
         self.file01 = os.path.join(self.dirpath, "DEMO_G.xpt")
         self.file02 = os.path.join(self.dirpath, "SSHSV1_A.xpt")

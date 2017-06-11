@@ -16,9 +16,9 @@ import pandas.util.testing as tm
 use_bn = nanops._USE_BOTTLENECK
 
 
-class TestnanopsDataFrame(tm.TestCase):
+class TestnanopsDataFrame(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         np.random.seed(11235)
         nanops._USE_BOTTLENECK = False
 
@@ -118,7 +118,7 @@ class TestnanopsDataFrame(tm.TestCase):
         self.arr_float_nan_inf_1d = self.arr_float_nan_inf[:, 0, 0]
         self.arr_nan_nan_inf_1d = self.arr_nan_nan_inf[:, 0, 0]
 
-    def tearDown(self):
+    def teardown_method(self, method):
         nanops._USE_BOTTLENECK = use_bn
 
     def check_results(self, targ, res, axis, check_dtype=True):
@@ -346,8 +346,8 @@ class TestnanopsDataFrame(tm.TestCase):
                 s = Series(a, index=range(500), dtype=np.int64)
                 result = s.mean()
                 np_result = s.values.mean()
-                self.assertEqual(result, a)
-                self.assertEqual(result, np_result)
+                assert result == a
+                assert result == np_result
                 assert result.dtype == np.float64
 
     def test_returned_dtype(self):
@@ -742,16 +742,17 @@ class TestnanopsDataFrame(tm.TestCase):
         assert not nanops._bn_ok_dtype(self.arr_obj.dtype, 'test')
 
 
-class TestEnsureNumeric(tm.TestCase):
+class TestEnsureNumeric(object):
 
     def test_numeric_values(self):
         # Test integer
-        self.assertEqual(nanops._ensure_numeric(1), 1, 'Failed for int')
+        assert nanops._ensure_numeric(1) == 1
+
         # Test float
-        self.assertEqual(nanops._ensure_numeric(1.1), 1.1, 'Failed for float')
+        assert nanops._ensure_numeric(1.1) == 1.1
+
         # Test complex
-        self.assertEqual(nanops._ensure_numeric(1 + 2j), 1 + 2j,
-                         'Failed for complex')
+        assert nanops._ensure_numeric(1 + 2j) == 1 + 2j
 
     def test_ndarray(self):
         # Test numeric ndarray
@@ -781,11 +782,11 @@ class TestEnsureNumeric(tm.TestCase):
         pytest.raises(TypeError, lambda: nanops._ensure_numeric([]))
 
 
-class TestNanvarFixedValues(tm.TestCase):
+class TestNanvarFixedValues(object):
 
     # xref GH10242
 
-    def setUp(self):
+    def setup_method(self, method):
         # Samples from a normal distribution.
         self.variance = variance = 3.0
         self.samples = self.prng.normal(scale=variance ** 0.5, size=100000)
@@ -887,18 +888,18 @@ class TestNanvarFixedValues(tm.TestCase):
         data = Series(766897346 * np.ones(10))
         for ddof in range(3):
             result = data.std(ddof=ddof)
-            self.assertEqual(result, 0.0)
+            assert result == 0.0
 
     @property
     def prng(self):
         return np.random.RandomState(1234)
 
 
-class TestNanskewFixedValues(tm.TestCase):
+class TestNanskewFixedValues(object):
 
     # xref GH 11974
 
-    def setUp(self):
+    def setup_method(self, method):
         # Test data + skewness value (computed with scipy.stats.skew)
         self.samples = np.sin(np.linspace(0, 1, 200))
         self.actual_skew = -0.1875895205961754
@@ -908,20 +909,20 @@ class TestNanskewFixedValues(tm.TestCase):
         for val in [3075.2, 3075.3, 3075.5]:
             data = val * np.ones(300)
             skew = nanops.nanskew(data)
-            self.assertEqual(skew, 0.0)
+            assert skew == 0.0
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
         left_tailed = self.prng.beta(alpha, beta, size=100)
-        self.assertLess(nanops.nanskew(left_tailed), 0)
+        assert nanops.nanskew(left_tailed) < 0
 
         alpha, beta = 0.1, 0.3
         right_tailed = self.prng.beta(alpha, beta, size=100)
-        self.assertGreater(nanops.nanskew(right_tailed), 0)
+        assert nanops.nanskew(right_tailed) > 0
 
     def test_ground_truth(self):
         skew = nanops.nanskew(self.samples)
-        self.assertAlmostEqual(skew, self.actual_skew)
+        tm.assert_almost_equal(skew, self.actual_skew)
 
     def test_axis(self):
         samples = np.vstack([self.samples,
@@ -944,11 +945,11 @@ class TestNanskewFixedValues(tm.TestCase):
         return np.random.RandomState(1234)
 
 
-class TestNankurtFixedValues(tm.TestCase):
+class TestNankurtFixedValues(object):
 
     # xref GH 11974
 
-    def setUp(self):
+    def setup_method(self, method):
         # Test data + kurtosis value (computed with scipy.stats.kurtosis)
         self.samples = np.sin(np.linspace(0, 1, 200))
         self.actual_kurt = -1.2058303433799713
@@ -958,20 +959,20 @@ class TestNankurtFixedValues(tm.TestCase):
         for val in [3075.2, 3075.3, 3075.5]:
             data = val * np.ones(300)
             kurt = nanops.nankurt(data)
-            self.assertEqual(kurt, 0.0)
+            assert kurt == 0.0
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
         left_tailed = self.prng.beta(alpha, beta, size=100)
-        self.assertLess(nanops.nankurt(left_tailed), 0)
+        assert nanops.nankurt(left_tailed) < 0
 
         alpha, beta = 0.1, 0.3
         right_tailed = self.prng.beta(alpha, beta, size=100)
-        self.assertGreater(nanops.nankurt(right_tailed), 0)
+        assert nanops.nankurt(right_tailed) > 0
 
     def test_ground_truth(self):
         kurt = nanops.nankurt(self.samples)
-        self.assertAlmostEqual(kurt, self.actual_kurt)
+        tm.assert_almost_equal(kurt, self.actual_kurt)
 
     def test_axis(self):
         samples = np.vstack([self.samples,

@@ -7,7 +7,7 @@ import warnings
 
 from pandas import DataFrame, Series
 from pandas.compat import zip, iteritems
-from pandas.util.decorators import cache_readonly
+from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
@@ -19,10 +19,11 @@ from numpy import random
 import pandas.plotting as plotting
 from pandas.plotting._tools import _flatten
 
-
 """
 This is a common base class used for various plotting tests
 """
+
+tm._skip_if_no_mpl()
 
 
 def _skip_if_no_scipy_gaussian_kde():
@@ -41,10 +42,9 @@ def _ok_for_gaussian_kde(kind):
     return True
 
 
-@tm.mplskip
-class TestPlotBase(tm.TestCase):
+class TestPlotBase(object):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         import matplotlib as mpl
         mpl.rcdefaults()
@@ -95,7 +95,7 @@ class TestPlotBase(tm.TestCase):
                                     "C": np.arange(20) + np.random.uniform(
                                         size=20)})
 
-    def tearDown(self):
+    def teardown_method(self, method):
         tm.close()
 
     @cache_readonly
@@ -149,7 +149,7 @@ class TestPlotBase(tm.TestCase):
             rsdata = rsl.get_xydata()
             tm.assert_almost_equal(xpdata, rsdata)
 
-        self.assertEqual(len(xp_lines), len(rs_lines))
+        assert len(xp_lines) == len(rs_lines)
         [check_line(xpl, rsl) for xpl, rsl in zip(xp_lines, rs_lines)]
         tm.close()
 
@@ -170,7 +170,7 @@ class TestPlotBase(tm.TestCase):
             collections = [collections]
 
         for patch in collections:
-            self.assertEqual(patch.get_visible(), visible)
+            assert patch.get_visible() == visible
 
     def _get_colors_mapped(self, series, colors):
         unique = series.unique()
@@ -208,7 +208,7 @@ class TestPlotBase(tm.TestCase):
                 linecolors = self._get_colors_mapped(mapping, linecolors)
                 linecolors = linecolors[:len(collections)]
 
-            self.assertEqual(len(collections), len(linecolors))
+            assert len(collections) == len(linecolors)
             for patch, color in zip(collections, linecolors):
                 if isinstance(patch, Line2D):
                     result = patch.get_color()
@@ -220,7 +220,7 @@ class TestPlotBase(tm.TestCase):
                     result = patch.get_edgecolor()
 
                 expected = conv.to_rgba(color)
-                self.assertEqual(result, expected)
+                assert result == expected
 
         if facecolors is not None:
 
@@ -228,7 +228,7 @@ class TestPlotBase(tm.TestCase):
                 facecolors = self._get_colors_mapped(mapping, facecolors)
                 facecolors = facecolors[:len(collections)]
 
-            self.assertEqual(len(collections), len(facecolors))
+            assert len(collections) == len(facecolors)
             for patch, color in zip(collections, facecolors):
                 if isinstance(patch, Collection):
                     # returned as list of np.array
@@ -240,7 +240,7 @@ class TestPlotBase(tm.TestCase):
                     result = tuple(result)
 
                 expected = conv.to_rgba(color)
-                self.assertEqual(result, expected)
+                assert result == expected
 
     def _check_text_labels(self, texts, expected):
         """
@@ -254,12 +254,12 @@ class TestPlotBase(tm.TestCase):
             expected text label, or its list
         """
         if not is_list_like(texts):
-            self.assertEqual(texts.get_text(), expected)
+            assert texts.get_text() == expected
         else:
             labels = [t.get_text() for t in texts]
-            self.assertEqual(len(labels), len(expected))
+            assert len(labels) == len(expected)
             for l, e in zip(labels, expected):
-                self.assertEqual(l, e)
+                assert l == e
 
     def _check_ticks_props(self, axes, xlabelsize=None, xrot=None,
                            ylabelsize=None, yrot=None):
@@ -292,10 +292,10 @@ class TestPlotBase(tm.TestCase):
 
                 for label in labels:
                     if xlabelsize is not None:
-                        self.assertAlmostEqual(label.get_fontsize(),
+                        tm.assert_almost_equal(label.get_fontsize(),
                                                xlabelsize)
                     if xrot is not None:
-                        self.assertAlmostEqual(label.get_rotation(), xrot)
+                        tm.assert_almost_equal(label.get_rotation(), xrot)
 
             if ylabelsize or yrot:
                 if isinstance(ax.yaxis.get_minor_formatter(), NullFormatter):
@@ -306,10 +306,10 @@ class TestPlotBase(tm.TestCase):
 
                 for label in labels:
                     if ylabelsize is not None:
-                        self.assertAlmostEqual(label.get_fontsize(),
+                        tm.assert_almost_equal(label.get_fontsize(),
                                                ylabelsize)
                     if yrot is not None:
-                        self.assertAlmostEqual(label.get_rotation(), yrot)
+                        tm.assert_almost_equal(label.get_rotation(), yrot)
 
     def _check_ax_scales(self, axes, xaxis='linear', yaxis='linear'):
         """
@@ -325,8 +325,8 @@ class TestPlotBase(tm.TestCase):
         """
         axes = self._flatten_visible(axes)
         for ax in axes:
-            self.assertEqual(ax.xaxis.get_scale(), xaxis)
-            self.assertEqual(ax.yaxis.get_scale(), yaxis)
+            assert ax.xaxis.get_scale() == xaxis
+            assert ax.yaxis.get_scale() == yaxis
 
     def _check_axes_shape(self, axes, axes_num=None, layout=None,
                           figsize=None):
@@ -349,14 +349,14 @@ class TestPlotBase(tm.TestCase):
         visible_axes = self._flatten_visible(axes)
 
         if axes_num is not None:
-            self.assertEqual(len(visible_axes), axes_num)
+            assert len(visible_axes) == axes_num
             for ax in visible_axes:
                 # check something drawn on visible axes
                 assert len(ax.get_children()) > 0
 
         if layout is not None:
             result = self._get_axes_layout(_flatten(axes))
-            self.assertEqual(result, layout)
+            assert result == layout
 
         tm.assert_numpy_array_equal(
             visible_axes[0].figure.get_size_inches(),
@@ -409,8 +409,8 @@ class TestPlotBase(tm.TestCase):
                     xerr_count += 1
                 if has_yerr:
                     yerr_count += 1
-            self.assertEqual(xerr, xerr_count)
-            self.assertEqual(yerr, yerr_count)
+            assert xerr == xerr_count
+            assert yerr == yerr_count
 
     def _check_box_return_type(self, returned, return_type, expected_keys=None,
                                check_ax_title=True):
@@ -450,23 +450,23 @@ class TestPlotBase(tm.TestCase):
 
             assert isinstance(returned, Series)
 
-            self.assertEqual(sorted(returned.keys()), sorted(expected_keys))
+            assert sorted(returned.keys()) == sorted(expected_keys)
             for key, value in iteritems(returned):
                 assert isinstance(value, types[return_type])
                 # check returned dict has correct mapping
                 if return_type == 'axes':
                     if check_ax_title:
-                        self.assertEqual(value.get_title(), key)
+                        assert value.get_title() == key
                 elif return_type == 'both':
                     if check_ax_title:
-                        self.assertEqual(value.ax.get_title(), key)
+                        assert value.ax.get_title() == key
                     assert isinstance(value.ax, Axes)
                     assert isinstance(value.lines, dict)
                 elif return_type == 'dict':
                     line = value['medians'][0]
                     axes = line.axes if self.mpl_ge_1_5_0 else line.get_axes()
                     if check_ax_title:
-                        self.assertEqual(axes.get_title(), key)
+                        assert axes.get_title() == key
                 else:
                     raise AssertionError
 

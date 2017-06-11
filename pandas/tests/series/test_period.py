@@ -10,28 +10,28 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestSeriesPeriod(tm.TestCase):
+class TestSeriesPeriod(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
 
     def test_auto_conversion(self):
         series = Series(list(period_range('2000-01-01', periods=10, freq='D')))
-        self.assertEqual(series.dtype, 'object')
+        assert series.dtype == 'object'
 
         series = pd.Series([pd.Period('2011-01-01', freq='D'),
                             pd.Period('2011-02-01', freq='D')])
-        self.assertEqual(series.dtype, 'object')
+        assert series.dtype == 'object'
 
     def test_getitem(self):
-        self.assertEqual(self.series[1], pd.Period('2000-01-02', freq='D'))
+        assert self.series[1] == pd.Period('2000-01-02', freq='D')
 
         result = self.series[[2, 4]]
         exp = pd.Series([pd.Period('2000-01-03', freq='D'),
                          pd.Period('2000-01-05', freq='D')],
                         index=[2, 4])
         tm.assert_series_equal(result, exp)
-        self.assertEqual(result.dtype, 'object')
+        assert result.dtype == 'object'
 
     def test_isnull(self):
         # GH 13737
@@ -49,12 +49,12 @@ class TestSeriesPeriod(tm.TestCase):
         exp = Series([pd.Period('2011-01', freq='M'),
                       pd.Period('2012-01', freq='M')])
         tm.assert_series_equal(res, exp)
-        self.assertEqual(res.dtype, 'object')
+        assert res.dtype == 'object'
 
         res = s.fillna('XXX')
         exp = Series([pd.Period('2011-01', freq='M'), 'XXX'])
         tm.assert_series_equal(res, exp)
-        self.assertEqual(res.dtype, 'object')
+        assert res.dtype == 'object'
 
     def test_dropna(self):
         # GH 13737

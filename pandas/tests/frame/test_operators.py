@@ -28,7 +28,7 @@ from pandas.tests.frame.common import (TestData, _check_mixed_float,
                                        _check_mixed_int)
 
 
-class TestDataFrameOperators(tm.TestCase, TestData):
+class TestDataFrameOperators(TestData):
 
     def test_operators(self):
         garbage = random.random(4)
@@ -41,7 +41,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             for idx, val in compat.iteritems(series):
                 origVal = self.frame[col][idx] * 2
                 if not np.isnan(val):
-                    self.assertEqual(val, origVal)
+                    assert val == origVal
                 else:
                     assert np.isnan(origVal)
 
@@ -49,7 +49,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             for idx, val in compat.iteritems(series):
                 origVal = self.frame[col][idx] + colSeries[col]
                 if not np.isnan(val):
-                    self.assertEqual(val, origVal)
+                    assert val == origVal
                 else:
                     assert np.isnan(origVal)
 
@@ -278,14 +278,14 @@ class TestDataFrameOperators(tm.TestCase, TestData):
             result = op(df1, df2)
             expected = DataFrame(op(df1.values, df2.values), index=df1.index,
                                  columns=df1.columns)
-            self.assertEqual(result.values.dtype, np.bool_)
+            assert result.values.dtype == np.bool_
             assert_frame_equal(result, expected)
 
         def _check_unary_op(op):
             result = op(df1)
             expected = DataFrame(op(df1.values), index=df1.index,
                                  columns=df1.columns)
-            self.assertEqual(result.values.dtype, np.bool_)
+            assert result.values.dtype == np.bool_
             assert_frame_equal(result, expected)
 
         df1 = {'a': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
@@ -861,9 +861,9 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         for key, col in compat.iteritems(self.tsframe):
             result = col + ts
             assert_series_equal(added[key], result, check_names=False)
-            self.assertEqual(added[key].name, key)
+            assert added[key].name == key
             if col.name == ts.name:
-                self.assertEqual(result.name, 'A')
+                assert result.name == 'A'
             else:
                 assert result.name is None
 
@@ -891,7 +891,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
         # empty but with non-empty index
         frame = self.tsframe[:1].reindex(columns=[])
         result = frame.mul(ts, axis='index')
-        self.assertEqual(len(result), len(ts))
+        assert len(result) == len(ts)
 
     def test_combineFunc(self):
         result = self.frame * 2
@@ -906,7 +906,7 @@ class TestDataFrameOperators(tm.TestCase, TestData):
 
         result = self.empty * 2
         assert result.index is self.empty.index
-        self.assertEqual(len(result.columns), 0)
+        assert len(result.columns) == 0
 
     def test_comparisons(self):
         df1 = tm.makeTimeDataFrame()

@@ -34,7 +34,7 @@ def _skip_if_no_pchip():
         pytest.skip('scipy.interpolate.pchip missing')
 
 
-class TestDataFrameMissingData(tm.TestCase, TestData):
+class TestDataFrameMissingData(TestData):
 
     def test_dropEmptyRows(self):
         N = len(self.frame.index)
@@ -493,7 +493,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         data = np.random.rand(20, 5)
         df = DataFrame(index=lrange(20), columns=cols, data=data)
         filled = df.fillna(method='ffill')
-        self.assertEqual(df.columns.tolist(), filled.columns.tolist())
+        assert df.columns.tolist() == filled.columns.tolist()
 
     def test_fill_corner(self):
         mf = self.mixed_frame
@@ -718,7 +718,7 @@ class TestDataFrameMissingData(tm.TestCase, TestData):
         # TODO: coerce tests.
 
 
-class TestDataFrameInterpolate(tm.TestCase, TestData):
+class TestDataFrameInterpolate(TestData):
 
     def test_interp_basic(self):
         df = DataFrame({'A': [1, 2, np.nan, 4],

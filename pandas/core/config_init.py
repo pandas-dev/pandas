@@ -340,6 +340,11 @@ def mpl_style_cb(key):
     return val
 
 
+def table_schema_cb(key):
+    from pandas.io.formats.printing import _enable_data_resource_formatter
+    _enable_data_resource_formatter(cf.get_option(key))
+
+
 with cf.config_prefix('display'):
     cf.register_option('precision', 6, pc_precision_doc, validator=is_int)
     cf.register_option('float_format', None, float_format_doc,
@@ -407,7 +412,7 @@ with cf.config_prefix('display'):
     cf.register_option('latex.multirow', False, pc_latex_multirow,
                        validator=is_bool)
     cf.register_option('html.table_schema', False, pc_table_schema_doc,
-                       validator=is_bool)
+                       validator=is_bool, cb=table_schema_cb)
 
 
 cf.deprecate_option('display.line_width',

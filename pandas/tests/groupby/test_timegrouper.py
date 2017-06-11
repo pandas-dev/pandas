@@ -1,6 +1,7 @@
 """ test with the TimeGrouper / grouping with datetimes """
 
 import pytest
+import pytz
 
 from datetime import datetime
 import numpy as np
@@ -14,7 +15,7 @@ from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestGroupBy(tm.TestCase):
+class TestGroupBy(object):
 
     def test_groupby_with_timegrouper(self):
         # GH 4161
@@ -444,7 +445,7 @@ class TestGroupBy(tm.TestCase):
                         (3, np.datetime64('2012-07-04'))],
                        columns=['a', 'date'])
         result = df.groupby('a').first()
-        self.assertEqual(result['date'][3], Timestamp('2012-07-03'))
+        assert result['date'][3] == Timestamp('2012-07-03')
 
     def test_groupby_multi_timezone(self):
 
@@ -569,16 +570,14 @@ class TestGroupBy(tm.TestCase):
         tm.assert_series_equal(df1, df2)
 
     def test_timezone_info(self):
-        # GH 11682
-        # Timezone info lost when broadcasting scalar datetime to DataFrame
-        tm._skip_if_no_pytz()
-        import pytz
+        # see gh-11682: Timezone info lost when broadcasting
+        # scalar datetime to DataFrame
 
         df = pd.DataFrame({'a': [1], 'b': [datetime.now(pytz.utc)]})
-        self.assertEqual(df['b'][0].tzinfo, pytz.utc)
+        assert df['b'][0].tzinfo == pytz.utc
         df = pd.DataFrame({'a': [1, 2, 3]})
         df['b'] = datetime.now(pytz.utc)
-        self.assertEqual(df['b'][0].tzinfo, pytz.utc)
+        assert df['b'][0].tzinfo == pytz.utc
 
     def test_datetime_count(self):
         df = DataFrame({'a': [1, 2, 3] * 2,

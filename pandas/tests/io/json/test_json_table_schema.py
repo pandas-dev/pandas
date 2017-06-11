@@ -9,7 +9,6 @@ import pytest
 from pandas import DataFrame
 from pandas.core.dtypes.dtypes import (
     PeriodDtype, CategoricalDtype, DatetimeTZDtype)
-import pandas.util.testing as tm
 from pandas.io.json.table_schema import (
     as_json_table_type,
     build_table_schema,
@@ -17,9 +16,9 @@ from pandas.io.json.table_schema import (
     set_default_names)
 
 
-class TestBuildSchema(tm.TestCase):
+class TestBuildSchema(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame(
             {'A': [1, 2, 3, 4],
              'B': ['a', 'b', 'c', 'c'],
@@ -39,7 +38,7 @@ class TestBuildSchema(tm.TestCase):
                        ],
             'primaryKey': ['idx']
         }
-        self.assertEqual(result, expected)
+        assert result == expected
         result = build_table_schema(self.df)
         assert "pandas_version" in result
 
@@ -49,7 +48,7 @@ class TestBuildSchema(tm.TestCase):
         expected = {'fields': [{'name': 'index', 'type': 'integer'},
                                {'name': 'foo', 'type': 'integer'}],
                     'primaryKey': ['index']}
-        self.assertEqual(result, expected)
+        assert result == expected
         result = build_table_schema(s)
         assert 'pandas_version' in result
 
@@ -58,7 +57,7 @@ class TestBuildSchema(tm.TestCase):
         expected = {'fields': [{'name': 'index', 'type': 'integer'},
                                {'name': 'values', 'type': 'integer'}],
                     'primaryKey': ['index']}
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_multiindex(self):
         df = self.df.copy()
@@ -76,38 +75,37 @@ class TestBuildSchema(tm.TestCase):
                        ],
             'primaryKey': ['level_0', 'level_1']
         }
-        self.assertEqual(result, expected)
+        assert result == expected
 
         df.index.names = ['idx0', None]
         expected['fields'][0]['name'] = 'idx0'
         expected['primaryKey'] = ['idx0', 'level_1']
         result = build_table_schema(df, version=False)
-        self.assertEqual(result, expected)
+        assert result == expected
 
 
-class TestTableSchemaType(tm.TestCase):
+class TestTableSchemaType(object):
 
     def test_as_json_table_type_int_data(self):
         int_data = [1, 2, 3]
         int_types = [np.int, np.int16, np.int32, np.int64]
         for t in int_types:
-            self.assertEqual(as_json_table_type(np.array(int_data, dtype=t)),
-                             'integer')
+            assert as_json_table_type(np.array(
+                int_data, dtype=t)) == 'integer'
 
     def test_as_json_table_type_float_data(self):
         float_data = [1., 2., 3.]
         float_types = [np.float, np.float16, np.float32, np.float64]
         for t in float_types:
-            self.assertEqual(as_json_table_type(np.array(float_data,
-                                                         dtype=t)),
-                             'number')
+            assert as_json_table_type(np.array(
+                float_data, dtype=t)) == 'number'
 
     def test_as_json_table_type_bool_data(self):
         bool_data = [True, False]
         bool_types = [bool, np.bool]
         for t in bool_types:
-            self.assertEqual(as_json_table_type(np.array(bool_data, dtype=t)),
-                             'boolean')
+            assert as_json_table_type(np.array(
+                bool_data, dtype=t)) == 'boolean'
 
     def test_as_json_table_type_date_data(self):
         date_data = [pd.to_datetime(['2016']),
@@ -116,20 +114,19 @@ class TestTableSchemaType(tm.TestCase):
                      pd.Series(pd.to_datetime(['2016'], utc=True)),
                      pd.period_range('2016', freq='A', periods=3)]
         for arr in date_data:
-            self.assertEqual(as_json_table_type(arr), 'datetime')
+            assert as_json_table_type(arr) == 'datetime'
 
     def test_as_json_table_type_string_data(self):
         strings = [pd.Series(['a', 'b']), pd.Index(['a', 'b'])]
         for t in strings:
-            self.assertEqual(as_json_table_type(t), 'string')
+            assert as_json_table_type(t) == 'string'
 
     def test_as_json_table_type_categorical_data(self):
-        self.assertEqual(as_json_table_type(pd.Categorical(['a'])), 'any')
-        self.assertEqual(as_json_table_type(pd.Categorical([1])), 'any')
-        self.assertEqual(as_json_table_type(
-            pd.Series(pd.Categorical([1]))), 'any')
-        self.assertEqual(as_json_table_type(pd.CategoricalIndex([1])), 'any')
-        self.assertEqual(as_json_table_type(pd.Categorical([1])), 'any')
+        assert as_json_table_type(pd.Categorical(['a'])) == 'any'
+        assert as_json_table_type(pd.Categorical([1])) == 'any'
+        assert as_json_table_type(pd.Series(pd.Categorical([1]))) == 'any'
+        assert as_json_table_type(pd.CategoricalIndex([1])) == 'any'
+        assert as_json_table_type(pd.Categorical([1])) == 'any'
 
     # ------
     # dtypes
@@ -137,43 +134,43 @@ class TestTableSchemaType(tm.TestCase):
     def test_as_json_table_type_int_dtypes(self):
         integers = [np.int, np.int16, np.int32, np.int64]
         for t in integers:
-            self.assertEqual(as_json_table_type(t), 'integer')
+            assert as_json_table_type(t) == 'integer'
 
     def test_as_json_table_type_float_dtypes(self):
         floats = [np.float, np.float16, np.float32, np.float64]
         for t in floats:
-            self.assertEqual(as_json_table_type(t), 'number')
+            assert as_json_table_type(t) == 'number'
 
     def test_as_json_table_type_bool_dtypes(self):
         bools = [bool, np.bool]
         for t in bools:
-            self.assertEqual(as_json_table_type(t), 'boolean')
+            assert as_json_table_type(t) == 'boolean'
 
     def test_as_json_table_type_date_dtypes(self):
         # TODO: datedate.date? datetime.time?
         dates = [np.datetime64, np.dtype("<M8[ns]"), PeriodDtype(),
                  DatetimeTZDtype('ns', 'US/Central')]
         for t in dates:
-            self.assertEqual(as_json_table_type(t), 'datetime')
+            assert as_json_table_type(t) == 'datetime'
 
     def test_as_json_table_type_timedelta_dtypes(self):
         durations = [np.timedelta64, np.dtype("<m8[ns]")]
         for t in durations:
-            self.assertEqual(as_json_table_type(t), 'duration')
+            assert as_json_table_type(t) == 'duration'
 
     def test_as_json_table_type_string_dtypes(self):
         strings = [object]  # TODO
         for t in strings:
-            self.assertEqual(as_json_table_type(t), 'string')
+            assert as_json_table_type(t) == 'string'
 
     def test_as_json_table_type_categorical_dtypes(self):
-        self.assertEqual(as_json_table_type(pd.Categorical), 'any')
-        self.assertEqual(as_json_table_type(CategoricalDtype()), 'any')
+        assert as_json_table_type(pd.Categorical) == 'any'
+        assert as_json_table_type(CategoricalDtype()) == 'any'
 
 
-class TestTableOrient(tm.TestCase):
+class TestTableOrient(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.df = DataFrame(
             {'A': [1, 2, 3, 4],
              'B': ['a', 'b', 'c', 'c'],
@@ -269,7 +266,7 @@ class TestTableOrient(tm.TestCase):
                          ]),
         ]
         expected = OrderedDict([('schema', schema), ('data', data)])
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_json_float_index(self):
         data = pd.Series(1, index=[1., 2.])
@@ -286,7 +283,7 @@ class TestTableOrient(tm.TestCase):
                 ('data', [OrderedDict([('index', 1.0), ('values', 1)]),
                           OrderedDict([('index', 2.0), ('values', 1)])])])
         )
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_json_period_index(self):
         idx = pd.period_range('2016', freq='Q-JAN', periods=2)
@@ -304,7 +301,7 @@ class TestTableOrient(tm.TestCase):
                 OrderedDict([('index', '2016-02-01T00:00:00.000Z'),
                              ('values', 1)])]
         expected = OrderedDict([('schema', schema), ('data', data)])
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_to_json_categorical_index(self):
         data = pd.Series(1, pd.CategoricalIndex(['a', 'b']))
@@ -324,7 +321,7 @@ class TestTableOrient(tm.TestCase):
                                           ('values', 1)]),
                              OrderedDict([('index', 'b'), ('values', 1)])])])
         )
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_date_format_raises(self):
         with pytest.raises(ValueError):
@@ -340,7 +337,7 @@ class TestTableOrient(tm.TestCase):
         for kind in kinds:
             result = make_field(kind)
             expected = {"name": "name", "type": 'integer'}
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_make_field_float(self):
         data = [1., 2., 3.]
@@ -348,7 +345,7 @@ class TestTableOrient(tm.TestCase):
         for kind in kinds:
             result = make_field(kind)
             expected = {"name": "name", "type": 'number'}
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_make_field_datetime(self):
         data = [1., 2., 3.]
@@ -357,19 +354,19 @@ class TestTableOrient(tm.TestCase):
         for kind in kinds:
             result = make_field(kind)
             expected = {"name": "values", "type": 'datetime'}
-            self.assertEqual(result, expected)
+            assert result == expected
 
         kinds = [pd.Series(pd.to_datetime(data, utc=True), name='values'),
                  pd.to_datetime(data, utc=True)]
         for kind in kinds:
             result = make_field(kind)
             expected = {"name": "values", "type": 'datetime', "tz": "UTC"}
-            self.assertEqual(result, expected)
+            assert result == expected
 
         arr = pd.period_range('2016', freq='A-DEC', periods=4)
         result = make_field(arr)
         expected = {"name": "values", "type": 'datetime', "freq": "A-DEC"}
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_make_field_categorical(self):
         data = ['a', 'b', 'c']
@@ -381,14 +378,14 @@ class TestTableOrient(tm.TestCase):
             expected = {"name": "cats", "type": "any",
                         "constraints": {"enum": data},
                         "ordered": ordered}
-            self.assertEqual(result, expected)
+            assert result == expected
 
             arr = pd.CategoricalIndex(data, ordered=ordered, name='cats')
             result = make_field(arr)
             expected = {"name": "cats", "type": "any",
                         "constraints": {"enum": data},
                         "ordered": ordered}
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_categorical(self):
         s = pd.Series(pd.Categorical(['a', 'b', 'a']))
@@ -409,37 +406,37 @@ class TestTableOrient(tm.TestCase):
             ('data', [OrderedDict([('idx', 0), ('values', 'a')]),
                       OrderedDict([('idx', 1), ('values', 'b')]),
                       OrderedDict([('idx', 2), ('values', 'a')])])])
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_set_default_names_unset(self):
         data = pd.Series(1, pd.Index([1]))
         result = set_default_names(data)
-        self.assertEqual(result.index.name, 'index')
+        assert result.index.name == 'index'
 
     def test_set_default_names_set(self):
         data = pd.Series(1, pd.Index([1], name='myname'))
         result = set_default_names(data)
-        self.assertEqual(result.index.name, 'myname')
+        assert result.index.name == 'myname'
 
     def test_set_default_names_mi_unset(self):
         data = pd.Series(
             1, pd.MultiIndex.from_product([('a', 'b'), ('c', 'd')]))
         result = set_default_names(data)
-        self.assertEqual(result.index.names, ['level_0', 'level_1'])
+        assert result.index.names == ['level_0', 'level_1']
 
     def test_set_default_names_mi_set(self):
         data = pd.Series(
             1, pd.MultiIndex.from_product([('a', 'b'), ('c', 'd')],
                                           names=['n1', 'n2']))
         result = set_default_names(data)
-        self.assertEqual(result.index.names, ['n1', 'n2'])
+        assert result.index.names == ['n1', 'n2']
 
     def test_set_default_names_mi_partion(self):
         data = pd.Series(
             1, pd.MultiIndex.from_product([('a', 'b'), ('c', 'd')],
                                           names=['n1', None]))
         result = set_default_names(data)
-        self.assertEqual(result.index.names, ['n1', 'level_1'])
+        assert result.index.names == ['n1', 'level_1']
 
     def test_timestamp_in_columns(self):
         df = pd.DataFrame([[1, 2]], columns=[pd.Timestamp('2016'),
@@ -463,3 +460,11 @@ class TestTableOrient(tm.TestCase):
                 data.to_json(orient='table')
 
             assert 'Overlapping' in str(excinfo.value)
+
+    def test_mi_falsey_name(self):
+        # GH 16203
+        df = pd.DataFrame(np.random.randn(4, 4),
+                          index=pd.MultiIndex.from_product([('A', 'B'),
+                                                            ('a', 'b')]))
+        result = [x['name'] for x in build_table_schema(df)['fields']]
+        assert result == ['level_0', 'level_1', 0, 1, 2, 3]

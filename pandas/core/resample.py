@@ -2,6 +2,7 @@ from datetime import timedelta
 import numpy as np
 import warnings
 import copy
+from textwrap import dedent
 
 import pandas as pd
 from pandas.core.base import AbstractMethodError, GroupByMixin
@@ -24,7 +25,7 @@ from pandas._libs import lib, tslib
 from pandas._libs.lib import Timestamp
 from pandas._libs.period import IncompatibleFrequency
 
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 from pandas.core.generic import _shared_docs
 _shared_docs_kwargs = dict()
 
@@ -183,6 +184,12 @@ class Resampler(_GroupBy):
         matches_pattern = any(attr.startswith(x) for x
                               in self._deprecated_valid_patterns)
         if not matches_pattern and attr not in self._deprecated_valids:
+            # avoid the warning, if it's just going to be an exception
+            # anyway.
+            if not hasattr(self.obj, attr):
+                raise AttributeError("'{}' has no attribute '{}'".format(
+                    type(self.obj).__name__, attr
+                ))
             self = self._deprecated(attr)
 
         return object.__getattribute__(self, attr)
@@ -254,66 +261,56 @@ class Resampler(_GroupBy):
         # have the warnings shown here and just have this work
         return self._deprecated('plot').plot(*args, **kwargs)
 
+    _agg_doc = dedent("""
+
+    Examples
+    --------
+    >>> s = Series([1,2,3,4,5],
+                    index=pd.date_range('20130101',
+                                        periods=5,freq='s'))
+    2013-01-01 00:00:00    1
+    2013-01-01 00:00:01    2
+    2013-01-01 00:00:02    3
+    2013-01-01 00:00:03    4
+    2013-01-01 00:00:04    5
+    Freq: S, dtype: int64
+
+    >>> r = s.resample('2s')
+    DatetimeIndexResampler [freq=<2 * Seconds>, axis=0, closed=left,
+                            label=left, convention=start, base=0]
+
+    >>> r.agg(np.sum)
+    2013-01-01 00:00:00    3
+    2013-01-01 00:00:02    7
+    2013-01-01 00:00:04    5
+    Freq: 2S, dtype: int64
+
+    >>> r.agg(['sum','mean','max'])
+                         sum  mean  max
+    2013-01-01 00:00:00    3   1.5    2
+    2013-01-01 00:00:02    7   3.5    4
+    2013-01-01 00:00:04    5   5.0    5
+
+    >>> r.agg({'result' : lambda x: x.mean() / x.std(),
+               'total' : np.sum})
+                         total    result
+    2013-01-01 00:00:00      3  2.121320
+    2013-01-01 00:00:02      7  4.949747
+    2013-01-01 00:00:04      5       NaN
+
+    See also
+    --------
+    pandas.DataFrame.groupby.aggregate
+    pandas.DataFrame.resample.transform
+    pandas.DataFrame.aggregate
+
+    """)
+
+    @Appender(_agg_doc)
+    @Appender(_shared_docs['aggregate'] % dict(
+        klass='DataFrame',
+        versionadded=''))
     def aggregate(self, arg, *args, **kwargs):
-        """
-        Apply aggregation function or functions to resampled groups, yielding
-        most likely Series but in some cases DataFrame depending on the output
-        of the aggregation function
-
-        Parameters
-        ----------
-        func_or_funcs : function or list / dict of functions
-            List/dict of functions will produce DataFrame with column names
-            determined by the function names themselves (list) or the keys in
-            the dict
-
-        Notes
-        -----
-        agg is an alias for aggregate. Use it.
-
-        Examples
-        --------
-        >>> s = Series([1,2,3,4,5],
-                        index=pd.date_range('20130101',
-                                            periods=5,freq='s'))
-        2013-01-01 00:00:00    1
-        2013-01-01 00:00:01    2
-        2013-01-01 00:00:02    3
-        2013-01-01 00:00:03    4
-        2013-01-01 00:00:04    5
-        Freq: S, dtype: int64
-
-        >>> r = s.resample('2s')
-        DatetimeIndexResampler [freq=<2 * Seconds>, axis=0, closed=left,
-                                label=left, convention=start, base=0]
-
-        >>> r.agg(np.sum)
-        2013-01-01 00:00:00    3
-        2013-01-01 00:00:02    7
-        2013-01-01 00:00:04    5
-        Freq: 2S, dtype: int64
-
-        >>> r.agg(['sum','mean','max'])
-                             sum  mean  max
-        2013-01-01 00:00:00    3   1.5    2
-        2013-01-01 00:00:02    7   3.5    4
-        2013-01-01 00:00:04    5   5.0    5
-
-        >>> r.agg({'result' : lambda x: x.mean() / x.std(),
-                   'total' : np.sum})
-                             total    result
-        2013-01-01 00:00:00      3  2.121320
-        2013-01-01 00:00:02      7  4.949747
-        2013-01-01 00:00:04      5       NaN
-
-        See also
-        --------
-        transform
-
-        Returns
-        -------
-        Series or DataFrame
-        """
 
         self._set_binner()
         result, how = self._aggregate(arg, *args, **kwargs)

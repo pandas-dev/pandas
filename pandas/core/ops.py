@@ -15,7 +15,7 @@ from pandas._libs import (lib, index as libindex,
                           tslib as libts, algos as libalgos, iNaT)
 
 from pandas import compat
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import pandas.core.computation.expressions as expressions
 
 from pandas.compat import bind_method
@@ -1250,7 +1250,8 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
                             masker=False):
     def na_op(x, y):
         try:
-            result = op(x, y)
+            with np.errstate(invalid='ignore'):
+                result = op(x, y)
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=bool)

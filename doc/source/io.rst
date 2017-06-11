@@ -226,8 +226,8 @@ NA and Missing Data Handling
 na_values : scalar, str, list-like, or dict, default ``None``
   Additional strings to recognize as NA/NaN. If dict passed, specific per-column
   NA values. By default the following values are interpreted as NaN:
-  ``'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'NA',
-  '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''``.
+  ``'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A', 'n/a', 'NA',
+  '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', ''``.
 keep_default_na : boolean, default ``True``
   If na_values are specified and keep_default_na is ``False`` the default NaN
   values are overridden, otherwise they're appended to.
@@ -1439,6 +1439,14 @@ class of the csv module. For this, you have to specify ``sep=None``.
     print(open('tmp2.sv').read())
     pd.read_csv('tmp2.sv', sep=None, engine='python')
 
+.. _io.multiple_files:
+
+Reading multiple files to create a single DataFrame
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+
+It's best to use :func:`~pandas.concat` to combine multiple files.
+See the :ref:`cookbook<cookbook.csv.multiple_files>` for an example.
+
 .. _io.chunking:
 
 Iterating through files chunk by chunk
@@ -2553,12 +2561,12 @@ Reading Excel Files
 '''''''''''''''''''
 
 In the most basic use-case, ``read_excel`` takes a path to an Excel
-file, and the ``sheetname`` indicating which sheet to parse.
+file, and the ``sheet_name`` indicating which sheet to parse.
 
 .. code-block:: python
 
    # Returns a DataFrame
-   read_excel('path_to_file.xls', sheetname='Sheet1')
+   read_excel('path_to_file.xls', sheet_name='Sheet1')
 
 
 .. _io.excel.excelfile_class:
@@ -2626,12 +2634,12 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
 Specifying Sheets
 +++++++++++++++++
 
-.. note :: The second argument is ``sheetname``, not to be confused with ``ExcelFile.sheet_names``
+.. note :: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``
 
 .. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
 
-- The arguments ``sheetname`` allows specifying the sheet or sheets to read.
-- The default value for ``sheetname`` is 0, indicating to read the first sheet
+- The arguments ``sheet_name`` allows specifying the sheet or sheets to read.
+- The default value for ``sheet_name`` is 0, indicating to read the first sheet
 - Pass a string to refer to the name of a particular sheet in the workbook.
 - Pass an integer to refer to the index of a sheet. Indices follow Python
   convention, beginning at 0.
@@ -2662,18 +2670,18 @@ Using None to get all sheets:
 .. code-block:: python
 
    # Returns a dictionary of DataFrames
-   read_excel('path_to_file.xls',sheetname=None)
+   read_excel('path_to_file.xls',sheet_name=None)
 
 Using a list to get multiple sheets:
 
 .. code-block:: python
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-   read_excel('path_to_file.xls',sheetname=['Sheet1',3])
+   read_excel('path_to_file.xls',sheet_name=['Sheet1',3])
 
 .. versionadded:: 0.16
 
-``read_excel`` can read more than one sheet, by setting ``sheetname`` to either
+``read_excel`` can read more than one sheet, by setting ``sheet_name`` to either
 a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
 
 .. versionadded:: 0.13
@@ -2730,11 +2738,6 @@ should be passed to ``index_col`` and ``header``
 
    import os
    os.remove('path_to_file.xlsx')
-
-.. warning::
-
-   Excel files saved in version 0.16.2 or prior that had index names will still able to be read in,
-   but the ``has_index_names`` argument must specified to ``True``.
 
 
 Parsing Specific Columns

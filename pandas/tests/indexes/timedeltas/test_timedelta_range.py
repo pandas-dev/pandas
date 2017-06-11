@@ -7,7 +7,7 @@ from pandas import to_timedelta, timedelta_range
 from pandas.util.testing import assert_frame_equal
 
 
-class TestTimedeltas(tm.TestCase):
+class TestTimedeltas(object):
     _multiprocess_can_split_ = True
 
     def test_timedelta_range(self):

@@ -18,7 +18,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameSorting(tm.TestCase, TestData):
+class TestDataFrameSorting(TestData):
 
     def test_sort(self):
         frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
@@ -315,7 +315,7 @@ class TestDataFrameSorting(tm.TestCase, TestData):
         assert_frame_equal(df_sorted, df_reversed)
 
 
-class TestDataFrameSortIndexKinds(tm.TestCase, TestData):
+class TestDataFrameSortIndexKinds(TestData):
 
     def test_sort_index_multicolumn(self):
         A = np.arange(5).repeat(20)
@@ -361,7 +361,7 @@ class TestDataFrameSortIndexKinds(tm.TestCase, TestData):
         df.sort_index(inplace=True)
         expected = frame
         assert_frame_equal(df, expected)
-        self.assertNotEqual(a_id, id(df['A']))
+        assert a_id != id(df['A'])
 
         df = unordered.copy()
         df.sort_index(ascending=False, inplace=True)

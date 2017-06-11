@@ -17,7 +17,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesApply(TestData, tm.TestCase):
+class TestSeriesApply(TestData):
 
     def test_apply(self):
         with np.errstate(all='ignore'):
@@ -61,27 +61,27 @@ class TestSeriesApply(TestData, tm.TestCase):
 
         f = lambda x: x if x > 0 else np.nan
         result = s.apply(f, convert_dtype=False)
-        self.assertEqual(result.dtype, object)
+        assert result.dtype == object
 
     def test_with_string_args(self):
 
         for arg in ['sum', 'mean', 'min', 'max', 'std']:
             result = self.ts.apply(arg)
             expected = getattr(self.ts, arg)()
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_apply_args(self):
         s = Series(['foo,bar'])
 
         result = s.apply(str.split, args=(',', ))
-        self.assertEqual(result[0], ['foo', 'bar'])
+        assert result[0] == ['foo', 'bar']
         assert isinstance(result[0], list)
 
     def test_apply_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
         vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'datetime64[ns]')
+        assert s.dtype == 'datetime64[ns]'
         # boxed value must be Timestamp instance
         res = s.apply(lambda x: '{0}_{1}_{2}'.format(x.__class__.__name__,
                                                      x.day, x.tz))
@@ -91,7 +91,7 @@ class TestSeriesApply(TestData, tm.TestCase):
         vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
                 pd.Timestamp('2011-01-02', tz='US/Eastern')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'datetime64[ns, US/Eastern]')
+        assert s.dtype == 'datetime64[ns, US/Eastern]'
         res = s.apply(lambda x: '{0}_{1}_{2}'.format(x.__class__.__name__,
                                                      x.day, x.tz))
         exp = pd.Series(['Timestamp_1_US/Eastern', 'Timestamp_2_US/Eastern'])
@@ -100,7 +100,7 @@ class TestSeriesApply(TestData, tm.TestCase):
         # timedelta
         vals = [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'timedelta64[ns]')
+        assert s.dtype == 'timedelta64[ns]'
         res = s.apply(lambda x: '{0}_{1}'.format(x.__class__.__name__, x.days))
         exp = pd.Series(['Timedelta_1', 'Timedelta_2'])
         tm.assert_series_equal(res, exp)
@@ -109,7 +109,7 @@ class TestSeriesApply(TestData, tm.TestCase):
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'object')
+        assert s.dtype == 'object'
         res = s.apply(lambda x: '{0}_{1}'.format(x.__class__.__name__,
                                                  x.freqstr))
         exp = pd.Series(['Period_M', 'Period_M'])
@@ -151,7 +151,7 @@ class TestSeriesApply(TestData, tm.TestCase):
             tsdf.A.agg({'foo': ['sum', 'mean']})
 
 
-class TestSeriesAggregate(TestData, tm.TestCase):
+class TestSeriesAggregate(TestData):
 
     _multiprocess_can_split_ = True
 
@@ -306,8 +306,24 @@ class TestSeriesAggregate(TestData, tm.TestCase):
                           name=self.series.name)
         assert_series_equal(result, expected)
 
+    def test_non_callable_aggregates(self):
+        # test agg using non-callable series attributes
+        s = Series([1, 2, None])
 
-class TestSeriesMap(TestData, tm.TestCase):
+        # Calling agg w/ just a string arg same as calling s.arg
+        result = s.agg('size')
+        expected = s.size
+        assert result == expected
+
+        # test when mixed w/ callable reducers
+        result = s.agg(['size', 'count', 'mean'])
+        expected = Series(OrderedDict({'size': 3.0,
+                                       'count': 2.0,
+                                       'mean': 1.5}))
+        assert_series_equal(result[expected.index], expected)
+
+
+class TestSeriesMap(TestData):
 
     def test_map(self):
         index, data = tm.getMixedTypeDict()
@@ -318,13 +334,13 @@ class TestSeriesMap(TestData, tm.TestCase):
         merged = target.map(source)
 
         for k, v in compat.iteritems(merged):
-            self.assertEqual(v, source[target[k]])
+            assert v == source[target[k]]
 
         # input could be a dict
         merged = target.map(source.to_dict())
 
         for k, v in compat.iteritems(merged):
-            self.assertEqual(v, source[target[k]])
+            assert v == source[target[k]]
 
         # function
         result = self.ts.map(lambda x: x * 2)
@@ -372,11 +388,11 @@ class TestSeriesMap(TestData, tm.TestCase):
         left = Series({'a': 1., 'b': 2., 'c': 3., 'd': 4})
         right = Series({1: 11, 2: 22, 3: 33})
 
-        self.assertEqual(left.dtype, np.float_)
+        assert left.dtype == np.float_
         assert issubclass(right.dtype.type, np.integer)
 
         merged = left.map(right)
-        self.assertEqual(merged.dtype, np.float_)
+        assert merged.dtype == np.float_
         assert isnull(merged['d'])
         assert not isnull(merged['c'])
 
@@ -389,7 +405,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         from decimal import Decimal
 
         result = self.series.map(lambda x: Decimal(str(x)))
-        self.assertEqual(result.dtype, np.object_)
+        assert result.dtype == np.object_
         assert isinstance(result[0], Decimal)
 
     def test_map_na_exclusion(self):
@@ -457,7 +473,7 @@ class TestSeriesMap(TestData, tm.TestCase):
     def test_map_box(self):
         vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'datetime64[ns]')
+        assert s.dtype == 'datetime64[ns]'
         # boxed value must be Timestamp instance
         res = s.map(lambda x: '{0}_{1}_{2}'.format(x.__class__.__name__,
                                                    x.day, x.tz))
@@ -467,7 +483,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
                 pd.Timestamp('2011-01-02', tz='US/Eastern')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'datetime64[ns, US/Eastern]')
+        assert s.dtype == 'datetime64[ns, US/Eastern]'
         res = s.map(lambda x: '{0}_{1}_{2}'.format(x.__class__.__name__,
                                                    x.day, x.tz))
         exp = pd.Series(['Timestamp_1_US/Eastern', 'Timestamp_2_US/Eastern'])
@@ -476,7 +492,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         # timedelta
         vals = [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'timedelta64[ns]')
+        assert s.dtype == 'timedelta64[ns]'
         res = s.map(lambda x: '{0}_{1}'.format(x.__class__.__name__, x.days))
         exp = pd.Series(['Timedelta_1', 'Timedelta_2'])
         tm.assert_series_equal(res, exp)
@@ -485,7 +501,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = pd.Series(vals)
-        self.assertEqual(s.dtype, 'object')
+        assert s.dtype == 'object'
         res = s.map(lambda x: '{0}_{1}'.format(x.__class__.__name__,
                                                x.freqstr))
         exp = pd.Series(['Period_M', 'Period_M'])
@@ -506,7 +522,7 @@ class TestSeriesMap(TestData, tm.TestCase):
         result = s.map(lambda x: 'A')
         exp = pd.Series(['A'] * 7, name='XX', index=list('abcdefg'))
         tm.assert_series_equal(result, exp)
-        self.assertEqual(result.dtype, np.object)
+        assert result.dtype == np.object
 
         with pytest.raises(NotImplementedError):
             s.map(lambda x: x, na_action='ignore')

@@ -18,7 +18,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestDataFrameConcatCommon(tm.TestCase, TestData):
+class TestDataFrameConcatCommon(TestData):
 
     def test_concat_multiple_frames_dtypes(self):
 
@@ -303,7 +303,7 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
 
         tst = A.join(C, on='aa')
 
-        self.assertEqual(len(tst.columns), 3)
+        assert len(tst.columns) == 3
 
     def test_join_multiindex_leftright(self):
         # GH 10741
@@ -441,7 +441,7 @@ class TestDataFrameConcatCommon(tm.TestCase, TestData):
         tm.assert_frame_equal(result, expected)
 
 
-class TestDataFrameCombineFirst(tm.TestCase, TestData):
+class TestDataFrameCombineFirst(TestData):
 
     def test_combine_first_mixed(self):
         a = Series(['a', 'b'], index=lrange(2))
@@ -538,7 +538,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
                             "col5": ser3})
 
         combined = frame1.combine_first(frame2)
-        self.assertEqual(len(combined.columns), 5)
+        assert len(combined.columns) == 5
 
         # gh 3016 (same as in update)
         df = DataFrame([[1., 2., False, True], [4., 5., True, False]],
@@ -603,28 +603,28 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
         dfa = pd.DataFrame([[pd.Timestamp('2011-01-01'), 2]],
                            columns=['a', 'b'])
         dfb = pd.DataFrame([[4], [5]], columns=['b'])
-        self.assertEqual(dfa['a'].dtype, 'datetime64[ns]')
-        self.assertEqual(dfa['b'].dtype, 'int64')
+        assert dfa['a'].dtype == 'datetime64[ns]'
+        assert dfa['b'].dtype == 'int64'
 
         res = dfa.combine_first(dfb)
         exp = pd.DataFrame({'a': [pd.Timestamp('2011-01-01'), pd.NaT],
                             'b': [2., 5.]}, columns=['a', 'b'])
         tm.assert_frame_equal(res, exp)
-        self.assertEqual(res['a'].dtype, 'datetime64[ns]')
+        assert res['a'].dtype == 'datetime64[ns]'
         # ToDo: this must be int64
-        self.assertEqual(res['b'].dtype, 'float64')
+        assert res['b'].dtype == 'float64'
 
         res = dfa.iloc[:0].combine_first(dfb)
         exp = pd.DataFrame({'a': [np.nan, np.nan],
                             'b': [4, 5]}, columns=['a', 'b'])
         tm.assert_frame_equal(res, exp)
         # ToDo: this must be datetime64
-        self.assertEqual(res['a'].dtype, 'float64')
+        assert res['a'].dtype == 'float64'
         # ToDo: this must be int64
-        self.assertEqual(res['b'].dtype, 'int64')
+        assert res['b'].dtype == 'int64'
 
     def test_combine_first_timezone(self):
-        # GH 7630
+        # see gh-7630
         data1 = pd.to_datetime('20100101 01:01').tz_localize('UTC')
         df1 = pd.DataFrame(columns=['UTCdatetime', 'abc'],
                            data=data1,
@@ -644,10 +644,10 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
                            index=pd.date_range('20140627', periods=2,
                                                freq='D'))
         tm.assert_frame_equal(res, exp)
-        self.assertEqual(res['UTCdatetime'].dtype, 'datetime64[ns, UTC]')
-        self.assertEqual(res['abc'].dtype, 'datetime64[ns, UTC]')
+        assert res['UTCdatetime'].dtype == 'datetime64[ns, UTC]'
+        assert res['abc'].dtype == 'datetime64[ns, UTC]'
 
-        # GH 10567
+        # see gh-10567
         dts1 = pd.date_range('2015-01-01', '2015-01-05', tz='UTC')
         df1 = pd.DataFrame({'DATE': dts1})
         dts2 = pd.date_range('2015-01-03', '2015-01-05', tz='UTC')
@@ -655,7 +655,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
 
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
-        self.assertEqual(res['DATE'].dtype, 'datetime64[ns, UTC]')
+        assert res['DATE'].dtype == 'datetime64[ns, UTC]'
 
         dts1 = pd.DatetimeIndex(['2011-01-01', 'NaT', '2011-01-03',
                                  '2011-01-04'], tz='US/Eastern')
@@ -680,7 +680,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
         # if df1 doesn't have NaN, keep its dtype
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
-        self.assertEqual(res['DATE'].dtype, 'datetime64[ns, US/Eastern]')
+        assert res['DATE'].dtype == 'datetime64[ns, US/Eastern]'
 
         dts1 = pd.date_range('2015-01-01', '2015-01-02', tz='US/Eastern')
         df1 = pd.DataFrame({'DATE': dts1})
@@ -693,7 +693,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
                    pd.Timestamp('2015-01-03')]
         exp = pd.DataFrame({'DATE': exp_dts})
         tm.assert_frame_equal(res, exp)
-        self.assertEqual(res['DATE'].dtype, 'object')
+        assert res['DATE'].dtype == 'object'
 
     def test_combine_first_timedelta(self):
         data1 = pd.TimedeltaIndex(['1 day', 'NaT', '3 day', '4day'])
@@ -706,7 +706,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
                                      '11 day', '3 day', '4 day'])
         exp = pd.DataFrame({'TD': exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        self.assertEqual(res['TD'].dtype, 'timedelta64[ns]')
+        assert res['TD'].dtype == 'timedelta64[ns]'
 
     def test_combine_first_period(self):
         data1 = pd.PeriodIndex(['2011-01', 'NaT', '2011-03',
@@ -722,7 +722,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
                                  freq='M')
         exp = pd.DataFrame({'P': exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        self.assertEqual(res['P'].dtype, 'object')
+        assert res['P'].dtype == 'object'
 
         # different freq
         dts2 = pd.PeriodIndex(['2012-01-01', '2012-01-02',
@@ -738,7 +738,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
                    pd.Period('2011-04', freq='M')]
         exp = pd.DataFrame({'P': exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        self.assertEqual(res['P'].dtype, 'object')
+        assert res['P'].dtype == 'object'
 
     def test_combine_first_int(self):
         # GH14687 - integer series that do no align exactly
@@ -748,7 +748,7 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
 
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
-        self.assertEqual(res['a'].dtype, 'int64')
+        assert res['a'].dtype == 'int64'
 
     def test_concat_datetime_datetime64_frame(self):
         # #2624
@@ -763,3 +763,26 @@ class TestDataFrameCombineFirst(tm.TestCase, TestData):
 
         # it works!
         pd.concat([df1, df2_obj])
+
+
+class TestDataFrameUpdate(TestData):
+
+    def test_update_nan(self):
+        # #15593 #15617
+        # test 1
+        df1 = DataFrame({'A': [1.0, 2, 3], 'B': date_range('2000', periods=3)})
+        df2 = DataFrame({'A': [None, 2, 3]})
+        expected = df1.copy()
+        df1.update(df2, overwrite=False)
+
+        tm.assert_frame_equal(df1, expected)
+
+        # test 2
+        df1 = DataFrame({'A': [1.0, None, 3],
+                         'B': date_range('2000', periods=3)})
+        df2 = DataFrame({'A': [None, 2, 3]})
+        expected = DataFrame({'A': [1.0, 2, 3],
+                              'B': date_range('2000', periods=3)})
+        df1.update(df2, overwrite=False)
+
+        tm.assert_frame_equal(df1, expected)

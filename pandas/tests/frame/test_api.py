@@ -41,16 +41,16 @@ class SharedWithSparse(object):
 
     def test_getitem_pop_assign_name(self):
         s = self.frame['A']
-        self.assertEqual(s.name, 'A')
+        assert s.name == 'A'
 
         s = self.frame.pop('A')
-        self.assertEqual(s.name, 'A')
+        assert s.name == 'A'
 
         s = self.frame.loc[:, 'B']
-        self.assertEqual(s.name, 'B')
+        assert s.name == 'B'
 
         s2 = s.loc[:]
-        self.assertEqual(s2.name, 'B')
+        assert s2.name == 'B'
 
     def test_get_value(self):
         for idx in self.frame.index:
@@ -69,23 +69,23 @@ class SharedWithSparse(object):
         tm.assert_index_equal(with_suffix.columns, expected)
 
 
-class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
+class TestDataFrameMisc(SharedWithSparse, TestData):
 
     klass = DataFrame
 
     def test_get_axis(self):
         f = self.frame
-        self.assertEqual(f._get_axis_number(0), 0)
-        self.assertEqual(f._get_axis_number(1), 1)
-        self.assertEqual(f._get_axis_number('index'), 0)
-        self.assertEqual(f._get_axis_number('rows'), 0)
-        self.assertEqual(f._get_axis_number('columns'), 1)
+        assert f._get_axis_number(0) == 0
+        assert f._get_axis_number(1) == 1
+        assert f._get_axis_number('index') == 0
+        assert f._get_axis_number('rows') == 0
+        assert f._get_axis_number('columns') == 1
 
-        self.assertEqual(f._get_axis_name(0), 'index')
-        self.assertEqual(f._get_axis_name(1), 'columns')
-        self.assertEqual(f._get_axis_name('index'), 'index')
-        self.assertEqual(f._get_axis_name('rows'), 'index')
-        self.assertEqual(f._get_axis_name('columns'), 'columns')
+        assert f._get_axis_name(0) == 'index'
+        assert f._get_axis_name(1) == 'columns'
+        assert f._get_axis_name('index') == 'index'
+        assert f._get_axis_name('rows') == 'index'
+        assert f._get_axis_name('columns') == 'columns'
 
         assert f._get_axis(0) is f.index
         assert f._get_axis(1) is f.columns
@@ -154,7 +154,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
     def test_iteritems(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
         for k, v in compat.iteritems(df):
-            self.assertEqual(type(v), Series)
+            assert type(v) == Series
 
     def test_iter(self):
         assert tm.equalContents(list(self.frame), self.frame.columns)
@@ -183,27 +183,25 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
         df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[['a', 'a']]
-        self.assertEqual(list(dfaa.itertuples()), [
-                         (0, 1, 1), (1, 2, 2), (2, 3, 3)])
 
-        self.assertEqual(repr(list(df.itertuples(name=None))),
-                         '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
+        assert (list(dfaa.itertuples()) ==
+                [(0, 1, 1), (1, 2, 2), (2, 3, 3)])
+        assert (repr(list(df.itertuples(name=None))) ==
+                '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
 
         tup = next(df.itertuples(name='TestName'))
 
-        # no support for field renaming in Python 2.6, regular tuples are
-        # returned
         if sys.version >= LooseVersion('2.7'):
-            self.assertEqual(tup._fields, ('Index', 'a', 'b'))
-            self.assertEqual((tup.Index, tup.a, tup.b), tup)
-            self.assertEqual(type(tup).__name__, 'TestName')
+            assert tup._fields == ('Index', 'a', 'b')
+            assert (tup.Index, tup.a, tup.b) == tup
+            assert type(tup).__name__ == 'TestName'
 
         df.columns = ['def', 'return']
         tup2 = next(df.itertuples(name='TestName'))
-        self.assertEqual(tup2, (0, 1, 4))
+        assert tup2 == (0, 1, 4)
 
         if sys.version >= LooseVersion('2.7'):
-            self.assertEqual(tup2._fields, ('Index', '_1', '_2'))
+            assert tup2._fields == ('Index', '_1', '_2')
 
         df3 = DataFrame(dict(('f' + str(i), [i]) for i in range(1024)))
         # will raise SyntaxError if trying to create namedtuple
@@ -212,7 +210,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         assert isinstance(tup3, tuple)
 
     def test_len(self):
-        self.assertEqual(len(self.frame), len(self.frame.index))
+        assert len(self.frame) == len(self.frame.index)
 
     def test_as_matrix(self):
         frame = self.frame
@@ -225,15 +223,15 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
                 if np.isnan(value):
                     assert np.isnan(frame[col][i])
                 else:
-                    self.assertEqual(value, frame[col][i])
+                    assert value == frame[col][i]
 
         # mixed type
         mat = self.mixed_frame.as_matrix(['foo', 'A'])
-        self.assertEqual(mat[0, 0], 'bar')
+        assert mat[0, 0] == 'bar'
 
         df = DataFrame({'real': [1, 2, 3], 'complex': [1j, 2j, 3j]})
         mat = df.as_matrix()
-        self.assertEqual(mat[0, 0], 1j)
+        assert mat[0, 0] == 1j
 
         # single block corner case
         mat = self.frame.as_matrix(['A', 'B'])
@@ -249,7 +247,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
         series = cp['A']
         series[:] = 10
         for idx, value in compat.iteritems(series):
-            self.assertNotEqual(self.frame['A'][idx], value)
+            assert self.frame['A'][idx] != value
 
     # ---------------------------------------------------------------------
     # Transposing
@@ -262,7 +260,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
                 if np.isnan(value):
                     assert np.isnan(frame[col][idx])
                 else:
-                    self.assertEqual(value, frame[col][idx])
+                    assert value == frame[col][idx]
 
         # mixed type
         index, data = tm.getMixedTypeDict()
@@ -270,7 +268,7 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
         mixed_T = mixed.T
         for col, s in compat.iteritems(mixed_T):
-            self.assertEqual(s.dtype, np.object_)
+            assert s.dtype == np.object_
 
     def test_transpose_get_view(self):
         dft = self.frame.T
@@ -299,23 +297,23 @@ class TestDataFrameMisc(tm.TestCase, SharedWithSparse, TestData):
 
     def test_more_asMatrix(self):
         values = self.mixed_frame.as_matrix()
-        self.assertEqual(values.shape[1], len(self.mixed_frame.columns))
+        assert values.shape[1] == len(self.mixed_frame.columns)
 
     def test_repr_with_mi_nat(self):
         df = DataFrame({'X': [1, 2]},
                        index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
         res = repr(df)
         exp = '              X\nNaT        a  1\n2013-01-01 b  2'
-        self.assertEqual(res, exp)
+        assert res == exp
 
     def test_iteritems_names(self):
         for k, v in compat.iteritems(self.mixed_frame):
-            self.assertEqual(v.name, k)
+            assert v.name == k
 
     def test_series_put_names(self):
         series = self.mixed_frame._series
         for k, v in compat.iteritems(series):
-            self.assertEqual(v.name, k)
+            assert v.name == k
 
     def test_empty_nonzero(self):
         df = DataFrame([1, 2, 3])

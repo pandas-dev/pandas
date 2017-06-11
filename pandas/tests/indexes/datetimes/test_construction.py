@@ -1,5 +1,6 @@
 import pytest
 
+import pytz
 import numpy as np
 from datetime import timedelta
 
@@ -12,7 +13,7 @@ from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
                     to_datetime)
 
 
-class TestDatetimeIndex(tm.TestCase):
+class TestDatetimeIndex(object):
 
     def test_construction_caching(self):
 
@@ -350,10 +351,7 @@ class TestDatetimeIndex(tm.TestCase):
         pytest.raises(ValueError, DatetimeIndex, periods=10, freq='D')
 
     def test_constructor_datetime64_tzformat(self):
-        # GH 6572
-        tm._skip_if_no_pytz()
-        import pytz
-        # ISO 8601 format results in pytz.FixedOffset
+        # see gh-6572: ISO 8601 format results in pytz.FixedOffset
         for freq in ['AS', 'W-SUN']:
             idx = date_range('2013-01-01T00:00:00-05:00',
                              '2016-01-01T23:59:59-05:00', freq=freq)
@@ -375,8 +373,6 @@ class TestDatetimeIndex(tm.TestCase):
                                      '2016-01-01T23:59:59', freq=freq,
                                      tz='Asia/Tokyo')
             tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
-
-        tm._skip_if_no_dateutil()
 
         # Non ISO 8601 format results in dateutil.tz.tzoffset
         for freq in ['AS', 'W-SUN']:
@@ -436,23 +432,23 @@ class TestDatetimeIndex(tm.TestCase):
     def test_constructor_name(self):
         idx = DatetimeIndex(start='2000-01-01', periods=1, freq='A',
                             name='TEST')
-        self.assertEqual(idx.name, 'TEST')
+        assert idx.name == 'TEST'
 
     def test_000constructor_resolution(self):
         # 2252
         t1 = Timestamp((1352934390 * 1000000000) + 1000000 + 1000 + 1)
         idx = DatetimeIndex([t1])
 
-        self.assertEqual(idx.nanosecond[0], t1.nanosecond)
+        assert idx.nanosecond[0] == t1.nanosecond
 
 
-class TestTimeSeries(tm.TestCase):
+class TestTimeSeries(object):
 
     def test_dti_constructor_preserve_dti_freq(self):
         rng = date_range('1/1/2000', '1/2/2000', freq='5min')
 
         rng2 = DatetimeIndex(rng)
-        self.assertEqual(rng.freq, rng2.freq)
+        assert rng.freq == rng2.freq
 
     def test_dti_constructor_years_only(self):
         # GH 6961
@@ -487,7 +483,7 @@ class TestTimeSeries(tm.TestCase):
 
     def test_ctor_str_intraday(self):
         rng = DatetimeIndex(['1-1-2000 00:00:01'])
-        self.assertEqual(rng[0].second, 1)
+        assert rng[0].second == 1
 
     def test_is_(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
@@ -565,29 +561,29 @@ class TestTimeSeries(tm.TestCase):
         sdate = datetime(1999, 12, 25)
         edate = datetime(2000, 1, 1)
         idx = DatetimeIndex(start=sdate, freq='1B', periods=20)
-        self.assertEqual(len(idx), 20)
-        self.assertEqual(idx[0], sdate + 0 * offsets.BDay())
-        self.assertEqual(idx.freq, 'B')
+        assert len(idx) == 20
+        assert idx[0] == sdate + 0 * offsets.BDay()
+        assert idx.freq == 'B'
 
         idx = DatetimeIndex(end=edate, freq=('D', 5), periods=20)
-        self.assertEqual(len(idx), 20)
-        self.assertEqual(idx[-1], edate)
-        self.assertEqual(idx.freq, '5D')
+        assert len(idx) == 20
+        assert idx[-1] == edate
+        assert idx.freq == '5D'
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='W-SUN')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.Week(weekday=6))
-        self.assertEqual(len(idx1), len(idx2))
-        self.assertEqual(idx1.offset, idx2.offset)
+        assert len(idx1) == len(idx2)
+        assert idx1.offset == idx2.offset
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='QS')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.QuarterBegin(startingMonth=1))
-        self.assertEqual(len(idx1), len(idx2))
-        self.assertEqual(idx1.offset, idx2.offset)
+        assert len(idx1) == len(idx2)
+        assert idx1.offset == idx2.offset
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='BQ')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.BQuarterEnd(startingMonth=12))
-        self.assertEqual(len(idx1), len(idx2))
-        self.assertEqual(idx1.offset, idx2.offset)
+        assert len(idx1) == len(idx2)
+        assert idx1.offset == idx2.offset

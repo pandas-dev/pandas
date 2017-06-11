@@ -9,7 +9,7 @@ import pytest
 from datetime import datetime, timedelta, date
 import numpy as np
 
-from pandas import Timedelta, Timestamp, DatetimeIndex
+from pandas import Timedelta, Timestamp, DatetimeIndex, DataFrame, NaT
 
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
@@ -26,7 +26,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.util import testing as tm
 
 
-class TestMaybeDowncast(tm.TestCase):
+class TestMaybeDowncast(object):
 
     def test_downcast_conv(self):
         # test downcasting
@@ -156,7 +156,7 @@ class TestInferDtype(object):
         assert dtype == expected
 
 
-class TestMaybe(tm.TestCase):
+class TestMaybe(object):
 
     def test_maybe_convert_string_to_array(self):
         result = maybe_convert_string_to_object('x')
@@ -164,7 +164,7 @@ class TestMaybe(tm.TestCase):
         assert result.dtype == object
 
         result = maybe_convert_string_to_object(1)
-        self.assertEqual(result, 1)
+        assert result == 1
 
         arr = np.array(['x', 'y'], dtype=str)
         result = maybe_convert_string_to_object(arr)
@@ -187,34 +187,45 @@ class TestMaybe(tm.TestCase):
 
         # pass thru
         result = maybe_convert_scalar('x')
-        self.assertEqual(result, 'x')
+        assert result == 'x'
         result = maybe_convert_scalar(np.array([1]))
-        self.assertEqual(result, np.array([1]))
+        assert result == np.array([1])
 
         # leave scalar dtype
         result = maybe_convert_scalar(np.int64(1))
-        self.assertEqual(result, np.int64(1))
+        assert result == np.int64(1)
         result = maybe_convert_scalar(np.int32(1))
-        self.assertEqual(result, np.int32(1))
+        assert result == np.int32(1)
         result = maybe_convert_scalar(np.float32(1))
-        self.assertEqual(result, np.float32(1))
+        assert result == np.float32(1)
         result = maybe_convert_scalar(np.int64(1))
-        self.assertEqual(result, np.float64(1))
+        assert result == np.float64(1)
 
         # coerce
         result = maybe_convert_scalar(1)
-        self.assertEqual(result, np.int64(1))
+        assert result == np.int64(1)
         result = maybe_convert_scalar(1.0)
-        self.assertEqual(result, np.float64(1))
+        assert result == np.float64(1)
         result = maybe_convert_scalar(Timestamp('20130101'))
-        self.assertEqual(result, Timestamp('20130101').value)
+        assert result == Timestamp('20130101').value
         result = maybe_convert_scalar(datetime(2013, 1, 1))
-        self.assertEqual(result, Timestamp('20130101').value)
+        assert result == Timestamp('20130101').value
         result = maybe_convert_scalar(Timedelta('1 day 1 min'))
-        self.assertEqual(result, Timedelta('1 day 1 min').value)
+        assert result == Timedelta('1 day 1 min').value
+
+    def test_maybe_infer_to_datetimelike(self):
+        # GH16362
+        # pandas=0.20.1 raises IndexError: tuple index out of range
+        result = DataFrame(np.array([[NaT, 'a', 'b', 0],
+                                     [NaT, 'b', 'c', 1]]))
+        assert result.size == 8
+        # this construction was fine
+        result = DataFrame(np.array([[NaT, 'a', 0],
+                                     [NaT, 'b', 1]]))
+        assert result.size == 6
 
 
-class TestConvert(tm.TestCase):
+class TestConvert(object):
 
     def test_maybe_convert_objects_copy(self):
         values = np.array([1, 2])
@@ -233,7 +244,7 @@ class TestConvert(tm.TestCase):
         assert values is not out
 
 
-class TestCommonTypes(tm.TestCase):
+class TestCommonTypes(object):
 
     def test_numpy_dtypes(self):
         # (source_types, destination_type)
@@ -291,7 +302,7 @@ class TestCommonTypes(tm.TestCase):
             ((np.dtype('datetime64[ns]'), np.int64), np.object)
         )
         for src, common in testcases:
-            self.assertEqual(find_common_type(src), common)
+            assert find_common_type(src) == common
 
         with pytest.raises(ValueError):
             # empty
@@ -299,26 +310,25 @@ class TestCommonTypes(tm.TestCase):
 
     def test_categorical_dtype(self):
         dtype = CategoricalDtype()
-        self.assertEqual(find_common_type([dtype]), 'category')
-        self.assertEqual(find_common_type([dtype, dtype]), 'category')
-        self.assertEqual(find_common_type([np.object, dtype]), np.object)
+        assert find_common_type([dtype]) == 'category'
+        assert find_common_type([dtype, dtype]) == 'category'
+        assert find_common_type([np.object, dtype]) == np.object
 
     def test_datetimetz_dtype(self):
         dtype = DatetimeTZDtype(unit='ns', tz='US/Eastern')
-        self.assertEqual(find_common_type([dtype, dtype]),
-                         'datetime64[ns, US/Eastern]')
+        assert find_common_type([dtype, dtype]) == 'datetime64[ns, US/Eastern]'
 
         for dtype2 in [DatetimeTZDtype(unit='ns', tz='Asia/Tokyo'),
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
-            self.assertEqual(find_common_type([dtype, dtype2]), np.object)
-            self.assertEqual(find_common_type([dtype2, dtype]), np.object)
+            assert find_common_type([dtype, dtype2]) == np.object
+            assert find_common_type([dtype2, dtype]) == np.object
 
     def test_period_dtype(self):
         dtype = PeriodDtype(freq='D')
-        self.assertEqual(find_common_type([dtype, dtype]), 'period[D]')
+        assert find_common_type([dtype, dtype]) == 'period[D]'
 
         for dtype2 in [DatetimeTZDtype(unit='ns', tz='Asia/Tokyo'),
                        PeriodDtype(freq='2D'), PeriodDtype(freq='H'),
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
-            self.assertEqual(find_common_type([dtype, dtype2]), np.object)
-            self.assertEqual(find_common_type([dtype2, dtype]), np.object)
+            assert find_common_type([dtype, dtype2]) == np.object
+            assert find_common_type([dtype2, dtype]) == np.object

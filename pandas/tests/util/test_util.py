@@ -7,21 +7,19 @@ from uuid import uuid4
 from collections import OrderedDict
 
 import pytest
+from pandas.compat import intern
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
-from pandas.util.decorators import deprecate_kwarg
-from pandas.util.validators import (validate_args, validate_kwargs,
-                                    validate_args_and_kwargs,
-                                    validate_bool_kwarg)
+from pandas.util._decorators import deprecate_kwarg
+from pandas.util._validators import (validate_args, validate_kwargs,
+                                     validate_args_and_kwargs,
+                                     validate_bool_kwarg)
 
 import pandas.util.testing as tm
 
-CURRENT_LOCALE = locale.getlocale()
-LOCALE_OVERRIDE = os.environ.get('LOCALE_OVERRIDE', None)
 
+class TestDecorators(object):
 
-class TestDecorators(tm.TestCase):
-
-    def setUp(self):
+    def setup_method(self, method):
         @deprecate_kwarg('old', 'new')
         def _f1(new=False):
             return new
@@ -50,19 +48,19 @@ class TestDecorators(tm.TestCase):
         x = 'yes'
         with tm.assert_produces_warning(FutureWarning):
             result = self.f2(old=x)
-        self.assertEqual(result, True)
+        assert result
 
     def test_missing_deprecate_kwarg(self):
         x = 'bogus'
         with tm.assert_produces_warning(FutureWarning):
             result = self.f2(old=x)
-        self.assertEqual(result, 'bogus')
+        assert result == 'bogus'
 
     def test_callable_deprecate_kwarg(self):
         x = 5
         with tm.assert_produces_warning(FutureWarning):
             result = self.f3(old=x)
-        self.assertEqual(result, x + 1)
+        assert result == x + 1
         with pytest.raises(TypeError):
             self.f3(old='hello')
 
@@ -88,7 +86,7 @@ def test_rands_array():
     assert(len(arr[1, 1]) == 7)
 
 
-class TestValidateArgs(tm.TestCase):
+class TestValidateArgs(object):
     fname = 'func'
 
     def test_bad_min_fname_arg_count(self):
@@ -158,7 +156,7 @@ class TestValidateArgs(tm.TestCase):
         validate_args(self.fname, (1, None), 2, compat_args)
 
 
-class TestValidateKwargs(tm.TestCase):
+class TestValidateKwargs(object):
     fname = 'func'
 
     def test_bad_kwarg(self):
@@ -224,7 +222,7 @@ class TestValidateKwargs(tm.TestCase):
                 assert validate_bool_kwarg(value, name) == value
 
 
-class TestValidateKwargsAndArgs(tm.TestCase):
+class TestValidateKwargsAndArgs(object):
     fname = 'func'
 
     def test_invalid_total_length_max_length_one(self):
@@ -321,7 +319,7 @@ class TestValidateKwargsAndArgs(tm.TestCase):
                                  compat_args)
 
 
-class TestMove(tm.TestCase):
+class TestMove(object):
 
     def test_cannot_create_instance_of_stolenbuffer(self):
         """Stolen buffers need to be created through the smart constructor
@@ -358,7 +356,7 @@ class TestMove(tm.TestCase):
         as_stolen_buf = move_into_mutable_buffer(b[:-3])
 
         # materialize as bytearray to show that it is mutable
-        self.assertEqual(bytearray(as_stolen_buf), b'test')
+        assert bytearray(as_stolen_buf) == b'test'
 
     @pytest.mark.skipif(
         sys.version_info[0] > 2,
@@ -393,12 +391,7 @@ class TestMove(tm.TestCase):
             # be the same instance.
             move_into_mutable_buffer(ref_capture(intern(make_string())))  # noqa
 
-        self.assertEqual(
-            refcount[0],
-            1,
-            msg='The BadMove was probably raised for refcount reasons instead'
-            ' of interning reasons',
-        )
+        assert refcount[0] == 1
 
 
 def test_numpy_errstate_is_default():
@@ -411,12 +404,12 @@ def test_numpy_errstate_is_default():
     assert np.geterr() == expected
 
 
-class TestLocaleUtils(tm.TestCase):
+class TestLocaleUtils(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestLocaleUtils, cls).setUpClass()
+    def setup_class(cls):
         cls.locales = tm.get_locales()
+        cls.current_locale = locale.getlocale()
 
         if not cls.locales:
             pytest.skip("No locales found")
@@ -424,9 +417,9 @@ class TestLocaleUtils(tm.TestCase):
         tm._skip_if_windows()
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestLocaleUtils, cls).tearDownClass()
+    def teardown_class(cls):
         del cls.locales
+        del cls.current_locale
 
     def test_get_locales(self):
         # all systems should have at least a single locale
@@ -444,17 +437,19 @@ class TestLocaleUtils(tm.TestCase):
             pytest.skip("Only a single locale found, no point in "
                         "trying to test setting another locale")
 
-        if all(x is None for x in CURRENT_LOCALE):
+        if all(x is None for x in self.current_locale):
             # Not sure why, but on some travis runs with pytest,
             # getlocale() returned (None, None).
-            pytest.skip("CURRENT_LOCALE is not set.")
+            pytest.skip("Current locale is not set.")
 
-        if LOCALE_OVERRIDE is None:
+        locale_override = os.environ.get('LOCALE_OVERRIDE', None)
+
+        if locale_override is None:
             lang, enc = 'it_CH', 'UTF-8'
-        elif LOCALE_OVERRIDE == 'C':
+        elif locale_override == 'C':
             lang, enc = 'en_US', 'ascii'
         else:
-            lang, enc = LOCALE_OVERRIDE.split('.')
+            lang, enc = locale_override.split('.')
 
         enc = codecs.lookup(enc).name
         new_locale = lang, enc
@@ -468,7 +463,7 @@ class TestLocaleUtils(tm.TestCase):
                 new_lang, new_enc = normalized_locale.split('.')
                 new_enc = codecs.lookup(enc).name
                 normalized_locale = new_lang, new_enc
-                self.assertEqual(normalized_locale, new_locale)
+                assert normalized_locale == new_locale
 
         current_locale = locale.getlocale()
-        self.assertEqual(current_locale, CURRENT_LOCALE)
+        assert current_locale == self.current_locale

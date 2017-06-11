@@ -21,6 +21,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 """ Test cases for .boxplot method """
 
+tm._skip_if_no_mpl()
+
 
 def _skip_if_mpl_14_or_dev_boxplot():
     # GH 8382
@@ -31,7 +33,6 @@ def _skip_if_mpl_14_or_dev_boxplot():
         pytest.skip("Matplotlib Regression in 1.4 and current dev.")
 
 
-@tm.mplskip
 class TestDataFramePlots(TestPlotBase):
 
     @slow
@@ -90,7 +91,7 @@ class TestDataFramePlots(TestPlotBase):
         fig, ax = self.plt.subplots()
         d = df.boxplot(ax=ax, return_type='dict')
         lines = list(itertools.chain.from_iterable(d.values()))
-        self.assertEqual(len(ax.get_lines()), len(lines))
+        assert len(ax.get_lines()) == len(lines)
 
     @slow
     def test_boxplot_return_type_none(self):
@@ -138,7 +139,7 @@ class TestDataFramePlots(TestPlotBase):
         height_ax, weight_ax = df.boxplot(['height', 'weight'], by='category')
         _check_ax_limits(df['height'], height_ax)
         _check_ax_limits(df['weight'], weight_ax)
-        self.assertEqual(weight_ax._sharey, height_ax)
+        assert weight_ax._sharey == height_ax
 
         # Two rows, one partial
         p = df.boxplot(['height', 'weight', 'age'], by='category')
@@ -148,8 +149,8 @@ class TestDataFramePlots(TestPlotBase):
         _check_ax_limits(df['height'], height_ax)
         _check_ax_limits(df['weight'], weight_ax)
         _check_ax_limits(df['age'], age_ax)
-        self.assertEqual(weight_ax._sharey, height_ax)
-        self.assertEqual(age_ax._sharey, height_ax)
+        assert weight_ax._sharey == height_ax
+        assert age_ax._sharey == height_ax
         assert dummy_ax._sharey is None
 
     @slow
@@ -159,13 +160,20 @@ class TestDataFramePlots(TestPlotBase):
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type='axes')
 
+    @slow
+    def test_figsize(self):
+        df = DataFrame(np.random.rand(10, 5),
+                       columns=['A', 'B', 'C', 'D', 'E'])
+        result = df.boxplot(return_type='axes', figsize=(12, 8))
+        assert result.figure.bbox_inches.width == 12
+        assert result.figure.bbox_inches.height == 8
+
     def test_fontsize(self):
         df = DataFrame({"a": [1, 2, 3, 4, 5, 6]})
         self._check_ticks_props(df.boxplot("a", fontsize=16),
                                 xlabelsize=16, ylabelsize=16)
 
 
-@tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @slow
@@ -209,13 +217,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         gb = df.groupby('gender')
 
         res = gb.plot()
-        self.assertEqual(len(self.plt.get_fignums()), 2)
-        self.assertEqual(len(res), 2)
+        assert len(self.plt.get_fignums()) == 2
+        assert len(res) == 2
         tm.close()
 
         res = gb.boxplot(return_type='axes')
-        self.assertEqual(len(self.plt.get_fignums()), 1)
-        self.assertEqual(len(res), 2)
+        assert len(self.plt.get_fignums()) == 1
+        assert len(res) == 2
         tm.close()
 
         # now works with GH 5610 as gender is excluded

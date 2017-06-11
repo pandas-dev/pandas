@@ -90,12 +90,12 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
-class TestPackers(tm.TestCase):
+class TestPackers(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.path = '__%s__.msg' % tm.rands(10)
 
-    def tearDown(self):
+    def teardown_method(self, method):
         pass
 
     def encode_decode(self, x, compress=None, **kwargs):
@@ -133,6 +133,16 @@ class TestAPI(TestPackers):
             fh.close()
             result = read_msgpack(p)
             tm.assert_frame_equal(result, df)
+
+    def test_path_pathlib(self):
+        df = tm.makeDataFrame()
+        result = tm.round_trip_pathlib(df.to_msgpack, read_msgpack)
+        tm.assert_frame_equal(df, result)
+
+    def test_path_localpath(self):
+        df = tm.makeDataFrame()
+        result = tm.round_trip_localpath(df.to_msgpack, read_msgpack)
+        tm.assert_frame_equal(df, result)
 
     def test_iterator_with_string_io(self):
 
@@ -217,9 +227,10 @@ class TestNumpy(TestPackers):
     def test_dict_complex(self):
         x = {'foo': 1.0 + 1.0j, 'bar': 2.0 + 2.0j}
         x_rec = self.encode_decode(x)
-        self.assertEqual(x, x_rec)
+        tm.assert_dict_equal(x, x_rec)
+
         for key in x:
-            self.assertEqual(type(x[key]), type(x_rec[key]))
+            tm.assert_class_equal(x[key], x_rec[key], obj="complex value")
 
     def test_dict_numpy_float(self):
         x = {'foo': np.float32(1.0), 'bar': np.float32(2.0)}
@@ -230,9 +241,10 @@ class TestNumpy(TestPackers):
         x = {'foo': np.complex128(1.0 + 1.0j),
              'bar': np.complex128(2.0 + 2.0j)}
         x_rec = self.encode_decode(x)
-        self.assertEqual(x, x_rec)
+        tm.assert_dict_equal(x, x_rec)
+
         for key in x:
-            self.assertEqual(type(x[key]), type(x_rec[key]))
+            tm.assert_class_equal(x[key], x_rec[key], obj="numpy complex128")
 
     def test_numpy_array_float(self):
 
@@ -268,7 +280,7 @@ class TestBasic(TestPackers):
             '20130101'), Timestamp('20130101', tz='US/Eastern'),
                 Timestamp('201301010501')]:
             i_rec = self.encode_decode(i)
-            self.assertEqual(i, i_rec)
+            assert i == i_rec
 
     def test_nat(self):
         nat_rec = self.encode_decode(NaT)
@@ -286,7 +298,7 @@ class TestBasic(TestPackers):
                   datetime.date(2013, 1, 1),
                   np.datetime64(datetime.datetime(2013, 1, 5, 2, 15))]:
             i_rec = self.encode_decode(i)
-            self.assertEqual(i, i_rec)
+            assert i == i_rec
 
     def test_timedeltas(self):
 
@@ -294,13 +306,13 @@ class TestBasic(TestPackers):
                   datetime.timedelta(days=1, seconds=10),
                   np.timedelta64(1000000)]:
             i_rec = self.encode_decode(i)
-            self.assertEqual(i, i_rec)
+            assert i == i_rec
 
 
 class TestIndex(TestPackers):
 
-    def setUp(self):
-        super(TestIndex, self).setUp()
+    def setup_method(self, method):
+        super(TestIndex, self).setup_method(method)
 
         self.d = {
             'string': tm.makeStringIndex(100),
@@ -362,8 +374,8 @@ class TestIndex(TestPackers):
 
 class TestSeries(TestPackers):
 
-    def setUp(self):
-        super(TestSeries, self).setUp()
+    def setup_method(self, method):
+        super(TestSeries, self).setup_method(method)
 
         self.d = {}
 
@@ -410,8 +422,8 @@ class TestSeries(TestPackers):
 
 class TestCategorical(TestPackers):
 
-    def setUp(self):
-        super(TestCategorical, self).setUp()
+    def setup_method(self, method):
+        super(TestCategorical, self).setup_method(method)
 
         self.d = {}
 
@@ -433,8 +445,8 @@ class TestCategorical(TestPackers):
 
 class TestNDFrame(TestPackers):
 
-    def setUp(self):
-        super(TestNDFrame, self).setUp()
+    def setup_method(self, method):
+        super(TestNDFrame, self).setup_method(method)
 
         data = {
             'A': [0., 1., 2., 3., np.nan],
@@ -577,7 +589,7 @@ class TestCompression(TestPackers):
     """See https://github.com/pandas-dev/pandas/pull/9783
     """
 
-    def setUp(self):
+    def setup_method(self, method):
         try:
             from sqlalchemy import create_engine
             self._create_sql_engine = create_engine
@@ -586,7 +598,7 @@ class TestCompression(TestPackers):
         else:
             self._SQLALCHEMY_INSTALLED = True
 
-        super(TestCompression, self).setUp()
+        super(TestCompression, self).setup_method(method)
         data = {
             'A': np.arange(1000, dtype=np.float64),
             'B': np.arange(1000, dtype=np.int32),
@@ -668,16 +680,14 @@ class TestCompression(TestPackers):
 
         for w in ws:
             # check the messages from our warnings
-            self.assertEqual(
-                str(w.message),
-                'copying data after decompressing; this may mean that'
-                ' decompress is caching its result',
-            )
+            assert str(w.message) == ('copying data after decompressing; '
+                                      'this may mean that decompress is '
+                                      'caching its result')
 
         for buf, control_buf in zip(not_garbage, control):
             # make sure none of our mutations above affected the
             # original buffers
-            self.assertEqual(buf, control_buf)
+            assert buf == control_buf
 
     def test_compression_warns_when_decompress_caches_zlib(self):
         if not _ZLIB_INSTALLED:
@@ -710,7 +720,7 @@ class TestCompression(TestPackers):
         # we compare the ord of bytes b'a' with unicode u'a' because the should
         # always be the same (unless we were able to mutate the shared
         # character singleton in which case ord(b'a') == ord(b'b').
-        self.assertEqual(ord(b'a'), ord(u'a'))
+        assert ord(b'a') == ord(u'a')
         tm.assert_numpy_array_equal(
             char_unpacked,
             np.array([ord(b'b')], dtype='uint8'),
@@ -773,8 +783,8 @@ class TestCompression(TestPackers):
 
 class TestEncoding(TestPackers):
 
-    def setUp(self):
-        super(TestEncoding, self).setUp()
+    def setup_method(self, method):
+        super(TestEncoding, self).setup_method(method)
         data = {
             'A': [compat.u('\u2019')] * 1000,
             'B': np.arange(1000, dtype=np.int32),
@@ -801,7 +811,7 @@ class TestEncoding(TestPackers):
         for frame in compat.itervalues(self.frame):
             result = frame.to_msgpack()
             expected = frame.to_msgpack(encoding='utf8')
-            self.assertEqual(result, expected)
+            assert result == expected
             result = self.encode_decode(frame)
             assert_frame_equal(result, frame)
 

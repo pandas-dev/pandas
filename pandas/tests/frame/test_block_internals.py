@@ -28,7 +28,7 @@ from pandas.tests.frame.common import TestData
 # structure
 
 
-class TestDataFrameBlockInternals(tm.TestCase, TestData):
+class TestDataFrameBlockInternals(TestData):
 
     def test_cast_internals(self):
         casted = DataFrame(self.frame._data, dtype=int)
@@ -95,47 +95,47 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         self.frame['foo'] = 'bar'
 
         values = self.frame.as_matrix(['A', 'B', 'C', 'D'])
-        self.assertEqual(values.dtype, np.float64)
+        assert values.dtype == np.float64
 
     def test_as_matrix_lcd(self):
 
         # mixed lcd
         values = self.mixed_float.as_matrix(['A', 'B', 'C', 'D'])
-        self.assertEqual(values.dtype, np.float64)
+        assert values.dtype == np.float64
 
         values = self.mixed_float.as_matrix(['A', 'B', 'C'])
-        self.assertEqual(values.dtype, np.float32)
+        assert values.dtype == np.float32
 
         values = self.mixed_float.as_matrix(['C'])
-        self.assertEqual(values.dtype, np.float16)
+        assert values.dtype == np.float16
 
         # GH 10364
         # B uint64 forces float because there are other signed int types
         values = self.mixed_int.as_matrix(['A', 'B', 'C', 'D'])
-        self.assertEqual(values.dtype, np.float64)
+        assert values.dtype == np.float64
 
         values = self.mixed_int.as_matrix(['A', 'D'])
-        self.assertEqual(values.dtype, np.int64)
+        assert values.dtype == np.int64
 
         # B uint64 forces float because there are other signed int types
         values = self.mixed_int.as_matrix(['A', 'B', 'C'])
-        self.assertEqual(values.dtype, np.float64)
+        assert values.dtype == np.float64
 
         # as B and C are both unsigned, no forcing to float is needed
         values = self.mixed_int.as_matrix(['B', 'C'])
-        self.assertEqual(values.dtype, np.uint64)
+        assert values.dtype == np.uint64
 
         values = self.mixed_int.as_matrix(['A', 'C'])
-        self.assertEqual(values.dtype, np.int32)
+        assert values.dtype == np.int32
 
         values = self.mixed_int.as_matrix(['C', 'D'])
-        self.assertEqual(values.dtype, np.int64)
+        assert values.dtype == np.int64
 
         values = self.mixed_int.as_matrix(['A'])
-        self.assertEqual(values.dtype, np.int32)
+        assert values.dtype == np.int32
 
         values = self.mixed_int.as_matrix(['C'])
-        self.assertEqual(values.dtype, np.uint8)
+        assert values.dtype == np.uint8
 
     def test_constructor_with_convert(self):
         # this is actually mostly a test of lib.maybe_convert_objects
@@ -220,8 +220,8 @@ class TestDataFrameBlockInternals(tm.TestCase, TestData):
         # mixed-type frames
         self.mixed_frame['datetime'] = datetime.now()
         self.mixed_frame['timedelta'] = timedelta(days=1, seconds=1)
-        self.assertEqual(self.mixed_frame['datetime'].dtype, 'M8[ns]')
-        self.assertEqual(self.mixed_frame['timedelta'].dtype, 'm8[ns]')
+        assert self.mixed_frame['datetime'].dtype == 'M8[ns]'
+        assert self.mixed_frame['timedelta'].dtype == 'm8[ns]'
         result = self.mixed_frame.get_dtype_counts().sort_values()
         expected = Series({'float64': 4,
                            'object': 1,
@@ -452,7 +452,7 @@ starting,ending,measure
         oops = self.mixed_frame.T.T
         converted = oops._convert(datetime=True)
         assert_frame_equal(converted, self.mixed_frame)
-        self.assertEqual(converted['A'].dtype, np.float64)
+        assert converted['A'].dtype == np.float64
 
         # force numeric conversion
         self.mixed_frame['H'] = '1.'
@@ -464,19 +464,19 @@ starting,ending,measure
         self.mixed_frame['K'] = '1'
         self.mixed_frame.loc[0:5, ['J', 'K']] = 'garbled'
         converted = self.mixed_frame._convert(datetime=True, numeric=True)
-        self.assertEqual(converted['H'].dtype, 'float64')
-        self.assertEqual(converted['I'].dtype, 'int64')
-        self.assertEqual(converted['J'].dtype, 'float64')
-        self.assertEqual(converted['K'].dtype, 'float64')
-        self.assertEqual(len(converted['J'].dropna()), l - 5)
-        self.assertEqual(len(converted['K'].dropna()), l - 5)
+        assert converted['H'].dtype == 'float64'
+        assert converted['I'].dtype == 'int64'
+        assert converted['J'].dtype == 'float64'
+        assert converted['K'].dtype == 'float64'
+        assert len(converted['J'].dropna()) == l - 5
+        assert len(converted['K'].dropna()) == l - 5
 
         # via astype
         converted = self.mixed_frame.copy()
         converted['H'] = converted['H'].astype('float64')
         converted['I'] = converted['I'].astype('int64')
-        self.assertEqual(converted['H'].dtype, 'float64')
-        self.assertEqual(converted['I'].dtype, 'int64')
+        assert converted['H'].dtype == 'float64'
+        assert converted['I'].dtype == 'int64'
 
         # via astype, but errors
         converted = self.mixed_frame.copy()

@@ -15,11 +15,13 @@ from pandas.plotting._core import grouped_hist
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
-@tm.mplskip
+tm._skip_if_no_mpl()
+
+
 class TestSeriesPlots(TestPlotBase):
 
-    def setUp(self):
-        TestPlotBase.setUp(self)
+    def setup_method(self, method):
+        TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
         mpl.rcdefaults()
 
@@ -54,7 +56,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_bins_legacy(self):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.hist(bins=2)[0][0]
-        self.assertEqual(len(ax.patches), 2)
+        assert len(ax.patches) == 2
 
     @slow
     def test_hist_layout(self):
@@ -122,13 +124,13 @@ class TestSeriesPlots(TestPlotBase):
         y.hist()
         fig = gcf()
         axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
-        self.assertEqual(len(axes), 2)
+        assert len(axes) == 2
 
     @slow
     def test_hist_by_no_extra_plots(self):
         df = self.hist_df
         axes = df.height.hist(by=df.gender)  # noqa
-        self.assertEqual(len(self.plt.get_fignums()), 1)
+        assert len(self.plt.get_fignums()) == 1
 
     @slow
     def test_plot_fails_when_ax_differs_from_figure(self):
@@ -140,7 +142,6 @@ class TestSeriesPlots(TestPlotBase):
             self.ts.hist(ax=ax1, figure=fig2)
 
 
-@tm.mplskip
 class TestDataFramePlots(TestPlotBase):
 
     @slow
@@ -196,7 +197,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = ser.hist(normed=True, cumulative=True, bins=4)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
-        self.assertAlmostEqual(rects[-1].get_height(), 1.0)
+        tm.assert_almost_equal(rects[-1].get_height(), 1.0)
 
         tm.close()
         ax = ser.hist(log=True)
@@ -251,7 +252,6 @@ class TestDataFramePlots(TestPlotBase):
             tm.close()
 
 
-@tm.mplskip
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @slow
@@ -286,7 +286,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
             height = rects[-1].get_height()
-            self.assertAlmostEqual(height, 1.0)
+            tm.assert_almost_equal(height, 1.0)
         self._check_ticks_props(axes, xlabelsize=xf, xrot=xrot,
                                 ylabelsize=yf, yrot=yrot)
 
@@ -314,8 +314,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                             'gender': gender_int})
         gb = df_int.groupby('gender')
         axes = gb.hist()
-        self.assertEqual(len(axes), 2)
-        self.assertEqual(len(self.plt.get_fignums()), 2)
+        assert len(axes) == 2
+        assert len(self.plt.get_fignums()) == 2
         tm.close()
 
     @slow

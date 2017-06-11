@@ -30,7 +30,7 @@ def assert_equal(left, right):
         tm.assert_frame_equal(left, right)
 
 
-class Base(tm.TestCase):
+class Base(object):
 
     _nan_locs = np.arange(20, 40)
     _inf_locs = np.array([])
@@ -48,7 +48,7 @@ class Base(tm.TestCase):
 
 class TestApi(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_getitem(self):
@@ -57,7 +57,7 @@ class TestApi(Base):
         tm.assert_index_equal(r._selected_obj.columns, self.frame.columns)
 
         r = self.frame.rolling(window=5)[1]
-        self.assertEqual(r._selected_obj.name, self.frame.columns[1])
+        assert r._selected_obj.name == self.frame.columns[1]
 
         # technically this is allowed
         r = self.frame.rolling(window=5)[1, 3]
@@ -281,8 +281,8 @@ class TestApi(Base):
 
         s2 = s.rolling(30).sum()
         s3 = s.rolling(20).sum()
-        self.assertEqual(s2.name, 'foo')
-        self.assertEqual(s3.name, 'foo')
+        assert s2.name == 'foo'
+        assert s3.name == 'foo'
 
     def test_how_compat(self):
         # in prior versions, we would allow how to be used in the resample
@@ -315,7 +315,7 @@ class TestApi(Base):
 
 class TestWindow(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_constructor(self):
@@ -360,7 +360,7 @@ class TestWindow(Base):
 
 class TestRolling(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_doc_string(self):
@@ -441,10 +441,24 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize('roller', ['1s', 1])
+    def tests_empty_df_rolling(self, roller):
+        # GH 15819 Verifies that datetime and integer rolling windows can be
+        # applied to empty DataFrames
+        expected = DataFrame()
+        result = DataFrame().rolling(roller).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Verifies that datetime and integer rolling windows can be applied to
+        # empty DataFrames with datetime index
+        expected = DataFrame(index=pd.DatetimeIndex([]))
+        result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_doc_string(self):
@@ -483,10 +497,28 @@ class TestExpanding(Base):
             tm.assert_raises_regex(UnsupportedFunctionCall, msg,
                                    getattr(e, func), dtype=np.float64)
 
+    @pytest.mark.parametrize(
+        'expander',
+        [1, pytest.mark.xfail(
+            reason='GH 16425 expanding with offset not supported')('1s')])
+    def tests_empty_df_expanding(self, expander):
+        # GH 15819 Verifies that datetime and integer expanding windows can be
+        # applied to empty DataFrames
+        expected = DataFrame()
+        result = DataFrame().expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Verifies that datetime and integer expanding windows can be applied
+        # to empty DataFrames with datetime index
+        expected = DataFrame(index=pd.DatetimeIndex([]))
+        result = DataFrame(
+            index=pd.DatetimeIndex([])).expanding(expander).sum()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestEWM(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_doc_string(self):
@@ -549,7 +581,7 @@ class TestEWM(Base):
 class TestDeprecations(Base):
     """ test that we are catching deprecation warnings """
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_deprecations(self):
@@ -559,11 +591,11 @@ class TestDeprecations(Base):
             mom.rolling_mean(Series(np.ones(10)), 3, center=True, axis=0)
 
 
-# GH #12373 : rolling functions error on float32 data
+# gh-12373 : rolling functions error on float32 data
 # make sure rolling functions works for different dtypes
 #
-# NOTE that these are yielded tests and so _create_data is
-# explicity called, nor do these inherit from unittest.TestCase
+# NOTE that these are yielded tests and so _create_data
+# is explicitly called.
 #
 # further note that we are only checking rolling for fully dtype
 # compliance (though both expanding and ewm inherit)
@@ -775,7 +807,7 @@ class TestDtype_datetime64UTC(DatetimeLike):
 
 class TestMoments(Base):
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def test_centered_axis_validation(self):
@@ -859,14 +891,14 @@ class TestMoments(Base):
         vals = np.array([])
         with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 5, 'boxcar', center=True)
-            self.assertEqual(len(rs), 0)
+            assert len(rs) == 0
 
         # shorter than window
         vals = np.random.randn(5)
         with catch_warnings(record=True):
             rs = mom.rolling_window(vals, 10, 'boxcar')
             assert np.isnan(rs).all()
-            self.assertEqual(len(rs), 5)
+            assert len(rs) == 5
 
     def test_cmov_window_frame(self):
         # Gh 8238
@@ -1382,7 +1414,7 @@ class TestMoments(Base):
         frame_result = get_result(self.frame, window=50)
 
         assert isinstance(series_result, Series)
-        self.assertEqual(type(frame_result), DataFrame)
+        assert type(frame_result) == DataFrame
 
         # check time_rule works
         if has_time_rule:
@@ -1406,7 +1438,7 @@ class TestMoments(Base):
             trunc_series = self.series[::2].truncate(prev_date, last_date)
             trunc_frame = self.frame[::2].truncate(prev_date, last_date)
 
-            self.assertAlmostEqual(series_result[-1],
+            tm.assert_almost_equal(series_result[-1],
                                    static_comp(trunc_series))
 
             tm.assert_series_equal(frame_result.xs(last_date),
@@ -1689,14 +1721,14 @@ class TestMoments(Base):
 
         # pass in ints
         result2 = func(np.arange(50), span=10)
-        self.assertEqual(result2.dtype, np.float_)
+        assert result2.dtype == np.float_
 
     def _check_ew_structures(self, func, name):
         series_result = getattr(self.series.ewm(com=10), name)()
         assert isinstance(series_result, Series)
 
         frame_result = getattr(self.frame.ewm(com=10), name)()
-        self.assertEqual(type(frame_result), DataFrame)
+        assert type(frame_result) == DataFrame
 
 
 class TestPairwise(object):
@@ -1958,7 +1990,7 @@ class TestMomentsConsistency(Base):
         super(TestMomentsConsistency, self)._create_data()
         self.data = _consistency_data
 
-    def setUp(self):
+    def setup_method(self, method):
         self._create_data()
 
     def _test_moments_consistency(self, min_periods, count, mean, mock_mean,
@@ -2911,7 +2943,7 @@ class TestMomentsConsistency(Base):
         series_result = func(self.series)
         assert isinstance(series_result, Series)
         frame_result = func(self.frame)
-        self.assertEqual(type(frame_result), DataFrame)
+        assert type(frame_result) == DataFrame
 
     def _check_expanding(self, func, static_comp, has_min_periods=True,
                          has_time_rule=True, preserve_nan=True):
@@ -3031,15 +3063,15 @@ class TestMomentsConsistency(Base):
             # correctness
             result = (DataFrame(np.arange(20, dtype=data_type))
                       .rolling(window=5).max())
-            self.assertEqual(result.dtypes[0], np.dtype("f8"))
+            assert result.dtypes[0] == np.dtype("f8")
             result = (DataFrame(np.arange(20, dtype=data_type))
                       .rolling(window=5).min())
-            self.assertEqual(result.dtypes[0], np.dtype("f8"))
+            assert result.dtypes[0] == np.dtype("f8")
 
 
-class TestGrouperGrouping(tm.TestCase):
+class TestGrouperGrouping(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(np.arange(10))
         self.frame = DataFrame({'A': [1] * 20 + [2] * 12 + [3] * 8,
                                 'B': np.arange(40)})
@@ -3182,12 +3214,12 @@ class TestGrouperGrouping(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestRollingTS(tm.TestCase):
+class TestRollingTS(object):
 
     # rolling time-series friendly
     # xref GH13327
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.regular = DataFrame({'A': pd.date_range('20130101',
                                                      periods=5,
@@ -3801,3 +3833,26 @@ class TestRollingTS(tm.TestCase):
         df2 = df.sort_values('B')
         result = df2.groupby('A').rolling('4s', on='B').C.mean()
         tm.assert_series_equal(result, expected)
+
+    def test_rolling_cov_offset(self):
+        # GH16058
+
+        idx = pd.date_range('2017-01-01', periods=24, freq='1h')
+        ss = pd.Series(np.arange(len(idx)), index=idx)
+
+        result = ss.rolling('2h').cov()
+        expected = pd.Series([np.nan] + [0.5 for _ in range(len(idx) - 1)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(2, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)
+
+        result = ss.rolling('3h').cov()
+        expected = pd.Series([np.nan, 0.5] +
+                             [1.0 for _ in range(len(idx) - 2)],
+                             index=idx)
+        tm.assert_series_equal(result, expected)
+
+        expected2 = ss.rolling(3, min_periods=1).cov()
+        tm.assert_series_equal(result, expected2)

@@ -12,7 +12,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameSubclassing(tm.TestCase, TestData):
+class TestDataFrameSubclassing(TestData):
 
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
@@ -55,12 +55,12 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
         # Do we get back our own Series class after selecting a column?
         cdf_series = cdf.col1
         assert isinstance(cdf_series, CustomSeries)
-        self.assertEqual(cdf_series.custom_series_function(), 'OK')
+        assert cdf_series.custom_series_function() == 'OK'
 
         # Do we get back our own DF class after slicing row-wise?
         cdf_rows = cdf[1:5]
         assert isinstance(cdf_rows, CustomDataFrame)
-        self.assertEqual(cdf_rows.custom_frame_function(), 'OK')
+        assert cdf_rows.custom_frame_function() == 'OK'
 
         # Make sure sliced part of multi-index frame is custom class
         mcol = pd.MultiIndex.from_tuples([('A', 'A'), ('A', 'B')])
@@ -76,19 +76,19 @@ class TestDataFrameSubclassing(tm.TestCase, TestData):
                                     index=['a', 'b', 'c'])
         df.testattr = 'XXX'
 
-        self.assertEqual(df.testattr, 'XXX')
-        self.assertEqual(df[['X']].testattr, 'XXX')
-        self.assertEqual(df.loc[['a', 'b'], :].testattr, 'XXX')
-        self.assertEqual(df.iloc[[0, 1], :].testattr, 'XXX')
+        assert df.testattr == 'XXX'
+        assert df[['X']].testattr == 'XXX'
+        assert df.loc[['a', 'b'], :].testattr == 'XXX'
+        assert df.iloc[[0, 1], :].testattr == 'XXX'
 
-        # GH9776
-        self.assertEqual(df.iloc[0:1, :].testattr, 'XXX')
+        # see gh-9776
+        assert df.iloc[0:1, :].testattr == 'XXX'
 
-        # GH10553
+        # see gh-10553
         unpickled = tm.round_trip_pickle(df)
         tm.assert_frame_equal(df, unpickled)
-        self.assertEqual(df._metadata, unpickled._metadata)
-        self.assertEqual(df.testattr, unpickled.testattr)
+        assert df._metadata == unpickled._metadata
+        assert df.testattr == unpickled.testattr
 
     def test_indexing_sliced(self):
         # GH 11559

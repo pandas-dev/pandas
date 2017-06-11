@@ -8,7 +8,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, date_range)
+from pandas import (Index, Series, DataFrame, date_range, option_context)
 from pandas.core.index import MultiIndex
 
 from pandas.compat import lrange, range, u
@@ -18,7 +18,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesRepr(TestData, tm.TestCase):
+class TestSeriesRepr(TestData):
 
     def test_multilevel_name_print(self):
         index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
@@ -34,7 +34,7 @@ class TestSeriesRepr(TestData, tm.TestCase):
                     "qux    one       7", "       two       8",
                     "       three     9", "Name: sth, dtype: int64"]
         expected = "\n".join(expected)
-        self.assertEqual(repr(s), expected)
+        assert repr(s) == expected
 
     def test_name_printing(self):
         # Test small Series.
@@ -109,10 +109,10 @@ class TestSeriesRepr(TestData, tm.TestCase):
 
         # with empty series (#4651)
         s = Series([], dtype=np.int64, name='foo')
-        self.assertEqual(repr(s), 'Series([], Name: foo, dtype: int64)')
+        assert repr(s) == 'Series([], Name: foo, dtype: int64)'
 
         s = Series([], dtype=np.int64, name=None)
-        self.assertEqual(repr(s), 'Series([], dtype: int64)')
+        assert repr(s) == 'Series([], dtype: int64)'
 
     def test_tidy_repr(self):
         a = Series([u("\u05d0")] * 1000)
@@ -180,3 +180,21 @@ class TestSeriesRepr(TestData, tm.TestCase):
 
         ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]
+
+    def test_latex_repr(self):
+        result = r"""\begin{tabular}{ll}
+\toprule
+{} &         0 \\
+\midrule
+0 &  $\alpha$ \\
+1 &         b \\
+2 &         c \\
+\bottomrule
+\end{tabular}
+"""
+        with option_context('display.latex.escape', False,
+                            'display.latex.repr', True):
+            s = Series([r'$\alpha$', 'b', 'c'])
+            assert result == s._repr_latex_()
+
+        assert s._repr_latex_() is None

@@ -15,9 +15,9 @@ import pandas.util.testing as tm
 from pandas.tseries.util import pivot_annual, isleapyear
 
 
-class TestPivotTable(tm.TestCase):
+class TestPivotTable(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
                                      'bar', 'bar', 'bar', 'bar',
                                      'foo', 'foo', 'foo'],
@@ -45,14 +45,14 @@ class TestPivotTable(tm.TestCase):
         pivot_table(self.data, values='D', index=index)
 
         if len(index) > 1:
-            self.assertEqual(table.index.names, tuple(index))
+            assert table.index.names == tuple(index)
         else:
-            self.assertEqual(table.index.name, index[0])
+            assert table.index.name == index[0]
 
         if len(columns) > 1:
-            self.assertEqual(table.columns.names, columns)
+            assert table.columns.names == columns
         else:
-            self.assertEqual(table.columns.name, columns[0])
+            assert table.columns.name == columns[0]
 
         expected = self.data.groupby(
             index + [columns])['D'].agg(np.mean).unstack()
@@ -148,7 +148,7 @@ class TestPivotTable(tm.TestCase):
         # can convert dtypes
         f = DataFrame({'a': ['cat', 'bat', 'cat', 'bat'], 'v': [
                       1, 2, 3, 4], 'i': ['a', 'b', 'a', 'b']})
-        self.assertEqual(f.dtypes['v'], 'int64')
+        assert f.dtypes['v'] == 'int64'
 
         z = pivot_table(f, values='v', index=['a'], columns=[
                         'i'], fill_value=0, aggfunc=np.sum)
@@ -159,7 +159,7 @@ class TestPivotTable(tm.TestCase):
         # cannot convert dtypes
         f = DataFrame({'a': ['cat', 'bat', 'cat', 'bat'], 'v': [
                       1.5, 2.5, 3.5, 4.5], 'i': ['a', 'b', 'a', 'b']})
-        self.assertEqual(f.dtypes['v'], 'float64')
+        assert f.dtypes['v'] == 'float64'
 
         z = pivot_table(f, values='v', index=['a'], columns=[
                         'i'], fill_value=0, aggfunc=np.mean)
@@ -249,10 +249,10 @@ class TestPivotTable(tm.TestCase):
         df.loc[1, 'b'] = df.loc[4, 'b'] = nan
 
         pv = df.pivot('a', 'b', 'c')
-        self.assertEqual(pv.notnull().values.sum(), len(df))
+        assert pv.notnull().values.sum() == len(df)
 
         for _, row in df.iterrows():
-            self.assertEqual(pv.loc[row['a'], row['b']], row['c'])
+            assert pv.loc[row['a'], row['b']] == row['c']
 
         tm.assert_frame_equal(df.pivot('b', 'a', 'c'), pv.T)
 
@@ -341,7 +341,7 @@ class TestPivotTable(tm.TestCase):
             expected_col_margins = self.data.groupby(index)[values_col].mean()
             tm.assert_series_equal(col_margins, expected_col_margins,
                                    check_names=False)
-            self.assertEqual(col_margins.name, margins_col)
+            assert col_margins.name == margins_col
 
             result = result.sort_index()
             index_margins = result.loc[(margins_col, '')].iloc[:-1]
@@ -349,11 +349,11 @@ class TestPivotTable(tm.TestCase):
             expected_ix_margins = self.data.groupby(columns)[values_col].mean()
             tm.assert_series_equal(index_margins, expected_ix_margins,
                                    check_names=False)
-            self.assertEqual(index_margins.name, (margins_col, ''))
+            assert index_margins.name == (margins_col, '')
 
             grand_total_margins = result.loc[(margins_col, ''), margins_col]
             expected_total_margins = self.data[values_col].mean()
-            self.assertEqual(grand_total_margins, expected_total_margins)
+            assert grand_total_margins == expected_total_margins
 
         # column specified
         result = self.data.pivot_table(values='D', index=['A', 'B'],
@@ -382,7 +382,7 @@ class TestPivotTable(tm.TestCase):
                                       aggfunc=np.mean)
         for value_col in table.columns:
             totals = table.loc[('All', ''), value_col]
-            self.assertEqual(totals, self.data[value_col].mean())
+            assert totals == self.data[value_col].mean()
 
         # no rows
         rtable = self.data.pivot_table(columns=['AA', 'BB'], margins=True,
@@ -393,7 +393,7 @@ class TestPivotTable(tm.TestCase):
                                       aggfunc='mean')
         for item in ['DD', 'EE', 'FF']:
             totals = table.loc[('All', ''), item]
-            self.assertEqual(totals, self.data[item].mean())
+            assert totals == self.data[item].mean()
 
         # issue number #8349: pivot_table with margins and dictionary aggfunc
         data = [
@@ -528,21 +528,21 @@ class TestPivotTable(tm.TestCase):
         result = self.data[['A', 'B']].pivot_table(
             index=['A', 'B'], aggfunc=len, margins=True)
         result_list = result.tolist()
-        self.assertEqual(sum(result_list[:-1]), result_list[-1])
+        assert sum(result_list[:-1]) == result_list[-1]
 
     def test_margins_no_values_two_rows(self):
         # Regression test on pivot table: no values passed but rows are a
         # multi-index
         result = self.data[['A', 'B', 'C']].pivot_table(
             index=['A', 'B'], columns='C', aggfunc=len, margins=True)
-        self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
+        assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
 
     def test_margins_no_values_one_row_one_col(self):
         # Regression test on pivot table: no values passed but row and col
         # defined
         result = self.data[['A', 'B']].pivot_table(
             index='A', columns='B', aggfunc=len, margins=True)
-        self.assertEqual(result.All.tolist(), [4.0, 7.0, 11.0])
+        assert result.All.tolist() == [4.0, 7.0, 11.0]
 
     def test_margins_no_values_two_row_two_cols(self):
         # Regression test on pivot table: no values passed but rows and cols
@@ -551,10 +551,10 @@ class TestPivotTable(tm.TestCase):
                           'e', 'f', 'g', 'h', 'i', 'j', 'k']
         result = self.data[['A', 'B', 'C', 'D']].pivot_table(
             index=['A', 'B'], columns=['C', 'D'], aggfunc=len, margins=True)
-        self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
+        assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
 
     def test_pivot_table_with_margins_set_margin_name(self):
-        # GH 3335
+        # see gh-3335
         for margin_name in ['foo', 'one', 666, None, ['a', 'b']]:
             with pytest.raises(ValueError):
                 # multi-index index
@@ -982,9 +982,9 @@ class TestPivotTable(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestCrosstab(tm.TestCase):
+class TestCrosstab(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'foo',
                               'bar', 'bar', 'bar', 'bar',
                               'foo', 'foo', 'foo'],
@@ -1037,8 +1037,8 @@ class TestCrosstab(tm.TestCase):
 
         # assign arbitrary names
         result = crosstab(self.df['A'].values, self.df['C'].values)
-        self.assertEqual(result.index.name, 'row_0')
-        self.assertEqual(result.columns.name, 'col_0')
+        assert result.index.name == 'row_0'
+        assert result.columns.name == 'col_0'
 
     def test_crosstab_margins(self):
         a = np.random.randint(0, 7, size=100)
@@ -1050,8 +1050,8 @@ class TestCrosstab(tm.TestCase):
         result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
                           margins=True)
 
-        self.assertEqual(result.index.names, ('a',))
-        self.assertEqual(result.columns.names, ['b', 'c'])
+        assert result.index.names == ('a',)
+        assert result.columns.names == ['b', 'c']
 
         all_cols = result['All', '']
         exp_cols = df.groupby(['a']).size().astype('i8')
@@ -1070,6 +1070,43 @@ class TestCrosstab(tm.TestCase):
         exp_rows = exp_rows.reindex(all_rows.index)
         exp_rows = exp_rows.fillna(0).astype(np.int64)
         tm.assert_series_equal(all_rows, exp_rows)
+
+    def test_crosstab_margins_set_margin_name(self):
+        # GH 15972
+        a = np.random.randint(0, 7, size=100)
+        b = np.random.randint(0, 3, size=100)
+        c = np.random.randint(0, 5, size=100)
+
+        df = DataFrame({'a': a, 'b': b, 'c': c})
+
+        result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
+                          margins=True, margins_name='TOTAL')
+
+        assert result.index.names == ('a',)
+        assert result.columns.names == ['b', 'c']
+
+        all_cols = result['TOTAL', '']
+        exp_cols = df.groupby(['a']).size().astype('i8')
+        # to keep index.name
+        exp_margin = Series([len(df)], index=Index(['TOTAL'], name='a'))
+        exp_cols = exp_cols.append(exp_margin)
+        exp_cols.name = ('TOTAL', '')
+
+        tm.assert_series_equal(all_cols, exp_cols)
+
+        all_rows = result.loc['TOTAL']
+        exp_rows = df.groupby(['b', 'c']).size().astype('i8')
+        exp_rows = exp_rows.append(Series([len(df)], index=[('TOTAL', '')]))
+        exp_rows.name = 'TOTAL'
+
+        exp_rows = exp_rows.reindex(all_rows.index)
+        exp_rows = exp_rows.fillna(0).astype(np.int64)
+        tm.assert_series_equal(all_rows, exp_rows)
+
+        for margins_name in [666, None, ['a', 'b']]:
+            with pytest.raises(ValueError):
+                crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
+                         margins=True, margins_name=margins_name)
 
     def test_crosstab_pass_values(self):
         a = np.random.randint(0, 7, size=100)
@@ -1397,7 +1434,7 @@ class TestCrosstab(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestPivotAnnual(tm.TestCase):
+class TestPivotAnnual(object):
     """
     New pandas of scikits.timeseries pivot_annual
     """
@@ -1420,7 +1457,7 @@ class TestPivotAnnual(tm.TestCase):
 
             result = annual[i].dropna()
             tm.assert_series_equal(result, subset, check_names=False)
-            self.assertEqual(result.name, i)
+            assert result.name == i
 
         # check leap days
         leaps = ts[(ts.index.month == 2) & (ts.index.day == 29)]
@@ -1453,7 +1490,7 @@ class TestPivotAnnual(tm.TestCase):
 
             result = annual[i].dropna()
             tm.assert_series_equal(result, subset, check_names=False)
-            self.assertEqual(result.name, i)
+            assert result.name == i
 
         leaps = ts_hourly[(ts_hourly.index.month == 2) & (
             ts_hourly.index.day == 29) & (ts_hourly.index.hour == 0)]
@@ -1478,7 +1515,7 @@ class TestPivotAnnual(tm.TestCase):
             subset.index = [x.year for x in subset.index]
             result = annual[i].dropna()
             tm.assert_series_equal(result, subset, check_names=False)
-            self.assertEqual(result.name, i)
+            assert result.name == i
 
     def test_period_monthly(self):
         pass

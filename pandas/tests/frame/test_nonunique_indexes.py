@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
+class TestDataFrameNonuniqueIndexes(TestData):
 
     def test_column_dups_operations(self):
 
@@ -425,8 +425,8 @@ class TestDataFrameNonuniqueIndexes(tm.TestCase, TestData):
                           columns=df_float.columns)
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
-        self.assertEqual(len(df._data._blknos), len(df.columns))
-        self.assertEqual(len(df._data._blklocs), len(df.columns))
+        assert len(df._data._blknos) == len(df.columns)
+        assert len(df._data._blklocs) == len(df.columns)
 
         # testing iloc
         for i in range(len(df.columns)):

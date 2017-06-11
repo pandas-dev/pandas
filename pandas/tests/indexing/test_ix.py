@@ -14,7 +14,7 @@ from pandas.util import testing as tm
 from pandas.errors import PerformanceWarning
 
 
-class TestIX(tm.TestCase):
+class TestIX(object):
 
     def test_ix_deprecation(self):
         # GH 15114
@@ -82,7 +82,7 @@ class TestIX(tm.TestCase):
 
         def compare(result, expected):
             if is_scalar(expected):
-                self.assertEqual(result, expected)
+                assert result == expected
             else:
                 assert expected.equals(result)
 
@@ -216,7 +216,7 @@ class TestIX(tm.TestCase):
             indexer = i * 2
             v = 1000 + i * 200
             expected.loc[indexer, 'y'] = v
-            self.assertEqual(expected.loc[indexer, 'y'], v)
+            assert expected.loc[indexer, 'y'] == v
 
         df.loc[df.x % 2 == 0, 'y'] = df.loc[df.x % 2 == 0, 'y'] * 100
         tm.assert_frame_equal(df, expected)
@@ -252,21 +252,21 @@ class TestIX(tm.TestCase):
                        index=['e', 7, 'f', 'g'])
 
         with catch_warnings(record=True):
-            self.assertEqual(df.ix['e', 8], 2)
-        self.assertEqual(df.loc['e', 8], 2)
+            assert df.ix['e', 8] == 2
+        assert df.loc['e', 8] == 2
 
         with catch_warnings(record=True):
             df.ix['e', 8] = 42
-            self.assertEqual(df.ix['e', 8], 42)
-        self.assertEqual(df.loc['e', 8], 42)
+            assert df.ix['e', 8] == 42
+        assert df.loc['e', 8] == 42
 
         df.loc['e', 8] = 45
         with catch_warnings(record=True):
-            self.assertEqual(df.ix['e', 8], 45)
-        self.assertEqual(df.loc['e', 8], 45)
+            assert df.ix['e', 8] == 45
+        assert df.loc['e', 8] == 45
 
     def test_ix_slicing_strings(self):
-        # GH3836
+        # see gh-3836
         data = {'Classification':
                 ['SA EQUITY CFD', 'bbb', 'SA EQUITY', 'SA SSF', 'aaa'],
                 'Random': [1, 2, 3, 4, 5],

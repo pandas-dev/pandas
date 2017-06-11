@@ -222,9 +222,9 @@ class SafeForSparse(object):
         assert self.panel.minor_axis is new_minor
 
     def test_get_axis_number(self):
-        self.assertEqual(self.panel._get_axis_number('items'), 0)
-        self.assertEqual(self.panel._get_axis_number('major'), 1)
-        self.assertEqual(self.panel._get_axis_number('minor'), 2)
+        assert self.panel._get_axis_number('items') == 0
+        assert self.panel._get_axis_number('major') == 1
+        assert self.panel._get_axis_number('minor') == 2
 
         with tm.assert_raises_regex(ValueError, "No axis named foo"):
             self.panel._get_axis_number('foo')
@@ -233,9 +233,9 @@ class SafeForSparse(object):
             self.panel.__ge__(self.panel, axis='foo')
 
     def test_get_axis_name(self):
-        self.assertEqual(self.panel._get_axis_name(0), 'items')
-        self.assertEqual(self.panel._get_axis_name(1), 'major_axis')
-        self.assertEqual(self.panel._get_axis_name(2), 'minor_axis')
+        assert self.panel._get_axis_name(0) == 'items'
+        assert self.panel._get_axis_name(1) == 'major_axis'
+        assert self.panel._get_axis_name(2) == 'minor_axis'
 
     def test_get_plane_axes(self):
         # what to do here?
@@ -303,8 +303,7 @@ class SafeForSparse(object):
         for k, v in self.panel.iteritems():
             pass
 
-        self.assertEqual(len(list(self.panel.iteritems())),
-                         len(self.panel.items))
+        assert len(list(self.panel.iteritems())) == len(self.panel.items)
 
     def test_combineFrame(self):
         with catch_warnings(record=True):
@@ -432,8 +431,8 @@ class SafeForSparse(object):
             expected = np.abs(s)
             assert_series_equal(result, expected)
             assert_series_equal(result2, expected)
-            self.assertEqual(result.name, 'A')
-            self.assertEqual(result2.name, 'A')
+            assert result.name == 'A'
+            assert result2.name == 'A'
 
 
 class CheckIndexing(object):
@@ -497,16 +496,16 @@ class CheckIndexing(object):
             # scalar
             self.panel['ItemG'] = 1
             self.panel['ItemE'] = True
-            self.assertEqual(self.panel['ItemG'].values.dtype, np.int64)
-            self.assertEqual(self.panel['ItemE'].values.dtype, np.bool_)
+            assert self.panel['ItemG'].values.dtype == np.int64
+            assert self.panel['ItemE'].values.dtype == np.bool_
 
             # object dtype
             self.panel['ItemQ'] = 'foo'
-            self.assertEqual(self.panel['ItemQ'].values.dtype, np.object_)
+            assert self.panel['ItemQ'].values.dtype == np.object_
 
             # boolean dtype
             self.panel['ItemP'] = self.panel['ItemA'] > 0
-            self.assertEqual(self.panel['ItemP'].values.dtype, np.bool_)
+            assert self.panel['ItemP'].values.dtype == np.bool_
 
             pytest.raises(TypeError, self.panel.__setitem__, 'foo',
                           self.panel.loc[['ItemP']])
@@ -560,7 +559,7 @@ class CheckIndexing(object):
 
             result = xs['ItemA']
             assert_series_equal(result, ref.xs(idx), check_names=False)
-            self.assertEqual(result.name, 'ItemA')
+            assert result.name == 'ItemA'
 
             # not contained
             idx = self.panel.major_axis[0] - BDay()
@@ -570,8 +569,8 @@ class CheckIndexing(object):
         with catch_warnings(record=True):
             self.panel['ItemD'] = 'foo'
             xs = self.panel.major_xs(self.panel.major_axis[0])
-            self.assertEqual(xs['ItemA'].dtype, np.float64)
-            self.assertEqual(xs['ItemD'].dtype, np.object_)
+            assert xs['ItemA'].dtype == np.float64
+            assert xs['ItemD'].dtype == np.object_
 
     def test_minor_xs(self):
         with catch_warnings(record=True):
@@ -590,8 +589,8 @@ class CheckIndexing(object):
             self.panel['ItemD'] = 'foo'
 
             xs = self.panel.minor_xs('D')
-            self.assertEqual(xs['ItemA'].dtype, np.float64)
-            self.assertEqual(xs['ItemD'].dtype, np.object_)
+            assert xs['ItemA'].dtype == np.float64
+            assert xs['ItemD'].dtype == np.object_
 
     def test_xs(self):
         with catch_warnings(record=True):
@@ -902,14 +901,14 @@ class CheckIndexing(object):
                 self.panel.set_value('a')
 
 
-class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
+class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                 SafeForSparse):
 
     @classmethod
     def assert_panel_equal(cls, x, y):
         assert_panel_equal(x, y)
 
-    def setUp(self):
+    def setup_method(self, method):
         self.panel = make_test_panel()
         self.panel.major_axis.name = None
         self.panel.minor_axis.name = None
@@ -985,16 +984,16 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
     def test_constructor_empty_panel(self):
         with catch_warnings(record=True):
             empty = Panel()
-            self.assertEqual(len(empty.items), 0)
-            self.assertEqual(len(empty.major_axis), 0)
-            self.assertEqual(len(empty.minor_axis), 0)
+            assert len(empty.items) == 0
+            assert len(empty.major_axis) == 0
+            assert len(empty.minor_axis) == 0
 
     def test_constructor_observe_dtype(self):
         with catch_warnings(record=True):
             # GH #411
             panel = Panel(items=lrange(3), major_axis=lrange(3),
                           minor_axis=lrange(3), dtype='O')
-            self.assertEqual(panel.values.dtype, np.object_)
+            assert panel.values.dtype == np.object_
 
     def test_constructor_dtypes(self):
         with catch_warnings(record=True):
@@ -1002,7 +1001,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             def _check_dtype(panel, dtype):
                 for i in panel.items:
-                    self.assertEqual(panel[i].values.dtype.name, dtype)
+                    assert panel[i].values.dtype.name == dtype
 
             # only nan holding types allowed here
             for dtype in ['float64', 'float32', 'object']:
@@ -1173,8 +1172,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             panel = Panel.from_dict(data, orient='minor')
 
-            self.assertEqual(panel['foo'].values.dtype, np.object_)
-            self.assertEqual(panel['A'].values.dtype, np.float64)
+            assert panel['foo'].values.dtype == np.object_
+            assert panel['A'].values.dtype == np.float64
 
     def test_constructor_error_msgs(self):
         with catch_warnings(record=True):
@@ -1637,7 +1636,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             # this works, but return a copy
             result = self.panel.swapaxes('items', 'items')
             assert_panel_equal(self.panel, result)
-            self.assertNotEqual(id(self.panel), id(result))
+            assert id(self.panel) != id(result)
 
     def test_transpose(self):
         with catch_warnings(record=True):
@@ -1709,7 +1708,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert_panel_equal(unfiltered.to_panel(), self.panel)
 
             # names
-            self.assertEqual(unfiltered.index.names, ('major', 'minor'))
+            assert unfiltered.index.names == ('major', 'minor')
 
             # unsorted, round trip
             df = self.panel.to_frame(filter_observations=False)
@@ -1726,8 +1725,8 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
             df.columns.name = 'baz'
 
             rdf = df.to_panel().to_frame()
-            self.assertEqual(rdf.index.names, df.index.names)
-            self.assertEqual(rdf.columns.names, df.columns.names)
+            assert rdf.index.names == df.index.names
+            assert rdf.columns.names == df.columns.names
 
     def test_to_frame_mixed(self):
         with catch_warnings(record=True):
@@ -1737,7 +1736,7 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
 
             lp = panel.to_frame()
             wp = lp.to_panel()
-            self.assertEqual(wp['bool'].values.dtype, np.bool_)
+            assert wp['bool'].values.dtype == np.bool_
             # Previously, this was mutating the underlying
             # index and changing its name
             assert_frame_equal(wp['bool'], panel['bool'], check_names=False)
@@ -2430,13 +2429,18 @@ class TestPanel(tm.TestCase, PanelTests, CheckIndexing, SafeForLongAndSparse,
         pytest.raises(NotImplementedError, self.panel.all, bool_only=True)
         pytest.raises(NotImplementedError, self.panel.any, bool_only=True)
 
+    # GH issue 15960
+    def test_sort_values(self):
+        pytest.raises(NotImplementedError, self.panel.sort_values)
+        pytest.raises(NotImplementedError, self.panel.sort_values, 'ItemA')
 
-class TestLongPanel(tm.TestCase):
+
+class TestLongPanel(object):
     """
     LongPanel no longer exists, but...
     """
 
-    def setUp(self):
+    def setup_method(self, method):
         panel = make_test_panel()
         self.panel = panel.to_frame()
         self.unfiltered_panel = panel.to_frame(filter_observations=False)
@@ -2591,18 +2595,16 @@ class TestLongPanel(tm.TestCase):
         from pandas.core.reshape.reshape import make_axis_dummies
 
         minor_dummies = make_axis_dummies(self.panel, 'minor').astype(np.uint8)
-        self.assertEqual(len(minor_dummies.columns),
-                         len(self.panel.index.levels[1]))
+        assert len(minor_dummies.columns) == len(self.panel.index.levels[1])
 
         major_dummies = make_axis_dummies(self.panel, 'major').astype(np.uint8)
-        self.assertEqual(len(major_dummies.columns),
-                         len(self.panel.index.levels[0]))
+        assert len(major_dummies.columns) == len(self.panel.index.levels[0])
 
         mapping = {'A': 'one', 'B': 'one', 'C': 'two', 'D': 'two'}
 
         transformed = make_axis_dummies(self.panel, 'minor',
                                         transform=mapping.get).astype(np.uint8)
-        self.assertEqual(len(transformed.columns), 2)
+        assert len(transformed.columns) == 2
         tm.assert_index_equal(transformed.columns, Index(['one', 'two']))
 
         # TODO: test correctness
@@ -2638,12 +2640,12 @@ class TestLongPanel(tm.TestCase):
             major_count = self.panel.count(level=0)['ItemA']
             labels = index.labels[0]
             for i, idx in enumerate(index.levels[0]):
-                self.assertEqual(major_count[i], (labels == i).sum())
+                assert major_count[i] == (labels == i).sum()
 
             minor_count = self.panel.count(level=1)['ItemA']
             labels = index.labels[1]
             for i, idx in enumerate(index.levels[1]):
-                self.assertEqual(minor_count[i], (labels == i).sum())
+                assert minor_count[i] == (labels == i).sum()
 
     def test_join(self):
         with catch_warnings(record=True):
@@ -2652,7 +2654,7 @@ class TestLongPanel(tm.TestCase):
 
             joined = lp1.join(lp2)
 
-            self.assertEqual(len(joined.columns), 3)
+            assert len(joined.columns) == 3
 
             pytest.raises(Exception, lp1.join,
                           self.panel.filter(['ItemB', 'ItemC']))
@@ -2665,11 +2667,11 @@ class TestLongPanel(tm.TestCase):
                                np.array(['a', 'b', 'c', 'd', 'e']),
                                np.array([1, 2, 3, 5, 4.]))
             df = pivot(one, two, three)
-            self.assertEqual(df['a'][1], 1)
-            self.assertEqual(df['b'][2], 2)
-            self.assertEqual(df['c'][3], 3)
-            self.assertEqual(df['d'][4], 5)
-            self.assertEqual(df['e'][5], 4)
+            assert df['a'][1] == 1
+            assert df['b'][2] == 2
+            assert df['c'][3] == 3
+            assert df['d'][4] == 5
+            assert df['e'][5] == 4
             assert_frame_equal(df, _slow_pivot(one, two, three))
 
             # weird overlap, TODO: test?

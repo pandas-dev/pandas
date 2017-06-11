@@ -16,7 +16,7 @@ from pandas.core.sorting import (is_int64_overflow_possible,
                                  lexsort_indexer)
 
 
-class TestSorting(tm.TestCase):
+class TestSorting(object):
 
     @pytest.mark.slow
     def test_int64_overflow(self):
@@ -191,7 +191,7 @@ class TestSorting(tm.TestCase):
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
 
-class TestMerge(tm.TestCase):
+class TestMerge(object):
 
     @pytest.mark.slow
     def test_int64_overflow_issues(self):

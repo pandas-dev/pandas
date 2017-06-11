@@ -10,62 +10,62 @@ import numpy as np
 
 from pandas import _np_version_under1p8
 from pandas.core.sparse.api import SparseArray, SparseSeries
-from pandas.core.sparse.libsparse import IntIndex
+from pandas._libs.sparse import IntIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 
 
-class TestSparseArray(tm.TestCase):
+class TestSparseArray(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.arr_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
         self.arr = SparseArray(self.arr_data)
         self.zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 
     def test_constructor_dtype(self):
         arr = SparseArray([np.nan, 1, 2, np.nan])
-        self.assertEqual(arr.dtype, np.float64)
+        assert arr.dtype == np.float64
         assert np.isnan(arr.fill_value)
 
         arr = SparseArray([np.nan, 1, 2, np.nan], fill_value=0)
-        self.assertEqual(arr.dtype, np.float64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.float64
+        assert arr.fill_value == 0
 
         arr = SparseArray([0, 1, 2, 4], dtype=np.float64)
-        self.assertEqual(arr.dtype, np.float64)
+        assert arr.dtype == np.float64
         assert np.isnan(arr.fill_value)
 
         arr = SparseArray([0, 1, 2, 4], dtype=np.int64)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         arr = SparseArray([0, 1, 2, 4], fill_value=0, dtype=np.int64)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         arr = SparseArray([0, 1, 2, 4], dtype=None)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         arr = SparseArray([0, 1, 2, 4], fill_value=0, dtype=None)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
     def test_constructor_object_dtype(self):
         # GH 11856
         arr = SparseArray(['A', 'A', np.nan, 'B'], dtype=np.object)
-        self.assertEqual(arr.dtype, np.object)
+        assert arr.dtype == np.object
         assert np.isnan(arr.fill_value)
 
         arr = SparseArray(['A', 'A', np.nan, 'B'], dtype=np.object,
                           fill_value='A')
-        self.assertEqual(arr.dtype, np.object)
-        self.assertEqual(arr.fill_value, 'A')
+        assert arr.dtype == np.object
+        assert arr.fill_value == 'A'
 
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         tm.assert_sp_array_equal(arr, SparseArray([np.nan, 1, 2, np.nan]))
-        self.assertEqual(arr.dtype, np.float64)
+        assert arr.dtype == np.float64
         assert np.isnan(arr.fill_value)
 
         arr = SparseArray(data=[1, 2, 3],
@@ -73,37 +73,37 @@ class TestSparseArray(tm.TestCase):
                           dtype=np.int64, fill_value=0)
         exp = SparseArray([0, 1, 2, 3], dtype=np.int64, fill_value=0)
         tm.assert_sp_array_equal(arr, exp)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]),
                           fill_value=0, dtype=np.int64)
         exp = SparseArray([0, 1, 2, 0], fill_value=0, dtype=np.int64)
         tm.assert_sp_array_equal(arr, exp)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         arr = SparseArray(data=[1, 2, 3],
                           sparse_index=IntIndex(4, [1, 2, 3]),
                           dtype=None, fill_value=0)
         exp = SparseArray([0, 1, 2, 3], dtype=None)
         tm.assert_sp_array_equal(arr, exp)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         # scalar input
         arr = SparseArray(data=1, sparse_index=IntIndex(1, [0]), dtype=None)
         exp = SparseArray([1], dtype=None)
         tm.assert_sp_array_equal(arr, exp)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]),
                           fill_value=0, dtype=None)
         exp = SparseArray([0, 1, 2, 0], fill_value=0, dtype=None)
         tm.assert_sp_array_equal(arr, exp)
-        self.assertEqual(arr.dtype, np.int64)
-        self.assertEqual(arr.fill_value, 0)
+        assert arr.dtype == np.int64
+        assert arr.fill_value == 0
 
     def test_sparseseries_roundtrip(self):
         # GH 13999
@@ -134,17 +134,17 @@ class TestSparseArray(tm.TestCase):
     def test_get_item(self):
 
         assert np.isnan(self.arr[1])
-        self.assertEqual(self.arr[2], 1)
-        self.assertEqual(self.arr[7], 5)
+        assert self.arr[2] == 1
+        assert self.arr[7] == 5
 
-        self.assertEqual(self.zarr[0], 0)
-        self.assertEqual(self.zarr[2], 1)
-        self.assertEqual(self.zarr[7], 5)
+        assert self.zarr[0] == 0
+        assert self.zarr[2] == 1
+        assert self.zarr[7] == 5
 
         errmsg = re.compile("bounds")
         tm.assert_raises_regex(IndexError, errmsg, lambda: self.arr[11])
         tm.assert_raises_regex(IndexError, errmsg, lambda: self.arr[-11])
-        self.assertEqual(self.arr[-1], self.arr[len(self.arr) - 1])
+        assert self.arr[-1] == self.arr[len(self.arr) - 1]
 
     def test_take(self):
         assert np.isnan(self.arr.take(0))
@@ -152,8 +152,8 @@ class TestSparseArray(tm.TestCase):
 
         # np.take in < 1.8 doesn't support scalar indexing
         if not _np_version_under1p8:
-            self.assertEqual(self.arr.take(2), np.take(self.arr_data, 2))
-            self.assertEqual(self.arr.take(6), np.take(self.arr_data, 6))
+            assert self.arr.take(2) == np.take(self.arr_data, 2)
+            assert self.arr.take(6) == np.take(self.arr_data, 6)
 
         exp = SparseArray(np.take(self.arr_data, [2, 3]))
         tm.assert_sp_array_equal(self.arr.take([2, 3]), exp)
@@ -293,7 +293,7 @@ class TestSparseArray(tm.TestCase):
 
     def test_constructor_from_sparse(self):
         res = SparseArray(self.zarr)
-        self.assertEqual(res.fill_value, 0)
+        assert res.fill_value == 0
         assert_almost_equal(res.sp_values, self.zarr.sp_values)
 
     def test_constructor_copy(self):
@@ -310,27 +310,27 @@ class TestSparseArray(tm.TestCase):
         data = np.array([False, False, True, True, False, False])
         arr = SparseArray(data, fill_value=False, dtype=bool)
 
-        self.assertEqual(arr.dtype, bool)
+        assert arr.dtype == bool
         tm.assert_numpy_array_equal(arr.sp_values, np.array([True, True]))
         tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
         tm.assert_numpy_array_equal(arr.sp_index.indices,
                                     np.array([2, 3], np.int32))
 
         for dense in [arr.to_dense(), arr.values]:
-            self.assertEqual(dense.dtype, bool)
+            assert dense.dtype == bool
             tm.assert_numpy_array_equal(dense, data)
 
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
-        self.assertEqual(arr.dtype, np.bool)
+        assert arr.dtype == np.bool
         assert not arr.fill_value
 
         arr = SparseArray([True, False, True], dtype=np.bool)
-        self.assertEqual(arr.dtype, np.bool)
+        assert arr.dtype == np.bool
         assert not arr.fill_value
 
         arr = SparseArray([True, False, True], dtype=np.bool, fill_value=True)
-        self.assertEqual(arr.dtype, np.bool)
+        assert arr.dtype == np.bool
         assert arr.fill_value
 
     def test_constructor_float32(self):
@@ -338,7 +338,7 @@ class TestSparseArray(tm.TestCase):
         data = np.array([1., np.nan, 3], dtype=np.float32)
         arr = SparseArray(data, dtype=np.float32)
 
-        self.assertEqual(arr.dtype, np.float32)
+        assert arr.dtype == np.float32
         tm.assert_numpy_array_equal(arr.sp_values,
                                     np.array([1, 3], dtype=np.float32))
         tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
@@ -346,7 +346,7 @@ class TestSparseArray(tm.TestCase):
                                     np.array([0, 2], dtype=np.int32))
 
         for dense in [arr.to_dense(), arr.values]:
-            self.assertEqual(dense.dtype, np.float32)
+            assert dense.dtype == np.float32
             tm.assert_numpy_array_equal(dense, data)
 
     def test_astype(self):
@@ -375,19 +375,19 @@ class TestSparseArray(tm.TestCase):
                  np.int32, np.int16, np.int8]
         for typ in types:
             res = arr.astype(typ)
-            self.assertEqual(res.dtype, typ)
-            self.assertEqual(res.sp_values.dtype, typ)
+            assert res.dtype == typ
+            assert res.sp_values.dtype == typ
 
             tm.assert_numpy_array_equal(res.values, vals.astype(typ))
 
     def test_set_fill_value(self):
         arr = SparseArray([1., np.nan, 2.], fill_value=np.nan)
         arr.fill_value = 2
-        self.assertEqual(arr.fill_value, 2)
+        assert arr.fill_value == 2
 
         arr = SparseArray([1, 0, 2], fill_value=0, dtype=np.int64)
         arr.fill_value = 2
-        self.assertEqual(arr.fill_value, 2)
+        assert arr.fill_value == 2
 
         # coerces to int
         msg = "unable to set fill_value 3\\.1 to int64 dtype"
@@ -621,14 +621,14 @@ class TestSparseArray(tm.TestCase):
 
         # int dtype shouldn't have missing. No changes.
         s = SparseArray([0, 0, 0, 0])
-        self.assertEqual(s.dtype, np.int64)
-        self.assertEqual(s.fill_value, 0)
+        assert s.dtype == np.int64
+        assert s.fill_value == 0
         res = s.fillna(-1)
         tm.assert_sp_array_equal(res, s)
 
         s = SparseArray([0, 0, 0, 0], fill_value=0)
-        self.assertEqual(s.dtype, np.int64)
-        self.assertEqual(s.fill_value, 0)
+        assert s.dtype == np.int64
+        assert s.fill_value == 0
         res = s.fillna(-1)
         exp = SparseArray([0, 0, 0, 0], fill_value=0)
         tm.assert_sp_array_equal(res, exp)
@@ -636,7 +636,7 @@ class TestSparseArray(tm.TestCase):
         # fill_value can be nan if there is no missing hole.
         # only fill_value will be changed
         s = SparseArray([0, 0, 0, 0], fill_value=np.nan)
-        self.assertEqual(s.dtype, np.int64)
+        assert s.dtype == np.int64
         assert np.isnan(s.fill_value)
         res = s.fillna(-1)
         exp = SparseArray([0, 0, 0, 0], fill_value=-1)
@@ -656,31 +656,31 @@ class TestSparseArray(tm.TestCase):
         tm.assert_sp_array_equal(res, exp)
 
 
-class TestSparseArrayAnalytics(tm.TestCase):
+class TestSparseArrayAnalytics(object):
 
     def test_sum(self):
         data = np.arange(10).astype(float)
         out = SparseArray(data).sum()
-        self.assertEqual(out, 45.0)
+        assert out == 45.0
 
         data[5] = np.nan
         out = SparseArray(data, fill_value=2).sum()
-        self.assertEqual(out, 40.0)
+        assert out == 40.0
 
         out = SparseArray(data, fill_value=np.nan).sum()
-        self.assertEqual(out, 40.0)
+        assert out == 40.0
 
     def test_numpy_sum(self):
         data = np.arange(10).astype(float)
         out = np.sum(SparseArray(data))
-        self.assertEqual(out, 45.0)
+        assert out == 45.0
 
         data[5] = np.nan
         out = np.sum(SparseArray(data, fill_value=2))
-        self.assertEqual(out, 40.0)
+        assert out == 40.0
 
         out = np.sum(SparseArray(data, fill_value=np.nan))
-        self.assertEqual(out, 40.0)
+        assert out == 40.0
 
         msg = "the 'dtype' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.sum,
@@ -746,20 +746,20 @@ class TestSparseArrayAnalytics(tm.TestCase):
     def test_mean(self):
         data = np.arange(10).astype(float)
         out = SparseArray(data).mean()
-        self.assertEqual(out, 4.5)
+        assert out == 4.5
 
         data[5] = np.nan
         out = SparseArray(data).mean()
-        self.assertEqual(out, 40.0 / 9)
+        assert out == 40.0 / 9
 
     def test_numpy_mean(self):
         data = np.arange(10).astype(float)
         out = np.mean(SparseArray(data))
-        self.assertEqual(out, 4.5)
+        assert out == 4.5
 
         data[5] = np.nan
         out = np.mean(SparseArray(data))
-        self.assertEqual(out, 40.0 / 9)
+        assert out == 40.0 / 9
 
         msg = "the 'dtype' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.mean,

@@ -16,11 +16,11 @@ from ..datetimelike import DatetimeLike
 randn = np.random.randn
 
 
-class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
+class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
     _multiprocess_can_split_ = True
 
-    def setUp(self):
+    def setup_method(self, method):
         self.indices = dict(index=tm.makeTimedeltaIndex(10))
         self.setup_indices()
 
@@ -49,29 +49,30 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         idx = pd.to_timedelta(['0 days', '1 days', '2 days'])
 
         for method in [None, 'pad', 'backfill', 'nearest']:
-            self.assertEqual(idx.get_loc(idx[1], method), 1)
-            self.assertEqual(idx.get_loc(idx[1].to_pytimedelta(), method), 1)
-            self.assertEqual(idx.get_loc(str(idx[1]), method), 1)
+            assert idx.get_loc(idx[1], method) == 1
+            assert idx.get_loc(idx[1].to_pytimedelta(), method) == 1
+            assert idx.get_loc(str(idx[1]), method) == 1
 
-        self.assertEqual(
-            idx.get_loc(idx[1], 'pad', tolerance=pd.Timedelta(0)), 1)
-        self.assertEqual(
-            idx.get_loc(idx[1], 'pad', tolerance=np.timedelta64(0, 's')), 1)
-        self.assertEqual(idx.get_loc(idx[1], 'pad', tolerance=timedelta(0)), 1)
+        assert idx.get_loc(idx[1], 'pad',
+                           tolerance=pd.Timedelta(0)) == 1
+        assert idx.get_loc(idx[1], 'pad',
+                           tolerance=np.timedelta64(0, 's')) == 1
+        assert idx.get_loc(idx[1], 'pad',
+                           tolerance=timedelta(0)) == 1
 
         with tm.assert_raises_regex(ValueError, 'must be convertible'):
             idx.get_loc(idx[1], method='nearest', tolerance='foo')
 
         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
-            self.assertEqual(idx.get_loc('1 day 1 hour', method), loc)
+            assert idx.get_loc('1 day 1 hour', method) == loc
 
     def test_get_loc_nat(self):
         tidx = TimedeltaIndex(['1 days 01:00:00', 'NaT', '2 days 01:00:00'])
 
-        self.assertEqual(tidx.get_loc(pd.NaT), 1)
-        self.assertEqual(tidx.get_loc(None), 1)
-        self.assertEqual(tidx.get_loc(float('nan')), 1)
-        self.assertEqual(tidx.get_loc(np.nan), 1)
+        assert tidx.get_loc(pd.NaT) == 1
+        assert tidx.get_loc(None) == 1
+        assert tidx.get_loc(float('nan')) == 1
+        assert tidx.get_loc(np.nan) == 1
 
     def test_get_indexer(self):
         idx = pd.to_timedelta(['0 days', '1 days', '2 days'])
@@ -138,14 +139,14 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             exp = TimedeltaIndex(['4H', '8H', '12H', '16H', '20H'],
                                  freq='4H', name='x')
             tm.assert_index_equal(result, exp)
-            self.assertEqual(result.freq, '4H')
+            assert result.freq == '4H'
 
         for result in [idx / 2, np.divide(idx, 2)]:
             assert isinstance(result, TimedeltaIndex)
             exp = TimedeltaIndex(['1H', '2H', '3H', '4H', '5H'],
                                  freq='H', name='x')
             tm.assert_index_equal(result, exp)
-            self.assertEqual(result.freq, 'H')
+            assert result.freq == 'H'
 
         idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
                              freq='2H', name='x')
@@ -154,7 +155,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             exp = TimedeltaIndex(['-2H', '-4H', '-6H', '-8H', '-10H'],
                                  freq='-2H', name='x')
             tm.assert_index_equal(result, exp)
-            self.assertEqual(result.freq, '-2H')
+            assert result.freq == '-2H'
 
         idx = TimedeltaIndex(['-2H', '-1H', '0H', '1H', '2H'],
                              freq='H', name='x')
@@ -163,7 +164,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             exp = TimedeltaIndex(['2H', '1H', '0H', '1H', '2H'],
                                  freq=None, name='x')
             tm.assert_index_equal(result, exp)
-            self.assertEqual(result.freq, None)
+            assert result.freq is None
 
     def test_fillna_timedelta(self):
         # GH 11343
@@ -209,7 +210,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
             tm.assert_index_equal(taken, expected)
             assert isinstance(taken, TimedeltaIndex)
             assert taken.freq is None
-            self.assertEqual(taken.name, expected.name)
+            assert taken.name == expected.name
 
     def test_take_fill_value(self):
         # GH 12631
@@ -289,7 +290,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         # GH4226
         dr = pd.timedelta_range('1d', '5d', freq='H', name='timebucket')
-        self.assertEqual(dr[1:].name, dr.name)
+        assert dr[1:].name == dr.name
 
     def test_does_not_convert_mixed_integer(self):
         df = tm.makeCustomDataframe(10, 10,
@@ -299,8 +300,8 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
 
         cols = df.columns.join(df.index, how='outer')
         joined = cols.join(df.columns)
-        self.assertEqual(cols.dtype, np.dtype('O'))
-        self.assertEqual(cols.dtype, joined.dtype)
+        assert cols.dtype == np.dtype('O')
+        assert cols.dtype == joined.dtype
         tm.assert_index_equal(cols, joined)
 
     def test_sort_values(self):
@@ -336,8 +337,8 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(['1 day 00:00:05', '1 day 00:00:01',
                               '1 day 00:00:02'])
-        self.assertEqual(idx.argmin(), 1)
-        self.assertEqual(idx.argmax(), 0)
+        assert idx.argmin() == 1
+        assert idx.argmax() == 0
 
     def test_misc_coverage(self):
 
@@ -562,7 +563,7 @@ class TestTimedeltaIndex(DatetimeLike, tm.TestCase):
         assert_index_equal(result, expected)
 
 
-class TestSlicing(tm.TestCase):
+class TestSlicing(object):
 
     def test_timedelta(self):
         # this is valid too
@@ -570,8 +571,8 @@ class TestSlicing(tm.TestCase):
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
         assert tm.equalContents(index, back)
-        self.assertEqual(shifted.freq, index.freq)
-        self.assertEqual(shifted.freq, back.freq)
+        assert shifted.freq == index.freq
+        assert shifted.freq == back.freq
 
         result = index - timedelta(1)
         expected = index + timedelta(-1)
@@ -588,7 +589,7 @@ class TestSlicing(tm.TestCase):
         tm.assert_index_equal(result2, result3)
 
 
-class TestTimeSeries(tm.TestCase):
+class TestTimeSeries(object):
     _multiprocess_can_split_ = True
 
     def test_series_box_timedelta(self):

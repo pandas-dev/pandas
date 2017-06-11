@@ -41,8 +41,8 @@ from pandas.tseries.offsets import DateOffset, generate_range, Tick, CDay
 from pandas.core.tools.datetimes import (
     parse_time_string, normalize_date, to_time)
 from pandas.core.tools.timedeltas import to_timedelta
-from pandas.util.decorators import (Appender, cache_readonly,
-                                    deprecate_kwarg, Substitution)
+from pandas.util._decorators import (Appender, cache_readonly,
+                                     deprecate_kwarg, Substitution)
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
@@ -1472,7 +1472,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             # the bounds need swapped if index is reverse sorted and has a
             # length > 1 (is_monotonic_decreasing gives True for empty
             # and length 1 index)
-            if self.is_monotonic_decreasing and len(self) > 1:
+            if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == 'left' else lower
             return lower if side == 'left' else upper
         else:

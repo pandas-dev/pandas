@@ -8,9 +8,9 @@ from pandas import (Series, period_range, DatetimeIndex, PeriodIndex,
                     DataFrame, _np_version_under1p12, Period)
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_slice_with_negative_step(self):
@@ -51,7 +51,7 @@ class TestPeriodIndex(tm.TestCase):
 
     def test_slice_keep_name(self):
         idx = period_range('20010101', periods=10, freq='D', name='bob')
-        self.assertEqual(idx.name, idx[1:].name)
+        assert idx.name == idx[1:].name
 
     def test_pindex_slice_index(self):
         pi = PeriodIndex(start='1/1/10', end='12/31/12', freq='M')
