@@ -9,40 +9,33 @@ The full license is in the LICENSE file, distributed with this software.
 
 #include "io.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
 /*
   On-disk FILE, uncompressed
 */
 
 void *new_file_source(char *fname, size_t buffer_size) {
     file_source *fs = (file_source *)malloc(sizeof(file_source));
-    if (fs == NULL) {
+    fs->fp = fopen(fname, "rb");
+
+    if (fs->fp == NULL) {
+        free(fs);
         return NULL;
     }
+    setbuf(fs->fp, NULL);
 
-    fs->fd = open(fname, O_RDONLY);
-    if (fs->fd == -1) {
-        goto err_free;
-    }
+    fs->initial_file_pos = ftell(fs->fp);
 
     // Only allocate this heap memory if we are not memory-mapping the file
     fs->buffer = (char *)malloc((buffer_size + 1) * sizeof(char));
 
     if (fs->buffer == NULL) {
-        goto err_free;
+        return NULL;
     }
 
-    memset(fs->buffer, '\0', buffer_size + 1);
-    fs->size = buffer_size;
+    memset(fs->buffer, 0, buffer_size + 1);
+    fs->buffer[buffer_size] = '\0';
 
     return (void *)fs;
-
-err_free:
-    free(fs);
-    return NULL;
 }
 
 void *new_rd_source(PyObject *obj) {
@@ -63,12 +56,12 @@ void *new_rd_source(PyObject *obj) {
 
  */
 
-int del_file_source(void *ptr) {
-    file_source *fs = ptr;
+int del_file_source(void *fs) {
     if (fs == NULL) return 0;
 
-    free(fs->buffer);
-    close(fs->fd);
+    /* allocated on the heap */
+    free(FS(fs)->buffer);
+    fclose(FS(fs)->fp);
     free(fs);
 
     return 0;
@@ -90,31 +83,17 @@ int del_rd_source(void *rds) {
 
 void *buffer_file_bytes(void *source, size_t nbytes, size_t *bytes_read,
                         int *status) {
-    file_source *fs = FS(source);
-    ssize_t rv;
+    file_source *src = FS(source);
 
-    if (nbytes > fs->size) {
-        nbytes = fs->size;
-    }
+    *bytes_read = fread((void *)src->buffer, sizeof(char), nbytes, src->fp);
 
-    rv = read(fs->fd, fs->buffer, nbytes);
-    switch (rv) {
-    case -1:
-        *status = CALLING_READ_FAILED;
-        *bytes_read = 0;
-        return NULL;
-    case 0:
+    if (*bytes_read == 0) {
         *status = REACHED_EOF;
-        *bytes_read = 0;
-        return NULL;
-    default:
+    } else {
         *status = 0;
-        *bytes_read = rv;
-        fs->buffer[rv] = '\0';
-        break;
     }
 
-    return (void *)fs->buffer;
+    return (void *)src->buffer;
 }
 
 void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
@@ -173,58 +152,52 @@ void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
 #ifdef HAVE_MMAP
 
 #include <sys/mman.h>
+#include <sys/stat.h>
 
 void *new_mmap(char *fname) {
+    struct stat buf;
+    int fd;
     memory_map *mm;
-    struct stat stat;
-    size_t filesize;
+    off_t filesize;
 
     mm = (memory_map *)malloc(sizeof(memory_map));
+    mm->fp = fopen(fname, "rb");
+
+    fd = fileno(mm->fp);
+    if (fstat(fd, &buf) == -1) {
+        fprintf(stderr, "new_file_buffer: fstat() failed. errno =%d\n", errno);
+        return NULL;
+    }
+    filesize = buf.st_size; /* XXX This might be 32 bits. */
+
     if (mm == NULL) {
+        /* XXX Eventually remove this print statement. */
         fprintf(stderr, "new_file_buffer: malloc() failed.\n");
-        return (NULL);
+        return NULL;
     }
-    mm->fd = open(fname, O_RDONLY);
-    if (mm->fd == -1) {
-        fprintf(stderr, "new_file_buffer: open(%s) failed. errno =%d\n",
-          fname, errno);
-        goto err_free;
-    }
+    mm->size = (off_t)filesize;
+    mm->line_number = 0;
 
-    if (fstat(mm->fd, &stat) == -1) {
-        fprintf(stderr, "new_file_buffer: fstat() failed. errno =%d\n",
-          errno);
-        goto err_close;
-    }
-    filesize = stat.st_size; /* XXX This might be 32 bits. */
+    mm->fileno = fd;
+    mm->position = ftell(mm->fp);
+    mm->last_pos = (off_t)filesize;
 
-    mm->memmap = mmap(NULL, filesize, PROT_READ, MAP_SHARED, mm->fd, 0);
-    if (mm->memmap == MAP_FAILED) {
+    mm->memmap = mmap(NULL, filesize, PROT_READ, MAP_SHARED, fd, 0);
+    if (mm->memmap == NULL) {
         /* XXX Eventually remove this print statement. */
         fprintf(stderr, "new_file_buffer: mmap() failed.\n");
-        goto err_close;
+        free(mm);
+        mm = NULL;
     }
 
-    mm->size = (off_t)filesize;
-    mm->position = 0;
-
-    return mm;
-
-err_close:
-    close(mm->fd);
-err_free:
-    free(mm);
-    return NULL;
+    return (void *)mm;
 }
 
-int del_mmap(void *ptr) {
-    memory_map *mm = ptr;
+int del_mmap(void *src) {
+    munmap(MM(src)->memmap, MM(src)->size);
 
-    if (mm == NULL) return 0;
-
-    munmap(mm->memmap, mm->size);
-    close(mm->fd);
-    free(mm);
+    fclose(MM(src)->fp);
+    free(src);
 
     return 0;
 }
@@ -232,26 +205,27 @@ int del_mmap(void *ptr) {
 void *buffer_mmap_bytes(void *source, size_t nbytes, size_t *bytes_read,
                         int *status) {
     void *retval;
-    memory_map *src = source;
-    size_t remaining = src->size - src->position;
+    memory_map *src = MM(source);
 
-    if (remaining == 0) {
+    if (src->position == src->last_pos) {
         *bytes_read = 0;
         *status = REACHED_EOF;
         return NULL;
     }
 
-    if (nbytes > remaining) {
-        nbytes = remaining;
-    }
-
     retval = src->memmap + src->position;
 
-    /* advance position in mmap data structure */
-    src->position += nbytes;
+    if (src->position + (off_t)nbytes > src->last_pos) {
+        // fewer than nbytes remaining
+        *bytes_read = src->last_pos - src->position;
+    } else {
+        *bytes_read = nbytes;
+    }
 
-    *bytes_read = nbytes;
     *status = 0;
+
+    /* advance position in mmap data structure */
+    src->position += *bytes_read;
 
     return retval;
 }
