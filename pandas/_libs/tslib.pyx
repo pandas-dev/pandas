@@ -3827,25 +3827,30 @@ def array_strptime(ndarray[object] values, object fmt,
             if iso_week == -1 or weekday == -1:
                 raise ValueError("ISO year directive '%G' must be used with "
                                  "the ISO week directive '%V' and a weekday "
-                                 "directive ('%w', or '%u').")
+                                 "directive ('%A', '%a', '%w', or '%u').")
             if julian != -1:
                 raise ValueError("Day of the year directive '%j' is not "
                                  "compatible with ISO year directive '%G'. "
                                  "Use '%Y' instead.")
-        elif week_of_year == -1 and iso_week != -1:
+        elif year != -1 and week_of_year == -1 and iso_week != -1:
             if weekday == -1:
                 raise ValueError("ISO week directive '%V' must be used with "
                                  "the ISO year directive '%G' and a weekday "
-                                 "directive ('%w', or '%u').")
+                                 "directive ('%A', '%a', '%w', or '%u').")
+            else:
+                raise ValueError("ISO week directive '%V' is incompatible with "
+                                 " the year directive '%Y'. Use the ISO year "
+                                 "'%G' instead.")
 
         # If we know the wk of the year and what day of that wk, we can figure
         # out the Julian day of the year.
-        if julian == -1 and week_of_year != -1 and weekday != -1:
-            week_starts_Mon = True if week_of_year_start == 0 else False
-            julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
-                                                week_starts_Mon)
-        elif iso_year != -1 and iso_week != -1 and weekday != -1:
-            year, julian = _calc_julian_from_V(iso_year, iso_week, weekday + 1)
+        if julian == -1 and weekday != -1:
+            if week_of_year != -1:
+                week_starts_Mon = True if week_of_year_start == 0 else False
+                julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
+                                                    week_starts_Mon)
+            elif iso_year != -1 and iso_week != -1:
+                year, julian = _calc_julian_from_V(iso_year, iso_week, weekday + 1)
 
         # Cannot pre-calculate datetime_date() since can change in Julian
         # calculation and thus could have different value for the day of the wk

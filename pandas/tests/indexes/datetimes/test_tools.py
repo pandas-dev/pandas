@@ -177,11 +177,39 @@ class TestToDatetime(object):
 
     def test_to_datetime_iso_week_year_format(self):
         data = [
-            ['2015-53-1', '%G-%V-%u',
-            datetime(2015, 12, 28, 0, 0)]
+            ['2015-1-1', '%G-%V-%u',
+            datetime(2014, 12, 29, 0, 0)], #negative ordinal (date in previous year)
+            ['2015-1-4', '%G-%V-%u',
+            datetime(2015, 1, 1, 0, 0)],
+            ['2015-1-7', '%G-%V-%u',
+            datetime(2015, 1, 4, 0, 0)] 
             ]
         for s, format, dt in data:
             assert to_datetime(s, format=format) == dt
+
+    def test_ValueError_iso_week_year(self):
+        # 1. ISO week (%V) is specified, but the year is specified with %Y
+        # instead of %G
+        with pytest.raises(ValueError):
+           to_datetime("1999 50", format="%Y %V")
+        # 2. ISO year (%G) and ISO week (%V) are specified, but weekday is not
+        with pytest.raises(ValueError):
+            to_datetime("1999 51", format="%G %V")
+        # 3. ISO year (%G) and weekday are specified, but ISO week (%V) is not
+        for w in ('A', 'a', 'w', 'u'):
+            with pytest.raises(ValueError):
+                to_datetime("1999 51", format="%G %{}".format(w))
+        # 4. ISO year is specified alone 
+        with pytest.raises(ValueError):
+            to_datetime("2015", format="%G")
+        # 5. Julian/ordinal day (%j) is specified with %G, but not %Y
+        with pytest.raises(ValueError):
+            to_datetime("1999 256", format="%G %j")
+        #6. ISO week (%V) and weekday are specified, but ISO year (%G) is not 
+        for w in ('A', 'a', 'w', 'u'):
+            with pytest.raises(ValueError):
+                to_datetime("51 11", format="%V %{}".format(w))
+
 
     def test_to_datetime_dt64s(self):
         in_bound_dts = [
