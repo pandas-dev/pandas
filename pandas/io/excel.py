@@ -82,6 +82,8 @@ skiprows : list-like
     Rows to skip at the beginning (0-indexed)
 skip_footer : int, default 0
     Rows at the end to skip (0-indexed)
+nrows : int, default None
+    Number of rows to parse
 index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
@@ -191,12 +193,12 @@ def get_writer(engine_name):
 
 
 @Appender(_read_excel_doc)
-def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-               index_col=None, names=None, parse_cols=None, parse_dates=False,
-               date_parser=None, na_values=None, thousands=None,
-               convert_float=True, converters=None, dtype=None,
-               true_values=None, false_values=None, engine=None,
-               squeeze=False, **kwds):
+def read_excel(io, sheet_name=0, header=0, skiprows=None, nrows=None,
+               skip_footer=0, index_col=None, names=None, parse_cols=None,
+               parse_dates=False, date_parser=None, na_values=None,
+               thousands=None, convert_float=True, converters=None,
+               dtype=None, true_values=None, false_values=None,
+               engine=None, squeeze=False, **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
     if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
@@ -211,12 +213,13 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
         io = ExcelFile(io, engine=engine)
 
     return io._parse_excel(
-        sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
-        index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
-        date_parser=date_parser, na_values=na_values, thousands=thousands,
-        convert_float=convert_float, skip_footer=skip_footer,
-        converters=converters, dtype=dtype, true_values=true_values,
-        false_values=false_values, squeeze=squeeze, **kwds)
+        sheetname=sheet_name, header=header, skiprows=skiprows, nrows=nrows,
+        names=names, index_col=index_col, parse_cols=parse_cols,
+        parse_dates=parse_dates, date_parser=date_parser, na_values=na_values,
+        thousands=thousands, convert_float=convert_float,
+        skip_footer=skip_footer, converters=converters, dtype=dtype,
+        true_values=true_values, false_values=false_values,
+        squeeze=squeeze, **kwds)
 
 
 class ExcelFile(object):
@@ -275,11 +278,11 @@ class ExcelFile(object):
     def __fspath__(self):
         return self._io
 
-    def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-              names=None, index_col=None, parse_cols=None, parse_dates=False,
-              date_parser=None, na_values=None, thousands=None,
-              convert_float=True, converters=None, true_values=None,
-              false_values=None, squeeze=False, **kwds):
+    def parse(self, sheet_name=0, header=0, skiprows=None, nrows=None,
+              skip_footer=0, names=None, index_col=None, parse_cols=None, 
+              parse_dates=False, date_parser=None, na_values=None,
+              thousands=None, convert_float=True, converters=None,
+              true_values=None, false_values=None, squeeze=False, **kwds):
         """
         Parse specified sheet(s) into a DataFrame
 
@@ -288,7 +291,9 @@ class ExcelFile(object):
         """
 
         return self._parse_excel(sheetname=sheet_name, header=header,
-                                 skiprows=skiprows, names=names,
+                                 skiprows=skiprows,
+                                 nrow=nrows,
+                                 names=names,
                                  index_col=index_col,
                                  parse_cols=parse_cols,
                                  parse_dates=parse_dates,
@@ -335,12 +340,12 @@ class ExcelFile(object):
         else:
             return i in parse_cols
 
-    def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
-                     skip_footer=0, index_col=None, parse_cols=None,
-                     parse_dates=False, date_parser=None, na_values=None,
-                     thousands=None, convert_float=True, true_values=None,
-                     false_values=None, verbose=False, dtype=None,
-                     squeeze=False, **kwds):
+    def _parse_excel(self, sheetname=0, header=0, skiprows=None, nrows=None,
+                     names=None, skip_footer=0, index_col=None,
+                     parse_cols=None, parse_dates=False, date_parser=None,
+                     na_values=None, thousands=None, convert_float=True,
+                     true_values=None, false_values=None, verbose=False,
+                     dtype=None, squeeze=False, **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -511,12 +516,13 @@ class ExcelFile(object):
                                     true_values=true_values,
                                     false_values=false_values,
                                     skiprows=skiprows,
+                                    nrows=nrows,
                                     skipfooter=skip_footer,
                                     squeeze=squeeze,
                                     dtype=dtype,
                                     **kwds)
 
-                output[asheetname] = parser.read()
+                output[asheetname] = parser.read(nrows=nrows)
                 if names is not None:
                     output[asheetname].columns = names
                 if not squeeze or isinstance(output[asheetname], DataFrame):

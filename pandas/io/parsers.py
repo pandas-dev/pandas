@@ -999,6 +999,8 @@ class TextFileReader(BaseIterator):
 
     def read(self, nrows=None):
         if nrows is not None:
+            nrows = _validate_integer('nrows', nrows)
+            
             if self.options.get('skipfooter'):
                 raise ValueError('skipfooter not supported for iteration')
 
@@ -1893,6 +1895,8 @@ def TextParser(*args, **kwds):
     date_parser : function, default None
     skiprows : list of integers
         Row numbers to skip
+    nrows : int, default None
+        Number of rows to parse
     skipfooter : int
         Number of line at bottom of file to skip
     converters : dict, default None
