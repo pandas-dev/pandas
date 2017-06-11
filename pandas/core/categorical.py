@@ -2122,15 +2122,26 @@ class Categorical(PandasObject):
 
         Parameters
         ----------
-        other : Categorical
+        other : Categorical, Series
 
         Returns
         -------
         are_equal : boolean
         """
-
         try:
+<<<<<<< 965c1c89b6df471d88dc0e1188fb8cbc0d89f867
             return hash(self.dtype) == hash(other.dtype)
+=======
+            from pandas.core.series import Series
+
+            if isinstance(other, Series):
+                other_categorical = other.values
+            else:
+                other_categorical = other
+
+            return (self.categories.equals(other_categorical.categories) and
+                    self.ordered == other_categorical.ordered)
+>>>>>>> BUG: Fix Categorical comparsion with Series of dtype 'category'
         except (AttributeError, TypeError):
             return False
 
