@@ -712,6 +712,16 @@ index column inference and discard the last column, pass ``index_col=False``:
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), index_col=False)
 
+If a subset of data is being parsed using the ``usecols`` option, the
+``index_col`` specification is based on that subset, not the original data.
+
+.. ipython:: python
+
+    data = 'a,b,c\n4,apple,bat,\n8,orange,cow,'
+    print(data)
+    pd.read_csv(StringIO(data), usecols=['b', 'c'])
+    pd.read_csv(StringIO(data), usecols=['b', 'c'], index_col=0)
+
 .. _io.parse_dates:
 
 Date Handling

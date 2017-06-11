@@ -79,7 +79,9 @@ skip_footer : int, default 0
 index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
-    those columns will be combined into a ``MultiIndex``
+    those columns will be combined into a ``MultiIndex``.  If a
+    subset of data is selected with ``parse_cols``, index_col
+    is based on the subset.
 names : array-like, default None
     List of column names to use. If file contains no header row,
     then you should explicitly pass header=None
@@ -90,7 +92,7 @@ converters : dict, default None
     content.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    Use `str` or `object` to preserve and not interpret dtype.
+    Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
 
@@ -110,8 +112,9 @@ parse_cols : int or list, default None
     * If None then parse all columns,
     * If int then indicates last column to be parsed
     * If list of ints then indicates list of column numbers to be parsed
-    * If string then indicates comma separated list of column names and
-      column ranges (e.g. "A:E" or "A,C,E:F")
+    * If string then indicates comma separated list of Excel column letters and
+      column ranges (e.g. "A:E" or "A,C,E:F").  Ranges are inclusive of
+      both sides.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 na_values : scalar, str, list-like, or dict, default None
