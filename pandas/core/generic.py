@@ -5045,7 +5045,7 @@ it is assumed to be aliases for the column names.')
         return ranker(data)
 
     _shared_docs['align'] = ("""
-        Align two object on their axes with the
+        Align two objects on their axes with the
         specified join method for each axis Index
 
         Parameters
