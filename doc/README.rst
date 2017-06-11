@@ -16,24 +16,24 @@
    :local:
 
 
-About the pandas documentation
+팬더 문서를 보려면
 ------------------------------
 
-The documentation is written in **reStructuredText**, which is almost like writing
-in plain English, and built using `Sphinx <http://sphinx.pocoo.org/>`__. The
-Sphinx Documentation has an excellent `introduction to reST
-<http://sphinx.pocoo.org/rest.html>`__. Review the Sphinx docs to perform more
-complex changes to the documentation as well.
+문서는 ** reStructuredText **로 작성되어 있습니다.
+보통 영어로 쓰여진`Sphinx <http://sphinx.pocoo.org/>`__을 사용해 구축되어 있습니다. 더
+Sphinx Documentation는 뛰어난`reST 소개
+<http://sphinx.pocoo.org/rest.html>`__. Sphinx의 문서를 검토하고 더 많은 기능을 수행하는
+복잡한 문서의 변경도 마찬가지입니다.
 
-Some other important things to know about the docs:
+문서에 대해 알아야 할 다른 중요한 점 :
 
-- The pandas documentation consists of two parts: the docstrings in the code
-  itself and the docs in this folder ``pandas/doc/``.
+ - 팬더 문서는 두 부분으로 구성되어 있습니다. 코드의 문서 문자열
+  이 폴더의``pandas / doc /``안의 문서와 그 문서를 삭제합니다.
 
-  The docstrings provide a clear explanation of the usage of the individual
-  functions, while the documentation in this folder consists of tutorial-like
-  overviews per topic together with some other information (what's new,
-  installation, etc).
+  문서 문자열은 개인의 사용 방법을 명확하게 설명하고 있습니다
+  이 폴더의 문서는 튜토리얼 같다
+  주제별 개요 및 기타 정보 (새로운 기능
+  설치 등).
 
 - 문서화 문자열은 과학범용 파이썬 커뮤니티에서 널리쓰이는 **Numpy Docstring Standard**를 따르고 있습니다.
   이 표준은 각기 다른 부분의 문서화 문자열 양식을 구체화하고 있습니다.
@@ -41,10 +41,10 @@ Some other important things to know about the docs:
   <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_
   자세한 설명이나 간단히 적용하고 싶은 함수들을 볼 수 있습니다.
 
-- The tutorials make heavy use of the `ipython directive
-  <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
-  This directive lets you put code in the documentation which will be run
-  during the doc build. For example:
+- 이 튜토리얼에서는`ipython 지시문
+  <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx 확장자.
+  이 지시문을 사용하면 실행되는 문서에 코드를 넣을 수 있습니다
+  문서 작성 중에 예를 들면 :
 
   ::
 
@@ -62,107 +62,108 @@ Some other important things to know about the docs:
       In [2]: x**3
       Out[2]: 8
 
-  This means that almost all code examples in the docs are always run (and the
-  output saved) during the doc build. This way, they will always be up to date,
-  but it makes the doc building a bit more complex.
+이 문서의 거의 모든 코드 예제가 항상 실행되는 것을 의미합니다.
+  출력이 저장됩니다). 이렇게하여 그들은 항상 최신 상태로됩니다.
+  하지만 독 빌딩을 좀 더 복잡합니다.
 
 
-How to build the pandas documentation
+팬더의 문서를 작성하는 방법
 -------------------------------------
 
-Requirements
-^^^^^^^^^^^^
+요구 사항
+^^^^^^^^^^^^^^
 
-To build the pandas docs there are some extra requirements: you will need to
-have ``sphinx`` and ``ipython`` installed. `numpydoc
-<https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
-follow the Numpy Docstring Standard (see above), but you don't need to install
-this because a local copy of ``numpydoc`` is included in the pandas source
-code. `nbsphinx <https://nbsphinx.readthedocs.io/>`_ is used to convert
-Jupyter notebooks. You will need to install it if you intend to modify any of
-the notebooks included in the documentation.
+팬더의 문서를 만들려면 몇 가지 추가 요구 사항이 있습니다.
+``sphinx``와``ipython``가 설치되어 있습니다. `numpydoc
+<https://github.com/numpy/numpydoc>`_ 그 문서 문자열을 해석하는 데 사용됩니다
+Numpy Docstring Standard (위 참조)에 따르십시오. 그러나 설치할 필요가 없습니다
+이것은 "numpydoc"의 로컬 복사본이 팬더 소스에 포함되어 있기 때문입니다
+코드. `nbsphinx <https://nbsphinx.readthedocs.io/>`_ 변환에 사용됩니다
+목성 노트. 중 하나를 변경하려면 설치해야합니다.
+그 노트에 포함되어 있습니다.
 
-Furthermore, it is recommended to have all `optional dependencies
+또한, 모든 옵션의 종속성을 가지는 것을 권장합니다
 <http://pandas.pydata.org/pandas-docs/dev/install.html#optional-dependencies>`_
-installed. This is not needed, but be aware that you will see some error
-messages. Because all the code in the documentation is executed during the doc
-build, the examples using this optional dependencies will generate errors.
-Run ``pd.show_versions()`` to get an overview of the installed version of all
-dependencies.
 
-.. warning::
+설치되어 있습니다. 이것은 필요는 없지만, 어떤 오류가 표시되는 것에주의하십시오
+메시지. 문서의 모든 코드가 doc에서 실행되기 때문에
+이 옵션의 종속성을 사용하는 예는 오류를 생성합니다.
+``pd.show_versions ()``을 실행하면 설치되어있는 모든 버전의 개요가 표시됩니다
+의존성.
 
-   Sphinx version >= 1.2.2 or the older 1.1.3 is required.
+.. 경고 ::
 
-Building pandas
-^^^^^^^^^^^^^^^
+   Sphinx 버전> = 1.2.2 또는 그 이전 1.1.3이 필요합니다.
 
-For a step-by-step overview on how to set up your environment, to work with
-the pandas code and git, see `the developer pages
+pandas building
+^^^^^^^^^^^^^^^^^^
+
+환경을 설정하는 방법, 작업 방법에 대한 단계별 개요는
+팬더의 코드와 git는`개발자 페이지
 <http://pandas.pydata.org/developers.html#working-with-the-code>`_.
-When you start to work on some docs, be sure to update your code to the latest
-development version ('master')::
+일부 문서에서 작업을 시작할 때 코드를 최신 버전으로 업데이트하십시오
+개발 버전 ( 'master') ::
 
     git fetch upstream
-    git rebase upstream/master
+    git rebase upstream / master
 
-Often it will be necessary to rebuild the C extension after updating::
+자주 업데이트 후 C 확장을 재구성해야합니다 :
 
     python setup.py build_ext --inplace
 
-Building the documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+문서 작성
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-So how do you build the docs? Navigate to your local folder
-``pandas/doc/`` directory in the console and run::
+그럼 어떻게 문서를 작성하고 있습니까? 당신의 로컬 폴더로 이동
+콘솔의``pandas / doc /``디렉토리로 이동합니다 ::
 
     python make.py html
 
-And then you can find the html output in the folder ``pandas/doc/build/html/``.
+그리고 html 출력은``pandas / doc / build / html /``폴더에 있습니다.
 
-The first time it will take quite a while, because it has to run all the code
-examples in the documentation and build all generated docstring pages.
-In subsequent evocations, sphinx will try to only build the pages that have
-been modified.
+모든 코드를 실행해야하므로 처음에는 꽤 시간이 걸립니다
+문서의 예를 참조하여 생성 된 모든 docstring 페이지를 구축합니다.
+다음 질문은 스핑크스
+변경되었습니다.
 
-If you want to do a full clean build, do::
+당신이 완전히 깨끗한 빌드하고 싶다면 ::
 
     python make.py clean
-    python make.py build
+    python make.py 빌드
 
-
-Starting with 0.13.1 you can tell ``make.py`` to compile only a single section
-of the docs, greatly reducing the turn-around time for checking your changes.
-You will be prompted to delete `.rst` files that aren't required, since the
-last committed version can always be restored from git.
+0.13.1에서``make.py``에 단일 섹션 만 컴파일하도록 지시 할 수 있습니다
+변경 내용을 확인하기위한 처리 시간을 크게 단축합니다.
+필요하지 않은`.rst` 파일을 삭제하도록 요청합니다.
+마지막으로 커밋 된 버전은 항상 git에서 복원 할 수 있습니다.
 
 ::
 
-    #omit autosummary and API section
+    #omit autosummary 및 API 섹션
     python make.py clean
     python make.py --no-api
 
-    # compile the docs with only a single
-    # section, that which is in indexing.rst
+    # 문서를 하나만 컴파일
+    # section, indexing.rst에있는 섹션
     python make.py clean
-    python make.py --single indexing
+    python make.py - 단일 지수 연동
 
-For comparison, a full doc build may take 10 minutes. a ``-no-api`` build
-may take 3 minutes and a single section may take 15 seconds.
+비교를 위해 전체 문서 빌드 10 분 정도 걸립니다. ``-no-api`` 빌드
+3 분 정도 걸릴 수 있으며, 하나의 섹션에 15 초 정도 걸립니다.
 
-Where to start?
+어디서 시작해야할까?
 ---------------
 
-There are a number of issues listed under `Docs
+
+`Docs에는 몇 가지 문제가 있습니다
 <https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
-and `Good as first PR
+최초의 PR로 좋은
 <https://github.com/pandas-dev/pandas/issues?labels=Good+as+first+PR&sort=updated&state=open>`_
-where you could start out.
+당신은 어디에서 시작할 수 있습니까?
 
-Or maybe you have an idea of your own, by using pandas, looking for something
-in the documentation and thinking 'this can be improved', let's do something
-about that!
+또는 당신은 자신의 생각을 가지고 있을지도 모릅니다. 뭔가를 찾고 팬더를 사용하여
+문서에서 "이것은 개선 할 수있다"라고 생각하고, 어떤 일을하자
+그것에 대해!
 
-Feel free to ask questions on `mailing list
-<https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or submit an
-issue on Github.
+`메일 링리스트에 대한 질문
+<https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ 또는
+Github 문제
