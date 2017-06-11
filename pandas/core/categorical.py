@@ -2135,13 +2135,16 @@ class Categorical(PandasObject):
             from pandas.core.series import Series
 
             if isinstance(other, Series):
-                other_categorical = other.values
-            else:
-                other_categorical = other
+                other = Categorical(other)
 
+<<<<<<< a581a743fe6740011e4fb0a7031ee92ce57b480b
             return (self.categories.equals(other_categorical.categories) and
                     self.ordered == other_categorical.ordered)
 >>>>>>> BUG: Fix Categorical comparsion with Series of dtype 'category'
+=======
+            return (self.categories.equals(other.categories) and
+                    self.ordered == other.ordered)
+>>>>>>> simplify the fix, add issue reference number to corresponding test and tighten the wording in doc whatsnew
         except (AttributeError, TypeError):
             return False
 
