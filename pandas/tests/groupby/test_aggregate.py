@@ -865,3 +865,20 @@ class TestGroupByAggregate(object):
         ts = df['B'].iloc[2]
         assert ts == grouped.last()['B'].iloc[0]
         assert ts == grouped.apply(lambda x: x.iloc[-1])[0]
+
+    def test_sum_uint64_overflow(self):
+        # see gh-14758
+
+        # Convert to uint64 and don't overflow
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+                          dtype=object) + 9223372036854775807
+
+        index = pd.Index([9223372036854775808, 9223372036854775810,
+                          9223372036854775812], dtype=np.uint64)
+        expected = pd.DataFrame({1: [9223372036854775809,
+                                     9223372036854775811,
+                                     9223372036854775813]}, index=index)
+
+        expected.index.name = 0
+        result = df.groupby(0).sum()
+        tm.assert_frame_equal(result, expected)
