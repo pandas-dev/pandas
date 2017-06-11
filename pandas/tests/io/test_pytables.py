@@ -387,6 +387,7 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
             repr(store)
+            store.info()
             store['a'] = tm.makeTimeSeries()
             store['b'] = tm.makeStringSeries()
             store['c'] = tm.makeDataFrame()
@@ -418,8 +419,9 @@ class TestHDFStore(Base):
             # make a random group in hdf space
             store._handle.create_group(store._handle.root, 'bah')
 
-            repr(store)
-            str(store)
+            assert store.filename in repr(store)
+            assert store.filename in str(store)
+            store.info()
 
         # storers
         with ensure_clean_store(self.path) as store:
@@ -4407,11 +4409,11 @@ class TestHDFStore(Base):
 
             # single
             store = HDFStore(path)
-            assert 'CLOSED' not in str(store)
+            assert 'CLOSED' not in store.info()
             assert store.is_open
 
             store.close()
-            assert 'CLOSED' in str(store)
+            assert 'CLOSED' in store.info()
             assert not store.is_open
 
         with ensure_clean_path(self.path) as path:
@@ -4432,20 +4434,20 @@ class TestHDFStore(Base):
                 store1 = HDFStore(path)
                 store2 = HDFStore(path)
 
-                assert 'CLOSED' not in str(store1)
-                assert 'CLOSED' not in str(store2)
+                assert 'CLOSED' not in store1.info()
+                assert 'CLOSED' not in store2.info()
                 assert store1.is_open
                 assert store2.is_open
 
                 store1.close()
-                assert 'CLOSED' in str(store1)
+                assert 'CLOSED' in store1.info()
                 assert not store1.is_open
-                assert 'CLOSED' not in str(store2)
+                assert 'CLOSED' not in store2.info()
                 assert store2.is_open
 
                 store2.close()
-                assert 'CLOSED' in str(store1)
-                assert 'CLOSED' in str(store2)
+                assert 'CLOSED' in store1.info()
+                assert 'CLOSED' in store2.info()
                 assert not store1.is_open
                 assert not store2.is_open
 
@@ -4456,11 +4458,11 @@ class TestHDFStore(Base):
                 store2 = HDFStore(path)
                 store2.append('df2', df)
                 store2.close()
-                assert 'CLOSED' in str(store2)
+                assert 'CLOSED' in store2.info()
                 assert not store2.is_open
 
                 store.close()
-                assert 'CLOSED' in str(store)
+                assert 'CLOSED' in store.info()
                 assert not store.is_open
 
                 # double closing
@@ -4469,11 +4471,11 @@ class TestHDFStore(Base):
 
                 store2 = HDFStore(path)
                 store.close()
-                assert 'CLOSED' in str(store)
+                assert 'CLOSED' in store.info()
                 assert not store.is_open
 
                 store2.close()
-                assert 'CLOSED' in str(store2)
+                assert 'CLOSED' in store2.info()
                 assert not store2.is_open
 
         # ops on a closed store
@@ -4820,9 +4822,10 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(result, df2)
 
             # Make sure the metadata is OK
-            assert '/df2   ' in str(store)
-            assert '/df2/meta/values_block_0/meta' in str(store)
-            assert '/df2/meta/values_block_1/meta' in str(store)
+            info = store.info()
+            assert '/df2   ' in info
+            assert '/df2/meta/values_block_0/meta' in info
+            assert '/df2/meta/values_block_1/meta' in info
 
             # unordered
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[

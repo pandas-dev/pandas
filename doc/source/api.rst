@@ -99,6 +99,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.append
    HDFStore.get
    HDFStore.select
+   HDFStore.info
 
 Feather
 ~~~~~~~
