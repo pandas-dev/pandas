@@ -506,32 +506,7 @@ class HDFStore(StringMixin):
         return len(self.groups())
 
     def __unicode__(self):
-        output = '%s\nFile path: %s\n' % (type(self), pprint_thing(self._path))
-        if self.is_open:
-            lkeys = sorted(list(self.keys()))
-            if len(lkeys):
-                keys = []
-                values = []
-
-                for k in lkeys:
-                    try:
-                        s = self.get_storer(k)
-                        if s is not None:
-                            keys.append(pprint_thing(s.pathname or k))
-                            values.append(
-                                pprint_thing(s or 'invalid_HDFStore node'))
-                    except Exception as detail:
-                        keys.append(k)
-                        values.append("[invalid_HDFStore node: %s]"
-                                      % pprint_thing(detail))
-
-                output += adjoin(12, keys, values)
-            else:
-                output += 'Empty'
-        else:
-            output += "File is CLOSED"
-
-        return output
+        return '%s\nFile path: %s\n' % (type(self), pprint_thing(self._path))
 
     def __enter__(self):
         return self
@@ -1172,6 +1147,37 @@ class HDFStore(StringMixin):
                     new_store.put(k, data, encoding=s.encoding)
 
         return new_store
+
+    def info(self):
+        """return detailed information on the store
+        .. versionadded:: 0.21.0
+        """
+        output = '%s\nFile path: %s\n' % (type(self), pprint_thing(self._path))
+        if self.is_open:
+            lkeys = sorted(list(self.keys()))
+            if len(lkeys):
+                keys = []
+                values = []
+
+                for k in lkeys:
+                    try:
+                        s = self.get_storer(k)
+                        if s is not None:
+                            keys.append(pprint_thing(s.pathname or k))
+                            values.append(
+                                pprint_thing(s or 'invalid_HDFStore node'))
+                    except Exception as detail:
+                        keys.append(k)
+                        values.append("[invalid_HDFStore node: %s]"
+                                      % pprint_thing(detail))
+
+                output += adjoin(12, keys, values)
+            else:
+                output += 'Empty'
+        else:
+            output += "File is CLOSED"
+
+        return output
 
     # private methods ######
     def _check_if_open(self):
