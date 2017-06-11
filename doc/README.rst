@@ -5,14 +5,12 @@
 
 만약 당신이 개발자가 아니라면, 문서작업에 기여하는 것만으로도 굉장히 가치있는 일입니다.
 “pandas”의 전문가가 되지 않더라도 할 수 있는 일입니다!
-Something as simple as rewriting small passages for clarity
-as you reference the docs is a simple but effective way to contribute. The
-next person to read that passage will be in your debt!
+문서를 명확하게 만들기 위해 어떤 짧은 문구만 고침으로써 간단하고 효과적으로 기여할 수 있습니다.
+다음 사람이 그 구절을 읽은만큼 당신의 기여도는 빛을 발하게 됩니다!
 
-Actually, there are sections of the docs that are worse off by being written
-by experts. If something in the docs doesn't make sense to you, updating the
-relevant section after you figure it out is a simple way to ensure it will
-help the next person.
+실제로 전문가들이 썼음에도 읽기 쉽지않은 문서들이 있습니다.
+만약 당신이 이해가 안 가는 문서가 있으면,
+그 부분을 당신이 확인한 후 업데이트하는 것은 다음 사람에게 도움이 될 확실한 방법입니다.
 
 .. contents:: Table of contents:
    :local:
@@ -37,12 +35,11 @@ Some other important things to know about the docs:
   overviews per topic together with some other information (what's new,
   installation, etc).
 
-- The docstrings follow the **Numpy Docstring Standard** which is used widely
-  in the Scientific Python community. This standard specifies the format of
-  the different sections of the docstring. See `this document
+- 문서화 문자열은 과학범용 파이썬 커뮤니티에서 널리쓰이는 **Numpy Docstring Standard**를 따르고 있습니다.
+  이 표준은 각기 다른 부분의 문서화 문자열 양식을 구체화하고 있습니다.
+  이 문서를 보시면
   <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_
-  for a detailed explanation, or look at some of the existing functions to
-  extend it in a similar manner.
+  자세한 설명이나 간단히 적용하고 싶은 함수들을 볼 수 있습니다.
 
 - The tutorials make heavy use of the `ipython directive
   <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
