@@ -1149,7 +1149,9 @@ class HDFStore(StringMixin):
         return new_store
 
     def info(self):
-        """return detailed information on the store
+        """
+        print detailed information on the store
+
         .. versionadded:: 0.21.0
         """
         output = '%s\nFile path: %s\n' % (type(self), pprint_thing(self._path))
