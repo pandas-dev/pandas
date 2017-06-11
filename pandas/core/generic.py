@@ -1501,7 +1501,17 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
         See the `xarray docs <http://xarray.pydata.org/en/stable/>`__
         """
-        import xarray
+
+        try:
+            import xarray
+        except ImportError:
+            # Give a nice error message
+            raise ImportError("the xarray library is not installed\n"
+                              "you can install via conda\n"
+                              "conda install xarray\n"
+                              "or via pip\n"
+                              "pip install xarray\n")
+
         if self.ndim == 1:
             return xarray.DataArray.from_series(self)
         elif self.ndim == 2:
