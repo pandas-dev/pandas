@@ -1662,6 +1662,21 @@ j,-inF"""
         result = self.read_csv(StringIO(data))
         tm.assert_frame_equal(result, expected)
 
+    def test_internal_eof_byte_to_file(self):
+        # see gh-16559
+        data = b'c1,c2\r\n"test \x1a    test", test\r\n'
+        expected = pd.DataFrame([["test \x1a    test", " test"]],
+                                columns=["c1", "c2"])
+
+        path = '__%s__.csv' % tm.rands(10)
+
+        with tm.ensure_clean(path) as path:
+            with open(path, "wb") as f:
+                f.write(data)
+
+            result = self.read_csv(path)
+            tm.assert_frame_equal(result, expected)
+
     def test_file_handles(self):
         # GH 14418 - don't close user provided file handles
 
