@@ -1011,8 +1011,6 @@ class _FrequencyInferer(object):
         return {'cs': 'MS', 'bs': 'BMS',
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
 
-    WORKING_DAY_SHIFTS = set([(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)])
-
     def _is_business_daily(self):
         if self.day_deltas != [1, 3]:  # quick check: cannot be business daily
             return False
