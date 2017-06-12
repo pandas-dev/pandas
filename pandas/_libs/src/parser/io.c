@@ -36,7 +36,7 @@ void *new_file_source(char *fname, size_t buffer_size) {
     fs->buffer = (char *)malloc((buffer_size + 1) * sizeof(char));
 
     if (fs->buffer == NULL) {
-        goto err_free;
+        goto err_close;
     }
 
     memset(fs->buffer, '\0', buffer_size + 1);
@@ -44,6 +44,8 @@ void *new_file_source(char *fname, size_t buffer_size) {
 
     return (void *)fs;
 
+err_close:
+    close(fs->fd);
 err_free:
     free(fs);
     return NULL;
