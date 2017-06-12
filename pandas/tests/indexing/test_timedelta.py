@@ -30,10 +30,8 @@ class TestTimedeltaIndexing(object):
         # GH 16637
         df = pd.DataFrame({'x': range(10)}, dtype="int64")
         df.index = pd.to_timedelta(range(10), unit='s')
-        try:
-            df.loc[df.index[indexer], 'x'] = 20
-        except ValueError:
-            raise ValueError(indexer)
+
+        df.loc[df.index[indexer], 'x'] = 20
 
         expected = pd.DataFrame(expected,
                                 index=pd.to_timedelta(range(10), unit='s'),
