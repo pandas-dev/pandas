@@ -17,7 +17,7 @@ from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex, period_range
 import pandas.core.common as com
 import pandas.core.algorithms as algos
-from pandas.types.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame
 
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -706,7 +706,7 @@ class DatetimeIndexResampler(Resampler):
             # reset to the new freq
             obj = obj.copy()
             obj.index.freq = self.freq
-            return self._wrap_result(obj)
+            return obj
 
         # do we have a regular frequency
         if ax.freq is not None or ax.inferred_freq is not None:
@@ -777,7 +777,6 @@ class DatetimeIndexResampler(Resampler):
         # convert if needed
         if self.kind == 'period' and not isinstance(result.index, PeriodIndex):
             result.index = result.index.to_period(self.freq)
-
         return result
 
 

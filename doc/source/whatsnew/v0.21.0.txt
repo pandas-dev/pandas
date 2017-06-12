@@ -112,6 +112,7 @@ Plotting
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in ``resample().size()``. Inconsistent return type on resample of empty DataFrame (:issue:`14962`)
 
 
 

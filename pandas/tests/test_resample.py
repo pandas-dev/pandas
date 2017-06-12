@@ -773,18 +773,8 @@ class Base(object):
                 expected = s.copy()
                 expected.index = s.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
-
-                self.assertEqual(result.index.freq, expected.index.freq)
-
-                if (method == 'size' and
-                    isinstance(result.index, PeriodIndex) and
-                        freq in ['M', 'D']):
-                    # GH12871 - TODO: name should propagate, but currently
-                    # doesn't on lower / same frequency with PeriodIndex
-                    assert_series_equal(result, expected, check_dtype=False)
-
-                else:
-                    assert_series_equal(result, expected, check_dtype=False)
+                assert result.index.freq == expected.index.freq
+                assert_series_equal(result, expected, check_dtype=False)
 
     def test_resample_empty_dataframe(self):
         # GH13212
@@ -798,16 +788,16 @@ class Base(object):
                 result = getattr(f.resample(freq), method)()
                 if method != 'size':
                     expected = f.copy()
-                    assert_equal = assert_frame_equal
+                    assert_type_equal = assert_frame_equal
                 else:
                     # GH14962
                     expected = Series([])
-                    assert_equal = assert_series_equal
+                    assert_type_equal = assert_series_equal
 
                 expected.index = f.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
                 assert result.index.freq == expected.index.freq
-                assert_frame_equal(result, expected, check_dtype=False)
+                assert_type_equal(result, expected, check_dtype=False)
 
             # test size for GH13212 (currently stays as df)
 
