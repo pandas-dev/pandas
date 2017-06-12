@@ -778,6 +778,11 @@ class PlanePlot(MPLPlot):
             x = self.data.columns[x]
         if is_integer(y) and not self.data.columns.holds_integer():
             y = self.data.columns[y]
+        if len(self.data[x]._get_numeric_data()) == 0:
+            raise ValueError(self._kind + ' requires x column to be numeric')
+        if len(self.data[y]._get_numeric_data()) == 0:
+            raise ValueError(self._kind + ' requires y column to be numeric')
+
         self.x = x
         self.y = y
 

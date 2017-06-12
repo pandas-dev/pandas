@@ -916,6 +916,24 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @slow
+    def test_plot_scatter_with_categorical_data(self):
+        # GH 16199
+        df = pd.DataFrame({'x': [1, 2, 3, 4],
+                           'y': pd.Categorical(['a', 'b', 'a', 'c'])})
+
+        with pytest.raises(ValueError) as ve:
+            df.plot(x='x', y='y', kind='scatter')
+        ve.match('requires y column to be numeric')
+
+        with pytest.raises(ValueError) as ve:
+            df.plot(x='y', y='x', kind='scatter')
+        ve.match('requires x column to be numeric')
+
+        with pytest.raises(ValueError) as ve:
+            df.plot(x='y', y='y', kind='scatter')
+        ve.match('requires x column to be numeric')
+
+    @slow
     def test_plot_scatter_with_c(self):
         df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),
