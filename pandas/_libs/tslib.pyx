@@ -3827,7 +3827,7 @@ def array_strptime(ndarray[object] values, object fmt,
             if iso_week == -1 or weekday == -1:
                 raise ValueError("ISO year directive '%G' must be used with "
                                  "the ISO week directive '%V' and a weekday "
-                                 "directive ('%A', '%a', '%w', or '%u').")
+                                 "directive '%A', '%a', '%w', or '%u'.")
             if julian != -1:
                 raise ValueError("Day of the year directive '%j' is not "
                                  "compatible with ISO year directive '%G'. "
@@ -3836,9 +3836,9 @@ def array_strptime(ndarray[object] values, object fmt,
             if weekday == -1:
                 raise ValueError("ISO week directive '%V' must be used with "
                                  "the ISO year directive '%G' and a weekday "
-                                 "directive ('%A', '%a', '%w', or '%u').")
+                                 "directive '%A', '%a', '%w', or '%u'.")
             else:
-                raise ValueError("ISO week directive '%V' is incompatible with "
+                raise ValueError("ISO week directive '%V' is incompatible with"
                                  " the year directive '%Y'. Use the ISO year "
                                  "'%G' instead.")
 
