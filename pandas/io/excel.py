@@ -84,6 +84,9 @@ skip_footer : int, default 0
     Rows at the end to skip (0-indexed)
 nrows : int, default None
     Number of rows to parse
+
+    .. versionadded:: 0.21.0
+
 index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,

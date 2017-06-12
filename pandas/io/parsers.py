@@ -399,7 +399,7 @@ def _read(filepath_or_buffer, kwds):
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get('iterator', False)
     chunksize = _validate_integer('chunksize', kwds.get('chunksize', None), 1)
-    nrows = _validate_integer('nrows', kwds.get('nrows', None))
+    nrows = kwds.get('nrows', None)
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
@@ -998,9 +998,9 @@ class TextFileReader(BaseIterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
+        nrows = _validate_integer('nrows', nrows)
+        
         if nrows is not None:
-            nrows = _validate_integer('nrows', nrows)
-            
             if self.options.get('skipfooter'):
                 raise ValueError('skipfooter not supported for iteration')
 

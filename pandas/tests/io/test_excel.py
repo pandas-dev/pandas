@@ -1010,7 +1010,20 @@ class XlrdTests(ReadingTestsBase):
         expected = expected[:num_rows_to_pull]
         tm.assert_frame_equal(actual, expected)
 
-        with pytest.raises(ValueError):
+    def test_read_excel_nrows_greater_than_nrows_in_file(self):
+        # GH 16645
+        expected = pd.read_excel(os.path.join(self.dirpath,
+                                              'test1' + self.ext))
+        num_records_in_file = len(expected)
+        num_rows_to_pull = num_records_in_file + 10
+        actual = pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                               nrows=num_rows_to_pull)
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_non_integer_parameter(self):
+        # GH 16645
+        msg = "'nrows' must be an integer >=0"
+        with tm.assert_raises_regex(ValueError, msg):
             pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
                           nrows='5')
 
