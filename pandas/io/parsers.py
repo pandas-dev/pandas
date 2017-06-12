@@ -1985,8 +1985,7 @@ class PythonParser(ParserBase):
         self.comment = kwds['comment']
         self._comment_lines = []
 
-        mode = 'r' if PY3 else 'rb'
-        f, handles = _get_handle(f, mode, encoding=self.encoding,
+        f, handles = _get_handle(f, 'r', encoding=self.encoding,
                                  compression=self.compression,
                                  memory_map=self.memory_map)
         self.handles.extend(handles)
