@@ -13,6 +13,10 @@ The full license is in the LICENSE file, distributed with this software.
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif /* O_BINARY */
+
 /*
   On-disk FILE, uncompressed
 */
@@ -23,7 +27,7 @@ void *new_file_source(char *fname, size_t buffer_size) {
         return NULL;
     }
 
-    fs->fd = open(fname, O_RDONLY);
+    fs->fd = open(fname, O_RDONLY | O_BINARY);
     if (fs->fd == -1) {
         goto err_free;
     }
@@ -184,7 +188,7 @@ void *new_mmap(char *fname) {
         fprintf(stderr, "new_file_buffer: malloc() failed.\n");
         return (NULL);
     }
-    mm->fd = open(fname, O_RDONLY);
+    mm->fd = open(fname, O_RDONLY | O_BINARY);
     if (mm->fd == -1) {
         fprintf(stderr, "new_file_buffer: open(%s) failed. errno =%d\n",
           fname, errno);
