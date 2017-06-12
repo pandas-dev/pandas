@@ -31,16 +31,14 @@ Pandas 문서 정보
 
 - 이 튜토리얼 에서는 `ipython 지시문 <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx 확장을 많이 사용합니다.   이 지시문을 사용하면 실행되는 문서에 코드를 넣을 수 있습니다.
 
-  문서 작성 중에 예를 들면 :
+  문서 작성 중에 예를 들면 ::
   
-  ::
       .. ipython:: python
           x = 2
           x**3
           
-  은 다음과 같이 랜더링 됩니다.
+  은 다음과 같이 랜더링 됩니다.::
   
-  ::
       In [1]: x = 2
       In [2]: x**3
       Out[2]: 8
