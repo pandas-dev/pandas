@@ -19,7 +19,7 @@
 팬더 문서를 보려면
 ------------------------------
 
-문서는 **reStructuredText**로 작성되어 있습니다.
+문서는 **reStructuredText** 로 작성되어 있습니다.
 보통 영어로 쓰여진 `Sphinx <http://sphinx.pocoo.org/>`_ 을 사용해 구축되어 있습니다. Sphinx Documentation는 뛰어난 `reST 소개 <http://sphinx.pocoo.org/rest.html>`_ 입니다. Sphinx의 문서를 검토하고 더 많은 기능을 수행하는
 복잡한 문서의 변경도 마찬가지입니다.
 
