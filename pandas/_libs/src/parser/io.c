@@ -15,6 +15,10 @@ The full license is in the LICENSE file, distributed with this software.
 
 void *new_file_source(char *fname, size_t buffer_size) {
     file_source *fs = (file_source *)malloc(sizeof(file_source));
+    if (fs == NULL) {
+        return NULL;
+    }
+
     fs->fp = fopen(fname, "rb");
 
     if (fs->fp == NULL) {
@@ -29,6 +33,9 @@ void *new_file_source(char *fname, size_t buffer_size) {
     fs->buffer = (char *)malloc((buffer_size + 1) * sizeof(char));
 
     if (fs->buffer == NULL) {
+        fclose(fs->fp);
+        free(fs);
+
         return NULL;
     }
 
@@ -187,7 +194,8 @@ void *new_mmap(char *fname) {
         /* XXX Eventually remove this print statement. */
         fprintf(stderr, "new_file_buffer: mmap() failed.\n");
         free(mm);
-        mm = NULL;
+
+        return NULL;
     }
 
     return (void *)mm;
