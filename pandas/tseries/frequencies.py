@@ -975,8 +975,7 @@ class _FrequencyInferer(object):
             else:
                 return _maybe_add_count('D', days)
 
-        # Business daily. Maybe
-        if self.day_deltas == [1, 3]:
+        if self._is_business_daily():
             return 'B'
 
         wom_rule = self._get_wom_rule()
@@ -1011,6 +1010,19 @@ class _FrequencyInferer(object):
         pos_check = self.month_position_check()
         return {'cs': 'MS', 'bs': 'BMS',
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
+
+    WORKING_DAY_SHIFTS = set([(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)])
+
+    def _is_business_daily(self):
+        if self.day_deltas != [1, 3]:  # quick check: cannot be business daily
+            return False
+        # probably business daily, but need to confirm
+        first_weekday = self.index[0].weekday()
+        shifts = np.diff(np.asarray(self.index).view('i8'))
+        shifts = np.floor_divide(shifts, _ONE_DAY)
+        weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
+        return np.all(((weekdays == 0) & (shifts == 3)) |
+                      ((weekdays > 0) & (weekdays <= 4) & (shifts == 1)))
 
     def _get_wom_rule(self):
         #         wdiffs = unique(np.diff(self.index.week))

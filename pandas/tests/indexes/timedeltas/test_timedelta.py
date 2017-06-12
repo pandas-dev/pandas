@@ -567,7 +567,7 @@ class TestSlicing(object):
 
     def test_timedelta(self):
         # this is valid too
-        index = date_range('1/1/2000', periods=50, freq='B')
+        index = date_range('1/1/2000', periods=50, freq='D')
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
         assert tm.equalContents(index, back)

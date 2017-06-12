@@ -504,8 +504,13 @@ class TestFrequencyInference(object):
         pytest.raises(ValueError, frequencies.infer_freq, index)
 
     def test_business_daily(self):
-        index = _dti(['12/31/1998', '1/3/1999', '1/4/1999'])
+        index = _dti(['01/01/1999', '1/4/1999', '1/5/1999'])
         assert frequencies.infer_freq(index) == 'B'
+
+    def test_business_daily_look_alike(self):
+        # 'weekend' (2-day gap) in wrong place
+        index = _dti(['12/31/1998', '1/3/1999', '1/4/1999'])
+        assert frequencies.infer_freq(index) is None
 
     def test_day(self):
         self._check_tick(timedelta(1), 'D')
