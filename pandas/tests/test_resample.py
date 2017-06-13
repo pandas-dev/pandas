@@ -783,15 +783,19 @@ class Base(object):
 
         for freq in ['M', 'D', 'H']:
             # count retains dimensions too
-            methods = downsample_methods + ['count']
+            methods = downsample_methods + upsample_methods
             for method in methods:
                 result = getattr(f.resample(freq), method)()
+                if method != 'size':
+                    expected = f.copy()
+                else:
+                    # GH14962
+                    expected = Series([])
 
-                expected = f.copy()
                 expected.index = f.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
                 assert result.index.freq == expected.index.freq
-                assert_frame_equal(result, expected, check_dtype=False)
+                assert_almost_equal(result, expected, check_dtype=False)
 
             # test size for GH13212 (currently stays as df)
 

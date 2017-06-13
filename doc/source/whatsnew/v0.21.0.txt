@@ -113,6 +113,7 @@ Plotting
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in ``DataFrame.resample().size()`` where an empty DataFrame did not return a Series (:issue:`14962`)
 
 
 
