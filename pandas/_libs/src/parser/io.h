@@ -15,19 +15,10 @@ The full license is in the LICENSE file, distributed with this software.
 
 typedef struct _file_source {
     /* The file being read. */
-    FILE *fp;
+    int fd;
 
     char *buffer;
-
-    /* file position when the file_buffer was created. */
-    off_t initial_file_pos;
-
-    /* Offset in the file of the data currently in the buffer. */
-    off_t buffer_file_pos;
-
-    /* Actual number of bytes in the current buffer. (Can be less than
-     * buffer_size.) */
-    off_t last_pos;
+    size_t size;
 } file_source;
 
 #define FS(source) ((file_source *)source)
@@ -37,20 +28,13 @@ typedef struct _file_source {
 #endif
 
 typedef struct _memory_map {
-    FILE *fp;
+    int fd;
 
     /* Size of the file, in bytes. */
-    off_t size;
-
-    /* file position when the file_buffer was created. */
-    off_t initial_file_pos;
-
-    int line_number;
-
-    int fileno;
-    off_t position;
-    off_t last_pos;
     char *memmap;
+    size_t size;
+
+    size_t position;
 } memory_map;
 
 #define MM(src) ((memory_map *)src)
