@@ -418,6 +418,23 @@ class TestDataFrameAlterAxes(TestData):
                               pd.Index(['bar', 'foo'], name='name'))
         assert renamed.index.name == renamer.index.name
 
+    def test_rename_axis_inplace(self):
+        # GH 15704
+        frame = self.frame.copy()
+        expected = frame.rename_axis('foo')
+        result = frame.copy()
+        no_return = result.rename_axis('foo', inplace=True)
+
+        assert no_return is None
+        assert_frame_equal(result, expected)
+
+        expected = frame.rename_axis('bar', axis=1)
+        result = frame.copy()
+        no_return = result.rename_axis('bar', axis=1, inplace=True)
+
+        assert no_return is None
+        assert_frame_equal(result, expected)
+
     def test_rename_multiindex(self):
 
         tuples_index = [('foo1', 'bar1'), ('foo2', 'bar2')]
