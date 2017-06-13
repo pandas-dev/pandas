@@ -1284,10 +1284,10 @@ class NDFrame(PandasObject, SelectionMixin):
             <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
 
             Applicable only to format='table'.
-        complevel : int, 0-9, default 0
+        complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 disables compression.
-        complib : {'zlib', 'lzo', 'bzip2', 'blosc', None}, default None
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
             Specifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported
             (default if no compressor specified: 'blosc:blosclz'):

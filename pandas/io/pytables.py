@@ -411,10 +411,10 @@ class HDFStore(StringMixin):
             and if the file does not exist it is created.
         ``'r+'``
             It is similar to ``'a'``, but the file must already exist.
-    complevel : int, 0-9, default 0
+    complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 disables compression.
-    complib : {'zlib', 'lzo', 'bzip2', 'blosc', None}, default None
+    complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
             Specifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported
             (default if no compressor specified: 'blosc:blosclz'):
@@ -449,12 +449,15 @@ class HDFStore(StringMixin):
                 "complib only supports {libs} compression.".format(
                     libs=tables.filters.all_complibs))
 
+        if complib is None and complevel is not None:
+            complib = tables.filters.default_complib
+
         self._path = _stringify_path(path)
         if mode is None:
             mode = 'a'
         self._mode = mode
         self._handle = None
-        self._complevel = complevel
+        self._complevel = complevel if complevel else 0
         self._complib = complib
         self._fletcher32 = fletcher32
         self._filters = None
@@ -566,11 +569,8 @@ class HDFStore(StringMixin):
         if self.is_open:
             self.close()
 
-        if self._complib is not None:
-            if self._complevel is None:
-                self._complevel = 9
-            self._filters = _tables().Filters(self._complevel,
-                                              self._complib,
+        if self._complevel and self._complevel > 0:
+            self._filters = _tables().Filters(self._complevel, self._complib,
                                               fletcher32=self._fletcher32)
 
         try:
