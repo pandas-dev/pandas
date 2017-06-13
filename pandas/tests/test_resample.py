@@ -788,16 +788,14 @@ class Base(object):
                 result = getattr(f.resample(freq), method)()
                 if method != 'size':
                     expected = f.copy()
-                    assert_type_equal = assert_frame_equal
                 else:
                     # GH14962
                     expected = Series([])
-                    assert_type_equal = assert_series_equal
 
                 expected.index = f.index._shallow_copy(freq=freq)
                 assert_index_equal(result.index, expected.index)
                 assert result.index.freq == expected.index.freq
-                assert_type_equal(result, expected, check_dtype=False)
+                assert_almost_equal(result, expected, check_dtype=False)
 
             # test size for GH13212 (currently stays as df)
 
