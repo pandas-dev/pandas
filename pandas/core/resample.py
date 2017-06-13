@@ -17,6 +17,7 @@ from pandas.tseries.offsets import DateOffset, Tick, Day, _delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex, period_range
 import pandas.core.common as com
 import pandas.core.algorithms as algos
+from pandas.core.dtypes.generic import ABCDataFrame
 
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
@@ -549,6 +550,15 @@ class Resampler(_GroupBy):
         nv.validate_resampler_func('var', args, kwargs)
         return self._downsample('var', ddof=ddof)
 
+    @Appender(GroupBy.size.__doc__)
+    def size(self):
+        # It's a special case as higher level does return
+        # a copy of 0-len objects. GH14962
+        result = self._downsample('size')
+        if not len(self.ax) and isinstance(self._selected_obj, ABCDataFrame):
+            result = pd.Series([], index=result.index, dtype='int64')
+        return result
+
 
 Resampler._deprecated_valids += dir(Resampler)
 
@@ -563,8 +573,7 @@ for method in ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
     setattr(Resampler, method, f)
 
 # groupby & aggregate methods
-for method in ['count', 'size']:
-
+for method in ['count']:
     def f(self, _method=method):
         return self._downsample(_method)
     f.__doc__ = getattr(GroupBy, method).__doc__
