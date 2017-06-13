@@ -54,7 +54,7 @@ Indexing
 I/O
 ^^^
 
-
+-- Bug in ``pd.read_csv()`` in which files weren't opened as binary files by the C engine on Windows, causing EOF characters mid-field, which would fail (:issue:`16039`, :issue:`16559`, :issue`16675`)
 
 Plotting
 ^^^^^^^^
