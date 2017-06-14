@@ -99,8 +99,8 @@ class TimeConversionFormats(object):
         assert_series_equal(result, expected)
 
         s = Series([200001, 200105, 200206])
-        expected = Series([Timestamp(x[:4] + '-' + x[4:]) for x in s.apply(str)
-                           ])
+        expected = Series([Timestamp(x[:4] + '-' + x[4:])
+                           for x in s.apply(str)])
 
         result = to_datetime(s, format='%Y%m')
         assert_series_equal(result, expected)
@@ -176,44 +176,51 @@ class TimeConversionFormats(object):
 class TestToDatetime(object):
 
     @pytest.mark.parametrize("s, _format, dt", [
-            ['2015-1-1', '%G-%V-%u', datetime(2014, 12, 29, 0, 0)],
-            ['2015-1-4', '%G-%V-%u', datetime(2015, 1, 1, 0, 0)],
-            ['2015-1-7', '%G-%V-%u', datetime(2015, 1, 4, 0, 0)]
-            ])
+        ['2015-1-1', '%G-%V-%u', datetime(2014, 12, 29, 0, 0)],
+        ['2015-1-4', '%G-%V-%u', datetime(2015, 1, 1, 0, 0)],
+        ['2015-1-7', '%G-%V-%u', datetime(2015, 1, 4, 0, 0)]
+    ])
     def test_to_datetime_iso_week_year_format(self, s, _format, dt):
-            assert to_datetime(s, format = _format) == dt
+        assert to_datetime(s, format=_format) == dt
 
     @pytest.mark.parametrize("msg, s, _format", [
-            ["ISO week directive '%V' must be used with the ISO year directive '%G' "
-             "and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 50", "%Y %V"],
-            ["ISO year directive '%G' must be used with the ISO week directive '%V' "
-             "and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 51", "%G %V"],
-            ["ISO year directive '%G' must be used with the ISO week directive '%V' "
-             "and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 Monday", "%G %A"],
-            ["ISO year directive '%G' must be used with the ISO week directive '%V' "
-             "and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 Mon", "%G %a"],
-            ["ISO year directive '%G' must be used with the ISO week directive '%V' "
-             "and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 6", "%G %w"],
-            ["ISO year directive '%G' must be used with the ISO week directive '%V' "
-             "and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 6", "%G %u"],
-            ["ISO year directive '%G' must be used with the ISO week directive '%V' "
-             "and a weekday directive '%A', '%a', '%w', or '%u'.", "2051", "%G"],
-            ["Day of the year directive '%j' is not compatible with ISO year directive "
-             "'%G'. Use '%Y' instead.", "1999 51 6 256", "%G %V %u %j"],
-            ["ISO week directive '%V' is incompatible with the year directive '%Y'. "
-             "Use the ISO year '%G' instead.", "1999 51 Sunday", "%Y %V %A"],
-            ["ISO week directive '%V' is incompatible with the year directive '%Y'. "
-             "Use the ISO year '%G' instead.", "1999 51 Sun", "%Y %V %a"],
-            ["ISO week directive '%V' is incompatible with the year directive '%Y'. "
-             "Use the ISO year '%G' instead.", "1999 51 1", "%Y %V %w"],
-            ["ISO week directive '%V' is incompatible with the year directive '%Y'. "
-             "Use the ISO year '%G' instead.", "1999 51 1", "%Y %V %u"],
-            ["ISO week directive '%V' must be used with the ISO year directive '%G' "
-             "and a weekday directive '%A', '%a', '%w', or '%u'.", "20", "%V"]
-             ])
+        ["ISO week directive '%V' must be used with the ISO year directive "
+         "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 50",
+         "%V"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 51",
+         "%G %V"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 "
+         "Monday", "%G %A"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 Mon",
+         "%G %a"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 6",
+         "%G %w"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "1999 6",
+         "%G %u"],
+        ["ISO year directive '%G' must be used with the ISO week directive "
+         "'%V' and a weekday directive '%A', '%a', '%w', or '%u'.", "2051",
+         "%G"],
+        ["Day of the year directive '%j' is not compatible with ISO year "
+         "directive '%G'. Use '%Y' instead.", "1999 51 6 256", "%G %V %u %j"],
+        ["ISO week directive '%V' is incompatible with the year directive "
+         "'%Y'. Use the ISO year '%G' instead.", "1999 51 Sunday", "%Y %V %A"],
+        ["ISO week directive '%V' is incompatible with the year directive "
+         "'%Y'. Use the ISO year '%G' instead.", "1999 51 Sun", "%Y %V %a"],
+        ["ISO week directive '%V' is incompatible with the year directive "
+         "'%Y'. Use the ISO year '%G' instead.", "1999 51 1", "%Y %V %w"],
+        ["ISO week directive '%V' is incompatible with the year directive "
+         "'%Y'. Use the ISO year '%G' instead.", "1999 51 1", "%Y %V %u"],
+        ["ISO week directive '%V' must be used with the ISO year directive "
+         "'%G' and a weekday directive '%A', '%a', '%w', or '%u'.", "20", "%V"]
+    ])
     def test_ValueError_iso_week_year(self, msg, s, _format):
         with tm.assert_raises_regex(ValueError, msg):
-            to_datetime(s, format = _format)
+            to_datetime(s, format=_format)
 
     def test_to_datetime_dt64s(self):
         in_bound_dts = [
@@ -289,11 +296,23 @@ class TestToDatetime(object):
     def test_to_datetime_tz_pytz(self):
         # see gh-8260
         us_eastern = pytz.timezone('US/Eastern')
-        arr = np.array([us_eastern.localize(datetime(year=2000, month=1, day=1,
-                                                     hour=3, minute=0)),
-                        us_eastern.localize(datetime(year=2000, month=6, day=1,
-                                                     hour=3, minute=0))],
-                       dtype=object)
+        arr = np.array(
+            [
+                us_eastern.localize(
+                    datetime(
+                        year=2000,
+                        month=1,
+                        day=1,
+                        hour=3,
+                        minute=0)),
+                us_eastern.localize(
+                    datetime(
+                        year=2000,
+                        month=6,
+                        day=1,
+                        hour=3,
+                        minute=0))],
+            dtype=object)
         result = pd.to_datetime(arr, utc=True)
         expected = DatetimeIndex(['2000-01-01 08:00:00+00:00',
                                   '2000-06-01 07:00:00+00:00'],
@@ -996,9 +1015,13 @@ class TestToDatetimeInferFormat(object):
         tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False),
                                pd.to_datetime(s, infer_datetime_format=True))
 
-    def test_to_datetime_infer_datetime_format_series_starting_with_nans(self):
-        s = pd.Series(np.array([np.nan, np.nan, '01/01/2011 00:00:00',
-                                '01/02/2011 00:00:00', '01/03/2011 00:00:00']))
+    def test_to_datetime_infer_datetime_format_series_starting_with_nans(
+            self):
+        s = pd.Series(np.array([np.nan,
+                                np.nan,
+                                '01/01/2011 00:00:00',
+                                '01/02/2011 00:00:00',
+                                '01/03/2011 00:00:00']))
 
         tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False),
                                pd.to_datetime(s, infer_datetime_format=True))
