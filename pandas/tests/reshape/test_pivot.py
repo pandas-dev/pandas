@@ -1218,7 +1218,7 @@ class TestCrosstab(object):
         df = pd.DataFrame({'a': [1, 2, 2, 2, 2, np.nan],
                            'b': [3, 3, 4, 4, 4, 4]})
         actual = pd.crosstab(df.a, df.b, margins=True, dropna=False)
-        expected = pd.DataFrame([[1, 0, 1], [1, 3, 4], [2, 4, 6]])
+        expected = pd.DataFrame([[1, 0, 1], [1, 3, 4], [2, 3, 5]])
         expected.index = Index([1.0, 2.0, 'All'], name='a')
         expected.columns = Index([3, 4, 'All'], name='b')
         tm.assert_frame_equal(actual, expected)
@@ -1226,7 +1226,7 @@ class TestCrosstab(object):
         df = DataFrame({'a': [1, np.nan, np.nan, np.nan, 2, np.nan],
                         'b': [3, np.nan, 4, 4, 4, 4]})
         actual = pd.crosstab(df.a, df.b, margins=True, dropna=False)
-        expected = pd.DataFrame([[1, 0, 1], [0, 1, 1], [1, 4, 6]])
+        expected = pd.DataFrame([[1, 0, 1], [0, 1, 1], [1, 1, 2]])
         expected.index = Index([1.0, 2.0, 'All'], name='a')
         expected.columns = Index([3.0, 4.0, 'All'], name='b')
         tm.assert_frame_equal(actual, expected)
@@ -1243,8 +1243,8 @@ class TestCrosstab(object):
         m = MultiIndex.from_arrays([['one', 'one', 'two', 'two', 'All'],
                                     ['dull', 'shiny', 'dull', 'shiny', '']],
                                    names=['b', 'c'])
-        expected = DataFrame([[1, 0, 1, 0, 2], [2, 0, 1, 1, 5],
-                              [3, 0, 2, 1, 7]], columns=m)
+        expected = DataFrame([[1, 0, 1, 0, 2], [2, 0, 1, 1, 4],
+                              [3, 0, 2, 1, 6]], columns=m)
         expected.index = Index(['bar', 'foo', 'All'], name='a')
         tm.assert_frame_equal(actual, expected)
 
@@ -1254,7 +1254,7 @@ class TestCrosstab(object):
                                     ['one', 'two', 'one', 'two', '']],
                                    names=['a', 'b'])
         expected = DataFrame([[1, 0, 1], [1, 0, 1], [2, 0, 2], [1, 1, 2],
-                              [5, 2, 7]], index=m)
+                              [5, 1, 6]], index=m)
         expected.columns = Index(['dull', 'shiny', 'All'], name='c')
         tm.assert_frame_equal(actual, expected)
 
@@ -1455,22 +1455,23 @@ class TestCrosstab(object):
         df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
                            'c': [1, 1, np.nan, 1, 1]})
 
-        error = 'values cannot be used without an aggfunc.'
+        error = "values cannot be used without an aggfunc."
         with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, values=df.c)
 
-        error = 'aggfunc cannot be used without values'
+        error = "aggfunc cannot be used without values"
         with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, aggfunc=np.mean)
 
-        error = 'Not a valid normalize argument'
+        error = "Not a valid normalize argument: '42'"
         with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, normalize='42')
 
+        error = "Not a valid normalize argument: 42"
         with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, normalize=42)
 
-        error = 'Not a valid margins argument'
+        error = "Not a valid margins argument: 42"
         with tm.assert_raises_regex(ValueError, error):
             pd.crosstab(df.a, df.b, normalize='all', margins=42)
 
@@ -1529,6 +1530,7 @@ class TestCrosstab(object):
         expected = pd.DataFrame(expected_data,
                                 index=expected_index,
                                 columns=expected_column)
+
         tm.assert_frame_equal(result, expected)
 
 
