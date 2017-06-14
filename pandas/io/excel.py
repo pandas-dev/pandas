@@ -77,8 +77,7 @@ sheetname : string, int, mixed list of strings/ints, or None, default 0
 header : int, list of ints, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
-    be combined into a ``MultiIndex``
-    Use None if there is no header
+    be combined into a ``MultiIndex``. Use None if there is no header.
 skiprows : list-like
     Rows to skip at the beginning (0-indexed)
 skip_footer : int, default 0
